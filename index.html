@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Official website of the Newcomb & District Cricket Club (NDCC DINOS) at Grinter Reserve, Moolap." />
+    <meta name="theme-color" content="#800000" />
+    <title>Newcomb & District Cricket Club | NDCC DINOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --ndcc-maroon: #800000;
+        --ndcc-light-blue: #add8e6;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      .bg-brand-maroon {
+        background-color: var(--ndcc-maroon);
+      }
+
+      .text-brand-maroon {
+        color: var(--ndcc-maroon);
+      }
+
+      .bg-brand-blue {
+        background-color: var(--ndcc-light-blue);
+      }
+
+      .text-brand-blue {
+        color: var(--ndcc-light-blue);
+      }
+
+      .border-brand-blue {
+        border-color: var(--ndcc-light-blue);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased">
+    <nav class="sticky top-0 z-50 border-b border-slate-200 bg-brand-maroon/95 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <a href="#home" class="flex items-center gap-3" aria-label="NDCC DINOS home">
+          <img src="https://i.imgur.com/NfQYQ4x.png" alt="Newcomb & District Cricket Club DINOS crest" class="h-12 w-12 rounded-full border-2 border-brand-blue bg-white object-cover" />
+          <span class="text-lg font-bold tracking-wide text-white">NDCC DINOS</span>
+        </a>
+        <ul class="flex items-center gap-4 text-sm font-semibold text-white sm:gap-6">
+          <li><a class="transition hover:text-brand-blue" href="#home">Home</a></li>
+          <li><a class="transition hover:text-brand-blue" href="#about">About</a></li>
+          <li><a class="transition hover:text-brand-blue" href="#facilities">Facilities</a></li>
+          <li><a class="transition hover:text-brand-blue" href="#teams">Teams</a></li>
+          <li><a class="transition hover:text-brand-blue" href="#contact">Contact</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <header id="home" class="relative overflow-hidden">
+      <img
+        src="https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=2000&q=80"
+        alt="Cricket pitch and outfield"
+        class="h-[50vh] min-h-[360px] w-full object-cover"
+      />
+      <div class="absolute inset-0 bg-slate-900/55"></div>
+      <div class="absolute inset-0 mx-auto flex max-w-6xl items-center px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl text-white">
+          <p class="mb-3 inline-block rounded-full bg-brand-blue/20 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-brand-blue">Est. 1972</p>
+          <h1 class="text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">Newcomb &amp; District Cricket Club</h1>
+          <p class="mt-4 text-base text-slate-100 sm:text-lg">Providing inclusive community sport and elite cricket development at Grinter Reserve.</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="about" class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-brand-maroon sm:text-3xl">Our History and Community</h2>
+        <div class="mt-6 space-y-4 text-base leading-relaxed text-slate-700">
+          <p>Newcomb &amp; District Cricket Club is proudly affiliated with the Geelong Cricket Association and continues to develop players in a competitive and welcoming club environment.</p>
+          <p>The club is accredited through Good Sports, reinforcing a strong commitment to a healthy, safe, and inclusive sporting culture for players, families, and supporters.</p>
+          <p>At Grinter Reserve, Newcomb &amp; District Cricket Club shares deep community roots with the Newcomb Power Football Netball Club, building year-round local connection through sport.</p>
+        </div>
+      </section>
+
+      <section id="facilities" class="bg-white py-14">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 class="text-2xl font-bold text-brand-maroon sm:text-3xl">World Class Facilities</h2>
+          <p class="mt-4 max-w-3xl text-slate-700">The Peter 'Skinny' Harrison Training Facility opened in August 2024 and provides high-quality cricket training access for the wider community and NDCC programs.</p>
+          <div class="mt-8 grid gap-4 sm:grid-cols-2">
+            <article class="rounded-xl border border-brand-blue bg-slate-50 p-6">
+              <h3 class="text-lg font-bold text-brand-maroon">3 Public Synthetic Lanes</h3>
+              <p class="mt-2 text-slate-700">Accessible synthetic training lanes that support local participation and regular skill development sessions.</p>
+            </article>
+            <article class="rounded-xl border border-brand-blue bg-slate-50 p-6">
+              <h3 class="text-lg font-bold text-brand-maroon">4 Club Reserved Turf Lanes</h3>
+              <p class="mt-2 text-slate-700">Dedicated turf lanes reserved for club use, enabling structured training aligned to elite cricket development.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="teams" class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-brand-maroon sm:text-3xl">Teams</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          <article class="rounded-xl bg-brand-maroon p-6 text-white">
+            <h3 class="text-lg font-bold">Senior Men</h3>
+            <p class="mt-2 text-slate-100">Competing in Geelong Cricket Association Division GCA 4.</p>
+          </article>
+          <article class="rounded-xl bg-brand-maroon p-6 text-white">
+            <h3 class="text-lg font-bold">Senior Women</h3>
+            <p class="mt-2 text-slate-100">Competing in Geelong Cricket Association E Grade East.</p>
+          </article>
+          <article class="rounded-xl bg-brand-maroon p-6 text-white">
+            <h3 class="text-lg font-bold">Junior Boys</h3>
+            <p class="mt-2 text-slate-100">Junior boys teams supporting pathway development and community participation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="contact" class="bg-white py-14">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 class="text-2xl font-bold text-brand-maroon sm:text-3xl">Contact</h2>
+          <div class="mt-6 grid gap-6 md:grid-cols-2">
+            <article class="rounded-xl border border-slate-200 p-6">
+              <h3 class="text-lg font-bold text-slate-900">Ground Address</h3>
+              <p class="mt-2 text-slate-700">Grinter Reserve, 141 Coppards Road, Moolap</p>
+            </article>
+            <article class="rounded-xl border border-slate-200 p-6">
+              <h3 class="text-lg font-bold text-slate-900">Club Officials</h3>
+              <ul class="mt-2 space-y-1 text-slate-700">
+                <li><span class="font-semibold">President:</span> John Elliott</li>
+                <li><span class="font-semibold">Vice President:</span> Troy Whitworth</li>
+                <li><span class="font-semibold">Treasurer:</span> Laura Hudson</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-brand-maroon py-6">
+      <div class="mx-auto max-w-6xl px-4 text-center text-sm text-slate-100 sm:px-6 lg:px-8">
+        Newcomb &amp; District Cricket Club acknowledges the Traditional Owners of the land on which we gather, the Wadawurrung People of Wadawurrung Country.
+      </div>
+    </footer>
+  </body>
+</html>
