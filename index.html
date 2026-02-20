@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Newcomb & District Cricket Club – Providing inclusive community sport and elite cricket development at Grinter Reserve, Geelong." />
+  <meta property="og:title" content="Newcomb & District Cricket Club" />
+  <meta property="og:description" content="Providing inclusive community sport and elite cricket development at Grinter Reserve." />
+  <meta property="og:type" content="website" />
+  <title>Newcomb &amp; District Cricket Club – NDCC Dinos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            maroon: {
+              DEFAULT: '#800000',
+              dark:    '#5a0000',
+              light:   '#a83232',
+            },
+            skyblue: {
+              DEFAULT: '#ADD8E6',
+              dark:    '#7ab8cc',
+              light:   '#d4eef6',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    /* ── Brand palette ── */
+    :root {
+      --color-maroon:   #800000;
+      --color-maroon-d: #5a0000;
+      --color-maroon-l: #a83232;
+      --color-skyblue:  #ADD8E6;
+      --color-skyblue-d:#7ab8cc;
+      --color-skyblue-l:#d4eef6;
+    }
+
+    /* ── Google Fonts ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+    /* ── Utility overrides ── */
+    html { scroll-behavior: smooth; }
+
+    .bg-maroon         { background-color: var(--color-maroon); }
+    .bg-maroon-dark    { background-color: var(--color-maroon-d); }
+    .text-maroon       { color: var(--color-maroon); }
+    .text-skyblue      { color: var(--color-skyblue); }
+    .border-maroon     { border-color: var(--color-maroon); }
+    .border-skyblue    { border-color: var(--color-skyblue); }
+
+    /* ── Hero overlay ── */
+    .hero-overlay {
+      background: linear-gradient(
+        135deg,
+        rgba(128,0,0,0.82) 0%,
+        rgba(90,0,0,0.70)  50%,
+        rgba(0,0,0,0.55)   100%
+      );
+    }
+
+    /* ── Animated underline for nav links ── */
+    .nav-link {
+      position: relative;
+      transition: color 0.2s;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      left: 0; bottom: -3px;
+      width: 0; height: 2px;
+      background: var(--color-skyblue);
+      transition: width 0.25s ease;
+    }
+    .nav-link:hover::after,
+    .nav-link:focus::after { width: 100%; }
+    .nav-link:hover,
+    .nav-link:focus { color: var(--color-skyblue); }
+
+    /* ── Section fade-in ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Card hover lift ── */
+    .card-lift {
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+    }
+    .card-lift:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 28px rgba(128,0,0,0.18);
+    }
+
+    /* ── Mobile nav toggle ── */
+    #mobile-menu { transition: max-height 0.3s ease, opacity 0.3s ease; }
+  </style>
+</head>
+<body class="font-sans text-gray-800 bg-white">
+
+  <!-- ═══════════════════════════════════════════
+       NAVIGATION
+  ═══════════════════════════════════════════ -->
+  <header id="top" class="sticky top-0 z-50 bg-maroon shadow-lg">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Logo + Brand -->
+        <a href="#top" class="flex items-center gap-3 group" aria-label="NDCC Dinos home">
+          <!-- Cricket-ball SVG logo (club colours) -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
+               width="42" height="42" aria-hidden="true" class="flex-shrink-0">
+            <circle cx="32" cy="32" r="30" fill="#ADD8E6" stroke="#fff" stroke-width="2"/>
+            <!-- seam lines -->
+            <path d="M12 24 Q32 14 52 24" fill="none" stroke="#800000" stroke-width="3" stroke-linecap="round"/>
+            <path d="M12 40 Q32 50 52 40" fill="none" stroke="#800000" stroke-width="3" stroke-linecap="round"/>
+            <path d="M24 12 Q14 32 24 52" fill="none" stroke="#800000" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 12 Q50 32 40 52" fill="none" stroke="#800000" stroke-width="2" stroke-linecap="round"/>
+            <!-- Dino silhouette (simplified) -->
+            <text x="32" y="38" text-anchor="middle" font-size="20" fill="#800000" font-family="serif">🦕</text>
+          </svg>
+          <div class="leading-tight">
+            <span class="block text-white font-extrabold text-lg tracking-widest uppercase">NDCC</span>
+            <span class="block text-skyblue font-semibold text-xs tracking-[0.25em] uppercase">Dinos</span>
+          </div>
+        </a>
+
+        <!-- Desktop nav links -->
+        <ul class="hidden md:flex items-center gap-7 text-sm font-semibold text-white uppercase tracking-wide">
+          <li><a href="#about"      class="nav-link">About</a></li>
+          <li><a href="#facilities" class="nav-link">Facilities</a></li>
+          <li><a href="#teams"      class="nav-link">Teams</a></li>
+          <li><a href="#contact"    class="nav-link">Contact</a></li>
+          <li>
+            <a href="#teams"
+               class="bg-skyblue text-maroon px-4 py-2 rounded-full font-bold hover:bg-white transition-colors duration-200">
+              Join The Dinos
+            </a>
+          </li>
+        </ul>
+
+        <!-- Mobile hamburger -->
+        <button id="hamburger" aria-controls="mobile-menu" aria-expanded="false"
+                class="md:hidden flex flex-col gap-1.5 p-2 rounded focus:outline-none focus:ring-2 focus:ring-skyblue"
+                aria-label="Toggle navigation menu">
+          <span class="block w-6 h-0.5 bg-white transition-all duration-200" id="ham-1"></span>
+          <span class="block w-6 h-0.5 bg-white transition-all duration-200" id="ham-2"></span>
+          <span class="block w-6 h-0.5 bg-white transition-all duration-200" id="ham-3"></span>
+        </button>
+      </div>
+
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="md:hidden overflow-hidden max-h-0 opacity-0" aria-hidden="true">
+        <ul class="flex flex-col gap-1 pb-4 text-white font-semibold text-sm uppercase tracking-wide">
+          <li><a href="#about"      class="block py-2 px-1 hover:text-skyblue" onclick="closeMenu()">About</a></li>
+          <li><a href="#facilities" class="block py-2 px-1 hover:text-skyblue" onclick="closeMenu()">Facilities</a></li>
+          <li><a href="#teams"      class="block py-2 px-1 hover:text-skyblue" onclick="closeMenu()">Teams</a></li>
+          <li><a href="#contact"    class="block py-2 px-1 hover:text-skyblue" onclick="closeMenu()">Contact</a></li>
+          <li class="pt-2">
+            <a href="#teams"
+               class="inline-block bg-skyblue text-maroon px-5 py-2 rounded-full font-bold"
+               onclick="closeMenu()">
+              Join The Dinos
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+
+  <!-- ═══════════════════════════════════════════
+       HERO
+  ═══════════════════════════════════════════ -->
+  <section aria-label="Hero"
+    class="relative min-h-[88vh] flex items-center justify-center overflow-hidden"
+    style="background: linear-gradient(135deg, #1a0000 0%, #3d0000 40%, #1c3a4a 100%);">
+
+    <!-- Decorative cricket pitch lines (pure CSS) -->
+    <div class="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                  w-[340px] h-[600px] border-4 border-white rounded-lg rotate-12"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                  w-[200px] h-[600px] border-2 border-skyblue rotate-12"></div>
+    </div>
+
+    <!-- Floating cricket balls -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div class="absolute top-10 left-6 w-14 h-14 rounded-full opacity-10"
+           style="background:#ADD8E6; animation: float1 8s ease-in-out infinite;"></div>
+      <div class="absolute bottom-24 right-10 w-20 h-20 rounded-full opacity-10"
+           style="background:#800000; animation: float2 10s ease-in-out infinite;"></div>
+      <div class="absolute top-1/3 right-1/4 w-8 h-8 rounded-full opacity-15"
+           style="background:#ADD8E6; animation: float1 6s ease-in-out infinite reverse;"></div>
+    </div>
+
+    <style>
+      @keyframes float1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
+      @keyframes float2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(14px)} }
+    </style>
+
+    <div class="relative z-10 text-center px-6 max-w-4xl mx-auto reveal">
+      <!-- Club emblem -->
+      <div class="mb-6 flex justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"
+             width="100" height="100" aria-hidden="true" class="drop-shadow-2xl">
+          <circle cx="60" cy="60" r="56" fill="none" stroke="#ADD8E6" stroke-width="4"/>
+          <circle cx="60" cy="60" r="48" fill="#800000"/>
+          <text x="60" y="52" text-anchor="middle" font-family="serif" font-size="14"
+                font-weight="bold" fill="#ADD8E6" letter-spacing="3">NDCC</text>
+          <text x="60" y="72" text-anchor="middle" font-family="serif" font-size="28"
+                fill="#ADD8E6">🦕</text>
+          <text x="60" y="90" text-anchor="middle" font-family="serif" font-size="10"
+                fill="#ADD8E6" letter-spacing="2">DINOS</text>
+        </svg>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-4">
+        Newcomb &amp; District<br/>
+        <span style="color:#ADD8E6;">Cricket Club</span>
+      </h1>
+      <p class="text-lg sm:text-xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed">
+        Providing inclusive community sport and elite cricket development<br
+          class="hidden sm:block"/> at <strong class="text-white">Grinter Reserve</strong>.
+      </p>
+      <a href="#teams"
+         class="inline-block font-bold text-base uppercase tracking-widest px-10 py-4 rounded-full
+                shadow-xl hover:shadow-2xl transition-all duration-200 hover:-translate-y-1"
+         style="background:#ADD8E6; color:#800000;">
+        Join The Dinos
+      </a>
+
+      <!-- Scroll indicator -->
+      <div class="mt-16 flex justify-center opacity-60" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none"
+             viewBox="0 0 24 24" stroke="#ADD8E6" stroke-width="2"
+             style="animation: float1 2s ease-in-out infinite">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════
+       ABOUT
+  ═══════════════════════════════════════════ -->
+  <section id="about" class="py-20 bg-white" aria-labelledby="about-heading">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-14 reveal">
+        <span class="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-3"
+              style="color:#ADD8E6; background:#800000; padding:4px 14px; border-radius:999px;">
+          Est. Geelong Region
+        </span>
+        <h2 id="about-heading" class="text-3xl sm:text-4xl font-extrabold text-maroon mt-2">
+          Our History and Community
+        </h2>
+        <div class="mt-4 mx-auto w-16 h-1 rounded-full" style="background:#800000;"></div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-12 items-start">
+
+        <!-- Text content -->
+        <div class="space-y-6 reveal">
+          <p class="text-gray-700 text-base sm:text-lg leading-relaxed">
+            The Newcomb and District Cricket Club is a cornerstone of community sport in the
+            Geelong region. Affiliated with the <strong>Geelong Cricket Association</strong> and
+            <strong>Cricket Victoria</strong>, we offer opportunities for players of all ages and
+            skill levels.
+          </p>
+          <p class="text-gray-700 text-base sm:text-lg leading-relaxed">
+            Known proudly as <strong>the Dinos</strong>, we share a rich local history with the
+            Newcomb Power Football Netball Club. Our mission extends beyond the boundary rope,
+            focusing on social engagement, cultural diversity, and partnering with organizations
+            like the Newcomb Softball club to ensure inclusive participation.
+          </p>
+        </div>
+
+        <!-- Quick facts -->
+        <div class="reveal">
+          <h3 class="text-xl font-bold text-maroon mb-6 flex items-center gap-2">
+            <span class="w-1 h-6 rounded-full inline-block" style="background:#ADD8E6;"></span>
+            Quick Facts
+          </h3>
+          <dl class="space-y-4">
+            <div class="flex items-start gap-4 p-4 rounded-xl bg-gray-50 card-lift border border-gray-100">
+              <dt class="w-36 flex-shrink-0 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                Association
+              </dt>
+              <dd class="text-gray-800 font-medium">Geelong Cricket Association</dd>
+            </div>
+            <div class="flex items-start gap-4 p-4 rounded-xl bg-gray-50 card-lift border border-gray-100">
+              <dt class="w-36 flex-shrink-0 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                Home Ground
+              </dt>
+              <dd class="text-gray-800 font-medium">Grinter Reserve, Moolap</dd>
+            </div>
+            <div class="flex items-start gap-4 p-4 rounded-xl bg-gray-50 card-lift border border-gray-100">
+              <dt class="w-36 flex-shrink-0 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                First XI Grade
+              </dt>
+              <dd class="text-gray-800 font-medium">GCA 4</dd>
+            </div>
+            <div class="flex items-start gap-4 p-4 rounded-xl bg-gray-50 card-lift border border-gray-100">
+              <dt class="w-36 flex-shrink-0 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                Status
+              </dt>
+              <dd class="text-gray-800 font-medium flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full" style="background:#22c55e;"></span>
+                Good Sports Accredited
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════
+       FACILITIES
+  ═══════════════════════════════════════════ -->
+  <section id="facilities"
+           class="py-20"
+           style="background: linear-gradient(180deg, #f8f8f8 0%, #f0f5f8 100%);"
+           aria-labelledby="facilities-heading">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-14 reveal">
+        <span class="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-3"
+              style="color:#ADD8E6; background:#800000; padding:4px 14px; border-radius:999px;">
+          Grinter Reserve, Moolap
+        </span>
+        <h2 id="facilities-heading" class="text-3xl sm:text-4xl font-extrabold text-maroon mt-2">
+          World Class Facilities
+        </h2>
+        <div class="mt-4 mx-auto w-16 h-1 rounded-full" style="background:#800000;"></div>
+      </div>
+
+      <!-- Named facility card -->
+      <div class="rounded-3xl overflow-hidden shadow-2xl mb-14 reveal"
+           style="border: 3px solid #800000;">
+        <div class="grid md:grid-cols-5">
+
+          <!-- Accent panel -->
+          <div class="md:col-span-2 flex flex-col items-center justify-center p-10 text-center"
+               style="background: linear-gradient(135deg, #800000, #5a0000);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"
+                 fill="none" aria-hidden="true" class="mb-4">
+              <circle cx="32" cy="32" r="30" fill="#ADD8E6" fill-opacity="0.25" stroke="#ADD8E6" stroke-width="2"/>
+              <path d="M20 44 L32 14 L44 44" fill="none" stroke="#ADD8E6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M24 36 L40 36" stroke="#ADD8E6" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <h3 class="text-xl font-extrabold text-white mb-1">
+              Peter 'Skinny'<br/>Harrison
+            </h3>
+            <p class="text-skyblue text-sm font-semibold tracking-wide uppercase">
+              Training Facility
+            </p>
+            <span class="mt-4 inline-block text-xs text-gray-200 bg-white/10 px-3 py-1 rounded-full">
+              Opened August 2024
+            </span>
+          </div>
+
+          <!-- Description -->
+          <div class="md:col-span-3 bg-white p-8 sm:p-10">
+            <p class="text-gray-700 leading-relaxed text-base sm:text-lg mb-8">
+              Officially opened in <strong>August 2024</strong>, our new training complex at Grinter Reserve
+              represents a massive investment in local sports infrastructure. Named in honor of our
+              legendary player and long-time curator, this facility replaces outdated nets to provide
+              a centralized, safe, and inclusive environment for all members.
+            </p>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+
+              <!-- Synthetic lanes -->
+              <div class="rounded-2xl p-5 border-2 card-lift" style="border-color:#ADD8E6; background:#f0fafd;">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="w-10 h-10 flex items-center justify-center rounded-full font-extrabold text-lg"
+                        style="background:#ADD8E6; color:#800000;">3</span>
+                  <h4 class="font-bold text-gray-800">Synthetic Lanes</h4>
+                </div>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                  Publicly accessible, all-weather synthetic grass nets designed to support community
+                  use and junior pathways.
+                </p>
+              </div>
+
+              <!-- Turf lanes -->
+              <div class="rounded-2xl p-5 border-2 card-lift" style="border-color:#800000; background:#fff5f5;">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="w-10 h-10 flex items-center justify-center rounded-full font-extrabold text-lg text-white"
+                        style="background:#800000;">4</span>
+                  <h4 class="font-bold text-gray-800">Turf Lanes</h4>
+                </div>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                  Premium natural turf practice wickets reserved for club training to ensure elite
+                  preparation for our senior squads.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════
+       TEAMS
+  ═══════════════════════════════════════════ -->
+  <section id="teams" class="py-20 bg-white" aria-labelledby="teams-heading">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-14 reveal">
+        <span class="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-3"
+              style="color:#ADD8E6; background:#800000; padding:4px 14px; border-radius:999px;">
+          GCA &amp; Junior Competitions
+        </span>
+        <h2 id="teams-heading" class="text-3xl sm:text-4xl font-extrabold text-maroon mt-2">
+          Our Teams
+        </h2>
+        <div class="mt-4 mx-auto w-16 h-1 rounded-full" style="background:#800000;"></div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+
+        <!-- Senior Men -->
+        <article class="rounded-2xl overflow-hidden shadow-md card-lift border border-gray-100 reveal flex flex-col">
+          <div class="p-6 flex items-center gap-4" style="background:#800000;">
+            <span class="text-3xl" aria-hidden="true">🏏</span>
+            <div>
+              <h3 class="text-lg font-extrabold text-white">Senior Men</h3>
+              <p class="text-xs font-semibold tracking-wide uppercase" style="color:#ADD8E6;">
+                GCA Mens Competition
+              </p>
+            </div>
+          </div>
+          <div class="p-6 bg-white flex-1">
+            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+              Competing fiercely in the GCA Mens Competition. Our First XI competes in
+              <strong>GCA 4</strong>, supported by our 3rd XI in the <strong>OD1</strong> grade.
+            </p>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#800000;"></span>
+                First XI – GCA 4
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#ADD8E6;"></span>
+                3rd XI – OD1 Grade
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Senior Women -->
+        <article class="rounded-2xl overflow-hidden shadow-md card-lift border border-gray-100 reveal flex flex-col">
+          <div class="p-6 flex items-center gap-4" style="background:#ADD8E6;">
+            <span class="text-3xl" aria-hidden="true">🏏</span>
+            <div>
+              <h3 class="text-lg font-extrabold" style="color:#800000;">Senior Women</h3>
+              <p class="text-xs font-semibold tracking-wide uppercase" style="color:#5a0000;">
+                GCA Womens League
+              </p>
+            </div>
+          </div>
+          <div class="p-6 bg-white flex-1">
+            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+              A rapidly growing program competing in the <strong>GCA Womens League E Grade East</strong>
+              division. We are dedicated to the emergence of women's cricket.
+            </p>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#800000;"></span>
+                E Grade East – GCA Womens League
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Juniors -->
+        <article class="rounded-2xl overflow-hidden shadow-md card-lift border border-gray-100 reveal flex flex-col sm:col-span-2 lg:col-span-1">
+          <div class="p-6 flex items-center gap-4"
+               style="background: linear-gradient(135deg, #800000, #5a0000);">
+            <span class="text-3xl" aria-hidden="true">⭐</span>
+            <div>
+              <h3 class="text-lg font-extrabold text-white">Junior Boys &amp; Girls</h3>
+              <p class="text-xs font-semibold tracking-wide uppercase" style="color:#ADD8E6;">
+                Geelong Junior Cricket
+              </p>
+            </div>
+          </div>
+          <div class="p-6 bg-white flex-1">
+            <p class="text-gray-700 text-sm leading-relaxed mb-4">
+              Developing the next generation of Dinos. We field multiple teams in the
+              <strong>Geelong Junior Cricket Competition</strong>.
+            </p>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#800000;"></span>
+                Under 11
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#ADD8E6;"></span>
+                Under 13
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#800000;"></span>
+                Under 15
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:#ADD8E6;"></span>
+                Under 17
+              </li>
+            </ul>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- CTA banner -->
+      <div class="mt-14 rounded-3xl p-8 sm:p-12 text-center reveal"
+           style="background: linear-gradient(135deg, #800000 0%, #5a0000 100%);">
+        <h3 class="text-2xl sm:text-3xl font-extrabold text-white mb-3">Ready to be a Dino?</h3>
+        <p class="text-gray-200 mb-7 max-w-lg mx-auto">
+          Whether you're a seasoned cricketer or picking up the bat for the first time,
+          there's a place for you at NDCC.
+        </p>
+        <a href="#contact"
+           class="inline-block font-bold uppercase tracking-widest px-10 py-4 rounded-full
+                  hover:-translate-y-1 transition-transform duration-200"
+           style="background:#ADD8E6; color:#800000;">
+          Get in Touch
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════
+       CONTACT
+  ═══════════════════════════════════════════ -->
+  <section id="contact"
+           style="background: linear-gradient(180deg, #f0f5f8 0%, #e8eef2 100%);"
+           class="py-20"
+           aria-labelledby="contact-heading">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-14 reveal">
+        <span class="inline-block text-xs font-bold uppercase tracking-[0.3em] mb-3"
+              style="color:#ADD8E6; background:#800000; padding:4px 14px; border-radius:999px;">
+          We'd Love To Hear From You
+        </span>
+        <h2 id="contact-heading" class="text-3xl sm:text-4xl font-extrabold text-maroon mt-2">
+          Get in Touch
+        </h2>
+        <div class="mt-4 mx-auto w-16 h-1 rounded-full" style="background:#800000;"></div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-10">
+
+        <!-- Location + email -->
+        <div class="space-y-6 reveal">
+
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-lift flex items-start gap-5">
+            <span class="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl text-white text-xl"
+                  style="background:#800000;" aria-hidden="true">📍</span>
+            <div>
+              <h3 class="font-bold text-gray-800 mb-1">Ground Address</h3>
+              <address class="not-italic text-gray-600 text-sm leading-relaxed">
+                Grinter Reserve<br/>
+                141 Coppards Road<br/>
+                Moolap VIC 3224<br/>
+                Australia
+              </address>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-lift flex items-center gap-5">
+            <span class="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl text-white text-xl"
+                  style="background:#800000;" aria-hidden="true">✉️</span>
+            <div>
+              <h3 class="font-bold text-gray-800 mb-1">General Enquiries</h3>
+              <a href="mailto:ndsc.cricket@gmail.com"
+                 class="text-sm font-semibold hover:underline"
+                 style="color:#800000;">
+                ndsc.cricket@gmail.com
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Committee directory -->
+        <div class="reveal">
+          <h3 class="text-xl font-bold text-maroon mb-5 flex items-center gap-2">
+            <span class="w-1 h-6 rounded-full inline-block" style="background:#ADD8E6;"></span>
+            Committee Directory
+          </h3>
+          <ul class="space-y-4" role="list">
+
+            <li class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-lift flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p class="font-bold text-gray-800">John Elliott</p>
+                <p class="text-xs font-semibold uppercase tracking-wide" style="color:#800000;">President</p>
+              </div>
+              <a href="tel:0419236866"
+                 class="text-sm font-medium hover:underline flex items-center gap-1"
+                 style="color:#5a0000;">
+                <span aria-hidden="true">📞</span> 0419 236 866
+              </a>
+            </li>
+
+            <li class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-lift flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p class="font-bold text-gray-800">Troy Whitworth</p>
+                <p class="text-xs font-semibold uppercase tracking-wide" style="color:#800000;">Vice President</p>
+              </div>
+              <a href="tel:0400678004"
+                 class="text-sm font-medium hover:underline flex items-center gap-1"
+                 style="color:#5a0000;">
+                <span aria-hidden="true">📞</span> 0400 678 004
+              </a>
+            </li>
+
+            <li class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 card-lift flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p class="font-bold text-gray-800">Laura Hudson</p>
+                <p class="text-xs font-semibold uppercase tracking-wide" style="color:#800000;">Treasurer</p>
+              </div>
+              <a href="tel:0456806399"
+                 class="text-sm font-medium hover:underline flex items-center gap-1"
+                 style="color:#5a0000;">
+                <span aria-hidden="true">📞</span> 0456 806 399
+              </a>
+            </li>
+
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════ -->
+  <footer class="bg-maroon-dark py-10" style="background:#3d0000;" role="contentinfo">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
+               width="34" height="34" aria-hidden="true">
+            <circle cx="32" cy="32" r="30" fill="#ADD8E6" fill-opacity="0.3" stroke="#ADD8E6" stroke-width="2"/>
+            <text x="32" y="38" text-anchor="middle" font-size="18" fill="#ADD8E6" font-family="serif">🦕</text>
+          </svg>
+          <span class="text-white font-extrabold tracking-widest uppercase text-sm">NDCC Dinos</span>
+        </div>
+
+        <!-- Nav links -->
+        <nav aria-label="Footer navigation">
+          <ul class="flex flex-wrap justify-center gap-5 text-xs font-semibold uppercase tracking-wider text-gray-300">
+            <li><a href="#about"      class="hover:text-skyblue transition-colors">About</a></li>
+            <li><a href="#facilities" class="hover:text-skyblue transition-colors">Facilities</a></li>
+            <li><a href="#teams"      class="hover:text-skyblue transition-colors">Teams</a></li>
+            <li><a href="#contact"    class="hover:text-skyblue transition-colors">Contact</a></li>
+          </ul>
+        </nav>
+
+      </div>
+
+      <hr class="my-7 border-white/10"/>
+
+      <div class="text-center text-xs text-gray-400 space-y-2">
+        <p>
+          &copy; 2026 Newcomb &amp; District Cricket Club. All rights reserved.
+        </p>
+        <p>
+          We acknowledge the <strong class="text-gray-300">Wadawurrung</strong> people as the
+          Traditional Custodians of this Country, and pay our respects to their Elders past,
+          present and emerging.
+        </p>
+      </div>
+
+    </div>
+  </footer>
+
+
+  <!-- ═══════════════════════════════════════════
+       JAVASCRIPT
+  ═══════════════════════════════════════════ -->
+  <script>
+    // ── Mobile menu toggle ──────────────────────
+    const hamburger   = document.getElementById('hamburger');
+    const mobileMenu  = document.getElementById('mobile-menu');
+    const ham1 = document.getElementById('ham-1');
+    const ham2 = document.getElementById('ham-2');
+    const ham3 = document.getElementById('ham-3');
+    let menuOpen = false;
+
+    function openMenu() {
+      menuOpen = true;
+      mobileMenu.style.maxHeight = mobileMenu.scrollHeight + 'px';
+      mobileMenu.style.opacity   = '1';
+      mobileMenu.setAttribute('aria-hidden', 'false');
+      hamburger.setAttribute('aria-expanded', 'true');
+      // Animate to X
+      ham1.style.transform = 'translateY(8px) rotate(45deg)';
+      ham2.style.opacity   = '0';
+      ham3.style.transform = 'translateY(-8px) rotate(-45deg)';
+    }
+
+    function closeMenu() {
+      menuOpen = false;
+      mobileMenu.style.maxHeight = '0';
+      mobileMenu.style.opacity   = '0';
+      mobileMenu.setAttribute('aria-hidden', 'true');
+      hamburger.setAttribute('aria-expanded', 'false');
+      ham1.style.transform = '';
+      ham2.style.opacity   = '1';
+      ham3.style.transform = '';
+    }
+
+    hamburger.addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
+
+    // Close menu on resize to desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) closeMenu();
+    });
+
+    // ── Intersection Observer (reveal on scroll) ─
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer  = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    revealEls.forEach(el => observer.observe(el));
+
+    // ── Active nav highlight on scroll ───────────
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('a.nav-link');
+
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          navLinks.forEach(link => {
+            link.classList.remove('text-skyblue');
+            if (link.getAttribute('href') === '#' + e.target.id) {
+              link.classList.add('text-skyblue');
+            }
+          });
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+
+    sections.forEach(s => navObserver.observe(s));
+  </script>
+
+</body>
+</html>
