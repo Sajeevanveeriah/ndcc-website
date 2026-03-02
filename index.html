@@ -65,6 +65,8 @@
           <a href="#facilities" class="nav-link text-sm font-medium text-gray-700 hover:text-maroon">Facilities</a>
           <a href="#teams"      class="nav-link text-sm font-medium text-gray-700 hover:text-maroon">Teams</a>
           <a href="#contact"    class="nav-link text-sm font-medium text-gray-700 hover:text-maroon">Contact</a>
+          <a href="#apparel"   class="nav-link text-sm font-medium text-gray-700 hover:text-maroon">Apparel &amp; Gear</a>
+          <a href="#volunteer" class="nav-link text-sm font-medium text-gray-700 hover:text-maroon">Volunteer Roster</a>
           <a href="#" data-mailto="main" class="ml-2 px-5 py-2 bg-maroon text-white text-sm font-semibold rounded-full hover:bg-maroon-dark transition-colors shadow-sm">
             Join the Club
           </a>
@@ -82,6 +84,8 @@
         <a href="#facilities" class="mobile-link py-2 text-sm font-medium text-gray-700 hover:text-maroon">Facilities</a>
         <a href="#teams"      class="mobile-link py-2 text-sm font-medium text-gray-700 hover:text-maroon">Teams</a>
         <a href="#contact"    class="mobile-link py-2 text-sm font-medium text-gray-700 hover:text-maroon">Contact</a>
+        <a href="#apparel"   class="mobile-link py-2 text-sm font-medium text-gray-700 hover:text-maroon">Apparel &amp; Gear</a>
+        <a href="#volunteer" class="mobile-link py-2 text-sm font-medium text-gray-700 hover:text-maroon">Volunteer Roster</a>
         <a href="#" data-mailto="main" class="mt-2 text-center px-5 py-2.5 bg-maroon text-white text-sm font-semibold rounded-full">Join the Club</a>
       </div>
     </div>
@@ -434,6 +438,361 @@
       </div>
     </div>
   </section>
+
+  <!-- APPAREL & MERCHANDISE -->
+  <section id="apparel" class="py-24 bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <p class="text-maroon text-sm font-semibold tracking-widest uppercase">Club Shop</p>
+        <h2 class="font-display text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-4">Apparel &amp; Gear</h2>
+        <div class="divider mx-auto"></div>
+        <p class="text-gray-600 mt-4">Order your NDCC playing kit and club merchandise below. Orders are reviewed by the committee and you will be contacted for payment.</p>
+      </div>
+
+      <!-- Product Catalogue -->
+      <div class="mb-10">
+        <h3 class="font-display text-xl font-bold text-gray-900 mb-5 text-center">Product Catalogue</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div style="border:2px solid #ADD8E6;border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:2rem;">👕</div>
+            <div style="font-weight:700;color:#800000;font-size:1rem;">Playing Shirt</div>
+            <div style="color:#555;font-size:0.85rem;">Sizes: S / M / L / XL / XXL</div>
+            <div style="font-weight:700;color:#800000;font-size:1.1rem;">$65</div>
+          </div>
+          <div style="border:2px solid #ADD8E6;border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:2rem;">👖</div>
+            <div style="font-weight:700;color:#800000;font-size:1rem;">Playing Pants</div>
+            <div style="color:#555;font-size:0.85rem;">Sizes: S / M / L / XL / XXL</div>
+            <div style="font-weight:700;color:#800000;font-size:1.1rem;">$55</div>
+          </div>
+          <div style="border:2px solid #ADD8E6;border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:2rem;">🧢</div>
+            <div style="font-weight:700;color:#800000;font-size:1rem;">Club Cap</div>
+            <div style="color:#555;font-size:0.85rem;">One size fits all</div>
+            <div style="font-weight:700;color:#800000;font-size:1.1rem;">$35</div>
+          </div>
+          <div style="border:2px solid #ADD8E6;border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:2rem;">🏃</div>
+            <div style="font-weight:700;color:#800000;font-size:1rem;">Training Shirt</div>
+            <div style="color:#555;font-size:0.85rem;">Sizes: S / M / L / XL / XXL</div>
+            <div style="font-weight:700;color:#800000;font-size:1.1rem;">$45</div>
+          </div>
+          <div style="border:2px solid #ADD8E6;border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:2rem;">🧥</div>
+            <div style="font-weight:700;color:#800000;font-size:1rem;">Hoodie</div>
+            <div style="color:#555;font-size:0.85rem;">Sizes: S / M / L / XL / XXL</div>
+            <div style="font-weight:700;color:#800000;font-size:1.1rem;">$75</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Form -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <h3 class="font-display text-xl font-bold text-gray-900 mb-6">Place an Order</h3>
+        <div id="apparel-msg" class="hidden mb-4 p-4 rounded-xl text-sm font-medium"></div>
+        <form id="apparel-form" novalidate>
+          <div class="grid sm:grid-cols-2 gap-5 mb-5">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="ap-name">Full Name <span class="text-maroon">*</span></label>
+              <input id="ap-name" type="text" required placeholder="Jane Smith"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="ap-email">Email <span class="text-maroon">*</span></label>
+              <input id="ap-email" type="email" required placeholder="jane@example.com"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+            </div>
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-1" for="ap-phone">Phone (optional)</label>
+            <input id="ap-phone" type="tel" placeholder="04XX XXX XXX"
+              class="w-full sm:w-1/2 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+          </div>
+
+          <!-- Order Items Table -->
+          <div class="mb-5">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Order Items</h4>
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+              <table class="w-full text-sm" id="ap-items-table">
+                <thead>
+                  <tr style="background:#800000;color:#fff;">
+                    <th class="px-4 py-3 text-left font-semibold">Item</th>
+                    <th class="px-4 py-3 text-left font-semibold">Size</th>
+                    <th class="px-4 py-3 text-left font-semibold">Qty</th>
+                    <th class="px-4 py-3 text-left font-semibold">Price</th>
+                    <th class="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody id="ap-items-body">
+                  <!-- rows injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <button type="button" id="ap-add-row"
+            class="mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-colors"
+            style="border-color:#ADD8E6;color:#800000;background:#fff;"
+            onmouseover="this.style.background='#ADD8E6'" onmouseout="this.style.background='#fff'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Add another item
+          </button>
+
+          <div>
+            <button type="submit" id="ap-submit"
+              class="px-8 py-3 rounded-full text-sm font-semibold text-white transition-colors shadow-sm"
+              style="background:#800000;"
+              onmouseover="this.style.background='#600000'" onmouseout="this.style.background='#800000'">
+              Submit Order Request
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- VOLUNTEER ROSTER -->
+  <section id="volunteer" class="py-24 bg-white">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <p class="text-maroon text-sm font-semibold tracking-widest uppercase">Get Involved</p>
+        <h2 class="font-display text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-4">Volunteer Roster</h2>
+        <div class="divider mx-auto"></div>
+        <p class="text-gray-600 mt-4">Sign up to help run the canteen or volunteer on game days.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div id="vol-msg" class="hidden mb-4 p-4 rounded-xl text-sm font-medium"></div>
+        <form id="vol-form" novalidate>
+          <div class="grid sm:grid-cols-2 gap-5 mb-5">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="vol-name">Name <span class="text-maroon">*</span></label>
+              <input id="vol-name" type="text" required placeholder="Jane Smith"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1" for="vol-email">Email <span class="text-maroon">*</span></label>
+              <input id="vol-email" type="email" required placeholder="jane@example.com"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+            </div>
+          </div>
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-gray-700 mb-1" for="vol-phone">Phone (optional)</label>
+            <input id="vol-phone" type="tel" placeholder="04XX XXX XXX"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+          </div>
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-gray-700 mb-1" for="vol-role">Preferred Role</label>
+            <select id="vol-role"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition bg-white">
+              <option value="Canteen">Canteen</option>
+              <option value="Scorer">Scorer</option>
+              <option value="Ground Setup">Ground Setup</option>
+              <option value="General Help">General Help</option>
+            </select>
+          </div>
+          <div class="mb-7">
+            <label class="block text-sm font-semibold text-gray-700 mb-1" for="vol-avail">Available Dates (optional)</label>
+            <input id="vol-avail" type="text" placeholder="e.g. Saturdays in Jan, every second weekend…"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon/30 focus:border-maroon transition">
+          </div>
+          <button type="submit" id="vol-submit"
+            class="px-8 py-3 rounded-full text-sm font-semibold text-white transition-colors shadow-sm"
+            style="background:#800000;"
+            onmouseover="this.style.background='#600000'" onmouseout="this.style.background='#800000'">
+            Sign Up to Volunteer
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  /* ── APPAREL & MERCHANDISE ── */
+  (function () {
+    var PRODUCTS = [
+      { name: 'Playing Shirt',  sizes: ['S','M','L','XL','XXL'], price: 65 },
+      { name: 'Playing Pants',  sizes: ['S','M','L','XL','XXL'], price: 55 },
+      { name: 'Club Cap',       sizes: ['One size'],              price: 35 },
+      { name: 'Training Shirt', sizes: ['S','M','L','XL','XXL'], price: 45 },
+      { name: 'Hoodie',         sizes: ['S','M','L','XL','XXL'], price: 75 },
+    ];
+
+    var tbody = document.getElementById('ap-items-body');
+
+    function productOptions() {
+      return PRODUCTS.map(function(p,i){
+        return '<option value="'+i+'">'+p.name+' — $'+p.price+'</option>';
+      }).join('');
+    }
+
+    function sizeOptions(prodIdx) {
+      return PRODUCTS[prodIdx].sizes.map(function(s){
+        return '<option value="'+s+'">'+s+'</option>';
+      }).join('');
+    }
+
+    function addRow() {
+      var tr = document.createElement('tr');
+      tr.className = 'border-t border-gray-100';
+      tr.innerHTML =
+        '<td class="px-3 py-2">' +
+          '<select class="ap-item-sel border border-gray-200 rounded px-2 py-1.5 text-sm w-full">' + productOptions() + '</select>' +
+        '</td>' +
+        '<td class="px-3 py-2">' +
+          '<select class="ap-size-sel border border-gray-200 rounded px-2 py-1.5 text-sm w-full">' + sizeOptions(0) + '</select>' +
+        '</td>' +
+        '<td class="px-3 py-2">' +
+          '<input type="number" min="1" value="1" class="ap-qty border border-gray-200 rounded px-2 py-1.5 text-sm w-16">' +
+        '</td>' +
+        '<td class="px-3 py-2 ap-price-cell text-gray-700">$' + PRODUCTS[0].price + '</td>' +
+        '<td class="px-3 py-2">' +
+          '<button type="button" class="ap-del text-gray-400 hover:text-red-500 transition-colors text-lg font-bold" title="Remove">&times;</button>' +
+        '</td>';
+      tbody.appendChild(tr);
+
+      // Update size options when product changes
+      tr.querySelector('.ap-item-sel').addEventListener('change', function() {
+        var idx = parseInt(this.value);
+        var sizeSel = tr.querySelector('.ap-size-sel');
+        sizeSel.innerHTML = sizeOptions(idx);
+        tr.querySelector('.ap-price-cell').textContent = '$' + PRODUCTS[idx].price;
+      });
+
+      tr.querySelector('.ap-del').addEventListener('click', function() {
+        if (tbody.rows.length > 1) tr.remove();
+      });
+    }
+
+    addRow(); // one row on load
+    document.getElementById('ap-add-row').addEventListener('click', addRow);
+
+    function showMsg(el, text, ok) {
+      el.textContent = text;
+      el.className = 'mb-4 p-4 rounded-xl text-sm font-medium ' + (ok ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200');
+      el.classList.remove('hidden');
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    document.getElementById('apparel-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var msgEl  = document.getElementById('apparel-msg');
+      var name   = document.getElementById('ap-name').value.trim();
+      var email  = document.getElementById('ap-email').value.trim();
+      var phone  = document.getElementById('ap-phone').value.trim();
+
+      if (!name)  { showMsg(msgEl, 'Please enter your full name.', false); return; }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showMsg(msgEl, 'Please enter a valid email address.', false); return;
+      }
+
+      var items = [];
+      var rows  = tbody.rows;
+      for (var i = 0; i < rows.length; i++) {
+        var prodIdx = parseInt(rows[i].querySelector('.ap-item-sel').value);
+        var size    = rows[i].querySelector('.ap-size-sel').value;
+        var qty     = parseInt(rows[i].querySelector('.ap-qty').value) || 1;
+        items.push({ item: PRODUCTS[prodIdx].name, size: size, qty: qty, unit_price: PRODUCTS[prodIdx].price });
+      }
+
+      var payload = { name: name, email: email, phone: phone, items: items };
+
+      var btn = document.getElementById('ap-submit');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      // Primary: POST to order-handler.php
+      fetch('/order-handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .catch(function() { return { ok: false }; })
+      .then(function(res) {
+        // Fallback FormSubmit notification (client-side, no server curl needed)
+        var fsData = new FormData();
+        fsData.append('name',  name);
+        fsData.append('email', email);
+        fsData.append('phone', phone || 'N/A');
+        fsData.append('items', JSON.stringify(items));
+        fsData.append('_subject', 'New NDCC Apparel Order from ' + name);
+        fsData.append('_captcha', 'false');
+        fetch('https://formsubmit.co/sajeevanveeriah@gmail.com', {
+          method: 'POST',
+          body: fsData
+        }).catch(function(){});
+
+        showMsg(document.getElementById('apparel-msg'), 'Order submitted! The committee will be in touch within 2–3 days.', true);
+        document.getElementById('apparel-form').reset();
+        while (tbody.rows.length > 0) tbody.deleteRow(0);
+        addRow();
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Submit Order Request';
+      });
+    });
+  })();
+
+  /* ── VOLUNTEER ROSTER ── */
+  (function () {
+    function showMsg(el, text, ok) {
+      el.textContent = text;
+      el.className = 'mb-4 p-4 rounded-xl text-sm font-medium ' + (ok ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200');
+      el.classList.remove('hidden');
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    document.getElementById('vol-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var msgEl  = document.getElementById('vol-msg');
+      var name   = document.getElementById('vol-name').value.trim();
+      var email  = document.getElementById('vol-email').value.trim();
+      var phone  = document.getElementById('vol-phone').value.trim();
+      var role   = document.getElementById('vol-role').value;
+      var avail  = document.getElementById('vol-avail').value.trim();
+
+      if (!name)  { showMsg(msgEl, 'Please enter your name.', false); return; }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showMsg(msgEl, 'Please enter a valid email address.', false); return;
+      }
+
+      var payload = { name: name, email: email, phone: phone, role: role, availability: avail };
+
+      var btn = document.getElementById('vol-submit');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      fetch('/volunteer-handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .catch(function() { return { ok: false }; })
+      .then(function() {
+        // Fallback FormSubmit notification
+        var fsData = new FormData();
+        fsData.append('name',         name);
+        fsData.append('email',        email);
+        fsData.append('phone',        phone || 'N/A');
+        fsData.append('role',         role);
+        fsData.append('availability', avail || 'N/A');
+        fsData.append('_subject', 'New NDCC Volunteer Signup from ' + name);
+        fsData.append('_captcha', 'false');
+        fetch('https://formsubmit.co/sajeevanveeriah@gmail.com', {
+          method: 'POST',
+          body: fsData
+        }).catch(function(){});
+
+        showMsg(document.getElementById('vol-msg'), 'Thanks for volunteering! The club will be in touch.', true);
+        document.getElementById('vol-form').reset();
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Sign Up to Volunteer';
+      });
+    });
+  })();
+  </script>
 
   <!-- FOOTER -->
   <footer style="background-color:#5a0000" class="text-white">
