@@ -519,6 +519,8 @@
                     <th class="px-4 py-3 text-left font-semibold">Item</th>
                     <th class="px-4 py-3 text-left font-semibold">Size</th>
                     <th class="px-4 py-3 text-left font-semibold">Qty</th>
+                    <th class="px-4 py-3 text-left font-semibold">Back #</th>
+                    <th class="px-4 py-3 text-left font-semibold">Back Name</th>
                     <th class="px-4 py-3 text-left font-semibold">Price</th>
                     <th class="px-4 py-3"></th>
                   </tr>
@@ -610,11 +612,11 @@
   /* ── APPAREL & MERCHANDISE ── */
   (function () {
     var PRODUCTS = [
-      { name: 'Playing Shirt',  sizes: ['S','M','L','XL','XXL'], price: 65 },
-      { name: 'Playing Pants',  sizes: ['S','M','L','XL','XXL'], price: 55 },
-      { name: 'Club Cap',       sizes: ['One size'],              price: 35 },
-      { name: 'Training Shirt', sizes: ['S','M','L','XL','XXL'], price: 45 },
-      { name: 'Hoodie',         sizes: ['S','M','L','XL','XXL'], price: 75 },
+      { name: 'Playing Shirt',  sizes: ['S','M','L','XL','XXL'], price: 65, isTop: true  },
+      { name: 'Playing Pants',  sizes: ['S','M','L','XL','XXL'], price: 55, isTop: false },
+      { name: 'Club Cap',       sizes: ['One size'],              price: 35, isTop: false },
+      { name: 'Training Shirt', sizes: ['S','M','L','XL','XXL'], price: 45, isTop: true  },
+      { name: 'Hoodie',         sizes: ['S','M','L','XL','XXL'], price: 75, isTop: true  },
     ];
 
     var tbody = document.getElementById('ap-items-body');
@@ -631,6 +633,12 @@
       }).join('');
     }
 
+    function togglePers(tr, isTop) {
+      tr.querySelectorAll('.ap-pers-dash').forEach(function(el) { el.style.display = isTop ? 'none' : ''; });
+      tr.querySelector('.ap-back-num').style.display  = isTop ? '' : 'none';
+      tr.querySelector('.ap-back-name').style.display = isTop ? '' : 'none';
+    }
+
     function addRow() {
       var tr = document.createElement('tr');
       tr.className = 'border-t border-gray-100';
@@ -644,18 +652,29 @@
         '<td class="px-3 py-2">' +
           '<input type="number" min="1" value="1" class="ap-qty border border-gray-200 rounded px-2 py-1.5 text-sm w-16">' +
         '</td>' +
+        '<td class="px-3 py-2">' +
+          '<span class="ap-pers-dash" style="color:#ccc">&#8212;</span>' +
+          '<input type="text" class="ap-back-num border border-gray-200 rounded px-2 py-1 text-sm w-20" maxlength="2" placeholder="e.g. 7">' +
+        '</td>' +
+        '<td class="px-3 py-2">' +
+          '<span class="ap-pers-dash" style="color:#ccc">&#8212;</span>' +
+          '<input type="text" class="ap-back-name border border-gray-200 rounded px-2 py-1 text-sm w-28" maxlength="20" placeholder="e.g. SMITH">' +
+        '</td>' +
         '<td class="px-3 py-2 ap-price-cell text-gray-700">$' + PRODUCTS[0].price + '</td>' +
         '<td class="px-3 py-2">' +
           '<button type="button" class="ap-del text-gray-400 hover:text-red-500 transition-colors text-lg font-bold" title="Remove">&times;</button>' +
         '</td>';
       tbody.appendChild(tr);
 
-      // Update size options when product changes
+      // Set initial personalisation visibility for default product (index 0)
+      togglePers(tr, PRODUCTS[0].isTop);
+
+      // Update size options, price, and personalisation fields on product change
       tr.querySelector('.ap-item-sel').addEventListener('change', function() {
         var idx = parseInt(this.value);
-        var sizeSel = tr.querySelector('.ap-size-sel');
-        sizeSel.innerHTML = sizeOptions(idx);
+        tr.querySelector('.ap-size-sel').innerHTML = sizeOptions(idx);
         tr.querySelector('.ap-price-cell').textContent = '$' + PRODUCTS[idx].price;
+        togglePers(tr, PRODUCTS[idx].isTop);
       });
 
       tr.querySelector('.ap-del').addEventListener('click', function() {
@@ -691,7 +710,11 @@
         var prodIdx = parseInt(rows[i].querySelector('.ap-item-sel').value);
         var size    = rows[i].querySelector('.ap-size-sel').value;
         var qty     = parseInt(rows[i].querySelector('.ap-qty').value) || 1;
-        items.push({ item: PRODUCTS[prodIdx].name, size: size, qty: qty, unit_price: PRODUCTS[prodIdx].price });
+        var bnEl    = rows[i].querySelector('.ap-back-num');
+        var bnaEl   = rows[i].querySelector('.ap-back-name');
+        var bn      = (bnEl  && bnEl.style.display  !== 'none' && bnEl.value.trim())  ? bnEl.value.trim()  : null;
+        var bna     = (bnaEl && bnaEl.style.display !== 'none' && bnaEl.value.trim()) ? bnaEl.value.trim() : null;
+        items.push({ item: PRODUCTS[prodIdx].name, size: size, qty: qty, unit_price: PRODUCTS[prodIdx].price, back_number: bn, back_name: bna });
       }
 
       var payload = { name: name, email: email, phone: phone, items: items };

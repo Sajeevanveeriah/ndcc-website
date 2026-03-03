@@ -113,6 +113,7 @@ if ($authenticated) {
   .card-head { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
   .card-head h2 { font-size: 1.1rem; color: #800000; }
   .badge { background: #ADD8E6; color: #800000; font-size: .75rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .badge-done { background: #d1fae5; color: #065f46; font-size: .78rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
   table { width: 100%; border-collapse: collapse; font-size: .875rem; }
   thead th { background: #800000; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; white-space: nowrap; }
   tbody tr { border-bottom: 1px solid #f0f0f0; transition: background .15s; }
@@ -123,11 +124,15 @@ if ($authenticated) {
   .items-list { margin: 0; padding: 0; list-style: none; }
   .items-list li { padding: 2px 0; font-size: .82rem; color: #555; }
   .items-list li::before { content: "• "; color: #800000; }
+  .pers-detail { color: #800000; font-size: .78rem; }
   .mark-btn { padding: 5px 14px; background: #ADD8E6; border: none; border-radius: 20px; font-size: .78rem; font-weight: 600; color: #800000; cursor: pointer; transition: background .2s; white-space: nowrap; }
   .mark-btn:hover { background: #8ec8da; }
   .mark-btn:disabled { opacity: .5; cursor: default; }
   .empty { text-align: center; padding: 48px 16px; color: #999; font-size: .95rem; }
   .db-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: .875rem; }
+  .supplier-link { margin-top: 16px; text-align: right; font-size: .875rem; }
+  .supplier-link a { color: #800000; font-weight: 600; text-decoration: none; }
+  .supplier-link a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -196,11 +201,19 @@ if ($authenticated) {
             <?php if (is_array($items_arr) && count($items_arr) > 0): ?>
             <ul class="items-list">
               <?php foreach ($items_arr as $item): ?>
+              <?php
+                $bn  = trim($item['back_number'] ?? '');
+                $bna = trim($item['back_name']   ?? '');
+                $has_pers = ($bn !== '' || $bna !== '');
+              ?>
               <li>
                 <?= htmlspecialchars($item['item'] ?? '') ?>
                 <?php if (!empty($item['size'])): ?>(<?= htmlspecialchars($item['size']) ?>)<?php endif; ?>
                 &times; <?= (int)($item['qty'] ?? 1) ?>
                 <?php if (!empty($item['unit_price'])): ?>— $<?= htmlspecialchars($item['unit_price']) ?><?php endif; ?>
+                <?php if ($has_pers): ?>
+                  <span class="pers-detail">&nbsp;|&nbsp;Back&nbsp;#:&nbsp;<?= htmlspecialchars($bn ?: '—') ?>&nbsp;|&nbsp;Name:&nbsp;<?= htmlspecialchars($bna ?: '—') ?></span>
+                <?php endif; ?>
               </li>
               <?php endforeach; ?>
             </ul>
@@ -212,7 +225,7 @@ if ($authenticated) {
             <?php if (!$is_processed): ?>
             <button class="mark-btn" data-id="<?= (int)$row['id'] ?>" onclick="markProcessed(this)">Mark processed</button>
             <?php else: ?>
-            <span style="color:#999;font-size:.8rem;">Done</span>
+            <span class="badge-done">Done</span>
             <?php endif; ?>
           </td>
         </tr>
@@ -222,6 +235,10 @@ if ($authenticated) {
     </div>
     <?php endif; ?>
   </div>
+
+  <p class="supplier-link">
+    <a href="supplier-order.php">&#128196; Generate Supplier Order Sheet &rarr;</a>
+  </p>
 </div>
 
 <script>
@@ -238,7 +255,7 @@ function markProcessed(btn) {
       if (res.status === 'ok') {
         var row = document.getElementById('row-' + id);
         row.classList.add('processed');
-        btn.parentNode.innerHTML = '<span style="color:#999;font-size:.8rem;">Done</span>';
+        btn.parentNode.innerHTML = '<span class="badge-done">Done</span>';
       } else {
         btn.disabled = false;
         btn.textContent = 'Mark processed';

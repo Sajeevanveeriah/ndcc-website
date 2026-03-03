@@ -47,6 +47,21 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
+// Normalise each line item: preserve back_number and back_name, store null when absent/empty
+$sanitised_items = [];
+foreach ($items as $item) {
+    $bn  = isset($item['back_number']) ? trim((string)$item['back_number']) : '';
+    $bna = isset($item['back_name'])   ? trim((string)$item['back_name'])   : '';
+    $sanitised_items[] = [
+        'item'        => isset($item['item'])       ? trim((string)$item['item'])       : '',
+        'size'        => isset($item['size'])       ? trim((string)$item['size'])       : '',
+        'qty'         => isset($item['qty'])        ? (int)$item['qty']                 : 1,
+        'unit_price'  => isset($item['unit_price']) ? $item['unit_price']               : null,
+        'back_number' => $bn  !== '' ? $bn  : null,
+        'back_name'   => $bna !== '' ? $bna : null,
+    ];
+}
+
 require_once __DIR__ . '/config.php';
 
 try {
@@ -77,7 +92,7 @@ try {
         ':name'  => $name,
         ':email' => $email,
         ':phone' => $phone,
-        ':items' => json_encode($items, JSON_UNESCAPED_UNICODE),
+        ':items' => json_encode($sanitised_items, JSON_UNESCAPED_UNICODE),
     ]);
 
     echo json_encode(['status' => 'ok']);
