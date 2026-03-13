@@ -51,7 +51,7 @@ export default function AboutPage() {
               </p>
               <p>
                 The club prides itself on its inclusive, family-friendly culture. Whether
-                you&apos;re an experienced cricketer or new to the game, the {CLUB_NICKNAME}
+                you&apos;re an experienced cricketer or new to the game, the {CLUB_NICKNAME}{' '}
                 welcome everyone.
               </p>
             </div>
