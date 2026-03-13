@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-body text-gray-800 antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-maroon-700 text-white font-body font-semibold rounded-lg hover:bg-maroon-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-lg hover:bg-maroon-700 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-800 font-body font-semibold rounded-lg hover:bg-sky-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2;
+  }
+
+  .section-padding {
+    @apply px-4 sm:px-6 lg:px-8 py-16 sm:py-20;
+  }
+
+  .container-width {
+    @apply max-w-7xl mx-auto;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-lg hover:-translate-y-1 transition-all duration-300;
+  }
+
+  .form-input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg font-body text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200;
+  }
+
+  .form-label {
+    @apply block text-sm font-semibold text-gray-700 mb-1.5 font-body;
+  }
+
+  .page-hero {
+    @apply bg-maroon-700 text-white section-padding;
+  }
+
+  .page-hero-title {
+    @apply text-4xl sm:text-5xl font-display font-bold mb-4;
+  }
+
+  .page-hero-subtitle {
+    @apply text-lg sm:text-xl text-maroon-100 font-body max-w-2xl;
+  }
+
+  .section-title {
+    @apply text-3xl sm:text-4xl font-display font-bold text-maroon-800 mb-4;
+  }
+
+  .section-subtitle {
+    @apply text-lg text-gray-600 font-body max-w-2xl;
+  }
+}
