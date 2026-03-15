@@ -149,11 +149,12 @@ export default function Footer() {
             &copy; {currentYear} {CLUB_NAME}. All rights reserved.
           </p>
           <a
-            href="https://www.perplexity.ai/computer"
+            href="https://github.com/Sajeevanveeriah"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-maroon-400 hover:text-maroon-200 transition-colors font-body"
           >
+            Built by Sajeevan Veeriah
           </a>
         </div>
       </div>
