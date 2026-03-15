@@ -154,7 +154,6 @@ export default function Footer() {
             rel="noopener noreferrer"
             className="text-xs text-maroon-400 hover:text-maroon-200 transition-colors font-body"
           >
-            Created with Perplexity Computer
           </a>
         </div>
       </div>
