@@ -1,34 +1,75 @@
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
   CLUB_ESTABLISHED,
+  PLAYHQ_ORG_URL,
 } from '@/lib/constants';
+import { createServerClient } from '@/lib/supabase-server';
+import { formatDate, truncateText } from '@/lib/utils';
 
 const quickLinks = [
   { title: 'About Us', description: 'Learn about our history and the people behind the club.', href: '/about', icon: '🏏' },
   { title: 'Our Teams', description: 'Senior Men, Senior Women, and Junior Boys squads.', href: '/teams', icon: '👥' },
   { title: 'Events', description: 'Upcoming social events, fundraisers, and match days.', href: '/events', icon: '📅' },
   { title: 'Merchandise', description: 'Get your official NDCC gear and support the club.', href: '/merchandise', icon: '🛒' },
-  { title: 'Volunteer', description: 'Help out on match days — canteen, scoring, and more.', href: '/volunteer', icon: '🤝' },
+  { title: 'Volunteer', description: 'Help out on match days - canteen, scoring, and more.', href: '/volunteer', icon: '🤝' },
   { title: 'Contact', description: 'Get in touch with the club or make an enquiry.', href: '/contact', icon: '✉️' },
 ];
 
-const placeholderFixtures = [
-  { round: 'Round 10', date: 'Sat 15 Feb 2025', opponent: 'Lara CC', venue: 'Grinter Reserve', time: '12:30 PM' },
-  { round: 'Round 11', date: 'Sat 22 Feb 2025', opponent: 'Manifold Heights CC', venue: 'Away', time: '12:30 PM' },
-  { round: 'Round 12', date: 'Sat 1 Mar 2025', opponent: 'North Shore CC', venue: 'Grinter Reserve', time: '12:30 PM' },
-];
+interface NewsItem {
+  id: string;
+  title: string;
+  content: string;
+  published_at: string | null;
+}
 
-const placeholderNews = [
-  { title: 'Training Facility Nets Upgrade Complete', date: '10 Feb 2025', excerpt: 'The Peter "Skinny" Harrison Training Facility has received new turf wicket upgrades ahead of the 2024/25 season finals.' },
-  { title: 'Women\'s Team Claims First Win', date: '3 Feb 2025', excerpt: 'Our Senior Women\'s side secured a fantastic victory in E Grade East, bowling out the opposition for 87 before chasing down the total with ease.' },
-  { title: 'Junior Registration Now Open', date: '28 Jan 2025', excerpt: 'Registrations for the 2025/26 junior cricket season are now open. All skill levels welcome — come and join the Dinos family.' },
-];
+interface SponsorItem {
+  id: string;
+  name: string;
+  website: string;
+  logo_url: string;
+}
 
-export default function HomePage() {
+async function getLatestNews(): Promise<NewsItem[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
+  try {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from('news')
+      .select('id, title, content, published_at')
+      .eq('published', true)
+      .order('published_at', { ascending: false })
+      .limit(3);
+    return (data as NewsItem[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+async function getSponsors(): Promise<SponsorItem[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
+  try {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from('sponsors')
+      .select('id, name, website, logo_url')
+      .eq('active', true)
+      .order('created_at', { ascending: true });
+    return (data as SponsorItem[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  const [news, sponsors] = await Promise.all([getLatestNews(), getSponsors()]);
+
   return (
     <>
       {/* Hero Section */}
@@ -78,7 +119,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Fixtures */}
+      {/* Upcoming Fixtures CTA */}
       <section className="section-padding">
         <div className="container-width">
           <div className="text-center mb-12">
@@ -87,85 +128,114 @@ export default function HomePage() {
               Catch the {CLUB_NICKNAME} in action this season.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {placeholderFixtures.map((fixture) => (
-              <Card key={fixture.round} className="border-l-4 border-l-maroon-700">
-                <CardContent className="p-6">
-                  <Badge className="mb-3">{fixture.round}</Badge>
-                  <p className="text-sm text-gray-500 font-body mb-1">{fixture.date} &middot; {fixture.time}</p>
-                  <h3 className="text-lg font-display font-bold text-gray-900 mb-1">
-                    NDCC vs {fixture.opponent}
-                  </h3>
-                  <p className="text-sm text-gray-600 font-body">{fixture.venue}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="text-center mt-8">
-            <Link href="/fixtures" className="btn-secondary">
-              View All Fixtures
-            </Link>
-          </div>
+          <Card className="border-l-4 border-l-maroon-700 max-w-2xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-700 font-body leading-relaxed mb-6">
+                Fixtures, live scores, ladders, and results are managed through PlayHQ - the official platform
+                of Cricket Australia and the Geelong Cricket Association.
+              </p>
+              <Link
+                href={PLAYHQ_ORG_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+              >
+                View Fixtures on PlayHQ
+                <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
       {/* Latest News */}
-      <section className="section-padding bg-gray-50">
-        <div className="container-width">
-          <div className="text-center mb-12">
-            <h2 className="section-title">Latest News</h2>
-            <p className="section-subtitle mx-auto">
-              Stay up to date with everything happening at NDCC.
-            </p>
+      {news.length > 0 && (
+        <section className="section-padding bg-gray-50">
+          <div className="container-width">
+            <div className="text-center mb-12">
+              <h2 className="section-title">Latest News</h2>
+              <p className="section-subtitle mx-auto">
+                Stay up to date with everything happening at NDCC.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {news.map((article) => (
+                <Link key={article.id} href={`/news/${article.id}`} className="group">
+                  <Card hover className="h-full">
+                    <div className="h-48 bg-gradient-to-br from-maroon-100 to-maroon-200" aria-hidden="true" />
+                    <CardContent className="p-6">
+                      {article.published_at && (
+                        <p className="text-sm text-maroon-600 font-body font-semibold mb-2">
+                          {formatDate(article.published_at)}
+                        </p>
+                      )}
+                      <h3 className="text-lg font-display font-bold text-gray-900 mb-2 group-hover:text-maroon-700 transition-colors">
+                        {article.title}
+                      </h3>
+                      <p className="text-gray-600 font-body text-sm">
+                        {truncateText(article.content, 120)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+            <div className="text-center mt-8">
+              <Link href="/news" className="btn-secondary">
+                Read More News
+              </Link>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {placeholderNews.map((article) => (
-              <Card key={article.title} hover>
-                <div className="h-48 bg-gradient-to-br from-maroon-100 to-maroon-200 flex items-center justify-center">
-                  <span className="text-maroon-400 font-display text-sm">Photo coming soon</span>
-                </div>
-                <CardContent className="p-6">
-                  <p className="text-sm text-maroon-600 font-body font-semibold mb-2">{article.date}</p>
-                  <h3 className="text-lg font-display font-bold text-gray-900 mb-2">{article.title}</h3>
-                  <p className="text-gray-600 font-body text-sm">{article.excerpt}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="text-center mt-8">
-            <Link href="/news" className="btn-secondary">
-              Read More News
-            </Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Sponsors Banner */}
-      <section className="section-padding">
-        <div className="container-width">
-          <div className="text-center mb-10">
-            <h2 className="section-title">Our Sponsors</h2>
-            <p className="section-subtitle mx-auto">
-              Proudly supported by our local community partners.
-            </p>
+      {sponsors.length > 0 && (
+        <section className="section-padding">
+          <div className="container-width">
+            <div className="text-center mb-10">
+              <h2 className="section-title">Our Sponsors</h2>
+              <p className="section-subtitle mx-auto">
+                Proudly supported by our local community partners.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-8" role="region" aria-label="Club sponsors">
+              {sponsors.map((sponsor) => (
+                <a
+                  key={sponsor.id}
+                  href={sponsor.website || undefined}
+                  target={sponsor.website ? '_blank' : undefined}
+                  rel={sponsor.website ? 'noopener noreferrer' : undefined}
+                  className="flex-shrink-0"
+                >
+                  {sponsor.logo_url ? (
+                    <div className="w-40 h-24 flex items-center justify-center p-2">
+                      <img
+                        src={sponsor.logo_url}
+                        alt={sponsor.name}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-40 h-24 bg-maroon-50 rounded-lg flex items-center justify-center border border-maroon-100 hover:bg-maroon-100 transition-colors">
+                      <span className="text-sm text-maroon-700 font-body font-semibold text-center px-2">
+                        {sponsor.name}
+                      </span>
+                    </div>
+                  )}
+                </a>
+              ))}
+            </div>
+            <div className="text-center mt-8">
+              <Link href="/sponsors" className="btn-secondary">
+                View All Sponsors
+              </Link>
+            </div>
           </div>
-          <div className="flex gap-8 overflow-x-auto pb-4 scrollbar-hide" role="region" aria-label="Club sponsors">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-shrink-0 w-40 h-24 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200"
-              >
-                <span className="text-sm text-gray-400 font-body">Sponsor {i + 1}</span>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-8">
-            <Link href="/sponsors" className="btn-secondary">
-              View All Sponsors
-            </Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Final CTA */}
       <section className="bg-gradient-to-br from-maroon-700 to-maroon-900 text-white section-padding">

@@ -99,14 +99,7 @@ export default function FacilitiesPage() {
                 </p>
               </div>
             </div>
-            <div className="h-72 lg:h-96 bg-gradient-to-br from-maroon-100 to-maroon-200 rounded-xl flex items-center justify-center">
-              <div className="text-center">
-                <svg className="w-12 h-12 text-maroon-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-                </svg>
-                <span className="text-maroon-400 font-body text-sm">Ground photo coming soon</span>
-              </div>
-            </div>
+            <div className="h-72 lg:h-96 bg-gradient-to-br from-maroon-100 via-maroon-200 to-maroon-300 rounded-xl" aria-hidden="true" />
           </div>
         </div>
       </section>
@@ -115,14 +108,7 @@ export default function FacilitiesPage() {
       <section className="section-padding bg-gray-50">
         <div className="container-width">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="order-2 lg:order-1 h-72 lg:h-96 bg-gradient-to-br from-maroon-100 to-maroon-200 rounded-xl flex items-center justify-center">
-              <div className="text-center">
-                <svg className="w-12 h-12 text-maroon-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-                </svg>
-                <span className="text-maroon-400 font-body text-sm">Facility photo coming soon</span>
-              </div>
-            </div>
+            <div className="order-2 lg:order-1 h-72 lg:h-96 bg-gradient-to-br from-maroon-200 via-maroon-300 to-maroon-400 rounded-xl" aria-hidden="true" />
             <div className="order-1 lg:order-2">
               <h2 className="section-title">Peter &lsquo;Skinny&rsquo; Harrison Training Facility</h2>
               <p className="text-maroon-600 font-body text-sm font-semibold mb-4">

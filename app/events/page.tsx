@@ -4,51 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
-
-const PLACEHOLDER_EVENTS: Event[] = [
-  {
-    id: 'placeholder-1',
-    title: 'Presentation Night',
-    description:
-      'Join us for our annual Presentation Night to celebrate the achievements of our players and volunteers. Awards for all teams, dinner included, and plenty of Dinos spirit. A great way to wrap up the season with your cricket family.',
-    date: '2026-03-28T18:00:00',
-    location: 'Grinter Reserve Clubrooms, Moolap',
-    capacity: 120,
-    ticket_price: 30,
-    stripe_link: '',
-    published: true,
-    created_at: '',
-  },
-  {
-    id: 'placeholder-2',
-    title: 'Season Launch 2026/27',
-    description:
-      'Kick off the new cricket season with the Dinos! Meet the coaches, hear about plans for the season ahead, and register for your team. Free entry — all welcome, including new players and families looking to get involved.',
-    date: '2026-09-12T14:00:00',
-    location: 'Grinter Reserve, Moolap',
-    capacity: null,
-    ticket_price: 0,
-    stripe_link: '',
-    published: true,
-    created_at: '',
-  },
-  {
-    id: 'placeholder-3',
-    title: 'Trivia Night',
-    description:
-      'Test your knowledge at our annual fundraising Trivia Night! Tables of 8, BYO nibbles, drinks available at the bar. All proceeds go towards junior cricket equipment and ground improvements.',
-    date: '2026-11-14T19:00:00',
-    location: 'Grinter Reserve Clubrooms, Moolap',
-    capacity: 80,
-    ticket_price: 20,
-    stripe_link: '',
-    published: true,
-    created_at: '',
-  },
-];
+import { FACEBOOK_URL } from '@/lib/constants';
 
 function SkeletonCard() {
   return (
@@ -69,17 +28,13 @@ function SkeletonCard() {
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingPlaceholders, setUsingPlaceholders] = useState(false);
 
   useEffect(() => {
     document.title = 'Events | NDCC Dinos';
 
     async function fetchEvents() {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        if (!supabaseUrl) {
-          setEvents(PLACEHOLDER_EVENTS);
-          setUsingPlaceholders(true);
+        if (!isSupabaseConfigured()) {
           setLoading(false);
           return;
         }
@@ -90,15 +45,11 @@ export default function EventsPage() {
           .eq('published', true)
           .order('date', { ascending: true });
 
-        if (error || !data || data.length === 0) {
-          setEvents(PLACEHOLDER_EVENTS);
-          setUsingPlaceholders(true);
-        } else {
+        if (!error && data) {
           setEvents(data as Event[]);
         }
       } catch {
-        setEvents(PLACEHOLDER_EVENTS);
-        setUsingPlaceholders(true);
+        // Supabase query failed, show empty state
       } finally {
         setLoading(false);
       }
@@ -123,21 +74,13 @@ export default function EventsPage() {
       {/* Events Grid */}
       <section className="section-padding">
         <div className="container-width">
-          {usingPlaceholders && (
-            <div className="mb-8 p-4 bg-maroon-50 border border-maroon-200 rounded-lg">
-              <p className="text-maroon-800 font-body text-sm">
-                Showing sample events. Live event listings will appear here once available.
-              </p>
-            </div>
-          )}
-
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
             </div>
-          ) : (
+          ) : events.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {events.map((event) => (
                 <Card key={event.id} hover>
@@ -163,26 +106,26 @@ export default function EventsPage() {
                     </Badge>
                   </CardContent>
                   <CardFooter>
-                    {usingPlaceholders ? (
-                      <span className="font-body text-sm text-gray-500">Details coming soon</span>
-                    ) : (
-                      <Link
-                        href={`/events/${event.id}`}
-                        className="btn-primary text-sm px-4 py-2"
-                      >
-                        View Details
-                      </Link>
-                    )}
+                    <Link
+                      href={`/events/${event.id}`}
+                      className="btn-primary text-sm px-4 py-2"
+                    >
+                      View Details
+                    </Link>
                   </CardFooter>
                 </Card>
               ))}
             </div>
-          )}
-
-          {!loading && events.length === 0 && (
+          ) : (
             <div className="text-center py-12">
               <p className="text-gray-500 font-body text-lg">No upcoming events at the moment.</p>
-              <p className="text-gray-400 font-body mt-2">Check back soon for new events!</p>
+              <p className="text-gray-400 font-body mt-2">
+                Follow us on{' '}
+                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline">
+                  Facebook
+                </Link>
+                {' '}for updates.
+              </p>
             </div>
           )}
         </div>

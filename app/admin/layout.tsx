@@ -34,6 +34,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
+  const [unauthorised, setUnauthorised] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
@@ -46,8 +48,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       setLoading(false);
-      setAuthenticated(true);
-      setUserEmail('demo@ndcc.com.au');
+      setAuthenticated(false);
+      setNotConfigured(true);
       return;
     }
 
@@ -55,8 +57,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setAuthenticated(true);
-          setUserEmail(session.user.email || '');
+          // Check profile role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile && (profile.role === 'admin' || profile.role === 'committee')) {
+            setAuthenticated(true);
+            setUserEmail(session.user.email || '');
+          } else {
+            setUnauthorised(true);
+          }
         } else {
           router.push('/admin/login');
         }
@@ -97,6 +110,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-maroon-700 mx-auto" />
           <p className="mt-4 text-gray-500 font-body">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notConfigured) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-8">
+            <h1 className="text-xl font-display font-bold text-gray-900 mb-2">System Not Configured</h1>
+            <p className="text-gray-500 font-body">Contact the site administrator to set up the database and authentication.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (unauthorised) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-8">
+            <h1 className="text-xl font-display font-bold text-gray-900 mb-2">Not Authorised</h1>
+            <p className="text-gray-500 font-body mb-4">Your account does not have permission to access the admin portal.</p>
+            <button
+              onClick={handleSignOut}
+              className="text-sm text-maroon-700 hover:underline font-body"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );

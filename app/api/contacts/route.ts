@@ -29,12 +29,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.warn('Supabase not configured - returning mock response');
-      return NextResponse.json({
-        success: true,
-        message: 'Message sent successfully!',
-      });
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'Service not configured.' },
+        { status: 503 }
+      );
     }
 
     const supabase = createServerClient();

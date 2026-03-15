@@ -113,4 +113,9 @@ export const NAV_LINKS = [
 export const GOOGLE_MAPS_EMBED_URL =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3140.5!2d144.38!3d-38.17!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sGrinter+Reserve+Moolap!5e0!3m2!1sen!2sau!4v1234567890';
 
-export const PLAYHQ_URL = 'https://www.playhq.com/cricket-australia/org/geelong-cricket-association';
+export const CLUB_PHONE = '+61 419 236 866';
+export const FACEBOOK_URL = 'https://www.facebook.com/NewcombDistrictCricketClub/';
+export const INSTAGRAM_URL = 'https://www.instagram.com/newcombdistrictcc/';
+export const INSTAGRAM_HANDLE = '@newcombdistrictcc';
+export const PLAYHQ_ORG_URL = 'https://www.playhq.com/cricket-australia/org/newcomb-and-district-cricket-club/2c2bff9c';
+export const PLAYHQ_URL = PLAYHQ_ORG_URL;

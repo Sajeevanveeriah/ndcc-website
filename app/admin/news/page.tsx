@@ -19,38 +19,8 @@ const emptyNewsPost: Omit<NewsPost, 'id' | 'created_at'> = {
   published_at: null,
 };
 
-const placeholderNews: NewsPost[] = [
-  {
-    id: '1',
-    title: 'Season 2026/27 Registration Now Open',
-    content: 'Registrations are now open for the upcoming 2026/27 cricket season. Head to PlayHQ to register for senior or junior teams. Early bird pricing available until September.',
-    author: 'NDCC',
-    published: true,
-    published_at: '2026-03-10T09:00:00Z',
-    created_at: '2026-03-10T08:30:00Z',
-  },
-  {
-    id: '2',
-    title: 'New Practice Nets Installed',
-    content: 'The club is pleased to announce the installation of two new practice nets at Grinter Reserve. Thanks to a grant from Cricket Victoria, the nets are now available for use.',
-    author: 'NDCC',
-    published: true,
-    published_at: '2026-03-05T12:00:00Z',
-    created_at: '2026-03-05T11:00:00Z',
-  },
-  {
-    id: '3',
-    title: 'Annual General Meeting Notice',
-    content: 'Draft article about the upcoming AGM.',
-    author: 'NDCC',
-    published: false,
-    published_at: null,
-    created_at: '2026-03-01T15:00:00Z',
-  },
-];
-
 export default function AdminNewsPage() {
-  const [news, setNews] = useState<NewsPost[]>(placeholderNews);
+  const [news, setNews] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -126,24 +96,6 @@ export default function AdminNewsPage() {
       published_at: form.published ? (form.published_at || new Date().toISOString()) : null,
     };
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      if (editingId) {
-        setNews((prev) =>
-          prev.map((n) => (n.id === editingId ? { ...n, ...payload } : n))
-        );
-      } else {
-        const newPost: NewsPost = {
-          ...payload,
-          id: crypto.randomUUID(),
-          created_at: new Date().toISOString(),
-        };
-        setNews((prev) => [newPost, ...prev]);
-      }
-      setModalOpen(false);
-      setSaving(false);
-      return;
-    }
-
     try {
       if (editingId) {
         const { error } = await supabase
@@ -173,12 +125,6 @@ export default function AdminNewsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setNews((prev) => prev.filter((n) => n.id !== id));
-      setDeleteConfirm(null);
-      return;
-    }
-
     try {
       const { error } = await supabase.from('news').delete().eq('id', id);
       if (error) throw error;

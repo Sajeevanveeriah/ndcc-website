@@ -7,15 +7,9 @@ import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import { SPONSOR_TIERS, CLUB_NAME } from '@/lib/constants';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { validateEmail } from '@/lib/utils';
-
-const TIER_GRADIENTS: Record<string, string> = {
-  major: 'from-maroon-700 to-maroon-900',
-  gold: 'from-yellow-500 to-yellow-700',
-  silver: 'from-gray-300 to-gray-500',
-  standard: 'from-maroon-400 to-maroon-600',
-  community: 'from-sky-300 to-sky-500',
-};
+import type { Sponsor } from '@/lib/types';
 
 const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   major: 'danger',
@@ -25,15 +19,9 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
   community: 'success',
 };
 
-const PLACEHOLDER_SPONSORS: Record<string, string[]> = {
-  major: ['Geelong Building Co.', 'Corio Bay Finance', 'Bellarine Auto Group'],
-  gold: ['Newcomb Central Pharmacy', 'Moolap Fresh Produce', 'Peninsula Plumbing'],
-  silver: ['Grinter&apos;s Café', 'South Barwon Electrical', 'Dinos Sports Physio'],
-  standard: ['Newcomb Fish & Chips', 'Coppards Road Meats', 'Geelong Print Works'],
-  community: ['Newcomb Neighbourhood House', 'Moolap Primary School', 'Geelong Libraries'],
-};
-
 export default function SponsorsPage() {
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -49,6 +37,31 @@ export default function SponsorsPage() {
 
   useEffect(() => {
     document.title = 'Our Sponsors | NDCC Dinos';
+
+    async function fetchSponsors() {
+      try {
+        if (!isSupabaseConfigured()) {
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('sponsors')
+          .select('*')
+          .eq('active', true)
+          .order('created_at', { ascending: true });
+
+        if (!error && data) {
+          setSponsors(data as Sponsor[]);
+        }
+      } catch {
+        // Supabase query failed
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSponsors();
   }, []);
 
   function validateForm(): boolean {
@@ -78,7 +91,7 @@ export default function SponsorsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `${formData.company_name} — ${formData.contact_name}`,
+          name: `${formData.company_name} - ${formData.contact_name}`,
           email: formData.email,
           enquiry_type: 'sponsorship',
           message: `Tier Interest: ${formData.tier_interest}\nPhone: ${formData.phone || 'Not provided'}\n\n${formData.message}`,
@@ -102,6 +115,14 @@ export default function SponsorsPage() {
   }
 
   const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
+
+  // Group sponsors by tier
+  const sponsorsByTier = SPONSOR_TIERS.reduce<Record<string, Sponsor[]>>((acc, tier) => {
+    acc[tier.value] = sponsors.filter((s) => s.tier === tier.value);
+    return acc;
+  }, {});
+
+  const tiersWithSponsors = SPONSOR_TIERS.filter((tier) => sponsorsByTier[tier.value].length > 0);
 
   return (
     <>
@@ -132,39 +153,81 @@ export default function SponsorsPage() {
       </section>
 
       {/* Sponsor Tiers */}
-      {SPONSOR_TIERS.map((tier) => (
-        <section
-          key={tier.value}
-          className={tier.order % 2 === 0 ? 'section-padding bg-gray-50' : 'section-padding'}
-        >
+      {loading ? (
+        <section className="section-padding">
           <div className="container-width">
-            <div className="flex items-center gap-3 mb-8">
-              <h2 className="section-title mb-0">{tier.label}s</h2>
-              <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(PLACEHOLDER_SPONSORS[tier.value] || []).map((name, idx) => (
-                <Card key={idx} hover>
-                  <div
-                    className={`h-40 bg-gradient-to-br ${TIER_GRADIENTS[tier.value]} flex items-center justify-center`}
-                    aria-hidden="true"
-                  >
-                    <span className="text-white font-display font-bold text-xl opacity-80">
-                      {name}
-                    </span>
-                  </div>
-                  <CardContent>
-                    <h3 className="font-display font-bold text-gray-900 text-lg">{name}</h3>
-                    <p className="text-sm text-gray-500 font-body mt-1">
-                      Proud {tier.label.toLowerCase()} of {CLUB_NAME}
-                    </p>
-                  </CardContent>
-                </Card>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-100 p-6 animate-pulse">
+                  <div className="h-20 bg-gray-200 rounded mb-4" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                </div>
               ))}
             </div>
           </div>
         </section>
-      ))}
+      ) : tiersWithSponsors.length > 0 ? (
+        tiersWithSponsors.map((tier, idx) => (
+          <section
+            key={tier.value}
+            className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-gray-50'}
+          >
+            <div className="container-width">
+              <div className="flex items-center gap-3 mb-8">
+                <h2 className="section-title mb-0">{tier.label}s</h2>
+                <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sponsorsByTier[tier.value].map((sponsor) => (
+                  <a
+                    key={sponsor.id}
+                    href={sponsor.website || undefined}
+                    target={sponsor.website ? '_blank' : undefined}
+                    rel={sponsor.website ? 'noopener noreferrer' : undefined}
+                    className="block group"
+                  >
+                    <Card hover className="h-full">
+                      {sponsor.logo_url ? (
+                        <div className="h-40 flex items-center justify-center p-6 bg-white">
+                          <img
+                            src={sponsor.logo_url}
+                            alt={sponsor.name}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-40 bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center p-6">
+                          <span className="text-white font-display font-bold text-xl text-center">
+                            {sponsor.name}
+                          </span>
+                        </div>
+                      )}
+                      <CardContent>
+                        <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors">
+                          {sponsor.name}
+                        </h3>
+                        {sponsor.website && (
+                          <p className="text-sm text-maroon-600 font-body mt-1 group-hover:underline">
+                            Visit website
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
+        ))
+      ) : (
+        <section className="section-padding">
+          <div className="container-width text-center py-8">
+            <p className="text-gray-500 font-body text-lg">
+              Sponsor details are being updated. Check back soon.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Become a Sponsor */}
       <section className="section-padding bg-maroon-800 text-white">
@@ -212,7 +275,6 @@ export default function SponsorsPage() {
               label="Company Name"
               type="text"
               required
-              placeholder="e.g. Geelong Building Co."
               value={formData.company_name}
               error={formErrors.company_name}
               onChange={(e) => setFormData((prev) => ({ ...prev, company_name: e.target.value }))}
@@ -223,7 +285,6 @@ export default function SponsorsPage() {
               label="Contact Name"
               type="text"
               required
-              placeholder="e.g. Jane Smith"
               value={formData.contact_name}
               error={formErrors.contact_name}
               onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
@@ -235,7 +296,6 @@ export default function SponsorsPage() {
                 label="Email Address"
                 type="email"
                 required
-                placeholder="e.g. jane@company.com.au"
                 value={formData.email}
                 error={formErrors.email}
                 onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
@@ -245,7 +305,6 @@ export default function SponsorsPage() {
                 id="sponsor_phone"
                 label="Phone (optional)"
                 type="tel"
-                placeholder="e.g. 0412 345 678"
                 value={formData.phone}
                 onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
               />
@@ -264,7 +323,7 @@ export default function SponsorsPage() {
             <Textarea
               id="sponsor_message"
               label="Message (optional)"
-              placeholder="Tell us about your business and what you're looking for in a sponsorship..."
+              placeholder="Tell us about your business and what you are looking for in a sponsorship..."
               rows={4}
               value={formData.message}
               onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
