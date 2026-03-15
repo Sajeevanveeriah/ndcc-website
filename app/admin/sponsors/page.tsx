@@ -22,41 +22,8 @@ const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
   active: true,
 };
 
-const placeholderSponsors: Sponsor[] = [
-  {
-    id: '1',
-    name: 'Geelong Building Supplies',
-    tier: 'major',
-    logo_url: '/images/sponsors/gbs.png',
-    website: 'https://example.com',
-    placement_type: 'website',
-    active: true,
-    created_at: '2026-01-15T10:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Bellarine Brewery',
-    tier: 'gold',
-    logo_url: '/images/sponsors/bb.png',
-    website: 'https://example.com',
-    placement_type: 'website',
-    active: true,
-    created_at: '2026-01-10T10:00:00Z',
-  },
-  {
-    id: '3',
-    name: 'Moolap Meats',
-    tier: 'community',
-    logo_url: '',
-    website: '',
-    placement_type: 'website',
-    active: false,
-    created_at: '2025-11-20T10:00:00Z',
-  },
-];
-
 export default function AdminSponsorsPage() {
-  const [sponsors, setSponsors] = useState<Sponsor[]>(placeholderSponsors);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -155,24 +122,6 @@ export default function AdminSponsorsPage() {
       active: form.active,
     };
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      if (editingId) {
-        setSponsors((prev) =>
-          prev.map((s) => (s.id === editingId ? { ...s, ...payload } : s))
-        );
-      } else {
-        const newSponsor: Sponsor = {
-          ...payload,
-          id: crypto.randomUUID(),
-          created_at: new Date().toISOString(),
-        };
-        setSponsors((prev) => [newSponsor, ...prev]);
-      }
-      setModalOpen(false);
-      setSaving(false);
-      return;
-    }
-
     try {
       if (editingId) {
         const { error } = await supabase
@@ -202,12 +151,6 @@ export default function AdminSponsorsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setSponsors((prev) => prev.filter((s) => s.id !== id));
-      setDeleteConfirm(null);
-      return;
-    }
-
     try {
       const { error } = await supabase.from('sponsors').delete().eq('id', id);
       if (error) throw error;

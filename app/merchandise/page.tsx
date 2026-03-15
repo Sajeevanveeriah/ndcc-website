@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { Suspense, useState, useEffect, FormEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
-import { PRODUCTS, CLUB_NAME } from '@/lib/constants';
-import { formatCurrency, validateEmail, cn } from '@/lib/utils';
+import { PRODUCTS, CLUB_NAME, CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN } from '@/lib/constants';
+import { formatCurrency, validateEmail, cn, assembleEmail } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
 
 interface CartItem extends OrderItem {
@@ -19,7 +20,20 @@ const PRODUCT_GRADIENTS: Record<string, string> = {
   'training-singlet': 'from-maroon-500 to-maroon-700',
 };
 
+function isStripeConfigured(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+}
+
 export default function MerchandisePage() {
+  return (
+    <Suspense>
+      <MerchandiseContent />
+    </Suspense>
+  );
+}
+
+function MerchandiseContent() {
+  const searchParams = useSearchParams();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -32,13 +46,21 @@ export default function MerchandisePage() {
     notes: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  const stripeEnabled = isStripeConfigured();
+
   useEffect(() => {
     document.title = 'Club Merchandise | NDCC Dinos';
-  }, []);
+
+    if (searchParams.get('success') === 'true') {
+      setSubmitStatus('success');
+    } else if (searchParams.get('cancelled') === 'true') {
+      setSubmitStatus('cancelled');
+    }
+  }, [searchParams]);
 
   function handleAddToOrder(productId: string) {
     const product = PRODUCTS.find((p) => p.id === productId);
@@ -117,7 +139,9 @@ export default function MerchandisePage() {
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/orders', {
+      const endpoint = stripeEnabled ? '/api/checkout' : '/api/orders';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,11 +159,18 @@ export default function MerchandisePage() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
 
+      if (stripeEnabled && data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+
+      // Non-Stripe fallback
       setSubmitStatus('success');
       setCart([]);
       setFormData({ name: '', email: '', phone: '', notes: '' });
@@ -233,7 +264,7 @@ export default function MerchandisePage() {
                         }
                         aria-label="Decrease quantity"
                       >
-                        −
+                        -
                       </button>
                       <span className="font-body font-semibold text-gray-900 w-8 text-center">
                         {quantities[product.id] || 1}
@@ -277,10 +308,19 @@ export default function MerchandisePage() {
 
           {submitStatus === 'success' && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
-              <p className="text-green-800 font-body font-semibold">Order submitted successfully!</p>
+              <p className="text-green-800 font-body font-semibold">Order confirmed!</p>
               <p className="text-green-700 font-body text-sm mt-1">
-                Thank you for your order! A club committee member will be in touch to arrange payment
-                and collection. Stripe integration is coming soon for online payments.
+                Thank you for your purchase. You will receive a confirmation email shortly.
+                Your order will be available for collection at the club.
+              </p>
+            </div>
+          )}
+
+          {submitStatus === 'cancelled' && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg" role="alert">
+              <p className="text-yellow-800 font-body font-semibold">Payment cancelled</p>
+              <p className="text-yellow-700 font-body text-sm mt-1">
+                Your payment was cancelled. Your order has not been placed. You can try again below.
               </p>
             </div>
           )}
@@ -328,7 +368,7 @@ export default function MerchandisePage() {
                             onClick={() => updateCartQuantity(idx, -1)}
                             aria-label={`Decrease ${item.name} quantity`}
                           >
-                            −
+                            -
                           </button>
                           <span className="font-body font-semibold w-6 text-center text-sm">
                             {item.quantity}
@@ -426,19 +466,31 @@ export default function MerchandisePage() {
                       }
                     />
 
-                    <Button
-                      type="submit"
-                      isLoading={isSubmitting}
-                      size="lg"
-                      className="w-full"
-                    >
-                      {isSubmitting ? 'Submitting...' : 'Complete Purchase'}
-                    </Button>
+                    {stripeEnabled ? (
+                      <Button
+                        type="submit"
+                        isLoading={isSubmitting}
+                        size="lg"
+                        className="w-full"
+                      >
+                        {isSubmitting ? 'Redirecting to payment...' : 'Proceed to Payment'}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="lg"
+                        className="w-full opacity-60 cursor-not-allowed"
+                        disabled
+                      >
+                        Online payments coming soon
+                      </Button>
+                    )}
 
-                    <p className="text-gray-400 font-body text-xs text-center">
-                      Online payment coming soon. A club member will contact you to arrange payment
-                      and collection.
-                    </p>
+                    {!stripeEnabled && (
+                      <p className="text-gray-400 font-body text-xs text-center">
+                        Contact the club at {assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN)} to order.
+                      </p>
+                    )}
                   </form>
                 </CardContent>
               </Card>

@@ -10,38 +10,8 @@ import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { ShoppingBag, CheckCircle } from 'lucide-react';
 
-const placeholderOrders: Order[] = [
-  {
-    id: '1',
-    customer_name: 'Tom Bradley',
-    customer_email: 'tom@example.com',
-    customer_phone: '0412 111 222',
-    items: [{ name: 'Club Polo', size: 'L', quantity: 2, price: 45 }],
-    total_amount: 90,
-    payment_status: 'paid',
-    processed: false,
-    notes: '',
-    created_at: '2026-03-11T08:00:00Z',
-  },
-  {
-    id: '2',
-    customer_name: 'Lisa Park',
-    customer_email: 'lisa@example.com',
-    customer_phone: '0423 333 444',
-    items: [
-      { name: 'Club Cap', size: 'One Size', quantity: 1, price: 25 },
-      { name: 'Training Singlet', size: 'M', quantity: 1, price: 35 },
-    ],
-    total_amount: 60,
-    payment_status: 'paid',
-    processed: true,
-    notes: 'Pick up at next game',
-    created_at: '2026-03-09T15:30:00Z',
-  },
-];
-
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>(placeholderOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
 
@@ -71,13 +41,6 @@ export default function AdminOrdersPage() {
   }, []);
 
   const handleMarkProcessed = async (id: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setOrders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, processed: true } : o))
-      );
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('orders')

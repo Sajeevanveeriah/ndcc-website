@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase-server';
+import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
 
 function sanitiseInput(str: string): string {
@@ -50,9 +51,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'Payment service not configured.' },
+        { status: 503 }
+      );
+    }
+
     const supabase = createServerClient();
 
-    const { data, error } = await supabase
+    // Save order to Supabase with pending status
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         customer_name: sanitiseInput(customer_name),
@@ -67,21 +76,54 @@ export async function POST(request: Request) {
       .select('id')
       .single();
 
-    if (error) {
-      console.error('Supabase order insert error:', error);
+    if (orderError || !order) {
+      console.error('Supabase order insert error:', orderError);
       return NextResponse.json(
-        { success: false, error: 'Failed to submit order.' },
+        { success: false, error: 'Failed to create order.' },
         { status: 500 }
       );
     }
 
+    // Create Stripe Checkout Session
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+    const lineItems = items.map((item: { name: string; size: string; quantity: number; price: number }) => ({
+      price_data: {
+        currency: 'aud',
+        product_data: {
+          name: item.name,
+          description: `Size: ${item.size}`,
+        },
+        unit_amount: Math.round(item.price * 100),
+      },
+      quantity: item.quantity,
+    }));
+
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `${siteUrl}/merchandise?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/merchandise?cancelled=true`,
+      customer_email: sanitiseInput(customer_email),
+      metadata: {
+        order_id: order.id,
+      },
+    });
+
+    // Update order with Stripe session ID
+    await supabase
+      .from('orders')
+      .update({ stripe_session_id: session.id })
+      .eq('id', order.id);
+
     return NextResponse.json({
       success: true,
-      message: 'Order submitted successfully!',
-      order_id: data.id,
+      checkout_url: session.url,
     });
   } catch (err) {
-    console.error('Order route error:', err);
+    console.error('Checkout route error:', err);
     return NextResponse.json(
       { success: false, error: 'An unexpected error occurred.' },
       { status: 500 }

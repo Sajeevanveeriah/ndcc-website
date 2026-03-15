@@ -11,14 +11,8 @@ import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Users, CheckCircle } from 'lucide-react';
 
-const placeholderVolunteers: Volunteer[] = [
-  { id: '1', name: 'Sarah Mitchell', email: 'sarah@example.com', phone: '0412 345 678', role: 'Canteen', availability: 'Weekends', processed: false, created_at: '2026-03-10T10:00:00Z' },
-  { id: '2', name: 'James Cooper', email: 'james@example.com', phone: '0423 456 789', role: 'Scorer', availability: 'Saturday only', processed: true, created_at: '2026-03-08T14:30:00Z' },
-  { id: '3', name: 'Emma Wilson', email: 'emma@example.com', phone: '0434 567 890', role: 'Ground Setup', availability: 'Both days', processed: false, created_at: '2026-03-06T09:15:00Z' },
-];
-
 export default function AdminVolunteersPage() {
-  const [volunteers, setVolunteers] = useState<Volunteer[]>(placeholderVolunteers);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -49,13 +43,6 @@ export default function AdminVolunteersPage() {
   }, []);
 
   const handleMarkContacted = async (id: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setVolunteers((prev) =>
-        prev.map((v) => (v.id === id ? { ...v, processed: true } : v))
-      );
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('volunteers')

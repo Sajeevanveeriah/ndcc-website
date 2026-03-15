@@ -32,25 +32,18 @@ interface RecentActivity {
   date: string;
 }
 
-const placeholderStats: DashboardStats = {
-  volunteers: 12,
-  pendingOrders: 3,
-  unreadEnquiries: 5,
-  publishedEvents: 4,
-  totalNews: 8,
-  activeSponsors: 6,
+const emptyStats: DashboardStats = {
+  volunteers: 0,
+  pendingOrders: 0,
+  unreadEnquiries: 0,
+  publishedEvents: 0,
+  totalNews: 0,
+  activeSponsors: 0,
 };
 
-const placeholderActivity: RecentActivity[] = [
-  { type: 'volunteer', message: 'New volunteer registration — Sarah Mitchell', date: '2026-03-12' },
-  { type: 'order', message: 'New merchandise order — Club Polo x2', date: '2026-03-11' },
-  { type: 'enquiry', message: 'New enquiry — Facilities Hire', date: '2026-03-10' },
-  { type: 'event', message: 'Season Launch event registration opened', date: '2026-03-09' },
-];
-
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>(placeholderStats);
-  const [activity, setActivity] = useState<RecentActivity[]>(placeholderActivity);
+  const [stats, setStats] = useState<DashboardStats>(emptyStats);
+  const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

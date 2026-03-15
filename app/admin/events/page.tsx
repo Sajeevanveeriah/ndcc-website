@@ -22,35 +22,8 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   published: false,
 };
 
-const placeholderEvents: Event[] = [
-  {
-    id: '1',
-    title: 'Season Launch BBQ',
-    description: 'Kick off the 2026/27 season with a community BBQ at Grinter Reserve.',
-    date: '2026-10-01T17:00:00Z',
-    location: 'Grinter Reserve',
-    capacity: 150,
-    ticket_price: 0,
-    stripe_link: '',
-    published: true,
-    created_at: '2026-03-01T10:00:00Z',
-  },
-  {
-    id: '2',
-    title: 'Presentation Night',
-    description: 'Annual awards and presentation evening celebrating the season.',
-    date: '2027-03-28T18:30:00Z',
-    location: 'Grinter Reserve Clubrooms',
-    capacity: 100,
-    ticket_price: 35,
-    stripe_link: 'https://buy.stripe.com/example',
-    published: false,
-    created_at: '2026-02-15T08:00:00Z',
-  },
-];
-
 export default function AdminEventsPage() {
-  const [events, setEvents] = useState<Event[]>(placeholderEvents);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -133,24 +106,6 @@ export default function AdminEventsPage() {
       published: form.published,
     };
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      if (editingId) {
-        setEvents((prev) =>
-          prev.map((e) => (e.id === editingId ? { ...e, ...payload } : e))
-        );
-      } else {
-        const newEvent: Event = {
-          ...payload,
-          id: crypto.randomUUID(),
-          created_at: new Date().toISOString(),
-        };
-        setEvents((prev) => [newEvent, ...prev]);
-      }
-      setModalOpen(false);
-      setSaving(false);
-      return;
-    }
-
     try {
       if (editingId) {
         const { error } = await supabase
@@ -180,12 +135,6 @@ export default function AdminEventsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-      setDeleteConfirm(null);
-      return;
-    }
-
     try {
       const { error } = await supabase.from('events').delete().eq('id', id);
       if (error) throw error;

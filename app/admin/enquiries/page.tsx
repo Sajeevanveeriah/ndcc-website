@@ -12,38 +12,8 @@ import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Mail, CheckCircle, Eye } from 'lucide-react';
 
-const placeholderContacts: Contact[] = [
-  {
-    id: '1',
-    name: 'Michael Brown',
-    email: 'michael@example.com',
-    message: 'Hi, I would like to enquire about hiring the facilities at Grinter Reserve for a corporate cricket day. We are looking at a Saturday in late November. Could you please provide pricing and availability? We would have approximately 40 attendees.',
-    enquiry_type: 'facilities',
-    responded: false,
-    created_at: '2026-03-12T11:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Rachel Green',
-    email: 'rachel@example.com',
-    message: 'My son is 10 years old and interested in joining junior cricket. What age groups do you have and when do registrations open?',
-    enquiry_type: 'juniors',
-    responded: false,
-    created_at: '2026-03-10T16:45:00Z',
-  },
-  {
-    id: '3',
-    name: 'David Chen',
-    email: 'david@example.com',
-    message: 'Interested in becoming a club sponsor. What packages are available?',
-    enquiry_type: 'sponsorship',
-    responded: true,
-    created_at: '2026-03-08T09:00:00Z',
-  },
-];
-
 export default function AdminEnquiriesPage() {
-  const [contacts, setContacts] = useState<Contact[]>(placeholderContacts);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -75,13 +45,6 @@ export default function AdminEnquiriesPage() {
   }, []);
 
   const handleMarkResponded = async (id: string) => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setContacts((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, responded: true } : c))
-      );
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('contacts')
