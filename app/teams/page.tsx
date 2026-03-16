@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { TEAMS, CLUB_NICKNAME } from '@/lib/constants';
+
+const TEAM_IMAGES: Record<string, string> = {
+  'Senior Women': '/images/Womens_Team.jpg',
+};
 
 export const metadata: Metadata = {
   title: 'Teams',
@@ -50,21 +55,41 @@ export default function TeamsPage() {
             {TEAMS.map((team, index) => (
               <Card key={team.name} className="overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-3">
-                  {/* Team colour block */}
-                  <div
-                    className={`flex items-center justify-center p-8 md:p-12 ${
-                      index % 2 === 0
-                        ? 'bg-gradient-to-br from-maroon-700 to-maroon-900'
-                        : 'bg-gradient-to-br from-maroon-600 to-maroon-800'
-                    }`}
-                  >
-                    <div className="text-center text-white">
-                      <h2 className="text-3xl font-display font-bold mb-2">{team.name}</h2>
-                      <Badge className="bg-white/20 text-white border border-white/30">
-                        {team.grade}
-                      </Badge>
+                  {/* Team image or colour block */}
+                  {TEAM_IMAGES[team.name] ? (
+                    <div className="relative min-h-[200px] md:min-h-0">
+                      <Image
+                        src={TEAM_IMAGES[team.name]}
+                        alt={`${team.name} team photo`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-maroon-900/40 flex items-end p-6">
+                        <div className="text-white">
+                          <h2 className="text-2xl font-display font-bold mb-1">{team.name}</h2>
+                          <Badge className="bg-white/20 text-white border border-white/30">
+                            {team.grade}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className={`flex items-center justify-center p-8 md:p-12 ${
+                        index % 2 === 0
+                          ? 'bg-gradient-to-br from-maroon-700 to-maroon-900'
+                          : 'bg-gradient-to-br from-maroon-600 to-maroon-800'
+                      }`}
+                    >
+                      <div className="text-center text-white">
+                        <h2 className="text-3xl font-display font-bold mb-2">{team.name}</h2>
+                        <Badge className="bg-white/20 text-white border border-white/30">
+                          {team.grade}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                   {/* Team details */}
                   <CardContent className="md:col-span-2 p-8">
                     <div className="flex items-start gap-3 mb-4">

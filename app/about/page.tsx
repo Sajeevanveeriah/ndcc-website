@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -34,26 +35,37 @@ export default function AboutPage() {
       {/* Club History */}
       <section className="section-padding">
         <div className="container-width">
-          <div className="max-w-3xl">
-            <h2 className="section-title">Our History</h2>
-            <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-              <p>
-                The {CLUB_NAME} was founded in {CLUB_ESTABLISHED} in the suburb of Newcomb,
-                located in the greater Geelong region of Victoria. For over five decades, the club
-                has been a cornerstone of local cricket, bringing together players and families
-                from across the community.
-              </p>
-              <p>
-                From humble beginnings, the {CLUB_NICKNAME} have grown into a multi-team club
-                fielding sides across senior men&apos;s, senior women&apos;s, and junior
-                competitions. Our home ground at {CLUB_GROUND}, {CLUB_ADDRESS}, has been the
-                heart of the club for generations.
-              </p>
-              <p>
-                The club prides itself on its inclusive, family-friendly culture. Whether
-                you&apos;re an experienced cricketer or new to the game, the {CLUB_NICKNAME}{' '}
-                welcome everyone.
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="section-title">Our History</h2>
+              <div className="space-y-4 text-gray-700 font-body leading-relaxed">
+                <p>
+                  The {CLUB_NAME} was founded in {CLUB_ESTABLISHED} in the suburb of Newcomb,
+                  located in the greater Geelong region of Victoria. For over five decades, the club
+                  has been a cornerstone of local cricket, bringing together players and families
+                  from across the community.
+                </p>
+                <p>
+                  From humble beginnings, the {CLUB_NICKNAME} have grown into a multi-team club
+                  fielding sides across senior men&apos;s, senior women&apos;s, and junior
+                  competitions. Our home ground at {CLUB_GROUND}, {CLUB_ADDRESS}, has been the
+                  heart of the club for generations.
+                </p>
+                <p>
+                  The club prides itself on its inclusive, family-friendly culture. Whether
+                  you&apos;re an experienced cricketer or new to the game, the {CLUB_NICKNAME}{' '}
+                  welcome everyone.
+                </p>
+              </div>
+            </div>
+            <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
+              <Image
+                src="/images/Turf_Ground.jpg"
+                alt="Grinter Reserve, home ground of the Newcomb and District Cricket Club"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
             </div>
           </div>
         </div>
