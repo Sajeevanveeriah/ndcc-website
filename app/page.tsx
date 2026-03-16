@@ -94,7 +94,6 @@ export default async function HomePage() {
         published_at: n.published_at,
         image: n.image,
       }));
-  const usingSeedNews = dbNews.length === 0;
 
   const sponsors: SponsorItem[] = dbSponsors.length > 0
     ? dbSponsors
@@ -243,10 +242,6 @@ export default async function HomePage() {
                   </CardContent>
                 </Card>
               );
-
-              if (usingSeedNews) {
-                return <div key={article.id}>{inner}</div>;
-              }
 
               return (
                 <Link key={article.id} href={`/news/${article.id}`} className="group">
