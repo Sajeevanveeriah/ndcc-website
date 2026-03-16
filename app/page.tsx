@@ -218,7 +218,15 @@ export default async function HomePage() {
                       />
                     </div>
                   ) : (
-                    <div className="h-48 bg-gradient-to-br from-maroon-100 to-maroon-200" />
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src="/images/Womens_Team.jpg"
+                        alt="Newcomb and District Cricket Club"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
+                    </div>
                   )}
                   <CardContent className="p-6">
                     {article.published_at && (
