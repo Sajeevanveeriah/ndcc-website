@@ -1,4 +1,4 @@
-import { CommitteeMember, TeamInfo, Product } from './types';
+import { CommitteeMember, TeamInfo, Product, NewsPost, Sponsor, Event } from './types';
 
 export const CLUB_NAME = 'Newcomb and District Cricket Club';
 export const CLUB_SHORT = 'NDCC';
@@ -18,56 +18,130 @@ export const COMMITTEE: CommitteeMember[] = [
   { name: 'John Elliott', role: 'President' },
   { name: 'Troy Whitworth', role: 'Vice President' },
   { name: 'Laura Hudson', role: 'Treasurer' },
+  { name: 'Craig Hillgrove', role: 'Head Coach' },
 ];
 
 export const TEAMS: TeamInfo[] = [
   {
-    name: 'Senior Men',
+    name: 'Senior Men - 1st XI',
     grade: 'GCA Grade 4',
     description:
-      'Our Senior Men\'s side competes in Grade 4 of the Geelong Cricket Association. With a mix of experienced players and emerging talent, the team plays a competitive brand of cricket every Saturday through the season.',
+      'Our flagship senior side competes in Grade 4 of the Geelong Cricket Association. With a mix of experienced players and emerging talent, the 1st XI plays competitive two-day cricket every Saturday through the season at Grinter Reserve and away venues across Geelong.',
+    captain: 'TBC for 2026/27',
+    playhq_url:
+      'https://www.playhq.com/cricket-australia/org/newcomb-and-district-cricket-club/2c2bff9c/geelong-cricket-association-mens-competition-summer-202526/teams/newcomb-and-district-1sts/0f74d5e7',
+  },
+  {
+    name: 'Senior Men - 2nd XI',
+    grade: 'GCA Grade 4',
+    description:
+      'The 2nd XI provides a competitive pathway for developing players and experienced cricketers. Playing in the GCA Grade 4 competition alongside the 1st XI.',
+  },
+  {
+    name: 'Senior Men - 3rd XI',
+    grade: 'GCA Hard Wicket',
+    description:
+      'Our 3rd XI plays in the GCA hard wicket competition, offering a more social and accessible entry point for new and returning players.',
   },
   {
     name: 'Senior Women',
     grade: 'GCA E Grade East',
     description:
-      'Our Senior Women\'s team plays in GCA E Grade East. The side has been growing in numbers and strength, providing a welcoming pathway for women and girls to play competitive cricket in Geelong.',
+      'Our Senior Women\'s team plays in GCA E Grade East. The side has been growing in numbers and strength each season, providing a welcoming pathway for women and girls to play competitive cricket in Geelong.',
   },
   {
-    name: 'Junior Boys',
+    name: 'Junior Boys - Under 17s',
     grade: 'GCA Junior Competition',
     description:
-      'Our Junior Boys programme develops the next generation of Dinos. Players learn the fundamentals of cricket in a supportive and fun environment, with pathways into senior cricket as they progress.',
+      'Our U17s side competes in the GCA junior competition, developing the next generation of senior cricketers.',
+  },
+  {
+    name: 'Junior Boys - Under 13s',
+    grade: 'GCA Junior Competition',
+    description:
+      'The U13s had an outstanding 2025/26 season, going through to finals undefeated and reaching the GCA grand final. A fantastic group of young cricketers with a bright future.',
+  },
+  {
+    name: 'Junior Boys - Under 11s',
+    grade: 'GCA Junior Competition',
+    description:
+      'Our youngest Dinos learn the fundamentals of cricket in a supportive and fun environment, with a focus on participation, skills development, and enjoying the game.',
   },
 ];
 
 export const PRODUCTS: Product[] = [
   {
+    id: 'playing-shirt',
+    name: 'Playing Shirt (White)',
+    price: 65,
+    description:
+      'Official NDCC playing shirt in white with embroidered club crest. Match-day ready with a professional fit. Available with custom name and number.',
+    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    image: '',
+    customisable: true,
+  },
+  {
+    id: 'playing-trousers',
+    name: 'Playing Trousers (White)',
+    price: 55,
+    description:
+      'Official NDCC playing trousers in white. Comfortable and durable for all-day cricket.',
+    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    image: '',
+  },
+  {
+    id: 'club-hoodie',
+    name: 'Club Hoodie (Maroon)',
+    price: 70,
+    description:
+      'Warm maroon hoodie with embroidered club crest. Perfect for cool training evenings and winter off-season.',
+    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    image: '',
+  },
+  {
+    id: 'training-tee',
+    name: 'Training Tee (Maroon)',
+    price: 40,
+    description:
+      'Lightweight maroon training tee with printed club logo. Breathable performance fabric for nets and fitness sessions.',
+    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    image: '',
+  },
+  {
     id: 'club-polo',
-    name: 'Club Polo',
+    name: 'Club Polo (Maroon)',
     price: 45,
     description:
       'Official NDCC polo shirt in maroon with embroidered club crest. Perfect for match days, training, and club events.',
     sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
-    image: '/images/placeholder-polo.jpg',
+    image: '',
   },
   {
     id: 'club-cap',
-    name: 'Club Cap',
+    name: 'Club Cap (Maroon)',
     price: 25,
     description:
       'Maroon club cap with embroidered Dinos logo. Adjustable strap for a comfortable fit.',
     sizes: ['One Size'],
-    image: '/images/placeholder-cap.jpg',
+    image: '',
   },
   {
     id: 'training-singlet',
-    name: 'Training Singlet',
+    name: 'Training Singlet (Maroon)',
     price: 35,
     description:
       'Lightweight maroon training singlet with printed club logo. Breathable fabric for summer training sessions.',
     sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL'],
-    image: '/images/placeholder-singlet.jpg',
+    image: '',
+  },
+  {
+    id: 'cricket-socks',
+    name: 'Cricket Socks (Maroon/White)',
+    price: 15,
+    description:
+      'NDCC cricket socks in maroon and white. Cushioned sole for comfort during long days in the field.',
+    sizes: ['S', 'M', 'L'],
+    image: '',
   },
 ];
 
@@ -119,3 +193,128 @@ export const INSTAGRAM_URL = 'https://www.instagram.com/newcombdistrictcc/';
 export const INSTAGRAM_HANDLE = '@newcombdistrictcc';
 export const PLAYHQ_ORG_URL = 'https://www.playhq.com/cricket-australia/org/newcomb-and-district-cricket-club/2c2bff9c';
 export const PLAYHQ_URL = PLAYHQ_ORG_URL;
+
+export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
+  {
+    id: 'seed-welcome',
+    title: 'Welcome to the New NDCC Website',
+    content:
+      'We are thrilled to launch the brand-new Newcomb and District Cricket Club website. This platform has been built from the ground up to keep our members, supporters, and the wider Geelong cricket community informed about everything happening at the Dinos. You will find fixtures, event information, merchandise, volunteer opportunities, and much more. We will be continually adding new features, so check back often. Thank you to everyone who contributed to making this happen.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2026-03-01T09:00:00',
+  },
+  {
+    id: 'seed-u13s-grand-final',
+    title: 'U13s Reach Grand Final',
+    content:
+      'Congratulations to our Under 13s side who secured a spot in the GCA grand final after an undefeated 2025/26 season. The grand final was held at Grinter Reserve, capping off a fantastic season for the junior programme. The boys showed incredible dedication and team spirit throughout the year, and the club could not be prouder of their achievement. A huge thank you to the coaches, parents, and volunteers who supported the team all season.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2026-03-10T10:00:00',
+  },
+  {
+    id: 'seed-training-facility',
+    title: 'Training Facility Grand Opening',
+    content:
+      'The Peter "Skinny" Harrison Training Facility was officially opened in August 2024, marking a milestone moment for our club. Named in honour of one of our most beloved and long-serving members, the facility features three public synthetic lanes and four club turf lanes, giving our players access to first-class training surfaces right here at Grinter Reserve in Moolap. The new facility is a game-changer for both senior and junior cricket development at the club.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2024-08-15T10:00:00',
+  },
+  {
+    id: 'seed-2627-preview',
+    title: '2026/27 Season Preview',
+    content:
+      'With the 2025/26 season now wrapped up, attention turns to the 2026/27 campaign starting in October 2026. Pre-season training will return to the Peter "Skinny" Harrison Training Facility at Grinter Reserve, with sessions for all senior and junior squads. We are encouraging new players across men\'s, women\'s, and junior cricket to get involved. Registrations will open on PlayHQ closer to the season. Keep an eye on our Facebook page and this website for announcements about training schedules and registration dates.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2026-03-15T08:30:00',
+  },
+];
+
+export const SEED_SPONSORS: Omit<Sponsor, 'created_at'>[] = [
+  {
+    id: 'seed-mbr',
+    name: 'MBR Cricket (Mustaang Cricket Bat Repairs)',
+    tier: 'major',
+    logo_url: '',
+    website: 'https://mbrcricket.com',
+    placement_type: 'homepage',
+    active: true,
+  },
+  {
+    id: 'seed-leopold',
+    name: 'Leopold Sportsmans Club',
+    tier: 'gold',
+    logo_url: '',
+    website: 'https://leopoldsporties.com',
+    placement_type: 'listing',
+    active: true,
+  },
+  {
+    id: 'seed-champion',
+    name: 'Champion Trophies',
+    tier: 'gold',
+    logo_url: '',
+    website: 'https://www.swlocksmiths.com.au/trophies-giftware/',
+    placement_type: 'listing',
+    active: true,
+  },
+  {
+    id: 'seed-phoenix',
+    name: 'Phoenix Truck Bodies',
+    tier: 'silver',
+    logo_url: '',
+    website: 'https://phoenixtruckbodies.com.au',
+    placement_type: 'listing',
+    active: true,
+  },
+  {
+    id: 'seed-blackmans',
+    name: "Blackman's Brewery",
+    tier: 'silver',
+    logo_url: '',
+    website: 'https://www.blackmansbrewery.com.au',
+    placement_type: 'listing',
+    active: true,
+  },
+];
+
+export const SEED_SPONSOR_DESCRIPTIONS: Record<string, string> = {
+  'seed-mbr': 'Geelong-based handcrafted cricket bats, repairs, pads and gloves. Owned by Raj Kumar Gurung.',
+  'seed-leopold': 'Local sports and dining club in Leopold. Club event venue partner.',
+  'seed-champion': 'Trophy supply and engraving. 172 Malop St, Geelong. Over 50 years in business.',
+  'seed-phoenix': 'Geelong-based truck body manufacturing and general engineering since 1995.',
+  'seed-blackmans': 'Independent craft brewery with venues in Torquay, Ocean Grove, and Geelong.',
+};
+
+export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'created_at'>[] = [
+  {
+    title: '2025/26 Presentation Night',
+    description:
+      'Join us to celebrate the achievements of our players and volunteers for the 2025/26 season. Awards across all teams, dinner, and plenty of Dinos spirit. Held at General Public, Geelong.',
+    date: '2026-03-28T18:00:00+11:00',
+    location: 'General Public, Geelong',
+    capacity: null,
+    ticket_price: 35,
+  },
+  {
+    title: 'Pre-Season Training Begins',
+    description:
+      "Pre-season training for the 2026/27 season kicks off at the Peter 'Skinny' Harrison Training Facility, Grinter Reserve. All new and returning players welcome across men's, women's, and junior squads.",
+    date: '2026-08-01T17:30:00+10:00',
+    location: 'Grinter Reserve, Moolap',
+    capacity: null,
+    ticket_price: 0,
+  },
+  {
+    title: 'Season Launch 2026/27',
+    description:
+      'Kick off the new cricket season with the Dinos. Meet the coaches, hear about plans for the season ahead, and register for your team. Free entry. All welcome, including new players and families.',
+    date: '2026-09-12T14:00:00+10:00',
+    location: 'Grinter Reserve, Moolap',
+    capacity: null,
+    ticket_price: 0,
+  },
+];

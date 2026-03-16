@@ -27,6 +27,8 @@ export interface OrderItem {
   size: string;
   quantity: number;
   price: number;
+  custom_name?: string;
+  custom_number?: number;
 }
 
 export interface Contact {
@@ -102,6 +104,7 @@ export interface TeamInfo {
   grade: string;
   description: string;
   captain?: string;
+  playhq_url?: string;
 }
 
 export interface Product {
@@ -112,4 +115,5 @@ export interface Product {
   sizes: string[];
   image: string;
   stripe_link?: string;
+  customisable?: boolean;
 }

@@ -6,7 +6,12 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
-import { SPONSOR_TIERS, CLUB_NAME } from '@/lib/constants';
+import {
+  SPONSOR_TIERS,
+  CLUB_NAME,
+  SEED_SPONSORS,
+  SEED_SPONSOR_DESCRIPTIONS,
+} from '@/lib/constants';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
@@ -22,6 +27,7 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 export default function SponsorsPage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usingSeed, setUsingSeed] = useState(false);
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -41,6 +47,8 @@ export default function SponsorsPage() {
     async function fetchSponsors() {
       try {
         if (!isSupabaseConfigured()) {
+          setSponsors(SEED_SPONSORS as Sponsor[]);
+          setUsingSeed(true);
           setLoading(false);
           return;
         }
@@ -51,11 +59,15 @@ export default function SponsorsPage() {
           .eq('active', true)
           .order('created_at', { ascending: true });
 
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           setSponsors(data as Sponsor[]);
+        } else {
+          setSponsors(SEED_SPONSORS as Sponsor[]);
+          setUsingSeed(true);
         }
       } catch {
-        // Supabase query failed
+        setSponsors(SEED_SPONSORS as Sponsor[]);
+        setUsingSeed(true);
       } finally {
         setLoading(false);
       }
@@ -166,7 +178,7 @@ export default function SponsorsPage() {
             </div>
           </div>
         </section>
-      ) : tiersWithSponsors.length > 0 ? (
+      ) : (
         tiersWithSponsors.map((tier, idx) => (
           <section
             key={tier.value}
@@ -178,55 +190,43 @@ export default function SponsorsPage() {
                 <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sponsorsByTier[tier.value].map((sponsor) => (
-                  <a
-                    key={sponsor.id}
-                    href={sponsor.website || undefined}
-                    target={sponsor.website ? '_blank' : undefined}
-                    rel={sponsor.website ? 'noopener noreferrer' : undefined}
-                    className="block group"
-                  >
-                    <Card hover className="h-full">
-                      {sponsor.logo_url ? (
-                        <div className="h-40 flex items-center justify-center p-6 bg-white">
-                          <img
-                            src={sponsor.logo_url}
-                            alt={sponsor.name}
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-40 bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center p-6">
-                          <span className="text-white font-display font-bold text-xl text-center">
+                {sponsorsByTier[tier.value].map((sponsor) => {
+                  const description = usingSeed
+                    ? SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || ''
+                    : '';
+                  return (
+                    <a
+                      key={sponsor.id}
+                      href={sponsor.website || undefined}
+                      target={sponsor.website ? '_blank' : undefined}
+                      rel={sponsor.website ? 'noopener noreferrer' : undefined}
+                      className="block group"
+                    >
+                      <Card hover className="h-full">
+                        <CardContent className="p-6">
+                          <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
                             {sponsor.name}
-                          </span>
-                        </div>
-                      )}
-                      <CardContent>
-                        <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors">
-                          {sponsor.name}
-                        </h3>
-                        {sponsor.website && (
-                          <p className="text-sm text-maroon-600 font-body mt-1 group-hover:underline">
-                            Visit website
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </a>
-                ))}
+                          </h3>
+                          {description && (
+                            <p className="text-gray-600 font-body text-sm mb-3">{description}</p>
+                          )}
+                          {sponsor.website && (
+                            <p className="text-maroon-600 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
+                              Visit website
+                              <svg className="ml-1 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                              </svg>
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </section>
         ))
-      ) : (
-        <section className="section-padding">
-          <div className="container-width text-center py-8">
-            <p className="text-gray-500 font-body text-lg">
-              Sponsor details are being updated. Check back soon.
-            </p>
-          </div>
-        </section>
       )}
 
       {/* Become a Sponsor */}
