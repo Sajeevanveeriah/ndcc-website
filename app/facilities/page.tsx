@@ -78,60 +78,50 @@ export default function FacilitiesPage() {
 
       {/* Grinter Reserve */}
       <section className="section-padding">
-        <div className="container-width">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="section-title">{CLUB_GROUND}</h2>
-              <p className="text-gray-500 font-body text-sm mb-4">{CLUB_ADDRESS}</p>
-              <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-                <p>
-                  {CLUB_GROUND} is the proud home of the {CLUB_NICKNAME}. Located in Moolap, just
-                  south of Geelong, the ground has been a hub for community cricket for decades.
-                </p>
-                <p>
-                  The venue features a quality turf wicket square, well-maintained outfield, modern
-                  clubrooms and pavilion, and ample facilities for players, officials, and spectators
-                  alike.
-                </p>
-                <p>
-                  Shared with the Newcomb Power Football Club, {CLUB_GROUND} is a true multi-sport
-                  community facility serving the Newcomb and Moolap areas.
-                </p>
-              </div>
-            </div>
-            <div className="h-72 lg:h-96 bg-gradient-to-br from-maroon-100 via-maroon-200 to-maroon-300 rounded-xl" aria-hidden="true" />
+        <div className="container-width max-w-4xl mx-auto">
+          <h2 className="section-title">{CLUB_GROUND}</h2>
+          <p className="text-gray-500 font-body text-sm mb-6">{CLUB_ADDRESS}</p>
+          <div className="space-y-4 text-gray-700 font-body leading-relaxed">
+            <p>
+              {CLUB_GROUND} is the proud home of the {CLUB_NICKNAME}. Located in Moolap, just
+              south of Geelong, the ground has been a hub for community cricket for decades.
+            </p>
+            <p>
+              The venue features a quality turf wicket square, well-maintained outfield, modern
+              clubrooms and pavilion, and ample facilities for players, officials, and spectators
+              alike.
+            </p>
+            <p>
+              Shared with the Newcomb Power Football Club, {CLUB_GROUND} is a true multi-sport
+              community facility serving the Newcomb and Moolap areas.
+            </p>
           </div>
         </div>
       </section>
 
       {/* Training Facility */}
       <section className="section-padding bg-gray-50">
-        <div className="container-width">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="order-2 lg:order-1 h-72 lg:h-96 bg-gradient-to-br from-maroon-200 via-maroon-300 to-maroon-400 rounded-xl" aria-hidden="true" />
-            <div className="order-1 lg:order-2">
-              <h2 className="section-title">Peter &lsquo;Skinny&rsquo; Harrison Training Facility</h2>
-              <p className="text-maroon-600 font-body text-sm font-semibold mb-4">
-                Opened August 2024
-              </p>
-              <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-                <p>
-                  The Peter &lsquo;Skinny&rsquo; Harrison Training Facility is a state-of-the-art
-                  training venue named in honour of a beloved club legend. Officially opened in
-                  August 2024, the facility represents a major investment in the future of cricket
-                  at NDCC.
-                </p>
-                <p>
-                  The facility features <strong>3 public synthetic lanes</strong> available for
-                  community use, as well as <strong>4 club turf lanes</strong> reserved for
-                  official NDCC training sessions.
-                </p>
-                <p>
-                  These world-class nets provide our players with exceptional training surfaces and
-                  give the broader community access to quality cricket practice facilities.
-                </p>
-              </div>
-            </div>
+        <div className="container-width max-w-4xl mx-auto">
+          <h2 className="section-title">Peter &lsquo;Skinny&rsquo; Harrison Training Facility</h2>
+          <p className="text-maroon-600 font-body text-sm font-semibold mb-6">
+            Opened August 2024
+          </p>
+          <div className="space-y-4 text-gray-700 font-body leading-relaxed">
+            <p>
+              The Peter &lsquo;Skinny&rsquo; Harrison Training Facility is a state-of-the-art
+              training venue named in honour of a beloved club legend. Officially opened in
+              August 2024, the facility represents a major investment in the future of cricket
+              at NDCC.
+            </p>
+            <p>
+              The facility features <strong>3 public synthetic lanes</strong> available for
+              community use, as well as <strong>4 club turf lanes</strong> reserved for
+              official NDCC training sessions.
+            </p>
+            <p>
+              These world-class nets provide our players with exceptional training surfaces and
+              give the broader community access to quality cricket practice facilities.
+            </p>
           </div>
         </div>
       </section>

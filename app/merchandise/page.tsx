@@ -15,9 +15,49 @@ interface CartItem extends OrderItem {
 }
 
 const PRODUCT_GRADIENTS: Record<string, string> = {
+  'playing-shirt': 'from-gray-100 to-gray-300',
+  'playing-trousers': 'from-gray-50 to-gray-200',
+  'club-hoodie': 'from-maroon-700 to-maroon-900',
+  'training-tee': 'from-maroon-600 to-maroon-800',
   'club-polo': 'from-maroon-600 to-maroon-800',
   'club-cap': 'from-maroon-700 to-maroon-950',
   'training-singlet': 'from-maroon-500 to-maroon-700',
+  'cricket-socks': 'from-maroon-400 to-maroon-600',
+};
+
+const PRODUCT_ICONS: Record<string, { path: string; textColor: string }> = {
+  'playing-shirt': {
+    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    textColor: 'text-maroon-800',
+  },
+  'playing-trousers': {
+    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    textColor: 'text-maroon-800',
+  },
+  'club-hoodie': {
+    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    textColor: 'text-white/70',
+  },
+  'training-tee': {
+    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    textColor: 'text-white/70',
+  },
+  'club-polo': {
+    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    textColor: 'text-white/70',
+  },
+  'club-cap': {
+    path: 'M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z',
+    textColor: 'text-white/70',
+  },
+  'training-singlet': {
+    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
+    textColor: 'text-white/70',
+  },
+  'cricket-socks': {
+    path: 'M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25',
+    textColor: 'text-white/70',
+  },
 };
 
 function isStripeConfigured(): boolean {
@@ -38,6 +78,8 @@ function MerchandiseContent() {
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [sizeErrors, setSizeErrors] = useState<Record<string, string>>({});
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+  const [customNumbers, setCustomNumbers] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -74,8 +116,13 @@ function MerchandiseContent() {
     setSizeErrors((prev) => ({ ...prev, [productId]: '' }));
 
     const qty = quantities[productId] || 1;
+    const custom_name = product.customisable ? customNames[productId]?.trim() || undefined : undefined;
+    const custom_number = product.customisable && customNumbers[productId]
+      ? parseInt(customNumbers[productId], 10)
+      : undefined;
+
     const existingIdx = cart.findIndex(
-      (item) => item.id === productId && item.size === size
+      (item) => item.id === productId && item.size === size && item.custom_name === custom_name && item.custom_number === custom_number
     );
 
     if (existingIdx >= 0) {
@@ -93,11 +140,17 @@ function MerchandiseContent() {
           size,
           quantity: qty,
           price: product.price,
+          custom_name,
+          custom_number: custom_number !== undefined && !isNaN(custom_number) ? custom_number : undefined,
         },
       ]);
     }
 
     setQuantities((prev) => ({ ...prev, [productId]: 1 }));
+    if (product.customisable) {
+      setCustomNames((prev) => ({ ...prev, [productId]: '' }));
+      setCustomNumbers((prev) => ({ ...prev, [productId]: '' }));
+    }
   }
 
   function handleRemoveFromCart(index: number) {
@@ -149,11 +202,13 @@ function MerchandiseContent() {
           customer_email: formData.email,
           customer_phone: formData.phone,
           notes: formData.notes,
-          items: cart.map(({ name, size, quantity, price }) => ({
+          items: cart.map(({ name, size, quantity, price, custom_name, custom_number }) => ({
             name,
             size,
             quantity,
             price,
+            ...(custom_name ? { custom_name } : {}),
+            ...(custom_number !== undefined ? { custom_number } : {}),
           })),
           total_amount: cartTotal,
         }),
@@ -200,103 +255,143 @@ function MerchandiseContent() {
       <section className="section-padding">
         <div className="container-width">
           <h2 className="section-title mb-8">Products</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {PRODUCTS.map((product) => (
-              <Card key={product.id}>
-                <div
-                  className={`h-48 bg-gradient-to-br ${PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800'} flex items-center justify-center`}
-                  aria-hidden="true"
-                >
-                  <span className="text-white font-display font-bold text-2xl opacity-70">
-                    {product.name}
-                  </span>
-                </div>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <h3 className="font-display font-bold text-gray-900 text-lg">
-                      {product.name}
-                    </h3>
-                    <Badge variant="default">{formatCurrency(product.price)}</Badge>
-                  </div>
-                  <p className="font-body text-gray-600 text-sm">{product.description}</p>
-
-                  {/* Size Selector */}
-                  <div>
-                    <p className="form-label">Size</p>
-                    <div className="flex flex-wrap gap-2">
-                      {product.sizes.map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg border text-sm font-body font-medium transition-colors',
-                            selectedSizes[product.id] === size
-                              ? 'border-maroon-700 bg-maroon-700 text-white'
-                              : 'border-gray-300 text-gray-700 hover:border-maroon-400'
-                          )}
-                          onClick={() => {
-                            setSelectedSizes((prev) => ({ ...prev, [product.id]: size }));
-                            setSizeErrors((prev) => ({ ...prev, [product.id]: '' }));
-                          }}
-                          aria-pressed={selectedSizes[product.id] === size}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                    {sizeErrors[product.id] && (
-                      <p className="mt-1 text-sm text-red-600">{sizeErrors[product.id]}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {PRODUCTS.map((product) => {
+              const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
+              const iconData = PRODUCT_ICONS[product.id];
+              return (
+                <Card key={product.id}>
+                  <div
+                    className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}
+                    aria-hidden="true"
+                  >
+                    {iconData && (
+                      <svg className={`w-12 h-12 ${iconData.textColor}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={iconData.path} />
+                      </svg>
                     )}
                   </div>
-
-                  {/* Quantity Selector */}
-                  <div>
-                    <p className="form-label">Quantity</p>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
-                        onClick={() =>
-                          setQuantities((prev) => ({
-                            ...prev,
-                            [product.id]: Math.max(1, (prev[product.id] || 1) - 1),
-                          }))
-                        }
-                        aria-label="Decrease quantity"
-                      >
-                        -
-                      </button>
-                      <span className="font-body font-semibold text-gray-900 w-8 text-center">
-                        {quantities[product.id] || 1}
-                      </span>
-                      <button
-                        type="button"
-                        className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
-                        onClick={() =>
-                          setQuantities((prev) => ({
-                            ...prev,
-                            [product.id]: Math.min(10, (prev[product.id] || 1) + 1),
-                          }))
-                        }
-                        aria-label="Increase quantity"
-                      >
-                        +
-                      </button>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display font-bold text-gray-900 text-sm leading-tight">
+                        {product.name}
+                      </h3>
+                      <Badge variant="default" className="flex-shrink-0">{formatCurrency(product.price)}</Badge>
                     </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleAddToOrder(product.id)}
-                    className="w-full"
-                  >
-                    Add to Order
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                    <p className="font-body text-gray-600 text-xs">{product.description}</p>
+
+                    {product.customisable && (
+                      <Badge variant="info" className="text-xs">Customisable</Badge>
+                    )}
+
+                    {/* Size Selector */}
+                    <div>
+                      <p className="form-label text-xs">Size</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {product.sizes.map((size) => (
+                          <button
+                            key={size}
+                            type="button"
+                            className={cn(
+                              'px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
+                              selectedSizes[product.id] === size
+                                ? 'border-maroon-700 bg-maroon-700 text-white'
+                                : 'border-gray-300 text-gray-700 hover:border-maroon-400'
+                            )}
+                            onClick={() => {
+                              setSelectedSizes((prev) => ({ ...prev, [product.id]: size }));
+                              setSizeErrors((prev) => ({ ...prev, [product.id]: '' }));
+                            }}
+                            aria-pressed={selectedSizes[product.id] === size}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                      {sizeErrors[product.id] && (
+                        <p className="mt-1 text-xs text-red-600">{sizeErrors[product.id]}</p>
+                      )}
+                    </div>
+
+                    {/* Custom name/number for customisable products */}
+                    {product.customisable && (
+                      <div className="space-y-2">
+                        <div>
+                          <label htmlFor={`custom-name-${product.id}`} className="form-label text-xs">Name on Shirt (optional)</label>
+                          <input
+                            id={`custom-name-${product.id}`}
+                            type="text"
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            placeholder="e.g. SMITH"
+                            value={customNames[product.id] || ''}
+                            onChange={(e) => setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`custom-number-${product.id}`} className="form-label text-xs">Number on Shirt (optional)</label>
+                          <input
+                            id={`custom-number-${product.id}`}
+                            type="number"
+                            min={0}
+                            max={99}
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            placeholder="0-99"
+                            value={customNumbers[product.id] || ''}
+                            onChange={(e) => setCustomNumbers((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quantity Selector */}
+                    <div>
+                      <p className="form-label text-xs">Quantity</p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                          onClick={() =>
+                            setQuantities((prev) => ({
+                              ...prev,
+                              [product.id]: Math.max(1, (prev[product.id] || 1) - 1),
+                            }))
+                          }
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </button>
+                        <span className="font-body font-semibold text-gray-900 w-6 text-center text-sm">
+                          {quantities[product.id] || 1}
+                        </span>
+                        <button
+                          type="button"
+                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                          onClick={() =>
+                            setQuantities((prev) => ({
+                              ...prev,
+                              [product.id]: Math.min(10, (prev[product.id] || 1) + 1),
+                            }))
+                          }
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleAddToOrder(product.id)}
+                      className="w-full"
+                    >
+                      Add to Order
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -353,12 +448,18 @@ function MerchandiseContent() {
               <Card className="mb-8">
                 <div className="divide-y divide-gray-100">
                   {cart.map((item, idx) => (
-                    <div key={`${item.id}-${item.size}-${idx}`} className="px-6 py-4 flex items-center justify-between">
+                    <div key={`${item.id}-${item.size}-${item.custom_name || ''}-${idx}`} className="px-6 py-4 flex items-center justify-between">
                       <div className="flex-1">
                         <p className="font-body font-semibold text-gray-900">{item.name}</p>
                         <p className="font-body text-sm text-gray-500">
                           Size: {item.size} · {formatCurrency(item.price)} each
                         </p>
+                        {item.custom_name && (
+                          <p className="font-body text-xs text-maroon-700">Name: {item.custom_name}</p>
+                        )}
+                        {item.custom_number !== undefined && (
+                          <p className="font-body text-xs text-maroon-700">Number: {item.custom_number}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">

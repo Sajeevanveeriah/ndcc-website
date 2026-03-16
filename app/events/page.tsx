@@ -7,7 +7,7 @@ import Badge from '@/components/ui/Badge';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { FACEBOOK_URL } from '@/lib/constants';
+import { SEED_EVENTS } from '@/lib/constants';
 
 function SkeletonCard() {
   return (
@@ -25,9 +25,25 @@ function SkeletonCard() {
   );
 }
 
+function seedToEvent(seed: typeof SEED_EVENTS[number], index: number): Event {
+  return {
+    id: `seed-event-${index}`,
+    title: seed.title,
+    description: seed.description,
+    date: seed.date,
+    location: seed.location,
+    capacity: seed.capacity,
+    ticket_price: seed.ticket_price,
+    stripe_link: '',
+    published: true,
+    created_at: '',
+  };
+}
+
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usingSeed, setUsingSeed] = useState(false);
 
   useEffect(() => {
     document.title = 'Events | NDCC Dinos';
@@ -35,6 +51,8 @@ export default function EventsPage() {
     async function fetchEvents() {
       try {
         if (!isSupabaseConfigured()) {
+          setEvents(SEED_EVENTS.map(seedToEvent));
+          setUsingSeed(true);
           setLoading(false);
           return;
         }
@@ -45,11 +63,15 @@ export default function EventsPage() {
           .eq('published', true)
           .order('date', { ascending: true });
 
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           setEvents(data as Event[]);
+        } else {
+          setEvents(SEED_EVENTS.map(seedToEvent));
+          setUsingSeed(true);
         }
       } catch {
-        // Supabase query failed, show empty state
+        setEvents(SEED_EVENTS.map(seedToEvent));
+        setUsingSeed(true);
       } finally {
         setLoading(false);
       }
@@ -80,7 +102,7 @@ export default function EventsPage() {
               <SkeletonCard />
               <SkeletonCard />
             </div>
-          ) : events.length > 0 ? (
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {events.map((event) => (
                 <Card key={event.id} hover>
@@ -105,27 +127,18 @@ export default function EventsPage() {
                       {event.ticket_price === 0 ? 'Free Entry' : formatCurrency(event.ticket_price)}
                     </Badge>
                   </CardContent>
-                  <CardFooter>
-                    <Link
-                      href={`/events/${event.id}`}
-                      className="btn-primary text-sm px-4 py-2"
-                    >
-                      View Details
-                    </Link>
-                  </CardFooter>
+                  {!usingSeed && (
+                    <CardFooter>
+                      <Link
+                        href={`/events/${event.id}`}
+                        className="btn-primary text-sm px-4 py-2"
+                      >
+                        View Details
+                      </Link>
+                    </CardFooter>
+                  )}
                 </Card>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 font-body text-lg">No upcoming events at the moment.</p>
-              <p className="text-gray-400 font-body mt-2">
-                Follow us on{' '}
-                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline">
-                  Facebook
-                </Link>
-                {' '}for updates.
-              </p>
             </div>
           )}
         </div>

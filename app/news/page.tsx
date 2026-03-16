@@ -7,7 +7,7 @@ import Badge from '@/components/ui/Badge';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
-import { FACEBOOK_URL } from '@/lib/constants';
+import { SEED_NEWS } from '@/lib/constants';
 
 function SkeletonCard() {
   return (
@@ -25,6 +25,7 @@ function SkeletonCard() {
 export default function NewsPage() {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usingSeed, setUsingSeed] = useState(false);
 
   useEffect(() => {
     document.title = 'News & Announcements | NDCC Dinos';
@@ -32,6 +33,8 @@ export default function NewsPage() {
     async function fetchNews() {
       try {
         if (!isSupabaseConfigured()) {
+          setPosts(SEED_NEWS as NewsPost[]);
+          setUsingSeed(true);
           setLoading(false);
           return;
         }
@@ -42,11 +45,15 @@ export default function NewsPage() {
           .eq('published', true)
           .order('published_at', { ascending: false });
 
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           setPosts(data as NewsPost[]);
+        } else {
+          setPosts(SEED_NEWS as NewsPost[]);
+          setUsingSeed(true);
         }
       } catch {
-        // Supabase query failed, show empty state
+        setPosts(SEED_NEWS as NewsPost[]);
+        setUsingSeed(true);
       } finally {
         setLoading(false);
       }
@@ -77,7 +84,7 @@ export default function NewsPage() {
               <SkeletonCard />
               <SkeletonCard />
             </div>
-          ) : posts.length > 0 ? (
+          ) : (
             <div className="space-y-6">
               {posts.map((post) => (
                 <Card key={post.id} hover>
@@ -89,39 +96,34 @@ export default function NewsPage() {
                       <span className="font-body text-sm text-gray-500">by {post.author}</span>
                     </div>
                     <h2 className="font-display font-bold text-gray-900 text-xl mb-3">
-                      <Link
-                        href={`/news/${post.id}`}
-                        className="hover:text-maroon-700 transition-colors"
-                      >
-                        {post.title}
-                      </Link>
+                      {usingSeed ? (
+                        post.title
+                      ) : (
+                        <Link
+                          href={`/news/${post.id}`}
+                          className="hover:text-maroon-700 transition-colors"
+                        >
+                          {post.title}
+                        </Link>
+                      )}
                     </h2>
                     <p className="font-body text-gray-600 leading-relaxed">
                       {truncateText(post.content, 200)}
                     </p>
-                    <Link
-                      href={`/news/${post.id}`}
-                      className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold text-sm mt-4 transition-colors"
-                    >
-                      Read More
-                      <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                      </svg>
-                    </Link>
+                    {!usingSeed && (
+                      <Link
+                        href={`/news/${post.id}`}
+                        className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold text-sm mt-4 transition-colors"
+                      >
+                        Read More
+                        <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                        </svg>
+                      </Link>
+                    )}
                   </CardContent>
                 </Card>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 font-body text-lg">No news articles at the moment.</p>
-              <p className="text-gray-400 font-body mt-2">
-                Follow us on{' '}
-                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline">
-                  Facebook
-                </Link>
-                {' '}for the latest updates.
-              </p>
             </div>
           )}
         </div>

@@ -1,10 +1,15 @@
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
   CLUB_ESTABLISHED,
   PLAYHQ_ORG_URL,
+  FACEBOOK_URL,
+  SEED_NEWS,
+  SEED_SPONSORS,
+  SPONSOR_TIERS,
 } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase-server';
 import { formatDate, truncateText } from '@/lib/utils';
@@ -28,6 +33,7 @@ interface NewsItem {
 interface SponsorItem {
   id: string;
   name: string;
+  tier: string;
   website: string;
   logo_url: string;
 }
@@ -58,7 +64,7 @@ async function getSponsors(): Promise<SponsorItem[]> {
     const supabase = createServerClient();
     const { data } = await supabase
       .from('sponsors')
-      .select('id, name, website, logo_url')
+      .select('id, name, tier, website, logo_url')
       .eq('active', true)
       .order('created_at', { ascending: true });
     return (data as SponsorItem[]) || [];
@@ -67,8 +73,34 @@ async function getSponsors(): Promise<SponsorItem[]> {
   }
 }
 
+const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+  major: 'danger',
+  gold: 'warning',
+  silver: 'default',
+};
+
 export default async function HomePage() {
-  const [news, sponsors] = await Promise.all([getLatestNews(), getSponsors()]);
+  const [dbNews, dbSponsors] = await Promise.all([getLatestNews(), getSponsors()]);
+
+  const news: NewsItem[] = dbNews.length > 0
+    ? dbNews
+    : SEED_NEWS.slice(0, 3).map((n) => ({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        published_at: n.published_at,
+      }));
+  const usingSeedNews = dbNews.length === 0;
+
+  const sponsors: SponsorItem[] = dbSponsors.length > 0
+    ? dbSponsors
+    : SEED_SPONSORS.map((s) => ({
+        id: s.id,
+        name: s.name,
+        tier: s.tier,
+        website: s.website,
+        logo_url: s.logo_url,
+      }));
 
   return (
     <>
@@ -119,28 +151,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Fixtures CTA */}
+      {/* Season Status */}
       <section className="section-padding">
         <div className="container-width">
           <div className="text-center mb-12">
-            <h2 className="section-title">Upcoming Fixtures</h2>
-            <p className="section-subtitle mx-auto">
-              Catch the {CLUB_NICKNAME} in action this season.
-            </p>
+            <h2 className="section-title">Season Update</h2>
           </div>
           <Card className="border-l-4 border-l-maroon-700 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
-              <p className="text-gray-700 font-body leading-relaxed mb-6">
-                Fixtures, live scores, ladders, and results are managed through PlayHQ - the official platform
-                of Cricket Australia and the Geelong Cricket Association.
+              <h3 className="text-xl font-display font-bold text-gray-900 mb-3">2025/26 Season Complete</h3>
+              <p className="text-gray-700 font-body leading-relaxed mb-4">
+                The 2025/26 season has concluded. The 2026/27 season begins October 2026. Pre-season training details will be announced on our{' '}
+                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+                  Facebook page
+                </Link>.
               </p>
               <Link
                 href={PLAYHQ_ORG_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-primary"
+                className="btn-primary inline-flex items-center"
               >
-                View Fixtures on PlayHQ
+                View 2025/26 Results on PlayHQ
                 <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
@@ -151,91 +183,98 @@ export default async function HomePage() {
       </section>
 
       {/* Latest News */}
-      {news.length > 0 && (
-        <section className="section-padding bg-gray-50">
-          <div className="container-width">
-            <div className="text-center mb-12">
-              <h2 className="section-title">Latest News</h2>
-              <p className="section-subtitle mx-auto">
-                Stay up to date with everything happening at NDCC.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {news.map((article) => (
-                <Link key={article.id} href={`/news/${article.id}`} className="group">
-                  <Card hover className="h-full">
-                    <div className="h-48 bg-gradient-to-br from-maroon-100 to-maroon-200" aria-hidden="true" />
-                    <CardContent className="p-6">
-                      {article.published_at && (
-                        <p className="text-sm text-maroon-600 font-body font-semibold mb-2">
-                          {formatDate(article.published_at)}
-                        </p>
-                      )}
-                      <h3 className="text-lg font-display font-bold text-gray-900 mb-2 group-hover:text-maroon-700 transition-colors">
-                        {article.title}
-                      </h3>
-                      <p className="text-gray-600 font-body text-sm">
-                        {truncateText(article.content, 120)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-            <div className="text-center mt-8">
-              <Link href="/news" className="btn-secondary">
-                Read More News
-              </Link>
-            </div>
+      <section className="section-padding bg-gray-50">
+        <div className="container-width">
+          <div className="text-center mb-12">
+            <h2 className="section-title">Latest News</h2>
+            <p className="section-subtitle mx-auto">
+              Stay up to date with everything happening at NDCC.
+            </p>
           </div>
-        </section>
-      )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {news.map((article) => {
+              const inner = (
+                <Card hover className="h-full">
+                  <CardContent className="p-6">
+                    {article.published_at && (
+                      <p className="text-sm text-maroon-600 font-body font-semibold mb-2">
+                        {formatDate(article.published_at)}
+                      </p>
+                    )}
+                    <h3 className="text-lg font-display font-bold text-gray-900 mb-2 group-hover:text-maroon-700 transition-colors">
+                      {article.title}
+                    </h3>
+                    <p className="text-gray-600 font-body text-sm">
+                      {truncateText(article.content, 120)}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+
+              if (usingSeedNews) {
+                return <div key={article.id}>{inner}</div>;
+              }
+
+              return (
+                <Link key={article.id} href={`/news/${article.id}`} className="group">
+                  {inner}
+                </Link>
+              );
+            })}
+          </div>
+          <div className="text-center mt-8">
+            <Link href="/news" className="btn-secondary">
+              Read More News
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Sponsors Banner */}
-      {sponsors.length > 0 && (
-        <section className="section-padding">
-          <div className="container-width">
-            <div className="text-center mb-10">
-              <h2 className="section-title">Our Sponsors</h2>
-              <p className="section-subtitle mx-auto">
-                Proudly supported by our local community partners.
-              </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-8" role="region" aria-label="Club sponsors">
-              {sponsors.map((sponsor) => (
+      <section className="section-padding">
+        <div className="container-width">
+          <div className="text-center mb-10">
+            <h2 className="section-title">Our Sponsors</h2>
+            <p className="section-subtitle mx-auto">
+              Proudly supported by our local community partners.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="region" aria-label="Club sponsors">
+            {sponsors.map((sponsor) => {
+              const tierInfo = SPONSOR_TIERS.find((t) => t.value === sponsor.tier);
+              return (
                 <a
                   key={sponsor.id}
                   href={sponsor.website || undefined}
                   target={sponsor.website ? '_blank' : undefined}
                   rel={sponsor.website ? 'noopener noreferrer' : undefined}
-                  className="flex-shrink-0"
+                  className="block group"
                 >
-                  {sponsor.logo_url ? (
-                    <div className="w-40 h-24 flex items-center justify-center p-2">
-                      <img
-                        src={sponsor.logo_url}
-                        alt={sponsor.name}
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-40 h-24 bg-maroon-50 rounded-lg flex items-center justify-center border border-maroon-100 hover:bg-maroon-100 transition-colors">
-                      <span className="text-sm text-maroon-700 font-body font-semibold text-center px-2">
-                        {sponsor.name}
-                      </span>
-                    </div>
-                  )}
+                  <Card hover className="h-full">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display font-bold text-gray-900 text-sm group-hover:text-maroon-700 transition-colors truncate">
+                          {sponsor.name}
+                        </p>
+                      </div>
+                      {tierInfo && (
+                        <Badge variant={TIER_BADGE_VARIANT[sponsor.tier] || 'default'} className="flex-shrink-0 text-xs">
+                          {tierInfo.label}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
                 </a>
-              ))}
-            </div>
-            <div className="text-center mt-8">
-              <Link href="/sponsors" className="btn-secondary">
-                View All Sponsors
-              </Link>
-            </div>
+              );
+            })}
           </div>
-        </section>
-      )}
+          <div className="text-center mt-8">
+            <Link href="/sponsors" className="btn-secondary">
+              View All Sponsors
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Final CTA */}
       <section className="bg-gradient-to-br from-maroon-700 to-maroon-900 text-white section-padding">
