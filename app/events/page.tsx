@@ -25,9 +25,9 @@ function SkeletonCard() {
   );
 }
 
-function seedToEvent(seed: typeof SEED_EVENTS[number], index: number): Event {
+function seedToEvent(seed: typeof SEED_EVENTS[number]): Event {
   return {
-    id: `seed-event-${index}`,
+    id: seed.id,
     title: seed.title,
     description: seed.description,
     date: seed.date,
@@ -43,7 +43,6 @@ function seedToEvent(seed: typeof SEED_EVENTS[number], index: number): Event {
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingSeed, setUsingSeed] = useState(false);
 
   useEffect(() => {
     document.title = 'Events | NDCC Dinos';
@@ -51,8 +50,7 @@ export default function EventsPage() {
     async function fetchEvents() {
       try {
         if (!isSupabaseConfigured()) {
-          setEvents(SEED_EVENTS.map(seedToEvent));
-          setUsingSeed(true);
+          setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
           setLoading(false);
           return;
         }
@@ -66,12 +64,10 @@ export default function EventsPage() {
         if (!error && data && data.length > 0) {
           setEvents(data as Event[]);
         } else {
-          setEvents(SEED_EVENTS.map(seedToEvent));
-          setUsingSeed(true);
+          setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
         }
       } catch {
-        setEvents(SEED_EVENTS.map(seedToEvent));
-        setUsingSeed(true);
+        setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
       } finally {
         setLoading(false);
       }
@@ -127,16 +123,14 @@ export default function EventsPage() {
                       {event.ticket_price === 0 ? 'Free Entry' : formatCurrency(event.ticket_price)}
                     </Badge>
                   </CardContent>
-                  {!usingSeed && (
-                    <CardFooter>
-                      <Link
-                        href={`/events/${event.id}`}
-                        className="btn-primary text-sm px-4 py-2"
-                      >
-                        View Details
-                      </Link>
-                    </CardFooter>
-                  )}
+                  <CardFooter>
+                    <Link
+                      href={`/events/${event.id}`}
+                      className="btn-primary text-sm px-4 py-2"
+                    >
+                      View Details
+                    </Link>
+                  </CardFooter>
                 </Card>
               ))}
             </div>

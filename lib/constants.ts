@@ -300,8 +300,9 @@ export const SEED_SPONSOR_DESCRIPTIONS: Record<string, string> = {
   'seed-blackmans': 'Independent craft brewery with venues in Torquay, Ocean Grove, and Geelong.',
 };
 
-export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'created_at'>[] = [
+export const SEED_EVENTS: Omit<Event, 'stripe_link' | 'published' | 'created_at'>[] = [
   {
+    id: 'seed-event-presentation',
     title: '2025/26 Presentation Night',
     description:
       'Join us to celebrate the achievements of our players and volunteers for the 2025/26 season. Awards across all teams, dinner, and plenty of Dinos spirit. Held at General Public, Geelong.',
@@ -311,6 +312,7 @@ export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'crea
     ticket_price: 35,
   },
   {
+    id: 'seed-event-preseason',
     title: 'Pre-Season Training Begins',
     description:
       "Pre-season training for the 2026/27 season kicks off at the Peter 'Skinny' Harrison Training Facility, Grinter Reserve. All new and returning players welcome across men's, women's, and junior squads.",
@@ -320,6 +322,7 @@ export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'crea
     ticket_price: 0,
   },
   {
+    id: 'seed-event-launch',
     title: 'Season Launch 2026/27',
     description:
       'Kick off the new cricket season with the Dinos. Meet the coaches, hear about plans for the season ahead, and register for your team. Free entry. All welcome, including new players and families.',
