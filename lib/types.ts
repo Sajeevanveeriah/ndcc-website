@@ -83,6 +83,7 @@ export interface NewsPost {
   published: boolean;
   published_at: string | null;
   created_at: string;
+  image?: string;
 }
 
 export interface Profile {
@@ -105,6 +106,13 @@ export interface TeamInfo {
   description: string;
   captain?: string;
   playhq_url?: string;
+}
+
+export interface SeasonAppointment {
+  name: string;
+  role: string;
+  image?: string;
+  announcement_date: string;
 }
 
 export interface Product {

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -10,6 +11,7 @@ import {
   SEED_NEWS,
   SEED_SPONSORS,
   SPONSOR_TIERS,
+  SEASON_APPOINTMENTS,
 } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase-server';
 import { formatDate, truncateText } from '@/lib/utils';
@@ -28,6 +30,7 @@ interface NewsItem {
   title: string;
   content: string;
   published_at: string | null;
+  image?: string;
 }
 
 interface SponsorItem {
@@ -46,7 +49,7 @@ async function getLatestNews(): Promise<NewsItem[]> {
     const supabase = createServerClient();
     const { data } = await supabase
       .from('news')
-      .select('id, title, content, published_at')
+      .select('id, title, content, published_at, image')
       .eq('published', true)
       .order('published_at', { ascending: false })
       .limit(3);
@@ -89,6 +92,7 @@ export default async function HomePage() {
         title: n.title,
         content: n.content,
         published_at: n.published_at,
+        image: n.image,
       }));
   const usingSeedNews = dbNews.length === 0;
 
@@ -104,9 +108,17 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-maroon-800 via-maroon-700 to-maroon-900 text-white section-padding">
-        <div className="container-width text-center">
+      {/* Hero Section with Background Image */}
+      <section className="relative text-white section-padding overflow-hidden">
+        <Image
+          src="/images/Turf_Ground.jpg"
+          alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-maroon-900/75" />
+        <div className="container-width text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
             {CLUB_NAME}
           </h1>
@@ -194,7 +206,20 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {news.map((article) => {
               const inner = (
-                <Card hover className="h-full">
+                <Card hover className="h-full overflow-hidden">
+                  {article.image ? (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={article.image}
+                        alt={article.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-48 bg-gradient-to-br from-maroon-100 to-maroon-200" />
+                  )}
                   <CardContent className="p-6">
                     {article.published_at && (
                       <p className="text-sm text-maroon-600 font-body font-semibold mb-2">
@@ -230,8 +255,51 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Sponsors Banner */}
+      {/* 2026/27 Season Appointments */}
       <section className="section-padding">
+        <div className="container-width">
+          <div className="text-center mb-12">
+            <h2 className="section-title">2026/27 Season Appointments</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {SEASON_APPOINTMENTS.map((appointment) => (
+              <Card key={appointment.name} className="overflow-hidden">
+                {appointment.image ? (
+                  <div className="relative h-56 w-full">
+                    <Image
+                      src={appointment.image}
+                      alt={`${appointment.name} appointed as ${appointment.role}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-24 bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center">
+                    <span className="text-white/80 font-display font-bold text-3xl">
+                      {appointment.name.split(' ').map((w) => w[0]).join('')}
+                    </span>
+                  </div>
+                )}
+                <CardContent className="p-5 text-center">
+                  <h3 className="font-display font-bold text-gray-900 text-lg">{appointment.name}</h3>
+                  <p className="text-maroon-600 font-body text-sm font-semibold">{appointment.role}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <p className="text-center text-gray-500 font-body text-sm mt-8">
+            More appointments to be announced. Follow us on{' '}
+            <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+              Facebook
+            </Link>{' '}
+            for updates.
+          </p>
+        </div>
+      </section>
+
+      {/* Sponsors Banner */}
+      <section className="section-padding bg-gray-50">
         <div className="container-width">
           <div className="text-center mb-10">
             <h2 className="section-title">Our Sponsors</h2>
