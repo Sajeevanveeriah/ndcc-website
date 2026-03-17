@@ -10,6 +10,7 @@ import Badge from '@/components/ui/Badge';
 import { supabase } from '@/lib/supabase';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail } from '@/lib/utils';
+import { SEED_EVENTS } from '@/lib/constants';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -30,29 +31,57 @@ export default function EventDetailPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    function findSeedEvent(): Event | null {
+      const seed = SEED_EVENTS.find((e) => e.id === eventId);
+      if (!seed) return null;
+      return {
+        id: seed.id,
+        title: seed.title,
+        description: seed.description,
+        date: seed.date,
+        location: seed.location,
+        capacity: seed.capacity,
+        ticket_price: seed.ticket_price,
+        stripe_link: '',
+        published: true,
+        created_at: '',
+      };
+    }
+
     async function fetchEvent() {
       try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        if (!supabaseUrl) {
-          setNotFound(true);
-          setLoading(false);
-          return;
+        if (supabaseUrl) {
+          const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .eq('id', eventId)
+            .single();
+
+          if (!error && data) {
+            setEvent(data as Event);
+            document.title = `${data.title} | NDCC Dinos`;
+            setLoading(false);
+            return;
+          }
         }
 
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .eq('id', eventId)
-          .single();
-
-        if (error || !data) {
-          setNotFound(true);
+        // Fall back to seed data
+        const seedEvent = findSeedEvent();
+        if (seedEvent) {
+          setEvent(seedEvent);
+          document.title = `${seedEvent.title} | NDCC Dinos`;
         } else {
-          setEvent(data as Event);
-          document.title = `${data.title} | NDCC Dinos`;
+          setNotFound(true);
         }
       } catch {
-        setNotFound(true);
+        const seedEvent = findSeedEvent();
+        if (seedEvent) {
+          setEvent(seedEvent);
+          document.title = `${seedEvent.title} | NDCC Dinos`;
+        } else {
+          setNotFound(true);
+        }
       } finally {
         setLoading(false);
       }

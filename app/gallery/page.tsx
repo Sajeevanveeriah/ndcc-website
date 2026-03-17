@@ -1,11 +1,35 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Gallery',
 };
+
+const galleryPhotos = [
+  {
+    src: '/images/Turf_Ground.jpg',
+    alt: 'Grinter Reserve at dusk showing the full oval, floodlights, and pavilion',
+    caption: 'Grinter Reserve',
+  },
+  {
+    src: '/images/Turf.jpg',
+    alt: 'Close-up of the turf wicket square with white crease markings and blue sky',
+    caption: 'Turf Wicket',
+  },
+  {
+    src: '/images/Womens_Team.jpg',
+    alt: 'NDCC Senior Women team group photo in maroon club kit',
+    caption: 'Senior Women',
+  },
+  {
+    src: '/images/Womens_Teams_2.jpg',
+    alt: 'NDCC women in maroon and opposition in blue lined up on the ground before a match',
+    caption: 'Match Day',
+  },
+];
 
 export default function GalleryPage() {
   return (
@@ -15,15 +39,34 @@ export default function GalleryPage() {
         <div className="container-width">
           <h1 className="page-hero-title">Gallery</h1>
           <p className="page-hero-subtitle">
-            Match day photos, team shots, and club memories are shared on our social media.
-            Follow us to see the latest.
+            Match day photos, team shots, and club memories. Follow us on social media for more.
           </p>
         </div>
       </section>
 
-      {/* Social Links */}
+      {/* Photo Grid */}
       <section className="section-padding">
-        <div className="container-width max-w-3xl mx-auto">
+        <div className="container-width max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
+            {galleryPhotos.map((photo) => (
+              <div key={photo.src} className="relative aspect-[4/3] rounded-xl overflow-hidden group">
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  sizes="(max-width: 640px) 100vw, 50vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-4">
+                  <span className="text-white font-display font-bold text-sm">{photo.caption}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <h2 className="section-title text-center mb-8">Follow Us for More</h2>
+
+          {/* Social Links */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
             <Link
               href={FACEBOOK_URL}

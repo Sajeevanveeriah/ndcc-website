@@ -7,6 +7,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { NewsPost } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
+import { SEED_NEWS } from '@/lib/constants';
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -21,26 +22,37 @@ export default function NewsDetailPage() {
     async function fetchPost() {
       try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        if (!supabaseUrl) {
-          setNotFound(true);
-          setLoading(false);
-          return;
+        if (supabaseUrl) {
+          const { data, error } = await supabase
+            .from('news')
+            .select('*')
+            .eq('id', postId)
+            .single();
+
+          if (!error && data) {
+            setPost(data as NewsPost);
+            document.title = `${data.title} | NDCC Dinos`;
+            setLoading(false);
+            return;
+          }
         }
 
-        const { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .eq('id', postId)
-          .single();
-
-        if (error || !data) {
-          setNotFound(true);
+        // Fall back to seed data
+        const seedPost = SEED_NEWS.find((n) => n.id === postId);
+        if (seedPost) {
+          setPost(seedPost as NewsPost);
+          document.title = `${seedPost.title} | NDCC Dinos`;
         } else {
-          setPost(data as NewsPost);
-          document.title = `${data.title} | NDCC Dinos`;
+          setNotFound(true);
         }
       } catch {
-        setNotFound(true);
+        const seedPost = SEED_NEWS.find((n) => n.id === postId);
+        if (seedPost) {
+          setPost(seedPost as NewsPost);
+          document.title = `${seedPost.title} | NDCC Dinos`;
+        } else {
+          setNotFound(true);
+        }
       } finally {
         setLoading(false);
       }

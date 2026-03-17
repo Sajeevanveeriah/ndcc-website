@@ -1,4 +1,4 @@
-import { CommitteeMember, TeamInfo, Product, NewsPost, Sponsor, Event } from './types';
+import { CommitteeMember, TeamInfo, Product, NewsPost, Sponsor, Event, SeasonAppointment } from './types';
 
 export const CLUB_NAME = 'Newcomb and District Cricket Club';
 export const CLUB_SHORT = 'NDCC';
@@ -196,6 +196,16 @@ export const PLAYHQ_URL = PLAYHQ_ORG_URL;
 
 export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
   {
+    id: 'seed-kelsey-allan',
+    title: "Kelsey Allan Appointed Women's Coach for 2026/27",
+    content:
+      'Newcomb and District Cricket Club is pleased to announce the appointment of Kelsey Allan as Women\'s Coach for the 2026/27 season. Kelsey brings enthusiasm and cricket knowledge to the role and will lead the women\'s program as it continues to grow. This is one of several coaching appointments for the upcoming season. Welcome aboard, Kelsey!',
+    author: 'NDCC',
+    published: true,
+    published_at: '2026-03-15T10:00:00+11:00',
+    image: '/images/Poster.png',
+  },
+  {
     id: 'seed-welcome',
     title: 'Welcome to the New NDCC Website',
     content:
@@ -203,6 +213,7 @@ export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
     author: 'NDCC Committee',
     published: true,
     published_at: '2026-03-01T09:00:00',
+    image: '/images/Womens_Team.jpg',
   },
   {
     id: 'seed-u13s-grand-final',
@@ -289,8 +300,9 @@ export const SEED_SPONSOR_DESCRIPTIONS: Record<string, string> = {
   'seed-blackmans': 'Independent craft brewery with venues in Torquay, Ocean Grove, and Geelong.',
 };
 
-export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'created_at'>[] = [
+export const SEED_EVENTS: Omit<Event, 'stripe_link' | 'published' | 'created_at'>[] = [
   {
+    id: 'seed-event-presentation',
     title: '2025/26 Presentation Night',
     description:
       'Join us to celebrate the achievements of our players and volunteers for the 2025/26 season. Awards across all teams, dinner, and plenty of Dinos spirit. Held at General Public, Geelong.',
@@ -300,6 +312,7 @@ export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'crea
     ticket_price: 35,
   },
   {
+    id: 'seed-event-preseason',
     title: 'Pre-Season Training Begins',
     description:
       "Pre-season training for the 2026/27 season kicks off at the Peter 'Skinny' Harrison Training Facility, Grinter Reserve. All new and returning players welcome across men's, women's, and junior squads.",
@@ -309,6 +322,7 @@ export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'crea
     ticket_price: 0,
   },
   {
+    id: 'seed-event-launch',
     title: 'Season Launch 2026/27',
     description:
       'Kick off the new cricket season with the Dinos. Meet the coaches, hear about plans for the season ahead, and register for your team. Free entry. All welcome, including new players and families.',
@@ -316,5 +330,19 @@ export const SEED_EVENTS: Omit<Event, 'id' | 'stripe_link' | 'published' | 'crea
     location: 'Grinter Reserve, Moolap',
     capacity: null,
     ticket_price: 0,
+  },
+];
+
+export const SEASON_APPOINTMENTS: SeasonAppointment[] = [
+  {
+    name: 'Craig Hillgrove',
+    role: 'Head Coach',
+    announcement_date: '2026-03-01',
+  },
+  {
+    name: 'Kelsey Allan',
+    role: "Women's Coach",
+    image: '/images/Poster.png',
+    announcement_date: '2026-03-15',
   },
 ];
