@@ -9,10 +9,13 @@ export async function POST() {
 
   const supabase = createServerClient();
 
-  const [{ data: transactions }, { data: orders }] = await Promise.all([
+  const [{ data: transactions, error: txFetchError }, { data: orders, error: orderFetchError }] = await Promise.all([
     supabase.from('imported_transactions').select('*').in('match_status', ['unmatched', 'needs_review']).order('transaction_date', { ascending: false }),
     supabase.from('orders').select('id, total_amount, payment_reference, customer_name, created_at').eq('payment_status', 'pending_bank_transfer'),
   ]);
+  if (txFetchError || orderFetchError) {
+    return NextResponse.json({ success: false, error: txFetchError?.message || orderFetchError?.message || 'Failed to load reconciliation data.' }, { status: 500 });
+  }
 
   let autoMatched = 0;
   let needsReview = 0;
@@ -25,32 +28,42 @@ export async function POST() {
 
     if (ranked.length === 1 || (ranked.length > 1 && ranked[0].score >= 120 && ranked[0].score - ranked[1].score >= 30)) {
       const best = ranked[0].order;
-      await supabase.from('orders').update({
+      const { error: orderUpdateError } = await supabase.from('orders').update({
         payment_status: 'paid',
         confirmed_by: user.id,
         confirmed_at: new Date().toISOString(),
         bank_reference_used: tx.transaction_reference || null,
         needs_review_reason: '',
       }).eq('id', best.id);
+      if (orderUpdateError) continue;
 
-      await supabase.from('imported_transactions').update({
+      const { error: txUpdateError } = await supabase.from('imported_transactions').update({
         match_status: 'matched',
         matched_order_id: best.id,
         updated_at: new Date().toISOString(),
       }).eq('id', tx.id);
+      if (txUpdateError) {
+        await supabase.from('orders').update({ payment_status: 'pending_bank_transfer', confirmed_by: null, confirmed_at: null, bank_reference_used: null }).eq('id', best.id);
+        continue;
+      }
 
-      await supabase.from('bank_transfer_confirmations').insert({
+      const { error: confirmationError } = await supabase.from('bank_transfer_confirmations').insert({
         order_id: best.id,
         transaction_id: tx.id,
         confirmed_by: user.id,
         bank_reference_used: tx.transaction_reference || '',
         notes: 'Auto-matched by reconciliation job',
       });
+      if (confirmationError) {
+        await supabase.from('orders').update({ payment_status: 'pending_bank_transfer', confirmed_by: null, confirmed_at: null, bank_reference_used: null }).eq('id', best.id);
+        await supabase.from('imported_transactions').update({ match_status: 'needs_review', matched_order_id: null }).eq('id', tx.id);
+        continue;
+      }
 
       autoMatched += 1;
     } else if (ranked.length > 1) {
-      await supabase.from('imported_transactions').update({ match_status: 'needs_review', updated_at: new Date().toISOString() }).eq('id', tx.id);
-      needsReview += 1;
+      const { error: needsReviewError } = await supabase.from('imported_transactions').update({ match_status: 'needs_review', updated_at: new Date().toISOString() }).eq('id', tx.id);
+      if (!needsReviewError) needsReview += 1;
     }
   }
 

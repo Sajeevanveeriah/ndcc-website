@@ -113,17 +113,24 @@ export async function POST(request: Request) {
     .single();
 
   if (appError || !application) {
+    await supabase.from('orders').delete().eq('id', order.id);
     return NextResponse.json({ success: false, error: 'Unable to submit membership application.' }, { status: 500 });
   }
 
   if (validatedAddons.length > 0) {
-    await supabase.from('member_addon_selections').insert(
+    const { error: addonInsertError } = await supabase.from('member_addon_selections').insert(
       validatedAddons.map((item) => ({
         member_application_id: application.id,
         addon_id: item.addon?.id,
         quantity: item.quantity,
       }))
     );
+    if (addonInsertError) {
+      await supabase.from('member_addon_selections').delete().eq('member_application_id', application.id);
+      await supabase.from('member_applications').delete().eq('id', application.id);
+      await supabase.from('orders').delete().eq('id', order.id);
+      return NextResponse.json({ success: false, error: 'Unable to save add-on selections.' }, { status: 500 });
+    }
   }
 
   return NextResponse.json({

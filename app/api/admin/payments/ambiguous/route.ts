@@ -26,25 +26,35 @@ export async function POST(request: Request) {
 
   const supabase = createServerClient();
 
-  await supabase.from('orders').update({
+  const { error: orderUpdateError } = await supabase.from('orders').update({
     payment_status: 'paid',
     confirmed_by: user.id,
     confirmed_at: new Date().toISOString(),
     needs_review_reason: '',
   }).eq('id', order_id);
+  if (orderUpdateError) return NextResponse.json({ success: false, error: orderUpdateError.message }, { status: 500 });
 
-  await supabase.from('imported_transactions').update({
+  const { error: txUpdateError } = await supabase.from('imported_transactions').update({
     match_status: 'matched',
     matched_order_id: order_id,
     updated_at: new Date().toISOString(),
   }).eq('id', transaction_id);
+  if (txUpdateError) {
+    await supabase.from('orders').update({ payment_status: 'needs_review' }).eq('id', order_id);
+    return NextResponse.json({ success: false, error: txUpdateError.message }, { status: 500 });
+  }
 
-  await supabase.from('bank_transfer_confirmations').insert({
+  const { error: confirmationError } = await supabase.from('bank_transfer_confirmations').insert({
     order_id,
     transaction_id,
     confirmed_by: user.id,
     notes: notes || 'Confirmed from ambiguous queue',
   });
+  if (confirmationError) {
+    await supabase.from('orders').update({ payment_status: 'needs_review' }).eq('id', order_id);
+    await supabase.from('imported_transactions').update({ match_status: 'needs_review', matched_order_id: null }).eq('id', transaction_id);
+    return NextResponse.json({ success: false, error: confirmationError.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }

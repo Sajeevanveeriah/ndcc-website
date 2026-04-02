@@ -71,29 +71,35 @@ export async function POST(request: Request) {
     let safeMerchWindowId: string | null = null;
 
     if (order_category === 'merch') {
-      const { data: windowRow } = merch_window_id
-        ? await supabase.from('merch_order_windows').select('*').eq('id', merch_window_id).maybeSingle()
+      const { data: windowRow, error: windowError } = merch_window_id
+        ? await supabase.from('merch_order_windows').select('*').eq('id', merch_window_id).eq('active', true).maybeSingle()
         : await supabase
             .from('merch_order_windows')
             .select('*')
             .eq('active', true)
-            .lte('open_date', new Date().toISOString())
-            .gte('close_date', new Date().toISOString())
             .order('open_date', { ascending: true })
             .limit(1)
             .maybeSingle();
 
-      if (windowRow) {
-        safeMerchWindowId = windowRow.id;
-        merchWindowLabel = windowRow.label;
-        const now = new Date();
-        const isOpen = new Date(windowRow.open_date) <= now && new Date(windowRow.close_date) >= now;
-        if (!isOpen) {
-          if (!windowRow.allow_queue_after_close) {
-            return NextResponse.json({ success: false, error: 'Merch window is closed and queueing is disabled.' }, { status: 409 });
-          }
-          orderStatus = 'queued_next_window';
+      if (windowError) {
+        return NextResponse.json({ success: false, error: 'Unable to validate merch window.' }, { status: 500 });
+      }
+      if (!windowRow) {
+        return NextResponse.json({ success: false, error: 'No valid merch window is configured.' }, { status: 409 });
+      }
+      if (merch_window_id && !windowRow.id) {
+        return NextResponse.json({ success: false, error: 'Invalid merch window.' }, { status: 409 });
+      }
+
+      safeMerchWindowId = windowRow.id;
+      merchWindowLabel = windowRow.label;
+      const now = new Date();
+      const isOpen = new Date(windowRow.open_date) <= now && new Date(windowRow.close_date) >= now;
+      if (!isOpen) {
+        if (!windowRow.allow_queue_after_close) {
+          return NextResponse.json({ success: false, error: 'Merch window is closed and queueing is disabled.' }, { status: 409 });
         }
+        orderStatus = 'queued_next_window';
       }
     }
 

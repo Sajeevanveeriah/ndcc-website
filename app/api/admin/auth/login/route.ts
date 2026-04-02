@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { createAuthCookie, generateSessionToken, hashSessionToken, sessionExpiryDate } from '@/lib/auth/session';
+import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
+    const ip = getClientIp(request);
+    const emailKey = String(email || '').trim().toLowerCase();
+
+    if (!enforceRateLimit(`admin-login-ip:${ip}`, 8, 60_000) || !enforceRateLimit(`admin-login-email:${emailKey}`, 6, 60_000)) {
+      return NextResponse.json({ success: false, error: 'Too many login attempts. Please wait and try again.' }, { status: 429 });
+    }
 
     if (!email || !password) {
       return NextResponse.json({ success: false, error: 'Email and password are required.' }, { status: 400 });

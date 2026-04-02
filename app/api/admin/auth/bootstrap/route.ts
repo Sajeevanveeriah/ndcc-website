@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 
 export async function POST(request: Request) {
-  const { email, fullName, password } = await request.json();
+  const { email, fullName, password, bootstrap_secret } = await request.json();
+
+  const expectedSecret = process.env.NDCC_BOOTSTRAP_SECRET;
+  if (!expectedSecret || !bootstrap_secret || bootstrap_secret !== expectedSecret) {
+    return NextResponse.json({ success: false, error: 'Bootstrap is disabled.' }, { status: 403 });
+  }
 
   if (!email || !fullName || !password || String(password).length < 10) {
     return NextResponse.json({ success: false, error: 'Email, fullName, and password (10+ chars) are required.' }, { status: 400 });
