@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
-import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SessionUser = {
@@ -27,6 +27,7 @@ const baseLinks = [
   { href: '/admin/minutes', label: 'Minutes', icon: Newspaper },
   { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
   { href: '/admin/apparel', label: 'Apparel', icon: Shirt },
+  { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
   { href: '/admin/change-password', label: 'Password', icon: KeyRound },
 ];
 

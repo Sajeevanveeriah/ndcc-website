@@ -54,6 +54,39 @@
   - `npm run build`
 - **Commit message:** `feat(merch): add apparel admin management, order windows, and supplier export`
 
+## Batch: Kitchen menu and orders
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_kitchen_orders.sql`
+  - `app/api/kitchen/menu/route.ts`
+  - `app/api/kitchen/orders/route.ts`
+  - `app/api/admin/kitchen/orders/route.ts`
+  - `app/api/admin/resources/[resource]/route.ts`
+  - `app/admin/kitchen/page.tsx`
+  - `app/admin/layout.tsx`
+  - `app/kitchen/page.tsx`
+  - `lib/constants.ts`
+- **Schema changes:**
+  - Added `kitchen_menus`, `kitchen_items`, `kitchen_orders`, `kitchen_order_items` with additive indexes and seed active menu row.
+- **Assumptions:**
+  - Kitchen checkout reuses shared bank-transfer `orders` flow by creating a linked general `orders` row with `order_category = kitchen`.
+  - `is_hidden` + `is_available` together support hide/sold-out control without introducing a separate chef role.
+- **Validation results:**
+  - Pass 1: PASS, kitchen routes/pages compile and lint cleanly.
+  - Pass 2: PASS, menu and order endpoints return stable JSON contracts for public/admin usage.
+  - Pass 3: PASS, migration is additive with FK-safe tables and indexes.
+  - Pass 4: PASS, admin kitchen operations require authenticated session (admin-only for status mutation).
+  - Pass 5: PASS, public `/kitchen` UI and admin `/admin/kitchen` are integrated and navigable.
+  - Pass 6: PASS, existing order/payment flows remain backward-compatible and additive.
+  - Pass 7: PASS, Next.js build includes new routes/pages successfully for Vercel runtime.
+  - Pass 8: PASS, Supabase table operations and joins remain standard and compatible.
+  - Pass 9: PASS, unavailable/sold-out item submission returns explicit conflict handling.
+  - Pass 10: PASS, end-to-end simulation validated menu load -> cart -> kitchen order -> admin visibility.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(kitchen): add weekly menu, ordering flow, and admin management`
+
 ## Batch: Gallery CMS and enlarged viewer UX
 - **Status:** Completed
 - **Files changed:**

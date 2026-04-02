@@ -179,6 +179,7 @@ export const NAV_LINKS = [
   { label: 'Join', href: '/join' },
   { label: 'News', href: '/news' },
   { label: 'Merchandise', href: '/merchandise' },
+  { label: 'Kitchen', href: '/kitchen' },
   { label: 'Sponsors', href: '/sponsors' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'Volunteer', href: '/volunteer' },

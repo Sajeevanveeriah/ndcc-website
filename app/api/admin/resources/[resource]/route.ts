@@ -18,6 +18,9 @@ const resourceMap: Record<string, { table: string; readRoles: Array<'admin' | 'p
   galleryImages: { table: 'gallery_images', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
   apparelProducts: { table: 'apparel_products', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
   merchWindows: { table: 'merch_order_windows', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
+  kitchenMenus: { table: 'kitchen_menus', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
+  kitchenItems: { table: 'kitchen_items', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
+  kitchenOrders: { table: 'kitchen_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
 };
 
 function pickResource(resource: string) {
