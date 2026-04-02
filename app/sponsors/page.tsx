@@ -40,6 +40,10 @@ export default function SponsorsPage() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [introTitle, setIntroTitle] = useState('Community Support');
+  const [introBody, setIntroBody] = useState(
+    `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`
+  );
 
   useEffect(() => {
     document.title = 'Our Sponsors | NDCC Dinos';
@@ -73,7 +77,20 @@ export default function SponsorsPage() {
       }
     }
 
+    async function fetchContentBlock() {
+      try {
+        const res = await fetch('/api/content-blocks?keys=sponsors.intro', { cache: 'no-store' });
+        const data = await res.json();
+        const block = (data.data || []).find((b: { block_key: string }) => b.block_key === 'sponsors.intro');
+        if (block?.title) setIntroTitle(block.title);
+        if (block?.body) setIntroBody(block.body);
+      } catch {
+        // fallback copy
+      }
+    }
+
     fetchSponsors();
+    fetchContentBlock();
   }, []);
 
   function validateForm(): boolean {
@@ -153,12 +170,9 @@ export default function SponsorsPage() {
       <section className="section-padding bg-gray-50">
         <div className="container-width">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="section-title">Community Support</h2>
+            <h2 className="section-title">{introTitle}</h2>
             <p className="text-gray-600 font-body text-lg leading-relaxed">
-              {CLUB_NAME} relies on the support of local businesses and community organisations to
-              provide affordable cricket for players of all ages. Our sponsors help fund equipment,
-              ground maintenance, junior development programmes, and club events. Every sponsorship
-              dollar goes directly back into our cricket community.
+              {introBody}
             </p>
           </div>
         </div>

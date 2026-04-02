@@ -15,6 +15,7 @@ import {
 } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase-server';
 import { formatDate, truncateText } from '@/lib/utils';
+import { getContentBlocks } from '@/lib/content-blocks';
 
 const quickLinks = [
   { title: 'About Us', description: 'Learn about our history and the people behind the club.', href: '/about', icon: '🏏' },
@@ -83,7 +84,11 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 };
 
 export default async function HomePage() {
-  const [dbNews, dbSponsors] = await Promise.all([getLatestNews(), getSponsors()]);
+  const [dbNews, dbSponsors, blocks] = await Promise.all([
+    getLatestNews(),
+    getSponsors(),
+    getContentBlocks(['home.hero', 'home.quicklinks']),
+  ]);
 
   const news: NewsItem[] = dbNews.length > 0
     ? dbNews
@@ -119,10 +124,10 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-maroon-900/75" />
         <div className="container-width text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
-            {CLUB_NAME}
+            {blocks['home.hero']?.title || CLUB_NAME}
           </h1>
           <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl mx-auto">
-            Home of the {CLUB_NICKNAME}. Est. {CLUB_ESTABLISHED}.
+            {blocks['home.hero']?.body || `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/contact" className="btn-primary text-lg px-8 py-4">
@@ -141,7 +146,7 @@ export default async function HomePage() {
           <div className="text-center mb-12">
             <h2 className="section-title">Explore the Club</h2>
             <p className="section-subtitle mx-auto">
-              Everything you need to know about the {CLUB_NICKNAME}.
+              {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

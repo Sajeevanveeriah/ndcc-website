@@ -87,6 +87,42 @@
   - `npm run build`
 - **Commit message:** `feat(kitchen): add weekly menu, ordering flow, and admin management`
 
+## Batch: CMS-like content management
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_content_blocks.sql`
+  - `lib/content-blocks.ts`
+  - `app/api/content-blocks/route.ts`
+  - `app/api/admin/resources/[resource]/route.ts`
+  - `app/admin/content/page.tsx`
+  - `app/admin/layout.tsx`
+  - `app/page.tsx`
+  - `components/layout/Footer.tsx`
+  - `app/about/page.tsx`
+  - `app/join/page.tsx`
+  - `app/volunteer/page.tsx`
+  - `app/sponsors/page.tsx`
+- **Schema changes:**
+  - Added `content_blocks` table with `block_key` uniqueness, page/section metadata, optional text/image/CTA fields, activation toggle, and update trigger.
+- **Assumptions:**
+  - Content-block model is intentionally lightweight and section-key based to avoid full page-builder complexity.
+  - Public pages keep safe existing fallback copy whenever a block is missing or inactive.
+- **Validation results:**
+  - Pass 1: PASS, CMS APIs, admin editor, and page integrations compile/lint successfully.
+  - Pass 2: PASS, content API contracts (`/api/content-blocks`, admin resource bridge) return expected payloads.
+  - Pass 3: PASS, migration is additive with safe `ON CONFLICT` seed inserts and trigger update handling.
+  - Pass 4: PASS, admin content editing remains protected by existing authenticated admin resource flow.
+  - Pass 5: PASS, editable content now surfaces on homepage, footer acknowledgement, about history, join, volunteer, and sponsors intro.
+  - Pass 6: PASS, existing static copy/image fallbacks remain intact if DB content is absent.
+  - Pass 7: PASS, Next.js build succeeds including new admin/content and API routes.
+  - Pass 8: PASS, Supabase usage follows existing service-role server client pattern and standard table operations.
+  - Pass 9: PASS, missing/empty block data gracefully falls back with no runtime crashes.
+  - Pass 10: PASS, end-to-end simulation validated: edit block in admin -> reload public page -> updated content visible.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(cms): add content block model with admin editor and page fallbacks`
+
 ## Batch: Gallery CMS and enlarged viewer UX
 - **Status:** Completed
 - **Files changed:**

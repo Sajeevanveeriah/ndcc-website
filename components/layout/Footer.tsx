@@ -12,18 +12,25 @@ import {
   CLUB_ASSOCIATION,
   NAV_LINKS,
 } from '@/lib/constants';
+import { getContentBlocks } from '@/lib/content-blocks';
 
-export default function Footer() {
+export default async function Footer() {
   const currentYear = new Date().getFullYear();
   const emailHref = `mailto:${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
+  const blocks = await getContentBlocks(['footer.acknowledgement']);
+  const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
+  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
 
   return (
     <footer className="bg-maroon-800 text-white" role="contentinfo">
       {/* Acknowledgement */}
-      <div className="bg-maroon-900 px-4 sm:px-6 lg:px-8 py-6">
+      <div
+        className="bg-maroon-900 px-4 sm:px-6 lg:px-8 py-6 bg-cover bg-center"
+        style={acknowledgementImage ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.82), rgba(74,0,0,0.82)), url(${acknowledgementImage})` } : undefined}
+      >
         <div className="container-width">
           <p className="text-sm text-maroon-200 font-body leading-relaxed max-w-4xl">
-            {ACKNOWLEDGEMENT}
+            {acknowledgement}
           </p>
         </div>
       </div>

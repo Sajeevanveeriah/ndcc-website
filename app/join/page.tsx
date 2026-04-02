@@ -17,16 +17,27 @@ export default function JoinPage() {
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [heroTitle, setHeroTitle] = useState('Join the Club');
+  const [heroBody, setHeroBody] = useState('Choose player registration via PlayHQ or apply for social membership below.');
 
   useEffect(() => {
     const load = async () => {
-      const res = await fetch('/api/memberships', { cache: 'no-store' });
-      const data = await res.json();
-      if (res.ok) {
+      const [membershipRes, contentRes] = await Promise.all([
+        fetch('/api/memberships', { cache: 'no-store' }),
+        fetch('/api/content-blocks?keys=join.hero', { cache: 'no-store' }),
+      ]);
+
+      const data = await membershipRes.json();
+      if (membershipRes.ok) {
         setPlans(data.plans || []);
         setAddons(data.addons || []);
         if ((data.plans || []).length > 0) setSelectedPlan(data.plans[0].id);
       }
+
+      const contentData = await contentRes.json();
+      const block = (contentData.data || []).find((b: { block_key: string }) => b.block_key === 'join.hero');
+      if (block?.title) setHeroTitle(block.title);
+      if (block?.body) setHeroBody(block.body);
     };
     load();
   }, []);
@@ -69,8 +80,8 @@ export default function JoinPage() {
   return (
     <div className="container-width py-12 space-y-10">
       <div>
-        <h1 className="text-4xl font-display font-bold text-gray-900">Join the Club</h1>
-        <p className="text-gray-600 mt-3">Choose player registration via PlayHQ or apply for social membership below.</p>
+        <h1 className="text-4xl font-display font-bold text-gray-900">{heroTitle}</h1>
+        <p className="text-gray-600 mt-3">{heroBody}</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

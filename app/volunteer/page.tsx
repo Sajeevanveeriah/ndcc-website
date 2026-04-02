@@ -65,17 +65,28 @@ export default function VolunteerPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [dynamicRoleOptions, setDynamicRoleOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [heroTitle, setHeroTitle] = useState('Volunteer with Us');
+  const [heroBody, setHeroBody] = useState(
+    'Our club runs on the dedication of volunteers. Whether you can spare an hour or a whole day, your help makes a real difference to cricket in our community.'
+  );
 
   useEffect(() => {
     document.title = 'Volunteer | NDCC Dinos';
 
     const loadPositions = async () => {
       try {
-        const res = await fetch('/api/volunteer-positions', { cache: 'no-store' });
-        const data = await res.json();
-        if (res.ok) {
+        const [positionsRes, contentRes] = await Promise.all([
+          fetch('/api/volunteer-positions', { cache: 'no-store' }),
+          fetch('/api/content-blocks?keys=volunteer.hero', { cache: 'no-store' }),
+        ]);
+        const data = await positionsRes.json();
+        if (positionsRes.ok) {
           setDynamicRoleOptions((data.positions || []).map((p: { title: string }) => ({ value: p.title, label: p.title })));
         }
+        const contentData = await contentRes.json();
+        const block = (contentData.data || []).find((b: { block_key: string }) => b.block_key === 'volunteer.hero');
+        if (block?.title) setHeroTitle(block.title);
+        if (block?.body) setHeroBody(block.body);
       } catch {
         // fallback to static roles
       }
@@ -136,11 +147,8 @@ export default function VolunteerPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Volunteer with Us</h1>
-          <p className="page-hero-subtitle">
-            Our club runs on the dedication of volunteers. Whether you can spare an hour or a whole
-            day, your help makes a real difference to cricket in our community.
-          </p>
+          <h1 className="page-hero-title">{heroTitle}</h1>
+          <p className="page-hero-subtitle">{heroBody}</p>
         </div>
       </section>
 
