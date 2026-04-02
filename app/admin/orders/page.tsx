@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Order } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -17,19 +16,11 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (data) setOrders(data);
+        const response = await fetch('/api/admin/resources/orders', { cache: 'no-store' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        setOrders(result.data || []);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
       } finally {
@@ -42,12 +33,13 @@ export default function AdminOrdersPage() {
 
   const handleMarkProcessed = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ processed: true })
-        .eq('id', id);
+      const response = await fetch('/api/admin/resources/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, processed: true }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to update');
 
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, processed: true } : o))

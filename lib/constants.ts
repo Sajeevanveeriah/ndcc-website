@@ -176,6 +176,7 @@ export const NAV_LINKS = [
   { label: 'Facilities', href: '/facilities' },
   { label: 'Fixtures', href: '/fixtures' },
   { label: 'Events', href: '/events' },
+  { label: 'Join', href: '/join' },
   { label: 'News', href: '/news' },
   { label: 'Merchandise', href: '/merchandise' },
   { label: 'Sponsors', href: '/sponsors' },

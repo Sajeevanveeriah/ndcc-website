@@ -1,0 +1,267 @@
+# NDCC Progress Log
+
+## Reconciliation checkpoint (post-audit baseline)
+- **Audit anchor commit:** `e0c1d79bb7f6608c01afd517a79d046e41ec2896`
+- **Verified implemented batches (present in code):**
+  - auth replacement
+  - auth hardening and admin bridge
+  - forms protection
+  - social membership
+  - payment reconciliation
+  - volunteer EOI
+  - meeting minutes portal
+  - sponsor and footer updates
+  - colours and theme
+  - gallery improvements
+- **Verified missing batches (not yet present in code):**
+  - apparel and merch windows
+  - kitchen menu and orders
+  - CMS-like content management
+- **Out-of-order completed batches:**
+  - gallery improvements completed before apparel/merch windows, kitchen, and CMS-like content management.
+
+## Batch: Apparel and merch windows
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_merch_windows.sql`
+  - `app/api/apparel/products/route.ts`
+  - `app/api/apparel/windows/route.ts`
+  - `app/api/orders/route.ts`
+  - `app/api/admin/resources/[resource]/route.ts`
+  - `app/api/admin/merch/export/route.ts`
+  - `app/admin/apparel/page.tsx`
+  - `app/admin/layout.tsx`
+  - `app/merchandise/page.tsx`
+- **Schema changes:**
+  - Added `apparel_products` and `merch_order_windows` tables.
+  - Added additive merch-related fields to `orders`: `order_category`, `order_status`, `merch_window_id`, `merch_window_label`, `fulfillment_status`.
+- **Assumptions:**
+  - `order_status` is used for merch queue control (`submitted`, `queued_next_window`) while `payment_status` remains bank-transfer focused.
+  - A single active/next merch window model is sufficient for current public merchandising flow.
+- **Validation results:**
+  - Pass 1: PASS, apparel/admin routes compile and type-check.
+  - Pass 2: PASS, APIs return stable JSON contracts for products/windows/orders/export.
+  - Pass 3: PASS, migration is additive and seed inserts are conflict-safe.
+  - Pass 4: PASS, admin mutations remain guarded through existing session role checks.
+  - Pass 5: PASS, merchandise UI surfaces window-open/queue/closed states and submit behavior accordingly.
+  - Pass 6: PASS, existing non-merch order submissions default to prior general behavior.
+  - Pass 7: PASS, Next.js runtime/build compatible for new routes/pages.
+  - Pass 8: PASS, changes use standard Supabase table patterns and compatible data types.
+  - Pass 9: PASS, closed-window + queue-disabled path returns explicit 409 with clear message.
+  - Pass 10: PASS, simulated flow: open window order -> submitted; closed+queue -> queued_next_window.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(merch): add apparel admin management, order windows, and supplier export`
+
+## Batch: Gallery CMS and enlarged viewer UX
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_gallery_images.sql`
+  - `app/api/gallery/route.ts`
+  - `app/api/admin/resources/[resource]/route.ts`
+  - `app/admin/gallery/page.tsx`
+  - `app/admin/layout.tsx`
+  - `app/gallery/page.tsx`
+- **Schema changes:**
+  - Added `gallery_images` table with publish/download flags, sort order, timestamps, and seed image rows.
+- **Assumptions:**
+  - Gallery download policy defaults to disabled per image and can be toggled by admin.
+  - Existing static social links remain the source of truth for Facebook/Instagram follow actions.
+- **Validation results:**
+  - Pass 1: PASS, gallery API and admin resource map compile with current auth guard.
+  - Pass 2: PASS, public gallery now loads from DB-backed API and handles empty result safely.
+  - Pass 3: PASS, migration is additive with non-destructive seed inserts.
+  - Pass 4: PASS, admin gallery CRUD create/publish flow remains admin-only through resources route.
+  - Pass 5: PASS, larger lightbox viewer and optional download button render correctly by image flag.
+  - Pass 6: PASS, existing social links and gallery route path remain unchanged.
+  - Pass 7: PASS, Next.js build succeeds with new `/admin/gallery` and `/api/gallery` routes.
+  - Pass 8: PASS, table indexing and updated-at trigger added for predictable ordering + admin edits.
+  - Pass 9: PASS, disabled download state has no download action surface.
+  - Pass 10: PASS, end-to-end simulated flow: seed image appears -> click enlarge -> close modal.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(gallery): add admin-managed gallery images with enlarged viewer`
+
+## Batch: Forms protection hardening
+- **Status:** Completed
+- **Files changed:**
+  - `lib/server/request-guards.ts`
+  - `app/api/contacts/route.ts`
+  - `app/api/volunteers/route.ts`
+  - `app/api/orders/route.ts`
+  - `app/api/checkout/route.ts`
+  - `app/contact/page.tsx`
+  - `app/volunteer/page.tsx`
+  - `app/merchandise/page.tsx`
+- **Schema changes:** None.
+- **Assumptions:**
+  - Lightweight in-memory rate limiting is acceptable as a first-pass Vercel-compatible protection layer.
+  - Honeypot + minimum submit-time checks are acceptable as stack-native bot mitigation without adding dependencies.
+- **Test checklist:**
+  - `npm run lint`
+- **Commit message:** `feat(forms): add bot checks and rate limiting to public submissions`
+
+## Deferred hardening items (for final production hardening batch)
+- tighter field-level validation in `/api/admin/resources/[resource]`
+- rate limiting on auth/bootstrap endpoints
+- cleanup of legacy `profiles/auth.uid` assumptions in `supabase/schema.sql` where no longer needed
+
+## Batch: Social membership system
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260401_social_memberships.sql`
+  - `app/api/memberships/route.ts`
+  - `app/join/page.tsx`
+  - `app/admin/memberships/page.tsx`
+  - `app/api/admin/resources/[resource]/route.ts`
+  - `app/admin/layout.tsx`
+  - `lib/constants.ts`
+- **Schema changes:**
+  - Added `social_membership_plans`, `social_membership_addons`, `member_applications`, `member_addon_selections` tables with indexes and safe seed rows.
+- **Assumptions:**
+  - Social membership plan/add-on pricing can be admin-adjusted later through the new admin memberships page.
+  - Add-on selection currently defaults to quantity 1 in public flow to minimise complexity in this batch.
+- **Test checklist:**
+  - `npm run lint`
+- **Commit message:** `feat(membership): add social membership join flow and admin plan management`
+
+## Batch: Automated payment reconciliation
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_payment_reconciliation.sql`
+  - `lib/payments/reference.ts`
+  - `lib/payments/matching.ts`
+  - `app/api/orders/route.ts`
+  - `app/api/memberships/route.ts`
+  - `app/api/admin/payments/import/route.ts`
+  - `app/api/admin/payments/reconcile/route.ts`
+  - `app/api/admin/payments/ambiguous/route.ts`
+  - `app/api/admin/payments/export/route.ts`
+  - `app/admin/payments/page.tsx`
+  - `app/admin/layout.tsx`
+  - `app/merchandise/page.tsx`
+  - `app/api/admin/auth/login/route.ts`
+  - `app/admin/users/page.tsx`
+- **Schema changes:**
+  - Added additive reconciliation fields on `orders` and created `imported_transactions` and `bank_transfer_confirmations` tables.
+- **Assumptions:**
+  - Bank transaction ingestion starts with manual import endpoint and automated matching logic in-app.
+  - Ambiguous transaction confirmations remain admin-assisted via payments queue.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(payments): add bank transfer references and reconciliation workflow`
+
+## Batch: Volunteer EOI completion and admin tracking alignment
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_volunteer_eoi.sql`
+  - `app/api/volunteer-positions/route.ts`
+  - `app/api/volunteers/route.ts`
+  - `app/api/admin/resources/[resource]/route.ts`
+  - `app/volunteer/page.tsx`
+  - `app/admin/volunteers/page.tsx`
+- **Schema changes:**
+  - Added `volunteer_positions` and `volunteer_expressions` tables with indexes and seed position rows.
+- **Assumptions:**
+  - Existing `volunteers` table remains as legacy compatibility sink while primary admin tracker uses `volunteer_expressions`.
+  - Email notifications are not yet wired in repo; acknowledgement remains in-app response text for now.
+- **Validation results:**
+  - Pass 1: PASS, volunteer routes and admin page compile with correct types and updated field usage.
+  - Pass 2: PASS, API contracts return structured `success/error` responses and expected payload shapes.
+  - Pass 3: PASS, migration is additive (`IF NOT EXISTS`) with non-destructive seed inserts.
+  - Pass 4: PASS, admin tracker still protected by existing authenticated admin resource bridge.
+  - Pass 5: PASS, volunteer public and admin pages integrate with new positions/expressions endpoints.
+  - Pass 6: PASS, legacy volunteer table writes are preserved for backward compatibility.
+  - Pass 7: PASS, Next.js build succeeded with dynamic route handlers and static pages.
+  - Pass 8: PASS, Supabase table usage and FK references remain compatible with existing schema.
+  - Pass 9: PASS, route validation and fallback behaviour handle missing position mapping safely.
+  - Pass 10: PASS, end-to-end flow validated: submit EOI -> expression persisted -> admin status update.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(volunteer): add EOI positions and aligned admin tracking workflow`
+
+## Batch: Meeting minutes portal
+- **Status:** Completed
+- **Files changed:**
+  - `supabase/migrations/20260402_meeting_minutes.sql`
+  - `app/api/meeting-minutes/route.ts`
+  - `app/api/meeting-minutes/[id]/actions/route.ts`
+  - `app/admin/minutes/page.tsx`
+  - `app/committee/minutes/page.tsx`
+  - `app/committee/minutes/[id]/page.tsx`
+  - `app/admin/layout.tsx`
+- **Schema changes:**
+  - Added `meeting_minutes` and `meeting_minute_actions` with role-action audit support.
+- **Assumptions:**
+  - Committee users can read non-draft minutes and submit accept/second actions.
+  - President/Secretary/Admin can create and update minute records.
+- **Validation results:**
+  - Pass 1: PASS, minutes APIs/pages compile and type-check successfully.
+  - Pass 2: PASS, API routes expose clear JSON contracts for list/create/update/action flows.
+  - Pass 3: PASS, migration is additive with indexes and FK-safe action log table.
+  - Pass 4: PASS, role access is enforced via `requireSession` in minutes endpoints.
+  - Pass 5: PASS, admin and committee UIs are linked and render minutes workflows.
+  - Pass 6: PASS, existing routes are unchanged and new portal is additive.
+  - Pass 7: PASS, Next.js build completes with new dynamic minutes routes.
+  - Pass 8: PASS, Supabase operations are standard table inserts/selects/updates compatible with current client.
+  - Pass 9: PASS, invalid action types and missing required fields return handled errors.
+  - Pass 10: PASS, end-to-end simulated: create minute -> list -> committee accept/second action.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(minutes): add committee meeting minutes portal and action logging`
+
+## Batch: Sponsor and footer updates
+- **Status:** Completed
+- **Files changed:**
+  - `app/page.tsx`
+  - `components/layout/Footer.tsx`
+- **Schema changes:**
+  - None.
+- **Assumptions:**
+  - Footer softball/darts links can route through NDCC contact workflow until dedicated external endpoints are confirmed.
+  - Sponsor logos may be optional; fallback initials are shown when logo URL is missing.
+- **Validation results:**
+  - Pass 1: PASS, updated sponsor/footer components compile cleanly.
+  - Pass 2: PASS, no API contract changes in this batch.
+  - Pass 3: PASS, no schema modifications required.
+  - Pass 4: PASS, no auth/session logic touched.
+  - Pass 5: PASS, homepage sponsor cards now show linked logo tiles and footer includes required club links.
+  - Pass 6: PASS, prior sponsor data loading and links remain backward-compatible.
+  - Pass 7: PASS, Next.js build passes with updated static components.
+  - Pass 8: PASS, Supabase sponsor data usage remains unchanged and compatible.
+  - Pass 9: PASS, sponsor logo fallback handles missing logo URLs safely.
+  - Pass 10: PASS, end-to-end UI simulation confirms sponsor section and footer link rendering.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(ui): add linked sponsor logos on homepage and update footer club links`
+
+## Batch: Colours and theme
+- **Status:** Completed
+- **Files changed:**
+  - `tailwind.config.ts`
+  - `app/globals.css`
+- **Schema changes:**
+  - None.
+- **Assumptions:**
+  - Keeping `maroon-700` as `#800000` remains the primary semantic maroon while body background shifts to very light blue.
+- **Validation results:**
+  - Pass 1: PASS, theme token and global body styles compile without issues.
+  - Pass 2: PASS, no API contract changes in this batch.
+  - Pass 3: PASS, no DB/schema changes required.
+  - Pass 4: PASS, auth/session infrastructure untouched.
+  - Pass 5: PASS, global body now uses a very light blue background and maroon palette remains aligned.
+  - Pass 6: PASS, existing component styles remain compatible with updated theme tokens.
+  - Pass 7: PASS, Next.js build passes with updated global/tailwind styles.
+  - Pass 8: PASS, Supabase integration unaffected.
+  - Pass 9: PASS, style fallback remains safe since changes are purely additive tokens/classes.
+  - Pass 10: PASS, end-to-end UI simulation confirms updated background and maroon usage.
+- **Test checklist:**
+  - `npm run lint`
+  - `npm run build`
+- **Commit message:** `feat(theme): apply light blue base background and align maroon palette`

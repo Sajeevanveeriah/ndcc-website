@@ -1,5 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { generateUniquePaymentReference } from '@/lib/payments/reference';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -13,7 +15,19 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { customer_name, customer_email, customer_phone, items, total_amount, notes } = body;
+    const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at, order_category, merch_window_id } = body;
+
+    const ip = getClientIp(request);
+    if (!enforceRateLimit(`order:${ip}`, 6, 60_000)) {
+      return NextResponse.json(
+        { success: false, error: 'Too many checkout attempts. Please wait and try again.' },
+        { status: 429 }
+      );
+    }
+
+    if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
+      return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+    }
 
     if (!customer_name || !customer_email || !items || !total_amount) {
       return NextResponse.json(
@@ -52,6 +66,39 @@ export async function POST(request: Request) {
 
     const supabase = createServerClient();
 
+    let orderStatus = 'submitted';
+    let merchWindowLabel: string | null = null;
+    let safeMerchWindowId: string | null = null;
+
+    if (order_category === 'merch') {
+      const { data: windowRow } = merch_window_id
+        ? await supabase.from('merch_order_windows').select('*').eq('id', merch_window_id).maybeSingle()
+        : await supabase
+            .from('merch_order_windows')
+            .select('*')
+            .eq('active', true)
+            .lte('open_date', new Date().toISOString())
+            .gte('close_date', new Date().toISOString())
+            .order('open_date', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+      if (windowRow) {
+        safeMerchWindowId = windowRow.id;
+        merchWindowLabel = windowRow.label;
+        const now = new Date();
+        const isOpen = new Date(windowRow.open_date) <= now && new Date(windowRow.close_date) >= now;
+        if (!isOpen) {
+          if (!windowRow.allow_queue_after_close) {
+            return NextResponse.json({ success: false, error: 'Merch window is closed and queueing is disabled.' }, { status: 409 });
+          }
+          orderStatus = 'queued_next_window';
+        }
+      }
+    }
+
+    const paymentReference = await generateUniquePaymentReference();
+
     const { data, error } = await supabase
       .from('orders')
       .insert({
@@ -60,7 +107,12 @@ export async function POST(request: Request) {
         customer_phone: customer_phone ? sanitiseInput(customer_phone) : '',
         items,
         total_amount,
-        payment_status: 'pending',
+        payment_status: 'pending_bank_transfer',
+        order_category: order_category === 'merch' ? 'merch' : 'general',
+        order_status: orderStatus,
+        merch_window_id: safeMerchWindowId,
+        merch_window_label: merchWindowLabel,
+        payment_reference: paymentReference,
         processed: false,
         notes: notes ? sanitiseInput(notes) : '',
       })
@@ -79,6 +131,14 @@ export async function POST(request: Request) {
       success: true,
       message: 'Order submitted successfully!',
       order_id: data.id,
+      payment_reference: paymentReference,
+      order_status: orderStatus,
+      merch_window_label: merchWindowLabel,
+      bank_details: {
+        account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
+        bsb: process.env.NDCC_BANK_BSB || '',
+        account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '',
+      },
     });
   } catch (err) {
     console.error('Order route error:', err);

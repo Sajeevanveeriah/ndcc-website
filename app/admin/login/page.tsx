@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { CLUB_NAME, CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -19,33 +18,19 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) {
-      setError('Please enter both email and password.');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setError('Database not configured. Please contact the administrator.');
-      return;
-    }
+    if (!email || !password) return setError('Please enter both email and password.');
+    if (!validateEmail(email)) return setError('Please enter a valid email address.');
 
     setLoading(true);
-
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
+      const data = await res.json();
 
-      if (authError) {
-        setError(authError.message);
-        return;
-      }
+      if (!res.ok) return setError(data.error || 'Sign-in failed.');
 
       router.push('/admin');
       router.refresh();
@@ -66,53 +51,19 @@ export default function AdminLoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="p-6 space-y-4">
-            <h2 className="text-xl font-display font-bold text-gray-900 text-center">
-              Sign In
-            </h2>
-            <p className="text-sm text-gray-500 font-body text-center">
-              Access the {CLUB_NAME} administration panel.
-            </p>
+            <h2 className="text-xl font-display font-bold text-gray-900 text-center">Sign In</h2>
+            <p className="text-sm text-gray-500 font-body text-center">Access the {CLUB_NAME} administration panel.</p>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body" role="alert">
-                {error}
-              </div>
-            )}
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body">{error}</div>}
 
-            <Input
-              id="email"
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@ndcc.com.au"
-              required
-            />
+            <Input id="email" label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input id="password" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-            <Input
-              id="password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full"
-              isLoading={loading}
-            >
-              Sign In
-            </Button>
+            <Button type="submit" variant="primary" className="w-full" isLoading={loading}>Sign In</Button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 font-body mt-6">
-          &copy; {new Date().getFullYear()} {CLUB_NAME}
-        </p>
+        <p className="text-center text-xs text-gray-400 font-body mt-6">&copy; {new Date().getFullYear()} {CLUB_NAME}</p>
       </div>
     </div>
   );

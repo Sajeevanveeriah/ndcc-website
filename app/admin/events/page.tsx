@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Event } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -34,19 +33,11 @@ export default function AdminEventsPage() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .order('date', { ascending: false });
-
-        if (error) throw error;
-        if (data) setEvents(data);
+        const response = await fetch('/api/admin/resources/events', { cache: 'no-store' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        setEvents(result.data || []);
       } catch (err) {
         console.error('Failed to fetch events:', err);
       } finally {
@@ -108,23 +99,25 @@ export default function AdminEventsPage() {
 
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('events')
-          .update(payload)
-          .eq('id', editingId);
-        if (error) throw error;
+        const response = await fetch('/api/admin/resources/events', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, ...payload }),
+        });
+        if (!response.ok) throw new Error('Failed to save');
 
         setEvents((prev) =>
           prev.map((e) => (e.id === editingId ? { ...e, ...payload } : e))
         );
       } else {
-        const { data, error } = await supabase
-          .from('events')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) setEvents((prev) => [data, ...prev]);
+        const response = await fetch('/api/admin/resources/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to save');
+        if (result.data) setEvents((prev) => [result.data, ...prev]);
       }
       setModalOpen(false);
     } catch (err) {
@@ -136,8 +129,8 @@ export default function AdminEventsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from('events').delete().eq('id', id);
-      if (error) throw error;
+      const response = await fetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete');
       setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch (err) {
       console.error('Failed to delete event:', err);

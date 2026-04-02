@@ -323,10 +323,23 @@ export default async function HomePage() {
                 >
                   <Card hover className="h-full">
                     <CardContent className="p-4 flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-lg bg-gray-100 relative overflow-hidden flex-shrink-0">
+                        {sponsor.logo_url ? (
+                          <Image
+                            src={sponsor.logo_url}
+                            alt={`${sponsor.name} logo`}
+                            fill
+                            className="object-contain p-1"
+                            sizes="56px"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-maroon-700">
+                            {sponsor.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-display font-bold text-gray-900 text-sm group-hover:text-maroon-700 transition-colors truncate">
-                          {sponsor.name}
-                        </p>
+                        <p className="font-display font-bold text-gray-900 text-sm group-hover:text-maroon-700 transition-colors truncate">{sponsor.name}</p>
                       </div>
                       {tierInfo && (
                         <Badge variant={TIER_BADGE_VARIANT[sponsor.tier] || 'default'} className="flex-shrink-0 text-xs">

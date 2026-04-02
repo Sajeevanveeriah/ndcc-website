@@ -121,9 +121,31 @@ export default function Footer() {
                   </a>
                 </li>
                 <li>
-                  <span className="text-sm text-maroon-200 font-body">
-                    Newcomb Power Football Club
-                  </span>
+                  <a
+                    href="https://www.facebook.com/newcombpowerfnc/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Newcomb Power Football &amp; Netball Club
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
+                <li>
+                  <Link
+                    href="/contact?topic=softball"
+                    className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Softball club details
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/contact?topic=darts"
+                    className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Darts club details
+                  </Link>
                 </li>
                 <li>
                   <a

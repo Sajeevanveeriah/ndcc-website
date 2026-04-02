@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { SPONSOR_TIERS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
@@ -34,19 +33,11 @@ export default function AdminSponsorsPage() {
 
   useEffect(() => {
     const fetchSponsors = async () => {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data, error } = await supabase
-          .from('sponsors')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (data) setSponsors(data);
+        const response = await fetch('/api/admin/resources/sponsors', { cache: 'no-store' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        setSponsors(result.data || []);
       } catch (err) {
         console.error('Failed to fetch sponsors:', err);
       } finally {
@@ -124,23 +115,25 @@ export default function AdminSponsorsPage() {
 
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('sponsors')
-          .update(payload)
-          .eq('id', editingId);
-        if (error) throw error;
+        const response = await fetch('/api/admin/resources/sponsors', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, ...payload }),
+        });
+        if (!response.ok) throw new Error('Failed to save');
 
         setSponsors((prev) =>
           prev.map((s) => (s.id === editingId ? { ...s, ...payload } : s))
         );
       } else {
-        const { data, error } = await supabase
-          .from('sponsors')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) setSponsors((prev) => [data, ...prev]);
+        const response = await fetch('/api/admin/resources/sponsors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to save');
+        if (result.data) setSponsors((prev) => [result.data, ...prev]);
       }
       setModalOpen(false);
     } catch (err) {
@@ -152,8 +145,8 @@ export default function AdminSponsorsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from('sponsors').delete().eq('id', id);
-      if (error) throw error;
+      const response = await fetch(`/api/admin/resources/sponsors?id=${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete');
       setSponsors((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error('Failed to delete sponsor:', err);

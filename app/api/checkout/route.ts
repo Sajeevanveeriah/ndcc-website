@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
+import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -14,7 +15,19 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { customer_name, customer_email, customer_phone, items, total_amount, notes } = body;
+    const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at } = body;
+
+    const ip = getClientIp(request);
+    if (!enforceRateLimit(`checkout:${ip}`, 6, 60_000)) {
+      return NextResponse.json(
+        { success: false, error: 'Too many checkout attempts. Please wait and try again.' },
+        { status: 429 }
+      );
+    }
+
+    if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
+      return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+    }
 
     if (!customer_name || !customer_email || !items || !total_amount) {
       return NextResponse.json(

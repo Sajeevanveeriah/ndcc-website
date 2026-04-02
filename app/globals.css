@@ -10,7 +10,7 @@
   }
 
   body {
-    @apply font-body text-gray-800 antialiased;
+    @apply font-body text-gray-800 antialiased bg-[#f3f9ff];
   }
 
   h1, h2, h3, h4, h5, h6 {
