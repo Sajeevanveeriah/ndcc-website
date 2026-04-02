@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
+import type { AuthRole } from '@/lib/auth/config';
 
 const resourceMap: Record<string, { table: string; readRoles: Array<'admin' | 'president' | 'secretary' | 'committee'>; writeRoles: Array<'admin'> }> = {
   volunteers: { table: 'volunteers', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'] },
@@ -23,12 +24,22 @@ function pickResource(resource: string) {
   return resourceMap[resource];
 }
 
+function canRead(role: AuthRole, allowed: AuthRole[]) {
+  return allowed.includes(role);
+}
+
+function canWrite(role: AuthRole) {
+  return role === 'admin';
+}
+
 export async function GET(_request: Request, { params }: { params: { resource: string } }) {
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(config.readRoles);
-  if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
+  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  if (!user || !canRead(user.role, config.readRoles)) {
+    return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
+  }
 
   const supabase = createServerClient();
   const { data, error } = await supabase.from(config.table).select('*').order('created_at', { ascending: false });
@@ -41,8 +52,8 @@ export async function POST(request: Request, { params }: { params: { resource: s
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(config.writeRoles);
-  if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
+  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  if (!user || !canWrite(user.role)) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const payload = await request.json();
   const supabase = createServerClient();
@@ -56,8 +67,8 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(config.writeRoles);
-  if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
+  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  if (!user || !canWrite(user.role)) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { id, ...payload } = await request.json();
   if (!id) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
@@ -73,8 +84,8 @@ export async function DELETE(request: Request, { params }: { params: { resource:
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(config.writeRoles);
-  if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
+  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  if (!user || !canWrite(user.role)) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
