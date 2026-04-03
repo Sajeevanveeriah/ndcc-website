@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { ENQUIRY_TYPES } from '@/lib/constants';
 import { formatDate, truncateText } from '@/lib/utils';
 import type { Contact } from '@/lib/types';
@@ -21,19 +20,11 @@ export default function AdminEnquiriesPage() {
 
   useEffect(() => {
     const fetchContacts = async () => {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data, error } = await supabase
-          .from('contacts')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (data) setContacts(data);
+        const response = await fetch('/api/admin/resources/enquiries', { cache: 'no-store' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        setContacts(result.data || []);
       } catch (err) {
         console.error('Failed to fetch contacts:', err);
       } finally {
@@ -46,12 +37,13 @@ export default function AdminEnquiriesPage() {
 
   const handleMarkResponded = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({ responded: true })
-        .eq('id', id);
+      const response = await fetch('/api/admin/resources/enquiries', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, responded: true }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to update');
 
       setContacts((prev) =>
         prev.map((c) => (c.id === id ? { ...c, responded: true } : c))

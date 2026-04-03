@@ -6,13 +6,31 @@ import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
-import { PRODUCTS, CLUB_NAME, CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN } from '@/lib/constants';
-import { formatCurrency, validateEmail, cn, assembleEmail } from '@/lib/utils';
+import { PRODUCTS, CLUB_NAME } from '@/lib/constants';
+import { formatCurrency, validateEmail, cn } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
 
 interface CartItem extends OrderItem {
   id: string;
 }
+
+type MerchandiseWindow = {
+  id: string;
+  label: string;
+  open_date: string;
+  close_date: string;
+  allow_queue_after_close: boolean;
+};
+
+type ApiProduct = {
+  slug: string;
+  name: string;
+  description: string;
+  price: number;
+  sizes: string[];
+  image_url: string;
+  customisable: boolean;
+};
 
 const PRODUCT_GRADIENTS: Record<string, string> = {
   'playing-shirt': 'from-gray-100 to-gray-300',
@@ -61,7 +79,7 @@ const PRODUCT_ICONS: Record<string, { path: string; textColor: string }> = {
 };
 
 function isStripeConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+  return false;
 }
 
 export default function MerchandisePage() {
@@ -86,11 +104,20 @@ function MerchandiseContent() {
     email: '',
     phone: '',
     notes: '',
+    hp_field: '',
+    submitted_at: Date.now(),
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [products, setProducts] = useState(PRODUCTS);
+  const [windowState, setWindowState] = useState<{ processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null }>({
+    processing_open: true,
+    queue_allowed: true,
+    current_window: null,
+    next_window: null,
+  });
 
   const stripeEnabled = isStripeConfigured();
 
@@ -102,10 +129,37 @@ function MerchandiseContent() {
     } else if (searchParams.get('cancelled') === 'true') {
       setSubmitStatus('cancelled');
     }
+
+    void (async () => {
+      try {
+        const [productsRes, windowsRes] = await Promise.all([
+          fetch('/api/apparel/products', { cache: 'no-store' }),
+          fetch('/api/apparel/windows', { cache: 'no-store' }),
+        ]);
+        const productsData = await productsRes.json();
+        const windowsData = await windowsRes.json();
+        if (productsRes.ok && Array.isArray(productsData.data) && productsData.data.length > 0) {
+          setProducts(productsData.data.map((p: ApiProduct) => ({
+            id: p.slug,
+            name: p.name,
+            price: Number(p.price || 0),
+            description: p.description || '',
+            sizes: Array.isArray(p.sizes) ? p.sizes : [],
+            image: p.image_url || '',
+            customisable: Boolean(p.customisable),
+          })));
+        }
+        if (windowsRes.ok && windowsData.data) {
+          setWindowState(windowsData.data);
+        }
+      } catch {
+        // Keep safe defaults.
+      }
+    })();
   }, [searchParams]);
 
   function handleAddToOrder(productId: string) {
-    const product = PRODUCTS.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (!product) return;
 
     const size = selectedSizes[productId];
@@ -211,6 +265,10 @@ function MerchandiseContent() {
             ...(custom_number !== undefined ? { custom_number } : {}),
           })),
           total_amount: cartTotal,
+          order_category: 'merch',
+          merch_window_id: windowState.current_window?.id ?? windowState.next_window?.id ?? null,
+          hp_field: formData.hp_field,
+          submitted_at: formData.submitted_at,
         }),
       });
 
@@ -228,7 +286,7 @@ function MerchandiseContent() {
       // Non-Stripe fallback
       setSubmitStatus('success');
       setCart([]);
-      setFormData({ name: '', email: '', phone: '', notes: '' });
+      setFormData({ name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
       setFormErrors({});
     } catch (err) {
       setSubmitStatus('error');
@@ -256,7 +314,13 @@ function MerchandiseContent() {
         <div className="container-width">
           <h2 className="section-title mb-8">Products</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {PRODUCTS.map((product) => {
+            {!windowState.processing_open && (
+              <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
+                Orders are currently outside the active merch window.
+                {windowState.queue_allowed ? ' New orders will be queued for the next window.' : ' Ordering is temporarily unavailable.'}
+              </div>
+            )}
+            {products.map((product) => {
               const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
               const iconData = PRODUCT_ICONS[product.id];
               return (
@@ -515,6 +579,15 @@ function MerchandiseContent() {
                     Your Details
                   </h3>
                   <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <input
+                      type="text"
+                      name="website"
+                      value={formData.hp_field}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
+                      className="hidden"
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
                     <Input
                       id="merch_name"
                       label="Full Name"
@@ -567,31 +640,25 @@ function MerchandiseContent() {
                       }
                     />
 
-                    {stripeEnabled ? (
-                      <Button
-                        type="submit"
-                        isLoading={isSubmitting}
-                        size="lg"
-                        className="w-full"
-                      >
-                        {isSubmitting ? 'Redirecting to payment...' : 'Proceed to Payment'}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        size="lg"
-                        className="w-full opacity-60 cursor-not-allowed"
-                        disabled
-                      >
-                        Online payments coming soon
-                      </Button>
-                    )}
+                    <Button
+                      type="submit"
+                      isLoading={isSubmitting}
+                      size="lg"
+                      className="w-full"
+                      disabled={!windowState.processing_open && !windowState.queue_allowed}
+                    >
+                      {isSubmitting
+                        ? 'Submitting order...'
+                        : !windowState.processing_open && !windowState.queue_allowed
+                          ? 'Ordering Closed'
+                          : !windowState.processing_open
+                            ? 'Queue Order for Next Window'
+                            : 'Place Order (Bank Transfer)'}
+                    </Button>
 
-                    {!stripeEnabled && (
-                      <p className="text-gray-400 font-body text-xs text-center">
-                        Contact the club at {assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN)} to order.
-                      </p>
-                    )}
+                    <p className="text-gray-500 font-body text-xs text-center">
+                      After submission you will receive a payment reference for bank transfer.
+                    </p>
                   </form>
                 </CardContent>
               </Card>

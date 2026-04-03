@@ -21,6 +21,8 @@ export default function ContactPage() {
     email: '',
     enquiry_type: '',
     message: '',
+    hp_field: '',
+    submitted_at: Date.now(),
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -42,7 +44,7 @@ export default function ContactPage() {
       const response = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, submitted_at: formData.submitted_at }),
       });
 
       if (!response.ok) {
@@ -51,7 +53,7 @@ export default function ContactPage() {
       }
 
       setSubmitStatus('success');
-      setFormData({ name: '', email: '', enquiry_type: '', message: '' });
+      setFormData({ name: '', email: '', enquiry_type: '', message: '', hp_field: '', submitted_at: Date.now() });
     } catch (err) {
       setSubmitStatus('error');
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
@@ -100,6 +102,15 @@ export default function ContactPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                <input
+                  type="text"
+                  name="website"
+                  value={formData.hp_field}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
+                  className="hidden"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
                 <Input
                   id="name"
                   label="Your Name"

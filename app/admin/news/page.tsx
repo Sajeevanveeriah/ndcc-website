@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { formatDate, truncateText } from '@/lib/utils';
 import type { NewsPost } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -31,19 +30,11 @@ export default function AdminNewsPage() {
 
   useEffect(() => {
     const fetchNews = async () => {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (data) setNews(data);
+        const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        setNews(result.data || []);
       } catch (err) {
         console.error('Failed to fetch news:', err);
       } finally {
@@ -98,23 +89,25 @@ export default function AdminNewsPage() {
 
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('news')
-          .update(payload)
-          .eq('id', editingId);
-        if (error) throw error;
+        const response = await fetch('/api/admin/resources/news', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, ...payload }),
+        });
+        if (!response.ok) throw new Error('Failed to save');
 
         setNews((prev) =>
           prev.map((n) => (n.id === editingId ? { ...n, ...payload } : n))
         );
       } else {
-        const { data, error } = await supabase
-          .from('news')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) setNews((prev) => [data, ...prev]);
+        const response = await fetch('/api/admin/resources/news', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to save');
+        if (result.data) setNews((prev) => [result.data, ...prev]);
       }
       setModalOpen(false);
     } catch (err) {
@@ -126,8 +119,8 @@ export default function AdminNewsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from('news').delete().eq('id', id);
-      if (error) throw error;
+      const response = await fetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete');
       setNews((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error('Failed to delete news post:', err);

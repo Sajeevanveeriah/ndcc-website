@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -48,91 +47,14 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const [
-          { count: volunteerCount },
-          { count: pendingOrderCount },
-          { count: unreadEnquiryCount },
-          { count: publishedEventCount },
-          { count: newsCount },
-          { count: sponsorCount },
-        ] = await Promise.all([
-          supabase.from('volunteers').select('*', { count: 'exact', head: true }),
-          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('processed', false),
-          supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('responded', false),
-          supabase.from('events').select('*', { count: 'exact', head: true }).eq('published', true),
-          supabase.from('news').select('*', { count: 'exact', head: true }),
-          supabase.from('sponsors').select('*', { count: 'exact', head: true }).eq('active', true),
-        ]);
+        const response = await fetch('/api/admin/dashboard', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load dashboard');
 
-        setStats({
-          volunteers: volunteerCount || 0,
-          pendingOrders: pendingOrderCount || 0,
-          unreadEnquiries: unreadEnquiryCount || 0,
-          publishedEvents: publishedEventCount || 0,
-          totalNews: newsCount || 0,
-          activeSponsors: sponsorCount || 0,
-        });
-
-        // Fetch recent activity
-        const recentItems: RecentActivity[] = [];
-
-        const { data: recentVols } = await supabase
-          .from('volunteers')
-          .select('name, created_at')
-          .order('created_at', { ascending: false })
-          .limit(2);
-
-        if (recentVols) {
-          recentVols.forEach((v) =>
-            recentItems.push({
-              type: 'volunteer',
-              message: `New volunteer registration — ${v.name}`,
-              date: v.created_at,
-            })
-          );
-        }
-
-        const { data: recentOrders } = await supabase
-          .from('orders')
-          .select('customer_name, created_at')
-          .order('created_at', { ascending: false })
-          .limit(2);
-
-        if (recentOrders) {
-          recentOrders.forEach((o) =>
-            recentItems.push({
-              type: 'order',
-              message: `New order from ${o.customer_name}`,
-              date: o.created_at,
-            })
-          );
-        }
-
-        const { data: recentContacts } = await supabase
-          .from('contacts')
-          .select('name, enquiry_type, created_at')
-          .order('created_at', { ascending: false })
-          .limit(2);
-
-        if (recentContacts) {
-          recentContacts.forEach((c) =>
-            recentItems.push({
-              type: 'enquiry',
-              message: `New enquiry from ${c.name} — ${c.enquiry_type}`,
-              date: c.created_at,
-            })
-          );
-        }
-
-        recentItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        if (recentItems.length > 0) {
-          setActivity(recentItems.slice(0, 5));
+        setStats(data.stats || emptyStats);
+        if (Array.isArray(data.activity) && data.activity.length > 0) {
+          setActivity(data.activity);
         }
       } catch (err) {
         console.error('Failed to fetch dashboard stats:', err);
