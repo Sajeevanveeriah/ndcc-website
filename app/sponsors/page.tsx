@@ -63,11 +63,13 @@ export default function SponsorsPage() {
           .eq('active', true)
           .order('created_at', { ascending: true });
 
-        if (!error && data && data.length > 0) {
-          setSponsors(data as Sponsor[]);
-        } else {
+        if (error) {
+          // Transient DB error – fall back to seeds so the page isn't blank
           setSponsors(SEED_SPONSORS as Sponsor[]);
           setUsingSeed(true);
+        } else {
+          // Trust the DB result even if empty (don't mask real empty state with seeds)
+          setSponsors((data as Sponsor[]) || []);
         }
       } catch {
         setSponsors(SEED_SPONSORS as Sponsor[]);

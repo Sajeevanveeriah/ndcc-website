@@ -23,13 +23,16 @@ export default function AdminContentPage() {
   const [selected, setSelected] = useState<Block | null>(null);
   const [message, setMessage] = useState('');
 
-  async function loadBlocks() {
+  async function loadBlocks(): Promise<Block[]> {
     try {
       const res = await fetch('/api/admin/resources/contentBlocks', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: Block[] }>(res);
-      setBlocks(data.data || []);
+      const loaded = data.data || [];
+      setBlocks(loaded);
+      return loaded;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load content blocks.');
+      return [];
     }
   }
 
@@ -43,9 +46,15 @@ export default function AdminContentPage() {
       body: JSON.stringify({ id: selected.id, title: selected.title, body: selected.body, image_url: selected.image_url, cta_label: selected.cta_label, cta_url: selected.cta_url, is_active: selected.is_active }),
     });
     try {
-      await parseApiResponse(res);
+      const result = await parseApiResponse<{ data?: Block }>(res);
+      // Sync selected from server response to reflect persisted state
+      const updatedBlock = result.data ?? selected;
+      setSelected(updatedBlock);
       setMessage('Content block saved.');
-      loadBlocks();
+      // Also refresh the block list so the sidebar reflects any title changes
+      const refreshed = await loadBlocks();
+      const freshBlock = refreshed.find((b) => b.id === updatedBlock.id);
+      if (freshBlock) setSelected(freshBlock);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to save content block.');
     }
