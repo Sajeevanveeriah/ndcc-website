@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SPONSOR_TIERS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
+import { parseApiResponse } from '@/lib/admin-client';
 import type { Sponsor } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -30,16 +31,16 @@ export default function AdminSponsorsPage() {
   const [form, setForm] = useState(emptySponsor);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
   useEffect(() => {
     const fetchSponsors = async () => {
       try {
         const response = await fetch('/api/admin/resources/sponsors', { cache: 'no-store' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        const result = await parseApiResponse<{ data?: Sponsor[] }>(response);
         setSponsors(result.data || []);
       } catch (err) {
-        console.error('Failed to fetch sponsors:', err);
+        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch sponsors.' });
       } finally {
         setLoading(false);
       }
@@ -74,6 +75,7 @@ export default function AdminSponsorsPage() {
     setEditingId(null);
     setForm(emptySponsor);
     setFormErrors({});
+    setFeedback(null);
     setModalOpen(true);
   };
 
@@ -88,6 +90,7 @@ export default function AdminSponsorsPage() {
       active: sponsor.active,
     });
     setFormErrors({});
+    setFeedback(null);
     setModalOpen(true);
   };
 
@@ -120,24 +123,21 @@ export default function AdminSponsorsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
         });
-        if (!response.ok) throw new Error('Failed to save');
-
-        setSponsors((prev) =>
-          prev.map((s) => (s.id === editingId ? { ...s, ...payload } : s))
-        );
+        const result = await parseApiResponse<{ data: Sponsor }>(response);
+        setSponsors((prev) => prev.map((s) => (s.id === editingId ? result.data : s)));
       } else {
         const response = await fetch('/api/admin/resources/sponsors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to save');
+        const result = await parseApiResponse<{ data: Sponsor }>(response);
         if (result.data) setSponsors((prev) => [result.data, ...prev]);
       }
+      setFeedback({ type: 'success', message: editingId ? 'Sponsor updated.' : 'Sponsor created.' });
       setModalOpen(false);
     } catch (err) {
-      console.error('Failed to save sponsor:', err);
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to save sponsor.' });
     } finally {
       setSaving(false);
     }
@@ -146,12 +146,12 @@ export default function AdminSponsorsPage() {
   const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/resources/sponsors?id=${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete');
+      await parseApiResponse(response);
       setSponsors((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      console.error('Failed to delete sponsor:', err);
-    } finally {
+      setFeedback({ type: 'success', message: 'Sponsor deleted.' });
       setDeleteConfirm(null);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete sponsor.' });
     }
   };
 
@@ -180,6 +180,9 @@ export default function AdminSponsorsPage() {
           Add Sponsor
         </Button>
       </div>
+      {feedback && (
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+      )}
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">

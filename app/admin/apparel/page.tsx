@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type ApparelProduct = {
   id: string;
@@ -48,20 +49,31 @@ export default function AdminApparelPage() {
   });
 
   async function loadAll() {
-    const [pRes, wRes] = await Promise.all([
-      fetch('/api/admin/resources/apparelProducts', { cache: 'no-store' }),
-      fetch('/api/admin/resources/merchWindows', { cache: 'no-store' }),
-    ]);
-    const pData = await pRes.json();
-    const wData = await wRes.json();
-    if (pRes.ok) setProducts(pData.data || []);
-    if (wRes.ok) setWindows(wData.data || []);
+    try {
+      const [pRes, wRes] = await Promise.all([
+        fetch('/api/admin/resources/apparelProducts', { cache: 'no-store' }),
+        fetch('/api/admin/resources/merchWindows', { cache: 'no-store' }),
+      ]);
+      const [pData, wData] = await Promise.all([
+        parseApiResponse<{ data?: ApparelProduct[] }>(pRes),
+        parseApiResponse<{ data?: MerchWindow[] }>(wRes),
+      ]);
+      setProducts(pData.data || []);
+      setWindows(wData.data || []);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to load apparel data.');
+    }
   }
 
   useEffect(() => { loadAll(); }, []);
 
   async function createProduct(e: React.FormEvent) {
     e.preventDefault();
+    const price = Number(productForm.price || 0);
+    if (Number.isNaN(price) || price < 0) {
+      setStatus('Product price must be a valid non-negative number.');
+      return;
+    }
     const res = await fetch('/api/admin/resources/apparelProducts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -69,16 +81,19 @@ export default function AdminApparelPage() {
         slug: productForm.slug.trim(),
         name: productForm.name.trim(),
         description: productForm.description.trim(),
-        price: Number(productForm.price || 0),
+        price,
         sizes: productForm.sizes.split(',').map((s) => s.trim()).filter(Boolean),
         customisable: productForm.customisable,
         active: productForm.active,
       }),
     });
-    setStatus(res.ok ? 'Product saved.' : 'Failed to save product.');
-    if (res.ok) {
+    try {
+      await parseApiResponse(res);
+      setStatus('Product saved.');
       setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', customisable: false, active: true });
       loadAll();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to save product.');
     }
   }
 
@@ -89,10 +104,13 @@ export default function AdminApparelPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(windowForm),
     });
-    setStatus(res.ok ? 'Window saved.' : 'Failed to save window.');
-    if (res.ok) {
+    try {
+      await parseApiResponse(res);
+      setStatus('Window saved.');
       setWindowForm({ label: '', open_date: '', close_date: '', active: true, allow_queue_after_close: true });
       loadAll();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to save window.');
     }
   }
 

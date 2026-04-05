@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type User = { id: string; email: string; full_name: string; role: string; is_active: boolean };
 
@@ -12,11 +13,16 @@ export default function AdminUsersPage() {
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('committee');
+  const [message, setMessage] = useState('');
 
   const load = async () => {
-    const res = await fetch('/api/admin/users');
-    const data = await res.json();
-    if (res.ok) setUsers(data.users);
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await parseApiResponse<{ users?: User[] }>(res);
+      setUsers(data.users || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to load users.');
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -27,20 +33,31 @@ export default function AdminUsersPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, fullName, password, role }),
     });
-    if (res.ok) {
+    try {
+      await parseApiResponse(res);
       setEmail(''); setFullName(''); setPassword(''); setRole('committee');
+      setMessage('User created.');
       load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to create user.');
     }
   };
 
   const toggle = async (user: User) => {
-    await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, isActive: !user.is_active }) });
-    load();
+    const res = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, isActive: !user.is_active }) });
+    try {
+      await parseApiResponse(res);
+      setMessage(`User ${user.is_active ? 'deactivated' : 'activated'}.`);
+      load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update user.');
+    }
   };
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Committee Users</h1>
+      {message && <p className="text-sm text-gray-600">{message}</p>}
       <form onSubmit={create} className="bg-white p-4 rounded-xl border grid md:grid-cols-2 gap-3">
         <Input id="full-name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         <Input id="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />

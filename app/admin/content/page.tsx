@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type Block = {
   id: string;
@@ -23,9 +24,13 @@ export default function AdminContentPage() {
   const [message, setMessage] = useState('');
 
   async function loadBlocks() {
-    const res = await fetch('/api/admin/resources/contentBlocks', { cache: 'no-store' });
-    const data = await res.json();
-    if (res.ok) setBlocks(data.data || []);
+    try {
+      const res = await fetch('/api/admin/resources/contentBlocks', { cache: 'no-store' });
+      const data = await parseApiResponse<{ data?: Block[] }>(res);
+      setBlocks(data.data || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to load content blocks.');
+    }
   }
 
   useEffect(() => { loadBlocks(); }, []);
@@ -35,10 +40,15 @@ export default function AdminContentPage() {
     const res = await fetch('/api/admin/resources/contentBlocks', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(selected),
+      body: JSON.stringify({ id: selected.id, title: selected.title, body: selected.body, image_url: selected.image_url, cta_label: selected.cta_label, cta_url: selected.cta_url, is_active: selected.is_active }),
     });
-    setMessage(res.ok ? 'Content block saved.' : 'Failed to save content block.');
-    if (res.ok) loadBlocks();
+    try {
+      await parseApiResponse(res);
+      setMessage('Content block saved.');
+      loadBlocks();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to save content block.');
+    }
   }
 
   return (

@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Image as ImageIcon } from 'lucide-react';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type GalleryImage = {
   id: string;
@@ -33,13 +34,13 @@ export default function AdminGalleryPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   async function loadItems() {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/resources/galleryImages', { cache: 'no-store' });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to load gallery images');
+      const result = await parseApiResponse<{ data?: GalleryImage[] }>(response);
       setItems((result.data ?? []).sort((a: GalleryImage, b: GalleryImage) => a.sort_order - b.sort_order));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load gallery images');
@@ -56,6 +57,7 @@ export default function AdminGalleryPage() {
     e.preventDefault();
     setSaving(true);
     setError('');
+    setSuccess('');
 
     try {
       const response = await fetch('/api/admin/resources/galleryImages', {
@@ -63,9 +65,9 @@ export default function AdminGalleryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to add image');
+      await parseApiResponse(response);
       setForm(defaultForm);
+      setSuccess('Image added.');
       await loadItems();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add image');
@@ -75,12 +77,18 @@ export default function AdminGalleryPage() {
   }
 
   async function togglePublished(item: GalleryImage) {
-    const response = await fetch('/api/admin/resources/galleryImages', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: item.id, published: !item.published }),
-    });
-    if (response.ok) await loadItems();
+    try {
+      const response = await fetch('/api/admin/resources/galleryImages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, published: !item.published }),
+      });
+      await parseApiResponse(response);
+      setSuccess('Image status updated.');
+      await loadItems();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update image.');
+    }
   }
 
   return (
@@ -113,6 +121,7 @@ export default function AdminGalleryPage() {
           </label>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {success && <p className="text-sm text-green-700">{success}</p>}
         <Button type="submit" isLoading={saving}>Add image</Button>
       </form>
 

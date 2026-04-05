@@ -2,24 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import { parseApiResponse } from '@/lib/admin-client';
 
 export default function AdminPaymentsPage() {
   const [transactions, setTransactions] = useState<Array<{ id: string; payer_name: string; transaction_reference: string; amount: number; transaction_date: string }>>([]);
   const [message, setMessage] = useState('');
 
   const loadAmbiguous = async () => {
-    const res = await fetch('/api/admin/payments/ambiguous', { cache: 'no-store' });
-    const data = await res.json();
-    if (res.ok) setTransactions(data.transactions || []);
+    try {
+      const res = await fetch('/api/admin/payments/ambiguous', { cache: 'no-store' });
+      const data = await parseApiResponse<{ transactions?: Array<{ id: string; payer_name: string; transaction_reference: string; amount: number; transaction_date: string }> }>(res);
+      setTransactions(data.transactions || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to load ambiguous transactions.');
+    }
   };
 
   useEffect(() => { loadAmbiguous(); }, []);
 
   const reconcile = async () => {
     const res = await fetch('/api/admin/payments/reconcile', { method: 'POST' });
-    const data = await res.json();
-    setMessage(res.ok ? `Auto-matched: ${data.autoMatched}, needs review: ${data.needsReview}` : data.error || 'Reconciliation failed');
-    loadAmbiguous();
+    try {
+      const data = await parseApiResponse<{ autoMatched: number; needsReview: number }>(res);
+      setMessage(`Auto-matched: ${data.autoMatched}, needs review: ${data.needsReview}`);
+      loadAmbiguous();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Reconciliation failed.');
+    }
   };
 
   const confirm = async (transactionId: string, orderId: string) => {
@@ -28,7 +37,13 @@ export default function AdminPaymentsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transaction_id: transactionId, order_id: orderId }),
     });
-    if (res.ok) loadAmbiguous();
+    try {
+      await parseApiResponse(res);
+      setMessage('Transaction manually confirmed.');
+      loadAmbiguous();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to confirm transaction.');
+    }
   };
 
   return (

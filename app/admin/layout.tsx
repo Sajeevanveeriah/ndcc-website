@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type SessionUser = {
   id: string;
@@ -38,6 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (pathname === '/admin/login') {
@@ -48,18 +50,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const checkSession = async () => {
       try {
         const response = await fetch('/api/admin/auth/session', { cache: 'no-store' });
-        if (!response.ok) {
-          router.push('/admin/login');
-          return;
-        }
-
-        const data = await response.json();
+        const data = await parseApiResponse<{ authenticated?: boolean; user?: SessionUser }>(response);
         if (!data.authenticated) {
           router.push('/admin/login');
           return;
         }
-        setUser(data.user);
+        setUser(data.user || null);
       } catch {
+        setMessage('Your admin session has expired. Please sign in again.');
         router.push('/admin/login');
       } finally {
         setLoading(false);
@@ -70,7 +68,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [pathname, router]);
 
   const handleSignOut = async () => {
-    await fetch('/api/admin/auth/logout', { method: 'POST' });
+    const response = await fetch('/api/admin/auth/logout', { method: 'POST' });
+    await parseApiResponse(response).catch(() => undefined);
     router.push('/admin/login');
   };
 
@@ -119,6 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {mobileOpen && <nav className="px-4 pb-3 space-y-1">{sidebarLinks.map((link) => <Link className="block py-2" key={link.href} href={link.href}>{link.label}</Link>)}</nav>}
         </header>
         <main className="p-6 lg:p-8">{children}</main>
+        {message && <p className="px-6 pb-6 text-sm text-red-600">{message}</p>}
       </div>
     </div>
   );
