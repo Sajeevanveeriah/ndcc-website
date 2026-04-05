@@ -61,10 +61,12 @@ export default function EventsPage() {
           .eq('published', true)
           .order('date', { ascending: true });
 
-        if (!error && data && data.length > 0) {
-          setEvents(data as Event[]);
-        } else {
+        if (error) {
+          // Transient DB error – fall back to seeds so the page isn't blank
           setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
+        } else {
+          // Trust the DB result even if empty (don't mask real empty state with seeds)
+          setEvents((data as Event[]) || []);
         }
       } catch {
         setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));

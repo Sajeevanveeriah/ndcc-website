@@ -44,10 +44,12 @@ export default function NewsPage() {
           .eq('published', true)
           .order('published_at', { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          setPosts(data as NewsPost[]);
-        } else {
+        if (error) {
+          // Transient DB error – fall back to seeds so the page isn't blank
           setPosts(SEED_NEWS as NewsPost[]);
+        } else {
+          // Trust the DB result even if empty (don't mask real empty state with seeds)
+          setPosts((data as NewsPost[]) || []);
         }
       } catch {
         setPosts(SEED_NEWS as NewsPost[]);
