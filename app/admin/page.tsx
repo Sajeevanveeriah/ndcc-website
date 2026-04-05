@@ -6,6 +6,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
+import { parseApiResponse } from '@/lib/admin-client';
 import {
   Users,
   ShoppingBag,
@@ -44,20 +45,20 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(emptyStats);
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch('/api/admin/dashboard', { cache: 'no-store' });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to load dashboard');
+        const data = await parseApiResponse<{ stats?: DashboardStats; activity?: RecentActivity[] }>(response);
 
         setStats(data.stats || emptyStats);
         if (Array.isArray(data.activity) && data.activity.length > 0) {
           setActivity(data.activity);
         }
       } catch (err) {
-        console.error('Failed to fetch dashboard stats:', err);
+        setMessage(err instanceof Error ? err.message : 'Failed to fetch dashboard stats.');
       } finally {
         setLoading(false);
       }
@@ -96,6 +97,7 @@ export default function AdminDashboardPage() {
         <h1 className="text-2xl font-display font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 font-body mt-1">Overview of club administration</p>
       </div>
+      {message && <p className="mb-4 text-sm text-red-600">{message}</p>}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { parseApiResponse } from '@/lib/admin-client';
 import type { Event } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -30,16 +31,16 @@ export default function AdminEventsPage() {
   const [form, setForm] = useState(emptyEvent);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const response = await fetch('/api/admin/resources/events', { cache: 'no-store' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        const result = await parseApiResponse<{ data?: Event[] }>(response);
         setEvents(result.data || []);
       } catch (err) {
-        console.error('Failed to fetch events:', err);
+        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch events.' });
       } finally {
         setLoading(false);
       }
@@ -52,6 +53,7 @@ export default function AdminEventsPage() {
     setEditingId(null);
     setForm(emptyEvent);
     setFormErrors({});
+    setFeedback(null);
     setModalOpen(true);
   };
 
@@ -68,6 +70,7 @@ export default function AdminEventsPage() {
       published: event.published,
     });
     setFormErrors({});
+    setFeedback(null);
     setModalOpen(true);
   };
 
@@ -104,24 +107,21 @@ export default function AdminEventsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
         });
-        if (!response.ok) throw new Error('Failed to save');
-
-        setEvents((prev) =>
-          prev.map((e) => (e.id === editingId ? { ...e, ...payload } : e))
-        );
+        const result = await parseApiResponse<{ data: Event }>(response);
+        setEvents((prev) => prev.map((e) => (e.id === editingId ? result.data : e)));
       } else {
         const response = await fetch('/api/admin/resources/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to save');
+        const result = await parseApiResponse<{ data: Event }>(response);
         if (result.data) setEvents((prev) => [result.data, ...prev]);
       }
+      setFeedback({ type: 'success', message: editingId ? 'Event updated.' : 'Event created.' });
       setModalOpen(false);
     } catch (err) {
-      console.error('Failed to save event:', err);
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to save event.' });
     } finally {
       setSaving(false);
     }
@@ -130,12 +130,12 @@ export default function AdminEventsPage() {
   const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete');
+      await parseApiResponse(response);
       setEvents((prev) => prev.filter((e) => e.id !== id));
-    } catch (err) {
-      console.error('Failed to delete event:', err);
-    } finally {
+      setFeedback({ type: 'success', message: 'Event deleted.' });
       setDeleteConfirm(null);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete event.' });
     }
   };
 
@@ -156,6 +156,9 @@ export default function AdminEventsPage() {
           Create Event
         </Button>
       </div>
+      {feedback && (
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+      )}
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
@@ -17,17 +18,23 @@ export default function AdminKitchenPage() {
   const [itemForm, setItemForm] = useState({ menu_id: '', name: '', description: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
 
   async function loadAll() {
-    const [mRes, iRes, oRes] = await Promise.all([
-      fetch('/api/admin/resources/kitchenMenus', { cache: 'no-store' }),
-      fetch('/api/admin/resources/kitchenItems', { cache: 'no-store' }),
-      fetch('/api/admin/kitchen/orders', { cache: 'no-store' }),
-    ]);
-    const mData = await mRes.json();
-    const iData = await iRes.json();
-    const oData = await oRes.json();
-    if (mRes.ok) setMenus(mData.data || []);
-    if (iRes.ok) setItems(iData.data || []);
-    if (oRes.ok) setOrders(oData.data || []);
+    try {
+      const [mRes, iRes, oRes] = await Promise.all([
+        fetch('/api/admin/resources/kitchenMenus', { cache: 'no-store' }),
+        fetch('/api/admin/resources/kitchenItems', { cache: 'no-store' }),
+        fetch('/api/admin/kitchen/orders', { cache: 'no-store' }),
+      ]);
+      const [mData, iData, oData] = await Promise.all([
+        parseApiResponse<{ data?: Menu[] }>(mRes),
+        parseApiResponse<{ data?: Item[] }>(iRes),
+        parseApiResponse<{ data?: KitchenOrder[] }>(oRes),
+      ]);
+      setMenus(mData.data || []);
+      setItems(iData.data || []);
+      setOrders(oData.data || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to load kitchen data.');
+    }
   }
 
   useEffect(() => { loadAll(); }, []);
@@ -39,15 +46,24 @@ export default function AdminKitchenPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(menuForm),
     });
-    setMessage(res.ok ? 'Menu saved.' : 'Failed to save menu.');
-    if (res.ok) {
+    try {
+      await parseApiResponse(res);
+      setMessage('Menu saved.');
       setMenuForm({ name: '', is_active: true });
       loadAll();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to save menu.');
     }
   }
 
   async function createItem(e: React.FormEvent) {
     e.preventDefault();
+    const price = Number(itemForm.price || 0);
+    const sortOrder = Number(itemForm.sort_order || 0);
+    if (Number.isNaN(price) || Number.isNaN(sortOrder) || price < 0) {
+      setMessage('Item price/sort order must be valid numbers.');
+      return;
+    }
     const res = await fetch('/api/admin/resources/kitchenItems', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,26 +71,35 @@ export default function AdminKitchenPage() {
         menu_id: itemForm.menu_id,
         name: itemForm.name,
         description: itemForm.description,
-        price: Number(itemForm.price || 0),
+        price,
         is_available: itemForm.is_available,
         is_hidden: itemForm.is_hidden,
-        sort_order: Number(itemForm.sort_order || 0),
+        sort_order: sortOrder,
       }),
     });
-    setMessage(res.ok ? 'Item saved.' : 'Failed to save item.');
-    if (res.ok) {
+    try {
+      await parseApiResponse(res);
+      setMessage('Item saved.');
       setItemForm({ menu_id: '', name: '', description: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
       loadAll();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to save item.');
     }
   }
 
   async function toggleItem(item: Item, patch: Partial<Item>) {
-    await fetch('/api/admin/resources/kitchenItems', {
+    const res = await fetch('/api/admin/resources/kitchenItems', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: item.id, ...patch }),
     });
-    loadAll();
+    try {
+      await parseApiResponse(res);
+      setMessage('Item updated.');
+      loadAll();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update item.');
+    }
   }
 
   return (

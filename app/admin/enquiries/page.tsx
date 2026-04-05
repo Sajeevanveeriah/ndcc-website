@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ENQUIRY_TYPES } from '@/lib/constants';
 import { formatDate, truncateText } from '@/lib/utils';
 import type { Contact } from '@/lib/types';
+import { parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -17,16 +18,16 @@ export default function AdminEnquiriesPage() {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchContacts = async () => {
       try {
         const response = await fetch('/api/admin/resources/enquiries', { cache: 'no-store' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        const result = await parseApiResponse<{ data?: Contact[] }>(response);
         setContacts(result.data || []);
       } catch (err) {
-        console.error('Failed to fetch contacts:', err);
+        setMessage(err instanceof Error ? err.message : 'Failed to fetch contacts.');
       } finally {
         setLoading(false);
       }
@@ -42,14 +43,14 @@ export default function AdminEnquiriesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, responded: true }),
       });
-
-      if (!response.ok) throw new Error('Failed to update');
+      await parseApiResponse(response);
 
       setContacts((prev) =>
         prev.map((c) => (c.id === id ? { ...c, responded: true } : c))
       );
+      setMessage('Enquiry marked as responded.');
     } catch (err) {
-      console.error('Failed to update contact:', err);
+      setMessage(err instanceof Error ? err.message : 'Failed to update enquiry.');
     }
   };
 
@@ -84,6 +85,7 @@ export default function AdminEnquiriesPage() {
           </p>
         </div>
       </div>
+      {message && <p className="mb-4 text-sm text-gray-600">{message}</p>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { parseApiResponse } from '@/lib/admin-client';
 import type { Order } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -13,16 +14,16 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const response = await fetch('/api/admin/resources/orders', { cache: 'no-store' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        const result = await parseApiResponse<{ data?: Order[] }>(response);
         setOrders(result.data || []);
       } catch (err) {
-        console.error('Failed to fetch orders:', err);
+        setMessage(err instanceof Error ? err.message : 'Failed to fetch orders.');
       } finally {
         setLoading(false);
       }
@@ -38,14 +39,14 @@ export default function AdminOrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, processed: true }),
       });
-
-      if (!response.ok) throw new Error('Failed to update');
+      await parseApiResponse(response);
 
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, processed: true } : o))
       );
+      setMessage('Order marked as processed.');
     } catch (err) {
-      console.error('Failed to update order:', err);
+      setMessage(err instanceof Error ? err.message : 'Failed to update order.');
     }
   };
 
@@ -77,6 +78,7 @@ export default function AdminOrdersPage() {
           </p>
         </div>
       </div>
+      {message && <p className="mb-4 text-sm text-gray-600">{message}</p>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

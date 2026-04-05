@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Input, { Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { parseApiResponse } from '@/lib/admin-client';
 
 type Minute = { id: string; title: string; meeting_date: string; content: string; status: string };
 
@@ -10,11 +11,16 @@ export default function AdminMinutesPage() {
   const [minutes, setMinutes] = useState<Minute[]>([]);
   const [form, setForm] = useState({ title: '', meeting_date: '', content: '', status: 'draft' });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
 
   const load = async () => {
-    const res = await fetch('/api/meeting-minutes', { cache: 'no-store' });
-    const data = await res.json();
-    if (res.ok) setMinutes(data.minutes || []);
+    try {
+      const res = await fetch('/api/meeting-minutes', { cache: 'no-store' });
+      const data = await parseApiResponse<{ minutes?: Minute[] }>(res);
+      setMinutes(data.minutes || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to load minutes.');
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -24,16 +30,21 @@ export default function AdminMinutesPage() {
     const method = editingId ? 'PATCH' : 'POST';
     const body = editingId ? { id: editingId, ...form } : form;
     const res = await fetch('/api/meeting-minutes', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.ok) {
+    try {
+      await parseApiResponse(res);
       setForm({ title: '', meeting_date: '', content: '', status: 'draft' });
       setEditingId(null);
+      setMessage(editingId ? 'Minute updated.' : 'Minute created.');
       load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to save minute.');
     }
   };
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Meeting Minutes</h1>
+      {message && <p className="text-sm text-gray-600">{message}</p>}
       <form onSubmit={save} className="bg-white border rounded-xl p-4 space-y-3">
         <Input id="title" label="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
         <Input id="meeting_date" label="Meeting Date" type="date" value={form.meeting_date} onChange={(e) => setForm((p) => ({ ...p, meeting_date: e.target.value }))} required />

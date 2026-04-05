@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate, truncateText } from '@/lib/utils';
+import { parseApiResponse } from '@/lib/admin-client';
 import type { NewsPost } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -27,16 +28,16 @@ export default function AdminNewsPage() {
   const [form, setForm] = useState(emptyNewsPost);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
   useEffect(() => {
     const fetchNews = async () => {
       try {
         const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to load data');
+        const result = await parseApiResponse<{ data?: NewsPost[] }>(response);
         setNews(result.data || []);
       } catch (err) {
-        console.error('Failed to fetch news:', err);
+        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch news.' });
       } finally {
         setLoading(false);
       }
@@ -49,6 +50,7 @@ export default function AdminNewsPage() {
     setEditingId(null);
     setForm(emptyNewsPost);
     setFormErrors({});
+    setFeedback(null);
     setModalOpen(true);
   };
 
@@ -62,6 +64,7 @@ export default function AdminNewsPage() {
       published_at: post.published_at,
     });
     setFormErrors({});
+    setFeedback(null);
     setModalOpen(true);
   };
 
@@ -94,24 +97,21 @@ export default function AdminNewsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
         });
-        if (!response.ok) throw new Error('Failed to save');
-
-        setNews((prev) =>
-          prev.map((n) => (n.id === editingId ? { ...n, ...payload } : n))
-        );
+        const result = await parseApiResponse<{ data: NewsPost }>(response);
+        setNews((prev) => prev.map((n) => (n.id === editingId ? result.data : n)));
       } else {
         const response = await fetch('/api/admin/resources/news', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to save');
+        const result = await parseApiResponse<{ data: NewsPost }>(response);
         if (result.data) setNews((prev) => [result.data, ...prev]);
       }
+      setFeedback({ type: 'success', message: editingId ? 'Article updated.' : 'Article created.' });
       setModalOpen(false);
     } catch (err) {
-      console.error('Failed to save news post:', err);
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to save article.' });
     } finally {
       setSaving(false);
     }
@@ -120,12 +120,12 @@ export default function AdminNewsPage() {
   const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete');
+      await parseApiResponse(response);
       setNews((prev) => prev.filter((n) => n.id !== id));
-    } catch (err) {
-      console.error('Failed to delete news post:', err);
-    } finally {
+      setFeedback({ type: 'success', message: 'Article deleted.' });
       setDeleteConfirm(null);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete article.' });
     }
   };
 
@@ -146,6 +146,9 @@ export default function AdminNewsPage() {
           Write Article
         </Button>
       </div>
+      {feedback && (
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+      )}
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
