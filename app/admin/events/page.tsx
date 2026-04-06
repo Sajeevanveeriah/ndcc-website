@@ -22,6 +22,10 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   published: false,
 };
 
+function asSafeString(value: unknown) {
+  return typeof value === 'string' ? value : '';
+}
+
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,14 +64,14 @@ export default function AdminEventsPage() {
   const openEdit = (event: Event) => {
     setEditingId(event.id);
     setForm({
-      title: event.title,
-      description: event.description,
-      date: event.date ? event.date.slice(0, 16) : '',
-      location: event.location,
-      capacity: event.capacity,
-      ticket_price: event.ticket_price,
-      stripe_link: event.stripe_link,
-      published: event.published,
+      title: asSafeString(event.title),
+      description: asSafeString(event.description),
+      date: typeof event.date === 'string' && event.date ? event.date.slice(0, 16) : '',
+      location: asSafeString(event.location),
+      capacity: typeof event.capacity === 'number' ? event.capacity : null,
+      ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
+      stripe_link: asSafeString(event.stripe_link),
+      published: !!event.published,
     });
     setFormErrors({});
     setFeedback(null);
@@ -76,9 +80,9 @@ export default function AdminEventsPage() {
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    if (!form.title.trim()) errors.title = 'Title is required.';
+    if (!asSafeString(form.title).trim()) errors.title = 'Title is required.';
     if (!form.date) errors.date = 'Date is required.';
-    if (!form.location.trim()) errors.location = 'Location is required.';
+    if (!asSafeString(form.location).trim()) errors.location = 'Location is required.';
     if (form.ticket_price < 0) errors.ticket_price = 'Price cannot be negative.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -89,18 +93,18 @@ export default function AdminEventsPage() {
 
     setSaving(true);
 
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      date: form.date,
-      location: form.location.trim(),
-      capacity: form.capacity,
-      ticket_price: form.ticket_price,
-      stripe_link: form.stripe_link.trim(),
-      published: form.published,
-    };
-
     try {
+      const payload = {
+        title: asSafeString(form.title).trim(),
+        description: asSafeString(form.description).trim(),
+        date: form.date,
+        location: asSafeString(form.location).trim(),
+        capacity: form.capacity,
+        ticket_price: form.ticket_price,
+        stripe_link: asSafeString(form.stripe_link).trim(),
+        published: form.published,
+      };
+
       if (editingId) {
         const response = await adminFetch('/api/admin/resources/events', {
           method: 'PATCH',
