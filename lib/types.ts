@@ -110,10 +110,15 @@ export interface TeamInfo {
 }
 
 export interface SeasonAppointment {
+  id?: string;
   name: string;
   role: string;
   image?: string;
+  image_url?: string | null;
   announcement_date: string;
+  sort_order?: number;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 export interface Product {

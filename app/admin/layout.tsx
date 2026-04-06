@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
-import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 
@@ -29,6 +29,7 @@ const baseLinks = [
   { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
   { href: '/admin/apparel', label: 'Apparel', icon: Shirt },
   { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
+  { href: '/admin/season-appointments', label: 'Season Appointments', icon: UserRoundCheck },
   { href: '/admin/content', label: 'Content', icon: FileText },
   { href: '/admin/change-password', label: 'Password', icon: KeyRound },
 ];

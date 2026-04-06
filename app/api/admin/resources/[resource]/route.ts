@@ -20,6 +20,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   enquiries: { table: 'contacts', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'email', 'phone', 'enquiry_type', 'message', 'responded'], defaultOrder: { column: 'created_at', ascending: false } },
   events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'stripe_link', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
   news: { table: 'news', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['title', 'content', 'author', 'image_url', 'published', 'published_at'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['published_at'] },
+  seasonAppointments: { table: 'season_appointments', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'role', 'image_url', 'announcement_date', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active'], defaultOrder: { column: 'created_at', ascending: false } },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -43,6 +44,7 @@ const revalidationPaths: Record<string, string[]> = {
   kitchenMenus: ['/kitchen'],
   kitchenItems: ['/kitchen'],
   contentBlocks: ['/'],
+  seasonAppointments: ['/'],
 };
 
 function revalidateForResource(resource: string) {
@@ -79,9 +81,20 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
   for (const field of config.allowedFields) {
     if (!(field in raw)) continue;
     const value = config.datetimeFields?.includes(field) ? toIsoIfNeeded(raw[field]) : raw[field];
+    if (
+      field === 'image_url'
+      && (config.table === 'news' || config.table === 'season_appointments')
+      && (value === null || value === '')
+    ) continue;
     payload[field] = value;
   }
   return payload;
+}
+
+function isMissingImageUrlColumnError(errorMessage: string, table: string) {
+  return table === 'news'
+    && errorMessage.includes("Could not find the 'image_url' column")
+    && errorMessage.includes(`'${table}'`);
 }
 
 export async function GET(_request: Request, { params }: { params: { resource: string } }) {
@@ -117,7 +130,16 @@ export async function POST(request: Request, { params }: { params: { resource: s
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
   }
   const supabase = createServerClient();
-  const { data, error } = await supabase.from(config.table).insert(payload).select().single();
+  let { data, error } = await supabase.from(config.table).insert(payload).select().single();
+  if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
+    const retryPayload = { ...payload };
+    delete retryPayload.image_url;
+    if (Object.keys(retryPayload).length > 0) {
+      const retry = await supabase.from(config.table).insert(retryPayload).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   revalidateForResource(params.resource);
@@ -139,7 +161,16 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   }
 
   const supabase = createServerClient();
-  const { data, error } = await supabase.from(config.table).update(payload).eq('id', id).select().single();
+  let { data, error } = await supabase.from(config.table).update(payload).eq('id', id).select().single();
+  if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
+    const retryPayload = { ...payload };
+    delete retryPayload.image_url;
+    if (Object.keys(retryPayload).length > 0) {
+      const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   revalidateForResource(params.resource);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
@@ -24,20 +24,31 @@ export default function AdminContentPage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  async function loadBlocks(): Promise<Block[]> {
+  const loadBlocks = useCallback(async (): Promise<Block[]> => {
     try {
       const res = await fetch('/api/admin/resources/contentBlocks', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: Block[] }>(res);
       const loaded = data.data || [];
       setBlocks(loaded);
+      setSelected((current) => current || loaded[0] || null);
       return loaded;
     } catch (error) {
       setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Failed to load content blocks.' });
       return [];
     }
-  }
+  }, []);
 
-  useEffect(() => { loadBlocks(); }, []);
+  useEffect(() => { loadBlocks(); }, [loadBlocks]);
+
+  const usageHints: Record<string, string> = {
+    'home.hero': 'Homepage hero heading + subheading.',
+    'home.quicklinks': 'Homepage quick-links section heading + intro text.',
+    'about.history': 'About page history heading + body copy.',
+    'join.hero': 'Join page hero heading + intro copy.',
+    'volunteer.hero': 'Volunteer page hero heading + intro copy.',
+    'sponsors.intro': 'Sponsors page intro heading + body copy.',
+    'footer.acknowledgement': 'Footer acknowledgement copy.',
+  };
 
   async function saveBlock() {
     if (!selected) return;
@@ -74,7 +85,9 @@ export default function AdminContentPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Content Blocks</h1>
-      <p className="text-sm text-gray-500">Select a content block from the list on the left, edit the fields on the right, then click Save Block.</p>
+      <p className="text-sm text-gray-500">
+        Content Blocks control reusable headline/body/CTA text sections across public pages. They are best for single text sections, not structured card lists.
+      </p>
       {feedback && (
         <p className={`text-sm px-3 py-2 rounded border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
           {feedback.message}
@@ -111,6 +124,9 @@ export default function AdminContentPage() {
             <>
               <div className="border-b border-gray-100 pb-3 mb-3">
                 <p className="text-xs text-gray-500">Editing: <span className="font-semibold text-gray-700">{selected.section_label}</span> ({selected.block_key})</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Controls: {usageHints[selected.block_key] || 'Mapped by block key in page code.'}
+                </p>
               </div>
               <Input id="block_title" label="Title" value={selected.title || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, title: e.target.value }) : v)} />
               <Textarea id="block_body" label="Body" rows={5} value={selected.body || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, body: e.target.value }) : v)} />

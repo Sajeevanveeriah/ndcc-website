@@ -45,19 +45,39 @@ interface SponsorItem {
   logo_url: string;
 }
 
+interface SeasonAppointmentItem {
+  id: string;
+  name: string;
+  role: string;
+  image_url: string | null;
+  announcement_date: string;
+}
+
 async function getLatestNews(): Promise<NewsItem[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
   }
   try {
     const supabase = createServerClient();
-    const { data } = await supabase
+    const columnsWithImage = 'id, title, content, published_at, image_url';
+    const columnsWithoutImage = 'id, title, content, published_at';
+    const initial = await supabase
       .from('news')
-      .select('id, title, content, published_at, image_url')
+      .select(columnsWithImage)
       .eq('published', true)
       .order('published_at', { ascending: false })
       .limit(3);
-    return (data as NewsItem[]) || [];
+    let data: Array<Record<string, unknown>> | null = initial.data as Array<Record<string, unknown>> | null;
+    if (initial.error?.message.includes("Could not find the 'image_url' column")) {
+      const fallback = await supabase
+        .from('news')
+        .select(columnsWithoutImage)
+        .eq('published', true)
+        .order('published_at', { ascending: false })
+        .limit(3);
+      data = fallback.data;
+    }
+    return (data as unknown as NewsItem[]) || [];
   } catch {
     return [];
   }
@@ -80,6 +100,24 @@ async function getSponsors(): Promise<SponsorItem[]> {
   }
 }
 
+async function getSeasonAppointments(): Promise<SeasonAppointmentItem[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
+  try {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from('season_appointments')
+      .select('id, name, role, image_url, announcement_date')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('announcement_date', { ascending: false });
+    return (data as SeasonAppointmentItem[]) || [];
+  } catch {
+    return [];
+  }
+}
+
 const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   major: 'danger',
   gold: 'warning',
@@ -87,9 +125,10 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 };
 
 export default async function HomePage() {
-  const [dbNews, dbSponsors, blocks] = await Promise.all([
+  const [dbNews, dbSponsors, dbSeasonAppointments, blocks] = await Promise.all([
     getLatestNews(),
     getSponsors(),
+    getSeasonAppointments(),
     getContentBlocks(['home.hero', 'home.quicklinks']),
   ]);
 
@@ -112,6 +151,14 @@ export default async function HomePage() {
         website: s.website,
         logo_url: s.logo_url,
       }));
+
+  const seasonAppointments = dbSeasonAppointments.length > 0
+    ? dbSeasonAppointments.map((appointment) => ({
+        name: appointment.name,
+        role: appointment.role,
+        image: appointment.image_url || undefined,
+      }))
+    : SEASON_APPOINTMENTS;
 
   return (
     <>
@@ -273,7 +320,7 @@ export default async function HomePage() {
             <h2 className="section-title">2026/27 Season Appointments</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {SEASON_APPOINTMENTS.map((appointment) => (
+            {seasonAppointments.map((appointment) => (
               <Card key={appointment.name} className="overflow-hidden">
                 {appointment.image ? (
                   <div className="relative h-56 w-full">

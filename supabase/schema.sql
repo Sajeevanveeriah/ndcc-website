@@ -95,6 +95,18 @@ CREATE TABLE IF NOT EXISTS news (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Season Appointments
+CREATE TABLE IF NOT EXISTS season_appointments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  image_url TEXT,
+  announcement_date DATE NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Profiles (linked to Supabase Auth)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -115,6 +127,7 @@ ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE news ENABLE ROW LEVEL SECURITY;
+ALTER TABLE season_appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Public read policies (published/active content only)
@@ -123,6 +136,9 @@ CREATE POLICY "Public can read published events" ON events
 
 CREATE POLICY "Public can read published news" ON news
   FOR SELECT USING (published = TRUE);
+
+CREATE POLICY "Public can read active season appointments" ON season_appointments
+  FOR SELECT USING (is_active = TRUE);
 
 CREATE POLICY "Public can read active sponsors" ON sponsors
   FOR SELECT USING (active = TRUE);
@@ -172,6 +188,11 @@ CREATE POLICY "Admins have full access to sponsors" ON sponsors
   );
 
 CREATE POLICY "Admins have full access to news" ON news
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+  );
+
+CREATE POLICY "Admins have full access to season appointments" ON season_appointments
   FOR ALL USING (
     EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
   );
@@ -228,6 +249,11 @@ CREATE POLICY "Committee can read sponsors" ON sponsors
   );
 
 CREATE POLICY "Committee can read news" ON news
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'committee'))
+  );
+
+CREATE POLICY "Committee can read season appointments" ON season_appointments
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'committee'))
   );
