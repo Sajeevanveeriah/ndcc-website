@@ -66,6 +66,7 @@ async function getLatestNews(): Promise<NewsItem[]> {
       .select(columnsWithImage)
       .eq('published', true)
       .order('published_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(3);
     let data: Array<Record<string, unknown>> | null = initial.data as Array<Record<string, unknown>> | null;
     if (initial.error?.message.includes("Could not find the 'image_url' column")) {
@@ -74,6 +75,7 @@ async function getLatestNews(): Promise<NewsItem[]> {
         .select(columnsWithoutImage)
         .eq('published', true)
         .order('published_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(3);
       data = fallback.data;
     }

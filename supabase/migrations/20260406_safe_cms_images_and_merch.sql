@@ -21,3 +21,5 @@ VALUES
   ('training-singlet', 'Training Singlet (Maroon)', 'Lightweight maroon training singlet with printed club logo. Breathable fabric for summer training sessions.', 35, ARRAY['XS','S','M','L','XL','2XL'], '', FALSE, TRUE),
   ('cricket-socks', 'Cricket Socks (Maroon/White)', 'NDCC cricket socks in maroon and white. Cushioned sole for comfort during long days in the field.', 15, ARRAY['S','M','L'], '', FALSE, TRUE)
 ON CONFLICT (slug) DO NOTHING;
+
+NOTIFY pgrst, 'reload schema';

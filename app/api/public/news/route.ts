@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       .from('news')
       .select(columnsWithImage)
       .eq('id', id)
+      .eq('published', true)
       .maybeSingle();
     let data: Record<string, unknown> | null = initial.data as Record<string, unknown> | null;
     let error = initial.error;
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
         .from('news')
         .select(columnsWithoutImage)
         .eq('id', id)
+        .eq('published', true)
         .maybeSingle();
       data = fallback.data;
       error = fallback.error;
@@ -41,7 +43,8 @@ export async function GET(request: Request) {
     .from('news')
     .select(columnsWithImage)
     .eq('published', true)
-    .order('published_at', { ascending: false });
+    .order('published_at', { ascending: false })
+    .order('created_at', { ascending: false });
   let data: Array<Record<string, unknown>> | null = initial.data as Array<Record<string, unknown>> | null;
   let error = initial.error;
   if (error?.message.includes("Could not find the 'image_url' column")) {
@@ -49,7 +52,8 @@ export async function GET(request: Request) {
       .from('news')
       .select(columnsWithoutImage)
       .eq('published', true)
-      .order('published_at', { ascending: false });
+      .order('published_at', { ascending: false })
+      .order('created_at', { ascending: false });
     data = fallback.data;
     error = fallback.error;
   }
