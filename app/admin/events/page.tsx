@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate, formatCurrency, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Event } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -66,7 +66,7 @@ export default function AdminEventsPage() {
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
-      date: typeof event.date === 'string' && event.date ? event.date.slice(0, 16) : '',
+      date: typeof event.date === 'string' ? toDatetimeLocalInClubTimezone(event.date) : '',
       location: asSafeString(event.location),
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,

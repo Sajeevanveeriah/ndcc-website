@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
+import { datetimeLocalToClubIso } from '@/lib/utils';
 import type { AuthRole } from '@/lib/auth/config';
 
 type ResourceConfig = {
@@ -67,10 +68,10 @@ function canWrite(role: AuthRole) {
 
 function toIsoIfNeeded(value: unknown): unknown {
   if (typeof value !== 'string' || !value) return value;
-  if (!value.includes('T')) return value;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toISOString();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return datetimeLocalToClubIso(value);
+  }
+  return value;
 }
 
 function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
