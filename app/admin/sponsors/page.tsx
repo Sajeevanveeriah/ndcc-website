@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SPONSOR_TIERS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Sponsor } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -118,7 +118,7 @@ export default function AdminSponsorsPage() {
 
     try {
       if (editingId) {
-        const response = await fetch('/api/admin/resources/sponsors', {
+        const response = await adminFetch('/api/admin/resources/sponsors', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
@@ -126,7 +126,7 @@ export default function AdminSponsorsPage() {
         const result = await parseApiResponse<{ data: Sponsor }>(response);
         setSponsors((prev) => prev.map((s) => (s.id === editingId ? result.data : s)));
       } else {
-        const response = await fetch('/api/admin/resources/sponsors', {
+        const response = await adminFetch('/api/admin/resources/sponsors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

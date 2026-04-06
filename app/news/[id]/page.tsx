@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Card, { CardContent } from '@/components/ui/Card';
-import { supabase } from '@/lib/supabase';
 import { NewsPost } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { SEED_NEWS } from '@/lib/constants';
@@ -21,20 +20,14 @@ export default function NewsDetailPage() {
   useEffect(() => {
     async function fetchPost() {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        if (supabaseUrl) {
-          const { data, error } = await supabase
-            .from('news')
-            .select('*')
-            .eq('id', postId)
-            .single();
+        const res = await fetch(`/api/public/news?id=${encodeURIComponent(postId)}`, { cache: 'no-store' });
+        const json = await res.json();
 
-          if (!error && data) {
-            setPost(data as NewsPost);
-            document.title = `${data.title} | NDCC Dinos`;
-            setLoading(false);
-            return;
-          }
+        if (res.ok && json.data) {
+          setPost(json.data as NewsPost);
+          document.title = `${json.data.title} | NDCC Dinos`;
+          setLoading(false);
+          return;
         }
 
         // Fall back to seed data

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Event } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -102,7 +102,7 @@ export default function AdminEventsPage() {
 
     try {
       if (editingId) {
-        const response = await fetch('/api/admin/resources/events', {
+        const response = await adminFetch('/api/admin/resources/events', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
@@ -110,7 +110,7 @@ export default function AdminEventsPage() {
         const result = await parseApiResponse<{ data: Event }>(response);
         setEvents((prev) => prev.map((e) => (e.id === editingId ? result.data : e)));
       } else {
-        const response = await fetch('/api/admin/resources/events', {
+        const response = await adminFetch('/api/admin/resources/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

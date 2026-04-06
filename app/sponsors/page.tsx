@@ -12,7 +12,6 @@ import {
   SEED_SPONSORS,
   SEED_SPONSOR_DESCRIPTIONS,
 } from '@/lib/constants';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 
@@ -50,26 +49,14 @@ export default function SponsorsPage() {
 
     async function fetchSponsors() {
       try {
-        if (!isSupabaseConfigured()) {
-          setSponsors(SEED_SPONSORS as Sponsor[]);
-          setUsingSeed(true);
-          setLoading(false);
-          return;
-        }
+        const res = await fetch('/api/public/sponsors', { cache: 'no-store' });
+        const json = await res.json();
 
-        const { data, error } = await supabase
-          .from('sponsors')
-          .select('*')
-          .eq('active', true)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          // Transient DB error – fall back to seeds so the page isn't blank
-          setSponsors(SEED_SPONSORS as Sponsor[]);
-          setUsingSeed(true);
+        if (res.ok && Array.isArray(json.data)) {
+          setSponsors(json.data as Sponsor[]);
         } else {
-          // Trust the DB result even if empty (don't mask real empty state with seeds)
-          setSponsors((data as Sponsor[]) || []);
+          setSponsors(SEED_SPONSORS as Sponsor[]);
+          setUsingSeed(true);
         }
       } catch {
         setSponsors(SEED_SPONSORS as Sponsor[]);

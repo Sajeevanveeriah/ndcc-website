@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { SEED_EVENTS } from '@/lib/constants';
@@ -49,24 +48,14 @@ export default function EventsPage() {
 
     async function fetchEvents() {
       try {
-        if (!isSupabaseConfigured()) {
-          setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
-          setLoading(false);
-          return;
-        }
+        const res = await fetch('/api/public/events', { cache: 'no-store' });
+        const json = await res.json();
 
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .eq('published', true)
-          .order('date', { ascending: true });
-
-        if (error) {
-          // Transient DB error – fall back to seeds so the page isn't blank
-          setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
+        if (res.ok && Array.isArray(json.data)) {
+          setEvents(json.data as Event[]);
         } else {
-          // Trust the DB result even if empty (don't mask real empty state with seeds)
-          setEvents((data as Event[]) || []);
+          // API unavailable — fall back to seeds
+          setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
         }
       } catch {
         setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
