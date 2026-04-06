@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
 
-type KitchenItem = { id: string; name: string; description: string; price: number; is_available: boolean };
+type KitchenItem = { id: string; name: string; description: string; image_url?: string | null; price: number; is_available: boolean };
 
 export default function KitchenPage() {
   const [menuName, setMenuName] = useState('Kitchen Menu');
@@ -80,6 +80,13 @@ export default function KitchenPage() {
             {items.map((item) => (
               <Card key={item.id}>
                 <CardContent className="p-4 space-y-2">
+                  {item.image_url && (
+                    <div
+                      className="w-full h-36 rounded-lg bg-cover bg-center"
+                      style={{ backgroundImage: `url(${item.image_url})` }}
+                      aria-label={`${item.name} image`}
+                    />
+                  )}
                   <div className="flex justify-between gap-4">
                     <div>
                       <h3 className="font-semibold">{item.name}</h3>

@@ -33,6 +33,7 @@ interface NewsItem {
   title: string;
   content: string;
   published_at: string | null;
+  image_url?: string | null;
   image?: string;
 }
 
@@ -52,7 +53,7 @@ async function getLatestNews(): Promise<NewsItem[]> {
     const supabase = createServerClient();
     const { data } = await supabase
       .from('news')
-      .select('id, title, content, published_at, image')
+      .select('id, title, content, published_at, image_url')
       .eq('published', true)
       .order('published_at', { ascending: false })
       .limit(3);
@@ -213,10 +214,10 @@ export default async function HomePage() {
             {news.map((article) => {
               const inner = (
                 <Card hover className="h-full overflow-hidden">
-                  {article.image ? (
+                  {(article.image_url || article.image) ? (
                     <div className="relative h-48 w-full">
                       <Image
-                        src={article.image}
+                        src={article.image_url || article.image || '/images/Womens_Team.jpg'}
                         alt={article.title}
                         fill
                         className="object-cover"

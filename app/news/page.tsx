@@ -75,11 +75,11 @@ export default function NewsPage() {
             <div className="space-y-6">
               {posts.map((post) => (
                 <Card key={post.id} hover className="overflow-hidden">
-                  <div className={post.image ? 'md:flex' : ''}>
-                    {post.image && (
+                  <div className={post.image_url || post.image ? 'md:flex' : ''}>
+                    {(post.image_url || post.image) && (
                       <div className="relative w-full md:w-64 h-48 md:h-auto flex-shrink-0">
                         <Image
-                          src={post.image}
+                          src={post.image_url || post.image || '/images/Womens_Team.jpg'}
                           alt={post.title}
                           fill
                           className="object-cover"

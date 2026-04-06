@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
 
 type Menu = { id: string; name: string; is_active: boolean };
-type Item = { id: string; menu_id: string; name: string; description: string; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
+type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
 type KitchenOrder = { id: string; customer_name: string; total_amount: number; status: string; payment_status: string; created_at: string };
 
 export default function AdminKitchenPage() {
@@ -15,7 +15,7 @@ export default function AdminKitchenPage() {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [message, setMessage] = useState('');
   const [menuForm, setMenuForm] = useState({ name: '', is_active: true });
-  const [itemForm, setItemForm] = useState({ menu_id: '', name: '', description: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
+  const [itemForm, setItemForm] = useState({ menu_id: '', name: '', description: '', image_url: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
 
   // Edit states for menus
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
@@ -23,7 +23,7 @@ export default function AdminKitchenPage() {
 
   // Edit states for items
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [editItemForm, setEditItemForm] = useState({ menu_id: '', name: '', description: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
+  const [editItemForm, setEditItemForm] = useState({ menu_id: '', name: '', description: '', image_url: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
 
   async function loadMenus() {
     try {
@@ -135,6 +135,7 @@ export default function AdminKitchenPage() {
           menu_id: itemForm.menu_id,
           name: itemForm.name,
           description: itemForm.description,
+          image_url: itemForm.image_url.trim() || null,
           price,
           is_available: itemForm.is_available,
           is_hidden: itemForm.is_hidden,
@@ -143,7 +144,7 @@ export default function AdminKitchenPage() {
       });
       await parseApiResponse(res);
       setMessage('Item created.');
-      setItemForm({ menu_id: '', name: '', description: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
+      setItemForm({ menu_id: '', name: '', description: '', image_url: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
       loadItems();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to create item.');
@@ -156,6 +157,7 @@ export default function AdminKitchenPage() {
       menu_id: item.menu_id,
       name: item.name,
       description: item.description,
+      image_url: item.image_url || '',
       price: String(item.price),
       is_available: item.is_available,
       is_hidden: item.is_hidden,
@@ -181,6 +183,7 @@ export default function AdminKitchenPage() {
           menu_id: editItemForm.menu_id,
           name: editItemForm.name,
           description: editItemForm.description,
+          image_url: editItemForm.image_url.trim() || null,
           price,
           is_available: editItemForm.is_available,
           is_hidden: editItemForm.is_hidden,
@@ -285,6 +288,7 @@ export default function AdminKitchenPage() {
             </label>
             <Input id="edit_item_name" label="Item name" required value={editItemForm.name} onChange={(e) => setEditItemForm((v) => ({ ...v, name: e.target.value }))} />
             <Input id="edit_item_description" label="Description" value={editItemForm.description} onChange={(e) => setEditItemForm((v) => ({ ...v, description: e.target.value }))} />
+            <Input id="edit_item_image_url" label="Image URL (optional)" value={editItemForm.image_url} onChange={(e) => setEditItemForm((v) => ({ ...v, image_url: e.target.value }))} />
             <Input id="edit_item_price" label="Price" type="number" required value={editItemForm.price} onChange={(e) => setEditItemForm((v) => ({ ...v, price: e.target.value }))} />
             <Input id="edit_item_sort" label="Sort order" type="number" value={editItemForm.sort_order} onChange={(e) => setEditItemForm((v) => ({ ...v, sort_order: e.target.value }))} />
             <div className="flex items-end gap-4">
@@ -312,6 +316,7 @@ export default function AdminKitchenPage() {
             </label>
             <Input id="item_name" label="Item name" required value={itemForm.name} onChange={(e) => setItemForm((v) => ({ ...v, name: e.target.value }))} />
             <Input id="item_description" label="Description" value={itemForm.description} onChange={(e) => setItemForm((v) => ({ ...v, description: e.target.value }))} />
+            <Input id="item_image_url" label="Image URL (optional)" value={itemForm.image_url} onChange={(e) => setItemForm((v) => ({ ...v, image_url: e.target.value }))} />
             <Input id="item_price" label="Price" type="number" required value={itemForm.price} onChange={(e) => setItemForm((v) => ({ ...v, price: e.target.value }))} />
             <Input id="item_sort" label="Sort order" type="number" value={itemForm.sort_order} onChange={(e) => setItemForm((v) => ({ ...v, sort_order: e.target.value }))} />
             <div className="flex items-end gap-4">

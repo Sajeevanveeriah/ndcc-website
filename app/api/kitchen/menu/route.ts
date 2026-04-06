@@ -18,7 +18,7 @@ export async function GET() {
 
   const { data: items, error: itemsError } = await supabase
     .from('kitchen_items')
-    .select('*')
+    .select('id,menu_id,name,description,image_url,price,is_available,is_hidden,sort_order,created_at')
     .eq('menu_id', menu.id)
     .eq('is_hidden', false)
     .order('sort_order', { ascending: true })

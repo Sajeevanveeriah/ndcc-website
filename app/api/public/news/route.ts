@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   if (id) {
     const { data, error } = await supabase
       .from('news')
-      .select('*')
+      .select('id,title,content,author,image_url,published,published_at,created_at')
       .eq('id', id)
       .maybeSingle();
 
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from('news')
-    .select('*')
+    .select('id,title,content,author,image_url,published,published_at,created_at')
     .eq('published', true)
     .order('published_at', { ascending: false });
 
