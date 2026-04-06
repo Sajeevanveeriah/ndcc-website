@@ -13,9 +13,10 @@ import {
   SEED_SPONSORS,
   SPONSOR_TIERS,
 } from '@/lib/constants';
-import { createServerClient } from '@/lib/supabase-server';
 import { formatDate, truncateText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
+import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
+import { createServerClient } from '@/lib/supabase-server';
 
 const quickLinks = [
   { title: 'About Us', description: 'Learn about our history and the people behind the club.', href: '/about', icon: '🏏' },
@@ -26,14 +27,9 @@ const quickLinks = [
   { title: 'Contact', description: 'Get in touch with the club or make an enquiry.', href: '/contact', icon: '✉️' },
 ];
 
-interface NewsItem {
-  id: string;
-  title: string;
-  content: string;
-  published_at: string | null;
-  image_url?: string | null;
+type NewsItem = PublicNewsRecord & {
   image?: string;
-}
+};
 
 interface SponsorItem {
   id: string;
@@ -55,29 +51,11 @@ async function getLatestNews(): Promise<NewsItem[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
   }
+
   try {
-    const supabase = createServerClient();
-    const columnsWithImage = 'id, title, content, published_at, image_url';
-    const columnsWithoutImage = 'id, title, content, published_at';
-    const initial = await supabase
-      .from('news')
-      .select(columnsWithImage)
-      .eq('published', true)
-      .order('published_at', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(3);
-    let data: Array<Record<string, unknown>> | null = initial.data as Array<Record<string, unknown>> | null;
-    if (initial.error?.message.includes("Could not find the 'image_url' column")) {
-      const fallback = await supabase
-        .from('news')
-        .select(columnsWithoutImage)
-        .eq('published', true)
-        .order('published_at', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(3);
-      data = fallback.data;
-    }
-    return (data as unknown as NewsItem[]) || [];
+    const data = await getPublishedNews({ limit: 3 });
+    if (!Array.isArray(data)) return [];
+    return data as NewsItem[];
   } catch {
     return [];
   }
