@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import Card, { CardContent } from '@/components/ui/Card';
 import { NewsPost } from '@/lib/types';
@@ -148,6 +149,17 @@ export default function NewsDetailPage() {
         <div className="container-width max-w-3xl mx-auto">
           <Card>
             <CardContent className="p-8">
+              {(post.image_url || post.image) && (
+                <div className="relative w-full h-72 mb-6 rounded-lg overflow-hidden">
+                  <Image
+                    src={post.image_url || post.image || '/images/Womens_Team.jpg'}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 768px"
+                  />
+                </div>
+              )}
               <article className="prose max-w-none">
                 <p className="font-body text-gray-700 text-lg leading-relaxed whitespace-pre-line">
                   {post.content}

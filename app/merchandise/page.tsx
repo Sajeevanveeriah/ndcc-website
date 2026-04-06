@@ -333,16 +333,24 @@ function MerchandiseContent() {
               const iconData = PRODUCT_ICONS[product.id];
               return (
                 <Card key={product.id}>
-                  <div
-                    className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}
-                    aria-hidden="true"
-                  >
-                    {iconData && (
-                      <svg className={`w-12 h-12 ${iconData.textColor}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d={iconData.path} />
-                      </svg>
-                    )}
-                  </div>
+                  {product.image ? (
+                    <div
+                      className="h-36 bg-cover bg-center"
+                      style={{ backgroundImage: `url(${product.image})` }}
+                      aria-label={`${product.name} image`}
+                    />
+                  ) : (
+                    <div
+                      className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}
+                      aria-hidden="true"
+                    >
+                      {iconData && (
+                        <svg className={`w-12 h-12 ${iconData.textColor}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d={iconData.path} />
+                        </svg>
+                      )}
+                    </div>
+                  )}
                   <CardContent className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-display font-bold text-gray-900 text-sm leading-tight">

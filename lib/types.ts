@@ -83,6 +83,7 @@ export interface NewsPost {
   published: boolean;
   published_at: string | null;
   created_at: string;
+  image_url?: string | null;
   image?: string;
 }
 

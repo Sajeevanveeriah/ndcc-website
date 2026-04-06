@@ -12,6 +12,7 @@ type ApparelProduct = {
   description: string;
   price: number;
   sizes: string[];
+  image_url: string;
   customisable: boolean;
   active: boolean;
 };
@@ -29,6 +30,7 @@ export default function AdminApparelPage() {
   const [products, setProducts] = useState<ApparelProduct[]>([]);
   const [windows, setWindows] = useState<MerchWindow[]>([]);
   const [status, setStatus] = useState('');
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   const [productForm, setProductForm] = useState({
     slug: '',
@@ -36,6 +38,7 @@ export default function AdminApparelPage() {
     description: '',
     price: '0',
     sizes: 'XS,S,M,L,XL',
+    image_url: '',
     customisable: false,
     active: true,
   });
@@ -74,27 +77,45 @@ export default function AdminApparelPage() {
       setStatus('Product price must be a valid non-negative number.');
       return;
     }
+    const payload = {
+      slug: productForm.slug.trim(),
+      name: productForm.name.trim(),
+      description: productForm.description.trim(),
+      price,
+      sizes: productForm.sizes.split(',').map((s) => s.trim()).filter(Boolean),
+      image_url: productForm.image_url.trim(),
+      customisable: productForm.customisable,
+      active: productForm.active,
+    };
+
     const res = await fetch('/api/admin/resources/apparelProducts', {
-      method: 'POST',
+      method: editingProductId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        slug: productForm.slug.trim(),
-        name: productForm.name.trim(),
-        description: productForm.description.trim(),
-        price,
-        sizes: productForm.sizes.split(',').map((s) => s.trim()).filter(Boolean),
-        customisable: productForm.customisable,
-        active: productForm.active,
-      }),
+      body: JSON.stringify(editingProductId ? { id: editingProductId, ...payload } : payload),
     });
     try {
       await parseApiResponse(res);
-      setStatus('Product saved.');
-      setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', customisable: false, active: true });
+      setStatus(editingProductId ? 'Product updated.' : 'Product saved.');
+      setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', image_url: '', customisable: false, active: true });
+      setEditingProductId(null);
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save product.');
     }
+  }
+
+  function editProduct(product: ApparelProduct) {
+    setEditingProductId(product.id);
+    setProductForm({
+      slug: product.slug,
+      name: product.name,
+      description: product.description || '',
+      price: String(product.price ?? 0),
+      sizes: Array.isArray(product.sizes) ? product.sizes.join(',') : '',
+      image_url: product.image_url || '',
+      customisable: product.customisable,
+      active: product.active,
+    });
   }
 
   async function createWindow(e: React.FormEvent) {
@@ -120,21 +141,38 @@ export default function AdminApparelPage() {
       {status && <p className="text-sm text-gray-600">{status}</p>}
 
       <section className="bg-white border rounded-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold">Add Apparel Product</h2>
+        <h2 className="text-lg font-semibold">{editingProductId ? 'Edit Apparel Product' : 'Add Apparel Product'}</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={createProduct}>
           <Input id="slug" label="Slug" required value={productForm.slug} onChange={(e) => setProductForm((v) => ({ ...v, slug: e.target.value }))} />
           <Input id="name" label="Name" required value={productForm.name} onChange={(e) => setProductForm((v) => ({ ...v, name: e.target.value }))} />
           <Input id="price" label="Price" type="number" required value={productForm.price} onChange={(e) => setProductForm((v) => ({ ...v, price: e.target.value }))} />
           <Input id="sizes" label="Sizes CSV" value={productForm.sizes} onChange={(e) => setProductForm((v) => ({ ...v, sizes: e.target.value }))} />
           <Input id="description" label="Description" value={productForm.description} onChange={(e) => setProductForm((v) => ({ ...v, description: e.target.value }))} />
+          <Input id="image_url" label="Image URL (optional)" value={productForm.image_url} onChange={(e) => setProductForm((v) => ({ ...v, image_url: e.target.value }))} />
           <div className="flex items-end gap-4">
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.customisable} onChange={(e) => setProductForm((v) => ({ ...v, customisable: e.target.checked }))} />Customisable</label>
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.active} onChange={(e) => setProductForm((v) => ({ ...v, active: e.target.checked }))} />Active</label>
           </div>
-          <div className="md:col-span-2"><Button type="submit">Save Product</Button></div>
+          <div className="md:col-span-2 flex gap-2">
+            <Button type="submit">{editingProductId ? 'Update Product' : 'Save Product'}</Button>
+            {editingProductId && (
+              <Button type="button" variant="secondary" onClick={() => {
+                setEditingProductId(null);
+                setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', image_url: '', customisable: false, active: true });
+              }}
+              >
+                Cancel Edit
+              </Button>
+            )}
+          </div>
         </form>
         <ul className="text-sm text-gray-700 space-y-1">
-          {products.map((p) => <li key={p.id}>{p.name} · ${p.price} · {p.sizes.join('/')}</li>)}
+          {products.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-2">
+              <span>{p.name} · ${p.price} · {p.sizes.join('/')}</span>
+              <Button type="button" size="sm" variant="ghost" onClick={() => editProduct(p)}>Edit</Button>
+            </li>
+          ))}
         </ul>
       </section>
 

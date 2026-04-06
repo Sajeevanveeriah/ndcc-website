@@ -15,6 +15,7 @@ const emptyNewsPost: Omit<NewsPost, 'id' | 'created_at'> = {
   title: '',
   content: '',
   author: 'NDCC',
+  image_url: '',
   published: false,
   published_at: null,
 };
@@ -60,6 +61,7 @@ export default function AdminNewsPage() {
       title: post.title,
       content: post.content,
       author: post.author,
+      image_url: post.image_url || post.image || '',
       published: post.published,
       published_at: post.published_at,
     });
@@ -86,6 +88,7 @@ export default function AdminNewsPage() {
       title: form.title.trim(),
       content: form.content.trim(),
       author: form.author.trim(),
+      image_url: form.image_url?.trim() || null,
       published: form.published,
       published_at: form.published ? (form.published_at || new Date().toISOString()) : null,
     };
@@ -242,6 +245,13 @@ export default function AdminNewsPage() {
             onChange={(e) => setForm({ ...form, author: e.target.value })}
             error={formErrors.author}
             required
+          />
+          <Input
+            id="news-image-url"
+            label="Image URL (optional)"
+            value={form.image_url || ''}
+            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            placeholder="https://example.com/news-image.jpg"
           />
           <label className="flex items-center gap-2 cursor-pointer">
             <input

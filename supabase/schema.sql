@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS news (
   title TEXT NOT NULL,
   content TEXT NOT NULL,
   author TEXT DEFAULT 'NDCC',
+  image_url TEXT,
   published BOOLEAN DEFAULT FALSE,
   published_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
