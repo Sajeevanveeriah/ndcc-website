@@ -10,10 +10,8 @@ import {
   CLUB_ESTABLISHED,
   PLAYHQ_ORG_URL,
   FACEBOOK_URL,
-  SEED_NEWS,
   SEED_SPONSORS,
   SPONSOR_TIERS,
-  SEASON_APPOINTMENTS,
 } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase-server';
 import { formatDate, truncateText } from '@/lib/utils';
@@ -134,15 +132,7 @@ export default async function HomePage() {
     getContentBlocks(['home.hero', 'home.quicklinks']),
   ]);
 
-  const news: NewsItem[] = dbNews.length > 0
-    ? dbNews
-    : SEED_NEWS.slice(0, 3).map((n) => ({
-        id: n.id,
-        title: n.title,
-        content: n.content,
-        published_at: n.published_at,
-        image: n.image,
-      }));
+  const news: NewsItem[] = dbNews;
 
   const sponsors: SponsorItem[] = dbSponsors.length > 0
     ? dbSponsors
@@ -154,13 +144,7 @@ export default async function HomePage() {
         logo_url: s.logo_url,
       }));
 
-  const seasonAppointments = dbSeasonAppointments.length > 0
-    ? dbSeasonAppointments.map((appointment) => ({
-        name: appointment.name,
-        role: appointment.role,
-        image: appointment.image_url || undefined,
-      }))
-    : SEASON_APPOINTMENTS;
+  const seasonAppointments = dbSeasonAppointments;
 
   return (
     <>
@@ -323,11 +307,11 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {seasonAppointments.map((appointment) => (
-              <Card key={appointment.name} className="overflow-hidden">
-                {appointment.image ? (
+              <Card key={appointment.id} className="overflow-hidden">
+                {appointment.image_url ? (
                   <div className="relative h-56 w-full">
                     <Image
-                      src={appointment.image}
+                      src={appointment.image_url}
                       alt={`${appointment.name} appointed as ${appointment.role}`}
                       fill
                       className="object-cover"

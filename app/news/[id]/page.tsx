@@ -7,7 +7,6 @@ import { useParams } from 'next/navigation';
 import Card, { CardContent } from '@/components/ui/Card';
 import { NewsPost } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
-import { SEED_NEWS } from '@/lib/constants';
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -31,22 +30,9 @@ export default function NewsDetailPage() {
           return;
         }
 
-        // Fall back to seed data
-        const seedPost = SEED_NEWS.find((n) => n.id === postId);
-        if (seedPost) {
-          setPost(seedPost as NewsPost);
-          document.title = `${seedPost.title} | NDCC Dinos`;
-        } else {
-          setNotFound(true);
-        }
+        setNotFound(true);
       } catch {
-        const seedPost = SEED_NEWS.find((n) => n.id === postId);
-        if (seedPost) {
-          setPost(seedPost as NewsPost);
-          document.title = `${seedPost.title} | NDCC Dinos`;
-        } else {
-          setNotFound(true);
-        }
+        setNotFound(true);
       } finally {
         setLoading(false);
       }
