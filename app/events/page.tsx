@@ -6,7 +6,6 @@ import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { SEED_EVENTS } from '@/lib/constants';
 
 function SkeletonCard() {
   return (
@@ -24,21 +23,6 @@ function SkeletonCard() {
   );
 }
 
-function seedToEvent(seed: typeof SEED_EVENTS[number]): Event {
-  return {
-    id: seed.id,
-    title: seed.title,
-    description: seed.description,
-    date: seed.date,
-    location: seed.location,
-    capacity: seed.capacity,
-    ticket_price: seed.ticket_price,
-    stripe_link: '',
-    published: true,
-    created_at: '',
-  };
-}
-
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,11 +38,10 @@ export default function EventsPage() {
         if (res.ok && Array.isArray(json.data)) {
           setEvents(json.data as Event[]);
         } else {
-          // API unavailable — fall back to seeds
-          setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
+          setEvents([]);
         }
       } catch {
-        setEvents(SEED_EVENTS.map((e) => seedToEvent(e)));
+        setEvents([]);
       } finally {
         setLoading(false);
       }

@@ -9,7 +9,6 @@ import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail } from '@/lib/utils';
-import { SEED_EVENTS } from '@/lib/constants';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -30,23 +29,6 @@ export default function EventDetailPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    function findSeedEvent(): Event | null {
-      const seed = SEED_EVENTS.find((e) => e.id === eventId);
-      if (!seed) return null;
-      return {
-        id: seed.id,
-        title: seed.title,
-        description: seed.description,
-        date: seed.date,
-        location: seed.location,
-        capacity: seed.capacity,
-        ticket_price: seed.ticket_price,
-        stripe_link: '',
-        published: true,
-        created_at: '',
-      };
-    }
-
     async function fetchEvent() {
       try {
         const res = await fetch(`/api/public/events?id=${encodeURIComponent(eventId)}`, { cache: 'no-store' });
@@ -59,22 +41,9 @@ export default function EventDetailPage() {
           return;
         }
 
-        // Fall back to seed data
-        const seedEvent = findSeedEvent();
-        if (seedEvent) {
-          setEvent(seedEvent);
-          document.title = `${seedEvent.title} | NDCC Dinos`;
-        } else {
-          setNotFound(true);
-        }
+        setNotFound(true);
       } catch {
-        const seedEvent = findSeedEvent();
-        if (seedEvent) {
-          setEvent(seedEvent);
-          document.title = `${seedEvent.title} | NDCC Dinos`;
-        } else {
-          setNotFound(true);
-        }
+        setNotFound(true);
       } finally {
         setLoading(false);
       }
