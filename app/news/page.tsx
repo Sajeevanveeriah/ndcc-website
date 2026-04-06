@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
 import { SEED_NEWS } from '@/lib/constants';
@@ -32,24 +31,13 @@ export default function NewsPage() {
 
     async function fetchNews() {
       try {
-        if (!isSupabaseConfigured()) {
-          setPosts(SEED_NEWS as NewsPost[]);
-          setLoading(false);
-          return;
-        }
+        const res = await fetch('/api/public/news', { cache: 'no-store' });
+        const json = await res.json();
 
-        const { data, error } = await supabase
-          .from('news')
-          .select('*')
-          .eq('published', true)
-          .order('published_at', { ascending: false });
-
-        if (error) {
-          // Transient DB error – fall back to seeds so the page isn't blank
-          setPosts(SEED_NEWS as NewsPost[]);
+        if (res.ok && Array.isArray(json.data)) {
+          setPosts(json.data as NewsPost[]);
         } else {
-          // Trust the DB result even if empty (don't mask real empty state with seeds)
-          setPosts((data as NewsPost[]) || []);
+          setPosts(SEED_NEWS as NewsPost[]);
         }
       } catch {
         setPosts(SEED_NEWS as NewsPost[]);

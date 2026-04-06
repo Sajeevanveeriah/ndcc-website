@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 import type { AuthRole } from '@/lib/auth/config';
@@ -32,6 +33,25 @@ const resourceMap: Record<string, ResourceConfig> = {
   kitchenOrders: { table: 'kitchen_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['status', 'payment_status'], defaultOrder: { column: 'created_at', ascending: false } },
   contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
 };
+
+const revalidationPaths: Record<string, string[]> = {
+  events: ['/', '/events'],
+  news: ['/', '/news'],
+  sponsors: ['/', '/sponsors'],
+  galleryImages: ['/', '/gallery'],
+  kitchenMenus: ['/kitchen'],
+  kitchenItems: ['/kitchen'],
+  contentBlocks: ['/'],
+};
+
+function revalidateForResource(resource: string) {
+  const paths = revalidationPaths[resource];
+  if (paths) {
+    for (const p of paths) {
+      try { revalidatePath(p); } catch { /* best-effort */ }
+    }
+  }
+}
 
 function pickResource(resource: string) {
   return resourceMap[resource];
@@ -99,6 +119,7 @@ export async function POST(request: Request, { params }: { params: { resource: s
   const { data, error } = await supabase.from(config.table).insert(payload).select().single();
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  revalidateForResource(params.resource);
   return NextResponse.json({ success: true, data });
 }
 
@@ -120,6 +141,7 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   const { data, error } = await supabase.from(config.table).update(payload).eq('id', id).select().single();
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  revalidateForResource(params.resource);
   return NextResponse.json({ success: true, data });
 }
 
@@ -138,5 +160,6 @@ export async function DELETE(request: Request, { params }: { params: { resource:
   const { error } = await supabase.from(config.table).delete().eq('id', id);
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  revalidateForResource(params.resource);
   return NextResponse.json({ success: true });
 }

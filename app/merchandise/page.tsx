@@ -110,6 +110,10 @@ function MerchandiseContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [orderConfirmation, setOrderConfirmation] = useState<{
+    payment_reference: string;
+    bank_details: { account_name: string; bsb: string; account_number: string };
+  } | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [products, setProducts] = useState(PRODUCTS);
   const [windowState, setWindowState] = useState<{ processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null }>({
@@ -283,7 +287,11 @@ function MerchandiseContent() {
         return;
       }
 
-      // Non-Stripe fallback
+      // Non-Stripe fallback — surface payment reference and bank details
+      setOrderConfirmation({
+        payment_reference: data.payment_reference || '',
+        bank_details: data.bank_details || { account_name: '', bsb: '', account_number: '' },
+      });
       setSubmitStatus('success');
       setCart([]);
       setFormData({ name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
@@ -466,11 +474,27 @@ function MerchandiseContent() {
           <h2 className="section-title">Your Order</h2>
 
           {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-3" role="alert">
               <p className="text-green-800 font-body font-semibold">Order confirmed!</p>
-              <p className="text-green-700 font-body text-sm mt-1">
-                Thank you for your purchase. You will receive a confirmation email shortly.
-                Your order will be available for collection at the club.
+              {orderConfirmation?.payment_reference && (
+                <div className="bg-white border border-green-300 rounded-lg p-3">
+                  <p className="text-green-900 font-body text-sm font-semibold">Your Payment Reference:</p>
+                  <p className="text-green-900 font-mono text-lg font-bold mt-1">{orderConfirmation.payment_reference}</p>
+                  <p className="text-green-700 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
+                </div>
+              )}
+              {orderConfirmation?.bank_details?.bsb && (
+                <div className="bg-white border border-green-300 rounded-lg p-3">
+                  <p className="text-green-900 font-body text-sm font-semibold">Bank Transfer Details:</p>
+                  <div className="mt-1 text-sm font-body text-green-800 space-y-0.5">
+                    <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>
+                    <p>BSB: <span className="font-semibold">{orderConfirmation.bank_details.bsb}</span></p>
+                    <p>Account Number: <span className="font-semibold">{orderConfirmation.bank_details.account_number}</span></p>
+                  </div>
+                </div>
+              )}
+              <p className="text-green-700 font-body text-sm">
+                Thank you for your purchase. Your order will be available for collection at the club once payment is confirmed.
               </p>
             </div>
           )}

@@ -7,7 +7,6 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
-import { supabase } from '@/lib/supabase';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail } from '@/lib/utils';
 import { SEED_EVENTS } from '@/lib/constants';
@@ -50,20 +49,14 @@ export default function EventDetailPage() {
 
     async function fetchEvent() {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        if (supabaseUrl) {
-          const { data, error } = await supabase
-            .from('events')
-            .select('*')
-            .eq('id', eventId)
-            .single();
+        const res = await fetch(`/api/public/events?id=${encodeURIComponent(eventId)}`, { cache: 'no-store' });
+        const json = await res.json();
 
-          if (!error && data) {
-            setEvent(data as Event);
-            document.title = `${data.title} | NDCC Dinos`;
-            setLoading(false);
-            return;
-          }
+        if (res.ok && json.data) {
+          setEvent(json.data as Event);
+          document.title = `${json.data.title} | NDCC Dinos`;
+          setLoading(false);
+          return;
         }
 
         // Fall back to seed data

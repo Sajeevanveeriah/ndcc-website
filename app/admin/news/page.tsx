@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate, truncateText } from '@/lib/utils';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { NewsPost } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -92,7 +92,7 @@ export default function AdminNewsPage() {
 
     try {
       if (editingId) {
-        const response = await fetch('/api/admin/resources/news', {
+        const response = await adminFetch('/api/admin/resources/news', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
@@ -100,7 +100,7 @@ export default function AdminNewsPage() {
         const result = await parseApiResponse<{ data: NewsPost }>(response);
         setNews((prev) => prev.map((n) => (n.id === editingId ? result.data : n)));
       } else {
-        const response = await fetch('/api/admin/resources/news', {
+        const response = await adminFetch('/api/admin/resources/news', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
