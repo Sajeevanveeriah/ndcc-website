@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS season_appointments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -32,3 +34,5 @@ VALUES
   ('Craig Hillgrove', 'Head Coach', NULL, '2026-03-01', 1, TRUE),
   ('Kelsey Allan', 'Women''s Coach', '/images/Poster.png', '2026-03-15', 2, TRUE)
 ON CONFLICT DO NOTHING;
+
+NOTIFY pgrst, 'reload schema';

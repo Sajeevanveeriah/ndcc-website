@@ -91,6 +91,19 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
   return payload;
 }
 
+
+function isMissingSeasonAppointmentsTableError(errorMessage: string, table: string) {
+  return table === 'season_appointments'
+    && errorMessage.includes("Could not find the table 'public.season_appointments' in the schema cache");
+}
+
+function seasonAppointmentsTableErrorResponse() {
+  return NextResponse.json({
+    success: false,
+    error: "Season appointments table is unavailable. Apply migrations 20260406_safe_cms_images_and_merch.sql and 20260406_season_appointments.sql, then run NOTIFY pgrst, 'reload schema';",
+  }, { status: 503 });
+}
+
 function isMissingImageUrlColumnError(errorMessage: string, table: string) {
   return table === 'news'
     && errorMessage.includes("Could not find the 'image_url' column")
@@ -113,7 +126,12 @@ export async function GET(_request: Request, { params }: { params: { resource: s
   }
   const { data, error } = await query;
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
+      return seasonAppointmentsTableErrorResponse();
+    }
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ success: true, data });
 }
 
@@ -141,7 +159,12 @@ export async function POST(request: Request, { params }: { params: { resource: s
     }
   }
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
+      return seasonAppointmentsTableErrorResponse();
+    }
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
   revalidateForResource(params.resource);
   return NextResponse.json({ success: true, data });
 }
@@ -172,7 +195,12 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
     }
   }
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
+      return seasonAppointmentsTableErrorResponse();
+    }
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
   revalidateForResource(params.resource);
   return NextResponse.json({ success: true, data });
 }
@@ -191,7 +219,12 @@ export async function DELETE(request: Request, { params }: { params: { resource:
   const supabase = createServerClient();
   const { error } = await supabase.from(config.table).delete().eq('id', id);
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
+      return seasonAppointmentsTableErrorResponse();
+    }
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
   revalidateForResource(params.resource);
   return NextResponse.json({ success: true });
 }
