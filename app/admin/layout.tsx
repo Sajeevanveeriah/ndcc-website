@@ -28,6 +28,8 @@ const baseLinks = [
   { href: '/admin/minutes', label: 'Minutes', icon: Newspaper },
   { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
   { href: '/admin/apparel', label: 'Apparel', icon: Shirt },
+  { href: '/admin/site-pages', label: 'Site Pages', icon: FileText },
+  { href: '/admin/history', label: 'History', icon: Newspaper },
   { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
   { href: '/admin/season-appointments', label: 'Season Appointments', icon: UserRoundCheck },
   { href: '/admin/content', label: 'Content', icon: FileText },
@@ -77,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === '/admin/login') return <>{children}</>;
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen bg-sky-50 flex items-center justify-center">Loading...</div>;
   }
 
   if (!user) return null;
@@ -87,12 +89,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     : baseLinks;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-sky-50 flex">
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-maroon-800">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href="/admin" className="text-white font-display font-bold text-xl">{CLUB_SHORT} Admin</Link>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {sidebarLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -116,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <button onClick={() => setMobileOpen((v) => !v)}>{mobileOpen ? <X /> : <Menu />}</button>
             <span className="font-bold">{CLUB_SHORT} Admin</span>
           </div>
-          {mobileOpen && <nav className="px-4 pb-3 space-y-1">{sidebarLinks.map((link) => <Link className="block py-2" key={link.href} href={link.href}>{link.label}</Link>)}</nav>}
+          {mobileOpen && <nav className="px-4 pb-3 space-y-1 max-h-[70vh] overflow-y-auto">{sidebarLinks.map((link) => <Link className="block py-2" key={link.href} href={link.href}>{link.label}</Link>)}</nav>}
         </header>
         <main className="p-6 lg:p-8">{children}</main>
         {message && <p className="px-6 pb-6 text-sm text-red-600">{message}</p>}

@@ -74,4 +74,9 @@
   .section-subtitle {
     @apply text-lg text-gray-600 font-body max-w-2xl;
   }
+
+  .surface-sky {
+    @apply bg-sky-50;
+  }
 }
+
