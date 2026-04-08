@@ -3,11 +3,9 @@ import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
-  CLUB_NAME,
   CLUB_NICKNAME,
   CLUB_ESTABLISHED,
   CLUB_GROUND,
-  CLUB_ADDRESS,
   CLUB_ASSOCIATION,
   CLUB_ASSOCIATION_SHORT,
   COMMITTEE,
@@ -15,59 +13,50 @@ import {
 } from '@/lib/constants';
 import { getInitials } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
+import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships } from '@/lib/structured-content';
 
 export const metadata: Metadata = {
   title: 'About',
 };
 
+const premiershipTeams = ['1st XI', '2nd XI', '3rd XI', '4th XI', '5th XI'];
+
 export default async function AboutPage() {
-  const blocks = await getContentBlocks(['about.history']);
+  const [blocks, lineageEntries, premierships, competitions, committeeMembers] = await Promise.all([
+    getContentBlocks(['about.hero', 'about.history', 'about.affiliation', 'about.goodsports', 'about.partnership', 'about.committee']),
+    getHistoryLineage(),
+    getHistoryPremierships(),
+    getHistoryCompetitions(),
+    getCommitteeMembers(),
+  ]);
+
   const historyTitle = blocks['about.history']?.title || 'Our History';
   const historyBody = blocks['about.history']?.body;
   const historyImage = blocks['about.history']?.image_url || '/images/Turf_Ground.jpg';
 
+  const competitionsByAbbr = Object.fromEntries(competitions.map((item) => [item.abbreviation, item.name]));
+  const activeCommittee = committeeMembers.length > 0
+    ? committeeMembers.map((member) => ({ name: member.name, role: member.role }))
+    : COMMITTEE;
+
   return (
     <>
-      {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">About the {CLUB_NICKNAME}</h1>
+          <h1 className="page-hero-title">{blocks['about.hero']?.title || `About the ${CLUB_NICKNAME}`}</h1>
           <p className="page-hero-subtitle">
-            A proud community cricket club in Geelong, established in {CLUB_ESTABLISHED}.
+            {blocks['about.hero']?.body || `A proud community cricket club in Geelong, established in ${CLUB_ESTABLISHED}.`}
           </p>
         </div>
       </section>
 
-      {/* Club History */}
       <section className="section-padding">
         <div className="container-width">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="section-title">{historyTitle}</h2>
-              <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-                {historyBody ? (
-                  <p>{historyBody}</p>
-                ) : (
-                  <>
-                    <p>
-                      The {CLUB_NAME} was founded in {CLUB_ESTABLISHED} in the suburb of Newcomb,
-                      located in the greater Geelong region of Victoria. For over five decades, the club
-                      has been a cornerstone of local cricket, bringing together players and families
-                      from across the community.
-                    </p>
-                    <p>
-                      From humble beginnings, the {CLUB_NICKNAME} have grown into a multi-team club
-                      fielding sides across senior men&apos;s, senior women&apos;s, and junior
-                      competitions. Our home ground at {CLUB_GROUND}, {CLUB_ADDRESS}, has been the
-                      heart of the club for generations.
-                    </p>
-                    <p>
-                      The club prides itself on its inclusive, family-friendly culture. Whether
-                      you&apos;re an experienced cricketer or new to the game, the {CLUB_NICKNAME}{' '}
-                      welcome everyone.
-                    </p>
-                  </>
-                )}
+              <div className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+                <p>{historyBody || 'History content can be managed from the admin panel.'}</p>
               </div>
             </div>
             <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
@@ -83,25 +72,63 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* GCA Affiliation */}
-      <section className="section-padding bg-gray-50">
+      <section className="section-padding bg-sky-50">
+        <div className="container-width">
+          <h2 className="section-title">Club Lineage</h2>
+          <p className="section-subtitle mb-6">Historical competition progression and club naming periods.</p>
+          <div className="space-y-3">
+            {lineageEntries.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <h3 className="font-display font-bold text-gray-900">{entry.club_name}</h3>
+                    <p className="text-sm text-gray-600">{entry.start_season} to {entry.end_season}</p>
+                  </div>
+                  <Badge variant="default">{entry.association_abbr}</Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section-padding">
+        <div className="container-width">
+          <h2 className="section-title">Premiership Honours</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {premiershipTeams.map((teamLabel) => {
+              const teamPremierships = premierships.filter((item) => item.team_label === teamLabel);
+              return (
+                <Card key={teamLabel}>
+                  <CardContent className="p-6 space-y-3">
+                    <h3 className="text-xl font-display font-bold text-maroon-800">{teamLabel}</h3>
+                    {teamPremierships.length === 0 ? (
+                      <p className="text-sm text-gray-500">No premierships recorded.</p>
+                    ) : (
+                      <ul className="space-y-2 text-sm text-gray-700">
+                        {teamPremierships.map((item) => (
+                          <li key={item.id} className="border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
+                            <span className="font-semibold">{item.season_label}</span> · {competitionsByAbbr[item.competition_abbr] || item.competition_abbr} · {item.grade_label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="section-padding bg-sky-50">
         <div className="container-width">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="section-title">{CLUB_ASSOCIATION_SHORT} Affiliation</h2>
-              <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-                <p>
-                  NDCC is a proud member of the {CLUB_ASSOCIATION} ({CLUB_ASSOCIATION_SHORT}),
-                  one of the premier cricket associations in regional Victoria. The{' '}
-                  {CLUB_ASSOCIATION_SHORT} oversees competitions across a wide range of grades,
-                  providing pathways for players of all abilities.
-                </p>
-                <p>
-                  Our Senior Men compete in {CLUB_ASSOCIATION_SHORT} Grade 4, while our Senior
-                  Women play in {CLUB_ASSOCIATION_SHORT} E Grade East. Junior players participate
-                  in the {CLUB_ASSOCIATION_SHORT} junior competition throughout the season.
-                </p>
-              </div>
+              <h2 className="section-title">{blocks['about.affiliation']?.title || `${CLUB_ASSOCIATION_SHORT} Affiliation`}</h2>
+              <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+                {blocks['about.affiliation']?.body || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
+              </p>
             </div>
             <Card>
               <CardContent className="p-8 text-center">
@@ -116,62 +143,41 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Good Sports */}
       <section className="section-padding">
         <div className="container-width">
           <div className="max-w-3xl">
-            <h2 className="section-title">Good Sports Level 3</h2>
-            <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-              <p>
-                NDCC is a proud Level 3 accredited Good Sports club. Good Sports is Australia&apos;s
-                largest health initiative in community sport, helping clubs create a safer and
-                healthier environment for members, families, and the wider community.
-              </p>
-              <p>
-                As a Level 3 club, we demonstrate our commitment to responsible alcohol management,
-                promoting healthy lifestyles, and ensuring our club is a welcoming place for
-                everyone — especially young players and families.
-              </p>
-            </div>
+            <h2 className="section-title">{blocks['about.goodsports']?.title || 'Good Sports Level 3'}</h2>
+            <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+              {blocks['about.goodsports']?.body || ''}
+            </p>
             <Badge variant="success" className="mt-4 text-sm px-4 py-1">
-              Good Sports Level 3 Accredited
+              {blocks['about.goodsports']?.cta_label || 'Good Sports Level 3 Accredited'}
             </Badge>
           </div>
         </div>
       </section>
 
-      {/* Partnership with NPFC */}
-      <section className="section-padding bg-gray-50">
+      <section className="section-padding bg-sky-50">
         <div className="container-width">
           <div className="max-w-3xl">
-            <h2 className="section-title">Newcomb Power Football Club</h2>
-            <div className="space-y-4 text-gray-700 font-body leading-relaxed">
-              <p>
-                NDCC shares a strong partnership with the Newcomb Power Football Club. Together, we
-                share facilities at {CLUB_GROUND} and work collaboratively to support sport in the
-                Newcomb and Moolap community.
-              </p>
-              <p>
-                This partnership allows us to provide better facilities, coordinate social events, and
-                strengthen the community bond between our two clubs. Many of our members play for
-                both clubs across the winter and summer seasons.
-              </p>
-            </div>
+            <h2 className="section-title">{blocks['about.partnership']?.title || 'Newcomb Power Football Club'}</h2>
+            <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+              {blocks['about.partnership']?.body || `NDCC shares facilities at ${CLUB_GROUND}.`}
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Committee / Office Bearers */}
       <section className="section-padding">
         <div className="container-width">
           <div className="text-center mb-12">
-            <h2 className="section-title">Committee &amp; Office Bearers</h2>
+            <h2 className="section-title">{blocks['about.committee']?.title || 'Committee & Office Bearers'}</h2>
             <p className="section-subtitle mx-auto">
-              The people who keep the {CLUB_NICKNAME} running behind the scenes.
+              {blocks['about.committee']?.body || `The people who keep the ${CLUB_NICKNAME} running behind the scenes.`}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {COMMITTEE.map((member) => (
+            {activeCommittee.map((member) => (
               <Card key={member.name}>
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -188,7 +194,6 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Acknowledgement of Country */}
       <section className="bg-maroon-800 text-white section-padding">
         <div className="container-width max-w-3xl text-center">
           <h2 className="text-2xl font-display font-bold mb-4">Acknowledgement of Country</h2>

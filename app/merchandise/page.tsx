@@ -22,6 +22,17 @@ type MerchandiseWindow = {
   allow_queue_after_close: boolean;
 };
 
+type DisplayProduct = {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  sizes: string[];
+  image: string;
+  customisable?: boolean;
+  category?: string;
+};
+
 type ApiProduct = {
   slug: string;
   name: string;
@@ -30,6 +41,10 @@ type ApiProduct = {
   sizes: string[];
   image_url: string;
   customisable: boolean;
+  category?: string;
+  display_order?: number;
+  order_guidance?: string | null;
+  size_guidance?: string | null;
 };
 
 const PRODUCT_GRADIENTS: Record<string, string> = {
@@ -115,7 +130,13 @@ function MerchandiseContent() {
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [products, setProducts] = useState(PRODUCTS);
+  const [products, setProducts] = useState<DisplayProduct[]>(PRODUCTS.map((product) => ({ ...product, category: 'General' })));
+  const [heroContent, setHeroContent] = useState<{ title: string; body: string; orderTitle: string; orderBody: string }>({
+    title: 'Club Merchandise',
+    body: `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
+    orderTitle: 'Ordering Information',
+    orderBody: '',
+  });
   const [windowState, setWindowState] = useState<{ processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null }>({
     processing_open: true,
     queue_allowed: true,
@@ -136,22 +157,34 @@ function MerchandiseContent() {
 
     void (async () => {
       try {
-        const [productsRes, windowsRes] = await Promise.all([
+        const [productsRes, windowsRes, blocksRes] = await Promise.all([
           fetch('/api/apparel/products', { cache: 'no-store' }),
           fetch('/api/apparel/windows', { cache: 'no-store' }),
+          fetch('/api/public/content-blocks?key=merch.hero&key=merch.ordering', { cache: 'no-store' }),
         ]);
         const productsData = await productsRes.json();
         const windowsData = await windowsRes.json();
+        const blocksPayload = await blocksRes.json();
+        const blocks = blocksPayload?.data || {};
+        setHeroContent({
+          title: blocks['merch.hero']?.title || 'Club Merchandise',
+          body: blocks['merch.hero']?.body || `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
+          orderTitle: blocks['merch.ordering']?.title || 'Ordering Information',
+          orderBody: blocks['merch.ordering']?.body || '',
+        });
         if (productsRes.ok && Array.isArray(productsData.data) && productsData.data.length > 0) {
-          setProducts(productsData.data.map((p: ApiProduct) => ({
-            id: p.slug,
-            name: p.name,
-            price: Number(p.price || 0),
-            description: p.description || '',
-            sizes: Array.isArray(p.sizes) ? p.sizes : [],
-            image: p.image_url || '',
-            customisable: Boolean(p.customisable),
-          })));
+          setProducts(productsData.data
+            .sort((a: ApiProduct, b: ApiProduct) => (a.display_order ?? 9999) - (b.display_order ?? 9999))
+            .map((p: ApiProduct) => ({
+              id: p.slug,
+              name: p.name,
+              price: Number(p.price || 0),
+              description: [p.description, p.order_guidance, p.size_guidance].filter(Boolean).join('\n\n'),
+              sizes: Array.isArray(p.sizes) ? p.sizes : [],
+              image: p.image_url || '',
+              customisable: Boolean(p.customisable),
+              category: p.category || 'General',
+            })));
         }
         if (windowsRes.ok && windowsData.data) {
           setWindowState(windowsData.data);
@@ -226,6 +259,12 @@ function MerchandiseContent() {
   }
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const groupedProducts = products.reduce<Record<string, DisplayProduct[]>>((acc, product) => {
+    const group = product.category?.trim() || 'General';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(product);
+    return acc;
+  }, {});
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
@@ -309,18 +348,23 @@ function MerchandiseContent() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Club Merchandise</h1>
+          <h1 className="page-hero-title">{heroContent.title}</h1>
           <p className="page-hero-subtitle">
-            Show your Dinos pride with official {CLUB_NAME} gear. All merchandise is available for
-            order online and collection from the club.
+            {heroContent.body}
           </p>
         </div>
       </section>
 
       {/* Products Grid */}
-      <section className="section-padding">
+      <section className="section-padding bg-sky-50">
         <div className="container-width">
-          <h2 className="section-title mb-8">Products</h2>
+          <h2 className="section-title mb-2">Products</h2>
+          {heroContent.orderBody && (
+            <div className="mb-6 rounded-xl border border-sky-200 bg-white p-4">
+              <h3 className="font-display font-bold text-maroon-800">{heroContent.orderTitle}</h3>
+              <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{heroContent.orderBody}</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {!windowState.processing_open && (
               <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
@@ -328,11 +372,15 @@ function MerchandiseContent() {
                 {windowState.queue_allowed ? ' New orders will be queued for the next window.' : ' Ordering is temporarily unavailable.'}
               </div>
             )}
-            {products.map((product) => {
-              const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
-              const iconData = PRODUCT_ICONS[product.id];
-              return (
-                <Card key={product.id}>
+            {Object.entries(groupedProducts).map(([category, productsInCategory]) => (
+              <div key={category} className="md:col-span-2 lg:col-span-3 xl:col-span-4">
+                <h3 className="text-xl font-display font-bold text-maroon-800 mb-3">{category}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {productsInCategory.map((product) => {
+                  const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
+                  const iconData = PRODUCT_ICONS[product.id];
+                  return (
+                    <Card key={product.id}>
                   {product.image ? (
                     <div
                       className="h-36 bg-cover bg-center"
@@ -469,9 +517,12 @@ function MerchandiseContent() {
                       Add to Order
                     </Button>
                   </CardFooter>
-                </Card>
-              );
-            })}
+                    </Card>
+                  );
+                })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

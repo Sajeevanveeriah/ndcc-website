@@ -14,6 +14,10 @@ type ApparelProduct = {
   sizes: string[];
   image_url: string;
   customisable: boolean;
+  category: string;
+  display_order: number;
+  order_guidance: string | null;
+  size_guidance: string | null;
   active: boolean;
 };
 
@@ -40,6 +44,10 @@ export default function AdminApparelPage() {
     sizes: 'XS,S,M,L,XL',
     image_url: '',
     customisable: false,
+    category: 'General',
+    display_order: '1',
+    order_guidance: '',
+    size_guidance: '',
     active: true,
   });
 
@@ -85,6 +93,10 @@ export default function AdminApparelPage() {
       sizes: productForm.sizes.split(',').map((s) => s.trim()).filter(Boolean),
       image_url: productForm.image_url.trim(),
       customisable: productForm.customisable,
+      category: productForm.category.trim() || 'General',
+      display_order: Number(productForm.display_order || 0),
+      order_guidance: productForm.order_guidance.trim() || null,
+      size_guidance: productForm.size_guidance.trim() || null,
       active: productForm.active,
     };
 
@@ -96,7 +108,7 @@ export default function AdminApparelPage() {
     try {
       await parseApiResponse(res);
       setStatus(editingProductId ? 'Product updated.' : 'Product saved.');
-      setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', image_url: '', customisable: false, active: true });
+      setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', image_url: '', customisable: false, category: 'General', display_order: '1', order_guidance: '', size_guidance: '', active: true });
       setEditingProductId(null);
       loadAll();
     } catch (error) {
@@ -114,6 +126,10 @@ export default function AdminApparelPage() {
       sizes: Array.isArray(product.sizes) ? product.sizes.join(',') : '',
       image_url: product.image_url || '',
       customisable: product.customisable,
+      category: product.category || 'General',
+      display_order: String(product.display_order ?? 0),
+      order_guidance: product.order_guidance || '',
+      size_guidance: product.size_guidance || '',
       active: product.active,
     });
   }
@@ -149,6 +165,10 @@ export default function AdminApparelPage() {
           <Input id="sizes" label="Sizes CSV" value={productForm.sizes} onChange={(e) => setProductForm((v) => ({ ...v, sizes: e.target.value }))} />
           <Input id="description" label="Description" value={productForm.description} onChange={(e) => setProductForm((v) => ({ ...v, description: e.target.value }))} />
           <Input id="image_url" label="Image URL (optional)" value={productForm.image_url} onChange={(e) => setProductForm((v) => ({ ...v, image_url: e.target.value }))} />
+          <Input id="category" label="Category" value={productForm.category} onChange={(e) => setProductForm((v) => ({ ...v, category: e.target.value }))} />
+          <Input id="display_order" label="Display order" type="number" value={productForm.display_order} onChange={(e) => setProductForm((v) => ({ ...v, display_order: e.target.value }))} />
+          <Input id="order_guidance" label="Order guidance" value={productForm.order_guidance} onChange={(e) => setProductForm((v) => ({ ...v, order_guidance: e.target.value }))} />
+          <Input id="size_guidance" label="Size guidance" value={productForm.size_guidance} onChange={(e) => setProductForm((v) => ({ ...v, size_guidance: e.target.value }))} />
           <div className="flex items-end gap-4">
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.customisable} onChange={(e) => setProductForm((v) => ({ ...v, customisable: e.target.checked }))} />Customisable</label>
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.active} onChange={(e) => setProductForm((v) => ({ ...v, active: e.target.checked }))} />Active</label>
@@ -158,7 +178,7 @@ export default function AdminApparelPage() {
             {editingProductId && (
               <Button type="button" variant="secondary" onClick={() => {
                 setEditingProductId(null);
-                setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', image_url: '', customisable: false, active: true });
+                setProductForm({ slug: '', name: '', description: '', price: '0', sizes: 'XS,S,M,L,XL', image_url: '', customisable: false, category: 'General', display_order: '1', order_guidance: '', size_guidance: '', active: true });
               }}
               >
                 Cancel Edit
@@ -169,7 +189,7 @@ export default function AdminApparelPage() {
         <ul className="text-sm text-gray-700 space-y-1">
           {products.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-2">
-              <span>{p.name} · ${p.price} · {p.sizes.join('/')}</span>
+              <span>{p.name} · ${p.price} · {p.category} · order {p.display_order} · {p.sizes.join('/')}</span>
               <Button type="button" size="sm" variant="ghost" onClick={() => editProduct(p)}>Edit</Button>
             </li>
           ))}
