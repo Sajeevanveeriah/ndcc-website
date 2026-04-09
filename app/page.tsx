@@ -183,7 +183,7 @@ export default async function HomePage() {
             <CardContent className="p-8 text-center">
               <h3 className="text-xl font-display font-bold text-gray-900 mb-3">{blocks['home.season_status']?.title || 'Season Update'}</h3>
               <p className="text-gray-700 font-body leading-relaxed mb-4">
-                {blocks['home.season_status']?.body || 'Season information can be updated in admin content blocks.'}{' '}
+                {blocks['home.season_status']?.body || `Follow the latest ${CLUB_NICKNAME} season updates, match-day notices, and club announcements on our official channels.`}{' '}
                 <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
                   Facebook page
                 </Link>.
@@ -318,44 +318,57 @@ export default async function HomePage() {
               Proudly supported by our local community partners.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="region" aria-label="Club sponsors">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-label="Club sponsors">
             {sponsors.map((sponsor) => {
               const tierInfo = SPONSOR_TIERS.find((t) => t.value === sponsor.tier);
+              const card = (
+                <Card hover={Boolean(sponsor.website)} className="h-full border border-sky-100">
+                  <CardContent className="p-6 flex flex-col items-center text-center h-full">
+                    <div className="w-full h-28 rounded-lg bg-white border border-gray-100 relative overflow-hidden mb-4">
+                      {sponsor.logo_url ? (
+                        <Image
+                          src={sponsor.logo_url}
+                          alt={`${sponsor.name} logo`}
+                          fill
+                          className="object-contain p-3"
+                          sizes="(max-width: 1024px) 50vw, 320px"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-lg font-bold text-maroon-700">
+                          {sponsor.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-display font-bold text-gray-900 text-base mb-2">{sponsor.name}</p>
+                    {tierInfo && (
+                      <Badge variant={TIER_BADGE_VARIANT[sponsor.tier] || 'default'} className="text-xs mb-3">
+                        {tierInfo.label}
+                      </Badge>
+                    )}
+                    <p className="text-sm font-body text-maroon-700 font-semibold mt-auto">
+                      {sponsor.website ? 'Visit sponsor website' : 'Website coming soon'}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+
+              if (!sponsor.website) {
+                return (
+                  <div key={sponsor.id} className="block">
+                    {card}
+                  </div>
+                );
+              }
+
               return (
                 <a
                   key={sponsor.id}
-                  href={sponsor.website || undefined}
-                  target={sponsor.website ? '_blank' : undefined}
-                  rel={sponsor.website ? 'noopener noreferrer' : undefined}
+                  href={sponsor.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block group"
                 >
-                  <Card hover className="h-full">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-lg bg-gray-100 relative overflow-hidden flex-shrink-0">
-                        {sponsor.logo_url ? (
-                          <Image
-                            src={sponsor.logo_url}
-                            alt={`${sponsor.name} logo`}
-                            fill
-                            className="object-contain p-1"
-                            sizes="56px"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-maroon-700">
-                            {sponsor.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display font-bold text-gray-900 text-sm group-hover:text-maroon-700 transition-colors truncate">{sponsor.name}</p>
-                      </div>
-                      {tierInfo && (
-                        <Badge variant={TIER_BADGE_VARIANT[sponsor.tier] || 'default'} className="flex-shrink-0 text-xs">
-                          {tierInfo.label}
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
+                  {card}
                 </a>
               );
             })}

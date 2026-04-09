@@ -35,7 +35,7 @@ export default async function FixturesPage() {
                 {blocks['fixtures.status']?.title || 'Season Status'}
               </h2>
               <p className="text-gray-700 font-body leading-relaxed mb-4 max-w-3xl">
-                {blocks['fixtures.status']?.body || 'Season updates can be managed in the admin panel.'}{' '}
+                {blocks['fixtures.status']?.body || `Keep track of upcoming fixtures, results, and ladder updates for the ${CLUB_NICKNAME}.`}{' '}
                 <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
                   Facebook page
                 </Link>.
@@ -60,7 +60,7 @@ export default async function FixturesPage() {
         <div className="container-width">
           <h2 className="section-title mb-8">{blocks['fixtures.team_links']?.title || 'Team Fixtures on PlayHQ'}</h2>
           <p className="text-gray-600 font-body mb-8 max-w-3xl">
-            {blocks['fixtures.team_links']?.body || 'Manage fixture links and labels from admin.'}
+            {blocks['fixtures.team_links']?.body || 'Quick links to each NDCC team fixture page on PlayHQ.'}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {teamLinks.map((team) => (

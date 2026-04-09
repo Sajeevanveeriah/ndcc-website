@@ -123,6 +123,12 @@ function isMissingImageUrlColumnError(errorMessage: string, table: string) {
     && errorMessage.includes(`'${table}'`);
 }
 
+function isMissingSortOrderColumnError(errorMessage: string, table: string) {
+  return table === 'news'
+    && errorMessage.includes('sort_order')
+    && errorMessage.includes('news');
+}
+
 export async function GET(_request: Request, { params }: { params: { resource: string } }) {
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
@@ -140,6 +146,17 @@ export async function GET(_request: Request, { params }: { params: { resource: s
   const { data, error } = await query;
 
   if (error) {
+    if (isMissingSortOrderColumnError(error.message, config.table)) {
+      const fallback = await supabase
+        .from(config.table)
+        .select('*')
+        .order('published_at', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (fallback.error) {
+        return NextResponse.json({ success: false, error: fallback.error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, data: fallback.data ?? [] });
+    }
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
@@ -165,6 +182,15 @@ export async function POST(request: Request, { params }: { params: { resource: s
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
     const retryPayload = { ...payload };
     delete retryPayload.image_url;
+    if (Object.keys(retryPayload).length > 0) {
+      const retry = await supabase.from(config.table).insert(retryPayload).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
+  if (error && isMissingSortOrderColumnError(error.message, config.table) && 'sort_order' in payload) {
+    const retryPayload = { ...payload };
+    delete retryPayload.sort_order;
     if (Object.keys(retryPayload).length > 0) {
       const retry = await supabase.from(config.table).insert(retryPayload).select().single();
       data = retry.data;
@@ -201,6 +227,15 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
     const retryPayload = { ...payload };
     delete retryPayload.image_url;
+    if (Object.keys(retryPayload).length > 0) {
+      const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
+  if (error && isMissingSortOrderColumnError(error.message, config.table) && 'sort_order' in payload) {
+    const retryPayload = { ...payload };
+    delete retryPayload.sort_order;
     if (Object.keys(retryPayload).length > 0) {
       const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).select().single();
       data = retry.data;
