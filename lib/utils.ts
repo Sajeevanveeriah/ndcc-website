@@ -159,12 +159,21 @@ export function validatePhone(phone: string): boolean {
 
 export function normalisePublicText(input: string | null | undefined): string {
   if (!input) return '';
-  return input
+  const normalised = input
     .replace(/\\n/g, '\n')
     .replace(/[–—]/g, ' - ')
     .replace(/Peter ‘’Skinny’’ Harrison/g, "Peter 'Skinny' Harrison")
     .replace(/Newcomb Power Football Club/g, 'Newcomb Power Football & Netball Club')
     .trim();
+
+  if (
+    /^use this section (to|for)\b/i.test(normalised) ||
+    /^this section is managed from the admin panel\b/i.test(normalised)
+  ) {
+    return '';
+  }
+
+  return normalised;
 }
 
 export function sanitiseInput(input: string): string {
