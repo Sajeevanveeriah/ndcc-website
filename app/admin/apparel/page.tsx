@@ -35,6 +35,7 @@ export default function AdminApparelPage() {
   const [windows, setWindows] = useState<MerchWindow[]>([]);
   const [status, setStatus] = useState('');
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingWindowId, setEditingWindowId] = useState<string | null>(null);
 
   const [productForm, setProductForm] = useState({
     slug: '',
@@ -137,14 +138,15 @@ export default function AdminApparelPage() {
   async function createWindow(e: React.FormEvent) {
     e.preventDefault();
     const res = await fetch('/api/admin/resources/merchWindows', {
-      method: 'POST',
+      method: editingWindowId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(windowForm),
+      body: JSON.stringify(editingWindowId ? { id: editingWindowId, ...windowForm } : windowForm),
     });
     try {
       await parseApiResponse(res);
-      setStatus('Window saved.');
+      setStatus(editingWindowId ? 'Window updated.' : 'Window saved.');
       setWindowForm({ label: '', open_date: '', close_date: '', active: true, allow_queue_after_close: true });
+      setEditingWindowId(null);
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save window.');
@@ -197,7 +199,7 @@ export default function AdminApparelPage() {
       </section>
 
       <section className="bg-white border rounded-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold">Add Merch Window</h2>
+        <h2 className="text-lg font-semibold">{editingWindowId ? 'Edit Merch Window' : 'Add Merch Window'}</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={createWindow}>
           <Input id="label" label="Label" required value={windowForm.label} onChange={(e) => setWindowForm((v) => ({ ...v, label: e.target.value }))} />
           <Input id="open_date" label="Open date" type="datetime-local" required value={windowForm.open_date} onChange={(e) => setWindowForm((v) => ({ ...v, open_date: e.target.value }))} />
@@ -206,11 +208,42 @@ export default function AdminApparelPage() {
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={windowForm.active} onChange={(e) => setWindowForm((v) => ({ ...v, active: e.target.checked }))} />Active</label>
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={windowForm.allow_queue_after_close} onChange={(e) => setWindowForm((v) => ({ ...v, allow_queue_after_close: e.target.checked }))} />Allow queue after close</label>
           </div>
-          <div className="md:col-span-2"><Button type="submit">Save Window</Button></div>
+          <div className="md:col-span-2 flex gap-2">
+            <Button type="submit">{editingWindowId ? 'Update Window' : 'Save Window'}</Button>
+            {editingWindowId && (
+              <Button type="button" variant="secondary" onClick={() => {
+                setEditingWindowId(null);
+                setWindowForm({ label: '', open_date: '', close_date: '', active: true, allow_queue_after_close: true });
+              }}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
         </form>
 
         <ul className="text-sm text-gray-700 space-y-1">
-          {windows.map((w) => <li key={w.id}>{w.label} · {new Date(w.open_date).toLocaleDateString()} - {new Date(w.close_date).toLocaleDateString()} · {w.allow_queue_after_close ? 'Queue enabled' : 'Queue disabled'}</li>)}
+          {windows.map((w) => (
+            <li key={w.id} className="flex items-center justify-between gap-2">
+              <span>{w.label} · {new Date(w.open_date).toLocaleDateString()} - {new Date(w.close_date).toLocaleDateString()} · {w.active ? 'Active' : 'Inactive'} · {w.allow_queue_after_close ? 'Queue enabled' : 'Queue disabled'}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setEditingWindowId(w.id);
+                  setWindowForm({
+                    label: w.label,
+                    open_date: w.open_date.slice(0, 16),
+                    close_date: w.close_date.slice(0, 16),
+                    active: w.active,
+                    allow_queue_after_close: w.allow_queue_after_close,
+                  });
+                }}
+              >
+                Edit
+              </Button>
+            </li>
+          ))}
         </ul>
       </section>
 

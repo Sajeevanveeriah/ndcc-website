@@ -102,8 +102,16 @@ export default function AdminContentPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Content Blocks</h1>
       <p className="text-sm text-gray-500">
-        Content Blocks control reusable headline/body/CTA text sections across public pages. They are best for single text sections, not structured card lists.
+        Content Blocks control reusable headline, body, and CTA text sections across public pages. Use them for singleton sections only.
       </p>
+      <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+        <p className="font-semibold">How to use content blocks</p>
+        <ul className="list-disc ml-5 mt-1 space-y-1">
+          <li>Block keys map to a specific page section, for example <code>about.affiliation</code> on the About page.</li>
+          <li>Repeatable content like news posts, facilities features, and history records belong in structured admin screens.</li>
+          <li>Do not place internal admin comments in block body text. Block body text is shown on the public website.</li>
+        </ul>
+      </div>
       {feedback && (
         <p className={`text-sm px-3 py-2 rounded border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
           {feedback.message}

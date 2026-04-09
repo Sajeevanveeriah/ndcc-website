@@ -59,8 +59,11 @@ export interface EventRegistration {
   event_id: string;
   name: string;
   email: string;
+  phone?: string;
   quantity: number;
   payment_status: string;
+  payment_reference?: string | null;
+  processed?: boolean;
   created_at: string;
 }
 
@@ -80,6 +83,7 @@ export interface NewsPost {
   title: string;
   content: string;
   author: string;
+  sort_order?: number;
   published: boolean;
   published_at: string | null;
   created_at: string;

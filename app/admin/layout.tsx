@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/admin/auth/session', { cache: 'no-store' });
+        const response = await fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' });
         const data = await parseApiResponse<{ authenticated?: boolean; user?: SessionUser }>(response);
         if (!data.authenticated) {
           router.push('/admin/login');

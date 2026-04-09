@@ -31,6 +31,8 @@ type FacilityFeature = {
 const sectionOptions = [
   { value: 'home:quick_links', label: 'Home · Quick Links' },
   { value: 'fixtures:team_links', label: 'Fixtures · Team Links' },
+  { value: 'about:articles', label: 'About · Articles' },
+  { value: 'facilities:articles', label: 'Facilities · Articles' },
 ];
 
 export default function AdminSitePagesPage() {
@@ -149,11 +151,11 @@ export default function AdminSitePagesPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Site Pages</h1>
-      <p className="text-sm text-gray-500">Manage repeatable cards and links used on Home, Fixtures, and Facilities pages.</p>
+      <p className="text-sm text-gray-500">Manage repeatable cards and links used on Home, Fixtures, About, and Facilities pages.</p>
       {status && <p className="text-sm text-gray-600">{status}</p>}
 
       <section className="bg-white border rounded-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold">Home/Fixtures Link Cards</h2>
+        <h2 className="text-lg font-semibold">Page Link Cards</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveCard}>
           <Select id="page_section" label="Page section" options={sectionOptions} value={cardForm.page_section} onChange={(e) => setCardForm((v) => ({ ...v, page_section: e.target.value }))} />
           <Input id="card_title" label="Card title" required value={cardForm.title} onChange={(e) => setCardForm((v) => ({ ...v, title: e.target.value }))} />

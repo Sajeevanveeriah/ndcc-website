@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { normalisePublicText } from '@/lib/utils';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -21,7 +22,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const mapped = Object.fromEntries((data ?? []).map((row) => [row.block_key, row]));
+    const mapped = Object.fromEntries((data ?? []).map((row) => [row.block_key, {
+      ...row,
+      title: normalisePublicText(row.title),
+      body: normalisePublicText(row.body),
+      cta_label: normalisePublicText(row.cta_label),
+    }]));
     return NextResponse.json({ success: true, data: mapped });
   } catch {
     return NextResponse.json({ success: true, data: {} });

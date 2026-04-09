@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
+import { validateEmail, validatePhone } from '@/lib/utils';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -16,6 +17,12 @@ export async function POST(request: Request) {
   }
   if (!customer_name || !customer_email || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ success: false, error: 'Name, email and kitchen items are required.' }, { status: 400 });
+  }
+  if (!validateEmail(customer_email)) {
+    return NextResponse.json({ success: false, error: 'Please provide a valid email address.' }, { status: 400 });
+  }
+  if (!customer_phone || !validatePhone(customer_phone)) {
+    return NextResponse.json({ success: false, error: 'Please provide a valid phone number.' }, { status: 400 });
   }
 
   const supabase = createServerClient();
@@ -72,6 +79,7 @@ export async function POST(request: Request) {
       payment_status: 'pending_bank_transfer',
       payment_reference: paymentReference,
       linked_order_id: linkedOrder.id,
+      processed: false,
     })
     .select('id')
     .single();

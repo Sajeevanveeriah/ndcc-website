@@ -7,7 +7,7 @@ import { parseApiResponse } from '@/lib/admin-client';
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
-type KitchenOrder = { id: string; customer_name: string; total_amount: number; status: string; payment_status: string; created_at: string };
+type KitchenOrder = { id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string };
 
 export default function AdminKitchenPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -51,7 +51,22 @@ export default function AdminKitchenPage() {
       const data = await parseApiResponse<{ data?: KitchenOrder[] }>(res);
       setOrders(data.data || []);
     } catch {
-      // Orders load is optional – don't surface error if this fails
+      // Orders load is optional. Do not surface error if this fails.
+    }
+  }
+
+  async function updateOrder(id: string, patch: Partial<KitchenOrder>) {
+    try {
+      const res = await fetch('/api/admin/kitchen/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...patch }),
+      });
+      await parseApiResponse(res);
+      setMessage('Kitchen order updated.');
+      loadOrders();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update kitchen order.');
     }
   }
 
@@ -368,8 +383,21 @@ export default function AdminKitchenPage() {
         ) : (
           orders.map((o) => (
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex items-center justify-between">
-              <span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status}</span>
-              <span>{new Date(o.created_at).toLocaleString()}</span>
+              <span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}</span>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-1 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={o.processed}
+                    onChange={(e) => updateOrder(o.id, { processed: e.target.checked })}
+                  />
+                  Payment processed
+                </label>
+                <Button size="sm" variant="ghost" onClick={() => updateOrder(o.id, { payment_status: o.payment_status === 'paid' ? 'pending_bank_transfer' : 'paid' })}>
+                  {o.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+                </Button>
+                <span>{new Date(o.created_at).toLocaleString()}</span>
+              </div>
             </div>
           ))
         )}

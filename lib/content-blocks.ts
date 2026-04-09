@@ -1,4 +1,5 @@
 import { createServerClient } from './supabase-server';
+import { normalisePublicText } from './utils';
 
 export interface ContentBlock {
   block_key: string;
@@ -21,7 +22,13 @@ export async function getContentBlocks(keys: string[]): Promise<Record<string, C
       .eq('is_active', true)
       .in('block_key', keys);
 
-    return Object.fromEntries((data ?? []).map((row) => [row.block_key, row as ContentBlock]));
+    const cleaned = (data ?? []).map((row) => ({
+      ...row,
+      title: normalisePublicText(row.title),
+      body: normalisePublicText(row.body),
+      cta_label: normalisePublicText(row.cta_label),
+    }));
+    return Object.fromEntries(cleaned.map((row) => [row.block_key, row as ContentBlock]));
   } catch {
     return {};
   }

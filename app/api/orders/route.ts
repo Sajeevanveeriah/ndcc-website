@@ -2,13 +2,10 @@ import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
+import { validateEmail, validatePhone } from '@/lib/utils';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export async function POST(request: Request) {
@@ -36,9 +33,16 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isValidEmail(customer_email)) {
+    if (!validateEmail(customer_email)) {
       return NextResponse.json(
         { success: false, error: 'Please provide a valid email address.' },
+        { status: 400 }
+      );
+    }
+
+    if (!customer_phone || !validatePhone(customer_phone)) {
+      return NextResponse.json(
+        { success: false, error: 'Please provide a valid phone number.' },
         { status: 400 }
       );
     }
