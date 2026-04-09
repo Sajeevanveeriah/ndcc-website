@@ -56,7 +56,7 @@ export default async function AboutPage() {
             <div>
               <h2 className="section-title">{historyTitle}</h2>
               <div className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                <p>{normalisePublicText(historyBody) || 'History content can be managed from the admin panel.'}</p>
+                <p>{normalisePublicText(historyBody) || `${CLUB_NICKNAME} has proudly represented Newcomb since ${CLUB_ESTABLISHED}, built on generations of community involvement and cricket tradition.`}</p>
               </div>
             </div>
             <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
