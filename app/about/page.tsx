@@ -9,11 +9,10 @@ import {
   CLUB_ASSOCIATION,
   CLUB_ASSOCIATION_SHORT,
   COMMITTEE,
-  ACKNOWLEDGEMENT,
 } from '@/lib/constants';
-import { getInitials } from '@/lib/utils';
+import { getInitials, normalisePublicText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
-import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships } from '@/lib/structured-content';
+import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships, getPageLinkCards } from '@/lib/structured-content';
 
 export const metadata: Metadata = {
   title: 'About',
@@ -22,12 +21,13 @@ export const metadata: Metadata = {
 const premiershipTeams = ['1st XI', '2nd XI', '3rd XI', '4th XI', '5th XI'];
 
 export default async function AboutPage() {
-  const [blocks, lineageEntries, premierships, competitions, committeeMembers] = await Promise.all([
+  const [blocks, lineageEntries, premierships, competitions, committeeMembers, aboutArticles] = await Promise.all([
     getContentBlocks(['about.hero', 'about.history', 'about.affiliation', 'about.goodsports', 'about.partnership', 'about.committee']),
     getHistoryLineage(),
     getHistoryPremierships(),
     getHistoryCompetitions(),
     getCommitteeMembers(),
+    getPageLinkCards('about', 'articles'),
   ]);
 
   const historyTitle = blocks['about.history']?.title || 'Our History';
@@ -45,7 +45,7 @@ export default async function AboutPage() {
         <div className="container-width">
           <h1 className="page-hero-title">{blocks['about.hero']?.title || `About the ${CLUB_NICKNAME}`}</h1>
           <p className="page-hero-subtitle">
-            {blocks['about.hero']?.body || `A proud community cricket club in Geelong, established in ${CLUB_ESTABLISHED}.`}
+            {normalisePublicText(blocks['about.hero']?.body) || `A proud community cricket club in Geelong, established in ${CLUB_ESTABLISHED}.`}
           </p>
         </div>
       </section>
@@ -56,7 +56,7 @@ export default async function AboutPage() {
             <div>
               <h2 className="section-title">{historyTitle}</h2>
               <div className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                <p>{historyBody || 'History content can be managed from the admin panel.'}</p>
+                <p>{normalisePublicText(historyBody) || 'History content can be managed from the admin panel.'}</p>
               </div>
             </div>
             <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
@@ -127,7 +127,7 @@ export default async function AboutPage() {
             <div>
               <h2 className="section-title">{blocks['about.affiliation']?.title || `${CLUB_ASSOCIATION_SHORT} Affiliation`}</h2>
               <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                {blocks['about.affiliation']?.body || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
+                {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
               </p>
             </div>
             <Card>
@@ -148,10 +148,10 @@ export default async function AboutPage() {
           <div className="max-w-3xl">
             <h2 className="section-title">{blocks['about.goodsports']?.title || 'Good Sports Level 3'}</h2>
             <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-              {blocks['about.goodsports']?.body || ''}
+              {normalisePublicText(blocks['about.goodsports']?.body)}
             </p>
             <Badge variant="success" className="mt-4 text-sm px-4 py-1">
-              {blocks['about.goodsports']?.cta_label || 'Good Sports Level 3 Accredited'}
+              {normalisePublicText(blocks['about.goodsports']?.cta_label) || 'Good Sports Level 3 Accredited'}
             </Badge>
           </div>
         </div>
@@ -160,13 +160,34 @@ export default async function AboutPage() {
       <section className="section-padding bg-sky-50">
         <div className="container-width">
           <div className="max-w-3xl">
-            <h2 className="section-title">{blocks['about.partnership']?.title || 'Newcomb Power Football Club'}</h2>
+            <h2 className="section-title">{normalisePublicText(blocks['about.partnership']?.title) || 'Newcomb Power Football & Netball Club'}</h2>
             <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-              {blocks['about.partnership']?.body || `NDCC shares facilities at ${CLUB_GROUND}.`}
+              {normalisePublicText(blocks['about.partnership']?.body) || `NDCC shares facilities at ${CLUB_GROUND}.`}
             </p>
           </div>
         </div>
       </section>
+
+      {aboutArticles.length > 0 && (
+        <section className="section-padding">
+          <div className="container-width">
+            <h2 className="section-title">About Articles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {aboutArticles.map((article) => (
+                <Card key={article.id}>
+                  <CardContent className="p-6">
+                    <h3 className="font-display font-bold text-gray-900 text-xl">{article.title}</h3>
+                    <p className="text-gray-600 mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
+                    <a href={article.href} className="btn-secondary mt-4 inline-flex">
+                      Read More
+                    </a>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section-padding">
         <div className="container-width">
@@ -194,12 +215,6 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-maroon-800 text-white section-padding">
-        <div className="container-width max-w-3xl text-center">
-          <h2 className="text-2xl font-display font-bold mb-4">Acknowledgement of Country</h2>
-          <p className="text-maroon-100 font-body leading-relaxed">{ACKNOWLEDGEMENT}</p>
-        </div>
-      </section>
     </>
   );
 }

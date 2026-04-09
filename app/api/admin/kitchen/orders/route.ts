@@ -20,11 +20,18 @@ export async function PATCH(request: Request) {
   const user = await requireSession(['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
-  const { id, status } = await request.json();
-  if (!id || !status) return NextResponse.json({ success: false, error: 'id and status are required.' }, { status: 400 });
+  const { id, status, payment_status, processed } = await request.json();
+  if (!id) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
+  const patch: Record<string, unknown> = {};
+  if (typeof status === 'string' && status) patch.status = status;
+  if (typeof payment_status === 'string' && payment_status) patch.payment_status = payment_status;
+  if (typeof processed === 'boolean') patch.processed = processed;
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ success: false, error: 'No valid fields provided.' }, { status: 400 });
+  }
 
   const supabase = createServerClient();
-  const { error } = await supabase.from('kitchen_orders').update({ status }).eq('id', id);
+  const { error } = await supabase.from('kitchen_orders').update(patch).eq('id', id);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

@@ -11,5 +11,5 @@ export async function GET() {
     .order('name', { ascending: true });
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true, data: data ?? [] });
+  return NextResponse.json({ success: true, data: data ?? [] }, { headers: { 'Cache-Control': 'no-store' } });
 }

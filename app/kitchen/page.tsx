@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 
 type KitchenItem = { id: string; name: string; description: string; image_url?: string | null; price: number; is_available: boolean };
 
@@ -16,6 +16,7 @@ export default function KitchenPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState('');
+  const [formError, setFormError] = useState('');
   const [hpField, setHpField] = useState('');
   const [submittedAt, setSubmittedAt] = useState(Date.now());
 
@@ -39,6 +40,15 @@ export default function KitchenPage() {
   async function submitOrder(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !email || selectedItems.length === 0) return;
+    if (!validateEmail(email)) {
+      setFormError('Please enter a valid email address.');
+      return;
+    }
+    if (!validatePhone(phone)) {
+      setFormError('Please enter a valid phone number.');
+      return;
+    }
+    setFormError('');
     const res = await fetch('/api/kitchen/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -56,7 +66,10 @@ export default function KitchenPage() {
       setStatus(data.error || 'Unable to submit kitchen order.');
       return;
     }
-    setStatus(`Order submitted. Payment reference: ${data.payment_reference}`);
+    const bankSummary = data?.bank_details?.bsb
+      ? ` Bank: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.`
+      : '';
+    setStatus(`Order submitted. Payment reference: ${data.payment_reference}.${bankSummary} Example reference format: NDCC-YYYYMMDD-1234`);
     setCart({});
     setName('');
     setEmail('');
@@ -117,6 +130,7 @@ export default function KitchenPage() {
                 <Input id="k_name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
                 <Input id="k_email" label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 <Input id="k_phone" label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                {formError && <p className="text-sm text-red-600">{formError}</p>}
                 <Button type="submit" disabled={selectedItems.length === 0}>Submit Kitchen Order</Button>
               </form>
               {status && <p className="text-sm text-gray-700">{status}</p>}

@@ -145,8 +145,26 @@ export function getInitials(name: string): string {
 }
 
 export function validateEmail(email: string): boolean {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(email);
+  const value = email.trim();
+  if (value.length > 254) return false;
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  return re.test(value);
+}
+
+export function validatePhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) return false;
+  return /^[0-9+()\-\s]+$/.test(phone.trim());
+}
+
+export function normalisePublicText(input: string | null | undefined): string {
+  if (!input) return '';
+  return input
+    .replace(/\\n/g, '\n')
+    .replace(/[–—]/g, ' - ')
+    .replace(/Peter ‘’Skinny’’ Harrison/g, "Peter 'Skinny' Harrison")
+    .replace(/Newcomb Power Football Club/g, 'Newcomb Power Football & Netball Club')
+    .trim();
 }
 
 export function sanitiseInput(input: string): string {

@@ -1,19 +1,17 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { validateEmail, validatePhone } from '@/lib/utils';
+import { generateUniquePaymentReference } from '@/lib/payments/reference';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { event_id, name, email, quantity } = body;
+    const { event_id, name, email, phone, quantity } = body;
 
     if (!event_id || !name || !email) {
       return NextResponse.json(
@@ -22,9 +20,15 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isValidEmail(email)) {
+    if (!validateEmail(email)) {
       return NextResponse.json(
         { success: false, error: 'Please provide a valid email address.' },
+        { status: 400 }
+      );
+    }
+    if (!phone || !validatePhone(phone)) {
+      return NextResponse.json(
+        { success: false, error: 'Please provide a valid phone number.' },
         { status: 400 }
       );
     }
@@ -40,12 +44,16 @@ export async function POST(request: Request) {
 
     const supabase = createServerClient();
 
+    const paymentReference = await generateUniquePaymentReference();
+
     const { error } = await supabase.from('event_registrations').insert({
       event_id: sanitiseInput(event_id),
       name: sanitiseInput(name),
       email: sanitiseInput(email),
+      phone: sanitiseInput(phone),
       quantity: qty,
-      payment_status: 'pending',
+      payment_status: 'pending_bank_transfer',
+      payment_reference: paymentReference,
     });
 
     if (error) {
@@ -59,6 +67,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Registration confirmed!',
+      payment_reference: paymentReference,
+      bank_details: {
+        account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
+        bsb: process.env.NDCC_BANK_BSB || '',
+        account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '',
+      },
     });
   } catch (err) {
     console.error('Event registration route error:', err);

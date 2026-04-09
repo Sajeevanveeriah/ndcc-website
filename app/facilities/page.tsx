@@ -3,7 +3,8 @@ import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_ADDRESS } from '@/lib/constants';
 import { getContentBlocks } from '@/lib/content-blocks';
-import { getFacilityFeatures } from '@/lib/structured-content';
+import { normalisePublicText } from '@/lib/utils';
+import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content';
 
 export const metadata: Metadata = {
   title: 'Facilities',
@@ -20,9 +21,10 @@ const iconByKey: Record<string, string> = {
 };
 
 export default async function FacilitiesPage() {
-  const [blocks, features] = await Promise.all([
+  const [blocks, features, articles] = await Promise.all([
     getContentBlocks(['facilities.hero', 'facilities.intro', 'facilities.training', 'facilities.features_intro', 'facilities.cta']),
     getFacilityFeatures(),
+    getPageLinkCards('facilities', 'articles'),
   ]);
 
   return (
@@ -30,7 +32,7 @@ export default async function FacilitiesPage() {
       <section className="page-hero">
         <div className="container-width">
           <h1 className="page-hero-title">{blocks['facilities.hero']?.title || 'Our Facilities'}</h1>
-          <p className="page-hero-subtitle">{blocks['facilities.hero']?.body || ''}</p>
+          <p className="page-hero-subtitle">{normalisePublicText(blocks['facilities.hero']?.body)}</p>
         </div>
       </section>
 
@@ -41,7 +43,7 @@ export default async function FacilitiesPage() {
               <h2 className="section-title">{blocks['facilities.intro']?.title || 'Grinter Reserve'}</h2>
               <p className="text-gray-500 font-body text-sm mb-6">{CLUB_ADDRESS}</p>
               <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                {blocks['facilities.intro']?.body || ''}
+                {normalisePublicText(blocks['facilities.intro']?.body)}
               </p>
             </div>
             <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
@@ -72,7 +74,7 @@ export default async function FacilitiesPage() {
             <div className="order-1 lg:order-2">
               <h2 className="section-title">{blocks['facilities.training']?.title || 'Training Facility'}</h2>
               <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                {blocks['facilities.training']?.body || ''}
+                {normalisePublicText(blocks['facilities.training']?.body)}
               </p>
             </div>
           </div>
@@ -83,7 +85,7 @@ export default async function FacilitiesPage() {
         <div className="container-width">
           <div className="text-center mb-12">
             <h2 className="section-title">{blocks['facilities.features_intro']?.title || 'Facility Features'}</h2>
-            <p className="section-subtitle mx-auto">{blocks['facilities.features_intro']?.body || ''}</p>
+            <p className="section-subtitle mx-auto">{normalisePublicText(blocks['facilities.features_intro']?.body)}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
@@ -109,6 +111,25 @@ export default async function FacilitiesPage() {
           </div>
         </div>
       </section>
+
+      {articles.length > 0 && (
+        <section className="section-padding bg-sky-50">
+          <div className="container-width">
+            <h2 className="section-title">Facilities Articles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {articles.map((article) => (
+                <Card key={article.id}>
+                  <CardContent className="p-6">
+                    <h3 className="font-display font-bold text-gray-900 text-xl">{article.title}</h3>
+                    <p className="text-gray-600 mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
+                    <a href={article.href} className="btn-secondary mt-4 inline-flex">Read More</a>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 }

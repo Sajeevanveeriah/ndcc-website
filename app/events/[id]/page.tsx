@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
-import { formatDateTime, formatCurrency, validateEmail } from '@/lib/utils';
+import { formatDateTime, formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -21,6 +21,7 @@ export default function EventDetailPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     quantity: 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,6 +61,11 @@ export default function EventDetailPage() {
     } else if (!validateEmail(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!validatePhone(formData.phone)) {
+      errors.phone = 'Please enter a valid phone number';
+    }
     if (formData.quantity < 1) errors.quantity = 'Quantity must be at least 1';
     if (formData.quantity > 20) errors.quantity = 'Maximum 20 tickets per registration';
     setFormErrors(errors);
@@ -82,6 +88,7 @@ export default function EventDetailPage() {
           event_id: eventId,
           name: formData.name,
           email: formData.email,
+          phone: formData.phone,
           quantity: formData.quantity,
         }),
       });
@@ -91,8 +98,12 @@ export default function EventDetailPage() {
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
 
+      const data = await response.json();
       setSubmitStatus('success');
-      setFormData({ name: '', email: '', quantity: 1 });
+      const paymentHelp = data?.payment_reference ? ` Payment reference: ${data.payment_reference}.` : '';
+      const bankHelp = data?.bank_details?.bsb ? ` Bank transfer: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.` : '';
+      setErrorMessage(`Registration confirmed.${paymentHelp}${bankHelp} Example reference format: NDCC-YYYYMMDD-1234`);
+      setFormData({ name: '', email: '', phone: '', quantity: 1 });
       setFormErrors({});
     } catch (err) {
       setSubmitStatus('error');
@@ -251,9 +262,7 @@ export default function EventDetailPage() {
                       <p className="text-green-800 font-body font-semibold text-sm">
                         Registration confirmed!
                       </p>
-                      <p className="text-green-700 font-body text-xs mt-1">
-                        You&apos;ll receive a confirmation email shortly.
-                      </p>
+                      <p className="text-green-700 font-body text-xs mt-1">{errorMessage || 'You will receive a confirmation email shortly.'}</p>
                     </div>
                   )}
 
@@ -290,6 +299,18 @@ export default function EventDetailPage() {
                       error={formErrors.email}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                    />
+                    <Input
+                      id="reg_phone"
+                      label="Phone Number"
+                      type="tel"
+                      required
+                      placeholder="e.g. 0412 345 678"
+                      value={formData.phone}
+                      error={formErrors.phone}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, phone: e.target.value }))
                       }
                     />
 

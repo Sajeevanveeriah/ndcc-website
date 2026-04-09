@@ -16,6 +16,7 @@ const emptyNewsPost: Omit<NewsPost, 'id' | 'created_at'> = {
   content: '',
   author: 'NDCC',
   image_url: '',
+  sort_order: 0,
   published: false,
   published_at: null,
 };
@@ -36,7 +37,8 @@ export default function AdminNewsPage() {
       try {
         const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: NewsPost[] }>(response);
-        setNews(result.data || []);
+        const ordered = (result.data || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        setNews(ordered);
       } catch (err) {
         setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch news.' });
       } finally {
@@ -62,6 +64,7 @@ export default function AdminNewsPage() {
       content: post.content,
       author: post.author,
       image_url: post.image_url || post.image || '',
+      sort_order: post.sort_order ?? 0,
       published: post.published,
       published_at: post.published_at,
     });
@@ -89,6 +92,7 @@ export default function AdminNewsPage() {
       content: form.content.trim(),
       author: form.author.trim(),
       image_url: form.image_url?.trim() || null,
+      sort_order: Number(form.sort_order || 0),
       published: form.published,
       published_at: form.published ? (form.published_at || new Date().toISOString()) : null,
     };
@@ -172,6 +176,7 @@ export default function AdminNewsPage() {
               <TableHeader>Author</TableHeader>
               <TableHeader>Content</TableHeader>
               <TableHeader>Status</TableHeader>
+              <TableHeader>Order</TableHeader>
               <TableHeader>Published</TableHeader>
               <TableHeader>Created</TableHeader>
               <TableHeader>Actions</TableHeader>
@@ -192,7 +197,8 @@ export default function AdminNewsPage() {
                     <Badge variant="warning">Draft</Badge>
                   )}
                 </TableCell>
-                <TableCell>{post.published_at ? formatDate(post.published_at) : '—'}</TableCell>
+                <TableCell>{post.sort_order ?? 0}</TableCell>
+                <TableCell>{post.published_at ? formatDate(post.published_at) : '-'}</TableCell>
                 <TableCell>{formatDate(post.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -252,6 +258,13 @@ export default function AdminNewsPage() {
             value={form.image_url || ''}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
             placeholder="https://example.com/news-image.jpg"
+          />
+          <Input
+            id="news-sort-order"
+            label="Display order (lower appears first)"
+            type="number"
+            value={form.sort_order ?? 0}
+            onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value || 0) })}
           />
           <label className="flex items-center gap-2 cursor-pointer">
             <input

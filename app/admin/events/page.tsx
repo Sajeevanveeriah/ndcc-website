@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatDate, formatCurrency, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
-import type { Event } from '@/lib/types';
+import type { Event, EventRegistration } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -28,7 +28,9 @@ function asSafeString(value: unknown) {
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
+  const [registrationsLoading, setRegistrationsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,7 +52,20 @@ export default function AdminEventsPage() {
       }
     };
 
+    const fetchRegistrations = async () => {
+      try {
+        const response = await fetch('/api/admin/resources/eventRegistrations', { cache: 'no-store' });
+        const result = await parseApiResponse<{ data?: EventRegistration[] }>(response);
+        setRegistrations(result.data || []);
+      } catch (err) {
+        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch event registrations.' });
+      } finally {
+        setRegistrationsLoading(false);
+      }
+    };
+
     fetchEvents();
+    fetchRegistrations();
   }, []);
 
   const openCreate = () => {
@@ -143,6 +158,23 @@ export default function AdminEventsPage() {
     }
   };
 
+  const handleRegistrationUpdate = async (id: string, patch: Partial<EventRegistration>) => {
+    try {
+      const response = await adminFetch('/api/admin/resources/eventRegistrations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...patch }),
+      });
+      await parseApiResponse(response);
+      setRegistrations((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+      );
+      setFeedback({ type: 'success', message: 'Event registration updated.' });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update event registration.' });
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -222,6 +254,64 @@ export default function AdminEventsPage() {
           </TableBody>
         </Table>
       )}
+
+      <div className="mt-10">
+        <h2 className="text-xl font-display font-bold text-gray-900 mb-3">Event Registrations</h2>
+        {registrationsLoading ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">Loading registrations...</div>
+        ) : registrations.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">No registrations yet.</div>
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeader>Name</TableHeader>
+                <TableHeader>Email</TableHeader>
+                <TableHeader>Phone</TableHeader>
+                <TableHeader>Qty</TableHeader>
+                <TableHeader>Payment Ref</TableHeader>
+                <TableHeader>Payment</TableHeader>
+                <TableHeader>Processed</TableHeader>
+                <TableHeader>Created</TableHeader>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {registrations.map((registration) => (
+                <TableRow key={registration.id}>
+                  <TableCell className="font-medium">{registration.name}</TableCell>
+                  <TableCell>{registration.email}</TableCell>
+                  <TableCell>{registration.phone || '-'}</TableCell>
+                  <TableCell>{registration.quantity}</TableCell>
+                  <TableCell className="font-mono text-xs">{registration.payment_reference || '-'}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRegistrationUpdate(
+                        registration.id,
+                        { payment_status: registration.payment_status === 'paid' ? 'pending_bank_transfer' : 'paid' }
+                      )}
+                    >
+                      {registration.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <label className="inline-flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(registration.processed)}
+                        onChange={(e) => handleRegistrationUpdate(registration.id, { processed: e.target.checked })}
+                      />
+                      Processed
+                    </label>
+                  </TableCell>
+                  <TableCell>{formatDate(registration.created_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       {/* Create/Edit Modal */}
       <Modal

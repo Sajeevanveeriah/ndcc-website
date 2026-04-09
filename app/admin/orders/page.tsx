@@ -32,21 +32,36 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
-  const handleMarkProcessed = async (id: string) => {
+  const handleSetProcessed = async (id: string, processed: boolean) => {
     try {
       const response = await fetch('/api/admin/resources/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, processed: true }),
+        body: JSON.stringify({ id, processed }),
       });
       await parseApiResponse(response);
 
       setOrders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, processed: true } : o))
+        prev.map((o) => (o.id === id ? { ...o, processed } : o))
       );
-      setMessage('Order marked as processed.');
+      setMessage('Order updated.');
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to update order.');
+    }
+  };
+
+  const handleSetPaid = async (id: string, payment_status: string) => {
+    try {
+      const response = await fetch('/api/admin/resources/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, payment_status }),
+      });
+      await parseApiResponse(response);
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, payment_status } : o)));
+      setMessage('Payment status updated.');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to update payment status.');
     }
   };
 
@@ -169,16 +184,20 @@ export default function AdminOrdersPage() {
                 </TableCell>
                 <TableCell>{formatDate(o.created_at)}</TableCell>
                 <TableCell>
-                  {!o.processed && (
+                  <div className="flex flex-col gap-2">
+                    <label className="inline-flex items-center gap-1 text-xs">
+                      <input type="checkbox" checked={o.processed} onChange={(e) => handleSetProcessed(o.id, e.target.checked)} />
+                      Payment processed
+                    </label>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleMarkProcessed(o.id)}
+                      onClick={() => handleSetPaid(o.id, o.payment_status === 'paid' ? 'pending_bank_transfer' : 'paid')}
                     >
                       <CheckCircle className="h-4 w-4 mr-1" />
-                      Mark Processed
+                      {o.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                     </Button>
-                  )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

@@ -23,5 +23,5 @@ export async function GET() {
       processing_open: Boolean(current),
       queue_allowed: current ? Boolean(current.allow_queue_after_close) : Boolean(next?.allow_queue_after_close ?? false),
     },
-  });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

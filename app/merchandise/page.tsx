@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import { PRODUCTS, CLUB_NAME } from '@/lib/constants';
-import { formatCurrency, validateEmail, cn } from '@/lib/utils';
+import { formatCurrency, validateEmail, validatePhone, cn } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
 
 interface CartItem extends OrderItem {
@@ -166,11 +166,12 @@ function MerchandiseContent() {
         const windowsData = await windowsRes.json();
         const blocksPayload = await blocksRes.json();
         const blocks = blocksPayload?.data || {};
+        const orderingBody = blocks['merch.ordering']?.body || '';
         setHeroContent({
           title: blocks['merch.hero']?.title || 'Club Merchandise',
           body: blocks['merch.hero']?.body || `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
           orderTitle: blocks['merch.ordering']?.title || 'Ordering Information',
-          orderBody: blocks['merch.ordering']?.body || '',
+          orderBody: orderingBody.startsWith('Use this section to provide') ? '' : orderingBody,
         });
         if (productsRes.ok && Array.isArray(productsData.data) && productsData.data.length > 0) {
           setProducts(productsData.data
@@ -199,7 +200,7 @@ function MerchandiseContent() {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
-    const size = selectedSizes[productId];
+    const size = selectedSizes[productId] || (product.sizes.length === 0 ? 'One Size' : '');
     if (!size) {
       setSizeErrors((prev) => ({ ...prev, [productId]: 'Please select a size' }));
       return;
@@ -274,7 +275,11 @@ function MerchandiseContent() {
     } else if (!validateEmail(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
-    if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!validatePhone(formData.phone)) {
+      errors.phone = 'Please enter a valid phone number';
+    }
     if (cart.length === 0) errors.cart = 'Please add at least one item to your order';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -326,7 +331,7 @@ function MerchandiseContent() {
         return;
       }
 
-      // Non-Stripe fallback — surface payment reference and bank details
+      // Non-Stripe fallback: surface payment reference and bank details
       setOrderConfirmation({
         payment_reference: data.payment_reference || '',
         bank_details: data.bank_details || { account_name: '', bsb: '', account_number: '' },
@@ -415,27 +420,31 @@ function MerchandiseContent() {
                     {/* Size Selector */}
                     <div>
                       <p className="form-label text-xs">Size</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {product.sizes.map((size) => (
-                          <button
-                            key={size}
-                            type="button"
-                            className={cn(
-                              'px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
-                              selectedSizes[product.id] === size
-                                ? 'border-maroon-700 bg-maroon-700 text-white'
-                                : 'border-gray-300 text-gray-700 hover:border-maroon-400'
-                            )}
-                            onClick={() => {
-                              setSelectedSizes((prev) => ({ ...prev, [product.id]: size }));
-                              setSizeErrors((prev) => ({ ...prev, [product.id]: '' }));
-                            }}
-                            aria-pressed={selectedSizes[product.id] === size}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
+                      {product.sizes.length === 0 ? (
+                        <p className="text-xs text-gray-500">No size selection required.</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {product.sizes.map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              className={cn(
+                                'px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
+                                selectedSizes[product.id] === size
+                                  ? 'border-maroon-700 bg-maroon-700 text-white'
+                                  : 'border-gray-300 text-gray-700 hover:border-maroon-400'
+                              )}
+                              onClick={() => {
+                                setSelectedSizes((prev) => ({ ...prev, [product.id]: size }));
+                                setSizeErrors((prev) => ({ ...prev, [product.id]: '' }));
+                              }}
+                              aria-pressed={selectedSizes[product.id] === size}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {sizeErrors[product.id] && (
                         <p className="mt-1 text-xs text-red-600">{sizeErrors[product.id]}</p>
                       )}
@@ -741,6 +750,9 @@ function MerchandiseContent() {
 
                     <p className="text-gray-500 font-body text-xs text-center">
                       After submission you will receive a payment reference for bank transfer.
+                    </p>
+                    <p className="text-gray-500 font-body text-xs text-center">
+                      Example reference format: NDCC-YYYYMMDD-1234
                     </p>
                   </form>
                 </CardContent>

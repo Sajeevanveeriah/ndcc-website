@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 
-const columnsWithImage = 'id,title,content,author,image_url,published,published_at,created_at';
-const columnsWithoutImage = 'id,title,content,author,published,published_at,created_at';
+const columnsWithImage = 'id,title,content,author,image_url,sort_order,published,published_at,created_at';
+const columnsWithoutImage = 'id,title,content,author,sort_order,published,published_at,created_at';
 
 export type PublicNewsRecord = {
   id: string;
@@ -9,6 +9,7 @@ export type PublicNewsRecord = {
   content: string;
   author: string;
   image_url?: string | null;
+  sort_order?: number;
   published: boolean;
   published_at: string | null;
   created_at: string;
@@ -47,6 +48,7 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
     .from('news')
     .select(columnsWithImage)
     .eq('published', true)
+    .order('sort_order', { ascending: true })
     .order('published_at', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -61,6 +63,7 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
       .from('news')
       .select(columnsWithoutImage)
       .eq('published', true)
+      .order('sort_order', { ascending: true })
       .order('published_at', { ascending: false })
       .order('created_at', { ascending: false });
 
