@@ -6,6 +6,7 @@ import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Users, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -251,11 +252,11 @@ export default function AdminSeasonAppointmentsPage() {
             error={formErrors.announcement_date}
             required
           />
-          <Input
+          <ImageUploadField
             id="appointment-image"
             label="Image URL (optional)"
             value={form.image_url || ''}
-            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            onChange={(value) => setForm({ ...form, image_url: value })}
           />
           <Input
             id="appointment-order"

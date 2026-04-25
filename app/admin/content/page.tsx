@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input, { Textarea } from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
@@ -20,6 +21,7 @@ type Block = {
 
 export default function AdminContentPage() {
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Block | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -76,6 +78,9 @@ export default function AdminContentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: selected.id,
+          block_key: selected.block_key,
+          page_slug: selected.page_slug,
+          section_label: selected.section_label,
           title: selected.title,
           body: selected.body,
           image_url: selected.image_url,
@@ -98,6 +103,40 @@ export default function AdminContentPage() {
     }
   }
 
+  async function createBlock() {
+    setSaving(true);
+    setFeedback(null);
+    try {
+      const res = await adminFetch('/api/admin/resources/contentBlocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          block_key: `new.block.${Date.now()}`,
+          page_slug: 'general',
+          section_label: 'New Content Block',
+          title: '',
+          body: '',
+          is_active: true,
+        }),
+      });
+      const result = await parseApiResponse<{ data?: Block }>(res);
+      await loadBlocks();
+      if (result.data) setSelected(result.data);
+      setFeedback({ type: 'success', message: 'Content block created. Update key/page/label then save.' });
+    } catch (error) {
+      setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Failed to create content block.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const visibleBlocks = blocks.filter((block) => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return true;
+    return [block.page_slug, block.section_label, block.block_key, block.title || '']
+      .some((value) => value.toLowerCase().includes(needle));
+  });
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Content Blocks</h1>
@@ -119,12 +158,16 @@ export default function AdminContentPage() {
       )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white border rounded-xl p-4 lg:col-span-1">
-          <h2 className="font-semibold mb-3">Blocks</h2>
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <h2 className="font-semibold">Blocks</h2>
+            <Button size="sm" onClick={createBlock} isLoading={saving}>New</Button>
+          </div>
+          <Input id="search_blocks" label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
           {blocks.length === 0 ? (
-            <p className="text-sm text-gray-500">No content blocks found. Content blocks are created via the database.</p>
+            <p className="text-sm text-gray-500">No content blocks found. Create one with the New button.</p>
           ) : (
             <div className="space-y-2">
-              {blocks.map((block) => (
+              {visibleBlocks.map((block) => (
                 <button
                   key={block.id}
                   type="button"
@@ -135,6 +178,9 @@ export default function AdminContentPage() {
                   <p className="text-xs text-gray-500">{block.page_slug} &middot; {block.block_key}</p>
                 </button>
               ))}
+              {visibleBlocks.length === 0 && (
+                <p className="text-sm text-gray-500">No blocks match your search.</p>
+              )}
             </div>
           )}
         </div>
@@ -152,9 +198,14 @@ export default function AdminContentPage() {
                   Controls: {usageHints[selected.block_key] || 'Mapped by block key in page code.'}
                 </p>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Input id="block_key" label="Block key" value={selected.block_key} onChange={(e) => setSelected((v) => v ? ({ ...v, block_key: e.target.value }) : v)} />
+                <Input id="page_slug" label="Page slug" value={selected.page_slug} onChange={(e) => setSelected((v) => v ? ({ ...v, page_slug: e.target.value }) : v)} />
+                <Input id="section_label" label="Section label" value={selected.section_label} onChange={(e) => setSelected((v) => v ? ({ ...v, section_label: e.target.value }) : v)} />
+              </div>
               <Input id="block_title" label="Title" value={selected.title || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, title: e.target.value }) : v)} />
               <Textarea id="block_body" label="Body" rows={5} value={selected.body || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, body: e.target.value }) : v)} />
-              <Input id="block_image" label="Image URL" value={selected.image_url || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, image_url: e.target.value }) : v)} />
+              <ImageUploadField id="block_image" label="Image URL" value={selected.image_url || ''} onChange={(value) => setSelected((v) => v ? ({ ...v, image_url: value }) : v)} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input id="block_cta_label" label="CTA label" value={selected.cta_label || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, cta_label: e.target.value }) : v)} />
                 <Input id="block_cta_url" label="CTA URL" value={selected.cta_url || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, cta_url: e.target.value }) : v)} />

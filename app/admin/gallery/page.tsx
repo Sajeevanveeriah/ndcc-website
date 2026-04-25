@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
@@ -175,7 +176,7 @@ export default function AdminGalleryPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input id="title" label="Title" required value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} />
           <Input id="caption" label="Caption" value={form.caption} onChange={(e) => setForm((prev) => ({ ...prev, caption: e.target.value }))} />
-          <Input id="image_url" label="Image URL" required value={form.image_url} onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))} />
+          <ImageUploadField id="image_url" label="Image URL" value={form.image_url} onChange={(value) => setForm((prev) => ({ ...prev, image_url: value }))} />
           <Input id="alt_text" label="Alt Text" value={form.alt_text} onChange={(e) => setForm((prev) => ({ ...prev, alt_text: e.target.value }))} />
           <Input id="sort_order" label="Sort Order" type="number" value={String(form.sort_order)} onChange={(e) => setForm((prev) => ({ ...prev, sort_order: Number(e.target.value) || 0 }))} />
         </div>
@@ -249,7 +250,7 @@ export default function AdminGalleryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input id="edit_title" label="Title" required value={editForm.title} onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))} />
             <Input id="edit_caption" label="Caption" value={editForm.caption} onChange={(e) => setEditForm((prev) => ({ ...prev, caption: e.target.value }))} />
-            <Input id="edit_image_url" label="Image URL" required value={editForm.image_url} onChange={(e) => setEditForm((prev) => ({ ...prev, image_url: e.target.value }))} />
+            <ImageUploadField id="edit_image_url" label="Image URL" value={editForm.image_url} onChange={(value) => setEditForm((prev) => ({ ...prev, image_url: value }))} />
             <Input id="edit_alt_text" label="Alt Text" value={editForm.alt_text} onChange={(e) => setEditForm((prev) => ({ ...prev, alt_text: e.target.value }))} />
             <Input id="edit_sort_order" label="Sort Order" type="number" value={String(editForm.sort_order)} onChange={(e) => setEditForm((prev) => ({ ...prev, sort_order: Number(e.target.value) || 0 }))} />
           </div>

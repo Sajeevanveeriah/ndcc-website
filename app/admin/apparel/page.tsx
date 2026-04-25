@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
 
@@ -166,7 +167,7 @@ export default function AdminApparelPage() {
           <Input id="price" label="Price" type="number" required value={productForm.price} onChange={(e) => setProductForm((v) => ({ ...v, price: e.target.value }))} />
           <Input id="sizes" label="Sizes CSV" value={productForm.sizes} onChange={(e) => setProductForm((v) => ({ ...v, sizes: e.target.value }))} />
           <Input id="description" label="Description" value={productForm.description} onChange={(e) => setProductForm((v) => ({ ...v, description: e.target.value }))} />
-          <Input id="image_url" label="Image URL (optional)" value={productForm.image_url} onChange={(e) => setProductForm((v) => ({ ...v, image_url: e.target.value }))} />
+          <ImageUploadField id="image_url" label="Image URL (optional)" value={productForm.image_url} onChange={(value) => setProductForm((v) => ({ ...v, image_url: value }))} />
           <Input id="category" label="Category" value={productForm.category} onChange={(e) => setProductForm((v) => ({ ...v, category: e.target.value }))} />
           <Input id="display_order" label="Display order" type="number" value={productForm.display_order} onChange={(e) => setProductForm((v) => ({ ...v, display_order: e.target.value }))} />
           <Input id="order_guidance" label="Order guidance" value={productForm.order_guidance} onChange={(e) => setProductForm((v) => ({ ...v, order_guidance: e.target.value }))} />
