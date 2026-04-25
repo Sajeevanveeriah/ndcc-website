@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
 
@@ -303,7 +304,7 @@ export default function AdminKitchenPage() {
             </label>
             <Input id="edit_item_name" label="Item name" required value={editItemForm.name} onChange={(e) => setEditItemForm((v) => ({ ...v, name: e.target.value }))} />
             <Input id="edit_item_description" label="Description" value={editItemForm.description} onChange={(e) => setEditItemForm((v) => ({ ...v, description: e.target.value }))} />
-            <Input id="edit_item_image_url" label="Image URL (optional)" value={editItemForm.image_url} onChange={(e) => setEditItemForm((v) => ({ ...v, image_url: e.target.value }))} />
+            <ImageUploadField id="edit_item_image_url" label="Image URL (optional)" value={editItemForm.image_url} onChange={(value) => setEditItemForm((v) => ({ ...v, image_url: value }))} />
             <Input id="edit_item_price" label="Price" type="number" required value={editItemForm.price} onChange={(e) => setEditItemForm((v) => ({ ...v, price: e.target.value }))} />
             <Input id="edit_item_sort" label="Sort order" type="number" value={editItemForm.sort_order} onChange={(e) => setEditItemForm((v) => ({ ...v, sort_order: e.target.value }))} />
             <div className="flex items-end gap-4">
@@ -331,7 +332,7 @@ export default function AdminKitchenPage() {
             </label>
             <Input id="item_name" label="Item name" required value={itemForm.name} onChange={(e) => setItemForm((v) => ({ ...v, name: e.target.value }))} />
             <Input id="item_description" label="Description" value={itemForm.description} onChange={(e) => setItemForm((v) => ({ ...v, description: e.target.value }))} />
-            <Input id="item_image_url" label="Image URL (optional)" value={itemForm.image_url} onChange={(e) => setItemForm((v) => ({ ...v, image_url: e.target.value }))} />
+            <ImageUploadField id="item_image_url" label="Image URL (optional)" value={itemForm.image_url} onChange={(value) => setItemForm((v) => ({ ...v, image_url: value }))} />
             <Input id="item_price" label="Price" type="number" required value={itemForm.price} onChange={(e) => setItemForm((v) => ({ ...v, price: e.target.value }))} />
             <Input id="item_sort" label="Sort order" type="number" value={itemForm.sort_order} onChange={(e) => setItemForm((v) => ({ ...v, sort_order: e.target.value }))} />
             <div className="flex items-end gap-4">

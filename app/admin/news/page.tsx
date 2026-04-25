@@ -7,6 +7,7 @@ import type { NewsPost } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -252,11 +253,11 @@ export default function AdminNewsPage() {
             error={formErrors.author}
             required
           />
-          <Input
+          <ImageUploadField
             id="news-image-url"
             label="Image URL (optional)"
             value={form.image_url || ''}
-            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            onChange={(value) => setForm({ ...form, image_url: value })}
             placeholder="https://example.com/news-image.jpg"
           />
           <Input

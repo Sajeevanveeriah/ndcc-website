@@ -8,6 +8,7 @@ import type { Sponsor } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -293,12 +294,13 @@ export default function AdminSponsorsPage() {
               onChange={(e) => setForm({ ...form, placement_type: e.target.value })}
             />
           </div>
-          <Input
+          <ImageUploadField
             id="sponsor-logo"
             label="Logo URL (optional)"
             value={form.logo_url}
-            onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+            onChange={(value) => setForm({ ...form, logo_url: value })}
             placeholder="/images/sponsors/logo.png"
+            helpText="Paste an external logo URL or upload a file to store under /images/cms."
           />
           <Input
             id="sponsor-website"

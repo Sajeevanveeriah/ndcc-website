@@ -6,7 +6,7 @@ Official website for the Newcomb and District Cricket Club — the Dinos. Compet
 
 - **Framework:** Next.js 14 (App Router) with TypeScript
 - **Styling:** Tailwind CSS
-- **Database:** Supabase (PostgreSQL with Row Level Security)
+- **Database:** Supabase Postgres (managed via `supabase/migrations`)
 - **Payments:** Stripe (Payment Links)
 - **Deployment:** Vercel
 
@@ -34,8 +34,9 @@ cp .env.example .env.local
 ### Database Setup
 
 1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Run the SQL in `supabase/schema.sql` in the Supabase SQL Editor
-3. Copy your project URL, anon key, and service role key to `.env.local`
+2. Apply SQL migrations from `supabase/migrations` in timestamp order.
+3. Treat migrations as the source of truth. `supabase/schema.sql` is a legacy snapshot and not authoritative.
+4. Copy your project URL, anon key, and service role key to `.env.local`
 
 ### Development
 
@@ -45,11 +46,35 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Admin Setup
+### Admin Setup (Custom Committee Auth)
 
-1. Create a user in Supabase Authentication
-2. Add a row to the `profiles` table with the user's ID, email, and `role: 'admin'`
-3. Log in at `/admin/login`
+1. Apply `20260401_custom_committee_auth.sql` and later migrations.
+2. Bootstrap the first admin using `POST /api/admin/auth/bootstrap`.
+3. Log in at `/admin/login`.
+4. Manage committee users in `/admin/users` (admin-only). Roles available: `admin`, `president`, `secretary`, `committee`.
+
+### GitHub-backed CMS Image Upload Setup
+
+Set these as **server-only** environment variables (for local `.env.local` and Vercel Project Environment Variables):
+
+- `GITHUB_CONTENTS_TOKEN`
+- `GITHUB_REPO_OWNER`
+- `GITHUB_REPO_NAME`
+- `GITHUB_CONTENTS_BRANCH`
+- `GITHUB_MEDIA_BASE_PATH` (for example `public/images/cms`)
+- `GITHUB_COMMITTER_NAME`
+- `GITHUB_COMMITTER_EMAIL`
+
+Image uploads from admin forms commit files to GitHub via the Contents API, then return a public path like `/images/cms/YYYY/MM/file.webp`.
+If Vercel is connected to this same GitHub repository/branch, each upload commit triggers a deployment.
+
+### CMS Content Workflow
+
+1. Sign in to `/admin`.
+2. Edit singleton page text in **Content Blocks**.
+3. For repeatable content, use dedicated admin screens (News, Gallery, Sponsors, Apparel, Kitchen, etc.).
+4. Use the **Upload image** button in image fields to store assets in GitHub under `/public/images/cms`.
+5. Save changes and verify the public page route.
 
 ## Project Structure
 

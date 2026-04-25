@@ -1,5 +1,7 @@
 -- NDCC Website Database Schema
--- Run this in the Supabase SQL Editor to set up all tables
+-- Legacy snapshot only.
+-- Source of truth: SQL files in supabase/migrations/
+-- This file may not match the current custom committee auth architecture.
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
