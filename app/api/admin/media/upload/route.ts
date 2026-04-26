@@ -135,5 +135,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: `GitHub upload failed: ${errorMessage}` }, { status: 502 });
   }
 
-  return NextResponse.json({ success: true, path: publicPath });
+  let warning: string | undefined;
+  const deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL;
+
+  if (!deployHookUrl) {
+    warning = 'Image uploaded, but deployment was not triggered because VERCEL_DEPLOY_HOOK_URL is not configured.';
+  } else {
+    try {
+      const deployResponse = await fetch(deployHookUrl, { method: 'POST' });
+      if (!deployResponse.ok) {
+        warning = 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.';
+      }
+    } catch {
+      warning = 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.';
+    }
+  }
+
+  return NextResponse.json({ success: true, path: publicPath, ...(warning ? { warning } : {}) });
 }

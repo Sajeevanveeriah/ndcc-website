@@ -18,9 +18,11 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
   const [uploading, setUploading] = useState(false);
   const [progressText, setProgressText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   async function uploadFile(file: File) {
     setError(null);
+    setWarning(null);
     setUploading(true);
     setProgressText('Uploading image...');
 
@@ -44,6 +46,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
 
       onChange(payload.path);
       setProgressText('Upload complete.');
+      setWarning(typeof payload?.warning === 'string' ? payload.warning : null);
     } catch (uploadError) {
       setProgressText('');
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed.');
@@ -61,6 +64,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         placeholder={placeholder || 'https://example.com/image.jpg or /images/cms/...'}
         onChange={(event) => {
           setError(null);
+          setWarning(null);
           setProgressText('');
           onChange(event.target.value);
         }}
@@ -90,6 +94,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       />
       {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
       {progressText && <p className="text-xs text-green-700">{progressText}</p>}
+      {warning && <p className="text-xs text-amber-700">{warning}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
       {value && (
         <div className="relative h-20 w-20 rounded border border-gray-200 overflow-hidden">
