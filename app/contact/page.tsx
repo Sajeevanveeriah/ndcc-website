@@ -34,6 +34,7 @@ export default function ContactPage() {
   }, []);
 
   const clubEmail = assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN);
+  const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -183,7 +184,12 @@ export default function ContactPage() {
                       <div>
                         <p className="font-body font-semibold text-gray-900">Contact</p>
                         <p className="font-body text-gray-600 text-sm">John Elliott, President</p>
-                        <p className="font-body text-gray-600 text-sm">{CLUB_PHONE}</p>
+                        <a
+                          href={clubPhoneHref}
+                          className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                        >
+                          {CLUB_PHONE}
+                        </a>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">

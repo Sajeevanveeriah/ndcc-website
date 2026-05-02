@@ -219,7 +219,7 @@ export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
     id: 'seed-apparel-sponsorship-2026-27',
     title: 'Apparel Sponsorship 2026/27',
     content:
-      'Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season. This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on 0419 236 866 or ndsc.cricket@gmail.com.',
+      `Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season. This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on ${CLUB_PHONE} or ${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}.`,
     author: 'NDCC Committee',
     published: true,
     published_at: '2026-04-29T10:00:00+10:00',

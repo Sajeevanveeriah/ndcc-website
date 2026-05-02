@@ -9,6 +9,8 @@ import Badge from '@/components/ui/Badge';
 import {
   SPONSOR_TIERS,
   CLUB_NAME,
+  CLUB_EMAIL_USER,
+  CLUB_EMAIL_DOMAIN,
   CLUB_PHONE,
   SEED_SPONSORS,
   SEED_SPONSOR_DESCRIPTIONS,
@@ -26,6 +28,8 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 };
 
 export default function SponsorsPage() {
+  const clubEmail = `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
+  const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingSeed, setUsingSeed] = useState(false);
@@ -274,7 +278,7 @@ export default function SponsorsPage() {
                 Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season.
               </p>
               <p className="text-gray-700 font-body">
-                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on {CLUB_PHONE} or via email at ndsc.cricket@gmail.com.
+                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 hover:text-maroon-500 transition-colors">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 hover:text-maroon-500 transition-colors">{clubEmail}</a>.
               </p>
             </CardContent>
           </Card>

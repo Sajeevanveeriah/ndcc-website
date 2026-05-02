@@ -18,6 +18,7 @@ import { getContentBlocks } from '@/lib/content-blocks';
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
   const emailHref = `mailto:${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
+  const phoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
   const blocks = await getContentBlocks(['footer.acknowledgement']);
   const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
   const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
@@ -70,7 +71,9 @@ export default async function Footer() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-maroon-200">
                   <Phone className="h-4 w-4 shrink-0" />
-                  <span className="font-body">{CLUB_PHONE}</span>
+                  <a href={phoneHref} className="font-body hover:text-white transition-colors">
+                    {CLUB_PHONE}
+                  </a>
                 </div>
               </div>
             </div>
