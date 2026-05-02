@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase-server';
+import { isPublicNewsPostAllowed } from '@/lib/public-content-normalizers';
 
 const columnsWithImage = 'id,title,content,author,image_url,sort_order,published,published_at,created_at';
 const columnsWithoutImage = 'id,title,content,author,sort_order,published,published_at,created_at';
@@ -25,6 +26,10 @@ export type PublicNewsRecord = {
   published_at: string | null;
   created_at: string;
 };
+
+function filterPublicNews(records: PublicNewsRecord[]) {
+  return records.filter((record) => isPublicNewsPostAllowed(record.title));
+}
 
 export async function getPublishedNews(options?: { id?: string; limit?: number }): Promise<PublicNewsRecord[] | PublicNewsRecord | null> {
   const supabase = createServerClient();
@@ -133,11 +138,11 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
 
         const noSortFallback = await noSortFallbackQuery;
         if (noSortFallback.error) throw new Error(noSortFallback.error.message);
-        return (noSortFallback.data as PublicNewsRecord[] | null) ?? [];
+        return filterPublicNews((noSortFallback.data as PublicNewsRecord[] | null) ?? []);
       }
       throw new Error(fallback.error.message);
     }
-    return (fallback.data as PublicNewsRecord[] | null) ?? [];
+    return filterPublicNews((fallback.data as PublicNewsRecord[] | null) ?? []);
   }
 
   if (isMissingSortOrderColumn(initial.error?.message)) {
@@ -167,13 +172,13 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
 
       const noSortNoImageFallback = await noSortNoImageFallbackQuery;
       if (noSortNoImageFallback.error) throw new Error(noSortNoImageFallback.error.message);
-      return (noSortNoImageFallback.data as PublicNewsRecord[] | null) ?? [];
+      return filterPublicNews((noSortNoImageFallback.data as PublicNewsRecord[] | null) ?? []);
     }
 
     if (noSortFallback.error) throw new Error(noSortFallback.error.message);
-    return (noSortFallback.data as PublicNewsRecord[] | null) ?? [];
+    return filterPublicNews((noSortFallback.data as PublicNewsRecord[] | null) ?? []);
   }
 
   if (initial.error) throw new Error(initial.error.message);
-  return (initial.data as PublicNewsRecord[] | null) ?? [];
+  return filterPublicNews((initial.data as PublicNewsRecord[] | null) ?? []);
 }

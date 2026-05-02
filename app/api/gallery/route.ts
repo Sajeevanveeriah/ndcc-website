@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { normalizeGalleryImage } from '@/lib/public-content-normalizers';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,5 +21,5 @@ export async function GET() {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, data: data ?? [] });
+  return NextResponse.json({ success: true, data: (data ?? []).map((item) => normalizeGalleryImage(item)) });
 }
