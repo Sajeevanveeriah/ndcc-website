@@ -56,14 +56,14 @@ export default function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
         scrolled
-          ? 'bg-white/95 backdrop-blur-sm shadow-md'
-          : 'bg-white shadow-sm'
+          ? 'bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200'
+          : 'bg-white border-b border-transparent'
       )}
       role="navigation"
       aria-label="Main navigation"
     >
       <div className="container-width px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-20">
+        <div className="flex items-center justify-between h-16 lg:h-[4.75rem]">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0" aria-label="NDCC Home">
             <Image
@@ -75,10 +75,10 @@ export default function Navbar() {
               priority
             />
             <div className="hidden sm:block">
-              <span className="text-maroon-700 font-display font-bold text-lg leading-tight block">
+              <span className="text-maroon-700 font-display font-semibold uppercase tracking-wide text-lg leading-tight block">
                 {CLUB_SHORT}
               </span>
-              <span className="text-gray-500 text-xs font-body">Est. 1972</span>
+              <span className="text-gray-500 text-xs font-body tracking-wide">Est. 1972</span>
             </div>
           </Link>
 
@@ -105,7 +105,7 @@ export default function Navbar() {
                 More <ChevronDown className="h-3.5 w-3.5" />
               </button>
               <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 py-2 min-w-[180px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-2 min-w-[180px]">
                   {moreLinks.map((link) => (
                     <Link
                       key={link.href}
@@ -130,7 +130,7 @@ export default function Navbar() {
                   {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" />
                 </button>
                 <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 py-2 min-w-[180px]">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-2 min-w-[180px]">
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Account</Link>
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Admin Panel</Link>
                     <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
@@ -145,7 +145,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="lg:hidden p-2 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors"
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
           >
@@ -161,7 +161,7 @@ export default function Navbar() {
           isOpen ? 'max-h-[80vh] opacity-100' : 'max-h-0 opacity-0'
         )}
       >
-        <div className="bg-white border-t border-gray-100 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
+        <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

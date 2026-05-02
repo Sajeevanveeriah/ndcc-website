@@ -25,7 +25,7 @@ const config: Config = {
         sky_accent: '#ADD8E6',
       },
       fontFamily: {
-        display: ['Georgia', 'Times New Roman', 'serif'],
+        display: ['Barlow Condensed', 'Oswald', 'Archivo', 'Inter', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
       },
     },

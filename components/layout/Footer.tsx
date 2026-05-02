@@ -24,7 +24,7 @@ export default async function Footer() {
   const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
 
   return (
-    <footer className="bg-maroon-800 text-white" role="contentinfo">
+    <footer className="bg-maroon-900 text-white" role="contentinfo">
       {/* Acknowledgement */}
       <div
         className="bg-maroon-900 px-4 sm:px-6 lg:px-8 py-6 bg-cover bg-center"
@@ -51,7 +51,7 @@ export default async function Footer() {
                   height={40}
                   className="rounded-full"
                 />
-                <span className="font-display font-bold text-lg">{CLUB_SHORT}</span>
+                <span className="font-display font-semibold uppercase tracking-wide text-lg">{CLUB_SHORT}</span>
               </Link>
               <p className="text-maroon-200 text-sm font-body mb-4">
                 {CLUB_NAME}. Proudly competing in the {CLUB_ASSOCIATION} since 1972.
@@ -80,7 +80,7 @@ export default async function Footer() {
 
             {/* Quick Links */}
             <div>
-              <h3 className="font-display font-bold text-base mb-4">Quick Links</h3>
+              <h3 className="font-display font-semibold uppercase tracking-wide text-base mb-4">Quick Links</h3>
               <ul className="space-y-2">
                 {NAV_LINKS.slice(0, 6).map((link) => (
                   <li key={link.href}>
@@ -97,7 +97,7 @@ export default async function Footer() {
 
             {/* More Links */}
             <div>
-              <h3 className="font-display font-bold text-base mb-4">Get Involved</h3>
+              <h3 className="font-display font-semibold uppercase tracking-wide text-base mb-4">Get Involved</h3>
               <ul className="space-y-2">
                 {NAV_LINKS.slice(6).map((link) => (
                   <li key={link.href}>
@@ -122,7 +122,7 @@ export default async function Footer() {
 
             {/* Partners */}
             <div>
-              <h3 className="font-display font-bold text-base mb-4">Affiliations</h3>
+              <h3 className="font-display font-semibold uppercase tracking-wide text-base mb-4">Affiliations</h3>
               <ul className="space-y-2">
                 <li>
                   <a
