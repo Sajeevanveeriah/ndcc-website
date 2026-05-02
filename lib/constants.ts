@@ -200,10 +200,11 @@ export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
     id: 'seed-agm-2026',
     title: 'Annual General Meeting - Wednesday 20 May 2026',
     content:
-      'Members, players, families, volunteers and supporters are invited to attend the Annual General Meeting as the club prepares for the 2026/27 season. Date: Wednesday 20 May 2026. Time: 6:30 pm. Venue: Club rooms, Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224.',
+      'All members are encouraged to attend the Annual General Meeting. Date: Wednesday 20 May 2026. Time: 6:30 pm. Venue: NDCC Club Rooms, 141 Coppards Road, Moolap VIC 3224. Have your say and help shape the future of the club. Your club. Your voice. Be there for the AGM.',
     author: 'NDCC Committee',
     published: true,
     published_at: '2026-05-01T09:00:00+10:00',
+    image: '/images/events/2026/agm-2026.png',
   },
   {
     id: 'seed-dino-lotto-2026',
@@ -226,26 +227,6 @@ export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
     image: '/images/sponsors/2026-27/apparel-sponsorship-2026-27.webp',
   },
   {
-    id: 'seed-kelsey-allan',
-    title: "Kelsey Allan Appointed Women's Coach for 2026/27",
-    content:
-      'Newcomb and District Cricket Club is pleased to announce the appointment of Kelsey Allan as Women\'s Coach for the 2026/27 season. Kelsey brings enthusiasm and cricket knowledge to the role and will lead the women\'s program as it continues to grow. This is one of several coaching appointments for the upcoming season. Welcome aboard, Kelsey!',
-    author: 'NDCC',
-    published: true,
-    published_at: '2026-03-15T10:00:00+11:00',
-    image: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp',
-  },
-  {
-    id: 'seed-welcome',
-    title: 'Welcome to the New NDCC Website',
-    content:
-      'We are thrilled to launch the brand-new Newcomb and District Cricket Club website. This platform has been built from the ground up to keep our members, supporters, and the wider Geelong cricket community informed about everything happening at the Dinos. You will find fixtures, event information, merchandise, volunteer opportunities, and much more. We will be continually adding new features, so check back often. Thank you to everyone who contributed to making this happen.',
-    author: 'NDCC Committee',
-    published: true,
-    published_at: '2026-03-01T09:00:00',
-    image: '/images/Womens_Team.jpg',
-  },
-  {
     id: 'seed-u13s-grand-final',
     title: 'U13s Reach Grand Final',
     content:
@@ -253,15 +234,6 @@ export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
     author: 'NDCC Committee',
     published: true,
     published_at: '2026-03-10T10:00:00',
-  },
-  {
-    id: 'seed-training-facility',
-    title: 'Training Facility Grand Opening',
-    content:
-      'The Peter "Skinny" Harrison Training Facility was officially opened in August 2024, marking a milestone moment for our club. Named in honour of one of our most beloved and long-serving members, the facility features three public synthetic lanes and four club turf lanes, giving our players access to first-class training surfaces right here at Grinter Reserve in Moolap. The new facility is a game-changer for both senior and junior cricket development at the club.',
-    author: 'NDCC Committee',
-    published: true,
-    published_at: '2024-08-15T10:00:00',
   },
   {
     id: 'seed-2627-preview',
@@ -335,7 +307,7 @@ export const SEED_EVENTS: Omit<Event, 'stripe_link' | 'published' | 'created_at'
     id: 'seed-event-agm-2026',
     title: 'Annual General Meeting',
     description:
-      'Members, players, families, volunteers and supporters are invited to attend the AGM as the club prepares for the 2026/27 season. Wednesday 20 May 2026, 6:30 pm at the club rooms, Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224.',
+      'All members are encouraged to attend the Annual General Meeting. Wednesday 20 May 2026, 6:30 pm at NDCC Club Rooms, 141 Coppards Road, Moolap VIC 3224. Have your say and help shape the future of the club. Your club. Your voice. Be there for the AGM.',
     date: '2026-05-20T18:30:00+10:00',
     location: 'Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224',
     capacity: null,
@@ -350,16 +322,6 @@ export const SEED_EVENTS: Omit<Event, 'stripe_link' | 'published' | 'created_at'
     location: 'Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224',
     capacity: 50,
     ticket_price: 50,
-  },
-  {
-    id: 'seed-event-presentation',
-    title: '2025/26 Presentation Night',
-    description:
-      'Join us to celebrate the achievements of our players and volunteers for the 2025/26 season. Awards across all teams, dinner, and plenty of Dinos spirit. Held at General Public, Geelong.',
-    date: '2026-03-28T18:00:00+11:00',
-    location: 'General Public, Geelong',
-    capacity: null,
-    ticket_price: 35,
   },
   {
     id: 'seed-event-preseason',
