@@ -258,9 +258,23 @@ export default function SponsorsPage() {
           <Card>
             <CardContent className="p-6">
               <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">2026/27 Sponsorship Packages</h2>
-              <p className="text-gray-700 font-body mb-4">
-                Social Membership (AUD 75), Match Day Ball Sponsor (AUD 150), Player Sponsorship (AUD 350), Bronze Sponsorship (AUD 450), Silver Sponsorship (AUD 850), Gold Sponsorship (AUD 1,150), Diamond Sponsorship (AUD 1,550), Platinum Sponsorship (AUD 2,100).
-              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4" aria-label="Sponsorship package summary">
+                {[
+                  ['Social Membership', 'AUD 75'],
+                  ['Match Day Ball Sponsor', 'AUD 150'],
+                  ['Player Sponsorship', 'AUD 350'],
+                  ['Bronze Sponsorship', 'AUD 450'],
+                  ['Silver Sponsorship', 'AUD 850'],
+                  ['Gold Sponsorship', 'AUD 1,150'],
+                  ['Diamond Sponsorship', 'AUD 1,550'],
+                  ['Platinum Sponsorship', 'AUD 2,100'],
+                ].map(([tier, price]) => (
+                  <div key={tier} className="rounded-lg border border-gray-200 bg-white px-3 py-3">
+                    <p className="text-xs font-body uppercase tracking-wide text-gray-500">{tier}</p>
+                    <p className="text-base font-display font-bold text-maroon-700 mt-1">{price}</p>
+                  </div>
+                ))}
+              </div>
               <div className="space-y-2">
                 {sponsorshipDownloads2026_27.map((download) => (
                   <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 hover:text-maroon-500 hover:underline font-body">

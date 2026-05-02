@@ -144,16 +144,6 @@ export const achievementAssets2025_26 = [
 
 export const eventAssets2026 = [
   {
-    title: 'Annual General Meeting 2026',
-    alt: 'Annual General Meeting 2026 notice for Newcomb and District Cricket Club members',
-    src: '/images/events/2026/agm-2026.png',
-    width: 1080,
-    height: 1080,
-    sourceFile: 'agm-2026.png',
-    sourceBytes: 462026,
-    optimizedBytes: 462026,
-  },
-  {
     title: 'Dino Lotto 2026',
     alt: 'NDCC Dino Lotto 2026 event poster with QR code',
     src: '/images/events/2026/dino-lotto-2026.webp',
