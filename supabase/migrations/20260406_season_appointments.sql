@@ -32,7 +32,7 @@ EXECUTE FUNCTION set_season_appointments_updated_at();
 INSERT INTO season_appointments (name, role, image_url, announcement_date, sort_order, is_active)
 VALUES
   ('Craig Hillgrove', 'Head Coach', NULL, '2026-03-01', 1, TRUE),
-  ('Kelsey Allan', 'Women''s Coach', '/images/Poster.png', '2026-03-15', 2, TRUE)
+  ('Kelsey Allan', 'Women''s Coach', '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp', '2026-03-15', 2, TRUE)
 ON CONFLICT DO NOTHING;
 
 NOTIFY pgrst, 'reload schema';
