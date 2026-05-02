@@ -18,6 +18,7 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
+import { normalizeSeasonAppointmentImage } from '@/lib/public-content-normalizers';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -115,7 +116,10 @@ export default async function HomePage() {
         logo_url: s.logo_url,
       }));
 
-  const seasonAppointments = dbSeasonAppointments;
+  const seasonAppointments = dbSeasonAppointments.map((item) => ({
+    ...item,
+    image_url: normalizeSeasonAppointmentImage(item.name, item.image_url),
+  }));
   const heroCtaLabel = blocks['home.hero']?.cta_label || 'Join the Club';
   const heroCtaUrl = blocks['home.hero']?.cta_url || '/contact';
 
