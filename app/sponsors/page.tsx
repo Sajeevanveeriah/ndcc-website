@@ -9,9 +9,11 @@ import Badge from '@/components/ui/Badge';
 import {
   SPONSOR_TIERS,
   CLUB_NAME,
+  CLUB_PHONE,
   SEED_SPONSORS,
   SEED_SPONSOR_DESCRIPTIONS,
 } from '@/lib/constants';
+import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 
@@ -244,6 +246,38 @@ export default function SponsorsPage() {
           <Link href="#enquiry-form" className="btn-accent">
             Enquire Below
           </Link>
+        </div>
+      </section>
+
+      <section className="section-padding bg-gray-50">
+        <div className="container-width max-w-4xl mx-auto space-y-8">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">2026/27 Sponsorship Packages</h2>
+              <p className="text-gray-700 font-body mb-4">
+                Social Membership (AUD 75), Match Day Ball Sponsor (AUD 150), Player Sponsorship (AUD 350), Bronze Sponsorship (AUD 450), Silver Sponsorship (AUD 850), Gold Sponsorship (AUD 1,150), Diamond Sponsorship (AUD 1,550), Platinum Sponsorship (AUD 2,100).
+              </p>
+              <div className="space-y-2">
+                {sponsorshipDownloads2026_27.map((download) => (
+                  <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 hover:text-maroon-500 hover:underline font-body">
+                    {download.title}
+                  </a>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">Apparel Sponsorship</h2>
+              <p className="text-gray-700 font-body mb-4">
+                Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season.
+              </p>
+              <p className="text-gray-700 font-body">
+                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on {CLUB_PHONE} or via email at ndsc.cricket@gmail.com.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </section>
 

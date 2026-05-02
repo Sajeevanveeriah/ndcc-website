@@ -7,7 +7,7 @@ export const CLUB_ESTABLISHED = 1972;
 export const CLUB_EMAIL_USER = 'ndsc.cricket';
 export const CLUB_EMAIL_DOMAIN = 'gmail.com';
 export const CLUB_GROUND = 'Grinter Reserve';
-export const CLUB_ADDRESS = '141 Coppards Road, Moolap VIC 3221';
+export const CLUB_ADDRESS = '141 Coppards Road, Moolap VIC 3224';
 export const CLUB_ASSOCIATION = 'Geelong Cricket Association';
 export const CLUB_ASSOCIATION_SHORT = 'GCA';
 
@@ -189,7 +189,7 @@ export const NAV_LINKS = [
 export const GOOGLE_MAPS_EMBED_URL =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3140.5!2d144.38!3d-38.17!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sGrinter+Reserve+Moolap!5e0!3m2!1sen!2sau!4v1234567890';
 
-export const CLUB_PHONE = '+61 419 236 866';
+export const CLUB_PHONE = '0419 236 866';
 export const FACEBOOK_URL = 'https://www.facebook.com/NewcombDistrictCricketClub/';
 export const INSTAGRAM_URL = 'https://www.instagram.com/newcombdistrictcc/';
 export const INSTAGRAM_HANDLE = '@newcombdistrictcc';
@@ -197,6 +197,35 @@ export const PLAYHQ_ORG_URL = 'https://www.playhq.com/cricket-australia/org/newc
 export const PLAYHQ_URL = PLAYHQ_ORG_URL;
 
 export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
+  {
+    id: 'seed-agm-2026',
+    title: 'Annual General Meeting - Wednesday 20 May 2026',
+    content:
+      'Members, players, families, volunteers and supporters are invited to attend the Annual General Meeting as the club prepares for the 2026/27 season. Date: Wednesday 20 May 2026. Time: 6:30 pm. Venue: Club rooms, Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2026-05-01T09:00:00+10:00',
+  },
+  {
+    id: 'seed-dino-lotto-2026',
+    title: 'Dino Lotto 2026 is Open',
+    content:
+      'Dino Lotto has 50 numbers available at AUD 50 per number. One AUD 100 prize is drawn every Friday at 7:00 pm across a 10 week block, starting when all numbers are sold. Each number remains in every weekly draw. To secure a number, contact ndsc.cricket@gmail.com.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2026-04-30T17:00:00+10:00',
+    image: '/images/events/2026/dino-lotto-2026.webp',
+  },
+  {
+    id: 'seed-apparel-sponsorship-2026-27',
+    title: 'Apparel Sponsorship 2026/27',
+    content:
+      'Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season. This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on 0419 236 866 or ndsc.cricket@gmail.com.',
+    author: 'NDCC Committee',
+    published: true,
+    published_at: '2026-04-29T10:00:00+10:00',
+    image: '/images/sponsors/2026-27/apparel-sponsorship-2026-27.webp',
+  },
   {
     id: 'seed-kelsey-allan',
     title: "Kelsey Allan Appointed Women's Coach for 2026/27",
@@ -303,6 +332,26 @@ export const SEED_SPONSOR_DESCRIPTIONS: Record<string, string> = {
 };
 
 export const SEED_EVENTS: Omit<Event, 'stripe_link' | 'published' | 'created_at'>[] = [
+  {
+    id: 'seed-event-agm-2026',
+    title: 'Annual General Meeting',
+    description:
+      'Members, players, families, volunteers and supporters are invited to attend the AGM as the club prepares for the 2026/27 season. Wednesday 20 May 2026, 6:30 pm at the club rooms, Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224.',
+    date: '2026-05-20T18:30:00+10:00',
+    location: 'Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224',
+    capacity: null,
+    ticket_price: 0,
+  },
+  {
+    id: 'seed-event-dino-lotto-2026',
+    title: 'Dino Lotto 2026',
+    description:
+      'Dino Lotto has 50 numbers at AUD 50 each, with an AUD 100 weekly prize across a 10 week block. Draws are Fridays at 7:00 pm and start when all numbers are sold. Each number stays in every weekly draw. Contact ndsc.cricket@gmail.com to secure a number.',
+    date: '2026-05-22T19:00:00+10:00',
+    location: 'Newcomb and District Sports Club, 141 Coppards Road, Moolap VIC 3224',
+    capacity: 50,
+    ticket_price: 50,
+  },
   {
     id: 'seed-event-presentation',
     title: '2025/26 Presentation Night',
