@@ -1,5 +1,5 @@
 import { createServerClient } from '@/lib/supabase-server';
-import { isPublicNewsPostAllowed } from '@/lib/public-content-normalizers';
+import { isPublicNewsPostAllowed, normalizeNewsImage } from '@/lib/public-content-normalizers';
 
 const columnsWithImage = 'id,title,content,author,image_url,sort_order,published,published_at,created_at';
 const columnsWithoutImage = 'id,title,content,author,sort_order,published,published_at,created_at';
@@ -27,8 +27,21 @@ export type PublicNewsRecord = {
   created_at: string;
 };
 
+function normalizePublicNewsRecord(record: PublicNewsRecord | null) {
+  if (!record) return null;
+  return {
+    ...record,
+    image_url: normalizeNewsImage(record.title, record.image_url),
+  };
+}
+
 function filterPublicNews(records: PublicNewsRecord[]) {
-  return records.filter((record) => isPublicNewsPostAllowed(record.title));
+  return records
+    .filter((record) => isPublicNewsPostAllowed(record.title))
+    .map((record) => ({
+      ...record,
+      image_url: normalizeNewsImage(record.title, record.image_url),
+    }));
 }
 
 export async function getPublishedNews(options?: { id?: string; limit?: number }): Promise<PublicNewsRecord[] | PublicNewsRecord | null> {
@@ -61,11 +74,11 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
             .eq('published', true)
             .maybeSingle();
           if (noSortFallback.error) throw new Error(noSortFallback.error.message);
-          return (noSortFallback.data as PublicNewsRecord | null) ?? null;
+          return normalizePublicNewsRecord((noSortFallback.data as PublicNewsRecord | null) ?? null);
         }
         throw new Error(fallback.error.message);
       }
-      return (fallback.data as PublicNewsRecord | null) ?? null;
+      return normalizePublicNewsRecord((fallback.data as PublicNewsRecord | null) ?? null);
     }
 
     if (isMissingSortOrderColumn(initial.error?.message)) {
@@ -84,15 +97,15 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
           .eq('published', true)
           .maybeSingle();
         if (noSortNoImageFallback.error) throw new Error(noSortNoImageFallback.error.message);
-        return (noSortNoImageFallback.data as PublicNewsRecord | null) ?? null;
+      return normalizePublicNewsRecord((noSortNoImageFallback.data as PublicNewsRecord | null) ?? null);
       }
 
       if (noSortFallback.error) throw new Error(noSortFallback.error.message);
-      return (noSortFallback.data as PublicNewsRecord | null) ?? null;
+      return normalizePublicNewsRecord((noSortFallback.data as PublicNewsRecord | null) ?? null);
     }
 
     if (initial.error) throw new Error(initial.error.message);
-    return (initial.data as PublicNewsRecord | null) ?? null;
+    return normalizePublicNewsRecord((initial.data as PublicNewsRecord | null) ?? null);
   }
 
   let query = supabase

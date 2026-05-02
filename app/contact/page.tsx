@@ -28,9 +28,32 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [heroTitle, setHeroTitle] = useState('Contact Us');
+  const [heroBody, setHeroBody] = useState('Have a question, want to join, or looking to get involved? We’d love to hear from you.');
+  const [formIntro, setFormIntro] = useState('Fill out the form below and we’ll get back to you as soon as possible.');
+  const [detailsTitle, setDetailsTitle] = useState('Club Details');
 
   useEffect(() => {
     document.title = 'Contact Us | NDCC Dinos';
+
+    async function fetchContentBlocks() {
+      try {
+        const res = await fetch('/api/content-blocks?keys=contact.hero,contact.form_intro,contact.details', { cache: 'no-store' });
+        const data = await res.json();
+        const blocks = (data.data || []) as Array<{ block_key: string; title?: string; body?: string }>;
+        const hero = blocks.find((b) => b.block_key === 'contact.hero');
+        const form = blocks.find((b) => b.block_key === 'contact.form_intro');
+        const details = blocks.find((b) => b.block_key === 'contact.details');
+        if (hero?.title) setHeroTitle(hero.title);
+        if (hero?.body) setHeroBody(hero.body);
+        if (form?.body) setFormIntro(form.body);
+        if (details?.title) setDetailsTitle(details.title);
+      } catch {
+        // fallback copy
+      }
+    }
+
+    fetchContentBlocks();
   }, []);
 
   const clubEmail = assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN);
@@ -69,10 +92,8 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Contact Us</h1>
-          <p className="page-hero-subtitle">
-            Have a question, want to join, or looking to get involved? We&apos;d love to hear from you.
-          </p>
+          <h1 className="page-hero-title">{heroTitle}</h1>
+          <p className="page-hero-subtitle">{heroBody}</p>
         </div>
       </section>
 
@@ -83,9 +104,7 @@ export default function ContactPage() {
             {/* Form Column */}
             <div>
               <h2 className="section-title">Send Us a Message</h2>
-              <p className="text-gray-600 font-body mb-8">
-                Fill out the form below and we&apos;ll get back to you as soon as possible.
-              </p>
+              <p className="text-gray-600 font-body mb-8">{formIntro}</p>
 
               {submitStatus === 'success' && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
@@ -165,7 +184,7 @@ export default function ContactPage() {
               {/* Address */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Club Details</h3>
+                  <h3 className="text-xl font-display font-bold text-gray-900 mb-4">{detailsTitle}</h3>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <svg className="w-5 h-5 text-maroon-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">

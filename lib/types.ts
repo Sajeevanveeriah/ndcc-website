@@ -52,6 +52,7 @@ export interface Event {
   stripe_link: string;
   published: boolean;
   created_at: string;
+  image_url?: string | null;
 }
 
 export interface EventRegistration {

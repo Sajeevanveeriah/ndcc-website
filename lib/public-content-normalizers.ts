@@ -1,4 +1,6 @@
 type SeasonAppointmentImageMap = Record<string, string>;
+type EventImageMap = Record<string, string>;
+type NewsImageMap = Record<string, string>;
 
 const SEASON_APPOINTMENT_IMAGE_MAP: SeasonAppointmentImageMap = {
   'craig hillgrove': '/images/season-appointments/2026-27/craig-hillgrove-head-coach-2026-27.webp',
@@ -20,6 +22,20 @@ const SEASON_APPOINTMENT_LEGACY_IMAGE_PATHS = new Set([
 const GALLERY_LEGACY_TITLE = '2025/2026 Div. 4 1st XI Premiership';
 const GALLERY_DISPLAY_TITLE = '2025/26 Division 4 1st XI Premiership';
 const GALLERY_IMAGE_PATH = '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp';
+const EVENT_IMAGE_MAP: EventImageMap = {
+  'annual general meeting': '/images/events/2026/agm-2026.png',
+  'dino lotto 2026': '/images/events/2026/dino-lotto-2026.webp',
+};
+const NEWS_IMAGE_MAP: NewsImageMap = {
+  'annual general meeting': '/images/events/2026/agm-2026.png',
+  'dino lotto 2026': '/images/events/2026/dino-lotto-2026.webp',
+  'apparel sponsorship 2026/27': '/images/sponsors/2026-27/apparel-sponsorship-2026-27.webp',
+  'club championship winners 2025/26': '/images/achievements/2025-26/club-championship-winners-2025-26.webp',
+  'u13 juniors premiers 2025/26': '/images/achievements/2025-26/u13-juniors-premiers-2025-26.webp',
+  'division 4 first xi premiers 2025/26': '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp',
+  '2025/26 division 4 1st xi premiership': '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp',
+  '2025/2026 div. 4 1st xi premiership': '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp',
+};
 
 function normalizeName(value: string) {
   return value.trim().toLowerCase();
@@ -39,6 +55,18 @@ export function normalizeSeasonAppointmentImage(name: string, imageUrl?: string 
 
 export function isPublicNewsPostAllowed(title: string) {
   return normalizeName(title) !== 'test article';
+}
+
+export function normalizeEventImage(title: string, imageUrl?: string | null) {
+  const normalizedImageUrl = imageUrl?.trim() ?? '';
+  if (normalizedImageUrl) return normalizedImageUrl;
+  return EVENT_IMAGE_MAP[normalizeName(title)] ?? null;
+}
+
+export function normalizeNewsImage(title: string, imageUrl?: string | null) {
+  const normalizedImageUrl = imageUrl?.trim() ?? '';
+  if (normalizedImageUrl) return normalizedImageUrl;
+  return NEWS_IMAGE_MAP[normalizeName(title)] ?? null;
 }
 
 type PublicGalleryItem = {
