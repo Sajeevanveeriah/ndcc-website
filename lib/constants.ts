@@ -233,7 +233,7 @@ export const SEED_NEWS: Omit<NewsPost, 'created_at'>[] = [
     author: 'NDCC',
     published: true,
     published_at: '2026-03-15T10:00:00+11:00',
-    image: '/images/Poster.png',
+    image: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp',
   },
   {
     id: 'seed-welcome',
@@ -392,7 +392,7 @@ export const SEASON_APPOINTMENTS: SeasonAppointment[] = [
   {
     name: 'Kelsey Allan',
     role: "Women's Coach",
-    image: '/images/Poster.png',
+    image: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp',
     announcement_date: '2026-03-15',
   },
 ];
