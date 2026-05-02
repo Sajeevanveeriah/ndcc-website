@@ -61,7 +61,7 @@ export function isPublicNewsPostAllowed(title: string) {
 export function normalizeEventImage(title: string, imageUrl?: string | null) {
   const normalizedImageUrl = imageUrl?.trim() ?? '';
   if (normalizedImageUrl) {
-    return INVALID_PUBLIC_IMAGE_PATHS.has(normalizedImageUrl) ? null : normalizedImageUrl;
+    if (!INVALID_PUBLIC_IMAGE_PATHS.has(normalizedImageUrl)) return normalizedImageUrl;
   }
   const mappedImage = EVENT_IMAGE_MAP[normalizeName(title)] ?? null;
   return mappedImage && !INVALID_PUBLIC_IMAGE_PATHS.has(mappedImage) ? mappedImage : null;
@@ -70,7 +70,7 @@ export function normalizeEventImage(title: string, imageUrl?: string | null) {
 export function normalizeNewsImage(title: string, imageUrl?: string | null) {
   const normalizedImageUrl = imageUrl?.trim() ?? '';
   if (normalizedImageUrl) {
-    return INVALID_PUBLIC_IMAGE_PATHS.has(normalizedImageUrl) ? null : normalizedImageUrl;
+    if (!INVALID_PUBLIC_IMAGE_PATHS.has(normalizedImageUrl)) return normalizedImageUrl;
   }
   const mappedImage = NEWS_IMAGE_MAP[normalizeName(title)] ?? null;
   return mappedImage && !INVALID_PUBLIC_IMAGE_PATHS.has(mappedImage) ? mappedImage : null;
@@ -89,7 +89,7 @@ export function normalizeGalleryImage<T extends PublicGalleryItem>(item: T): T {
   return {
     ...item,
     title: GALLERY_DISPLAY_TITLE,
-    caption: item.caption === GALLERY_LEGACY_TITLE ? GALLERY_DISPLAY_TITLE : item.caption,
+    caption: normalizeName(item.caption) === normalizeName(GALLERY_LEGACY_TITLE) ? GALLERY_DISPLAY_TITLE : item.caption,
     image_url: GALLERY_IMAGE_PATH,
   };
 }
