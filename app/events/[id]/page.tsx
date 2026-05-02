@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -9,6 +10,7 @@ import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
+import { normalizeEventImage } from '@/lib/public-content-normalizers';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -180,6 +182,17 @@ export default function EventDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Main Content */}
             <div className="lg:col-span-2">
+              {normalizeEventImage(event.title, event.image_url) && (
+                <div className="relative h-72 sm:h-96 w-full rounded-xl overflow-hidden mb-6">
+                  <Image
+                    src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
+                    alt={event.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                  />
+                </div>
+              )}
               <div className="prose max-w-none">
                 <p className="font-body text-gray-700 text-lg leading-relaxed whitespace-pre-line">
                   {event.description}

@@ -115,7 +115,7 @@ supabase/
 
 ## Club Details
 
-- **Ground:** Grinter Reserve, 141 Coppards Road, Moolap VIC 3221
+- **Ground:** Grinter Reserve, 141 Coppards Road, Moolap VIC 3224
 - **Association:** Geelong Cricket Association (GCA)
 - **Teams:** Senior Men (Grade 4), Senior Women (E Grade East), Junior Boys
 - **Training:** Peter 'Skinny' Harrison Training Facility

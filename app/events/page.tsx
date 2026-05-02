@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { normalizeEventImage } from '@/lib/public-content-normalizers';
 
 function SkeletonCard() {
   return (
@@ -76,6 +78,17 @@ export default function EventsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {events.map((event) => (
                 <Card key={event.id} hover>
+                  {normalizeEventImage(event.title, event.image_url) && (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
+                        alt={event.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 1024px) 100vw, 33vw"
+                      />
+                    </div>
+                  )}
                   <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-6 py-4">
                     <p className="text-maroon-200 font-body text-sm">{formatDate(event.date)}</p>
                     <h3 className="text-white font-display font-bold text-xl mt-1">{event.title}</h3>
