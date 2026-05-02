@@ -9,6 +9,7 @@ import {
   CLUB_GROUND,
   CLUB_EMAIL_USER,
   CLUB_EMAIL_DOMAIN,
+  CLUB_PHONE,
   COMMITTEE,
   ENQUIRY_TYPES,
   GOOGLE_MAPS_EMBED_URL,
@@ -33,6 +34,7 @@ export default function ContactPage() {
   }, []);
 
   const clubEmail = assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN);
+  const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -173,6 +175,21 @@ export default function ContactPage() {
                       <div>
                         <p className="font-body font-semibold text-gray-900">{CLUB_GROUND}</p>
                         <p className="font-body text-gray-600 text-sm">{CLUB_ADDRESS}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-maroon-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0-1.243 1.007-2.25 2.25-2.25h2.268c1.141 0 2.116.816 2.317 1.939l.734 4.117a2.25 2.25 0 0 1-.96 2.281l-1.53 1.02a11.042 11.042 0 0 0 5.523 5.523l1.02-1.53a2.25 2.25 0 0 1 2.281-.96l4.117.734a2.25 2.25 0 0 1 1.939 2.317V19.5a2.25 2.25 0 0 1-2.25 2.25h-.75C10.3 21.75 2.25 13.7 2.25 3.75v3Z" />
+                      </svg>
+                      <div>
+                        <p className="font-body font-semibold text-gray-900">Contact</p>
+                        <p className="font-body text-gray-600 text-sm">John Elliott, President</p>
+                        <a
+                          href={clubPhoneHref}
+                          className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                        >
+                          {CLUB_PHONE}
+                        </a>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
