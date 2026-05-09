@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     images: [{ url: '/images/logo.jpg', width: 800, height: 800, alt: 'NDCC Logo' }],
   },
   robots: { index: true, follow: true },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://ndcc-website.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au'),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
