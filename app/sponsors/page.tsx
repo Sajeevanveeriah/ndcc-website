@@ -6,16 +6,6 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
-import {
-  SPONSOR_TIERS,
-  CLUB_NAME,
-  CLUB_EMAIL_USER,
-  CLUB_EMAIL_DOMAIN,
-  CLUB_PHONE,
-  SEED_SPONSORS,
-  SEED_SPONSOR_DESCRIPTIONS,
-} from '@/lib/constants';
-import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 
@@ -28,11 +18,14 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 };
 
 export default function SponsorsPage() {
-  const clubEmail = `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
-  const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
+  const [sponsorTiers, setSponsorTiers] = useState<Array<{ value: string; label: string }>>([]);
+  const [downloads, setDownloads] = useState<Array<{ href: string; title: string }>>([]);
+  const clubEmail = siteSettings.club_email || '';
+  const clubPhone = siteSettings.club_phone || '';
+  const clubPhoneHref = clubPhone ? `tel:${clubPhone.replace(/\s+/g, '')}` : '';
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingSeed, setUsingSeed] = useState(false);
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -47,7 +40,7 @@ export default function SponsorsPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [introTitle, setIntroTitle] = useState('Community Support');
   const [introBody, setIntroBody] = useState(
-    `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`
+    ''
   );
 
   useEffect(() => {
@@ -61,12 +54,10 @@ export default function SponsorsPage() {
         if (res.ok && Array.isArray(json.data)) {
           setSponsors(json.data as Sponsor[]);
         } else {
-          setSponsors(SEED_SPONSORS as Sponsor[]);
-          setUsingSeed(true);
+          setSponsors([]);
         }
       } catch {
-        setSponsors(SEED_SPONSORS as Sponsor[]);
-        setUsingSeed(true);
+        setSponsors([]);
       } finally {
         setLoading(false);
       }
@@ -80,12 +71,38 @@ export default function SponsorsPage() {
         if (block?.title) setIntroTitle(block.title);
         if (block?.body) setIntroBody(block.body);
       } catch {
-        // fallback copy
+        // CMS content unavailable.
+      }
+    }
+
+    async function fetchStructuredContent() {
+      try {
+        const [siteRes, tiersRes, downloadsRes] = await Promise.all([
+          fetch('/api/public/site-data', { cache: 'no-store' }),
+          fetch('/api/public/sponsor-tiers', { cache: 'no-store' }),
+          fetch('/api/public/downloads?category=sponsorship', { cache: 'no-store' }),
+        ]);
+        if (siteRes.ok) {
+          const site = await siteRes.json();
+          setSiteSettings(site.data?.settings || {});
+        }
+        if (tiersRes.ok) {
+          const tiers = await tiersRes.json();
+          setSponsorTiers(tiers.data || []);
+        }
+        if (downloadsRes.ok) {
+          const publicDownloads = await downloadsRes.json();
+          setDownloads((publicDownloads.data || []).filter((item: { category?: string }) => item.category === 'sponsorship'));
+        }
+      } catch {
+        setSponsorTiers([]);
+        setDownloads([]);
       }
     }
 
     fetchSponsors();
     fetchContentBlock();
+    fetchStructuredContent();
   }, []);
 
   function validateForm(): boolean {
@@ -138,15 +155,15 @@ export default function SponsorsPage() {
     }
   }
 
-  const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
+  const tierOptions = sponsorTiers.map((t) => ({ value: t.value, label: t.label }));
 
   // Group sponsors by tier
-  const sponsorsByTier = SPONSOR_TIERS.reduce<Record<string, Sponsor[]>>((acc, tier) => {
+  const sponsorsByTier = sponsorTiers.reduce<Record<string, Sponsor[]>>((acc, tier) => {
     acc[tier.value] = sponsors.filter((s) => s.tier === tier.value);
     return acc;
   }, {});
 
-  const tiersWithSponsors = SPONSOR_TIERS.filter((tier) => sponsorsByTier[tier.value].length > 0);
+  const tiersWithSponsors = sponsorTiers.filter((tier) => sponsorsByTier[tier.value].length > 0);
 
   return (
     <>
@@ -200,9 +217,7 @@ export default function SponsorsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sponsorsByTier[tier.value].map((sponsor) => {
-                  const description = usingSeed
-                    ? SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || ''
-                    : '';
+                  const description = '';
                   return (
                     <a
                       key={sponsor.id}
@@ -276,7 +291,7 @@ export default function SponsorsPage() {
                 ))}
               </ul>
               <div className="space-y-2">
-                {sponsorshipDownloads2026_27.map((download) => (
+                {downloads.map((download) => (
                   <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 hover:text-maroon-500 hover:underline font-body">
                     {download.title}
                   </a>
@@ -292,7 +307,7 @@ export default function SponsorsPage() {
                 Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season.
               </p>
               <p className="text-gray-700 font-body">
-                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 hover:text-maroon-500 transition-colors">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 hover:text-maroon-500 transition-colors">{clubEmail}</a>.
+                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 hover:text-maroon-500 transition-colors">{clubPhone}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 hover:text-maroon-500 transition-colors">{clubEmail}</a>.
               </p>
             </CardContent>
           </Card>
@@ -311,7 +326,7 @@ export default function SponsorsPage() {
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
               <p className="text-green-800 font-body font-semibold">Enquiry sent successfully!</p>
               <p className="text-green-700 font-body text-sm mt-1">
-                Thank you for your interest in sponsoring {CLUB_NAME}. A committee member will be in
+                Thank you for your interest in sponsoring the club. A committee member will be in
                 touch shortly to discuss partnership opportunities.
               </p>
             </div>

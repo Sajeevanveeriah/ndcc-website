@@ -4,22 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import {
-  CLUB_NAME,
-  CLUB_NICKNAME,
-  CLUB_ESTABLISHED,
-  PLAYHQ_ORG_URL,
-  FACEBOOK_URL,
-  SEED_SPONSORS,
-  SPONSOR_TIERS,
-} from '@/lib/constants';
+import { getSiteSettings, getSponsorTiers } from '@/lib/cms-content';
 import { formatDate, truncateText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
-import { normalizeSeasonAppointmentImage } from '@/lib/public-content-normalizers';
-import { seasonAppointmentAssets2026_27 } from '@/lib/assets';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -97,52 +87,31 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 };
 
 export default async function HomePage() {
-  const [dbNews, dbSponsors, dbSeasonAppointments, blocks, quickLinks] = await Promise.all([
+  const [dbNews, dbSponsors, dbSeasonAppointments, blocks, quickLinks, settings, sponsorTiers] = await Promise.all([
     getLatestNews(),
     getSponsors(),
     getSeasonAppointments(),
-    getContentBlocks(['home.hero', 'home.quicklinks', 'home.season_status']),
+    getContentBlocks(['home.hero', 'home.quicklinks', 'home.season_status', 'home.signings', 'home.join_cta']),
     getPageLinkCards('home', 'quick_links'),
+    getSiteSettings(),
+    getSponsorTiers(),
   ]);
 
   const news: NewsItem[] = dbNews;
 
-  const sponsors: SponsorItem[] = dbSponsors.length > 0
-    ? dbSponsors
-    : SEED_SPONSORS.map((s) => ({
-        id: s.id,
-        name: s.name,
-        tier: s.tier,
-        website: s.website,
-        logo_url: s.logo_url,
-      }));
-
-  const seasonAppointments = dbSeasonAppointments.map((item) => ({
-    ...item,
-    image_url: normalizeSeasonAppointmentImage(item.name, item.image_url),
-  }));
-  const seasonAppointmentNames = new Set(seasonAppointments.map((item) => item.name.trim().toLowerCase()));
-  const mergedSeasonAppointments = [
-    ...seasonAppointments,
-    ...seasonAppointmentAssets2026_27
-      .filter((asset) => !seasonAppointmentNames.has(asset.title.trim().toLowerCase()))
-      .map((asset, index) => ({
-        id: `asset-${asset.title.toLowerCase().replace(/\s+/g, '-')}`,
-        name: asset.title,
-        role: '',
-        image_url: asset.src,
-        announcement_date: `2026-05-${String(index + 1).padStart(2, '0')}`,
-      })),
-  ];
-  const heroCtaLabel = blocks['home.hero']?.cta_label || 'Join the Club';
-  const heroCtaUrl = blocks['home.hero']?.cta_url || '/contact';
+  const sponsors: SponsorItem[] = dbSponsors;
+  const seasonAppointments = dbSeasonAppointments;
+  const heroCtaLabel = blocks['home.hero']?.cta_label || '';
+  const heroCtaUrl = blocks['home.hero']?.cta_url || '#';
+  const facebookUrl = settings.facebook_url || '#';
+  const playHqUrl = settings.playhq_org_url || '#';
 
   return (
     <>
       <section className="relative text-white section-padding overflow-hidden">
         <Image
-          src="/images/Turf_Ground.jpg"
-          alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
+          src={blocks['home.hero']?.image_url || '/images/Turf_Ground.jpg'}
+          alt={blocks['home.hero']?.title || 'Club home ground'}
           fill
           className="object-cover"
           priority
@@ -150,10 +119,10 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-maroon-900/75" />
         <div className="container-width text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
-            {blocks['home.hero']?.title || CLUB_NAME}
+            {blocks['home.hero']?.title || settings.club_name || ''}
           </h1>
           <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl mx-auto">
-            {blocks['home.hero']?.body || `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`}
+            {blocks['home.hero']?.body || ''}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href={heroCtaUrl} className="btn-primary text-lg px-8 py-4">
@@ -169,9 +138,9 @@ export default async function HomePage() {
       <section className="section-padding bg-sky-50">
         <div className="container-width">
           <div className="text-center mb-12">
-            <h2 className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
+            <h2 className="section-title">{blocks['home.quicklinks']?.title || ''}</h2>
             <p className="section-subtitle mx-auto">
-              {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
+              {blocks['home.quicklinks']?.body || ''}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -199,20 +168,20 @@ export default async function HomePage() {
           </div>
           <Card className="border-l-4 border-l-maroon-700 max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-display font-bold text-gray-900 mb-3">{blocks['home.season_status']?.title || 'Season Update'}</h3>
+              <h3 className="text-xl font-display font-bold text-gray-900 mb-3">{blocks['home.season_status']?.title || ''}</h3>
               <p className="text-gray-700 font-body leading-relaxed mb-4">
-                {blocks['home.season_status']?.body || `Follow the latest ${CLUB_NICKNAME} season updates, match-day notices, and club announcements on our official channels.`}{' '}
-                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+                {blocks['home.season_status']?.body || ''}{' '}
+                <Link href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
                   Facebook page
                 </Link>.
               </p>
               <Link
-                href={blocks['home.season_status']?.cta_url || PLAYHQ_ORG_URL}
+                href={blocks['home.season_status']?.cta_url || playHqUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary inline-flex items-center"
               >
-                {blocks['home.season_status']?.cta_label || 'View Results on PlayHQ'}
+                {blocks['home.season_status']?.cta_label || ''}
                 <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
@@ -227,7 +196,7 @@ export default async function HomePage() {
           <div className="text-center mb-12">
             <h2 className="section-title">Latest News</h2>
             <p className="section-subtitle mx-auto">
-              Stay up to date with everything happening at NDCC.
+              Stay up to date with everything happening at the club.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -248,7 +217,7 @@ export default async function HomePage() {
                     <div className="relative h-48 w-full">
                       <Image
                         src="/images/Womens_Team.jpg"
-                        alt="Newcomb and District Cricket Club"
+                        alt="Club cricket team"
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 33vw"
@@ -289,16 +258,17 @@ export default async function HomePage() {
       <section className="section-padding">
         <div className="container-width">
           <div className="text-center mb-12">
-            <h2 className="section-title">2026/27 Season Appointments</h2>
+            <h2 className="section-title">{blocks['home.signings']?.title || ''}</h2>
+            {blocks['home.signings']?.body && <p className="section-subtitle mx-auto">{blocks['home.signings']?.body}</p>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {mergedSeasonAppointments.map((appointment) => (
+            {seasonAppointments.map((appointment) => (
               <Card key={appointment.id} className="overflow-hidden">
                 {appointment.image_url ? (
                   <div className="relative h-56 w-full">
                     <Image
                       src={appointment.image_url}
-                      alt={`${appointment.name} appointed as ${appointment.role}`}
+                      alt={appointment.role ? `${appointment.name} appointed as ${appointment.role}` : `${appointment.name} season announcement`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -319,8 +289,8 @@ export default async function HomePage() {
             ))}
           </div>
           <p className="text-center text-gray-500 font-body text-sm mt-8">
-            More appointments to be announced. Follow us on{' '}
-            <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+            {blocks['home.signings']?.cta_label || ''}{' '}
+            <Link href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
               Facebook
             </Link>{' '}
             for updates.
@@ -338,7 +308,7 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-label="Club sponsors">
             {sponsors.map((sponsor) => {
-              const tierInfo = SPONSOR_TIERS.find((t) => t.value === sponsor.tier);
+              const tierInfo = sponsorTiers.find((t) => t.value === sponsor.tier);
               const card = (
                 <Card hover={Boolean(sponsor.website)} className="h-full border border-sky-100">
                   <CardContent className="p-6 flex flex-col items-center text-center h-full">
@@ -402,14 +372,14 @@ export default async function HomePage() {
       <section className="bg-gradient-to-br from-maroon-700 to-maroon-900 text-white section-padding">
         <div className="container-width text-center">
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
-            Ready to join the {CLUB_NICKNAME}?
+            {blocks['home.join_cta']?.title || ''}
           </h2>
           <p className="text-lg text-maroon-100 font-body mb-8 max-w-xl mx-auto">
-            Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.
+            {blocks['home.join_cta']?.body || ''}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/contact" className="btn-accent text-lg px-8 py-4">
-              Get in Touch
+            <Link href={blocks['home.join_cta']?.cta_url || '/contact'} className="btn-accent text-lg px-8 py-4">
+              {blocks['home.join_cta']?.cta_label || ''}
             </Link>
             <Link href="/volunteer" className="btn-secondary border-white text-white hover:bg-white hover:text-maroon-800 text-lg px-8 py-4">
               Volunteer With Us

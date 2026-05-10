@@ -4,17 +4,6 @@ import { useState, useEffect, FormEvent } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
-import {
-  CLUB_ADDRESS,
-  CLUB_GROUND,
-  CLUB_EMAIL_USER,
-  CLUB_EMAIL_DOMAIN,
-  CLUB_PHONE,
-  COMMITTEE,
-  ENQUIRY_TYPES,
-  GOOGLE_MAPS_EMBED_URL,
-} from '@/lib/constants';
-import { assembleEmail } from '@/lib/utils';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -32,6 +21,9 @@ export default function ContactPage() {
   const [heroBody, setHeroBody] = useState('Have a question, want to join, or looking to get involved? We’d love to hear from you.');
   const [formIntro, setFormIntro] = useState('Fill out the form below and we’ll get back to you as soon as possible.');
   const [detailsTitle, setDetailsTitle] = useState('Club Details');
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
+  const [enquiryTypes, setEnquiryTypes] = useState<Array<{ value: string; label: string }>>([]);
+  const [committee, setCommittee] = useState<Array<{ name: string; role: string }>>([]);
 
   useEffect(() => {
     document.title = 'Contact Us | NDCC Dinos';
@@ -49,15 +41,44 @@ export default function ContactPage() {
         if (form?.body) setFormIntro(form.body);
         if (details?.title) setDetailsTitle(details.title);
       } catch {
-        // fallback copy
+        // CMS content unavailable.
+      }
+    }
+
+    async function fetchSiteData() {
+      try {
+        const [siteRes, typesRes, committeeRes] = await Promise.all([
+          fetch('/api/public/site-data', { cache: 'no-store' }),
+          fetch('/api/public/enquiry-types', { cache: 'no-store' }),
+          fetch('/api/public/committee', { cache: 'no-store' }),
+        ]);
+        if (siteRes.ok) {
+          const site = await siteRes.json();
+          setSiteSettings(site.data?.settings || {});
+        }
+        if (typesRes.ok) {
+          const types = await typesRes.json();
+          setEnquiryTypes(types.data || []);
+        }
+        if (committeeRes.ok) {
+          const members = await committeeRes.json();
+          setCommittee(members.data || []);
+        }
+      } catch {
+        setSiteSettings({});
       }
     }
 
     fetchContentBlocks();
+    fetchSiteData();
   }, []);
 
-  const clubEmail = assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN);
-  const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
+  const clubEmail = siteSettings.club_email || '';
+  const clubPhone = siteSettings.club_phone || '';
+  const clubPhoneHref = clubPhone ? `tel:${clubPhone.replace(/\s+/g, '')}` : '';
+  const clubGround = siteSettings.club_ground || '';
+  const clubAddress = siteSettings.club_address || '';
+  const googleMapsEmbedUrl = siteSettings.google_maps_embed_url || '';
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -156,7 +177,7 @@ export default function ContactPage() {
                   id="enquiry_type"
                   label="Enquiry Type"
                   required
-                  options={[...ENQUIRY_TYPES]}
+                  options={enquiryTypes}
                   value={formData.enquiry_type}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, enquiry_type: e.target.value }))
@@ -192,8 +213,8 @@ export default function ContactPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                       </svg>
                       <div>
-                        <p className="font-body font-semibold text-gray-900">{CLUB_GROUND}</p>
-                        <p className="font-body text-gray-600 text-sm">{CLUB_ADDRESS}</p>
+                        <p className="font-body font-semibold text-gray-900">{clubGround}</p>
+                        <p className="font-body text-gray-600 text-sm">{clubAddress}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -207,7 +228,7 @@ export default function ContactPage() {
                           href={clubPhoneHref}
                           className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
                         >
-                          {CLUB_PHONE}
+                          {clubPhone}
                         </a>
                       </div>
                     </div>
@@ -234,7 +255,7 @@ export default function ContactPage() {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Committee</h3>
                   <ul className="space-y-3">
-                    {COMMITTEE.map((member) => (
+                    {committee.map((member) => (
                       <li key={member.name} className="flex items-center justify-between">
                         <span className="font-body text-gray-900">{member.name}</span>
                         <span className="font-body text-sm text-maroon-600 font-semibold">
@@ -250,14 +271,14 @@ export default function ContactPage() {
               <Card>
                 <div className="overflow-hidden rounded-xl">
                   <iframe
-                    src={GOOGLE_MAPS_EMBED_URL}
+                    src={googleMapsEmbedUrl}
                     width="100%"
                     height="300"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title={`Map showing ${CLUB_GROUND}, ${CLUB_ADDRESS}`}
+                    title={`Map showing ${clubGround}, ${clubAddress}`}
                   />
                 </div>
               </Card>

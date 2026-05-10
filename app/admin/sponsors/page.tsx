@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SPONSOR_TIERS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Sponsor } from '@/lib/types';
@@ -33,6 +32,7 @@ export default function AdminSponsorsPage() {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [sponsorTiers, setSponsorTiers] = useState<Array<{ value: string; label: string }>>([]);
 
   useEffect(() => {
     const fetchSponsors = async () => {
@@ -47,11 +47,22 @@ export default function AdminSponsorsPage() {
       }
     };
 
+    const fetchSponsorTiers = async () => {
+      try {
+        const response = await fetch('/api/admin/resources/sponsorTiers', { cache: 'no-store' });
+        const result = await parseApiResponse<{ data?: Array<{ value: string; label: string }> }>(response);
+        setSponsorTiers(result.data || []);
+      } catch {
+        setSponsorTiers([]);
+      }
+    };
+
     fetchSponsors();
+    fetchSponsorTiers();
   }, []);
 
   const getTierLabel = (value: string) => {
-    const found = SPONSOR_TIERS.find((t) => t.value === value);
+    const found = sponsorTiers.find((t) => t.value === value);
     return found ? found.label : value;
   };
 
@@ -156,7 +167,7 @@ export default function AdminSponsorsPage() {
     }
   };
 
-  const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
+  const tierOptions = sponsorTiers.map((t) => ({ value: t.value, label: t.label }));
   const placementOptions = [
     { value: 'website', label: 'Website' },
     { value: 'ground', label: 'Ground Signage' },
