@@ -22,6 +22,7 @@ const baseLinks = [
   { href: '/admin/enquiries', label: 'Enquiries', icon: Mail },
   { href: '/admin/events', label: 'Events', icon: Calendar },
   { href: '/admin/news', label: 'News', icon: Newspaper },
+  { href: '/admin/teams', label: 'Teams', icon: Users },
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
   { href: '/admin/memberships', label: 'Memberships', icon: Users },
   { href: '/admin/payments', label: 'Payments', icon: ShoppingBag },
