@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
+import { VOLUNTEER_ROLES, CLUB_NAME } from '@/lib/constants';
 import { validateEmail } from '@/lib/utils';
 
 const ROLE_DETAILS = [
@@ -87,14 +88,14 @@ export default function VolunteerPage() {
         if (block?.title) setHeroTitle(block.title);
         if (block?.body) setHeroBody(block.body);
       } catch {
-        setDynamicRoleOptions([]);
+        // fallback to static roles
       }
     };
 
     loadPositions();
   }, []);
 
-  const roleOptions = dynamicRoleOptions;
+  const roleOptions = dynamicRoleOptions.length > 0 ? dynamicRoleOptions : VOLUNTEER_ROLES.map((r) => ({ value: r, label: r }));
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
@@ -156,7 +157,7 @@ export default function VolunteerPage() {
         <div className="container-width max-w-3xl mx-auto text-center">
           <h2 className="section-title">Why Volunteer?</h2>
           <p className="text-gray-600 font-body text-lg leading-relaxed">
-            The club is community-run, and every match day, training session, and event
+            {CLUB_NAME} is a community-run club, and every match day, training session, and event
             relies on people like you stepping up. Volunteering is a brilliant way to connect with
             fellow members, contribute to junior development, and keep the Dinos thriving for
             generations to come. No experience necessary — just enthusiasm and a willingness to lend

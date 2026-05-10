@@ -3,8 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { getContentBlocks } from '@/lib/content-blocks';
-import { getTeams } from '@/lib/cms-content';
+import { TEAMS, CLUB_NICKNAME } from '@/lib/constants';
 
 const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
@@ -14,19 +13,15 @@ export const metadata: Metadata = {
   title: 'Teams',
 };
 
-export default async function TeamsPage() {
-  const [teams, blocks] = await Promise.all([
-    getTeams(),
-    getContentBlocks(['teams.hero', 'teams.coach', 'teams.join_cta']),
-  ]);
+export default function TeamsPage() {
   return (
     <>
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{blocks['teams.hero']?.title || ''}</h1>
+          <h1 className="page-hero-title">Our Teams</h1>
           <p className="page-hero-subtitle">
-            {blocks['teams.hero']?.body || ''}
+            Meet the squads representing the {CLUB_NICKNAME} across all grades of the GCA.
           </p>
         </div>
       </section>
@@ -37,10 +32,16 @@ export default async function TeamsPage() {
           <Card className="border-l-4 border-l-maroon-700">
             <CardContent className="p-8">
               <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">
-                {blocks['teams.coach']?.title || ''}
+                Head Coach: Craig Hillgrove
               </h2>
               <p className="text-gray-700 font-body leading-relaxed max-w-3xl">
-                {blocks['teams.coach']?.body || ''}
+                Craig oversees coaching across all senior and junior teams at NDCC, working with
+                team captains and assistant coaches to develop players at every level. If you are
+                interested in joining the club or have questions about training, get in touch via
+                the{' '}
+                <Link href="/contact" className="text-maroon-700 hover:underline font-semibold">
+                  contact page
+                </Link>.
               </p>
             </CardContent>
           </Card>
@@ -51,7 +52,7 @@ export default async function TeamsPage() {
       <section className="section-padding">
         <div className="container-width">
           <div className="space-y-12">
-            {teams.map((team, index) => (
+            {TEAMS.map((team, index) => (
               <Card key={team.name} className="overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-3">
                   {/* Team image or colour block */}
@@ -127,13 +128,15 @@ export default async function TeamsPage() {
       <section className="section-padding bg-gradient-to-br from-maroon-700 to-maroon-900 text-white">
         <div className="container-width text-center">
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
-            {blocks['teams.join_cta']?.title || ''}
+            Join a Team
           </h2>
           <p className="text-maroon-100 font-body text-lg max-w-2xl mx-auto mb-8">
-            {blocks['teams.join_cta']?.body || ''}
+            Whether you are an experienced cricketer or a complete beginner, there is a team for you
+            at the {CLUB_NICKNAME}. We welcome players of all ages and abilities across our men&apos;s,
+            women&apos;s, and junior squads.
           </p>
-          <Link href={blocks['teams.join_cta']?.cta_url || '/contact'} className="btn-accent text-lg px-8 py-4">
-            {blocks['teams.join_cta']?.cta_label || ''}
+          <Link href="/contact" className="btn-accent text-lg px-8 py-4">
+            Get in Touch
           </Link>
         </div>
       </section>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CLUB_NAME, CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { validateEmail } from '@/lib/utils';
@@ -45,13 +46,13 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
           <div className="bg-maroon-800 px-6 py-8 text-center">
-            <h1 className="text-3xl font-display font-bold text-white">Admin</h1>
+            <h1 className="text-3xl font-display font-bold text-white">{CLUB_SHORT}</h1>
             <p className="text-maroon-200 font-body mt-1">Admin Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="p-6 space-y-4">
             <h2 className="text-xl font-display font-bold text-gray-900 text-center">Sign In</h2>
-            <p className="text-sm text-gray-500 font-body text-center">Access the website administration panel.</p>
+            <p className="text-sm text-gray-500 font-body text-center">Access the {CLUB_NAME} administration panel.</p>
 
             {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body">{error}</div>}
 
@@ -62,7 +63,7 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 font-body mt-6">&copy; {new Date().getFullYear()} Website</p>
+        <p className="text-center text-xs text-gray-400 font-body mt-6">&copy; {new Date().getFullYear()} {CLUB_NAME}</p>
       </div>
     </div>
   );

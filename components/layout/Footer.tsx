@@ -1,32 +1,27 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
-import { getNavigationLinks, getSiteSettings } from '@/lib/cms-content';
+import {
+  CLUB_NAME,
+  CLUB_SHORT,
+  CLUB_ADDRESS,
+  CLUB_GROUND,
+  CLUB_EMAIL_USER,
+  CLUB_EMAIL_DOMAIN,
+  CLUB_PHONE,
+  ACKNOWLEDGEMENT,
+  CLUB_ASSOCIATION,
+  NAV_LINKS,
+} from '@/lib/constants';
 import { getContentBlocks } from '@/lib/content-blocks';
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  const [settings, navLinks, footerAffiliations, blocks] = await Promise.all([
-    getSiteSettings(),
-    getNavigationLinks('main'),
-    getNavigationLinks('footer_affiliations'),
-    getContentBlocks(['footer.acknowledgement', 'footer.contact']),
-  ]);
-  const clubName = settings.club_name || '';
-  const clubShort = settings.club_short || '';
-  const clubAssociation = settings.club_association || '';
-  const clubEstablished = settings.club_established || '';
-  const clubGround = settings.club_ground || '';
-  const clubAddress = settings.club_address || '';
-  const clubEmail = settings.club_email || '';
-  const clubPhone = settings.club_phone || '';
-  const emailHref = clubEmail ? `mailto:${clubEmail}` : '';
-  const phoneHref = clubPhone ? `tel:${clubPhone.replace(/\s+/g, '')}` : '';
-  const acknowledgement = blocks['footer.acknowledgement']?.body || settings.acknowledgement || '';
+  const emailHref = `mailto:${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
+  const phoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
+  const blocks = await getContentBlocks(['footer.acknowledgement']);
+  const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
   const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
-  const footerContactBody = blocks['footer.contact']?.body || '';
-  const quickLinks = navLinks.slice(0, 6);
-  const moreLinks = navLinks.slice(6);
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
@@ -51,33 +46,33 @@ export default async function Footer() {
               <Link href="/" className="flex items-center gap-3 mb-4">
                 <Image
                   src="/images/logo.jpg"
-                  alt={clubShort ? `${clubShort} logo` : 'Club logo'}
+                  alt="NDCC Logo"
                   width={40}
                   height={40}
                   className="rounded-full"
                 />
-                <span className="font-display font-semibold uppercase tracking-wide text-lg">{clubShort}</span>
+                <span className="font-display font-semibold uppercase tracking-wide text-lg">{CLUB_SHORT}</span>
               </Link>
               <p className="text-maroon-200 text-sm font-body mb-4">
-                {clubName}{footerContactBody ? `. ${footerContactBody}` : clubAssociation || clubEstablished ? `. Proudly competing in the ${clubAssociation}${clubEstablished ? ` since ${clubEstablished}` : ''}.` : ''}
+                {CLUB_NAME}. Proudly competing in the {CLUB_ASSOCIATION} since 1972.
               </p>
               <div className="space-y-2">
                 <div className="flex items-start gap-2 text-sm text-maroon-200">
                   <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                   <span className="font-body">
-                    {[clubGround, clubAddress].filter(Boolean).join(', ')}
+                    {CLUB_GROUND}, {CLUB_ADDRESS}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-maroon-200">
                   <Mail className="h-4 w-4 shrink-0" />
                   <a href={emailHref} className="font-body hover:text-white transition-colors">
-                    {clubEmail}
+                    {CLUB_EMAIL_USER}@{CLUB_EMAIL_DOMAIN}
                   </a>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-maroon-200">
                   <Phone className="h-4 w-4 shrink-0" />
                   <a href={phoneHref} className="font-body hover:text-white transition-colors">
-                    {clubPhone}
+                    {CLUB_PHONE}
                   </a>
                 </div>
               </div>
@@ -87,7 +82,7 @@ export default async function Footer() {
             <div>
               <h3 className="font-display font-semibold uppercase tracking-wide text-base mb-4">Quick Links</h3>
               <ul className="space-y-2">
-                {quickLinks.map((link) => (
+                {NAV_LINKS.slice(0, 6).map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
@@ -104,7 +99,7 @@ export default async function Footer() {
             <div>
               <h3 className="font-display font-semibold uppercase tracking-wide text-base mb-4">Get Involved</h3>
               <ul className="space-y-2">
-                {moreLinks.map((link) => (
+                {NAV_LINKS.slice(6).map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
@@ -129,20 +124,55 @@ export default async function Footer() {
             <div>
               <h3 className="font-display font-semibold uppercase tracking-wide text-base mb-4">Affiliations</h3>
               <ul className="space-y-2">
-                {footerAffiliations.map((link) => {
-                  const external = /^https?:\/\//.test(link.href);
-                  return (
-                    <li key={link.href}>
-                      {external ? (
-                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body">
-                          {link.label}<ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <Link href={link.href} className="text-sm text-maroon-200 hover:text-white transition-colors font-body">{link.label}</Link>
-                      )}
-                    </li>
-                  );
-                })}
+                <li>
+                  <a
+                    href="https://www.geelongcricket.com.au"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    {CLUB_ASSOCIATION}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.facebook.com/newcombpowerfnc/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Newcomb Power Football &amp; Netball Club
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
+                <li>
+                  <Link
+                    href="/contact?topic=softball"
+                    className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Softball club details
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/contact?topic=darts"
+                    className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Darts club details
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="https://www.goodsports.com.au"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                  >
+                    Good Sports Level 3
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -153,7 +183,7 @@ export default async function Footer() {
       <div className="border-t border-maroon-700 px-4 sm:px-6 lg:px-8 py-6">
         <div className="container-width flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-maroon-300 font-body">
-            &copy; {currentYear} {clubName}. All rights reserved.
+            &copy; {currentYear} {CLUB_NAME}. All rights reserved.
           </p>
           <a
             href="https://github.com/Sajeevanveeriah"

@@ -6,6 +6,7 @@ import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import { PRODUCTS, CLUB_NAME } from '@/lib/constants';
 import { formatCurrency, validateEmail, validatePhone, cn } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
 
@@ -129,10 +130,10 @@ function MerchandiseContent() {
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [products, setProducts] = useState<DisplayProduct[]>([]);
+  const [products, setProducts] = useState<DisplayProduct[]>(PRODUCTS.map((product) => ({ ...product, category: 'General' })));
   const [heroContent, setHeroContent] = useState<{ title: string; body: string; orderTitle: string; orderBody: string }>({
     title: 'Club Merchandise',
-    body: '',
+    body: `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
     orderTitle: 'Ordering Information',
     orderBody: '',
   });
@@ -168,7 +169,7 @@ function MerchandiseContent() {
         const orderingBody = blocks['merch.ordering']?.body || '';
         setHeroContent({
           title: blocks['merch.hero']?.title || 'Club Merchandise',
-          body: blocks['merch.hero']?.body || '',
+          body: blocks['merch.hero']?.body || `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
           orderTitle: blocks['merch.ordering']?.title || 'Ordering Information',
           orderBody: orderingBody.startsWith('Use this section to provide') ? '' : orderingBody,
         });
