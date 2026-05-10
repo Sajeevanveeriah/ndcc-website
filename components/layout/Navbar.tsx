@@ -5,17 +5,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown } from 'lucide-react';
+import { NAV_LINKS, CLUB_SHORT } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-
-type PublicNavLink = { label: string; href: string };
-type PublicSiteData = { settings?: Record<string, string>; navigation?: PublicNavLink[] };
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
-  const [siteData, setSiteData] = useState<PublicSiteData>({ navigation: [] });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,20 +25,6 @@ export default function Navbar() {
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    const loadSiteData = async () => {
-      try {
-        const res = await fetch('/api/public/site-data', { cache: 'no-store' });
-        if (!res.ok) return;
-        const result = await res.json();
-        setSiteData(result.data || { navigation: [] });
-      } catch {
-        setSiteData({ navigation: [] });
-      }
-    };
-    loadSiteData();
-  }, []);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -65,11 +48,8 @@ export default function Navbar() {
     setSessionUser(null);
   };
 
-  const navLinks = siteData.navigation || [];
-  const primaryLinks = navLinks.slice(0, 7);
-  const moreLinks = navLinks.slice(7);
-  const clubShort = siteData.settings?.club_short || '';
-  const established = siteData.settings?.club_established || '';
+  const primaryLinks = NAV_LINKS.slice(0, 7);
+  const moreLinks = NAV_LINKS.slice(7);
 
   return (
     <nav
@@ -85,10 +65,10 @@ export default function Navbar() {
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[4.75rem]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0" aria-label={clubShort ? `${clubShort} Home` : 'Home'}>
+          <Link href="/" className="flex items-center gap-3 shrink-0" aria-label="NDCC Home">
             <Image
               src="/images/logo.jpg"
-              alt={clubShort ? `${clubShort} logo` : 'Club logo'}
+              alt="NDCC Logo"
               width={48}
               height={48}
               className="rounded-full"
@@ -96,9 +76,9 @@ export default function Navbar() {
             />
             <div className="hidden sm:block">
               <span className="text-maroon-700 font-display font-semibold uppercase tracking-wide text-lg leading-tight block">
-                {clubShort}
+                {CLUB_SHORT}
               </span>
-              {established && <span className="text-gray-500 text-xs font-body tracking-wide">Est. {established}</span>}
+              <span className="text-gray-500 text-xs font-body tracking-wide">Est. 1972</span>
             </div>
           </Link>
 
@@ -182,7 +162,7 @@ export default function Navbar() {
         )}
       >
         <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
-          {navLinks.map((link) => (
+          {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}

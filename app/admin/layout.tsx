@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Navigation } from 'lucide-react';
+import { CLUB_SHORT } from '@/lib/constants';
+import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 
@@ -28,11 +29,6 @@ const baseLinks = [
   { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
   { href: '/admin/apparel', label: 'Apparel', icon: Shirt },
   { href: '/admin/site-pages', label: 'Site Pages', icon: FileText },
-  { href: '/admin/site-settings', label: 'Site Settings', icon: Settings },
-  { href: '/admin/navigation', label: 'Navigation', icon: Navigation },
-  { href: '/admin/teams', label: 'Teams Page', icon: Users },
-  { href: '/admin/downloads', label: 'Downloads', icon: FileText },
-  { href: '/admin/achievements', label: 'Achievements', icon: ImageIcon },
   { href: '/admin/history', label: 'History', icon: Newspaper },
   { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
   { href: '/admin/season-appointments', label: 'Season Appointments', icon: UserRoundCheck },
@@ -96,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-sky-50 flex">
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-maroon-800">
         <div className="px-6 py-5 border-b border-maroon-700">
-          <Link href="/admin" className="text-white font-display font-bold text-xl">Admin</Link>
+          <Link href="/admin" className="text-white font-display font-bold text-xl">{CLUB_SHORT} Admin</Link>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {sidebarLinks.map((link) => {
@@ -120,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="px-4 py-3 flex items-center justify-between">
             <button onClick={() => setMobileOpen((v) => !v)}>{mobileOpen ? <X /> : <Menu />}</button>
-            <span className="font-bold">Admin</span>
+            <span className="font-bold">{CLUB_SHORT} Admin</span>
           </div>
           {mobileOpen && <nav className="px-4 pb-3 space-y-1 max-h-[70vh] overflow-y-auto">{sidebarLinks.map((link) => <Link className="block py-2" key={link.href} href={link.href}>{link.label}</Link>)}</nav>}
         </header>

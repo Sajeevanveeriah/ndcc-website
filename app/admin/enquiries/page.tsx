@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ENQUIRY_TYPES } from '@/lib/constants';
 import { formatDate, truncateText } from '@/lib/utils';
 import type { Contact } from '@/lib/types';
 import { parseApiResponse } from '@/lib/admin-client';
@@ -18,7 +19,6 @@ export default function AdminEnquiriesPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [message, setMessage] = useState('');
-  const [enquiryTypes, setEnquiryTypes] = useState<Array<{ value: string; label: string }>>([]);
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -33,18 +33,7 @@ export default function AdminEnquiriesPage() {
       }
     };
 
-    const fetchEnquiryTypes = async () => {
-      try {
-        const response = await fetch('/api/admin/resources/enquiryTypes', { cache: 'no-store' });
-        const result = await parseApiResponse<{ data?: Array<{ value: string; label: string }> }>(response);
-        setEnquiryTypes(result.data || []);
-      } catch {
-        setEnquiryTypes([]);
-      }
-    };
-
     fetchContacts();
-    fetchEnquiryTypes();
   }, []);
 
   const handleMarkResponded = async (id: string) => {
@@ -66,7 +55,7 @@ export default function AdminEnquiriesPage() {
   };
 
   const getEnquiryLabel = (value: string) => {
-    const found = enquiryTypes.find((t) => t.value === value);
+    const found = ENQUIRY_TYPES.find((t) => t.value === value);
     return found ? found.label : value;
   };
 
@@ -77,7 +66,7 @@ export default function AdminEnquiriesPage() {
     return true;
   });
 
-  const typeOptions = enquiryTypes.map((t) => ({ value: t.value, label: t.label }));
+  const typeOptions = ENQUIRY_TYPES.map((t) => ({ value: t.value, label: t.label }));
   const statusOptions = [
     { value: 'pending', label: 'Pending' },
     { value: 'responded', label: 'Responded' },
