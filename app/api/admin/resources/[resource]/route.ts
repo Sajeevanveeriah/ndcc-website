@@ -42,6 +42,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   kitchenItems: { table: 'kitchen_items', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['menu_id', 'name', 'description', 'image_url', 'price', 'is_available', 'is_hidden', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   kitchenOrders: { table: 'kitchen_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['status', 'payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
+  clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url'] },
 };
 
 const revalidationPaths: Record<string, string[]> = {
@@ -60,6 +61,7 @@ const revalidationPaths: Record<string, string[]> = {
   historyPremierships: ['/about'],
   historyCompetitions: ['/about'],
   committeeMembers: ['/about'],
+  clubSettings: ['/', '/contact', '/fixtures'],
 };
 
 function revalidateForResource(resource: string) {
@@ -106,6 +108,13 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
   return payload;
 }
 
+
+
+function hasRequiredClubSettingsFields(payload: Record<string, unknown>) {
+  return ['club_name', 'club_short', 'club_nickname'].every((field) => (
+    typeof payload[field] === 'string' && payload[field].trim().length > 0
+  ));
+}
 
 function isMissingSeasonAppointmentsTableError(errorMessage: string, table: string) {
   return table === 'season_appointments'
@@ -181,6 +190,9 @@ export async function POST(request: Request, { params }: { params: { resource: s
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
   }
+  if (config.table === 'club_settings' && !hasRequiredClubSettingsFields(payload)) {
+    return NextResponse.json({ success: false, error: 'Club name, short name, and nickname are required.' }, { status: 400 });
+  }
   const supabase = createServerClient();
   let { data, error } = await supabase.from(config.table).insert(payload).select().single();
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
@@ -226,6 +238,9 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   const payload = sanitizePayload(config, rawPayload);
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
+  }
+  if (config.table === 'club_settings' && !hasRequiredClubSettingsFields(payload)) {
+    return NextResponse.json({ success: false, error: 'Club name, short name, and nickname are required.' }, { status: 400 });
   }
 
   const supabase = createServerClient();

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { PLAYHQ_ORG_URL, CLUB_NICKNAME, FACEBOOK_URL } from '@/lib/constants';
+import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards } from '@/lib/structured-content';
 
@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default async function FixturesPage() {
-  const [blocks, teamLinks] = await Promise.all([
+  const [settings, blocks, teamLinks] = await Promise.all([
+    getClubSettings(),
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
     getPageLinkCards('fixtures', 'team_links'),
   ]);
@@ -22,7 +23,7 @@ export default async function FixturesPage() {
         <div className="container-width">
           <h1 className="page-hero-title">{blocks['fixtures.hero']?.title || 'Fixtures & Results'}</h1>
           <p className="page-hero-subtitle">
-            {blocks['fixtures.hero']?.body || `Follow the ${CLUB_NICKNAME} throughout the season across all grades.`}
+            {blocks['fixtures.hero']?.body || `Follow the ${settings.club_nickname} throughout the season across all grades.`}
           </p>
         </div>
       </section>
@@ -35,13 +36,13 @@ export default async function FixturesPage() {
                 {blocks['fixtures.status']?.title || 'Season Status'}
               </h2>
               <p className="text-gray-700 font-body leading-relaxed mb-4 max-w-3xl">
-                {blocks['fixtures.status']?.body || `Keep track of upcoming fixtures, results, and ladder updates for the ${CLUB_NICKNAME}.`}{' '}
-                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+                {blocks['fixtures.status']?.body || `Keep track of upcoming fixtures, results, and ladder updates for the ${settings.club_nickname}.`}{' '}
+                <Link href={settings.facebook_url || '#'} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
                   Facebook page
                 </Link>.
               </p>
               <Link
-                href={blocks['fixtures.status']?.cta_url || PLAYHQ_ORG_URL}
+                href={blocks['fixtures.status']?.cta_url || settings.playhq_url || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary inline-flex items-center"

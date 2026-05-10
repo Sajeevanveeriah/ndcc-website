@@ -2,24 +2,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
 import {
-  CLUB_NAME,
-  CLUB_SHORT,
-  CLUB_ADDRESS,
-  CLUB_GROUND,
-  CLUB_EMAIL_USER,
-  CLUB_EMAIL_DOMAIN,
-  CLUB_PHONE,
   ACKNOWLEDGEMENT,
-  CLUB_ASSOCIATION,
   NAV_LINKS,
 } from '@/lib/constants';
+import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  const emailHref = `mailto:${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
-  const phoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
-  const blocks = await getContentBlocks(['footer.acknowledgement']);
+  const [settings, blocks] = await Promise.all([
+    getClubSettings(),
+    getContentBlocks(['footer.acknowledgement']),
+  ]);
+  const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
+  const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
   const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
   const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
 
@@ -51,28 +47,28 @@ export default async function Footer() {
                   height={40}
                   className="rounded-full"
                 />
-                <span className="font-display font-semibold uppercase tracking-wide text-lg">{CLUB_SHORT}</span>
+                <span className="font-display font-semibold uppercase tracking-wide text-lg">{settings.club_short}</span>
               </Link>
               <p className="text-maroon-200 text-sm font-body mb-4">
-                {CLUB_NAME}. Proudly competing in the {CLUB_ASSOCIATION} since 1972.
+                {settings.club_name}. Proudly competing in the {settings.association_name} since {settings.established_year}.
               </p>
               <div className="space-y-2">
                 <div className="flex items-start gap-2 text-sm text-maroon-200">
                   <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                   <span className="font-body">
-                    {CLUB_GROUND}, {CLUB_ADDRESS}
+                    {settings.ground_name}, {settings.address}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-maroon-200">
                   <Mail className="h-4 w-4 shrink-0" />
-                  <a href={emailHref} className="font-body hover:text-white transition-colors">
-                    {CLUB_EMAIL_USER}@{CLUB_EMAIL_DOMAIN}
+                  <a href={emailHref || undefined} className="font-body hover:text-white transition-colors">
+                    {settings.email}
                   </a>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-maroon-200">
                   <Phone className="h-4 w-4 shrink-0" />
-                  <a href={phoneHref} className="font-body hover:text-white transition-colors">
-                    {CLUB_PHONE}
+                  <a href={phoneHref || undefined} className="font-body hover:text-white transition-colors">
+                    {settings.phone}
                   </a>
                 </div>
               </div>
@@ -131,7 +127,7 @@ export default async function Footer() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                   >
-                    {CLUB_ASSOCIATION}
+                    {settings.association_name}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </li>
@@ -183,7 +179,7 @@ export default async function Footer() {
       <div className="border-t border-maroon-700 px-4 sm:px-6 lg:px-8 py-6">
         <div className="container-width flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-maroon-300 font-body">
-            &copy; {currentYear} {CLUB_NAME}. All rights reserved.
+            &copy; {currentYear} {settings.club_name}. All rights reserved.
           </p>
           <a
             href="https://github.com/Sajeevanveeriah"
