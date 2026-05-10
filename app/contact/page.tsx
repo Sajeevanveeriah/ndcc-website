@@ -5,16 +5,10 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import {
-  CLUB_ADDRESS,
-  CLUB_GROUND,
-  CLUB_EMAIL_USER,
-  CLUB_EMAIL_DOMAIN,
-  CLUB_PHONE,
   COMMITTEE,
   ENQUIRY_TYPES,
-  GOOGLE_MAPS_EMBED_URL,
 } from '@/lib/constants';
-import { assembleEmail } from '@/lib/utils';
+import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -32,6 +26,7 @@ export default function ContactPage() {
   const [heroBody, setHeroBody] = useState('Have a question, want to join, or looking to get involved? We’d love to hear from you.');
   const [formIntro, setFormIntro] = useState('Fill out the form below and we’ll get back to you as soon as possible.');
   const [detailsTitle, setDetailsTitle] = useState('Club Details');
+  const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
 
   useEffect(() => {
     document.title = 'Contact Us | NDCC Dinos';
@@ -54,10 +49,22 @@ export default function ContactPage() {
     }
 
     fetchContentBlocks();
+
+    async function fetchClubSettings() {
+      try {
+        const res = await fetch('/api/club-settings', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.data) setSettings(data.data);
+      } catch {
+        // Safe fallback constants are already loaded.
+      }
+    }
+
+    fetchClubSettings();
   }, []);
 
-  const clubEmail = assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN);
-  const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
+  const clubPhoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -192,8 +199,8 @@ export default function ContactPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                       </svg>
                       <div>
-                        <p className="font-body font-semibold text-gray-900">{CLUB_GROUND}</p>
-                        <p className="font-body text-gray-600 text-sm">{CLUB_ADDRESS}</p>
+                        <p className="font-body font-semibold text-gray-900">{settings.ground_name}</p>
+                        <p className="font-body text-gray-600 text-sm">{settings.address}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -202,12 +209,11 @@ export default function ContactPage() {
                       </svg>
                       <div>
                         <p className="font-body font-semibold text-gray-900">Contact</p>
-                        <p className="font-body text-gray-600 text-sm">John Elliott, President</p>
                         <a
                           href={clubPhoneHref}
                           className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
                         >
-                          {CLUB_PHONE}
+                          {settings.phone}
                         </a>
                       </div>
                     </div>
@@ -218,13 +224,53 @@ export default function ContactPage() {
                       <div>
                         <p className="font-body font-semibold text-gray-900">Email</p>
                         <a
-                          href={`mailto:${clubEmail}`}
+                          href={settings.email ? `mailto:${settings.email}` : undefined}
                           className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
                         >
-                          {clubEmail}
+                          {settings.email}
                         </a>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+
+              {/* Social Links */}
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Social Links</h3>
+                  <div className="space-y-2">
+                    {settings.facebook_url && (
+                      <a
+                        href={settings.facebook_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                      >
+                        Facebook
+                      </a>
+                    )}
+                    {settings.instagram_url && (
+                      <a
+                        href={settings.instagram_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                      >
+                        Instagram{settings.instagram_handle ? ` (${settings.instagram_handle})` : ''}
+                      </a>
+                    )}
+                    {settings.playhq_url && (
+                      <a
+                        href={settings.playhq_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                      >
+                        PlayHQ
+                      </a>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -250,14 +296,14 @@ export default function ContactPage() {
               <Card>
                 <div className="overflow-hidden rounded-xl">
                   <iframe
-                    src={GOOGLE_MAPS_EMBED_URL}
+                    src={settings.google_maps_embed_url || fallbackClubSettings.google_maps_embed_url || undefined}
                     width="100%"
                     height="300"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title={`Map showing ${CLUB_GROUND}, ${CLUB_ADDRESS}`}
+                    title={`Map showing ${settings.ground_name}, ${settings.address}`}
                   />
                 </div>
               </Card>

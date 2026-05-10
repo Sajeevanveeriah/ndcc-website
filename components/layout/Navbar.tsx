@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import { NAV_LINKS, CLUB_SHORT } from '@/lib/constants';
+import { NAV_LINKS } from '@/lib/constants';
+import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
 
 export default function Navbar() {
@@ -13,6 +14,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
+  const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +27,20 @@ export default function Navbar() {
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const loadClubSettings = async () => {
+      try {
+        const res = await fetch('/api/club-settings', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.data) setSettings(data.data);
+      } catch {
+        // Safe fallback constants are already loaded.
+      }
+    };
+    loadClubSettings();
+  }, []);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -65,7 +81,7 @@ export default function Navbar() {
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[4.75rem]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0" aria-label="NDCC Home">
+          <Link href="/" className="flex items-center gap-3 shrink-0" aria-label={`${settings.club_short} Home`}>
             <Image
               src="/images/logo.jpg"
               alt="NDCC Logo"
@@ -76,9 +92,9 @@ export default function Navbar() {
             />
             <div className="hidden sm:block">
               <span className="text-maroon-700 font-display font-semibold uppercase tracking-wide text-lg leading-tight block">
-                {CLUB_SHORT}
+                {settings.club_short}
               </span>
-              <span className="text-gray-500 text-xs font-body tracking-wide">Est. 1972</span>
+              <span className="text-gray-500 text-xs font-body tracking-wide">Est. {settings.established_year}</span>
             </div>
           </Link>
 
