@@ -26,7 +26,7 @@ export const TEAMS: TeamInfo[] = [
     name: 'Senior Men - 1st XI',
     grade: 'GCA Grade 4',
     description:
-      'Our flagship senior side competes in Grade 4 of the Geelong Cricket Association. With a mix of experienced players and emerging talent, the 1st XI plays competitive two-day cricket every Saturday through the season at Grinter Reserve and away venues across Geelong.',
+      'Our flagship senior side competes in Grade 4 of the Geelong Cricket Association. With a mix of experienced players and emerging talent, the 1st XI plays competitive one-day cricket every Saturday through the season at Grinter Reserve and away venues across Geelong.',
     playhq_url:
       'https://www.playhq.com/cricket-australia/org/newcomb-and-district-cricket-club/2c2bff9c/geelong-cricket-association-mens-competition-summer-202526/teams/newcomb-and-district-1sts/0f74d5e7',
   },
