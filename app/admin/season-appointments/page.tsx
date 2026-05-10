@@ -86,7 +86,6 @@ export default function AdminSeasonAppointmentsPage() {
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!form.name.trim()) errors.name = 'Name is required.';
-    if (!form.role.trim()) errors.role = 'Role is required.';
     if (!form.announcement_date) errors.announcement_date = 'Announcement date is required.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -240,8 +239,6 @@ export default function AdminSeasonAppointmentsPage() {
             label="Role"
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
-            error={formErrors.role}
-            required
           />
           <Input
             id="appointment-date"

@@ -19,7 +19,6 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { normalizeSeasonAppointmentImage } from '@/lib/public-content-normalizers';
-import { seasonAppointmentAssets2026_27 } from '@/lib/assets';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -121,19 +120,6 @@ export default async function HomePage() {
     ...item,
     image_url: normalizeSeasonAppointmentImage(item.name, item.image_url),
   }));
-  const seasonAppointmentNames = new Set(seasonAppointments.map((item) => item.name.trim().toLowerCase()));
-  const mergedSeasonAppointments = [
-    ...seasonAppointments,
-    ...seasonAppointmentAssets2026_27
-      .filter((asset) => !seasonAppointmentNames.has(asset.title.trim().toLowerCase()))
-      .map((asset, index) => ({
-        id: `asset-${asset.title.toLowerCase().replace(/\s+/g, '-')}`,
-        name: asset.title,
-        role: '',
-        image_url: asset.src,
-        announcement_date: `2026-05-${String(index + 1).padStart(2, '0')}`,
-      })),
-  ];
   const heroCtaLabel = blocks['home.hero']?.cta_label || 'Join the Club';
   const heroCtaUrl = blocks['home.hero']?.cta_url || '/contact';
 
@@ -292,31 +278,38 @@ export default async function HomePage() {
             <h2 className="section-title">2026/27 Season Appointments</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {mergedSeasonAppointments.map((appointment) => (
-              <Card key={appointment.id} className="overflow-hidden">
-                {appointment.image_url ? (
-                  <div className="relative h-56 w-full">
-                    <Image
-                      src={appointment.image_url}
-                      alt={`${appointment.name} appointed as ${appointment.role}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-24 bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center">
-                    <span className="text-white/80 font-display font-bold text-3xl">
-                      {appointment.name.split(' ').map((w) => w[0]).join('')}
-                    </span>
-                  </div>
-                )}
-                <CardContent className="p-5 text-center">
-                  <h3 className="font-display font-bold text-gray-900 text-lg">{appointment.name}</h3>
-                  <p className="text-maroon-600 font-body text-sm font-semibold">{appointment.role}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {seasonAppointments.map((appointment) => {
+              const role = appointment.role.trim();
+              const imageAlt = role
+                ? `${appointment.name} appointed as ${role}`
+                : `${appointment.name} season appointment announcement`;
+
+              return (
+                <Card key={appointment.id} className="overflow-hidden">
+                  {appointment.image_url ? (
+                    <div className="relative h-56 w-full">
+                      <Image
+                        src={appointment.image_url}
+                        alt={imageAlt}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-24 bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center">
+                      <span className="text-white/80 font-display font-bold text-3xl">
+                        {appointment.name.split(' ').map((w) => w[0]).join('')}
+                      </span>
+                    </div>
+                  )}
+                  <CardContent className="p-5 text-center">
+                    <h3 className="font-display font-bold text-gray-900 text-lg">{appointment.name}</h3>
+                    <p className="text-maroon-600 font-body text-sm font-semibold">{appointment.role}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
           <p className="text-center text-gray-500 font-body text-sm mt-8">
             More appointments to be announced. Follow us on{' '}
