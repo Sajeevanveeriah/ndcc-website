@@ -2,16 +2,9 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import {
-  CLUB_NICKNAME,
-  CLUB_ESTABLISHED,
-  CLUB_GROUND,
-  CLUB_ASSOCIATION,
-  CLUB_ASSOCIATION_SHORT,
-  COMMITTEE,
-} from '@/lib/constants';
 import { getInitials, normalisePublicText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
+import { getSiteSettings } from '@/lib/cms-content';
 import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships, getPageLinkCards } from '@/lib/structured-content';
 
 export const metadata: Metadata = {
@@ -21,13 +14,14 @@ export const metadata: Metadata = {
 const premiershipTeams = ['1st XI', '2nd XI', '3rd XI', '4th XI', '5th XI'];
 
 export default async function AboutPage() {
-  const [blocks, lineageEntries, premierships, competitions, committeeMembers, aboutArticles] = await Promise.all([
+  const [blocks, lineageEntries, premierships, competitions, committeeMembers, aboutArticles, settings] = await Promise.all([
     getContentBlocks(['about.hero', 'about.history', 'about.affiliation', 'about.goodsports', 'about.partnership', 'about.committee']),
     getHistoryLineage(),
     getHistoryPremierships(),
     getHistoryCompetitions(),
     getCommitteeMembers(),
     getPageLinkCards('about', 'articles'),
+    getSiteSettings(),
   ]);
 
   const historyTitle = blocks['about.history']?.title || 'Our History';
@@ -35,17 +29,15 @@ export default async function AboutPage() {
   const historyImage = blocks['about.history']?.image_url || '/images/Turf_Ground.jpg';
 
   const competitionsByAbbr = Object.fromEntries(competitions.map((item) => [item.abbreviation, item.name]));
-  const activeCommittee = committeeMembers.length > 0
-    ? committeeMembers.map((member) => ({ name: member.name, role: member.role }))
-    : COMMITTEE;
+  const activeCommittee = committeeMembers.map((member) => ({ name: member.name, role: member.role }));
 
   return (
     <>
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{blocks['about.hero']?.title || `About the ${CLUB_NICKNAME}`}</h1>
+          <h1 className="page-hero-title">{blocks['about.hero']?.title || ''}</h1>
           <p className="page-hero-subtitle">
-            {normalisePublicText(blocks['about.hero']?.body) || `A proud community cricket club in Geelong, established in ${CLUB_ESTABLISHED}.`}
+            {normalisePublicText(blocks['about.hero']?.body)}
           </p>
         </div>
       </section>
@@ -56,7 +48,7 @@ export default async function AboutPage() {
             <div>
               <h2 className="section-title">{historyTitle}</h2>
               <div className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                <p>{normalisePublicText(historyBody) || `${CLUB_NICKNAME} has proudly represented Newcomb since ${CLUB_ESTABLISHED}, built on generations of community involvement and cricket tradition.`}</p>
+                <p>{normalisePublicText(historyBody)}</p>
               </div>
             </div>
             <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
@@ -125,18 +117,18 @@ export default async function AboutPage() {
         <div className="container-width">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="section-title">{blocks['about.affiliation']?.title || `${CLUB_ASSOCIATION_SHORT} Affiliation`}</h2>
+              <h2 className="section-title">{blocks['about.affiliation']?.title || ''}</h2>
               <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
+                {normalisePublicText(blocks['about.affiliation']?.body)}
               </p>
             </div>
             <Card>
               <CardContent className="p-8 text-center">
                 <div className="w-20 h-20 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-maroon-700 font-display font-bold text-2xl">{CLUB_ASSOCIATION_SHORT}</span>
+                  <span className="text-maroon-700 font-display font-bold text-2xl">{settings.club_association_short || ''}</span>
                 </div>
-                <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{CLUB_ASSOCIATION}</h3>
-                <p className="text-gray-600 font-body text-sm">Affiliated since {CLUB_ESTABLISHED}</p>
+                <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{settings.club_association || ''}</h3>
+                <p className="text-gray-600 font-body text-sm">{settings.club_established ? `Affiliated since ${settings.club_established}` : ''}</p>
               </CardContent>
             </Card>
           </div>
@@ -162,7 +154,7 @@ export default async function AboutPage() {
           <div className="max-w-3xl">
             <h2 className="section-title">{normalisePublicText(blocks['about.partnership']?.title) || 'Newcomb Power Football & Netball Club'}</h2>
             <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-              {normalisePublicText(blocks['about.partnership']?.body) || `NDCC shares facilities at ${CLUB_GROUND}.`}
+              {normalisePublicText(blocks['about.partnership']?.body)}
             </p>
           </div>
         </div>
@@ -194,7 +186,7 @@ export default async function AboutPage() {
           <div className="text-center mb-12">
             <h2 className="section-title">{blocks['about.committee']?.title || 'Committee & Office Bearers'}</h2>
             <p className="section-subtitle mx-auto">
-              {blocks['about.committee']?.body || `The people who keep the ${CLUB_NICKNAME} running behind the scenes.`}
+              {blocks['about.committee']?.body || ''}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">

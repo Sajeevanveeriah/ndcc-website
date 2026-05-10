@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
 
 type GalleryPhoto = {
   id: string;
@@ -20,6 +19,7 @@ type GalleryPhoto = {
 export default function GalleryPage() {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function loadGallery() {
@@ -32,7 +32,17 @@ export default function GalleryPage() {
         setPhotos([]);
       }
     }
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/public/site-data', { cache: 'no-store' });
+        const result = await response.json();
+        setSettings(result.data?.settings || {});
+      } catch {
+        setSettings({});
+      }
+    }
     loadGallery();
+    loadSettings();
   }, []);
 
   const activePhoto = useMemo(
@@ -77,7 +87,7 @@ export default function GalleryPage() {
 
           <h2 className="section-title text-center mb-8">Follow Us for More</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="group">
+            <Link href={settings.facebook_url || '#'} target="_blank" rel="noopener noreferrer" className="group">
               <Card hover className="h-full">
                 <CardContent className="p-8 text-center">
                   <h3 className="text-xl font-display font-bold text-gray-900 mb-2">Facebook</h3>
@@ -88,12 +98,12 @@ export default function GalleryPage() {
               </Card>
             </Link>
 
-            <Link href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="group">
+            <Link href={settings.instagram_url || '#'} target="_blank" rel="noopener noreferrer" className="group">
               <Card hover className="h-full">
                 <CardContent className="p-8 text-center">
                   <h3 className="text-xl font-display font-bold text-gray-900 mb-2">Instagram</h3>
                   <p className="text-gray-600 font-body text-sm">
-                    Follow {INSTAGRAM_HANDLE} for behind-the-scenes content, training shots, and match day highlights.
+                    Follow {settings.instagram_handle || 'the club'} for behind-the-scenes content, training shots, and match day highlights.
                   </p>
                 </CardContent>
               </Card>

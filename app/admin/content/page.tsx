@@ -48,7 +48,7 @@ export default function AdminContentPage() {
     'home.season_status': 'Homepage season update card (title/body/button).',
     'about.hero': 'About page hero title + subtitle.',
     'about.affiliation': 'About page GCA affiliation section.',
-    'about.goodsports': 'About page Good Sports section (CTA label used as badge).',
+    'about.goodsports': 'About page Good Sports section (Button text used as badge).',
     'about.partnership': 'About page partnership section text.',
     'about.committee': 'About page committee heading + intro.',
     'facilities.hero': 'Facilities page hero heading + subtitle.',
@@ -58,7 +58,7 @@ export default function AdminContentPage() {
     'facilities.cta': 'Facilities page CTA copy + button link.',
     'fixtures.hero': 'Fixtures page hero heading + subtitle.',
     'fixtures.status': 'Fixtures season status heading/body/button.',
-    'fixtures.team_links': 'Fixtures team links heading + intro + CTA label.',
+    'fixtures.team_links': 'Fixtures team links heading + intro + Button text.',
     'merch.hero': 'Merchandise page hero heading + subtitle.',
     'merch.ordering': 'Merchandise ordering guidance panel.',
     'about.history': 'About page history heading + body copy.',
@@ -92,7 +92,7 @@ export default function AdminContentPage() {
       const result = await parseApiResponse<{ data?: Block }>(res);
       const updatedBlock = result.data ?? selected;
       setSelected(updatedBlock);
-      setFeedback({ type: 'success', message: 'Content block saved.' });
+      setFeedback({ type: 'success', message: 'Page content saved.' });
       const refreshed = await loadBlocks();
       const freshBlock = refreshed.find((b) => b.id === updatedBlock.id);
       if (freshBlock) setSelected(freshBlock);
@@ -122,7 +122,7 @@ export default function AdminContentPage() {
       const result = await parseApiResponse<{ data?: Block }>(res);
       await loadBlocks();
       if (result.data) setSelected(result.data);
-      setFeedback({ type: 'success', message: 'Content block created. Update key/page/label then save.' });
+      setFeedback({ type: 'success', message: 'Page content section created.' });
     } catch (error) {
       setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Failed to create content block.' });
     } finally {
@@ -139,14 +139,14 @@ export default function AdminContentPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-display font-bold">Content Blocks</h1>
+      <h1 className="text-2xl font-display font-bold">Page Content</h1>
       <p className="text-sm text-gray-500">
-        Content Blocks control reusable headline, body, and CTA text sections across public pages. Use them for singleton sections only.
+        Edit page text using friendly sections grouped by page. Technical keys are hidden from the main editing list.
       </p>
       <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
         <p className="font-semibold">How to use content blocks</p>
         <ul className="list-disc ml-5 mt-1 space-y-1">
-          <li>Block keys map to a specific page section, for example <code>about.affiliation</code> on the About page.</li>
+          <li>Internal keys map to a specific page section, for example <code>about.affiliation</code> on the About page.</li>
           <li>Repeatable content like news posts, facilities features, and history records belong in structured admin screens.</li>
           <li>Do not place internal admin comments in block body text. Block body text is shown on the public website.</li>
         </ul>
@@ -199,16 +199,16 @@ export default function AdminContentPage() {
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input id="block_key" label="Block key" value={selected.block_key} onChange={(e) => setSelected((v) => v ? ({ ...v, block_key: e.target.value }) : v)} />
+                <Input id="block_key" label="Internal key" value={selected.block_key} onChange={(e) => setSelected((v) => v ? ({ ...v, block_key: e.target.value }) : v)} />
                 <Input id="page_slug" label="Page slug" value={selected.page_slug} onChange={(e) => setSelected((v) => v ? ({ ...v, page_slug: e.target.value }) : v)} />
                 <Input id="section_label" label="Section label" value={selected.section_label} onChange={(e) => setSelected((v) => v ? ({ ...v, section_label: e.target.value }) : v)} />
               </div>
               <Input id="block_title" label="Title" value={selected.title || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, title: e.target.value }) : v)} />
               <Textarea id="block_body" label="Body" rows={5} value={selected.body || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, body: e.target.value }) : v)} />
-              <ImageUploadField id="block_image" label="Image URL" value={selected.image_url || ''} onChange={(value) => setSelected((v) => v ? ({ ...v, image_url: value }) : v)} />
+              <ImageUploadField id="block_image" label="Image" value={selected.image_url || ''} onChange={(value) => setSelected((v) => v ? ({ ...v, image_url: value }) : v)} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input id="block_cta_label" label="CTA label" value={selected.cta_label || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, cta_label: e.target.value }) : v)} />
-                <Input id="block_cta_url" label="CTA URL" value={selected.cta_url || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, cta_url: e.target.value }) : v)} />
+                <Input id="block_cta_label" label="Button text" value={selected.cta_label || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, cta_label: e.target.value }) : v)} />
+                <Input id="block_cta_url" label="Button link" value={selected.cta_url || ''} onChange={(e) => setSelected((v) => v ? ({ ...v, cta_url: e.target.value }) : v)} />
               </div>
               <label className="inline-flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={selected.is_active} onChange={(e) => setSelected((v) => v ? ({ ...v, is_active: e.target.checked }) : v)} />

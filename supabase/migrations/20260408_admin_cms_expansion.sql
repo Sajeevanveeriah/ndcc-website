@@ -171,8 +171,8 @@ ON CONFLICT (block_key) DO NOTHING;
 
 UPDATE apparel_products
 SET category = CASE slug
-  WHEN 'playing-shirt' THEN 'Two Day'
-  WHEN 'playing-trousers' THEN 'Two Day'
+  WHEN 'playing-shirt' THEN 'One Day'
+  WHEN 'playing-trousers' THEN 'One Day'
   WHEN 'club-hoodie' THEN 'Training'
   WHEN 'training-tee' THEN 'Training'
   WHEN 'club-polo' THEN 'Social'
@@ -188,10 +188,10 @@ VALUES
   ('puffer-jacket', 'Puffer Jacket', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Outerwear', 1, NULL, NULL, TRUE),
   ('soft-shell-jacket', 'Soft Shell Jacket', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Outerwear', 2, NULL, NULL, TRUE),
   ('puffer-vest', 'Puffer Vest', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Outerwear', 3, NULL, NULL, TRUE),
-  ('two-day-polo', 'Two Day Polo', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Two Day', 4, NULL, NULL, TRUE),
-  ('two-day-ls-polo', 'Two Day LS Polo', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Two Day', 5, NULL, NULL, TRUE),
-  ('two-day-jumper', 'Two Day Jumper', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Two Day', 6, NULL, NULL, TRUE),
-  ('two-day-pants', 'Two Day Pants', '', 0, ARRAY[]::TEXT[], '', FALSE, 'Two Day', 7, NULL, NULL, TRUE),
+  ('two-day-polo', 'One Day Polo', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 4, NULL, NULL, TRUE),
+  ('two-day-ls-polo', 'One Day LS Polo', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 5, NULL, NULL, TRUE),
+  ('two-day-jumper', 'One Day Jumper', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 6, NULL, NULL, TRUE),
+  ('two-day-pants', 'One Day Pants', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 7, NULL, NULL, TRUE),
   ('one-day-polo', 'One Day Polo', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 8, NULL, NULL, TRUE),
   ('one-day-ls-polo', 'One Day LS Polo', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 9, NULL, NULL, TRUE),
   ('one-day-pants', 'One Day Pants', '', 0, ARRAY[]::TEXT[], '', FALSE, 'One Day', 10, NULL, NULL, TRUE),
