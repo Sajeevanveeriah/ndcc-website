@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -288,12 +289,19 @@ export default async function HomePage() {
                 <Card key={appointment.id} className="overflow-hidden">
                   {appointment.image_url ? (
                     <div className="relative h-56 w-full">
-                      <Image
+                      <SafeImage
                         src={appointment.image_url}
                         alt={imageAlt}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        fallback={
+                          <div className="h-full bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center">
+                            <span className="text-white/80 font-display font-bold text-3xl">
+                              {appointment.name.split(' ').map((w) => w[0]).join('')}
+                            </span>
+                          </div>
+                        }
                       />
                     </div>
                   ) : (

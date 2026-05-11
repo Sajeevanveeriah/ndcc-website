@@ -66,8 +66,8 @@ Set these as **server-only** environment variables (for local `.env.local` and V
 - `GITHUB_COMMITTER_EMAIL`
 - `VERCEL_DEPLOY_HOOK_URL`
 
-Image uploads from admin forms commit files to GitHub via the Contents API into `public/images` (or your configured `GITHUB_MEDIA_BASE_PATH`), then return a browser URL that removes the leading `public` segment (for example `/images/cms/YYYY/MM/file.webp`).
-Set `VERCEL_DEPLOY_HOOK_URL` to a Vercel Production Deploy Hook so uploaded images are published on the live site immediately after upload.
+Image uploads from admin forms commit files to GitHub via the Contents API under `public/images` (or a `public/images` subfolder), then return a browser URL that starts with `/images/` and removes the leading `public` segment (for example `/images/cms/YYYY/MM/file.webp`). If `GITHUB_MEDIA_BASE_PATH` is set to `images/cms`, the upload API interprets it as `public/images/cms`; paths outside `public/images` are rejected so uploaded files are web-accessible after deployment.
+Set `VERCEL_DEPLOY_HOOK_URL` to a Vercel Production Deploy Hook so uploaded images are published on the live site immediately after upload. The admin form warns editors that a newly uploaded image may not appear publicly until the triggered deployment completes.
 Configure these environment variables in **Vercel Production** for the production project.
 When environment variables are added or changed in Vercel, trigger a new deployment for them to take effect.
 
