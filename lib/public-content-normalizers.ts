@@ -12,11 +12,20 @@ const SEASON_APPOINTMENT_IMAGE_MAP: SeasonAppointmentImageMap = {
   'huey neild': '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp',
   'nathan keevil': '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp',
   'scott kirby': '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp',
+  'caitlin-rose neil': '/images/2026/05/caitlin-rose-neil-1778495351649.png',
+  'jodie clark': '/images/2026/05/jodie-clark-1778495304142.png',
+  'skye green': '/images/2026/05/skye-green-1778495377710.png',
 };
 
 const SEASON_APPOINTMENT_LEGACY_IMAGE_PATHS = new Set([
   '/images/Craig_Hillgrove.png',
   '/images/Kelsey_Allan.png',
+]);
+
+const SEASON_APPOINTMENT_KNOWN_BROKEN_IMAGE_PATHS = new Set([
+  '/images/cms/2026/05/caitlin-rose-neil-1778495351649.png',
+  '/images/cms/2026/05/jodie-clark-1778495304142.png',
+  '/images/cms/2026/05/skye-green-1778495377710.png',
 ]);
 
 const GALLERY_LEGACY_TITLE = '2025/2026 Div. 4 1st XI Premiership';
@@ -42,16 +51,30 @@ function normalizeName(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeLocalImagePath(value: string) {
+  return value
+    .trim()
+    .replace(/^public\//, '/')
+    .replace(/^images\//, '/images/');
+}
+
 export function normalizeSeasonAppointmentImage(name: string, imageUrl?: string | null) {
   const mappedImage = SEASON_APPOINTMENT_IMAGE_MAP[normalizeName(name)];
-  if (!mappedImage) return imageUrl ?? null;
-
   const normalizedImageUrl = imageUrl?.trim() ?? '';
-  if (!normalizedImageUrl || SEASON_APPOINTMENT_LEGACY_IMAGE_PATHS.has(normalizedImageUrl)) {
+  if (!mappedImage) return normalizedImageUrl || null;
+
+  if (/^https?:\/\//i.test(normalizedImageUrl)) return normalizedImageUrl;
+
+  const normalizedLocalPath = normalizeLocalImagePath(normalizedImageUrl);
+  if (
+    !normalizedImageUrl
+    || SEASON_APPOINTMENT_LEGACY_IMAGE_PATHS.has(normalizedLocalPath)
+    || SEASON_APPOINTMENT_KNOWN_BROKEN_IMAGE_PATHS.has(normalizedLocalPath)
+  ) {
     return mappedImage;
   }
 
-  return normalizedImageUrl;
+  return normalizedLocalPath;
 }
 
 export function isPublicNewsPostAllowed(title: string) {

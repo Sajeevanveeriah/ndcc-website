@@ -24,6 +24,13 @@ type SeasonAppointment = {
 
 type AppointmentForm = Omit<SeasonAppointment, 'id' | 'created_at'>;
 
+
+function imageStatus(imageUrl: string | null) {
+  const trimmed = imageUrl?.trim() || '';
+  if (!trimmed) return 'None';
+  return /^https?:\/\//i.test(trimmed) || trimmed.startsWith('/images/') ? 'Set' : 'Check path';
+}
+
 const emptyAppointment: AppointmentForm = {
   name: '',
   role: '',
@@ -199,7 +206,7 @@ export default function AdminSeasonAppointmentsPage() {
                 <TableCell>{item.role}</TableCell>
                 <TableCell>{formatDate(item.announcement_date)}</TableCell>
                 <TableCell>{item.sort_order}</TableCell>
-                <TableCell>{item.image_url ? 'Set' : 'None'}</TableCell>
+                <TableCell>{imageStatus(item.image_url)}</TableCell>
                 <TableCell>
                   {item.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="default">Hidden</Badge>}
                 </TableCell>

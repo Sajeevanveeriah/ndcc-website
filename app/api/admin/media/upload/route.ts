@@ -10,8 +10,15 @@ type GitHubEnv = {
   repo: string;
   branch: string;
   basePath: string;
+  basePathWarning?: string;
   committerName: string;
   committerEmail: string;
+};
+
+type NormalizedMediaBasePath = {
+  repoBasePath: string;
+  browserBasePath: string;
+  warning?: string;
 };
 
 function requiredEnv(): GitHubEnv | { error: string } {
@@ -27,14 +34,49 @@ function requiredEnv(): GitHubEnv | { error: string } {
     return { error: 'GitHub media upload is not configured. Ask an admin to set required server environment variables.' };
   }
 
+  const normalizedBasePath = normalizeMediaBasePath(basePath);
+  if ('error' in normalizedBasePath) {
+    return { error: normalizedBasePath.error };
+  }
+
   return {
     token,
     owner,
     repo,
     branch,
-    basePath: basePath.replace(/^\/+|\/+$/g, ''),
+    basePath: normalizedBasePath.repoBasePath,
+    basePathWarning: normalizedBasePath.warning,
     committerName,
     committerEmail,
+  };
+}
+
+
+function normalizeMediaBasePath(basePath: string): NormalizedMediaBasePath | { error: string } {
+  const trimmedBasePath = basePath.trim().replace(/^\/+|\/+$/g, '');
+  if (!trimmedBasePath) {
+    return { error: 'GitHub media upload base path is empty. Set GITHUB_MEDIA_BASE_PATH to public/images or a public/images subfolder.' };
+  }
+
+  const pathSegments = trimmedBasePath.split('/').filter(Boolean);
+  if (pathSegments.includes('..') || pathSegments.includes('.')) {
+    return { error: 'GitHub media upload base path is invalid. Use public/images or a public/images subfolder.' };
+  }
+
+  const repoBasePath = trimmedBasePath.startsWith('public/images')
+    ? trimmedBasePath
+    : trimmedBasePath === 'images' || trimmedBasePath.startsWith('images/')
+      ? `public/${trimmedBasePath}`
+      : '';
+
+  if (!repoBasePath || (repoBasePath !== 'public/images' && !repoBasePath.startsWith('public/images/'))) {
+    return { error: 'GitHub media upload base path must resolve under public/images. Set GITHUB_MEDIA_BASE_PATH to public/images or a public/images subfolder.' };
+  }
+
+  return {
+    repoBasePath,
+    browserBasePath: `/${repoBasePath.replace(/^public\//, '')}`,
+    ...(trimmedBasePath !== repoBasePath ? { warning: 'GITHUB_MEDIA_BASE_PATH was interpreted under public/ so uploads are web-accessible.' } : {}),
   };
 }
 
@@ -99,8 +141,13 @@ export async function POST(request: Request) {
   const safeBase = sanitizeName(file.name);
   const timestamp = now.getTime();
   const fileName = `${safeBase}-${timestamp}.${extension}`;
-  const repoPath = `${env.basePath}/${year}/${month}/${fileName}`;
-  const publicPath = `/${repoPath.replace(/^public\//, '')}`;
+  const normalizedBasePath = normalizeMediaBasePath(env.basePath);
+  if ('error' in normalizedBasePath) {
+    return NextResponse.json({ success: false, error: normalizedBasePath.error }, { status: 500 });
+  }
+
+  const repoPath = `${normalizedBasePath.repoBasePath}/${year}/${month}/${fileName}`;
+  const publicPath = `${normalizedBasePath.browserBasePath}/${year}/${month}/${fileName}`;
 
   const arrayBuffer = await file.arrayBuffer();
   const contentBase64 = Buffer.from(arrayBuffer).toString('base64');
@@ -135,21 +182,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: `GitHub upload failed: ${errorMessage}` }, { status: 502 });
   }
 
-  let warning: string | undefined;
+  let warning = env.basePathWarning || normalizedBasePath.warning;
   const deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL;
 
   if (!deployHookUrl) {
-    warning = 'Image uploaded, but deployment was not triggered because VERCEL_DEPLOY_HOOK_URL is not configured.';
+    warning = [warning, 'Image uploaded, but deployment was not triggered because VERCEL_DEPLOY_HOOK_URL is not configured.'].filter(Boolean).join(' ');
   } else {
     try {
       const deployResponse = await fetch(deployHookUrl, { method: 'POST' });
       if (!deployResponse.ok) {
-        warning = 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.';
+        warning = [warning, 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.'].filter(Boolean).join(' ');
       }
     } catch {
-      warning = 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.';
+      warning = [warning, 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.'].filter(Boolean).join(' ');
     }
   }
 
-  return NextResponse.json({ success: true, path: publicPath, ...(warning ? { warning } : {}) });
+  return NextResponse.json({
+    success: true,
+    path: publicPath,
+    ...(warning ? { warning } : {}),
+    metadata: {
+      publicPath,
+      repoPath,
+      deployment: !deployHookUrl ? 'not_configured' : warning?.includes('deployment trigger failed') ? 'failed' : 'triggered',
+    },
+  });
 }
