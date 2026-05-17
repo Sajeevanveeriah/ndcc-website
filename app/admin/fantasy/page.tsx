@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
-import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays } from 'lucide-react';
+import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch } from 'lucide-react';
 
 const fantasySections = [
   {
@@ -26,6 +26,12 @@ const fantasySections = [
     title: 'CSV Import',
     description: 'Validate match-stat CSV files and save draft Fantasy Cricket import batches.',
     icon: Upload,
+  },
+  {
+    href: '/admin/fantasy/imports',
+    title: 'Import Review',
+    description: 'Review saved import batches, inspect stat rows, and publish or reject Fantasy Cricket scores.',
+    icon: FileSearch,
   },
 ];
 

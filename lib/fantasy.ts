@@ -34,9 +34,9 @@ export const FANTASY_MODULES: FantasyModule[] = [
   },
   {
     title: 'Leaderboard',
-    description: 'Future leaderboard views will be separated from rules and squad-management foundations.',
+    description: 'View the published-only NDCC Fantasy Cricket player leaderboard.',
     href: '/fantasy/leaderboard',
-    status: 'planned',
+    status: 'available',
   },
 ];
 

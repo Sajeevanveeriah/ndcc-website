@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, useState } from 'react';
+import Link from 'next/link';
 import Card, { CardContent, CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
@@ -101,7 +102,8 @@ export default function AdminFantasyImportPage() {
       </div>
 
       <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
-        Draft import only. No public scores are published.
+        Draft import only. No public scores are published until a saved batch is reviewed and published.
+        <Link href="/admin/fantasy/imports" className="ml-2 font-semibold underline">Review saved imports</Link>
       </div>
 
       {feedback && (
