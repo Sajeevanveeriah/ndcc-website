@@ -12,6 +12,7 @@ type ResourceConfig = {
   allowedFields: string[];
   defaultOrder?: { column: string; ascending: boolean };
   datetimeFields?: string[];
+  allowDelete?: boolean;
 };
 
 const resourceMap: Record<string, ResourceConfig> = {
@@ -23,6 +24,9 @@ const resourceMap: Record<string, ResourceConfig> = {
   news: { table: 'news', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'content', 'author', 'image_url', 'published', 'published_at', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   seasonAppointments: { table: 'season_appointments', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'image_url', 'announcement_date', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   teams: { table: 'teams', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'grade', 'description', 'captain', 'playhq_url', 'image_url', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
+  fantasyPlayers: { table: 'fantasy_players', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['display_name', 'playhq_player_id', 'role', 'team_label', 'active'], defaultOrder: { column: 'display_name', ascending: true }, allowDelete: false },
+  fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['round_number', 'name', 'deadline_at', 'status'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
+  fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
   sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active'], defaultOrder: { column: 'created_at', ascending: false } },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -281,6 +285,9 @@ export async function DELETE(request: Request, { params }: { params: { resource:
   const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
+  }
+  if (config.allowDelete === false) {
+    return NextResponse.json({ success: false, error: 'Delete is disabled for this resource.' }, { status: 405 });
   }
 
   const { searchParams } = new URL(request.url);
