@@ -7,6 +7,9 @@ import { parseApiResponse } from '@/lib/admin-client';
 
 type User = { id: string; email: string; full_name: string; role: string; is_active: boolean };
 
+const VALID_ROLES = ['admin', 'president', 'secretary', 'committee'];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [email, setEmail] = useState('');
@@ -29,11 +32,35 @@ export default function AdminUsersPage() {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/admin/users', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, fullName, password, role }),
-    });
+
+    const trimmedEmail = email.trim();
+    const trimmedFullName = fullName.trim();
+
+    if (!trimmedFullName) {
+      setMessage('Full name is required.');
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setMessage('Enter a valid email address.');
+      return;
+    }
+
+    if (!VALID_ROLES.includes(role)) {
+      setMessage('Select a valid role.');
+      return;
+    }
+
+    if (password.length < 10) {
+      setMessage('Temporary password must be at least 10 characters.');
+      return;
+    }
+
     try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail, fullName: trimmedFullName, password, role }),
+      });
       await parseApiResponse(res);
       setEmail(''); setFullName(''); setPassword(''); setRole('committee');
       setMessage('User created.');
@@ -60,8 +87,8 @@ export default function AdminUsersPage() {
       {message && <p className="text-sm text-gray-600">{message}</p>}
       <form onSubmit={create} className="bg-white p-4 rounded-xl border grid md:grid-cols-2 gap-3">
         <Input id="full-name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <Input id="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <Input id="password" type="password" label="Temporary password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <Input id="email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Input id="password" type="password" label="Temporary password (minimum 10 characters)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={10} required />
         <label className="text-sm font-medium text-gray-700">Role
           <select className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="admin">admin</option><option value="president">president</option><option value="secretary">secretary</option><option value="committee">committee</option>

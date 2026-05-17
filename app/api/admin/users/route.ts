@@ -2,8 +2,21 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 
+const VALID_ROLES = ['admin', 'president', 'secretary', 'committee'];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 async function requireAdmin() {
   return requireSession(['admin']);
+}
+
+function isMissingCreateUserRpc(error: { code?: string; message?: string }) {
+  const message = error.message || '';
+  return error.code === 'PGRST202' || error.code === '42883' || message.includes('Could not find the function') || message.includes('does not exist');
+}
+
+function isDuplicateEmail(error: { code?: string; message?: string }) {
+  const message = error.message || '';
+  return error.code === '23505' || message.includes('committee_users_email_key') || message.includes('duplicate key');
 }
 
 export async function GET() {
@@ -22,25 +35,55 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ success: false, error: 'Missing Supabase service role key. Set SUPABASE_SERVICE_ROLE_KEY on the server before creating CMS users.' }, { status: 500 });
+  }
+
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { email, fullName, role, password } = await request.json();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedFullName = String(fullName || '').trim();
+  const normalizedRole = String(role || '');
+  const normalizedPassword = String(password || '');
 
-  if (!email || !fullName || !role || !password || String(password).length < 10) {
-    return NextResponse.json({ success: false, error: 'Email, full name, role, and password (10+ chars) are required.' }, { status: 400 });
+  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    return NextResponse.json({ success: false, error: 'Enter a valid email address.' }, { status: 400 });
+  }
+
+  if (!normalizedFullName) {
+    return NextResponse.json({ success: false, error: 'Full name is required.' }, { status: 400 });
+  }
+
+  if (!VALID_ROLES.includes(normalizedRole)) {
+    return NextResponse.json({ success: false, error: 'Role must be admin, president, secretary, or committee.' }, { status: 400 });
+  }
+
+  if (normalizedPassword.length < 10) {
+    return NextResponse.json({ success: false, error: 'Password must be at least 10 characters.' }, { status: 400 });
   }
 
   const supabase = createServerClient();
   const { error } = await supabase.rpc('ndcc_admin_create_committee_user', {
-    p_email: String(email).trim().toLowerCase(),
-    p_full_name: String(fullName).trim(),
-    p_role: String(role),
-    p_password: String(password),
+    p_email: normalizedEmail,
+    p_full_name: normalizedFullName,
+    p_role: normalizedRole,
+    p_password: normalizedPassword,
     p_created_by: admin.id,
   });
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  if (error) {
+    if (isDuplicateEmail(error)) {
+      return NextResponse.json({ success: false, error: 'A CMS user with that email already exists.' }, { status: 409 });
+    }
+
+    if (isMissingCreateUserRpc(error)) {
+      return NextResponse.json({ success: false, error: 'Missing Supabase RPC ndcc_admin_create_committee_user. Apply the 20260401_custom_committee_auth.sql migration before creating CMS users.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  }
 
   return NextResponse.json({ success: true });
 }
