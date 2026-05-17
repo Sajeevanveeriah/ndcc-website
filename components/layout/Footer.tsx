@@ -82,6 +82,8 @@ export default async function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
+                      target={link.openInNewTab ? '_blank' : undefined}
+                      rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                       className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
                     >
                       {link.label}
@@ -99,6 +101,8 @@ export default async function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
+                      target={link.openInNewTab ? '_blank' : undefined}
+                      rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                       className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
                     >
                       {link.label}
