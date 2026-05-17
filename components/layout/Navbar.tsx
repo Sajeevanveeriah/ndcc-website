@@ -104,6 +104,8 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                target={link.openInNewTab ? '_blank' : undefined}
+                rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                 className={cn(
                   'px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors',
                   pathname === link.href
@@ -126,6 +128,8 @@ export default function Navbar() {
                     <Link
                       key={link.href}
                       href={link.href}
+                      target={link.openInNewTab ? '_blank' : undefined}
+                      rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                       className={cn(
                         'block px-4 py-2 text-sm font-body transition-colors',
                         pathname === link.href
@@ -182,6 +186,8 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
+              target={link.openInNewTab ? '_blank' : undefined}
+              rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
               className={cn(
                 'block px-4 py-3 text-base font-body font-medium rounded-lg transition-colors',
                 pathname === link.href
