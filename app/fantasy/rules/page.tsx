@@ -18,9 +18,9 @@ export default function FantasyRulesPage() {
           <p className="text-sm font-body font-semibold uppercase tracking-[0.25em] text-maroon-100 mb-3">
             {CLUB_SHORT} Fantasy Cricket
           </p>
-          <h1 className="page-hero-title">Rules Foundation</h1>
+          <h1 className="page-hero-title">Fantasy Cricket Rules</h1>
           <p className="page-hero-subtitle">
-            A safe starting framework for the club to approve before fantasy squad, transfer, league, and leaderboard features are opened.
+            How NDCC Fantasy Cricket squads, transfers, chips, scores, leagues, and leaderboards work.
           </p>
         </div>
       </section>
@@ -53,9 +53,9 @@ export default function FantasyRulesPage() {
             <aside className="lg:sticky lg:top-24 h-fit">
               <Card className="border-l-4 border-l-maroon-700">
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-display font-bold text-gray-900 mb-3">Release note</h2>
+                  <h2 className="text-xl font-display font-bold text-gray-900 mb-3">MVP note</h2>
                   <p className="text-gray-700 font-body leading-relaxed mb-4">
-                    This page does not publish live scoring, squads, player prices, league codes, rankings, or transfer controls. Those details should only appear after NDCC confirms the competition settings.
+                    Free Hit is recorded safely for this MVP, but temporary squad restoration is not automated. Other chips listed here affect score calculation when used for a round.
                   </p>
                   <Link href="/fantasy" className="btn-secondary w-full">
                     Fantasy Home

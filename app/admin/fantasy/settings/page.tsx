@@ -1,0 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
+
+import { useEffect, useState } from 'react';
+import Button from '@/components/ui/Button';
+import Card, { CardContent } from '@/components/ui/Card';
+import Input from '@/components/ui/Input';
+import { adminFetch, parseApiResponse } from '@/lib/admin-client';
+
+export default function AdminFantasySettingsPage() {
+  const [form, setForm] = useState<any>(null); const [feedback, setFeedback] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
+  useEffect(()=>{adminFetch('/api/admin/fantasy/settings').then((r)=>parseApiResponse<any>(r)).then((result)=>setForm({seasonName:result.settings.season_name,squadBudget:result.settings.squad_budget,maxPlayersPerRole:result.settings.max_players_per_role,freeTransfersPerRound:result.settings.free_transfers_per_round,transferPenaltyPoints:result.settings.transfer_penalty_points,isRegistrationOpen:result.settings.is_registration_open,isTeamSelectionOpen:result.settings.is_team_selection_open})).catch((err)=>setError(err.message));},[]);
+  const save=async()=>{setError(null);setFeedback(null);try{await parseApiResponse(await adminFetch('/api/admin/fantasy/settings',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)}));setFeedback('Fantasy settings saved.');}catch(err){setError(err instanceof Error?err.message:'Could not save settings.')}};
+  if(!form) return <div><h1 className="text-2xl font-display font-bold text-gray-900 mb-6">Fantasy Settings</h1><Card><CardContent>Loading settings…{error}</CardContent></Card></div>;
+  const setRole=(role:string,value:string)=>setForm({...form,maxPlayersPerRole:{...form.maxPlayersPerRole,[role]:Number(value)}});
+  return <div><h1 className="text-2xl font-display font-bold text-gray-900 mb-6">Fantasy Settings</h1><Card><CardContent className="p-6 space-y-4"><Input id="seasonName" label="Season name" value={form.seasonName} onChange={(e)=>setForm({...form,seasonName:e.target.value})}/><Input id="squadBudget" label="Squad budget" type="number" step="0.1" value={form.squadBudget} onChange={(e)=>setForm({...form,squadBudget:Number(e.target.value)})}/><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{['WK','BAT','AR','BOWL'].map((role)=><Input key={role} id={`role-${role}`} label={`${role} limit`} type="number" value={form.maxPlayersPerRole[role]} onChange={(e)=>setRole(role,e.target.value)}/>)}</div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><Input id="freeTransfers" label="Free transfers per round" type="number" value={form.freeTransfersPerRound} onChange={(e)=>setForm({...form,freeTransfersPerRound:Number(e.target.value)})}/><Input id="penalty" label="Transfer penalty points" type="number" value={form.transferPenaltyPoints} onChange={(e)=>setForm({...form,transferPenaltyPoints:Number(e.target.value)})}/></div><label className="flex items-center gap-2 font-body text-sm"><input type="checkbox" checked={form.isRegistrationOpen} onChange={(e)=>setForm({...form,isRegistrationOpen:e.target.checked})}/>Registration open</label><label className="flex items-center gap-2 font-body text-sm"><input type="checkbox" checked={form.isTeamSelectionOpen} onChange={(e)=>setForm({...form,isTeamSelectionOpen:e.target.checked})}/>Team selection and transfers open</label>{feedback&&<p className="text-green-700 font-body">{feedback}</p>}{error&&<p className="text-red-600 font-body">{error}</p>}<Button onClick={save}>Save settings</Button></CardContent></Card></div>;
+}
