@@ -1,8 +1,21 @@
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
-import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch } from 'lucide-react';
+import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch, Settings, Calculator } from 'lucide-react';
 
 const fantasySections = [
+
+  {
+    href: '/admin/fantasy/settings',
+    title: 'Settings',
+    description: 'Control the season name, budget, role limits, registration, transfers, and selection windows.',
+    icon: Settings,
+  },
+  {
+    href: '/admin/fantasy/scores',
+    title: 'Manager Scores',
+    description: 'Preview and save manager round scores from published match stats.',
+    icon: Calculator,
+  },
   {
     href: '/admin/fantasy/players',
     title: 'Players',
@@ -44,12 +57,12 @@ export default function AdminFantasyPage() {
           Fantasy Cricket
         </h1>
         <p className="text-gray-500 font-body mt-1">
-          Admin-only foundation settings for future NDCC Fantasy Cricket gameplay.
+          Admin controls for NDCC Fantasy Cricket gameplay, imports, scoring and manager leaderboards.
         </p>
       </div>
 
       <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
-        Public squad selection, transfers, chips, leagues, and leaderboards are not enabled in this foundation area.
+        Use published import batches before calculating public manager scores. Fantasy manager accounts remain separate from committee admin users.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
