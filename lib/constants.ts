@@ -168,12 +168,19 @@ export const SPONSOR_TIERS = [
   { value: 'community', label: 'Community Partner', order: 5 },
 ] as const;
 
-export const NAV_LINKS = [
+export type NavLink = {
+  label: string;
+  href: string;
+  openInNewTab?: boolean;
+};
+
+export const NAV_LINKS: readonly NavLink[] = [
   { label: 'Home', href: '/' },
   { label: 'About', href: '/about' },
   { label: 'Teams', href: '/teams' },
   { label: 'Facilities', href: '/facilities' },
   { label: 'Fixtures', href: '/fixtures' },
+  { label: 'Fantasy Cricket', href: '/fantasy', openInNewTab: true },
   { label: 'Events', href: '/events' },
   { label: 'Join', href: '/join' },
   { label: 'News', href: '/news' },
