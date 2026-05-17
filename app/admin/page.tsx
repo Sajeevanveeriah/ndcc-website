@@ -15,6 +15,7 @@ import {
   Newspaper,
   Handshake,
   TrendingUp,
+  Trophy,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -74,6 +75,7 @@ export default function AdminDashboardPage() {
     { label: 'Published Events', value: stats.publishedEvents, icon: Calendar, href: '/admin/events', colour: 'bg-green-50 text-green-700' },
     { label: 'News Articles', value: stats.totalNews, icon: Newspaper, href: '/admin/news', colour: 'bg-purple-50 text-purple-700' },
     { label: 'Active Sponsors', value: stats.activeSponsors, icon: Handshake, href: '/admin/sponsors', colour: 'bg-maroon-50 text-maroon-700' },
+    { label: 'Fantasy Cricket', value: 'Admin', icon: Trophy, href: '/admin/fantasy', colour: 'bg-sky-50 text-sky-700' },
   ];
 
   const activityBadge = (type: string) => {

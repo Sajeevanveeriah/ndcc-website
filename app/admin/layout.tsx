@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
-import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 
@@ -23,6 +23,7 @@ const baseLinks = [
   { href: '/admin/events', label: 'Events', icon: Calendar },
   { href: '/admin/news', label: 'News', icon: Newspaper },
   { href: '/admin/teams', label: 'Teams', icon: Users },
+  { href: '/admin/fantasy', label: 'Fantasy Cricket', icon: Trophy },
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
   { href: '/admin/memberships', label: 'Memberships', icon: Users },
   { href: '/admin/payments', label: 'Payments', icon: ShoppingBag },
