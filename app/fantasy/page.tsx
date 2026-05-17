@@ -95,18 +95,20 @@ export default function FantasyPage() {
 
       <section className="section-padding">
         <div className="container-width">
-          <div className="rounded-lg bg-maroon-800 border border-maroon-800 p-8 md:p-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide text-white mb-3">Rules before play</h2>
-              <p className="text-maroon-50 font-body leading-relaxed max-w-2xl">
-                Review the rules foundation before future fantasy features are connected to approved NDCC player, scoring, league, and leaderboard settings.
-              </p>
-            </div>
-            <Link href="/fantasy/rules" className="btn-accent shrink-0">
-              Read Rules
-              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
+          <Card className="bg-maroon-800 border-maroon-800 text-white">
+            <CardContent className="p-8 md:p-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide mb-3">Rules before play</h2>
+                <p className="text-maroon-100 font-body leading-relaxed max-w-2xl">
+                  Review the rules foundation before future fantasy features are connected to approved NDCC player, scoring, league, and leaderboard settings.
+                </p>
+              </div>
+              <Link href="/fantasy/rules" className="btn-accent shrink-0">
+                Read Rules
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </section>
     </>
