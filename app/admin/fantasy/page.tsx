@@ -24,7 +24,7 @@ const fantasySections = [
   {
     href: '/admin/fantasy/import',
     title: 'CSV Import',
-    description: 'View the manual CSV template expected by the future match-stat import workflow.',
+    description: 'Validate match-stat CSV files and save draft Fantasy Cricket import batches.',
     icon: Upload,
   },
 ];
