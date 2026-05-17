@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Trophy } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_NICKNAME, CLUB_SHORT } from '@/lib/constants';
 
@@ -31,7 +31,7 @@ export default function FantasyPage() {
               <h2 className="section-title">Built for the {CLUB_NICKNAME}</h2>
               <div className="space-y-4 text-gray-700 font-body leading-relaxed max-w-3xl">
                 <p>
-                  NDCC Fantasy Cricket is being prepared as a club-first experience for members, players, families, and supporters. This foundation release publishes the core entry point and rules area without opening squad selection, transfers, leagues, or leaderboard data before they are approved.
+                  NDCC Fantasy Cricket is being prepared as a club-first experience for members, players, families, and supporters. This phase publishes the core entry point, rules area, and approved player leaderboard without opening squad selection, transfers, or leagues before they are approved.
                 </p>
                 <p>
                   The structure keeps future fantasy features separate from existing public pages, admin pages, CMS content, orders, payments, media uploads, and API routes.
@@ -41,6 +41,10 @@ export default function FantasyPage() {
                 <Link href="/fantasy/rules" className="btn-primary">
                   Read Rules
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link href="/fantasy/leaderboard" className="btn-secondary">
+                  View Leaderboard
+                  <Trophy className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
               </div>
             </div>
@@ -52,7 +56,7 @@ export default function FantasyPage() {
                 <ul className="space-y-3 text-sm text-gray-700 font-body leading-relaxed">
                   <li>NDCC colours, language, and club identity only.</li>
                   <li>No third-party fantasy branding, logos, protected copy, images, or copied interface patterns.</li>
-                  <li>No sample squads, fake scores, invented player data, or public competition standings.</li>
+                  <li>Only approved, published import batches can appear in public leaderboard standings.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -70,10 +74,10 @@ export default function FantasyPage() {
               <h2 className="section-title">Fantasy Cricket is being prepared</h2>
               <div className="space-y-4 text-gray-700 font-body leading-relaxed max-w-3xl">
                 <p>
-                  The public fantasy competition will open only after NDCC confirms the season format, player eligibility, scoring approach, and competition administration process.
+                  The public player leaderboard is available for approved published scores. Broader fantasy competition tools will open only after NDCC confirms the season format, player eligibility, scoring approach, and competition administration process.
                 </p>
                 <p>
-                  Until then, this area keeps the rules foundation available while future squad, transfer, league, and leaderboard features remain unpublished.
+                  Until then, this area keeps the rules foundation and published-only leaderboard available while future squad, transfer, and league features remain unpublished.
                 </p>
               </div>
             </div>
@@ -82,11 +86,16 @@ export default function FantasyPage() {
               <CardContent className="p-6">
                 <h3 className="text-xl font-display font-bold text-maroon-800 mb-3">What is live now?</h3>
                 <p className="text-gray-700 font-body leading-relaxed mb-5">
-                  The Fantasy Cricket landing page and rules foundation are available for members and supporters to review.
+                  The Fantasy Cricket landing page, rules foundation, and published-only player leaderboard are available for members and supporters to review.
                 </p>
-                <Link href="/fantasy/rules" className="btn-secondary w-full">
-                  View Rules
-                </Link>
+                <div className="space-y-3">
+                  <Link href="/fantasy/leaderboard" className="btn-primary w-full">
+                    View Leaderboard
+                  </Link>
+                  <Link href="/fantasy/rules" className="btn-secondary w-full">
+                    View Rules
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -100,7 +109,7 @@ export default function FantasyPage() {
               <div>
                 <h2 className="text-2xl md:text-3xl font-display font-bold uppercase tracking-wide mb-3">Rules before play</h2>
                 <p className="text-maroon-100 font-body leading-relaxed max-w-2xl">
-                  Review the rules foundation before future fantasy features are connected to approved NDCC player, scoring, league, and leaderboard settings.
+                  Review the rules foundation and published leaderboard before future fantasy squad, transfer, and league features are connected.
                 </p>
               </div>
               <Link href="/fantasy/rules" className="btn-accent shrink-0">
