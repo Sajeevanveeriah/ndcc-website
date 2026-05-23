@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,14 +7,12 @@ import { Menu, X, ChevronDown } from 'lucide-react';
 import { NAV_LINKS } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
-
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
-
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -23,11 +20,9 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
-
   useEffect(() => {
     const loadClubSettings = async () => {
       try {
@@ -41,7 +36,6 @@ export default function Navbar() {
     };
     loadClubSettings();
   }, []);
-
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -58,26 +52,50 @@ export default function Navbar() {
     };
     loadSession();
   }, [pathname]);
-
   const handleSignOut = async () => {
     await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
     setSessionUser(null);
   };
-
   const primaryLinks = NAV_LINKS.slice(0, 7);
   const moreLinks = NAV_LINKS.slice(7);
-
   return (
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b-2 border-maroon-700',
         scrolled
-          ? 'bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200'
-          : 'bg-white border-b border-transparent'
+          ? 'bg-white/95 backdrop-blur-sm shadow-sm'
+          : 'bg-white'
       )}
       role="navigation"
       aria-label="Main navigation"
     >
+      {/* Maroon top bar */}
+      <div className="bg-maroon-700 px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between">
+        <span className="hidden sm:block text-[11px] text-maroon-100 font-body tracking-wide">
+          {settings.ground_name}, {settings.address}
+        </span>
+        <div className="flex gap-4 ml-auto">
+          <a
+            href="https://www.facebook.com/newcombdistrictcc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-sky_accent hover:text-white transition-colors font-body"
+          >
+            Facebook
+          </a>
+          <a
+            href="https://www.playhq.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-sky_accent hover:text-white transition-colors font-body"
+          >
+            PlayHQ
+          </a>
+          <Link href="/contact" className="text-[11px] text-sky_accent hover:text-white transition-colors font-body">
+            Contact
+          </Link>
+        </div>
+      </div>
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[4.75rem]">
           {/* Logo */}
@@ -90,16 +108,18 @@ export default function Navbar() {
               className="rounded-full"
               priority
             />
-            <div className="hidden sm:block">
-              <span className="text-maroon-700 font-display font-semibold uppercase tracking-wide text-lg leading-tight block">
+            <div className="hidden sm:flex flex-col">
+              <span className="text-maroon-700 font-display font-semibold uppercase tracking-wide text-lg leading-none block">
                 {settings.club_short}
               </span>
-              <span className="text-gray-500 text-xs font-body tracking-wide">Est. {settings.established_year}</span>
+              <span className="text-gray-400 text-[10.5px] font-body tracking-[0.08em] uppercase mt-1">
+                The Dinos · Est. {settings.established_year}
+              </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             {primaryLinks.map((link) => (
               <Link
                 key={link.href}
@@ -107,10 +127,10 @@ export default function Navbar() {
                 target={link.openInNewTab ? '_blank' : undefined}
                 rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
                 className={cn(
-                  'px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors',
+                  'px-3 py-2 text-sm font-body font-medium transition-colors',
                   pathname === link.href
-                    ? 'text-maroon-700 bg-maroon-50'
-                    : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50'
+                    ? 'text-maroon-700 border-b-2 border-maroon-700 pb-[6px] rounded-none'
+                    : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg'
                 )}
               >
                 {link.label}
@@ -123,7 +143,7 @@ export default function Navbar() {
                 More <ChevronDown className="h-3.5 w-3.5" />
               </button>
               <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-2 min-w-[180px]">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
                   {moreLinks.map((link) => (
                     <Link
                       key={link.href}
@@ -150,7 +170,7 @@ export default function Navbar() {
                   {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" />
                 </button>
                 <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-2 min-w-[180px]">
+                  <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Account</Link>
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Admin Panel</Link>
                     <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
@@ -160,6 +180,14 @@ export default function Navbar() {
                 </div>
               </div>
             )}
+
+            {/* Join CTA button */}
+            <Link
+              href="/join"
+              className="ml-3 px-4 py-2 bg-maroon-700 text-white text-sm font-semibold rounded-lg hover:bg-maroon-800 transition-colors"
+            >
+              Join the Club
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -189,7 +217,7 @@ export default function Navbar() {
               target={link.openInNewTab ? '_blank' : undefined}
               rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
               className={cn(
-                'block px-4 py-3 text-base font-body font-medium rounded-lg transition-colors',
+                'block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors',
                 pathname === link.href
                   ? 'text-maroon-700 bg-maroon-50'
                   : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50'
@@ -198,12 +226,18 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/join"
+            className="block px-4 py-3 mt-1 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-xl hover:bg-maroon-800 transition-colors"
+          >
+            Join the Club
+          </Link>
           {sessionUser && (
             <>
-              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-lg text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
+              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
                 {sessionUser.full_name} ({sessionUser.role})
               </Link>
-              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-lg text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
+              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
                 Logout
               </button>
             </>
