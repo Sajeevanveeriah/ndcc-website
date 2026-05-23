@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
+import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -133,6 +134,17 @@ export async function POST(request: Request) {
     }
   }
 
+  void sendEmail({
+    to: sanitiseInput(email),
+    subject: `Membership signup confirmed — Ref ${paymentReference} | NDCC Dinos`,
+    html: emailHtml(
+      'Membership Signup Confirmed',
+      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(full_name)},</p>
+      <p style="font-size:15px;color:#374151;line-height:1.6;">Your membership signup for <strong>${plan.name}</strong> has been received.</p>
+      ${bankDetailsHtml(paymentReference, Number(plan.price))}
+      <p style="font-size:14px;color:#374151;line-height:1.6;">Your membership will be activated once we confirm your payment. If you have any questions, reach out at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+    ),
+  });
   return NextResponse.json({
     success: true,
     application_id: application.id,

@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { sendEmail, emailHtml } from '@/lib/email';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -93,6 +94,21 @@ export async function POST(request: Request) {
       );
     }
 
+    void sendEmail({
+      to: sanitiseInput(email),
+      subject: 'Volunteer expression of interest received — NDCC Dinos',
+      html: emailHtml(
+        'Thanks for volunteering',
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(name)},</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Thank you for expressing interest in volunteering with the Newcomb and District Cricket Club. We really appreciate your support.</p>
+        <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:bold;">Role of interest</p>
+          <p style="margin:0;font-size:14px;color:#374151;">${sanitiseInput(role)}</p>
+        </div>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">A committee member will be in touch with you shortly to discuss next steps.</p>
+        <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+      ),
+    });
     return NextResponse.json({
       success: true,
       message: 'Thank you for your volunteer expression of interest. We will contact you soon.',

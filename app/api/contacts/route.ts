@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { sendEmail, emailHtml } from '@/lib/email';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -67,6 +68,20 @@ export async function POST(request: Request) {
       );
     }
 
+    void sendEmail({
+      to: sanitiseInput(email),
+      subject: 'We received your message — NDCC Dinos',
+      html: emailHtml(
+        'Thanks for getting in touch',
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(name)},</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">We have received your message and will get back to you as soon as possible, usually within 1–2 business days.</p>
+        <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Your message</p>
+          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${sanitiseInput(message)}</p>
+        </div>
+        <p style="font-size:14px;color:#6b7280;">If your enquiry is urgent, you can also reach us directly at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+      ),
+    });
     return NextResponse.json({
       success: true,
       message: 'Message sent successfully!',
