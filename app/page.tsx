@@ -126,7 +126,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative text-white section-padding overflow-hidden">
+      <section className="relative text-white overflow-hidden" style={{ minHeight: '520px', display: 'flex', flexDirection: 'column' }}>
         <Image
           src="/images/Turf_Ground.jpg"
           alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
@@ -134,26 +134,28 @@ export default async function HomePage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-maroon-900/75" />
-        <div className="container-width text-center relative z-10">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
-            {blocks['home.hero']?.title || CLUB_NAME}
-          </h1>
-          <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl mx-auto">
-            {blocks['home.hero']?.body || `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href={heroCtaUrl} className="btn-primary text-lg px-8 py-4">
-              {heroCtaLabel}
-            </Link>
-            <Link href="/fixtures" className="btn-secondary border-white text-white hover:bg-white hover:text-maroon-800 text-lg px-8 py-4">
-              View Fixtures
-            </Link>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.88) 0%, rgba(45,0,0,0.58) 55%, rgba(45,0,0,0.32) 100%)' }} />
+        <div className="container-width relative z-10 flex-1 flex items-center section-padding">
+          <div className="w-full">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
+              {blocks['home.hero']?.title || CLUB_NAME}
+            </h1>
+            <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl">
+              {blocks['home.hero']?.body || `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href={heroCtaUrl} className="btn-primary text-lg px-8 py-4">
+                {heroCtaLabel}
+              </Link>
+              <Link href="/fixtures" className="btn-outline-white text-lg px-8 py-4">
+                View Fixtures
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="section-padding bg-sky-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="text-center mb-12">
             <h2 className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
@@ -161,55 +163,59 @@ export default async function HomePage() {
               {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {quickLinks.map((link) => (
-              <Link key={link.id} href={link.href} className="group">
-                <Card hover className="h-full">
-                  <CardContent className="p-6">
-                    {link.icon && <span className="text-3xl mb-3 block" aria-hidden="true">{link.icon}</span>}
-                    <h3 className="text-xl font-display font-bold text-maroon-800 mb-2 group-hover:text-maroon-600 transition-colors">
-                      {link.title}
-                    </h3>
-                    <p className="text-gray-600 font-body">{link.description}</p>
-                  </CardContent>
-                </Card>
+              <Link
+                key={link.id}
+                href={link.href}
+                className="group bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-[10px] p-6 flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+              >
+                {link.icon && <span className="text-3xl mb-3 block" aria-hidden="true">{link.icon}</span>}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-xl font-display font-bold text-maroon-800 mb-2 group-hover:text-maroon-700 transition-colors">
+                    {link.title}
+                  </h3>
+                  <span className="text-gray-300 text-xl group-hover:text-maroon-500 group-hover:translate-x-1 transition-all duration-200 shrink-0">→</span>
+                </div>
+                <p className="text-gray-600 font-body text-sm">{link.description}</p>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="section-padding">
+      <section className="section-padding surface-sky">
         <div className="container-width">
-          <div className="text-center mb-12">
-            <h2 className="section-title">Season Update</h2>
-          </div>
-          <Card className="border-l-4 border-l-maroon-700 max-w-2xl mx-auto">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-display font-bold text-gray-900 mb-3">{blocks['home.season_status']?.title || 'Season Update'}</h3>
-              <p className="text-gray-700 font-body leading-relaxed mb-4">
+          <div
+            className="relative overflow-hidden rounded-2xl p-8 sm:p-10 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center"
+            style={{ background: 'linear-gradient(135deg, #2d0000 0%, #800000 100%)' }}
+          >
+            <div>
+              <h2 className="section-title" style={{ color: '#ffffff' }}>Season Update</h2>
+              <h3 className="text-xl font-display font-bold mb-3" style={{ color: '#ffffff' }}>{blocks['home.season_status']?.title || 'Season Update'}</h3>
+              <p className="font-body leading-relaxed mb-0" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 {blocks['home.season_status']?.body || `Follow the latest ${CLUB_NICKNAME} season updates, match-day notices, and club announcements on our official channels.`}{' '}
-                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+                <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-sky_accent hover:underline font-semibold">
                   Facebook page
                 </Link>.
               </p>
-              <Link
-                href={blocks['home.season_status']?.cta_url || PLAYHQ_ORG_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary inline-flex items-center"
-              >
-                {blocks['home.season_status']?.cta_label || 'View Results on PlayHQ'}
-                <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                </svg>
-              </Link>
-            </CardContent>
-          </Card>
+            </div>
+            <Link
+              href={blocks['home.season_status']?.cta_url || PLAYHQ_ORG_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-accent inline-flex items-center whitespace-nowrap"
+            >
+              {blocks['home.season_status']?.cta_label || 'View Results on PlayHQ'}
+              <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="section-padding bg-sky-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="text-center mb-12">
             <h2 className="section-title">Latest News</h2>
@@ -222,22 +228,22 @@ export default async function HomePage() {
               const inner = (
                 <Card hover className="h-full overflow-hidden">
                   {(article.image_url || article.image) ? (
-                    <div className="relative h-48 w-full">
+                    <div className="relative h-48 w-full overflow-hidden">
                       <Image
                         src={article.image_url || article.image || '/images/Womens_Team.jpg'}
                         alt={article.title}
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
                   ) : (
-                    <div className="relative h-48 w-full">
+                    <div className="relative h-48 w-full overflow-hidden">
                       <Image
                         src="/images/Womens_Team.jpg"
                         alt="Newcomb and District Cricket Club"
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
@@ -273,7 +279,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section-padding">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="text-center mb-12">
             <h2 className="section-title">2026/27 Season Appointments</h2>
@@ -286,36 +292,46 @@ export default async function HomePage() {
                 : `${appointment.name} season appointment announcement`;
 
               return (
-                <Card key={appointment.id} className="overflow-hidden">
+                <div
+                  key={appointment.id}
+                  className="relative rounded-2xl overflow-hidden bg-maroon-900"
+                  style={{ aspectRatio: '3/4' }}
+                >
                   {appointment.image_url ? (
-                    <div className="relative h-56 w-full">
-                      <SafeImage
-                        src={appointment.image_url}
-                        alt={imageAlt}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        fallback={
-                          <div className="h-full bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center">
-                            <span className="text-white/80 font-display font-bold text-3xl">
-                              {appointment.name.split(' ').map((w) => w[0]).join('')}
-                            </span>
-                          </div>
-                        }
-                      />
-                    </div>
+                    <SafeImage
+                      src={appointment.image_url}
+                      alt={imageAlt}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      fallback={
+                        <div className="h-full flex items-center justify-center">
+                          <span className="text-white/25 font-display font-black text-6xl">
+                            {appointment.name.split(' ').map((w) => w[0]).join('')}
+                          </span>
+                        </div>
+                      }
+                    />
                   ) : (
-                    <div className="h-24 bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center">
-                      <span className="text-white/80 font-display font-bold text-3xl">
+                    <div className="h-full flex items-center justify-center">
+                      <span className="text-white/25 font-display font-black text-6xl">
                         {appointment.name.split(' ').map((w) => w[0]).join('')}
                       </span>
                     </div>
                   )}
-                  <CardContent className="p-5 text-center">
-                    <h3 className="font-display font-bold text-gray-900 text-lg">{appointment.name}</h3>
-                    <p className="text-maroon-600 font-body text-sm font-semibold">{appointment.role}</p>
-                  </CardContent>
-                </Card>
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(to top, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.18) 55%, transparent 100%)' }}
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-sky_accent mb-1">
+                      {appointment.role}
+                    </p>
+                    <p className="font-display font-bold text-white text-xl uppercase leading-tight">
+                      {appointment.name}
+                    </p>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -329,7 +345,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section-padding bg-sky-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="text-center mb-10">
             <h2 className="section-title">Our Sponsors</h2>
@@ -400,7 +416,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-maroon-700 to-maroon-900 text-white section-padding">
+      <section className="bg-maroon-950 text-white section-padding">
         <div className="container-width text-center">
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
             Ready to join the {CLUB_NICKNAME}?
