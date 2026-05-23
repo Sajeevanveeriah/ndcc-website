@@ -16,6 +16,7 @@ export default function NewsDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     async function fetchPost() {
@@ -136,15 +137,52 @@ export default function NewsDetailPage() {
           <Card>
             <CardContent className="p-8">
               {(post.image_url || post.image) && (
-                <div className="relative w-full h-72 mb-6 rounded-lg overflow-hidden">
-                  <Image
-                    src={post.image_url || post.image || '/images/Womens_Team.jpg'}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 768px"
-                  />
-                </div>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxOpen(true)}
+                    className="block w-full mb-6 rounded-lg overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                    aria-label="View full image"
+                  >
+                    <Image
+                      src={post.image_url || post.image || '/images/Womens_Team.jpg'}
+                      alt={post.title}
+                      width={800}
+                      height={500}
+                      className="w-full h-auto object-contain rounded-lg"
+                      sizes="(max-width: 768px) 100vw, 768px"
+                    />
+                  </button>
+                  {lightboxOpen && (
+                    <div
+                      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                      onClick={() => setLightboxOpen(false)}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Image lightbox"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setLightboxOpen(false)}
+                        className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors"
+                        aria-label="Close image"
+                      >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <Image
+                        src={post.image_url || post.image || '/images/Womens_Team.jpg'}
+                        alt={post.title}
+                        width={1200}
+                        height={900}
+                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
+                        sizes="100vw"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+                </>
               )}
               <article className="prose max-w-none">
                 <p className="font-body text-gray-700 text-lg leading-relaxed whitespace-pre-line">

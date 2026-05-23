@@ -19,6 +19,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(false);
   const [manager, setManager] = useState<any>(null);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     if (mode !== 'account') return;
@@ -44,6 +46,18 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     setFeedback({ type: 'success', message: 'Fantasy manager profile saved.' });
   };
 
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const { error } = await fantasyBrowserClient.auth.resend({ type: 'signup', email });
+      if (error) throw error;
+      setFeedback({ type: 'success', message: `Confirmation email resent to ${email}. Check your inbox and spam folder.` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not resend email.' });
+    } finally {
+      setResending(false);
+    }
+  };
   const submit = async () => {
     setLoading(true);
     setFeedback(null);
@@ -59,7 +73,11 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           await saveProfile();
           window.location.href = '/fantasy/squad';
         } else {
-          setFeedback({ type: 'success', message: 'Registration started. Check your email if confirmation is required, then sign in to finish your manager profile.' });
+          setAwaitingConfirm(true);
+          setFeedback({
+            type: 'success',
+            message: `Almost there! A confirmation email has been sent to ${email}. Click the link in that email, then come back and sign in to complete your manager profile.`,
+          });
         }
       } else if (mode === 'login') {
         const { error } = await fantasyBrowserClient.auth.signInWithPassword({ email, password });
@@ -91,8 +109,24 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode === 'account' && <p className="text-sm text-gray-600 font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : 'Create your manager profile to play.'}</p>}
         {feedback && <p className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
-          <Button onClick={submit} isLoading={loading}>{mode === 'login' ? 'Sign in' : mode === 'register' ? 'Register' : 'Save profile'}</Button>
-          {mode === 'login' ? <Link href="/fantasy/register" className="btn-secondary">Register</Link> : <Link href="/fantasy/login" className="btn-secondary">Sign in</Link>}
+          {!awaitingConfirm && (
+            <Button onClick={submit} isLoading={loading}>
+              {mode === 'login' ? 'Sign in' : mode === 'register' ? 'Register' : 'Save profile'}
+            </Button>
+          )}
+          {awaitingConfirm && (
+            <>
+              <Button onClick={handleResend} isLoading={resending} variant="secondary">
+                Resend confirmation email
+              </Button>
+              <Link href="/fantasy/login" className="btn-primary">Sign in after confirming</Link>
+            </>
+          )}
+          {!awaitingConfirm && (
+            mode === 'login'
+              ? <Link href="/fantasy/register" className="btn-secondary">Register</Link>
+              : <Link href="/fantasy/login" className="btn-secondary">Sign in</Link>
+          )}
         </div>
       </CardContent>
     </Card>

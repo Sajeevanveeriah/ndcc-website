@@ -20,16 +20,16 @@ export default async function Footer() {
   const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
 
   return (
-    <footer className="bg-maroon-950 text-white" role="contentinfo">
+    <footer className="bg-maroon-900 text-white" role="contentinfo">
       {/* Acknowledgement */}
       <div
-        className="px-4 sm:px-6 lg:px-8 py-4 border-b border-white/5"
+        className="px-4 sm:px-6 lg:px-8 py-5 border-b border-white/10"
         style={acknowledgementImage
-          ? { backgroundImage: `linear-gradient(rgba(26,0,0,0.88), rgba(26,0,0,0.88)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-          : { background: 'rgba(0,0,0,0.2)' }}
+          ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.75), rgba(74,0,0,0.75)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+          : { background: 'rgba(255,255,255,0.06)' }}
       >
         <div className="container-width">
-          <p className="text-xs text-white/40 font-body leading-relaxed max-w-4xl">
+          <p className="text-sm text-maroon-200 font-body leading-relaxed max-w-4xl">
             {acknowledgement}
           </p>
         </div>
@@ -182,7 +182,7 @@ export default async function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-white/10 px-4 sm:px-6 lg:px-8 py-5">
+      <div className="border-t border-maroon-700 px-4 sm:px-6 lg:px-8 py-5">
         <div className="container-width flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-maroon-300 font-body">
             &copy; {currentYear} {settings.club_name}. All rights reserved.
