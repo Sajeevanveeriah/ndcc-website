@@ -82,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === '/admin/login') return <>{children}</>;
 
   if (loading) {
-    return <div className="min-h-screen bg-sky-50 flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen bg-sky-50 flex items-center justify-center pt-24">Loading...</div>;
   }
 
   if (!user) return null;
@@ -92,8 +92,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     : baseLinks;
 
   return (
-    <div className="min-h-screen bg-sky-50 flex">
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-maroon-800">
+    <div className="min-h-screen bg-sky-50 flex pt-24 lg:pt-28">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-24 lg:bottom-0 bg-maroon-800">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href="/admin" className="text-white font-display font-bold text-xl">{CLUB_SHORT} Admin</Link>
         </div>
