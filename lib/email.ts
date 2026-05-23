@@ -1,22 +1,17 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const SENDER = '"NDCC Dinos" <ndcc.secretary1@gmail.com>';
+const FROM_ADDRESS = process.env.RESEND_FROM || 'NDCC Dinos <noreply@ndcc.com.au>';
 const ADMIN_EMAIL = 'ndcc.secretary1@gmail.com';
 
-function isConfigured(): boolean {
-  return Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
 }
 
-function createTransport() {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
+function isConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY);
 }
 
 export interface EmailPayload {
@@ -26,32 +21,29 @@ export interface EmailPayload {
 }
 
 /**
- * Send an email to the user and a copy to the admin inbox.
- * Fails silently — email errors never block form submission success.
+ * Fire-and-forget email. Failure never blocks a form submission.
+ * Every email BCCs the admin inbox automatically.
  */
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   if (!isConfigured()) {
-    console.warn('Email not configured — skipping send.');
+    console.warn('[email] RESEND_API_KEY not set — skipping.');
     return;
   }
   try {
-    const transport = createTransport();
-    await transport.sendMail({
-      from: SENDER,
+    await getResend().emails.send({
+      from: FROM_ADDRESS,
       to: payload.to,
       bcc: ADMIN_EMAIL,
       subject: payload.subject,
       html: payload.html,
     });
   } catch (err) {
-    console.error('Email send failed:', err);
+    console.error('[email] Resend failed:', err);
   }
 }
 
-/** Reusable HTML wrapper — NDCC branded, plain and readable. */
 export function emailHtml(title: string, body: string): string {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f8f8f8;font-family:Arial,sans-serif;">
@@ -82,19 +74,18 @@ export function emailHtml(title: string, body: string): string {
 </html>`;
 }
 
-/** Reusable bank transfer details block for payment emails. */
 export function bankDetailsHtml(reference: string, amount?: number): string {
-  const amountLine = amount != null
-    ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Amount</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">$${amount.toFixed(2)} AUD</td></tr>`
+  const amountRow = amount != null
+    ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Amount</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">$${amount.toFixed(2)} AUD</td></tr>`
     : '';
   return `
 <div style="background:#f3f4f6;border-radius:6px;padding:20px;margin:20px 0;">
   <p style="margin:0 0 12px;font-size:14px;font-weight:bold;color:#4a0000;">Bank Transfer Payment Details</p>
   <table cellpadding="0" cellspacing="0" style="width:100%;">
-    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Account name</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_ACCOUNT_NAME || 'NDCC'}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:140px;">Account name</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_ACCOUNT_NAME || 'NDCC'}</td></tr>
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">BSB</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_BSB || ''}</td></tr>
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Account number</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_ACCOUNT_NUMBER || ''}</td></tr>
-    ${amountLine}
+    ${amountRow}
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">${reference}</td></tr>
   </table>
   <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Use your reference number exactly as shown so we can match your payment.</p>

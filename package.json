@@ -17,6 +17,7 @@
     "nodemailer": "^8.0.7",
     "react": "^18",
     "react-dom": "^18",
+    "resend": "^6.12.3",
     "stripe": "^20.4.1"
   },
   "devDependencies": {
