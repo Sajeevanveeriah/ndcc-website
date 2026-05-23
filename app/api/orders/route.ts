@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
+import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -137,6 +138,42 @@ export async function POST(request: Request) {
       );
     }
 
+    const itemListHtml = (Array.isArray(items) ? items : [])
+      .map((i: { name?: string; quantity?: number; price?: number; size?: string }) =>
+        `<tr>
+          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${i.name || 'Item'}${i.size && i.size !== 'kitchen' ? ` (${i.size})` : ''}</td>
+          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;text-align:center;">${i.quantity ?? 1}</td>
+          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;text-align:right;">$${((i.price ?? 0) * (i.quantity ?? 1)).toFixed(2)}</td>
+        </tr>`
+      )
+      .join('');
+    void sendEmail({
+      to: sanitiseInput(customer_email),
+      subject: `Order confirmed — Ref ${paymentReference} | NDCC Dinos`,
+      html: emailHtml(
+        'Order Confirmation',
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(customer_name)},</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Your order has been received. Please complete payment using the bank transfer details below.</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+          <thead>
+            <tr style="background:#f9fafb;">
+              <th style="padding:8px;font-size:13px;text-align:left;color:#6b7280;">Item</th>
+              <th style="padding:8px;font-size:13px;text-align:center;color:#6b7280;">Qty</th>
+              <th style="padding:8px;font-size:13px;text-align:right;color:#6b7280;">Price</th>
+            </tr>
+          </thead>
+          <tbody>${itemListHtml}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">Total</td>
+              <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#800000;">$${Number(total_amount).toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        ${bankDetailsHtml(paymentReference, Number(total_amount))}
+        <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+      ),
+    });
     return NextResponse.json({
       success: true,
       message: 'Order submitted successfully!',

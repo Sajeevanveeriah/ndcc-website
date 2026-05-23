@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
+import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -96,6 +97,42 @@ export async function POST(request: Request) {
   );
   if (orderItemsError) return NextResponse.json({ success: false, error: orderItemsError.message }, { status: 500 });
 
+  const kitchenItemListHtml = orderItems
+    .map((i) =>
+      `<tr>
+        <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${i.name}</td>
+        <td style="padding:6px 8px;font-size:14px;text-align:center;border-bottom:1px solid #f3f4f6;">${i.quantity}</td>
+        <td style="padding:6px 8px;font-size:14px;text-align:right;border-bottom:1px solid #f3f4f6;">$${(i.price * i.quantity).toFixed(2)}</td>
+      </tr>`
+    )
+    .join('');
+  void sendEmail({
+    to: customer_email,
+    subject: `Kitchen order confirmed — Ref ${paymentReference} | NDCC Dinos`,
+    html: emailHtml(
+      'Kitchen Order Confirmation',
+      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${customer_name},</p>
+      <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received. Please complete payment using the bank transfer details below.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <thead>
+          <tr style="background:#f9fafb;">
+            <th style="padding:8px;font-size:13px;text-align:left;color:#6b7280;">Item</th>
+            <th style="padding:8px;font-size:13px;text-align:center;color:#6b7280;">Qty</th>
+            <th style="padding:8px;font-size:13px;text-align:right;color:#6b7280;">Price</th>
+          </tr>
+        </thead>
+        <tbody>${kitchenItemListHtml}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">Total</td>
+            <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#800000;">$${total.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      ${bankDetailsHtml(paymentReference, total)}
+      <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+    ),
+  });
   return NextResponse.json({
     success: true,
     order_id: linkedOrder.id,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUserFromRequest } from '@/lib/fantasy-manager-auth';
 import { getFantasySettings } from '@/lib/fantasy-game';
+import { sendEmail, emailHtml } from '@/lib/email';
 
 function cleanText(value: unknown) {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
@@ -45,5 +46,23 @@ export async function POST(request: Request) {
     .select('id, auth_user_id, display_name, email, team_name, is_active')
     .single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  const isNewManager = !existing.data;
+  if (isNewManager) {
+    void sendEmail({
+      to: user.email.toLowerCase(),
+      subject: 'Welcome to NDCC Fantasy Cricket!',
+      html: emailHtml(
+        'Welcome to NDCC Fantasy Cricket',
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${data.display_name},</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Your fantasy manager profile is set up and ready to go.</p>
+        <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:bold;">Your team</p>
+          <p style="margin:0;font-size:16px;color:#800000;font-weight:bold;">${data.team_name}</p>
+        </div>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Head to your squad page to start picking your players. Good luck this season!</p>
+        <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au'}/fantasy/squad" style="background:#800000;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Build Your Squad</a></p>`
+      ),
+    });
+  }
   return NextResponse.json({ success: true, manager: data });
 }
