@@ -45,6 +45,8 @@ export default function SponsorsPage() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [heroTitle, setHeroTitle] = useState('Our Sponsors');
+  const [heroBody, setHeroBody] = useState('The generous support of our sponsors helps keep cricket thriving in the Newcomb and Geelong community. We are grateful for every partnership.');
   const [introTitle, setIntroTitle] = useState('Community Support');
   const [introBody, setIntroBody] = useState(
     `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`
@@ -74,11 +76,15 @@ export default function SponsorsPage() {
 
     async function fetchContentBlock() {
       try {
-        const res = await fetch('/api/content-blocks?keys=sponsors.intro', { cache: 'no-store' });
+        const res = await fetch('/api/content-blocks?keys=sponsors.hero,sponsors.intro', { cache: 'no-store' });
         const data = await res.json();
-        const block = (data.data || []).find((b: { block_key: string }) => b.block_key === 'sponsors.intro');
-        if (block?.title) setIntroTitle(block.title);
-        if (block?.body) setIntroBody(block.body);
+        const blocks = (data.data || []) as Array<{ block_key: string; title?: string; body?: string }>;
+        const hero = blocks.find((b) => b.block_key === 'sponsors.hero');
+        const intro = blocks.find((b) => b.block_key === 'sponsors.intro');
+        if (hero?.title) setHeroTitle(hero.title);
+        if (hero?.body) setHeroBody(hero.body);
+        if (intro?.title) setIntroTitle(intro.title);
+        if (intro?.body) setIntroBody(intro.body);
       } catch {
         // fallback copy
       }
@@ -153,11 +159,8 @@ export default function SponsorsPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Our Sponsors</h1>
-          <p className="page-hero-subtitle">
-            The generous support of our sponsors helps keep cricket thriving in the Newcomb and
-            Geelong community. We are grateful for every partnership.
-          </p>
+          <h1 className="page-hero-title">{heroTitle}</h1>
+          <p className="page-hero-subtitle">{heroBody}</p>
         </div>
       </section>
 
