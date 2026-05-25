@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 
 type KitchenItem = { id: string; name: string; description: string; image_url?: string | null; price: number; is_available: boolean };
+
+const FALLBACK_KITCHEN_MENU = {
+  menuName: 'Kitchen Menu',
+  items: [] as KitchenItem[],
+};
 
 export default function KitchenPage() {
   const [menuName, setMenuName] = useState('Kitchen Menu');
@@ -27,8 +33,14 @@ export default function KitchenPage() {
       if (res.ok && data.data) {
         setMenuName(data.data.menu?.name || 'Kitchen Menu');
         setItems(data.data.items || []);
+      } else {
+        setMenuName(FALLBACK_KITCHEN_MENU.menuName);
+        setItems(FALLBACK_KITCHEN_MENU.items);
       }
-    })();
+    })().catch(() => {
+      setMenuName(FALLBACK_KITCHEN_MENU.menuName);
+      setItems(FALLBACK_KITCHEN_MENU.items);
+    });
   }, []);
 
   const selectedItems = useMemo(
@@ -94,11 +106,15 @@ export default function KitchenPage() {
               <Card key={item.id}>
                 <CardContent className="p-4 space-y-2">
                   {item.image_url && (
-                    <div
-                      className="w-full h-36 rounded-lg bg-cover bg-center"
-                      style={{ backgroundImage: `url(${item.image_url})` }}
-                      aria-label={`${item.name} image`}
-                    />
+                    <div className="w-full h-36 rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center p-2">
+                      <Image
+                        src={item.image_url}
+                        alt={`${item.name} menu item`}
+                        width={240}
+                        height={144}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
                   )}
                   <div className="flex justify-between gap-4">
                     <div>

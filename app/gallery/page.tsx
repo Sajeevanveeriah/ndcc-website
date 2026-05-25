@@ -65,7 +65,7 @@ export default function GalleryPage() {
                   src={photo.image_url}
                   alt={photo.alt_text || photo.caption || photo.title}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="object-contain bg-gray-900 group-hover:scale-105 transition-transform duration-300"
                   sizes="(max-width: 640px) 100vw, 50vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent flex items-end p-4">
