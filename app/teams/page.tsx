@@ -92,7 +92,7 @@ export default async function TeamsPage() {
                           src={teamImage}
                           alt={`${team.name} team photo`}
                           fill
-                          className="object-cover"
+                          className="object-contain bg-gray-100"
                           sizes="(max-width: 768px) 100vw, 33vw"
                         />
                         <div className="absolute inset-0 bg-maroon-900/40 flex items-end p-6">

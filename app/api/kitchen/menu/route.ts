@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
+import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!isServerSupabaseConfigured()) {
+    return NextResponse.json({ success: true, data: { menu: null, items: [] } });
+  }
+
   const supabase = createServerClient();
   const { data: menu, error: menuError } = await supabase
     .from('kitchen_menus')
