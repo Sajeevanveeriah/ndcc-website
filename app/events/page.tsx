@@ -84,7 +84,7 @@ export default function EventsPage() {
                         src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
                         alt={event.title}
                         fill
-                        className="object-cover"
+                        className="object-contain bg-gray-50"
                         sizes="(max-width: 1024px) 100vw, 33vw"
                       />
                     </div>
