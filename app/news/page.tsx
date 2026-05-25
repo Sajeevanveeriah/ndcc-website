@@ -83,13 +83,13 @@ export default function NewsPage() {
                   <Card key={post.id} hover className="overflow-hidden">
                     <div className={post.image_url || post.image ? 'md:flex' : ''}>
                       {(post.image_url || post.image) && (
-                        <div className="w-full md:w-64 flex-shrink-0 overflow-hidden">
+                        <div className="w-full md:w-64 flex-shrink-0 bg-gray-50 p-2">
                           <Image
                             src={post.image_url || post.image || '/images/Womens_Team.jpg'}
                             alt={post.title}
                             width={320}
                             height={200}
-                            className="w-full h-48 md:h-full object-cover"
+                            className="w-full h-48 md:h-full object-contain"
                             sizes="(max-width: 768px) 100vw, 256px"
                           />
                         </div>

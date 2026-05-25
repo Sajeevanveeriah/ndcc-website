@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
+import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!isServerSupabaseConfigured()) return NextResponse.json({ success: true, data: { current_window: null, next_window: null, processing_open: false, queue_allowed: false } });
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('merch_order_windows')

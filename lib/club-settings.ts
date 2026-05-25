@@ -1,4 +1,4 @@
-import { createPublicServerClient } from '@/lib/supabase-server';
+import { createPublicServerClient, isPublicSupabaseConfigured } from '@/lib/supabase-server';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 
 function textOrFallback(value: unknown, fallback: string | null) {
@@ -40,6 +40,10 @@ export function normalizeClubSettings(row: Partial<ClubSettings> | null | undefi
 }
 
 export async function getClubSettings(): Promise<ClubSettings> {
+  if (!isPublicSupabaseConfigured()) {
+    return fallbackClubSettings;
+  }
+
   try {
     const supabase = createPublicServerClient();
     const { data, error } = await supabase
