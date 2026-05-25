@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
-import { CLUB_ADDRESS } from '@/lib/constants';
 import { getContentBlocks } from '@/lib/content-blocks';
+import { getClubSettings } from '@/lib/club-settings';
 import { normalisePublicText } from '@/lib/utils';
 import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content';
 
@@ -21,10 +21,11 @@ const iconByKey: Record<string, string> = {
 };
 
 export default async function FacilitiesPage() {
-  const [blocks, features, articles] = await Promise.all([
+  const [blocks, features, articles, settings] = await Promise.all([
     getContentBlocks(['facilities.hero', 'facilities.intro', 'facilities.training', 'facilities.features_intro', 'facilities.cta']),
     getFacilityFeatures(),
     getPageLinkCards('facilities', 'articles'),
+    getClubSettings(),
   ]);
 
   return (
@@ -41,7 +42,7 @@ export default async function FacilitiesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="section-title">{blocks['facilities.intro']?.title || 'Grinter Reserve'}</h2>
-              <p className="text-gray-500 font-body text-sm mb-6">{CLUB_ADDRESS}</p>
+              <p className="text-gray-500 font-body text-sm mb-6">{settings.address}</p>
               <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
                 {normalisePublicText(blocks['facilities.intro']?.body)}
               </p>
