@@ -23,6 +23,8 @@ const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
   active: true,
 };
 
+const asString = (value: unknown) => (typeof value === 'string' ? value : '');
+
 export default function AdminSponsorsPage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,9 +87,9 @@ export default function AdminSponsorsPage() {
     setForm({
       name: sponsor.name,
       tier: sponsor.tier,
-      logo_url: sponsor.logo_url,
-      website: sponsor.website,
-      placement_type: sponsor.placement_type,
+      logo_url: asString(sponsor.logo_url),
+      website: asString(sponsor.website),
+      placement_type: asString(sponsor.placement_type) || 'website',
       active: sponsor.active,
     });
     setFormErrors({});
