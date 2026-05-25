@@ -101,7 +101,14 @@ export default async function HomePage() {
     getLatestNews(),
     getSponsors(),
     getSeasonAppointments(),
-    getContentBlocks(['home.hero', 'home.quicklinks', 'home.season_status']),
+    getContentBlocks([
+      'home.hero',
+      'home.quicklinks',
+      'home.season_status',
+      'home.welcome',
+      'home.juniors',
+      'home.sponsorship',
+    ]),
     getPageLinkCards('home', 'quick_links'),
   ]);
 
@@ -123,6 +130,10 @@ export default async function HomePage() {
   }));
   const heroCtaLabel = blocks['home.hero']?.cta_label || 'Join the Club';
   const heroCtaUrl = blocks['home.hero']?.cta_url || '/contact';
+  const juniorsTitle = blocks['home.juniors']?.title || `Ready to join the ${CLUB_NICKNAME}?`;
+  const juniorsBody = blocks['home.juniors']?.body || 'Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.';
+  const sponsorshipTitle = blocks['home.sponsorship']?.title || 'Our Sponsors';
+  const sponsorshipBody = blocks['home.sponsorship']?.body || 'Proudly supported by our local community partners.';
 
   return (
     <>
@@ -218,9 +229,9 @@ export default async function HomePage() {
       <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="text-center mb-12">
-            <h2 className="section-title">Latest News</h2>
+            <h2 className="section-title">{blocks['home.welcome']?.title || 'Latest News'}</h2>
             <p className="section-subtitle mx-auto">
-              Stay up to date with everything happening at NDCC.
+              {blocks['home.welcome']?.body || 'Stay up to date with everything happening at NDCC.'}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -348,9 +359,9 @@ export default async function HomePage() {
       <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="text-center mb-10">
-            <h2 className="section-title">Our Sponsors</h2>
+            <h2 className="section-title">{sponsorshipTitle}</h2>
             <p className="section-subtitle mx-auto">
-              Proudly supported by our local community partners.
+              {sponsorshipBody}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-label="Club sponsors">
@@ -419,10 +430,10 @@ export default async function HomePage() {
       <section className="bg-maroon-950 text-white section-padding">
         <div className="container-width text-center">
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
-            Ready to join the {CLUB_NICKNAME}?
+            {juniorsTitle}
           </h2>
           <p className="text-lg text-maroon-100 font-body mb-8 max-w-xl mx-auto">
-            Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.
+            {juniorsBody}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/contact" className="btn-accent text-lg px-8 py-4">
