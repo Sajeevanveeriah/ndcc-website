@@ -1,5 +1,5 @@
 import { calculateFantasyPoints, type FantasyScoringRule, type FantasyStatLine } from '@/lib/fantasy-scoring';
-import { createServerClient } from '@/lib/supabase-server';
+import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
 export type FantasyImportStatus = 'draft' | 'reviewed' | 'published' | 'rejected';
 
@@ -240,6 +240,10 @@ export async function getFantasyImportBatchDetail(id: string): Promise<FantasyIm
 }
 
 export async function getPublishedFantasyLeaderboard(roundId?: string | null): Promise<FantasyLeaderboardData> {
+  if (!isServerSupabaseConfigured()) {
+    return { rows: [], rounds: [], selectedRoundId: null };
+  }
+
   const supabase = createServerClient();
   const { data: batches, error: batchesError } = await supabase
     .from('fantasy_import_batches')

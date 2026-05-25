@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
+import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!isServerSupabaseConfigured()) return NextResponse.json({ success: true, rows: [] });
   const supabase = createServerClient();
   const { data: scores, error } = await supabase
     .from('fantasy_manager_round_scores')

@@ -21,6 +21,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const [resending, setResending] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
 
   useEffect(() => {
     if (mode !== 'account') return;
@@ -28,10 +29,30 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       setSessionEmail(data.session?.user.email ?? null);
       if (!data.session) return;
       fantasyJsonFetch<any>('/api/fantasy/manager')
-        .then((result) => {
+        .then(async (result) => {
           setManager(result.manager);
-          setDisplayName(result.manager?.display_name || '');
-          setTeamName(result.manager?.team_name || '');
+          const metadataDisplayName = typeof data.session?.user.user_metadata?.display_name === 'string' ? data.session.user.user_metadata.display_name : '';
+          const metadataTeamName = typeof data.session?.user.user_metadata?.team_name === 'string' ? data.session.user.user_metadata.team_name : '';
+          const nextDisplayName = result.manager?.display_name || metadataDisplayName;
+          const nextTeamName = result.manager?.team_name || metadataTeamName;
+          setDisplayName(nextDisplayName);
+          setTeamName(nextTeamName);
+
+          if (!result.manager && metadataDisplayName && metadataTeamName) {
+            setAutoCreating(true);
+            try {
+              const created = await fantasyJsonFetch<any>('/api/fantasy/manager', {
+                method: 'POST',
+                body: JSON.stringify({ displayName: metadataDisplayName, teamName: metadataTeamName }),
+              });
+              setManager(created.manager);
+              setFeedback({ type: 'success', message: 'Fantasy manager profile created from your confirmed account details.' });
+            } catch (err) {
+              setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not create your fantasy manager profile automatically.' });
+            } finally {
+              setAutoCreating(false);
+            }
+          }
         })
         .catch((err) => setFeedback({ type: 'error', message: err.message }));
     });
@@ -106,7 +127,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode !== 'login' && <Input id="teamName" label="Fantasy team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
         {mode !== 'account' && <Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
         {mode !== 'account' && <Input id="password" label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />}
-        {mode === 'account' && <p className="text-sm text-gray-600 font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : 'Create your manager profile to play.'}</p>}
+        {mode === 'account' && <p className="text-sm text-gray-600 font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
         {feedback && <p className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
           {!awaitingConfirm && (

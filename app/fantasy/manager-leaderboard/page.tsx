@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { createServerClient } from '@/lib/supabase-server';
+import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: 'Fantasy Manager Leaderboard' };
 type Row = { managerId: string; displayName: string; teamName: string; totalPoints: number; transferPenalty: number; totalNetPoints: number; rank: number };
 
 async function getRows(): Promise<Row[]> {
+  if (!isServerSupabaseConfigured()) return [];
   const supabase = createServerClient();
   const { data, error } = await supabase.from('fantasy_manager_round_scores').select('manager_id, net_points, total_points, transfer_penalty, fantasy_managers(display_name, team_name)');
   if (error) throw new Error(error.message);
