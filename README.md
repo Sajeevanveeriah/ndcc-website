@@ -53,6 +53,17 @@ Open [http://localhost:3000](http://localhost:3000).
 3. Log in at `/admin/login`.
 4. Manage committee users in `/admin/users` (admin-only). Roles available: `admin`, `president`, `secretary`, `committee`.
 
+### Email Setup
+
+App transactional emails for public form flows use the Resend API through `lib/email.ts`. Configure these server-only variables locally and in Vercel:
+
+- `RESEND_API_KEY`
+- `RESEND_FROM` (for example `NDCC Dinos <noreply@your-domain.example>`)
+
+If `RESEND_API_KEY` is missing or Resend returns an error, form submissions still complete after the database write. The app logs the email skip/failure and does not block the user-facing flow. Do not claim live email delivery is working until a real Resend send has been tested in the target environment.
+
+Fantasy registration, confirmation, resend-confirmation, sign-in, and password reset emails are Supabase Auth emails. Configure production Supabase Auth email through **Supabase Dashboard → Authentication → SMTP Settings**. Resend can supply SMTP credentials for Supabase Auth, but these Auth emails do not go through the app's `sendEmail` helper or normal Resend API route emails.
+
 ### GitHub-backed CMS Image Upload Setup
 
 Set these as **server-only** environment variables (for local `.env.local` and Vercel Project Environment Variables):

@@ -68,12 +68,11 @@ const revalidationPaths: Record<string, string[]> = {
   clubSettings: ['/', '/contact', '/fixtures'],
 };
 
-function revalidateForResource(resource: string) {
-  const paths = revalidationPaths[resource];
-  if (paths) {
-    for (const p of paths) {
-      try { revalidatePath(p); } catch { /* best-effort */ }
-    }
+function revalidateForResource(resource: string, id?: string) {
+  const paths = revalidationPaths[resource] ? [...revalidationPaths[resource]] : [];
+  if (resource === 'news' && id) paths.push(`/news/${id}`);
+  for (const p of paths) {
+    try { revalidatePath(p); } catch { /* best-effort */ }
   }
 }
 
@@ -104,7 +103,7 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
     const value = config.datetimeFields?.includes(field) ? toIsoIfNeeded(raw[field]) : raw[field];
     if (
       field === 'image_url'
-      && (config.table === 'news' || config.table === 'season_appointments')
+      && config.table === 'season_appointments'
       && (value === null || value === '')
     ) continue;
     payload[field] = value;
@@ -224,7 +223,7 @@ export async function POST(request: Request, { params }: { params: { resource: s
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource);
+  revalidateForResource(params.resource, data?.id);
   return NextResponse.json({ success: true, data });
 }
 
@@ -274,7 +273,7 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource);
+  revalidateForResource(params.resource, id);
   return NextResponse.json({ success: true, data });
 }
 
@@ -303,6 +302,6 @@ export async function DELETE(request: Request, { params }: { params: { resource:
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource);
+  revalidateForResource(params.resource, id);
   return NextResponse.json({ success: true });
 }
