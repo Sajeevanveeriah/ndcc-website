@@ -239,12 +239,12 @@ export default async function HomePage() {
               const inner = (
                 <Card hover className="h-full overflow-hidden">
                   {(article.image_url || article.image) ? (
-                    <div className="relative h-48 w-full overflow-hidden">
+                    <div className="relative h-48 w-full overflow-hidden bg-gray-50">
                       <Image
                         src={article.image_url || article.image || '/images/Womens_Team.jpg'}
                         alt={article.title}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="object-contain group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>

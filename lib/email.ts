@@ -1,44 +1,89 @@
+import 'server-only';
 import { Resend } from 'resend';
 
-const FROM_ADDRESS = process.env.RESEND_FROM || 'NDCC Dinos <noreply@ndcc.com.au>';
+const DEFAULT_FROM_ADDRESS = 'NDCC Dinos <noreply@ndcc.com.au>';
 const ADMIN_EMAIL = 'ndcc.secretary1@gmail.com';
 
 let _resend: Resend | null = null;
+
+type EmailAddress = string | string[];
+
+export type EmailSendResult =
+  | { status: 'sent'; id?: string }
+  | { status: 'skipped'; reason: string }
+  | { status: 'failed'; reason: string };
+
+export interface EmailPayload {
+  to: EmailAddress;
+  subject: string;
+  html: string;
+}
 
 function getResend(): Resend {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
 }
 
-function isConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+function getFromAddress(): string | null {
+  return (process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || DEFAULT_FROM_ADDRESS).trim() || null;
 }
 
-export interface EmailPayload {
-  to: string;
-  subject: string;
-  html: string;
+function hasRecipients(to: EmailAddress): boolean {
+  if (Array.isArray(to)) return to.some((recipient) => recipient.trim().length > 0);
+  return to.trim().length > 0;
+}
+
+function validatePayload(payload: EmailPayload): string | null {
+  if (!payload || !hasRecipients(payload.to)) return 'Recipient email is required.';
+  if (!payload.subject?.trim()) return 'Email subject is required.';
+  if (!payload.html?.trim()) return 'Email HTML body is required.';
+  return null;
 }
 
 /**
  * Fire-and-forget email. Failure never blocks a form submission.
  * Every email BCCs the admin inbox automatically.
  */
-export async function sendEmail(payload: EmailPayload): Promise<void> {
-  if (!isConfigured()) {
-    console.warn('[email] RESEND_API_KEY not set — skipping.');
-    return;
+export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult> {
+  const validationError = validatePayload(payload);
+  if (validationError) {
+    console.warn(`[email] ${validationError} Skipping send.`);
+    return { status: 'skipped', reason: validationError };
   }
+
+  if (!process.env.RESEND_API_KEY) {
+    const reason = 'RESEND_API_KEY not set.';
+    console.warn(`[email] ${reason} Skipping send.`);
+    return { status: 'skipped', reason };
+  }
+
+  const from = getFromAddress();
+  if (!from) {
+    const reason = 'RESEND_FROM_EMAIL/RESEND_FROM not set.';
+    console.warn(`[email] ${reason} Skipping send.`);
+    return { status: 'skipped', reason };
+  }
+
   try {
-    await getResend().emails.send({
-      from: FROM_ADDRESS,
+    const result = await getResend().emails.send({
+      from,
       to: payload.to,
       bcc: ADMIN_EMAIL,
       subject: payload.subject,
       html: payload.html,
     });
+
+    if (result.error) {
+      const reason = result.error.message || 'Resend returned an email send error.';
+      console.error('[email] Resend failed:', result.error);
+      return { status: 'failed', reason };
+    }
+
+    return { status: 'sent', id: result.data?.id };
   } catch (err) {
+    const reason = err instanceof Error ? err.message : 'Unknown Resend send error.';
     console.error('[email] Resend failed:', err);
+    return { status: 'failed', reason };
   }
 }
 
