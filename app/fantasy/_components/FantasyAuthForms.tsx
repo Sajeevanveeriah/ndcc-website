@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
-import { fantasyBrowserClient, fantasyJsonFetch } from '@/lib/fantasy-browser';
+import { fantasyJsonFetch, getFantasyBrowserClient, isFantasySupabaseConfigured } from '@/lib/fantasy-browser';
 
 type Mode = 'register' | 'login' | 'account';
 
@@ -25,7 +25,11 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   useEffect(() => {
     if (mode !== 'account') return;
-    fantasyBrowserClient.auth.getSession().then(({ data }) => {
+    if (!isFantasySupabaseConfigured) {
+      setFeedback({ type: 'error', message: 'Fantasy sign-in is not configured yet.' });
+      return;
+    }
+    getFantasyBrowserClient().auth.getSession().then(({ data }) => {
       setSessionEmail(data.session?.user.email ?? null);
       if (!data.session) return;
       fantasyJsonFetch<any>('/api/fantasy/manager')
@@ -70,7 +74,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const handleResend = async () => {
     setResending(true);
     try {
-      const { error } = await fantasyBrowserClient.auth.resend({ type: 'signup', email });
+      const { error } = await getFantasyBrowserClient().auth.resend({ type: 'signup', email });
       if (error) throw error;
       setFeedback({ type: 'success', message: `Confirmation email resent to ${email}. Check your inbox and spam folder.` });
     } catch (err) {
@@ -84,7 +88,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     setFeedback(null);
     try {
       if (mode === 'register') {
-        const { data, error } = await fantasyBrowserClient.auth.signUp({
+        const { data, error } = await getFantasyBrowserClient().auth.signUp({
           email,
           password,
           options: { data: { display_name: displayName, team_name: teamName } },
@@ -101,7 +105,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           });
         }
       } else if (mode === 'login') {
-        const { error } = await fantasyBrowserClient.auth.signInWithPassword({ email, password });
+        const { error } = await getFantasyBrowserClient().auth.signInWithPassword({ email, password });
         if (error) throw error;
         window.location.href = '/fantasy/account';
       } else {

@@ -2,12 +2,22 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export const fantasyBrowserClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+export const isFantasySupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+export const fantasyBrowserClient = isFantasySupabaseConfigured
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  : null;
+
+export function getFantasyBrowserClient() {
+  if (!fantasyBrowserClient) throw new Error('Fantasy sign-in is not configured yet.');
+  return fantasyBrowserClient;
+}
 
 export async function fantasyAuthHeaders() {
+  if (!fantasyBrowserClient) return {};
   const { data } = await fantasyBrowserClient.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
