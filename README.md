@@ -55,14 +55,64 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Email Setup
 
-App transactional emails for public form flows use the Resend API through `lib/email.ts`. Configure these server-only variables locally and in Vercel:
+The site has two separate email paths. Keep them configured separately:
+
+1. **App transactional email through the Resend API** — contact/enquiry, volunteer, event, membership, order, kitchen, and fantasy manager notification-style emails sent by app API routes through `lib/email.ts`.
+2. **Supabase Auth email through Supabase SMTP** — fantasy signup confirmation, resend confirmation, sign-in, and password reset emails controlled by Supabase Auth. These do not go through `lib/email.ts` and should not be implemented as a custom app route.
+
+#### Resend API app email variables
+
+Configure these as **server-only** variables locally and in Vercel:
 
 - `RESEND_API_KEY`
-- `RESEND_FROM` (for example `NDCC Dinos <noreply@your-domain.example>`)
+- `RESEND_FROM_EMAIL` (for example `NDCC Dinos <noreply@ndcc.com.au>`)
 
-If `RESEND_API_KEY` is missing or Resend returns an error, form submissions still complete after the database write. The app logs the email skip/failure and does not block the user-facing flow. Do not claim live email delivery is working until a real Resend send has been tested in the target environment.
+`RESEND_FROM` remains supported as a legacy fallback if `RESEND_FROM_EMAIL` is not set. Do not expose either Resend variable to client components. If `RESEND_API_KEY`, a sender address, or required email fields are missing, or if Resend returns an error, form submissions still complete after the database write. The app logs the email skip/failure and does not block the user-facing flow. Do not claim live email delivery is working until a real Resend send has been tested in the target environment.
 
-Fantasy registration, confirmation, resend-confirmation, sign-in, and password reset emails are Supabase Auth emails. Configure production Supabase Auth email through **Supabase Dashboard → Authentication → SMTP Settings**. Resend can supply SMTP credentials for Supabase Auth, but these Auth emails do not go through the app's `sendEmail` helper or normal Resend API route emails.
+#### Supabase Auth SMTP
+
+Configure fantasy signup confirmation and password reset email in **Supabase Dashboard → Authentication → SMTP Settings**. Use Resend SMTP credentials there after Resend domain sending is verified. The typical Resend SMTP values are:
+
+- Host: `smtp.resend.com`
+- Port: `465`
+- Username: `resend`
+- Password: the Resend SMTP/API credential supplied for SMTP use
+- Sender name/address: the verified NDCC sender
+
+Do not add a custom app route for Supabase Auth confirmation or password reset emails.
+
+#### Namecheap DNS and Resend sending checklist
+
+DNS changes are manual in Namecheap. For BasicDNS, use **Advanced DNS → Mail Settings → Custom MX** for MX records. Do not automate DNS from this repo.
+
+- Resend domain verification checklist:
+  - Confirm Resend DKIM is verified.
+  - Add/confirm TXT host `resend._domainkey` for DKIM.
+  - Add MX host `send` for Resend return-path feedback SMTP.
+  - Add TXT host `send` for SPF.
+  - Keep Resend receiving disabled unless inbound email webhooks are intentionally implemented.
+  - Do not change the root `@` MX records unless the club intentionally changes mailbox provider.
+- Vercel environment variable checklist:
+  - Set `RESEND_API_KEY` as a server-only environment variable.
+  - Set `RESEND_FROM_EMAIL` to a sender on the verified domain.
+  - Keep Supabase service role and Resend secrets out of `NEXT_PUBLIC_*` variables.
+  - Redeploy after changing Vercel environment variables.
+- Supabase SMTP checklist:
+  - Configure Supabase Auth SMTP after Resend sending DNS is verified.
+  - Send Supabase Auth test confirmation/reset emails from the Supabase dashboard or a controlled signup/password-reset flow.
+- Final live email test checklist:
+  - Submit a non-destructive contact/enquiry-style app flow and confirm Resend API delivery.
+  - Test a Supabase Auth confirmation email.
+  - Test a Supabase Auth password reset email.
+  - Confirm failed or missing app email configuration does not block the form/database flow.
+
+Local DNS check commands from Windows PowerShell:
+
+```powershell
+Resolve-DnsName -Type TXT resend._domainkey.ndcc.com.au
+Resolve-DnsName -Type TXT send.ndcc.com.au
+Resolve-DnsName -Type MX send.ndcc.com.au
+```
 
 ### GitHub-backed CMS Image Upload Setup
 

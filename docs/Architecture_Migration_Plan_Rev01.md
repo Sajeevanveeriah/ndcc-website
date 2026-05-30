@@ -77,7 +77,7 @@ The requested target architecture should be delivered as a staged programme, not
 - Use the app `sendEmail` helper for contact/enquiry/order/event/member/kitchen/fantasy manager transactional notifications where applicable.
 - `RESEND_API_KEY` must be optional for local/dev and must not block user-facing form submissions when absent.
 - Email send failures must be logged and must not roll back successful database writes.
-- `RESEND_FROM` must remain configurable.
+- `RESEND_FROM_EMAIL` must remain configurable; `RESEND_FROM` remains a legacy fallback only.
 - Do not claim production email delivery is live until a real send is tested from the target environment.
 
 ### Supabase custom SMTP through Resend for Auth confirmation/reset emails

@@ -128,7 +128,7 @@ export default async function Footer() {
               <ul className="space-y-2">
                 <li>
                   <a
-                    href="https://www.geelongcricket.com.au"
+                    href="https://cricketgeelong.com.au/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
@@ -139,7 +139,7 @@ export default async function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://www.facebook.com/newcombpowerfnc/"
+                    href="https://www.newcombpowerfnc.com.au/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
