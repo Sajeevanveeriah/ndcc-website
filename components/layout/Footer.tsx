@@ -139,7 +139,7 @@ export default async function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://www.newcombpowerfnc.com.au/"
+                    href="https://newcombpowerfnc.com.au/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
@@ -166,7 +166,7 @@ export default async function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://www.goodsports.com.au"
+                    href="https://goodsports.com.au/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
