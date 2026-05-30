@@ -16,8 +16,11 @@ export type FantasyManagerRecord = {
 };
 
 export function createAnonAuthClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    throw new Error('Supabase public auth client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+  }
   return createClient(supabaseUrl, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -33,6 +36,7 @@ export function getBearerToken(request: Request) {
 export async function getAuthUserFromRequest(request: Request) {
   const token = getBearerToken(request);
   if (!token) return null;
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
   const { data, error } = await createAnonAuthClient().auth.getUser(token);
   if (error || !data.user) return null;
   return data.user;
