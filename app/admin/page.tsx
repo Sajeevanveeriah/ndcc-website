@@ -16,6 +16,7 @@ import {
   Handshake,
   TrendingUp,
   Trophy,
+  Settings,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -76,6 +77,8 @@ export default function AdminDashboardPage() {
     { label: 'News Articles', value: stats.totalNews, icon: Newspaper, href: '/admin/news', colour: 'bg-purple-50 text-purple-700' },
     { label: 'Active Sponsors', value: stats.activeSponsors, icon: Handshake, href: '/admin/sponsors', colour: 'bg-maroon-50 text-maroon-700' },
     { label: 'Fantasy Cricket', value: 'Admin', icon: Trophy, href: '/admin/fantasy', colour: 'bg-sky-50 text-sky-700' },
+    { label: 'Site Settings', value: 'CMS', icon: Settings, href: '/admin/site-pages', colour: 'bg-gray-50 text-gray-700' },
+    { label: 'Email Diagnostics', value: 'Test', icon: Mail, href: '/admin/email-diagnostics', colour: 'bg-indigo-50 text-indigo-700' },
   ];
 
   const activityBadge = (type: string) => {
@@ -174,6 +177,18 @@ export default function AdminDashboardPage() {
                     <Button variant="secondary" className="w-full justify-center">
                       <Newspaper className="h-4 w-4 mr-2" />
                       Write News Article
+                    </Button>
+                  </Link>
+                  <Link href="/admin/site-pages">
+                    <Button variant="secondary" className="w-full justify-center">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Header & Footer Links
+                    </Button>
+                  </Link>
+                  <Link href="/admin/email-diagnostics">
+                    <Button variant="secondary" className="w-full justify-center">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Test App Email
                     </Button>
                   </Link>
                   <Link href="/admin/enquiries">

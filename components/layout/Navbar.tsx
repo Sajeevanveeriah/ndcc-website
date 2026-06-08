@@ -7,12 +7,20 @@ import { Menu, X, ChevronDown } from 'lucide-react';
 import { NAV_LINKS } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
+type HeaderLink = {
+  id?: string;
+  label: string;
+  href: string;
+  openInNewTab?: boolean;
+};
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
+  const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -37,6 +45,26 @@ export default function Navbar() {
     loadClubSettings();
   }, []);
   useEffect(() => {
+    const loadNavigation = async () => {
+      try {
+        const res = await fetch('/api/public/site-links?section=header_nav', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data?.data) && data.data.length > 0) {
+          setNavLinks(data.data.map((link: { id: string; title: string; href: string; is_external: boolean }) => ({
+            id: link.id,
+            label: link.title,
+            href: link.href,
+            openInNewTab: link.is_external || /^https?:\/\//i.test(link.href),
+          })));
+        }
+      } catch {
+        // Safe fallback navigation remains loaded.
+      }
+    };
+    loadNavigation();
+  }, []);
+  useEffect(() => {
     const loadSession = async () => {
       try {
         const res = await fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' });
@@ -56,8 +84,8 @@ export default function Navbar() {
     await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
     setSessionUser(null);
   };
-  const primaryLinks = NAV_LINKS.slice(0, 7);
-  const moreLinks = NAV_LINKS.slice(7);
+  const primaryLinks = navLinks.slice(0, 7);
+  const moreLinks = navLinks.slice(7);
   return (
     <nav
       className={cn(
@@ -76,7 +104,7 @@ export default function Navbar() {
         </span>
         <div className="flex gap-4 ml-auto">
           <a
-            href="https://www.facebook.com/newcombdistrictcc"
+            href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-sky_accent hover:text-white transition-colors font-body"
@@ -84,7 +112,7 @@ export default function Navbar() {
             Facebook
           </a>
           <a
-            href="https://www.playhq.com"
+            href={settings.playhq_url || fallbackClubSettings.playhq_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-sky_accent hover:text-white transition-colors font-body"
@@ -122,7 +150,7 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center gap-0.5">
             {primaryLinks.map((link) => (
               <Link
-                key={link.href}
+                key={`${link.href}-${link.label}`}
                 href={link.href}
                 target={link.openInNewTab ? '_blank' : undefined}
                 rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
@@ -146,7 +174,7 @@ export default function Navbar() {
                 <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
                   {moreLinks.map((link) => (
                     <Link
-                      key={link.href}
+                      key={`${link.href}-${link.label}`}
                       href={link.href}
                       target={link.openInNewTab ? '_blank' : undefined}
                       rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
@@ -210,9 +238,9 @@ export default function Navbar() {
         )}
       >
         <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
-              key={link.href}
+              key={`${link.href}-${link.label}`}
               href={link.href}
               target={link.openInNewTab ? '_blank' : undefined}
               rel={link.openInNewTab ? 'noopener noreferrer' : undefined}

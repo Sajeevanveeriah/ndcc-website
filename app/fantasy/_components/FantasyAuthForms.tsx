@@ -10,6 +10,14 @@ import { fantasyJsonFetch, getFantasyBrowserClient, isFantasySupabaseConfigured 
 
 type Mode = 'register' | 'login' | 'account';
 
+function getSiteUrl() {
+  return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+}
+
+function getFantasyEmailRedirectTo() {
+  return `${getSiteUrl().replace(/\/$/, '')}/fantasy/account`;
+}
+
 export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +37,21 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       setFeedback({ type: 'error', message: 'Fantasy sign-in is not configured yet.' });
       return;
     }
-    getFantasyBrowserClient().auth.getSession().then(({ data }) => {
+
+    const loadAccount = async () => {
+      const client = getFantasyBrowserClient();
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code) {
+        const { error } = await client.auth.exchangeCodeForSession(code);
+        if (error) {
+          setFeedback({ type: 'error', message: `Confirmation link could not be completed: ${error.message}` });
+          return;
+        }
+        window.history.replaceState({}, '', '/fantasy/account');
+      }
+
+      const { data } = await client.auth.getSession();
       setSessionEmail(data.session?.user.email ?? null);
       if (!data.session) return;
       fantasyJsonFetch<any>('/api/fantasy/manager')
@@ -59,7 +81,9 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           }
         })
         .catch((err) => setFeedback({ type: 'error', message: err.message }));
-    });
+    };
+
+    loadAccount().catch((err) => setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not load fantasy account.' }));
   }, [mode]);
 
   const saveProfile = async () => {
@@ -74,7 +98,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const handleResend = async () => {
     setResending(true);
     try {
-      const { error } = await getFantasyBrowserClient().auth.resend({ type: 'signup', email });
+      const { error } = await getFantasyBrowserClient().auth.resend({ type: 'signup', email, options: { emailRedirectTo: getFantasyEmailRedirectTo() } });
       if (error) throw error;
       setFeedback({ type: 'success', message: `Confirmation email resent to ${email}. Check your inbox and spam folder.` });
     } catch (err) {
@@ -91,17 +115,20 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         const { data, error } = await getFantasyBrowserClient().auth.signUp({
           email,
           password,
-          options: { data: { display_name: displayName, team_name: teamName } },
+          options: {
+            data: { display_name: displayName.trim(), team_name: teamName.trim() },
+            emailRedirectTo: getFantasyEmailRedirectTo(),
+          },
         });
         if (error) throw error;
         if (data.session) {
           await saveProfile();
-          window.location.href = '/fantasy/squad';
+          window.location.href = '/fantasy/account';
         } else {
           setAwaitingConfirm(true);
           setFeedback({
             type: 'success',
-            message: `Almost there! A confirmation email has been sent to ${email}. Click the link in that email, then come back and sign in to complete your manager profile.`,
+            message: `Almost there! A confirmation email has been sent to ${email}. Click the link in that email to return to your fantasy account and complete your manager profile.`,
           });
         }
       } else if (mode === 'login') {

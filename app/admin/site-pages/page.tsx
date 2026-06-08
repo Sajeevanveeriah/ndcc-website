@@ -29,6 +29,10 @@ type FacilityFeature = {
 };
 
 const sectionOptions = [
+  { value: 'site:header_nav', label: 'Site Header · Main navigation' },
+  { value: 'site:footer_quick_links', label: 'Footer · Quick Links' },
+  { value: 'site:footer_get_involved', label: 'Footer · Get Involved Links' },
+  { value: 'site:footer_affiliations', label: 'Footer · Affiliation Links' },
   { value: 'home:quick_links', label: 'Home · Quick Links' },
   { value: 'fixtures:team_links', label: 'Fixtures · Team Links' },
   { value: 'about:articles', label: 'About · Articles' },
@@ -151,7 +155,7 @@ export default function AdminSitePagesPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Site Pages</h1>
-      <p className="text-sm text-gray-500">Manage repeatable cards and links used on Home, Fixtures, About, and Facilities pages.</p>
+      <p className="text-sm text-gray-500">Manage repeatable links used by the header navigation, footer, Home, Fixtures, About, and Facilities pages.</p>
       {status && <p className="text-sm text-gray-600">{status}</p>}
 
       <section className="bg-white border rounded-xl p-5 space-y-4">

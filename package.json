@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "smoke": "node scripts/smoke-routes.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",
