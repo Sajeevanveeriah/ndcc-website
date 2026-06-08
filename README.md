@@ -186,3 +186,56 @@ supabase/
 ## Licence
 
 All rights reserved. Newcomb and District Cricket Club.
+
+## Final Production Operator Checklist
+
+Use this checklist after deploying this PR. Do not mark live acceptance complete until these dashboard and live-service checks have been completed in the target Vercel/Supabase/Resend projects.
+
+### Vercel environment variables
+
+Configure production values and redeploy after every change:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SITE_URL`
+- `RESEND_API_KEY`
+- `RESEND_FROM`
+- `RESEND_FROM_EMAIL`
+- GitHub media upload variables already used by this repo: `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL`, `VERCEL_DEPLOY_HOOK_URL`
+- Stripe variables already used by this repo: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Bank transfer email variables already used by this repo: `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER`
+
+### Namecheap DNS for Resend sending
+
+- Add/verify `TXT resend._domainkey` exactly as Resend provides it.
+- Add/verify the Resend `TXT send` record exactly as Resend provides it.
+- Add/verify the Resend `MX send` record exactly as Resend provides it.
+- Do not change the root `@` MX records unless the club is deliberately changing mailbox provider.
+
+### Resend
+
+- Domain is verified.
+- Sending is enabled.
+- Receiving is disabled unless inbound webhook routes are intentionally built later.
+- Check Resend logs after using `/admin/email-diagnostics`.
+
+### Supabase Auth email
+
+Supabase Auth confirmation and password reset emails are sent by Supabase SMTP, not by `lib/email.ts`.
+
+- Enable custom SMTP in Supabase Dashboard → Authentication → SMTP Settings.
+- Use Resend SMTP values: host `smtp.resend.com`, port `465`, username `resend`, password set to the Resend API/SMTP key, sender set to the verified NDCC sender such as `noreply@ndcc.com.au`.
+- Set Supabase Site URL to the production site URL.
+- Add redirect URLs for `/fantasy/account` and `/api/auth/callback` on the production domain.
+- Confirm email provider and confirmation settings are enabled as intended.
+
+### Fantasy live acceptance test
+
+- Use a fresh email alias that has not previously registered.
+- Register at `/fantasy/register` with display name, fantasy team name, email, and password.
+- Watch Resend/Supabase Auth logs for the confirmation email.
+- Click the confirmation email link and confirm it lands on `/fantasy/account`.
+- Confirm the fantasy manager profile is auto-created once and shows as active.
+- Log out and log back in to confirm the same profile is preserved.
+- If app email is configured, confirm the welcome email result in Resend logs.

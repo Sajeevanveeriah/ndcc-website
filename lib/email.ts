@@ -1,7 +1,6 @@
 import 'server-only';
 import { Resend } from 'resend';
 
-const DEFAULT_FROM_ADDRESS = 'NDCC Dinos <noreply@ndcc.com.au>';
 const ADMIN_EMAIL = 'ndcc.secretary1@gmail.com';
 
 let _resend: Resend | null = null;
@@ -25,12 +24,23 @@ function getResend(): Resend {
 }
 
 function getFromAddress(): string | null {
-  return (process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || DEFAULT_FROM_ADDRESS).trim() || null;
+  return (process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || '').trim() || null;
 }
 
 function hasRecipients(to: EmailAddress): boolean {
   if (Array.isArray(to)) return to.some((recipient) => recipient.trim().length > 0);
   return to.trim().length > 0;
+}
+
+
+export function getEmailConfigStatus() {
+  const from = getFromAddress();
+  return {
+    resendApiKeyPresent: Boolean(process.env.RESEND_API_KEY),
+    resendFromPresent: Boolean(from),
+    resendFromSource: process.env.RESEND_FROM_EMAIL ? 'RESEND_FROM_EMAIL' : process.env.RESEND_FROM ? 'RESEND_FROM' : 'missing',
+    ready: Boolean(process.env.RESEND_API_KEY && from),
+  };
 }
 
 function validatePayload(payload: EmailPayload): string | null {

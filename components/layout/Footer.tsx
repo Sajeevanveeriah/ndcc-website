@@ -1,18 +1,43 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
-import {
-  ACKNOWLEDGEMENT,
-  NAV_LINKS,
-} from '@/lib/constants';
+import { ACKNOWLEDGEMENT } from '@/lib/constants';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
+import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
+
+function isExternalLink(link: PageLinkCard) {
+  return link.is_external || /^https?:\/\//i.test(link.href);
+}
+
+function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
+  const external = isExternalLink(link);
+  const content = (
+    <>
+      {link.title}
+      {external && <ExternalLink className="h-3 w-3" />}
+    </>
+  );
+
+  if (external) {
+    return (
+      <a href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return <Link href={link.href} className={className}>{content}</Link>;
+}
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  const [settings, blocks] = await Promise.all([
+  const [settings, blocks, quickLinks, getInvolvedLinks, affiliationLinks] = await Promise.all([
     getClubSettings(),
     getContentBlocks(['footer.acknowledgement']),
+    getPageLinkCards('site', 'footer_quick_links'),
+    getPageLinkCards('site', 'footer_get_involved'),
+    getPageLinkCards('site', 'footer_affiliations'),
   ]);
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
@@ -80,16 +105,12 @@ export default async function Footer() {
             <div>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Quick Links</h3>
               <ul className="space-y-2">
-                {NAV_LINKS.slice(0, 6).map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      target={link.openInNewTab ? '_blank' : undefined}
-                      rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
-                      className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                    >
-                      {link.label}
-                    </Link>
+                {quickLinks.map((link) => (
+                  <li key={link.id}>
+                    <FooterLink
+                      link={link}
+                      className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                    />
                   </li>
                 ))}
               </ul>
@@ -99,26 +120,14 @@ export default async function Footer() {
             <div>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Get Involved</h3>
               <ul className="space-y-2">
-                {NAV_LINKS.slice(6).map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      target={link.openInNewTab ? '_blank' : undefined}
-                      rel={link.openInNewTab ? 'noopener noreferrer' : undefined}
-                      className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                    >
-                      {link.label}
-                    </Link>
+                {getInvolvedLinks.map((link) => (
+                  <li key={link.id}>
+                    <FooterLink
+                      link={link}
+                      className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                    />
                   </li>
                 ))}
-                <li>
-                  <Link
-                    href="/admin/login"
-                    className="text-sm text-maroon-300 hover:text-white transition-colors font-body"
-                  >
-                    Committee Login
-                  </Link>
-                </li>
               </ul>
             </div>
 
@@ -126,55 +135,14 @@ export default async function Footer() {
             <div>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Affiliations</h3>
               <ul className="space-y-2">
-                <li>
-                  <a
-                    href="https://cricketgeelong.com.au/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                  >
-                    {settings.association_name}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://newcombpowerfnc.com.au/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                  >
-                    Newcomb Power Football &amp; Netball Club
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    href="/contact?topic=softball"
-                    className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                  >
-                    Softball club details
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/contact?topic=darts"
-                    className="text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                  >
-                    Darts club details
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="https://goodsports.com.au/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                  >
-                    Good Sports Level 3
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </li>
+                {affiliationLinks.map((link) => (
+                  <li key={link.id}>
+                    <FooterLink
+                      link={link}
+                      className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                    />
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

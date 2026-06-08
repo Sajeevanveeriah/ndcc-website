@@ -56,16 +56,16 @@ const revalidationPaths: Record<string, string[]> = {
   galleryImages: ['/', '/gallery'],
   kitchenMenus: ['/kitchen'],
   kitchenItems: ['/kitchen'],
-  contentBlocks: ['/', '/about', '/facilities', '/fixtures', '/merchandise'],
+  contentBlocks: ['/', '/about', '/contact', '/join', '/facilities', '/fixtures', '/news', '/events', '/sponsors', '/gallery', '/teams', '/kitchen', '/merchandise', '/volunteer', '/fantasy', '/fantasy/rules', '/fantasy/register', '/fantasy/login', '/fantasy/account', '/fantasy/leaderboard', '/fantasy/manager-leaderboard'],
   seasonAppointments: ['/'],
   teams: ['/teams'],
-  pageLinkCards: ['/', '/fixtures'],
+  pageLinkCards: ['/', '/about', '/contact', '/join', '/facilities', '/fixtures', '/news', '/events', '/sponsors', '/gallery', '/teams', '/kitchen', '/merchandise', '/volunteer', '/fantasy', '/fantasy/rules', '/fantasy/register', '/fantasy/login', '/fantasy/account', '/fantasy/leaderboard', '/fantasy/manager-leaderboard'],
   facilityFeatures: ['/facilities'],
   historyLineage: ['/about'],
   historyPremierships: ['/about'],
   historyCompetitions: ['/about'],
   committeeMembers: ['/about'],
-  clubSettings: ['/', '/contact', '/fixtures'],
+  clubSettings: ['/', '/about', '/contact', '/join', '/facilities', '/fixtures', '/sponsors', '/fantasy'],
 };
 
 function revalidateForResource(resource: string, id?: string) {
