@@ -23,8 +23,69 @@ function getResend(): Resend {
   return _resend;
 }
 
-function getFromAddress(): string | null {
-  return (process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || '').trim() || null;
+type SenderConfig = {
+  address: string | null;
+  source: 'RESEND_FROM_EMAIL' | 'RESEND_FROM' | 'missing';
+  valid: boolean;
+  preview: string | null;
+  reason: string | null;
+};
+
+const EMAIL_PATTERN = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+const NAMED_EMAIL_PATTERN = /^([^<>\r\n]+) <([^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)>$/;
+
+function normalizeSenderValue(value: string): string {
+  const trimmed = value.trim();
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if ((first === '"' || first === "'") && first === last) return trimmed.slice(1, -1).trim();
+  return trimmed;
+}
+
+function isValidSenderAddress(value: string): boolean {
+  if (EMAIL_PATTERN.test(value)) return true;
+
+  const namedMatch = value.match(NAMED_EMAIL_PATTERN);
+  return Boolean(namedMatch?.[1].trim() && EMAIL_PATTERN.test(namedMatch[2]));
+}
+
+function maskSenderPreview(value: string): string {
+  const namedMatch = value.match(NAMED_EMAIL_PATTERN);
+  if (!namedMatch) return value;
+
+  const name = namedMatch[1].trim();
+  return `${name[0] ?? '*'}*** <${namedMatch[2]}>`;
+}
+
+function getFromAddress(): SenderConfig {
+  const candidates = [
+    ['RESEND_FROM_EMAIL', process.env.RESEND_FROM_EMAIL],
+    ['RESEND_FROM', process.env.RESEND_FROM],
+  ] as const;
+
+  for (const [source, rawValue] of candidates) {
+    if (rawValue == null) continue;
+
+    const address = normalizeSenderValue(rawValue);
+    if (!address) continue;
+
+    const valid = isValidSenderAddress(address);
+    return {
+      address: valid ? address : null,
+      source,
+      valid,
+      preview: valid ? maskSenderPreview(address) : null,
+      reason: valid ? null : `${source} must be formatted as email@example.com or Name <email@example.com>.`,
+    };
+  }
+
+  return {
+    address: null,
+    source: 'missing',
+    valid: false,
+    preview: null,
+    reason: 'RESEND_FROM_EMAIL/RESEND_FROM not set.',
+  };
 }
 
 function hasRecipients(to: EmailAddress): boolean {
@@ -34,12 +95,14 @@ function hasRecipients(to: EmailAddress): boolean {
 
 
 export function getEmailConfigStatus() {
-  const from = getFromAddress();
+  const sender = getFromAddress();
   return {
     resendApiKeyPresent: Boolean(process.env.RESEND_API_KEY),
-    resendFromPresent: Boolean(from),
-    resendFromSource: process.env.RESEND_FROM_EMAIL ? 'RESEND_FROM_EMAIL' : process.env.RESEND_FROM ? 'RESEND_FROM' : 'missing',
-    ready: Boolean(process.env.RESEND_API_KEY && from),
+    resendFromPresent: sender.source !== 'missing',
+    resendFromSource: sender.source,
+    resendFromValid: sender.valid,
+    resendFromPreview: sender.preview,
+    ready: Boolean(process.env.RESEND_API_KEY && sender.address),
   };
 }
 
@@ -67,12 +130,14 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     return { status: 'skipped', reason };
   }
 
-  const from = getFromAddress();
-  if (!from) {
-    const reason = 'RESEND_FROM_EMAIL/RESEND_FROM not set.';
+  const sender = getFromAddress();
+  if (!sender.address) {
+    const reason = sender.reason || 'RESEND_FROM_EMAIL/RESEND_FROM not set.';
     console.warn(`[email] ${reason} Skipping send.`);
     return { status: 'skipped', reason };
   }
+
+  const from = sender.address;
 
   try {
     const result = await getResend().emails.send({

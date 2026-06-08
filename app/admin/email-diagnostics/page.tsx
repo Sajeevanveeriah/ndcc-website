@@ -9,6 +9,8 @@ type EmailStatus = {
   resendApiKeyPresent: boolean;
   resendFromPresent: boolean;
   resendFromSource: string;
+  resendFromValid: boolean;
+  resendFromPreview: string | null;
   ready: boolean;
 };
 
@@ -60,7 +62,10 @@ export default function AdminEmailDiagnosticsPage() {
         <h2 className="text-lg font-semibold">App email status</h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <div><dt className="text-gray-500">RESEND_API_KEY</dt><dd className="font-semibold">{status?.resendApiKeyPresent ? 'Present' : 'Missing'}</dd></div>
-          <div><dt className="text-gray-500">Sender address</dt><dd className="font-semibold">{status?.resendFromPresent ? `Present (${status.resendFromSource})` : 'Missing'}</dd></div>
+          <div><dt className="text-gray-500">Sender address</dt><dd className="font-semibold">{status?.resendFromPresent ? 'Present' : 'Missing'}</dd></div>
+          <div><dt className="text-gray-500">Sender variable source</dt><dd className="font-semibold">{status?.resendFromSource ?? 'missing'}</dd></div>
+          <div><dt className="text-gray-500">Sender format valid</dt><dd className="font-semibold">{status?.resendFromValid ? 'Yes' : 'No'}</dd></div>
+          <div><dt className="text-gray-500">Sender preview</dt><dd className="font-semibold">{status?.resendFromPreview ?? 'Not available'}</dd></div>
           <div><dt className="text-gray-500">App email ready</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — sends will be skipped safely'}</dd></div>
         </dl>
         <p className="text-sm text-gray-600">Supabase Auth confirmation emails are separate. Verify those in Supabase Authentication SMTP settings and Resend SMTP logs.</p>
