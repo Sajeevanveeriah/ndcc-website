@@ -15,6 +15,7 @@ export default function AdminMembershipsPage() {
   const [planName, setPlanName] = useState('');
   const [planPrice, setPlanPrice] = useState('0');
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     try {
@@ -45,6 +46,7 @@ export default function AdminMembershipsPage() {
       setMessage('Plan price must be a valid non-negative number.');
       return;
     }
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/membershipPlans', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -56,6 +58,8 @@ export default function AdminMembershipsPage() {
       load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to add membership plan.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -67,7 +71,7 @@ export default function AdminMembershipsPage() {
       <form onSubmit={addPlan} className="bg-white border rounded-xl p-4 grid md:grid-cols-3 gap-3 items-end">
         <Input id="plan-name" label="Plan name" value={planName} onChange={(e) => setPlanName(e.target.value)} required />
         <Input id="plan-price" label="Price" type="number" value={planPrice} onChange={(e) => setPlanPrice(e.target.value)} required />
-        <Button type="submit">Add Plan</Button>
+        <Button type="submit" isLoading={saving}>Add Plan</Button>
       </form>
 
       <div className="bg-white border rounded-xl p-4">

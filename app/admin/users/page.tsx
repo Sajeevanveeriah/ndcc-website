@@ -17,6 +17,7 @@ export default function AdminUsersPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('committee');
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     try {
@@ -56,6 +57,7 @@ export default function AdminUsersPage() {
       return;
     }
 
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -67,6 +69,8 @@ export default function AdminUsersPage() {
       load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to create user.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -94,7 +98,7 @@ export default function AdminUsersPage() {
             <option value="admin">admin</option><option value="president">president</option><option value="secretary">secretary</option><option value="committee">committee</option>
           </select>
         </label>
-        <div className="md:col-span-2"><Button type="submit">Create User</Button></div>
+        <div className="md:col-span-2"><Button type="submit" isLoading={saving}>Create User</Button></div>
       </form>
 
       <div className="bg-white rounded-xl border divide-y">

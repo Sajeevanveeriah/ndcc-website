@@ -45,6 +45,7 @@ export default function AdminHistoryPage() {
   const [competitions, setCompetitions] = useState<HistoryCompetition[]>([]);
   const [committeeMembers, setCommitteeMembers] = useState<CommitteeMember[]>([]);
   const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [lineageForm, setLineageForm] = useState({ id: '', club_name: '', start_season: '', end_season: '', association_abbr: '', sort_order: '1', is_active: true });
   const [premForm, setPremForm] = useState({ id: '', team_label: '1st XI', season_label: '', competition_abbr: 'GCA', grade_label: '', sort_order: '1', is_active: true });
@@ -84,6 +85,7 @@ export default function AdminHistoryPage() {
 
   async function saveLineage(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/historyLineage', {
         method: lineageForm.id ? 'PATCH' : 'POST',
@@ -111,11 +113,14 @@ export default function AdminHistoryPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save lineage entry.');
+    } finally {
+      setSaving(false);
     }
   }
 
   async function savePremiership(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     try {
       const payload = {
         team_label: premForm.team_label.trim(),
@@ -136,11 +141,14 @@ export default function AdminHistoryPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save premiership entry.');
+    } finally {
+      setSaving(false);
     }
   }
 
   async function saveCompetition(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     try {
       const payload = { abbreviation: competitionForm.abbreviation.trim().toUpperCase(), name: competitionForm.name.trim() };
       const res = await fetch('/api/admin/resources/historyCompetitions', {
@@ -154,11 +162,14 @@ export default function AdminHistoryPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save competition.');
+    } finally {
+      setSaving(false);
     }
   }
 
   async function saveCommittee(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     try {
       const payload = {
         name: committeeForm.name.trim(),
@@ -177,6 +188,8 @@ export default function AdminHistoryPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save committee member.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -192,7 +205,7 @@ export default function AdminHistoryPage() {
           <Input id="competition_abbr" label="Abbreviation" required value={competitionForm.abbreviation} onChange={(e) => setCompetitionForm((v) => ({ ...v, abbreviation: e.target.value }))} />
           <Input id="competition_name" label="Competition name" required value={competitionForm.name} onChange={(e) => setCompetitionForm((v) => ({ ...v, name: e.target.value }))} />
           <div className="flex items-end gap-2">
-            <Button type="submit">{competitionForm.id ? 'Update Competition' : 'Save Competition'}</Button>
+            <Button type="submit" isLoading={saving}>{competitionForm.id ? 'Update Competition' : 'Save Competition'}</Button>
             {competitionForm.id && <Button type="button" variant="secondary" onClick={() => setCompetitionForm({ id: '', abbreviation: '', name: '' })}>Cancel</Button>}
           </div>
         </form>
@@ -216,7 +229,7 @@ export default function AdminHistoryPage() {
           <Input id="lineage_sort" label="Sort order" type="number" value={lineageForm.sort_order} onChange={(e) => setLineageForm((v) => ({ ...v, sort_order: e.target.value }))} />
           <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={lineageForm.is_active} onChange={(e) => setLineageForm((v) => ({ ...v, is_active: e.target.checked }))} />Active</label>
           <div className="md:col-span-3 flex gap-2">
-            <Button type="submit">{lineageForm.id ? 'Update Lineage' : 'Save Lineage'}</Button>
+            <Button type="submit" isLoading={saving}>{lineageForm.id ? 'Update Lineage' : 'Save Lineage'}</Button>
             {lineageForm.id && <Button type="button" variant="secondary" onClick={() => setLineageForm({ id: '', club_name: '', start_season: '', end_season: '', association_abbr: '', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
         </form>
@@ -241,7 +254,7 @@ export default function AdminHistoryPage() {
           <Input id="prem_sort" label="Sort order" type="number" value={premForm.sort_order} onChange={(e) => setPremForm((v) => ({ ...v, sort_order: e.target.value }))} />
           <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={premForm.is_active} onChange={(e) => setPremForm((v) => ({ ...v, is_active: e.target.checked }))} />Active</label>
           <div className="md:col-span-3 flex gap-2">
-            <Button type="submit">{premForm.id ? 'Update Premiership' : 'Save Premiership'}</Button>
+            <Button type="submit" isLoading={saving}>{premForm.id ? 'Update Premiership' : 'Save Premiership'}</Button>
             {premForm.id && <Button type="button" variant="secondary" onClick={() => setPremForm({ id: '', team_label: '1st XI', season_label: '', competition_abbr: competitions[0]?.abbreviation || 'GCA', grade_label: '', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
         </form>
@@ -264,7 +277,7 @@ export default function AdminHistoryPage() {
           <Input id="committee_sort" label="Sort order" type="number" value={committeeForm.sort_order} onChange={(e) => setCommitteeForm((v) => ({ ...v, sort_order: e.target.value }))} />
           <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={committeeForm.is_active} onChange={(e) => setCommitteeForm((v) => ({ ...v, is_active: e.target.checked }))} />Active</label>
           <div className="md:col-span-2 flex gap-2">
-            <Button type="submit">{committeeForm.id ? 'Update Member' : 'Save Member'}</Button>
+            <Button type="submit" isLoading={saving}>{committeeForm.id ? 'Update Member' : 'Save Member'}</Button>
             {committeeForm.id && <Button type="button" variant="secondary" onClick={() => setCommitteeForm({ id: '', name: '', role: '', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
         </form>

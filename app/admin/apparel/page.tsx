@@ -35,6 +35,7 @@ export default function AdminApparelPage() {
   const [products, setProducts] = useState<ApparelProduct[]>([]);
   const [windows, setWindows] = useState<MerchWindow[]>([]);
   const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingWindowId, setEditingWindowId] = useState<string | null>(null);
 
@@ -102,6 +103,7 @@ export default function AdminApparelPage() {
       active: productForm.active,
     };
 
+    setSaving(true);
     const res = await fetch('/api/admin/resources/apparelProducts', {
       method: editingProductId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -115,6 +117,8 @@ export default function AdminApparelPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save product.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -138,6 +142,7 @@ export default function AdminApparelPage() {
 
   async function createWindow(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     const res = await fetch('/api/admin/resources/merchWindows', {
       method: editingWindowId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -151,6 +156,8 @@ export default function AdminApparelPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save window.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -177,7 +184,7 @@ export default function AdminApparelPage() {
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.active} onChange={(e) => setProductForm((v) => ({ ...v, active: e.target.checked }))} />Active</label>
           </div>
           <div className="md:col-span-2 flex gap-2">
-            <Button type="submit">{editingProductId ? 'Update Product' : 'Save Product'}</Button>
+            <Button type="submit" isLoading={saving}>{editingProductId ? 'Update Product' : 'Save Product'}</Button>
             {editingProductId && (
               <Button type="button" variant="secondary" onClick={() => {
                 setEditingProductId(null);
@@ -210,7 +217,7 @@ export default function AdminApparelPage() {
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={windowForm.allow_queue_after_close} onChange={(e) => setWindowForm((v) => ({ ...v, allow_queue_after_close: e.target.checked }))} />Allow queue after close</label>
           </div>
           <div className="md:col-span-2 flex gap-2">
-            <Button type="submit">{editingWindowId ? 'Update Window' : 'Save Window'}</Button>
+            <Button type="submit" isLoading={saving}>{editingWindowId ? 'Update Window' : 'Save Window'}</Button>
             {editingWindowId && (
               <Button type="button" variant="secondary" onClick={() => {
                 setEditingWindowId(null);

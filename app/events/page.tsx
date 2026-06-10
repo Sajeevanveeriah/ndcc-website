@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
@@ -77,9 +78,10 @@ export default function EventsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {events.map((event) => (
-                <Card key={event.id} hover>
+                <ScrollReveal key={event.id}>
+                <Card hover className="h-full flex flex-col">
                   {normalizeEventImage(event.title, event.image_url) && (
-                    <div className="relative h-48 w-full">
+                    <div className="relative aspect-[4/3] w-full">
                       <SafeImage
                         src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
                         alt={event.title}
@@ -120,6 +122,7 @@ export default function EventsPage() {
                     </Link>
                   </CardFooter>
                 </Card>
+                </ScrollReveal>
               ))}
             </div>
           )}

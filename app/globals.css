@@ -40,23 +40,23 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-maroon-700 text-white font-body font-semibold rounded-[10px] hover:bg-maroon-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center px-6 py-3 bg-maroon-700 text-white font-body font-semibold rounded-[10px] shadow-sm hover:bg-maroon-800 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-800 font-body font-semibold rounded-lg hover:bg-sky-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-800 font-body font-semibold rounded-lg shadow-sm hover:bg-sky-300 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2;
   }
 
   .btn-outline-white {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-white/50 text-white font-body font-medium rounded-[10px] hover:border-white hover:bg-white/10 transition-all duration-200 focus:outline-none;
+    @apply inline-flex items-center justify-center px-6 py-3 border border-white/50 text-white font-body font-medium rounded-[10px] hover:border-white hover:bg-white/10 active:scale-[0.98] transition-all duration-200 focus:outline-none;
   }
 
   .section-padding {
-    @apply px-4 sm:px-6 lg:px-8 py-14 sm:py-16;
+    @apply px-4 sm:px-6 lg:px-8 py-16 sm:py-20;
   }
 
   .container-width {
@@ -64,11 +64,11 @@
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
+    @apply bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden;
   }
 
   .card-hover {
-    @apply card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200;
+    @apply card hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 transition-all duration-300;
   }
 
   .form-input {
@@ -80,7 +80,28 @@
   }
 
   .page-hero {
-    @apply bg-maroon-700 text-white section-padding;
+    @apply relative text-white section-padding overflow-hidden;
+    background:
+      radial-gradient(1100px 420px at 85% -10%, rgba(255, 255, 255, 0.08), transparent 60%),
+      linear-gradient(135deg, theme('colors.maroon.700') 0%, theme('colors.maroon.800') 60%, theme('colors.maroon.900') 100%);
+  }
+
+  .page-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+  }
+
+  .page-hero > * {
+    @apply relative z-10;
   }
 
   .page-hero-title {
@@ -102,6 +123,25 @@
   /* Updated: was bg-sky-50 (barely visible). Now a genuine sky_accent tint. */
   .surface-sky {
     background-color: rgba(173, 216, 230, 0.18);
+  }
+
+  /* Image zoom on card hover: apply to the <img>, with `group` + overflow-hidden on the container */
+  .img-zoom {
+    @apply transition-transform duration-500 ease-out group-hover:scale-105;
+  }
+
+  /* Animated underline for nav links */
+  .nav-underline {
+    @apply relative;
+  }
+
+  .nav-underline::after {
+    content: '';
+    @apply absolute left-3 right-3 bottom-1 h-0.5 bg-maroon-700 origin-left scale-x-0 transition-transform duration-200;
+  }
+
+  .nav-underline:hover::after {
+    @apply scale-x-100;
   }
 
   .section-eyebrow {

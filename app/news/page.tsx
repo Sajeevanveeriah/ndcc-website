@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { NewsPost } from '@/lib/types';
@@ -80,7 +81,8 @@ export default function NewsPage() {
                 </Card>
               ) : (
                 posts.map((post) => (
-                  <Card key={post.id} hover className="overflow-hidden">
+                  <ScrollReveal key={post.id}>
+                  <Card hover className="overflow-hidden">
                     <div className={post.image_url || post.image ? 'md:flex' : ''}>
                       {(post.image_url || post.image) && (
                         <div className="w-full md:w-64 flex-shrink-0 bg-gray-50 p-2">
@@ -125,6 +127,7 @@ export default function NewsPage() {
                       </CardContent>
                     </div>
                   </Card>
+                  </ScrollReveal>
                 ))
               )}
             </div>
