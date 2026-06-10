@@ -172,7 +172,7 @@ export default function Navbar() {
               <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors">
                 More <ChevronDown className="h-3.5 w-3.5" />
               </button>
-              <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
+              <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
                 <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
                   {moreLinks.map((link) => (
                     <Link
@@ -199,7 +199,7 @@ export default function Navbar() {
                 <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors">
                   {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" />
                 </button>
-                <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
+                <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
                   <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Account</Link>
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Admin Panel</Link>

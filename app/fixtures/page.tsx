@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { getClubSettings } from '@/lib/club-settings';
@@ -21,10 +22,14 @@ export default async function FixturesPage() {
     <>
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{blocks['fixtures.hero']?.title || 'Fixtures & Results'}</h1>
-          <p className="page-hero-subtitle">
-            {blocks['fixtures.hero']?.body || `Follow the ${settings.club_nickname} throughout the season across all grades.`}
-          </p>
+          <ScrollReveal onMount delay={0}>
+            <h1 className="page-hero-title">{blocks['fixtures.hero']?.title || 'Fixtures & Results'}</h1>
+          </ScrollReveal>
+          <ScrollReveal onMount delay={0.15}>
+            <p className="page-hero-subtitle">
+              {blocks['fixtures.hero']?.body || `Follow the ${settings.club_nickname} throughout the season across all grades.`}
+            </p>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -57,7 +62,7 @@ export default async function FixturesPage() {
         </div>
       </section>
 
-      <section className="section-padding bg-sky-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <h2 className="section-title mb-8">{blocks['fixtures.team_links']?.title || 'Team Fixtures on PlayHQ'}</h2>
           <p className="text-gray-600 font-body mb-8 max-w-3xl">

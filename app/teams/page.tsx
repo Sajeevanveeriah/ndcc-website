@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { TEAMS, CLUB_NICKNAME } from '@/lib/constants';
@@ -46,10 +47,14 @@ export default async function TeamsPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Our Teams</h1>
-          <p className="page-hero-subtitle">
-            Meet the squads representing the {CLUB_NICKNAME} across all grades of the GCA.
-          </p>
+          <ScrollReveal onMount delay={0}>
+            <h1 className="page-hero-title">Our Teams</h1>
+          </ScrollReveal>
+          <ScrollReveal onMount delay={0.15}>
+            <p className="page-hero-subtitle">
+              Meet the squads representing the {CLUB_NICKNAME} across all grades of the GCA.
+            </p>
+          </ScrollReveal>
         </div>
       </section>
 

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
+import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { ACKNOWLEDGEMENT } from '@/lib/constants';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
@@ -63,9 +64,9 @@ export default async function Footer() {
       {/* Main Footer */}
       <div className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="container-width">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Club Info */}
-            <div className="lg:col-span-1">
+            <ScrollRevealItem className="lg:col-span-1">
               <Link href="/" className="flex items-center gap-3 mb-4">
                 <Image
                   src="/images/logo.jpg"
@@ -99,10 +100,10 @@ export default async function Footer() {
                   </a>
                 </div>
               </div>
-            </div>
+            </ScrollRevealItem>
 
             {/* Quick Links */}
-            <div>
+            <ScrollRevealItem>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Quick Links</h3>
               <ul className="space-y-2">
                 {quickLinks.map((link) => (
@@ -114,10 +115,10 @@ export default async function Footer() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </ScrollRevealItem>
 
             {/* More Links */}
-            <div>
+            <ScrollRevealItem>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Get Involved</h3>
               <ul className="space-y-2">
                 {getInvolvedLinks.map((link) => (
@@ -129,10 +130,10 @@ export default async function Footer() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </ScrollRevealItem>
 
             {/* Partners */}
-            <div>
+            <ScrollRevealItem>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Affiliations</h3>
               <ul className="space-y-2">
                 {affiliationLinks.map((link) => (
@@ -144,8 +145,8 @@ export default async function Footer() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </div>
+            </ScrollRevealItem>
+          </ScrollReveal>
         </div>
       </div>
 
