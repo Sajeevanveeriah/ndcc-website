@@ -12,6 +12,7 @@ export default function AdminMinutesPage() {
   const [form, setForm] = useState({ title: '', meeting_date: '', content: '', status: 'draft' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     try {
@@ -29,6 +30,7 @@ export default function AdminMinutesPage() {
     e.preventDefault();
     const method = editingId ? 'PATCH' : 'POST';
     const body = editingId ? { id: editingId, ...form } : form;
+    setSaving(true);
     const res = await fetch('/api/meeting-minutes', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     try {
       await parseApiResponse(res);
@@ -38,6 +40,8 @@ export default function AdminMinutesPage() {
       load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to save minute.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -57,7 +61,7 @@ export default function AdminMinutesPage() {
             <option value="seconded">seconded</option>
           </select>
         </label>
-        <Button type="submit">{editingId ? 'Update Minute' : 'Create Minute'}</Button>
+        <Button type="submit" isLoading={saving}>{editingId ? 'Update Minute' : 'Create Minute'}</Button>
       </form>
 
       <div className="bg-white border rounded-xl divide-y">

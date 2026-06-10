@@ -20,13 +20,13 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex items-center justify-center font-body font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center font-body font-semibold rounded-lg transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';
 
   const variants = {
-    primary: 'bg-maroon-700 text-white hover:bg-maroon-800 focus:ring-maroon-500',
+    primary: 'bg-maroon-700 text-white shadow-sm hover:bg-maroon-800 hover:shadow-md focus:ring-maroon-500',
     secondary:
-      'border-2 border-maroon-700 text-maroon-700 hover:bg-maroon-700 hover:text-white focus:ring-maroon-500',
-    accent: 'bg-sky_accent text-maroon-800 hover:bg-sky-300 focus:ring-sky-400',
+      'border-2 border-maroon-700 text-maroon-700 hover:bg-maroon-700 hover:text-white hover:shadow-md focus:ring-maroon-500',
+    accent: 'bg-sky_accent text-maroon-800 shadow-sm hover:bg-sky-300 hover:shadow-md focus:ring-sky-400',
     ghost: 'text-maroon-700 hover:bg-maroon-50 focus:ring-maroon-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   };

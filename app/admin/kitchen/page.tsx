@@ -15,6 +15,7 @@ export default function AdminKitchenPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
   const [menuForm, setMenuForm] = useState({ name: '', is_active: true });
   const [itemForm, setItemForm] = useState({ menu_id: '', name: '', description: '', image_url: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
 
@@ -83,6 +84,7 @@ export default function AdminKitchenPage() {
 
   async function createMenu(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/kitchenMenus', {
         method: 'POST',
@@ -95,6 +97,8 @@ export default function AdminKitchenPage() {
       loadMenus();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to create menu.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -106,6 +110,7 @@ export default function AdminKitchenPage() {
   async function saveEditMenu(e: React.FormEvent) {
     e.preventDefault();
     if (!editingMenu) return;
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/kitchenMenus', {
         method: 'PATCH',
@@ -118,6 +123,8 @@ export default function AdminKitchenPage() {
       loadMenus();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to update menu.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -143,6 +150,7 @@ export default function AdminKitchenPage() {
       setMessage('Item price/sort order must be valid numbers.');
       return;
     }
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/kitchenItems', {
         method: 'POST',
@@ -164,6 +172,8 @@ export default function AdminKitchenPage() {
       loadItems();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to create item.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -190,6 +200,7 @@ export default function AdminKitchenPage() {
       setMessage('Item price/sort order must be valid numbers.');
       return;
     }
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/kitchenItems', {
         method: 'PATCH',
@@ -212,6 +223,8 @@ export default function AdminKitchenPage() {
       loadItems();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to update item.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -259,7 +272,7 @@ export default function AdminKitchenPage() {
               Active
             </label>
             <div className="md:col-span-2 flex gap-2">
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" isLoading={saving}>Save Changes</Button>
               <Button type="button" variant="secondary" onClick={() => setEditingMenu(null)}>Cancel</Button>
             </div>
           </form>
@@ -270,7 +283,7 @@ export default function AdminKitchenPage() {
               <input type="checkbox" checked={menuForm.is_active} onChange={(e) => setMenuForm((v) => ({ ...v, is_active: e.target.checked }))} />
               Active
             </label>
-            <div className="md:col-span-2"><Button type="submit">Create Menu</Button></div>
+            <div className="md:col-span-2"><Button type="submit" isLoading={saving}>Create Menu</Button></div>
           </form>
         )}
 
@@ -318,7 +331,7 @@ export default function AdminKitchenPage() {
               </label>
             </div>
             <div className="md:col-span-2 flex gap-2">
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" isLoading={saving}>Save Changes</Button>
               <Button type="button" variant="secondary" onClick={() => setEditingItem(null)}>Cancel</Button>
             </div>
           </form>
@@ -345,7 +358,7 @@ export default function AdminKitchenPage() {
                 Hidden
               </label>
             </div>
-            <div className="md:col-span-2"><Button type="submit">Add Item</Button></div>
+            <div className="md:col-span-2"><Button type="submit" isLoading={saving}>Add Item</Button></div>
           </form>
         )}
 

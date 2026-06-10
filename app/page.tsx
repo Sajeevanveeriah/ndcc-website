@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
+import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -147,7 +148,7 @@ export default async function HomePage() {
         />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.88) 0%, rgba(45,0,0,0.58) 55%, rgba(45,0,0,0.32) 100%)' }} />
         <div className="container-width relative z-10 flex-1 flex items-center section-padding">
-          <div className="w-full">
+          <ScrollReveal onMount className="w-full">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
               {blocks['home.hero']?.title || CLUB_NAME}
             </h1>
@@ -162,24 +163,24 @@ export default async function HomePage() {
                 View Fixtures
               </Link>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
       <section className="section-padding surface-sky">
         <div className="container-width">
-          <div className="text-center mb-12">
+          <ScrollReveal className="text-center mb-12">
             <h2 className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
             <p className="section-subtitle mx-auto">
               {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
             </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          </ScrollReveal>
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {quickLinks.map((link) => (
+              <ScrollRevealItem key={link.id}>
               <Link
-                key={link.id}
                 href={link.href}
-                className="group bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-[10px] p-6 flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                className="group h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
                 {link.icon && <span className="text-3xl mb-3 block" aria-hidden="true">{link.icon}</span>}
                 <div className="flex items-start justify-between gap-2">
@@ -190,15 +191,17 @@ export default async function HomePage() {
                 </div>
                 <p className="text-gray-600 font-body text-sm">{link.description}</p>
               </Link>
+              </ScrollRevealItem>
             ))}
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
       <section className="section-padding surface-sky">
         <div className="container-width">
+          <ScrollReveal>
           <div
-            className="relative overflow-hidden rounded-2xl p-8 sm:p-10 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center"
+            className="relative overflow-hidden rounded-2xl p-8 sm:p-10 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center shadow-lg"
             style={{ background: 'linear-gradient(135deg, #2d0000 0%, #800000 100%)' }}
           >
             <div>
@@ -223,33 +226,39 @@ export default async function HomePage() {
               </svg>
             </Link>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
       <section className="section-padding surface-sky">
         <div className="container-width">
-          <div className="text-center mb-12">
+          <ScrollReveal className="text-center mb-12">
             <h2 className="section-title">{blocks['home.welcome']?.title || 'Latest News'}</h2>
             <p className="section-subtitle mx-auto">
               {blocks['home.welcome']?.body || 'Stay up to date with everything happening at NDCC.'}
             </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          </ScrollReveal>
+          <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {news.map((article) => {
               const inner = (
                 <Card hover className="h-full overflow-hidden">
                   {(article.image_url || article.image) ? (
-                    <div className="relative h-48 w-full overflow-hidden bg-gray-50">
-                      <Image
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-50">
+                      <SafeImage
                         src={article.image_url || article.image || '/images/Womens_Team.jpg'}
                         alt={article.title}
                         fill
                         className="object-contain group-hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, 33vw"
+                        fallback={
+                          <div className="h-full w-full flex items-center justify-center bg-maroon-800">
+                            <span className="text-white/30 font-display font-black text-4xl">NDCC</span>
+                          </div>
+                        }
                       />
                     </div>
                   ) : (
-                    <div className="relative h-48 w-full overflow-hidden">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden">
                       <Image
                         src="/images/Womens_Team.jpg"
                         alt="Newcomb and District Cricket Club"
@@ -276,12 +285,14 @@ export default async function HomePage() {
               );
 
               return (
-                <Link key={article.id} href={`/news/${article.id}`} className="group">
-                  {inner}
-                </Link>
+                <ScrollRevealItem key={article.id}>
+                  <Link href={`/news/${article.id}`} className="group block h-full">
+                    {inner}
+                  </Link>
+                </ScrollRevealItem>
               );
             })}
-          </div>
+          </ScrollReveal>
           <div className="text-center mt-8">
             <Link href="/news" className="btn-secondary">
               Read More News
@@ -292,10 +303,10 @@ export default async function HomePage() {
 
       <section className="section-padding surface-sky">
         <div className="container-width">
-          <div className="text-center mb-12">
+          <ScrollReveal className="text-center mb-12">
             <h2 className="section-title">2026/27 Season Appointments</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          </ScrollReveal>
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {seasonAppointments.map((appointment) => {
               const role = appointment.role.trim();
               const imageAlt = role
@@ -303,9 +314,9 @@ export default async function HomePage() {
                 : `${appointment.name} season appointment announcement`;
 
               return (
+                <ScrollRevealItem key={appointment.id}>
                 <div
-                  key={appointment.id}
-                  className="relative rounded-2xl overflow-hidden bg-maroon-900"
+                  className="group relative rounded-2xl overflow-hidden bg-maroon-900 shadow-md hover:shadow-xl transition-shadow duration-300"
                   style={{ aspectRatio: '3/4' }}
                 >
                   {appointment.image_url ? (
@@ -313,7 +324,7 @@ export default async function HomePage() {
                       src={appointment.image_url}
                       alt={imageAlt}
                       fill
-                      className="object-cover"
+                      className="object-cover img-zoom"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       fallback={
                         <div className="h-full flex items-center justify-center">
@@ -343,9 +354,10 @@ export default async function HomePage() {
                     </p>
                   </div>
                 </div>
+                </ScrollRevealItem>
               );
             })}
-          </div>
+          </ScrollReveal>
           <p className="text-center text-gray-500 font-body text-sm mt-8">
             More appointments to be announced. Follow us on{' '}
             <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
@@ -358,13 +370,13 @@ export default async function HomePage() {
 
       <section className="section-padding surface-sky">
         <div className="container-width">
-          <div className="text-center mb-10">
+          <ScrollReveal className="text-center mb-10">
             <h2 className="section-title">{sponsorshipTitle}</h2>
             <p className="section-subtitle mx-auto">
               {sponsorshipBody}
             </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-label="Club sponsors">
+          </ScrollReveal>
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-label="Club sponsors">
             {sponsors.map((sponsor) => {
               const tierInfo = SPONSOR_TIERS.find((t) => t.value === sponsor.tier);
               const card = (
@@ -372,12 +384,17 @@ export default async function HomePage() {
                   <CardContent className="p-6 flex flex-col items-center text-center h-full">
                     <div className="w-full h-28 rounded-lg bg-white border border-gray-100 relative overflow-hidden mb-4">
                       {sponsor.logo_url ? (
-                        <Image
+                        <SafeImage
                           src={sponsor.logo_url}
                           alt={`${sponsor.name} logo`}
                           fill
                           className="object-contain p-3"
                           sizes="(max-width: 1024px) 50vw, 320px"
+                          fallback={
+                            <div className="w-full h-full flex items-center justify-center text-lg font-bold text-maroon-700">
+                              {sponsor.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          }
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-lg font-bold text-maroon-700">
@@ -400,25 +417,26 @@ export default async function HomePage() {
 
               if (!sponsor.website) {
                 return (
-                  <div key={sponsor.id} className="block">
+                  <ScrollRevealItem key={sponsor.id} className="block">
                     {card}
-                  </div>
+                  </ScrollRevealItem>
                 );
               }
 
               return (
-                <a
-                  key={sponsor.id}
-                  href={sponsor.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block group"
-                >
-                  {card}
-                </a>
+                <ScrollRevealItem key={sponsor.id}>
+                  <a
+                    href={sponsor.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group h-full"
+                  >
+                    {card}
+                  </a>
+                </ScrollRevealItem>
               );
             })}
-          </div>
+          </ScrollReveal>
           <div className="text-center mt-8">
             <Link href="/sponsors" className="btn-secondary">
               View All Sponsors
@@ -428,7 +446,7 @@ export default async function HomePage() {
       </section>
 
       <section className="bg-maroon-950 text-white section-padding">
-        <div className="container-width text-center">
+        <ScrollReveal className="container-width text-center">
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
             {juniorsTitle}
           </h2>
@@ -443,7 +461,7 @@ export default async function HomePage() {
               Volunteer With Us
             </Link>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
     </>
   );

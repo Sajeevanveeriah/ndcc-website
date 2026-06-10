@@ -43,6 +43,7 @@ export default function AdminSitePagesPage() {
   const [cards, setCards] = useState<PageLinkCard[]>([]);
   const [features, setFeatures] = useState<FacilityFeature[]>([]);
   const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [cardForm, setCardForm] = useState({
     id: '',
@@ -101,6 +102,7 @@ export default function AdminSitePagesPage() {
       is_active: cardForm.is_active,
     };
 
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/pageLinkCards', {
         method: cardForm.id ? 'PATCH' : 'POST',
@@ -124,6 +126,8 @@ export default function AdminSitePagesPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save page card.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -137,6 +141,7 @@ export default function AdminSitePagesPage() {
       is_active: featureForm.is_active,
     };
 
+    setSaving(true);
     try {
       const res = await fetch('/api/admin/resources/facilityFeatures', {
         method: featureForm.id ? 'PATCH' : 'POST',
@@ -149,6 +154,8 @@ export default function AdminSitePagesPage() {
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save facility feature.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -173,7 +180,7 @@ export default function AdminSitePagesPage() {
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={cardForm.is_active} onChange={(e) => setCardForm((v) => ({ ...v, is_active: e.target.checked }))} />Active</label>
           </div>
           <div className="md:col-span-2 flex gap-2">
-            <Button type="submit">{cardForm.id ? 'Update Card' : 'Save Card'}</Button>
+            <Button type="submit" isLoading={saving}>{cardForm.id ? 'Update Card' : 'Save Card'}</Button>
             {cardForm.id && <Button type="button" variant="secondary" onClick={() => setCardForm({ id: '', page_section: sectionOptions[0].value, title: '', description: '', href: '', icon: '', badge: '', is_external: false, sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
         </form>
@@ -208,7 +215,7 @@ export default function AdminSitePagesPage() {
           <Input id="feature_sort" label="Sort order" type="number" value={featureForm.sort_order} onChange={(e) => setFeatureForm((v) => ({ ...v, sort_order: e.target.value }))} />
           <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={featureForm.is_active} onChange={(e) => setFeatureForm((v) => ({ ...v, is_active: e.target.checked }))} />Active</label>
           <div className="md:col-span-2 flex gap-2">
-            <Button type="submit">{featureForm.id ? 'Update Feature' : 'Save Feature'}</Button>
+            <Button type="submit" isLoading={saving}>{featureForm.id ? 'Update Feature' : 'Save Feature'}</Button>
             {featureForm.id && <Button type="button" variant="secondary" onClick={() => setFeatureForm({ id: '', title: '', description: '', icon_key: 'feature', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
         </form>

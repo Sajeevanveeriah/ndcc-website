@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { LazyMotion, domAnimation, m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { NAV_LINKS } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
@@ -15,6 +16,7 @@ type HeaderLink = {
 };
 
 export default function Navbar() {
+  const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -158,7 +160,7 @@ export default function Navbar() {
                   'px-3 py-2 text-sm font-body font-medium transition-colors',
                   pathname === link.href
                     ? 'text-maroon-700 border-b-2 border-maroon-700 pb-[6px] rounded-none'
-                    : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg'
+                    : 'nav-underline text-gray-600 hover:text-maroon-700 rounded-lg'
                 )}
               >
                 {link.label}
@@ -231,13 +233,18 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Navigation */}
-      <div
-        className={cn(
-          'lg:hidden overflow-hidden transition-all duration-300',
-          isOpen ? 'max-h-[80vh] opacity-100' : 'max-h-0 opacity-0'
-        )}
-      >
-        <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
+      <LazyMotion features={domAnimation} strict>
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <m.div
+              key="mobile-menu"
+              className="lg:hidden overflow-hidden shadow-lg"
+              initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
           {navLinks.map((link) => (
             <Link
               key={`${link.href}-${link.label}`}
@@ -270,8 +277,11 @@ export default function Navbar() {
               </button>
             </>
           )}
-        </div>
-      </div>
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </LazyMotion>
     </nav>
   );
 }

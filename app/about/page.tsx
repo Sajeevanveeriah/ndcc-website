@@ -64,6 +64,7 @@ export default async function AboutPage() {
                 src={historyImage}
                 alt="Grinter Reserve, home ground of the Newcomb and District Cricket Club"
                 fill
+                priority
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
