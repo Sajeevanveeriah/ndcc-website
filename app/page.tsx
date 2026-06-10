@@ -143,33 +143,40 @@ export default async function HomePage() {
           src="/images/Turf_Ground.jpg"
           alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
           fill
-          className="object-cover"
+          className="object-cover animate-ken-burns"
           priority
         />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.88) 0%, rgba(45,0,0,0.58) 55%, rgba(45,0,0,0.32) 100%)' }} />
         <div className="container-width relative z-10 flex-1 flex items-center section-padding">
-          <ScrollReveal onMount className="w-full">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
-              {blocks['home.hero']?.title || CLUB_NAME}
-            </h1>
-            <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl">
-              {blocks['home.hero']?.body || `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href={heroCtaUrl} className="btn-primary text-lg px-8 py-4">
-                {heroCtaLabel}
-              </Link>
-              <Link href="/fixtures" className="btn-outline-white text-lg px-8 py-4">
-                View Fixtures
-              </Link>
-            </div>
-          </ScrollReveal>
+          <div className="w-full">
+            <ScrollReveal onMount delay={0}>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
+                {blocks['home.hero']?.title || CLUB_NAME}
+              </h1>
+            </ScrollReveal>
+            <ScrollReveal onMount delay={0.15}>
+              <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl">
+                {blocks['home.hero']?.body || `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`}
+              </p>
+            </ScrollReveal>
+            <ScrollReveal onMount delay={0.3}>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href={heroCtaUrl} className="btn-primary text-lg px-8 py-4">
+                  {heroCtaLabel}
+                </Link>
+                <Link href="/fixtures" className="btn-outline-white text-lg px-8 py-4">
+                  View Fixtures
+                </Link>
+              </div>
+            </ScrollReveal>
+          </div>
         </div>
       </section>
 
       <section className="section-padding surface-sky">
         <div className="container-width">
           <ScrollReveal className="text-center mb-12">
+            <span className="section-eyebrow">Quick Links</span>
             <h2 className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
             <p className="section-subtitle mx-auto">
               {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
@@ -233,6 +240,7 @@ export default async function HomePage() {
       <section className="section-padding surface-sky">
         <div className="container-width">
           <ScrollReveal className="text-center mb-12">
+            <span className="section-eyebrow">Club News</span>
             <h2 className="section-title">{blocks['home.welcome']?.title || 'Latest News'}</h2>
             <p className="section-subtitle mx-auto">
               {blocks['home.welcome']?.body || 'Stay up to date with everything happening at NDCC.'}
@@ -304,6 +312,7 @@ export default async function HomePage() {
       <section className="section-padding surface-sky">
         <div className="container-width">
           <ScrollReveal className="text-center mb-12">
+            <span className="section-eyebrow">2026/27 Season</span>
             <h2 className="section-title">2026/27 Season Appointments</h2>
           </ScrollReveal>
           <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -345,7 +354,7 @@ export default async function HomePage() {
                     className="absolute inset-0"
                     style={{ background: 'linear-gradient(to top, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.18) 55%, transparent 100%)' }}
                   />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 group-hover:-translate-y-1 transition-transform duration-300">
                     <p className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-sky_accent mb-1">
                       {appointment.role}
                     </p>
@@ -371,6 +380,7 @@ export default async function HomePage() {
       <section className="section-padding surface-sky">
         <div className="container-width">
           <ScrollReveal className="text-center mb-10">
+            <span className="section-eyebrow">Community Partners</span>
             <h2 className="section-title">{sponsorshipTitle}</h2>
             <p className="section-subtitle mx-auto">
               {sponsorshipBody}
@@ -380,7 +390,7 @@ export default async function HomePage() {
             {sponsors.map((sponsor) => {
               const tierInfo = SPONSOR_TIERS.find((t) => t.value === sponsor.tier);
               const card = (
-                <Card hover={Boolean(sponsor.website)} className="h-full border border-sky-100">
+                <Card hover={Boolean(sponsor.website)} className="h-full border border-sky-100 hover:ring-2 hover:ring-maroon-200/40">
                   <CardContent className="p-6 flex flex-col items-center text-center h-full">
                     <div className="w-full h-28 rounded-lg bg-white border border-gray-100 relative overflow-hidden mb-4">
                       {sponsor.logo_url ? (

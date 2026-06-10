@@ -12,6 +12,8 @@ type ScrollRevealProps = {
   onMount?: boolean;
   /** Stagger direct children (use with <ScrollRevealItem> wrappers). */
   stagger?: boolean;
+  /** Direction the content reveals from. Defaults to 'up'. */
+  direction?: 'up' | 'left' | 'right';
   as?: 'div' | 'section' | 'span' | 'ul' | 'li' | 'header';
   role?: string;
   'aria-label'?: string;
@@ -25,6 +27,7 @@ export default function ScrollReveal({
   delay = 0,
   onMount = false,
   stagger = false,
+  direction = 'up',
   as = 'div',
   ...rest
 }: ScrollRevealProps) {
@@ -36,11 +39,17 @@ export default function ScrollReveal({
     return <Plain className={className} {...rest}>{children}</Plain>;
   }
 
+  const DIRECTION_MAP = {
+    up:    { hidden: { opacity: 0, y: 24 },  visible: { opacity: 1, y: 0 } },
+    left:  { hidden: { opacity: 0, x: -32 }, visible: { opacity: 1, x: 0 } },
+    right: { hidden: { opacity: 0, x: 32 },  visible: { opacity: 1, x: 0 } },
+  } as const;
+  const directionBase = DIRECTION_MAP[direction];
+
   const variants = {
-    hidden: { opacity: 0, y: 24 },
+    hidden: directionBase.hidden,
     visible: {
-      opacity: 1,
-      y: 0,
+      ...directionBase.visible,
       transition: stagger
         ? { duration: 0.5, ease: EASE, delay, staggerChildren: 0.08, delayChildren: delay }
         : { duration: 0.55, ease: EASE, delay },

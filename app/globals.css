@@ -27,6 +27,13 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+
+    .animate-ken-burns,
+    .animate-float,
+    .animate-shimmer,
+    .animate-pulse-ring {
+      animation: none !important;
+    }
   }
 
   body {
@@ -147,4 +154,35 @@
   .section-eyebrow {
     @apply inline-block text-[11px] font-semibold tracking-[0.14em] uppercase text-maroon-700 bg-maroon-50 px-3.5 py-1 rounded-full mb-3;
   }
+
+  .card-hover-sponsor {
+    @apply card hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 hover:ring-2 hover:ring-maroon-200/40 transition-all duration-300;
+  }
+}
+
+/* Animation keyframes */
+@keyframes kenBurns {
+  0%   { transform: scale(1) translate3d(0, 0, 0); }
+  100% { transform: scale(1.07) translate3d(-1%, -0.5%, 0); }
+}
+@keyframes fadeUpIn {
+  0%   { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmerSweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes slideDownIn {
+  0%   { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(128, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0); }
 }
