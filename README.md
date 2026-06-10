@@ -132,6 +132,31 @@ Set `VERCEL_DEPLOY_HOOK_URL` to a Vercel Production Deploy Hook so uploaded imag
 Configure these environment variables in **Vercel Production** for the production project.
 When environment variables are added or changed in Vercel, trigger a new deployment for them to take effect.
 
+**GitHub token permissions:** `GITHUB_CONTENTS_TOKEN` must be a fine-grained personal access token (or classic token) with **Contents: Read and write** permission on this repository only. If the token expires or loses access, uploads fail with a clear "GitHub authentication failed" error.
+
+**Creating the Vercel Deploy Hook:**
+
+1. In Vercel, open the project → **Settings → Git → Deploy Hooks**.
+2. Create a hook named e.g. `cms-media-upload` for the `main` branch.
+3. Copy the generated URL into the `VERCEL_DEPLOY_HOOK_URL` environment variable (Production) and redeploy once so the variable takes effect.
+
+**Expected upload sequence:**
+
+1. Admin picks a file in a CMS image field (JPEG/PNG/WebP/GIF, max 4 MB).
+2. The API commits the file to GitHub under `public/images/...` on the configured branch and returns the commit link.
+3. The API POSTs to the Vercel deploy hook; the admin UI reports whether the deployment was triggered, skipped (no hook configured), or failed.
+4. The image becomes publicly visible only after that deployment finishes. The saved `/images/...` URL is correct immediately, but the file is not live until deploy completes.
+
+**Diagnostics:** `/admin/media-diagnostics` shows which media env vars are present (without exposing values), validates the media base path, can test GitHub token/repo/branch access without committing anything, and can fire a test POST to the deploy hook (this triggers a real production deployment).
+
+**Troubleshooting a broken public image:**
+
+1. Open the image URL directly (e.g. `https://<site>/images/cms/YYYY/MM/file.png`). If it loads, the CMS record is fine — hard-refresh the page.
+2. Check the file exists in GitHub on the configured branch under `public/images/...`.
+3. Check a Vercel deployment was triggered after the upload (Vercel → Deployments).
+4. Check that deployment succeeded; if not, redeploy `main` manually.
+5. Only if the saved URL itself is wrong (typo, old path), re-save the CMS item with the correct URL.
+
 ### CMS Content Workflow
 
 1. Sign in to `/admin`.

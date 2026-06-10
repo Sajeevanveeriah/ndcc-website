@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { NewsPost } from '@/lib/types';
@@ -84,13 +84,14 @@ export default function NewsPage() {
                     <div className={post.image_url || post.image ? 'md:flex' : ''}>
                       {(post.image_url || post.image) && (
                         <div className="w-full md:w-64 flex-shrink-0 bg-gray-50 p-2">
-                          <Image
+                          <SafeImage
                             src={post.image_url || post.image || '/images/Womens_Team.jpg'}
                             alt={post.title}
                             width={320}
                             height={200}
                             className="w-full h-48 md:h-full object-contain"
                             sizes="(max-width: 768px) 100vw, 256px"
+                            fallback={<div className="w-full h-48 md:h-full rounded bg-gray-100" aria-hidden="true" />}
                           />
                         </div>
                       )}

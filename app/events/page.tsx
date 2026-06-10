@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
@@ -80,12 +80,13 @@ export default function EventsPage() {
                 <Card key={event.id} hover>
                   {normalizeEventImage(event.title, event.image_url) && (
                     <div className="relative h-48 w-full">
-                      <Image
+                      <SafeImage
                         src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
                         alt={event.title}
                         fill
                         className="object-contain bg-gray-50"
                         sizes="(max-width: 1024px) 100vw, 33vw"
+                        fallback={<div className="absolute inset-0 bg-gray-50" aria-hidden="true" />}
                       />
                     </div>
                   )}

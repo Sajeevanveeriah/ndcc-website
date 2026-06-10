@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { TEAMS, CLUB_NICKNAME } from '@/lib/constants';
@@ -88,12 +88,13 @@ export default async function TeamsPage() {
                     {/* Team image or colour block */}
                     {teamImage ? (
                       <div className="relative min-h-[200px] md:min-h-0">
-                        <Image
+                        <SafeImage
                           src={teamImage}
                           alt={`${team.name} team photo`}
                           fill
                           className="object-contain bg-gray-100"
                           sizes="(max-width: 768px) 100vw, 33vw"
+                          fallback={<div className="absolute inset-0 bg-gray-100" aria-hidden="true" />}
                         />
                         <div className="absolute inset-0 bg-maroon-900/40 flex items-end p-6">
                           <div className="text-white">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -107,12 +107,13 @@ export default function KitchenPage() {
                 <CardContent className="p-4 space-y-2">
                   {item.image_url && (
                     <div className="w-full h-36 rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center p-2">
-                      <Image
+                      <SafeImage
                         src={item.image_url}
                         alt={`${item.name} menu item`}
                         width={240}
                         height={144}
                         className="max-h-full max-w-full object-contain"
+                        fallback={<div className="h-full w-full bg-gray-50" aria-hidden="true" />}
                       />
                     </div>
                   )}
