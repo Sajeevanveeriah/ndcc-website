@@ -9,6 +9,26 @@
     scroll-behavior: smooth;
   }
 
+  /* Visible keyboard focus without affecting mouse interaction */
+  :focus-visible {
+    outline: 2px solid theme('colors.maroon.600');
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   body {
     @apply font-body text-gray-800 antialiased bg-slate-50;
   }
