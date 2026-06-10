@@ -1,7 +1,46 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import {
+  CLUB_NAME,
+  CLUB_NICKNAME,
+  CLUB_ESTABLISHED,
+  CLUB_GROUND,
+  CLUB_PHONE,
+  CLUB_EMAIL_USER,
+  CLUB_EMAIL_DOMAIN,
+  FACEBOOK_URL,
+  PLAYHQ_ORG_URL,
+} from '@/lib/constants';
 import './globals.css';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SportsOrganization',
+  name: CLUB_NAME,
+  alternateName: CLUB_NICKNAME,
+  sport: 'Cricket',
+  foundingDate: String(CLUB_ESTABLISHED),
+  url: SITE_URL,
+  logo: `${SITE_URL}/images/logo.jpg`,
+  email: `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`,
+  telephone: CLUB_PHONE,
+  location: {
+    '@type': 'Place',
+    name: CLUB_GROUND,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '141 Coppards Road',
+      addressLocality: 'Moolap',
+      addressRegion: 'VIC',
+      postalCode: '3224',
+      addressCountry: 'AU',
+    },
+  },
+  sameAs: [FACEBOOK_URL, PLAYHQ_ORG_URL],
+};
 
 export const metadata: Metadata = {
   title: {
@@ -42,6 +81,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/images/logo.jpg" />
         <meta name="theme-color" content="#800000" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
       </head>
       <body className="min-h-screen flex flex-col">
         <Navbar />
