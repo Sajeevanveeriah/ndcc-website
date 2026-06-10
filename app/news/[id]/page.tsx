@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import { useParams } from 'next/navigation';
 import Card, { CardContent } from '@/components/ui/Card';
 import { NewsPost } from '@/lib/types';
@@ -144,13 +144,14 @@ export default function NewsDetailPage() {
                     className="block w-full mb-6 rounded-lg overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-maroon-500"
                     aria-label="View full image"
                   >
-                    <Image
+                    <SafeImage
                       src={post.image_url || post.image || '/images/Womens_Team.jpg'}
                       alt={post.title}
                       width={800}
                       height={500}
                       className="w-full h-auto object-contain rounded-lg"
                       sizes="(max-width: 768px) 100vw, 768px"
+                      fallback={null}
                     />
                   </button>
                   {lightboxOpen && (
@@ -171,7 +172,7 @@ export default function NewsDetailPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                         </svg>
                       </button>
-                      <Image
+                      <SafeImage
                         src={post.image_url || post.image || '/images/Womens_Team.jpg'}
                         alt={post.title}
                         width={1200}
@@ -179,6 +180,7 @@ export default function NewsDetailPage() {
                         className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
                         sizes="100vw"
                         onClick={(e) => e.stopPropagation()}
+                        fallback={null}
                       />
                     </div>
                   )}

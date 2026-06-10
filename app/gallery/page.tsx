@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
@@ -61,12 +61,13 @@ export default function GalleryPage() {
                 onClick={() => setActiveIndex(index)}
                 className="relative aspect-[4/3] rounded-xl overflow-hidden group text-left"
               >
-                <Image
+                <SafeImage
                   src={photo.image_url}
                   alt={photo.alt_text || photo.caption || photo.title}
                   fill
                   className="object-contain bg-gray-900 group-hover:scale-105 transition-transform duration-300"
                   sizes="(max-width: 640px) 100vw, 50vw"
+                  fallback={<div className="absolute inset-0 bg-gray-900" aria-hidden="true" />}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent flex items-end p-4">
                   <span className="text-white font-display font-bold text-sm">{photo.caption || photo.title}</span>
@@ -106,12 +107,17 @@ export default function GalleryPage() {
         <div className="fixed inset-0 z-50 bg-black/85 p-4 sm:p-8 flex items-center justify-center">
           <div className="w-full max-w-5xl bg-black rounded-xl overflow-hidden">
             <div className="relative aspect-video">
-              <Image
+              <SafeImage
                 src={activePhoto.image_url}
                 alt={activePhoto.alt_text || activePhoto.caption || activePhoto.title}
                 fill
                 sizes="100vw"
                 className="object-contain"
+                fallback={
+                  <div className="absolute inset-0 flex items-center justify-center text-white/70 text-sm">
+                    Image unavailable
+                  </div>
+                }
               />
             </div>
             <div className="px-4 py-3 flex items-center justify-between gap-3 text-white">

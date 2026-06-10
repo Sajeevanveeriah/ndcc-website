@@ -79,6 +79,7 @@ export default function AdminDashboardPage() {
     { label: 'Fantasy Cricket', value: 'Admin', icon: Trophy, href: '/admin/fantasy', colour: 'bg-sky-50 text-sky-700' },
     { label: 'Site Settings', value: 'CMS', icon: Settings, href: '/admin/site-pages', colour: 'bg-gray-50 text-gray-700' },
     { label: 'Email Diagnostics', value: 'Test', icon: Mail, href: '/admin/email-diagnostics', colour: 'bg-indigo-50 text-indigo-700' },
+    { label: 'Media Diagnostics', value: 'Test', icon: Settings, href: '/admin/media-diagnostics', colour: 'bg-teal-50 text-teal-700' },
   ];
 
   const activityBadge = (type: string) => {

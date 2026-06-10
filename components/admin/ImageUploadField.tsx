@@ -15,7 +15,14 @@ interface ImageUploadFieldProps {
 type UploadMetadata = {
   publicPath?: string;
   repoPath?: string;
+  commitSha?: string;
+  commitUrl?: string;
   deployment?: 'triggered' | 'not_configured' | 'failed';
+};
+
+type DeployResult = {
+  status: 'success' | 'skipped' | 'failed';
+  message: string;
 };
 
 function isValidBrowserImagePath(value: string) {
@@ -30,6 +37,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<UploadMetadata | null>(null);
+  const [deployResult, setDeployResult] = useState<DeployResult | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
 
   useEffect(() => {
@@ -40,8 +48,9 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
     setError(null);
     setWarning(null);
     setMetadata(null);
+    setDeployResult(null);
     setUploading(true);
-    setProgressText('Uploading image...');
+    setProgressText('Uploading image to GitHub...');
 
     try {
       const formData = new FormData();
@@ -62,9 +71,15 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       }
 
       onChange(payload.path);
-      setProgressText('Upload complete. Save this form after confirming the preview.');
+      setProgressText('Uploaded to GitHub. Save this form after confirming the preview.');
       setWarning(typeof payload?.warning === 'string' ? payload.warning : null);
       setMetadata(payload?.metadata && typeof payload.metadata === 'object' ? payload.metadata : null);
+      if (payload?.deployStatus === 'success' || payload?.deployStatus === 'skipped' || payload?.deployStatus === 'failed') {
+        setDeployResult({
+          status: payload.deployStatus,
+          message: typeof payload?.deployMessage === 'string' ? payload.deployMessage : '',
+        });
+      }
     } catch (uploadError) {
       setProgressText('');
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed.');
@@ -78,9 +93,18 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
   const invalidPathWarning = trimmedValue && !isValidBrowserImagePath(trimmedValue)
     ? 'Image path should be a full https:// URL or a browser path beginning with /images/.'
     : null;
-  const deploymentWarning = metadata?.deployment === 'triggered'
-    ? 'A Vercel deployment was triggered. The image may not appear on the live site until that deployment completes.'
-    : null;
+  const deployNotice = deployResult
+    ? deployResult.status === 'success'
+      ? deployResult.message || 'Deployment triggered. The image may appear after Vercel finishes deploying.'
+      : deployResult.message || 'Deployment was not triggered. The image may not appear on the live site until production is redeployed.'
+    : metadata?.deployment === 'triggered'
+      ? 'A Vercel deployment was triggered. The image may not appear on the live site until that deployment completes.'
+      : null;
+  const deployNoticeClass = deployResult?.status === 'success' ? 'text-xs text-green-700' : 'text-xs text-amber-700';
+  // The API also folds the deploy message into `warning`; strip it so it is not shown twice.
+  const displayWarning = warning && deployResult?.message && warning.includes(deployResult.message)
+    ? warning.replace(deployResult.message, '').trim() || null
+    : warning;
 
   return (
     <div className="space-y-2">
@@ -93,6 +117,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
           setError(null);
           setWarning(null);
           setMetadata(null);
+          setDeployResult(null);
           setProgressText('');
           onChange(event.target.value);
         }}
@@ -122,10 +147,22 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       />
       {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
       {progressText && <p className="text-xs text-green-700">{progressText}</p>}
-      {metadata?.publicPath && <p className="text-xs text-gray-500">Saved as {metadata.publicPath}</p>}
-      {deploymentWarning && <p className="text-xs text-amber-700">{deploymentWarning}</p>}
+      {metadata?.publicPath && (
+        <p className="text-xs text-gray-500">
+          Saved as {metadata.publicPath}
+          {metadata.commitUrl ? (
+            <>
+              {' · '}
+              <a href={metadata.commitUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                GitHub commit
+              </a>
+            </>
+          ) : metadata.commitSha ? ` · commit ${metadata.commitSha.slice(0, 7)}` : null}
+        </p>
+      )}
+      {deployNotice && <p className={deployNoticeClass}>{deployNotice}</p>}
       {invalidPathWarning && <p className="text-xs text-amber-700">{invalidPathWarning}</p>}
-      {warning && <p className="text-xs text-amber-700">{warning}</p>}
+      {displayWarning && <p className="text-xs text-amber-700">{displayWarning}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
       {value && (
         <div className="space-y-1">

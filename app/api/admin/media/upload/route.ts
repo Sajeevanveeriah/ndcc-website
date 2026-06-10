@@ -1,84 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
+import { getGitHubMediaEnv } from '@/lib/server/media-env';
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
-
-type GitHubEnv = {
-  token: string;
-  owner: string;
-  repo: string;
-  branch: string;
-  basePath: string;
-  basePathWarning?: string;
-  committerName: string;
-  committerEmail: string;
-};
-
-type NormalizedMediaBasePath = {
-  repoBasePath: string;
-  browserBasePath: string;
-  warning?: string;
-};
-
-function requiredEnv(): GitHubEnv | { error: string } {
-  const token = process.env.GITHUB_CONTENTS_TOKEN;
-  const owner = process.env.GITHUB_REPO_OWNER;
-  const repo = process.env.GITHUB_REPO_NAME;
-  const branch = process.env.GITHUB_CONTENTS_BRANCH;
-  const basePath = process.env.GITHUB_MEDIA_BASE_PATH;
-  const committerName = process.env.GITHUB_COMMITTER_NAME;
-  const committerEmail = process.env.GITHUB_COMMITTER_EMAIL;
-
-  if (!token || !owner || !repo || !branch || !basePath || !committerName || !committerEmail) {
-    return { error: 'GitHub media upload is not configured. Ask an admin to set required server environment variables.' };
-  }
-
-  const normalizedBasePath = normalizeMediaBasePath(basePath);
-  if ('error' in normalizedBasePath) {
-    return { error: normalizedBasePath.error };
-  }
-
-  return {
-    token,
-    owner,
-    repo,
-    branch,
-    basePath: normalizedBasePath.repoBasePath,
-    basePathWarning: normalizedBasePath.warning,
-    committerName,
-    committerEmail,
-  };
-}
-
-
-function normalizeMediaBasePath(basePath: string): NormalizedMediaBasePath | { error: string } {
-  const trimmedBasePath = basePath.trim().replace(/^\/+|\/+$/g, '');
-  if (!trimmedBasePath) {
-    return { error: 'GitHub media upload base path is empty. Set GITHUB_MEDIA_BASE_PATH to public/images or a public/images subfolder.' };
-  }
-
-  const pathSegments = trimmedBasePath.split('/').filter(Boolean);
-  if (pathSegments.includes('..') || pathSegments.includes('.')) {
-    return { error: 'GitHub media upload base path is invalid. Use public/images or a public/images subfolder.' };
-  }
-
-  const repoBasePath = trimmedBasePath.startsWith('public/images')
-    ? trimmedBasePath
-    : trimmedBasePath === 'images' || trimmedBasePath.startsWith('images/')
-      ? `public/${trimmedBasePath}`
-      : '';
-
-  if (!repoBasePath || (repoBasePath !== 'public/images' && !repoBasePath.startsWith('public/images/'))) {
-    return { error: 'GitHub media upload base path must resolve under public/images. Set GITHUB_MEDIA_BASE_PATH to public/images or a public/images subfolder.' };
-  }
-
-  return {
-    repoBasePath,
-    browserBasePath: `/${repoBasePath.replace(/^public\//, '')}`,
-    ...(trimmedBasePath !== repoBasePath ? { warning: 'GITHUB_MEDIA_BASE_PATH was interpreted under public/ so uploads are web-accessible.' } : {}),
-  };
-}
 
 function sanitizeName(name: string) {
   return name
@@ -111,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Authentication required.' }, { status: 401 });
   }
 
-  const env = requiredEnv();
+  const env = getGitHubMediaEnv();
   if ('error' in env) {
     return NextResponse.json({ success: false, error: env.error }, { status: 500 });
   }
@@ -141,13 +66,9 @@ export async function POST(request: Request) {
   const safeBase = sanitizeName(file.name);
   const timestamp = now.getTime();
   const fileName = `${safeBase}-${timestamp}.${extension}`;
-  const normalizedBasePath = normalizeMediaBasePath(env.basePath);
-  if ('error' in normalizedBasePath) {
-    return NextResponse.json({ success: false, error: normalizedBasePath.error }, { status: 500 });
-  }
 
-  const repoPath = `${normalizedBasePath.repoBasePath}/${year}/${month}/${fileName}`;
-  const publicPath = `${normalizedBasePath.browserBasePath}/${year}/${month}/${fileName}`;
+  const repoPath = `${env.basePath}/${year}/${month}/${fileName}`;
+  const publicPath = `${env.browserBasePath}/${year}/${month}/${fileName}`;
 
   const arrayBuffer = await file.arrayBuffer();
   const contentBase64 = Buffer.from(arrayBuffer).toString('base64');
@@ -172,29 +93,59 @@ export async function POST(request: Request) {
     }),
   });
 
-  if (response.status === 401 || response.status === 403) {
-    return NextResponse.json({ success: false, error: 'GitHub authentication failed. Check GITHUB_CONTENTS_TOKEN permissions.' }, { status: 502 });
-  }
-
   if (!response.ok) {
     const details = await response.json().catch(() => null);
-    const errorMessage = typeof details?.message === 'string' ? details.message : 'Unknown GitHub API error.';
-    return NextResponse.json({ success: false, error: `GitHub upload failed: ${errorMessage}` }, { status: 502 });
+    const githubMessage = typeof details?.message === 'string' ? details.message : 'Unknown GitHub API error.';
+    const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
+    const rateLimited = response.status === 429 || (response.status === 403 && rateLimitRemaining === '0');
+
+    let error: string;
+    if (rateLimited) {
+      error = 'GitHub API rate limit reached. Wait a few minutes and try the upload again.';
+    } else if (response.status === 401 || response.status === 403) {
+      error = 'GitHub authentication failed. Check that GITHUB_CONTENTS_TOKEN is valid and has Contents read/write permission on the repository.';
+    } else if (response.status === 404) {
+      error = 'GitHub repository or branch not found. Check GITHUB_REPO_OWNER, GITHUB_REPO_NAME and GITHUB_CONTENTS_BRANCH, and that the token can access the repository.';
+    } else if (response.status === 409) {
+      error = 'GitHub reported a conflict saving the file (branch moved during upload). Try the upload again.';
+    } else if (response.status === 422) {
+      error = `GitHub rejected the upload request (${githubMessage}). Check the branch name and media base path configuration.`;
+    } else {
+      error = `GitHub upload failed: ${githubMessage}`;
+    }
+    return NextResponse.json({ success: false, error }, { status: 502 });
   }
 
-  let warning = env.basePathWarning || normalizedBasePath.warning;
+  const commitDetails = await response.json().catch(() => null);
+  const commitSha = typeof commitDetails?.commit?.sha === 'string' ? commitDetails.commit.sha : null;
+  const commitUrl = typeof commitDetails?.commit?.html_url === 'string' ? commitDetails.commit.html_url : null;
+
+  let warning = env.basePathWarning;
   const deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL;
 
+  let deployTriggered = false;
+  let deployStatus: 'success' | 'skipped' | 'failed' = 'skipped';
+  let deployMessage: string;
+
   if (!deployHookUrl) {
-    warning = [warning, 'Image uploaded, but deployment was not triggered because VERCEL_DEPLOY_HOOK_URL is not configured.'].filter(Boolean).join(' ');
+    deployMessage = 'Image uploaded to GitHub, but no deploy hook is configured. It may not appear on the live site until production is redeployed.';
+    warning = [warning, deployMessage].filter(Boolean).join(' ');
   } else {
     try {
       const deployResponse = await fetch(deployHookUrl, { method: 'POST' });
-      if (!deployResponse.ok) {
-        warning = [warning, 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.'].filter(Boolean).join(' ');
+      if (deployResponse.ok) {
+        deployTriggered = true;
+        deployStatus = 'success';
+        deployMessage = 'Vercel deployment triggered. The image will appear on the live site once the deployment completes.';
+      } else {
+        deployStatus = 'failed';
+        deployMessage = `Image uploaded to GitHub, but the Vercel deploy hook returned ${deployResponse.status}. The image may not appear publicly until a deployment is triggered manually.`;
+        warning = [warning, deployMessage].filter(Boolean).join(' ');
       }
     } catch {
-      warning = [warning, 'Image uploaded, but Vercel deployment trigger failed. Manually deploy the latest main branch.'].filter(Boolean).join(' ');
+      deployStatus = 'failed';
+      deployMessage = 'Image uploaded to GitHub, but the Vercel deploy hook could not be reached. The image may not appear publicly until a deployment is triggered manually.';
+      warning = [warning, deployMessage].filter(Boolean).join(' ');
     }
   }
 
@@ -202,10 +153,15 @@ export async function POST(request: Request) {
     success: true,
     path: publicPath,
     ...(warning ? { warning } : {}),
+    deployTriggered,
+    deployStatus,
+    deployMessage,
     metadata: {
       publicPath,
       repoPath,
-      deployment: !deployHookUrl ? 'not_configured' : warning?.includes('deployment trigger failed') ? 'failed' : 'triggered',
+      ...(commitSha ? { commitSha } : {}),
+      ...(commitUrl ? { commitUrl } : {}),
+      deployment: !deployHookUrl ? 'not_configured' : deployStatus === 'failed' ? 'failed' : 'triggered',
     },
   });
 }

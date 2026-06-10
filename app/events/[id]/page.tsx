@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from '@/components/common/SafeImage';
 import { useParams } from 'next/navigation';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -184,12 +184,13 @@ export default function EventDetailPage() {
             <div className="lg:col-span-2">
               {normalizeEventImage(event.title, event.image_url) && (
                 <div className="relative h-72 sm:h-96 w-full rounded-xl overflow-hidden mb-6">
-                  <Image
+                  <SafeImage
                     src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
                     alt={event.title}
                     fill
-                    className="object-cover"
+                    className="object-contain bg-gray-50"
                     sizes="(max-width: 1024px) 100vw, 66vw"
+                    fallback={<div className="absolute inset-0 bg-gray-50" aria-hidden="true" />}
                   />
                 </div>
               )}
