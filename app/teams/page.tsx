@@ -59,7 +59,7 @@ export default async function TeamsPage() {
       </section>
 
       {/* Head Coach */}
-      <section className="section-padding bg-gray-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <Card className="border-l-4 border-l-maroon-700">
             <CardContent className="p-8">

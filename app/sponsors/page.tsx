@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
+import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -159,20 +160,20 @@ export default function SponsorsPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{heroTitle}</h1>
-          <p className="page-hero-subtitle">{heroBody}</p>
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroTitle}</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{heroBody}</p></ScrollReveal>
         </div>
       </section>
 
       {/* Intro */}
       <section className="section-padding bg-gray-50">
         <div className="container-width">
-          <div className="max-w-3xl mx-auto text-center">
+          <ScrollReveal className="max-w-3xl mx-auto text-center">
             <h2 className="section-title">{introTitle}</h2>
             <p className="text-gray-600 font-body text-lg leading-relaxed">
               {introBody}
             </p>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -201,14 +202,14 @@ export default function SponsorsPage() {
                 <h2 className="section-title mb-0">{tier.label}s</h2>
                 <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sponsorsByTier[tier.value].map((sponsor) => {
                   const description = usingSeed
                     ? SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || ''
                     : '';
                   return (
+                    <ScrollRevealItem key={sponsor.id}>
                     <a
-                      key={sponsor.id}
                       href={sponsor.website || undefined}
                       target={sponsor.website ? '_blank' : undefined}
                       rel={sponsor.website ? 'noopener noreferrer' : undefined}
@@ -233,9 +234,10 @@ export default function SponsorsPage() {
                         </CardContent>
                       </Card>
                     </a>
+                    </ScrollRevealItem>
                   );
                 })}
-              </div>
+              </ScrollReveal>
             </div>
           </section>
         ))

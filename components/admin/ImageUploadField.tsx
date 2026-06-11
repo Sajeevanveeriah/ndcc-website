@@ -49,6 +49,13 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
     setWarning(null);
     setMetadata(null);
     setDeployResult(null);
+    const MAX_CLIENT_BYTES = 4 * 1024 * 1024; // 4 MB — matches server limit
+    if (file.size > MAX_CLIENT_BYTES) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      setError(`File is too large (${sizeMb} MB). Maximum is 4 MB. Compress the image or export at a lower resolution and try again.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     setUploading(true);
     setProgressText('Uploading image to GitHub...');
 
@@ -82,7 +89,12 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       }
     } catch (uploadError) {
       setProgressText('');
-      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed.');
+      const raw = uploadError instanceof Error ? uploadError.message : 'Upload failed.';
+      if (raw.includes('413')) {
+        setError('File is too large for the server. Compress the image to under 4 MB and try again.');
+      } else {
+        setError(raw);
+      }
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

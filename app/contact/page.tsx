@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import {
@@ -99,14 +100,15 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{heroTitle}</h1>
-          <p className="page-hero-subtitle">{heroBody}</p>
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroTitle}</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{heroBody}</p></ScrollReveal>
         </div>
       </section>
 
       {/* Contact Form + Details */}
       <section className="section-padding">
         <div className="container-width">
+          <ScrollReveal>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Form Column */}
             <div>
@@ -309,6 +311,7 @@ export default function ContactPage() {
               </Card>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
     </>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import SafeImage from '@/components/common/SafeImage';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -94,8 +95,8 @@ export default function KitchenPage() {
     <>
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Kitchen</h1>
-          <p className="page-hero-subtitle">Order from this week&rsquo;s canteen menu.</p>
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">Kitchen</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">Order from this week&rsquo;s canteen menu.</p></ScrollReveal>
         </div>
       </section>
       <section className="section-padding">

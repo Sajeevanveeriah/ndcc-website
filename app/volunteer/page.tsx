@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
+import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { VOLUNTEER_ROLES, CLUB_NAME } from '@/lib/constants';
@@ -147,14 +148,14 @@ export default function VolunteerPage() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{heroTitle}</h1>
-          <p className="page-hero-subtitle">{heroBody}</p>
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroTitle}</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{heroBody}</p></ScrollReveal>
         </div>
       </section>
 
       {/* Intro */}
-      <section className="section-padding bg-gray-50">
-        <div className="container-width max-w-3xl mx-auto text-center">
+      <section className="section-padding surface-sky">
+        <ScrollReveal className="container-width max-w-3xl mx-auto text-center">
           <h2 className="section-title">Why Volunteer?</h2>
           <p className="text-gray-600 font-body text-lg leading-relaxed">
             {CLUB_NAME} is a community-run club, and every match day, training session, and event
@@ -163,16 +164,17 @@ export default function VolunteerPage() {
             generations to come. No experience necessary — just enthusiasm and a willingness to lend
             a hand.
           </p>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* Volunteer Roles */}
       <section className="section-padding" aria-label="Volunteer roles">
         <div className="container-width">
           <h2 className="section-title text-center mb-10">Volunteer Roles</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {ROLE_DETAILS.map((role) => (
-              <Card key={role.title} hover>
+              <ScrollRevealItem key={role.title}>
+              <Card hover className="h-full">
                 <CardContent className="text-center py-8">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-maroon-50 mb-4">
                     {role.icon}
@@ -183,13 +185,14 @@ export default function VolunteerPage() {
                   </p>
                 </CardContent>
               </Card>
+              </ScrollRevealItem>
             ))}
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Registration Form */}
-      <section className="section-padding bg-gray-50" aria-label="Volunteer registration form">
+      <section className="section-padding surface-sky" aria-label="Volunteer registration form">
         <div className="container-width max-w-2xl mx-auto">
           <h2 className="section-title text-center">Register to Volunteer</h2>
           <p className="section-subtitle text-center mx-auto mb-8">

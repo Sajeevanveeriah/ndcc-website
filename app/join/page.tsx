@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
+import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Input, { Textarea } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
@@ -80,29 +81,33 @@ export default function JoinPage() {
   return (
     <div className="container-width py-12 space-y-10">
       <div>
-        <h1 className="text-4xl font-display font-bold text-gray-900">{heroTitle}</h1>
-        <p className="text-gray-600 mt-3">{heroBody}</p>
+        <ScrollReveal onMount delay={0}><h1 className="text-4xl font-display font-bold text-gray-900">{heroTitle}</h1></ScrollReveal>
+        <ScrollReveal onMount delay={0.15}><p className="text-gray-600 mt-3">{heroBody}</p></ScrollReveal>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardContent className="p-6 space-y-3">
-            <h2 className="text-2xl font-display font-bold">Player Registration</h2>
-            <p className="text-gray-600">Player registrations stay on PlayHQ as required.</p>
-            <a href={process.env.NEXT_PUBLIC_PLAYHQ_URL || '#'} target="_blank" rel="noopener noreferrer">
-              <Button>Go to PlayHQ</Button>
-            </a>
-          </CardContent>
-        </Card>
+      <ScrollReveal stagger className="grid md:grid-cols-2 gap-6">
+        <ScrollRevealItem>
+          <Card>
+            <CardContent className="p-6 space-y-3">
+              <h2 className="text-2xl font-display font-bold">Player Registration</h2>
+              <p className="text-gray-600">Player registrations stay on PlayHQ as required.</p>
+              <a href={process.env.NEXT_PUBLIC_PLAYHQ_URL || '#'} target="_blank" rel="noopener noreferrer">
+                <Button>Go to PlayHQ</Button>
+              </a>
+            </CardContent>
+          </Card>
+        </ScrollRevealItem>
 
-        <Card>
-          <CardContent className="p-6 space-y-3">
-            <h2 className="text-2xl font-display font-bold">Social Membership</h2>
-            <p className="text-gray-600">Apply online and pay by bank transfer reference generated at checkout.</p>
-            <p className="font-semibold">From {plans.length ? formatCurrency(plans[0].price) : '...'}</p>
-          </CardContent>
-        </Card>
-      </div>
+        <ScrollRevealItem>
+          <Card>
+            <CardContent className="p-6 space-y-3">
+              <h2 className="text-2xl font-display font-bold">Social Membership</h2>
+              <p className="text-gray-600">Apply online and pay by bank transfer reference generated at checkout.</p>
+              <p className="font-semibold">From {plans.length ? formatCurrency(plans[0].price) : '...'}</p>
+            </CardContent>
+          </Card>
+        </ScrollRevealItem>
+      </ScrollReveal>
 
       <Card>
         <CardContent className="p-6">

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
+import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getClubSettings } from '@/lib/club-settings';
 import { normalisePublicText } from '@/lib/utils';
@@ -32,14 +33,14 @@ export default async function FacilitiesPage() {
     <>
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{blocks['facilities.hero']?.title || 'Our Facilities'}</h1>
-          <p className="page-hero-subtitle">{normalisePublicText(blocks['facilities.hero']?.body)}</p>
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{blocks['facilities.hero']?.title || 'Our Facilities'}</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{normalisePublicText(blocks['facilities.hero']?.body)}</p></ScrollReveal>
         </div>
       </section>
 
       <section className="section-padding">
         <div className="container-width">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <ScrollReveal className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="section-title">{blocks['facilities.intro']?.title || 'Grinter Reserve'}</h2>
               <p className="text-gray-500 font-body text-sm mb-6">{settings.address}</p>
@@ -56,11 +57,11 @@ export default async function FacilitiesPage() {
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
-      <section className="section-padding bg-sky-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1 relative h-72 lg:h-96 rounded-xl overflow-hidden">
@@ -88,9 +89,10 @@ export default async function FacilitiesPage() {
             <h2 className="section-title">{blocks['facilities.features_intro']?.title || 'Facility Features'}</h2>
             <p className="section-subtitle mx-auto">{normalisePublicText(blocks['facilities.features_intro']?.body)}</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
-              <Card key={feature.id}>
+              <ScrollRevealItem key={feature.id}>
+              <Card>
                 <CardContent className="p-6">
                   <div className="w-14 h-14 bg-maroon-50 rounded-lg flex items-center justify-center mb-4">
                     <svg className="w-8 h-8 text-maroon-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
@@ -101,8 +103,9 @@ export default async function FacilitiesPage() {
                   <p className="text-gray-600 font-body text-sm">{feature.description}</p>
                 </CardContent>
               </Card>
+              </ScrollRevealItem>
             ))}
-          </div>
+          </ScrollReveal>
           <div className="text-center mt-10">
             <h3 className="text-xl font-display font-bold text-maroon-800">{blocks['facilities.cta']?.title || 'Visit or Enquire'}</h3>
             <p className="text-gray-600 font-body mt-2 mb-4">{blocks['facilities.cta']?.body || ''}</p>
@@ -114,7 +117,7 @@ export default async function FacilitiesPage() {
       </section>
 
       {articles.length > 0 && (
-        <section className="section-padding bg-sky-50">
+        <section className="section-padding surface-sky">
           <div className="container-width">
             <h2 className="section-title">Facilities Articles</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
