@@ -97,20 +97,35 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
   silver: 'default',
 };
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export default async function HomePage() {
   const [dbNews, dbSponsors, dbSeasonAppointments, blocks, quickLinks] = await Promise.all([
-    getLatestNews(),
-    getSponsors(),
-    getSeasonAppointments(),
-    getContentBlocks([
-      'home.hero',
-      'home.quicklinks',
-      'home.season_status',
-      'home.welcome',
-      'home.juniors',
-      'home.sponsorship',
-    ]),
-    getPageLinkCards('home', 'quick_links'),
+    withTimeout(getLatestNews(), 6000, []),
+    withTimeout(getSponsors(), 6000, []),
+    withTimeout(getSeasonAppointments(), 6000, []),
+    withTimeout(
+      getContentBlocks([
+        'home.hero',
+        'home.quicklinks',
+        'home.season_status',
+        'home.welcome',
+        'home.juniors',
+        'home.sponsorship',
+      ]),
+      6000,
+      {}
+    ),
+    withTimeout(getPageLinkCards('home', 'quick_links'), 6000, []),
   ]);
 
   const news: NewsItem[] = dbNews;
