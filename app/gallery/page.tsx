@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
@@ -44,10 +45,10 @@ export default function GalleryPage() {
     <>
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">Gallery</h1>
-          <p className="page-hero-subtitle">
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">Gallery</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">
             Match day photos, team shots, and club memories. Tap a tile to view larger.
-          </p>
+          </p></ScrollReveal>
         </div>
       </section>
 

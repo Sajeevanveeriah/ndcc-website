@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
+import AnimatedCounter from '@/components/common/AnimatedCounter';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import {
@@ -60,7 +61,7 @@ export default async function AboutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <ScrollReveal direction="left">
               <div>
-                <span className="section-eyebrow">Est. 1972</span>
+                <span className="section-eyebrow">Est. <AnimatedCounter to={1972} duration={1.8} /></span>
                 <h2 className="section-title">{historyTitle}</h2>
                 <div className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
                   <p>{normalisePublicText(historyBody) || `${CLUB_NICKNAME} has proudly represented Newcomb since ${CLUB_ESTABLISHED}, built on generations of community involvement and cricket tradition.`}</p>

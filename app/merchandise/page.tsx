@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
+import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
@@ -353,15 +354,15 @@ function MerchandiseContent() {
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
-          <h1 className="page-hero-title">{heroContent.title}</h1>
-          <p className="page-hero-subtitle">
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroContent.title}</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">
             {heroContent.body}
-          </p>
+          </p></ScrollReveal>
         </div>
       </section>
 
       {/* Products Grid */}
-      <section className="section-padding bg-sky-50">
+      <section className="section-padding surface-sky">
         <div className="container-width">
           <h2 className="section-title mb-2">Products</h2>
           {heroContent.orderBody && (
