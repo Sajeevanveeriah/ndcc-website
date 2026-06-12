@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { createPublicServerClient, isPublicSupabaseConfigured } from '@/lib/supabase-server';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 
@@ -39,7 +40,7 @@ export function normalizeClubSettings(row: Partial<ClubSettings> | null | undefi
   };
 }
 
-export async function getClubSettings(): Promise<ClubSettings> {
+async function getClubSettingsUncached(): Promise<ClubSettings> {
   if (!isPublicSupabaseConfigured()) {
     return fallbackClubSettings;
   }
@@ -58,3 +59,8 @@ export async function getClubSettings(): Promise<ClubSettings> {
     return fallbackClubSettings;
   }
 }
+
+export const getClubSettings = unstable_cache(getClubSettingsUncached, ['club-settings'], {
+  revalidate: 300,
+  tags: ['club-settings'],
+});

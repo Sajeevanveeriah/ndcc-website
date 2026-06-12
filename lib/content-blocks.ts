@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { createServerClient } from './supabase-server';
 import { normalisePublicText } from './utils';
 
@@ -10,7 +11,7 @@ export interface ContentBlock {
   cta_url: string | null;
 }
 
-export async function getContentBlocks(keys: string[]): Promise<Record<string, ContentBlock>> {
+async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {};
   }
@@ -33,3 +34,8 @@ export async function getContentBlocks(keys: string[]): Promise<Record<string, C
     return {};
   }
 }
+
+export const getContentBlocks = unstable_cache(getContentBlocksUncached, ['content-blocks'], {
+  revalidate: 300,
+  tags: ['content-blocks'],
+});

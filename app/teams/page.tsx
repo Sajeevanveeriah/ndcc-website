@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   title: 'Teams',
 };
 
-async function getTeams(): Promise<TeamInfo[]> {
+const getTeams = unstable_cache(async (): Promise<TeamInfo[]> => {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return TEAMS;
   }
@@ -37,7 +38,7 @@ async function getTeams(): Promise<TeamInfo[]> {
   } catch {
     return TEAMS;
   }
-}
+}, ['teams'], { revalidate: 300, tags: ['teams'] });
 
 export default async function TeamsPage() {
   const teams = await getTeams();

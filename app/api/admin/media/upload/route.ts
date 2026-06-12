@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       'X-GitHub-Api-Version': '2022-11-28',
     },
     body: JSON.stringify({
-      message: `cms: upload ${fileName} [vercel skip]`,
+      message: `cms: upload ${fileName}`,
       content: contentBase64,
       branch: env.branch,
       committer: {
