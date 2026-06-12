@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { isPublicNewsPostAllowed, normalizeNewsImage } from '@/lib/public-content-normalizers';
 
@@ -44,7 +45,7 @@ function filterPublicNews(records: PublicNewsRecord[]) {
     }));
 }
 
-export async function getPublishedNews(options?: { id?: string; limit?: number }): Promise<PublicNewsRecord[] | PublicNewsRecord | null> {
+async function getPublishedNewsUncached(options?: { id?: string; limit?: number }): Promise<PublicNewsRecord[] | PublicNewsRecord | null> {
   const supabase = createServerClient();
   const id = options?.id;
   const limit = options?.limit;
@@ -195,3 +196,8 @@ export async function getPublishedNews(options?: { id?: string; limit?: number }
   if (initial.error) throw new Error(initial.error.message);
   return filterPublicNews((initial.data as PublicNewsRecord[] | null) ?? []);
 }
+
+export const getPublishedNews = unstable_cache(getPublishedNewsUncached, ['public-news'], {
+  revalidate: 300,
+  tags: ['news'],
+});

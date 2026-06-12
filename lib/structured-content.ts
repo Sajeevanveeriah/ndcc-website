@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { NAV_LINKS } from '@/lib/constants';
 import { createServerClient } from './supabase-server';
 
@@ -137,7 +138,7 @@ function hasSupabaseEnv() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
-export async function getPageLinkCards(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
+async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
   if (!hasSupabaseEnv()) return fallbackLinksForSection(pageSlug, sectionKey);
   try {
     const supabase = createServerClient();
@@ -154,7 +155,12 @@ export async function getPageLinkCards(pageSlug: string, sectionKey: string): Pr
   }
 }
 
-export async function getFacilityFeatures(): Promise<FacilityFeature[]> {
+export const getPageLinkCards = unstable_cache(getPageLinkCardsUncached, ['page-link-cards'], {
+  revalidate: 300,
+  tags: ['page-link-cards'],
+});
+
+async function getFacilityFeaturesUncached(): Promise<FacilityFeature[]> {
   if (!hasSupabaseEnv()) return [];
   try {
     const supabase = createServerClient();
@@ -169,7 +175,12 @@ export async function getFacilityFeatures(): Promise<FacilityFeature[]> {
   }
 }
 
-export async function getHistoryLineage(): Promise<HistoryLineageEntry[]> {
+export const getFacilityFeatures = unstable_cache(getFacilityFeaturesUncached, ['facility-features'], {
+  revalidate: 300,
+  tags: ['facility-features'],
+});
+
+async function getHistoryLineageUncached(): Promise<HistoryLineageEntry[]> {
   if (!hasSupabaseEnv()) return [];
   try {
     const supabase = createServerClient();
@@ -184,7 +195,12 @@ export async function getHistoryLineage(): Promise<HistoryLineageEntry[]> {
   }
 }
 
-export async function getHistoryPremierships(): Promise<HistoryPremiership[]> {
+export const getHistoryLineage = unstable_cache(getHistoryLineageUncached, ['history-lineage'], {
+  revalidate: 300,
+  tags: ['history'],
+});
+
+async function getHistoryPremiershipsUncached(): Promise<HistoryPremiership[]> {
   if (!hasSupabaseEnv()) return [];
   try {
     const supabase = createServerClient();
@@ -199,8 +215,12 @@ export async function getHistoryPremierships(): Promise<HistoryPremiership[]> {
   }
 }
 
+export const getHistoryPremierships = unstable_cache(getHistoryPremiershipsUncached, ['history-premierships'], {
+  revalidate: 300,
+  tags: ['history'],
+});
 
-export async function getHistoryCompetitions(): Promise<HistoryCompetition[]> {
+async function getHistoryCompetitionsUncached(): Promise<HistoryCompetition[]> {
   if (!hasSupabaseEnv()) return [];
   try {
     const supabase = createServerClient();
@@ -214,7 +234,12 @@ export async function getHistoryCompetitions(): Promise<HistoryCompetition[]> {
   }
 }
 
-export async function getCommitteeMembers(): Promise<CommitteeMemberContent[]> {
+export const getHistoryCompetitions = unstable_cache(getHistoryCompetitionsUncached, ['history-competitions'], {
+  revalidate: 300,
+  tags: ['history'],
+});
+
+async function getCommitteeMembersUncached(): Promise<CommitteeMemberContent[]> {
   if (!hasSupabaseEnv()) return [];
   try {
     const supabase = createServerClient();
@@ -228,3 +253,8 @@ export async function getCommitteeMembers(): Promise<CommitteeMemberContent[]> {
     return [];
   }
 }
+
+export const getCommitteeMembers = unstable_cache(getCommitteeMembersUncached, ['committee-members'], {
+  revalidate: 300,
+  tags: ['committee-members'],
+});
