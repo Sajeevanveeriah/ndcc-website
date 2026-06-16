@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server';
 import { createAuthCookie, generateSessionToken, hashSessionToken, sessionExpiryDate } from '@/lib/auth/session';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();

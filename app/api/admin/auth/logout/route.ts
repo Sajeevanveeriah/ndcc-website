@@ -4,6 +4,8 @@ import { AUTH_COOKIE_NAME } from '@/lib/auth/config';
 import { createServerClient } from '@/lib/supabase-server';
 import { hashSessionToken } from '@/lib/auth/session';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   const cookieStore = cookies();
   const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;

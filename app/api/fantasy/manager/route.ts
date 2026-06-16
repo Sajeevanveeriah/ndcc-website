@@ -4,6 +4,8 @@ import { getAuthUserFromRequest, type FantasyManagerRecord } from '@/lib/fantasy
 import { getFantasySettings } from '@/lib/fantasy-game';
 import { sendEmail, emailHtml } from '@/lib/email';
 
+export const dynamic = 'force-dynamic';
+
 function cleanText(value: unknown) {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
 }

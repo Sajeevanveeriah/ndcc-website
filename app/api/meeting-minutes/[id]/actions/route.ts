@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });

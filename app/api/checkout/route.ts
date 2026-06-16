@@ -3,6 +3,8 @@ import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
+export const dynamic = 'force-dynamic';
+
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
 }

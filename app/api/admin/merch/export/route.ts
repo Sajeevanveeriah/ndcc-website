@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 
+export const dynamic = 'force-dynamic';
+
 function esc(value: string | number | null | undefined) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }

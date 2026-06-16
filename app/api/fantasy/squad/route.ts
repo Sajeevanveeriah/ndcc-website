@@ -4,6 +4,8 @@ import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { getActivePlayersWithLatestPrices, getCurrentRoundId, getFantasySettings, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
 
+export const dynamic = 'force-dynamic';
+
 function parseSelection(value: unknown): SquadSelection[] {
   if (!Array.isArray(value)) return [];
   return value.map((item: any) => ({

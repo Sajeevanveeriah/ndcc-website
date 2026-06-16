@@ -5,6 +5,8 @@ import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
+export const dynamic = 'force-dynamic';
+
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
 }

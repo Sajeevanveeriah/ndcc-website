@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getActivePlayersWithLatestPrices, getFantasySettings } from '@/lib/fantasy-game';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const [settings, players] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices()]);

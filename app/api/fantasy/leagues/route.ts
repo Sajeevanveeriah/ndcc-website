@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 function makeCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }

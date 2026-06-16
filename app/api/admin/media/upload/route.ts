@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
 import { getGitHubMediaEnv } from '@/lib/server/media-env';
 
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
