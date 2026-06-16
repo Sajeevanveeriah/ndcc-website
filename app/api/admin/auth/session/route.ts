@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { AUTH_COOKIE_NAME } from '@/lib/auth/config';
 import { getSessionUserFromToken } from '@/lib/auth/session';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   const user = await getSessionUserFromToken(token);

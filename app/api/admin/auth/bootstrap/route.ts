@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const { email, fullName, password, bootstrap_secret } = await request.json();
 

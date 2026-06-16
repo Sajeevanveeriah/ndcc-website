@@ -3,6 +3,8 @@ import { requireSession } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { buildFantasyImportPreview } from '@/lib/fantasy-scoring';
 
+export const dynamic = 'force-dynamic';
+
 const MAX_CSV_BYTES = 250_000;
 
 type SaveDraftRequest = {

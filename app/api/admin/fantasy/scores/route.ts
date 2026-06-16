@@ -4,6 +4,8 @@ import { requireSession } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { calculatePlayerStatPoints, getEnabledScoringRules } from '@/lib/fantasy-game';
 
+export const dynamic = 'force-dynamic';
+
 async function calculateRound(roundId: string) {
   const supabase = createServerClient();
   const rules = await getEnabledScoringRules();

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
 import { emailHtml, getEmailConfigStatus, sendEmail } from '@/lib/email';
 
+export const dynamic = 'force-dynamic';
+
 function cleanEmail(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
 }

@@ -4,6 +4,8 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
+export const dynamic = 'force-dynamic';
+
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
 }

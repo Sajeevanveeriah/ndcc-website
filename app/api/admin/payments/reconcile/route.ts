@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 import { scoreOrderMatch, type CandidateOrder, type ImportedTransaction } from '@/lib/payments/matching';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   const user = await requireSession(['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });

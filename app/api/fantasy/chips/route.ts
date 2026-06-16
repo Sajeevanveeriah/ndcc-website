@@ -3,6 +3,8 @@ import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
 import { CHIP_TYPES, getCurrentRoundId, type ChipType } from '@/lib/fantasy-game';
 import { createServerClient } from '@/lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const auth = await requireFantasyManager(request);
   if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });

@@ -4,6 +4,8 @@ import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { getActivePlayersWithLatestPrices, getCurrentRoundId, getFantasySettings, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const auth = await requireFantasyManager(request);
   if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });

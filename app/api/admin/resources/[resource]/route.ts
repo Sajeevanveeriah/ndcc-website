@@ -5,6 +5,8 @@ import { requireSession } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
 import type { AuthRole } from '@/lib/auth/config';
 
+export const dynamic = 'force-dynamic';
+
 type ResourceConfig = {
   table: string;
   readRoles: AuthRole[];

@@ -5,6 +5,8 @@ import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const body = await request.json();
   const { customer_name, customer_email, customer_phone, items, hp_field, submitted_at } = body;

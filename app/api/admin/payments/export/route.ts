@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 
+export const dynamic = 'force-dynamic';
+
 function csvEscape(value: string | number | null | undefined) {
   const str = String(value ?? '');
   return `"${str.replace(/"/g, '""')}"`;
