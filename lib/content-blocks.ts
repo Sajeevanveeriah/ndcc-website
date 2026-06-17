@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { createServerClient } from './supabase-server';
+import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 import { normalisePublicText } from './utils';
 
 export interface ContentBlock {
@@ -12,16 +12,21 @@ export interface ContentBlock {
 }
 
 async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isServerSupabaseConfigured()) {
     return {};
   }
   try {
     const supabase = createServerClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('content_blocks')
       .select('block_key,title,body,image_url,cta_label,cta_url')
       .eq('is_active', true)
       .in('block_key', keys);
+
+    if (error) {
+      console.warn('Public content blocks query failed; using fallback.');
+      return {};
+    }
 
     const cleaned = (data ?? []).map((row) => ({
       ...row,
@@ -31,6 +36,7 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
     }));
     return Object.fromEntries(cleaned.map((row) => [row.block_key, row as ContentBlock]));
   } catch {
+    console.warn('Public content blocks query timed out or failed; using fallback.');
     return {};
   }
 }

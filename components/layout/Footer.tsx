@@ -3,9 +3,13 @@ import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { ACKNOWLEDGEMENT } from '@/lib/constants';
-import { getClubSettings } from '@/lib/club-settings';
-import { getContentBlocks } from '@/lib/content-blocks';
-import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
+import { fallbackClubSettings } from '@/lib/club-settings-types';
+import {
+  fallbackFooterAffiliationLinks,
+  fallbackFooterGetInvolvedLinks,
+  fallbackFooterQuickLinks,
+  type PageLinkCard,
+} from '@/lib/structured-content';
 
 function isExternalLink(link: PageLinkCard) {
   return link.is_external || /^https?:\/\//i.test(link.href);
@@ -31,32 +35,25 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
   return <Link href={link.href} className={className}>{content}</Link>;
 }
 
-export default async function Footer() {
+export default function Footer() {
   const currentYear = new Date().getFullYear();
-  const [settings, blocks, quickLinks, getInvolvedLinks, affiliationLinks] = await Promise.all([
-    getClubSettings(),
-    getContentBlocks(['footer.acknowledgement']),
-    getPageLinkCards('site', 'footer_quick_links'),
-    getPageLinkCards('site', 'footer_get_involved'),
-    getPageLinkCards('site', 'footer_affiliations'),
-  ]);
+  const settings = fallbackClubSettings;
+  const quickLinks = fallbackFooterQuickLinks;
+  const getInvolvedLinks = fallbackFooterGetInvolvedLinks;
+  const affiliationLinks = fallbackFooterAffiliationLinks;
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
-  const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
-  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
       {/* Acknowledgement */}
       <div
         className="px-4 sm:px-6 lg:px-8 py-5 border-b border-white/10"
-        style={acknowledgementImage
-          ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.75), rgba(74,0,0,0.75)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-          : { background: 'rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.06)' }}
       >
         <div className="container-width">
           <p className="text-sm text-maroon-200 font-body leading-relaxed max-w-4xl">
-            {acknowledgement}
+            {ACKNOWLEDGEMENT}
           </p>
         </div>
       </div>
