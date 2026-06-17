@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { fallbackSponsors } from '@/lib/fallback-content';
+import { fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,5 +23,5 @@ export async function GET() {
   const { data, error } = await getActiveSponsors();
 
   if (error) return NextResponse.json({ success: true, data: fallbackSponsors });
-  return NextResponse.json({ success: true, data: data.length ? data : fallbackSponsors });
+  return NextResponse.json({ success: true, data: mergeSponsorsWithFallback(data) });
 }

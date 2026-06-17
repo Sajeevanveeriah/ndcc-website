@@ -13,13 +13,12 @@ import {
   CLUB_EMAIL_USER,
   CLUB_EMAIL_DOMAIN,
   CLUB_PHONE,
-  SEED_SPONSORS,
   SEED_SPONSOR_DESCRIPTIONS,
 } from '@/lib/constants';
 import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
-import { fallbackSponsors } from '@/lib/fallback-content';
+import { fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 
 const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   major: 'danger',
@@ -34,7 +33,6 @@ export default function SponsorsPage() {
   const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
   const [sponsors, setSponsors] = useState<Sponsor[]>(fallbackSponsors);
   const [loading, setLoading] = useState(false);
-  const [usingSeed, setUsingSeed] = useState(true);
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -63,14 +61,12 @@ export default function SponsorsPage() {
         const json = await res.json();
 
         if (res.ok && Array.isArray(json.data)) {
-          setSponsors(json.data as Sponsor[]);
+          setSponsors(mergeSponsorsWithFallback(json.data as Sponsor[]));
         } else {
-          setSponsors(SEED_SPONSORS as Sponsor[]);
-          setUsingSeed(true);
+          setSponsors(fallbackSponsors);
         }
       } catch {
-        setSponsors(SEED_SPONSORS as Sponsor[]);
-        setUsingSeed(true);
+        setSponsors(fallbackSponsors);
       } finally {
         setLoading(false);
       }
@@ -205,9 +201,7 @@ export default function SponsorsPage() {
               </div>
               <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sponsorsByTier[tier.value].map((sponsor) => {
-                  const description = usingSeed
-                    ? SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || ''
-                    : '';
+                  const description = SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || '';
                   return (
                     <ScrollRevealItem key={sponsor.id}>
                     <a

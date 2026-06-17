@@ -10,7 +10,8 @@
     "smoke": "node scripts/smoke-routes.mjs",
     "test:email": "node scripts/test-email.mjs",
     "cms:diagnostics": "node scripts/restore/june16-cms-diagnostics.mjs",
-    "cms:restore:june16": "node scripts/restore/june16-cms-restore.mjs"
+    "cms:restore:june16": "node scripts/restore/june16-cms-restore.mjs",
+    "smoke:content": "node scripts/smoke-content.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",
