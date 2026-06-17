@@ -42,6 +42,24 @@ interface SeasonAppointmentItem {
   announcement_date: string;
 }
 
+const FALLBACK_SEASON_APPOINTMENTS: SeasonAppointmentItem[] = [
+  { id: 'fallback-craig-hillgrove', name: 'Craig Hillgrove', role: 'Head Coach', image_url: '/images/season-appointments/2026-27/craig-hillgrove-head-coach-2026-27.webp', announcement_date: '2026-03-01' },
+  { id: 'fallback-kelsey-allan', name: 'Kelsey Allan', role: "Women's Coach", image_url: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp', announcement_date: '2026-03-15' },
+  { id: 'fallback-aaron-morgan', name: 'Aaron Morgan', role: '', image_url: '/images/season-appointments/2026-27/aaron-morgan-re-signed-2026-27.webp', announcement_date: '2026-05-01' },
+  { id: 'fallback-anthony-quarrell', name: 'Anthony Quarrell', role: '', image_url: '/images/season-appointments/2026-27/anthony-quarrell-re-signed-2026-27.webp', announcement_date: '2026-05-02' },
+  { id: 'fallback-blake-ritchie', name: 'Blake Ritchie', role: '', image_url: '/images/season-appointments/2026-27/blake-ritchie-re-signed-2026-27.webp', announcement_date: '2026-05-03' },
+  { id: 'fallback-freddie-norridge', name: 'Freddie Norridge', role: '', image_url: '/images/season-appointments/2026-27/freddie-norridge-signed-2026-27.webp', announcement_date: '2026-05-04' },
+  { id: 'fallback-huey-neild', name: 'Huey Neild', role: '', image_url: '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp', announcement_date: '2026-05-05' },
+  { id: 'fallback-nathan-keevil', name: 'Nathan Keevil', role: '', image_url: '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp', announcement_date: '2026-05-06' },
+  { id: 'fallback-scott-kirby', name: 'Scott Kirby', role: '', image_url: '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp', announcement_date: '2026-05-07' },
+];
+
+const FALLBACK_SPONSOR_LOGOS: Record<string, string> = {
+  'Champion Trophies': '/images/2026/06/champion_trophy-1781148687999.jpg',
+  'Phoenix Truck Bodies': '/images/2026/06/phoenix-1781148703539.jpg',
+  "Blackman's Brewery": '/images/2026/06/blackmans-1781148663993.webp',
+};
+
 async function getLatestNews(): Promise<NewsItem[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
@@ -422,7 +440,8 @@ function SeasonAppointmentsSkeleton() {
 
 async function SeasonAppointmentsSection() {
   const dbSeasonAppointments = await getSeasonAppointments();
-  const seasonAppointments = dbSeasonAppointments.map((item) => ({
+  const appointmentSource = dbSeasonAppointments.length > 0 ? dbSeasonAppointments : FALLBACK_SEASON_APPOINTMENTS;
+  const seasonAppointments = appointmentSource.map((item) => ({
     ...item,
     image_url: normalizeSeasonAppointmentImage(item.name, item.image_url),
   }));
@@ -536,15 +555,16 @@ async function SponsorsSection() {
     getSponsors(),
   ]);
 
-  const sponsors: SponsorItem[] = dbSponsors.length > 0
+  const sponsorSource: SponsorItem[] = dbSponsors.length > 0
     ? dbSponsors
     : SEED_SPONSORS.map((s) => ({
         id: s.id,
         name: s.name,
         tier: s.tier,
         website: s.website,
-        logo_url: s.logo_url,
+        logo_url: FALLBACK_SPONSOR_LOGOS[s.name] || s.logo_url,
       }));
+  const sponsors = sponsorSource.filter((sponsor) => sponsor.logo_url.trim());
 
   const sponsorshipTitle = blocks['home.sponsorship']?.title || 'Our Sponsors';
   const sponsorshipBody = blocks['home.sponsorship']?.body || 'Proudly supported by our local community partners.';
@@ -574,13 +594,9 @@ async function SponsorsSection() {
                       height={82}
                       className="max-h-20 w-auto object-contain"
                       sizes="190px"
-                      fallback={
-                        <span className="text-lg font-bold text-maroon-700">{sponsor.name}</span>
-                      }
+                      fallback={null}
                     />
-                  ) : (
-                    <span className="text-lg font-bold text-maroon-700">{sponsor.name}</span>
-                  )}
+                  ) : null}
                 </div>
               );
 
