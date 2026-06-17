@@ -3,7 +3,8 @@ import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { normalizeGalleryImage } from '@/lib/public-content-normalizers';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 const getPublishedGalleryImages = unstable_cache(async () => {
   const supabase = createServerClient();
@@ -27,5 +28,5 @@ export async function GET() {
     return NextResponse.json({ success: false, error }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, data: data.map((item) => normalizeGalleryImage(item)) });
+  return NextResponse.json({ success: true, data: data.map((item) => normalizeGalleryImage(item)) }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }

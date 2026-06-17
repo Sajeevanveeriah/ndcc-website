@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 const getActiveSponsors = unstable_cache(async () => {
   const supabase = createServerClient();
@@ -22,5 +23,5 @@ export async function GET() {
   const { data, error } = await getActiveSponsors();
 
   if (error) return NextResponse.json({ success: false, error }, { status: 500 });
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }

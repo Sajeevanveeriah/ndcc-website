@@ -3,9 +3,13 @@ import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { ACKNOWLEDGEMENT } from '@/lib/constants';
-import { getClubSettings } from '@/lib/club-settings';
-import { getContentBlocks } from '@/lib/content-blocks';
-import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
+import { fallbackClubSettings } from '@/lib/club-settings-types';
+import {
+  fallbackFooterAffiliationLinks,
+  fallbackFooterGetInvolvedLinks,
+  fallbackFooterQuickLinks,
+  type PageLinkCard,
+} from '@/lib/structured-content';
 
 function isExternalLink(link: PageLinkCard) {
   return link.is_external || /^https?:\/\//i.test(link.href);
@@ -31,19 +35,16 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
   return <Link href={link.href} className={className}>{content}</Link>;
 }
 
-export default async function Footer() {
+export default function Footer() {
   const currentYear = new Date().getFullYear();
-  const [settings, blocks, quickLinks, getInvolvedLinks, affiliationLinks] = await Promise.all([
-    getClubSettings(),
-    getContentBlocks(['footer.acknowledgement']),
-    getPageLinkCards('site', 'footer_quick_links'),
-    getPageLinkCards('site', 'footer_get_involved'),
-    getPageLinkCards('site', 'footer_affiliations'),
-  ]);
+  const settings = fallbackClubSettings;
+  const quickLinks = fallbackFooterQuickLinks;
+  const getInvolvedLinks = fallbackFooterGetInvolvedLinks;
+  const affiliationLinks = fallbackFooterAffiliationLinks;
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
-  const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
-  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
+  const acknowledgement = ACKNOWLEDGEMENT;
+  const acknowledgementImage = null;
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">

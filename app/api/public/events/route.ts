@@ -2,21 +2,18 @@ import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
-const NO_CACHE_HEADERS = {
-  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-  Pragma: 'no-cache',
-  Expires: '0',
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
 };
 
-function jsonNoCache(body: unknown, init?: ResponseInit) {
+function jsonCached(body: unknown, init?: ResponseInit) {
   return NextResponse.json(body, {
     ...init,
     headers: {
-      ...NO_CACHE_HEADERS,
+      ...CACHE_HEADERS,
       ...(init?.headers || {}),
     },
   });
@@ -45,7 +42,7 @@ const getPublishedEvents = unstable_cache(async () => {
 
 export async function GET(request: Request) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return jsonNoCache({ success: false, error: 'Service not configured.' }, { status: 503 });
+    return jsonCached({ success: false, error: 'Service not configured.' }, { status: 503 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -54,13 +51,13 @@ export async function GET(request: Request) {
   if (id) {
     const { data, error } = await getPublishedEvent(id);
 
-    if (error) return jsonNoCache({ success: false, error }, { status: 500 });
-    if (!data) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
-    return jsonNoCache({ success: true, data });
+    if (error) return jsonCached({ success: false, error }, { status: 500 });
+    if (!data) return jsonCached({ success: false, error: 'Event not found.' }, { status: 404 });
+    return jsonCached({ success: true, data });
   }
 
   const { data, error } = await getPublishedEvents();
 
-  if (error) return jsonNoCache({ success: false, error }, { status: 500 });
-  return jsonNoCache({ success: true, data });
+  if (error) return jsonCached({ success: false, error }, { status: 500 });
+  return jsonCached({ success: true, data });
 }

@@ -3,8 +3,8 @@ import { getPublishedNews } from '@/lib/public-news';
 import { SEED_NEWS } from '@/lib/constants';
 import { isPublicNewsPostAllowed, normalizeNewsImage } from '@/lib/public-content-normalizers';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 
 function getSeedNews(id?: string, limit?: number) {
@@ -26,10 +26,8 @@ function getSeedNews(id?: string, limit?: number) {
   return typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? posts.slice(0, limit) : posts;
 }
 
-const noStoreHeaders = {
-  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-  Pragma: 'no-cache',
-  Expires: '0',
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
 };
 
 export async function GET(request: Request) {
@@ -42,26 +40,26 @@ export async function GET(request: Request) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const data = getSeedNews(id ?? undefined, limit);
     if (id && !data) {
-      return NextResponse.json({ success: false, error: 'Article not found.' }, { status: 404, headers: noStoreHeaders });
+      return NextResponse.json({ success: false, error: 'Article not found.' }, { status: 404, headers: CACHE_HEADERS });
     }
-    return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+    return NextResponse.json({ success: true, data }, { headers: CACHE_HEADERS });
   }
 
   try {
     if (id) {
       const data = await getPublishedNews({ id });
       if (!data) {
-        return NextResponse.json({ success: false, error: 'Article not found.' }, { status: 404, headers: noStoreHeaders });
+        return NextResponse.json({ success: false, error: 'Article not found.' }, { status: 404, headers: CACHE_HEADERS });
       }
-      return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+      return NextResponse.json({ success: true, data }, { headers: CACHE_HEADERS });
     }
 
     const data = await getPublishedNews({ limit });
-    return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+    return NextResponse.json({ success: true, data }, { headers: CACHE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to fetch news.' },
-      { status: 500, headers: noStoreHeaders },
+      { status: 500, headers: CACHE_HEADERS },
     );
   }
 }
