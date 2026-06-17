@@ -20,7 +20,6 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
   useEffect(() => {
@@ -36,7 +35,7 @@ export default function Navbar() {
   useEffect(() => {
     const loadClubSettings = async () => {
       try {
-        const res = await fetch('/api/club-settings', { cache: 'no-store' });
+        const res = await fetch('/api/club-settings');
         if (!res.ok) return;
         const data = await res.json();
         if (data?.data) setSettings(data.data);
@@ -49,7 +48,7 @@ export default function Navbar() {
   useEffect(() => {
     const loadNavigation = async () => {
       try {
-        const res = await fetch('/api/public/site-links?section=header_nav', { cache: 'no-store' });
+        const res = await fetch('/api/public/site-links?section=header_nav');
         if (!res.ok) return;
         const data = await res.json();
         if (Array.isArray(data?.data) && data.data.length > 0) {
@@ -66,26 +65,6 @@ export default function Navbar() {
     };
     loadNavigation();
   }, []);
-  useEffect(() => {
-    const loadSession = async () => {
-      try {
-        const res = await fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' });
-        if (!res.ok) {
-          setSessionUser(null);
-          return;
-        }
-        const data = await res.json();
-        setSessionUser(data?.authenticated ? data.user : null);
-      } catch {
-        setSessionUser(null);
-      }
-    };
-    loadSession();
-  }, [pathname]);
-  const handleSignOut = async () => {
-    await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
-    setSessionUser(null);
-  };
   const primaryLinks = navLinks.slice(0, 7);
   const moreLinks = navLinks.slice(7);
   return (
@@ -194,22 +173,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {sessionUser && (
-              <div className="relative group ml-2">
-                <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors">
-                  {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-                <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
-                  <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Account</Link>
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Admin Panel</Link>
-                    <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Join CTA button */}
             <Link
@@ -267,16 +230,6 @@ export default function Navbar() {
           >
             Join the Club
           </Link>
-          {sessionUser && (
-            <>
-              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
-                {sessionUser.full_name} ({sessionUser.role})
-              </Link>
-              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
-                Logout
-              </button>
-            </>
-          )}
               </div>
             </m.div>
           )}

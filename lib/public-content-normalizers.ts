@@ -31,9 +31,7 @@ const SEASON_APPOINTMENT_KNOWN_BROKEN_IMAGE_PATHS = new Set([
 const GALLERY_LEGACY_TITLE = '2025/2026 Div. 4 1st XI Premiership';
 const GALLERY_DISPLAY_TITLE = '2025/26 Division 4 1st XI Premiership';
 const GALLERY_IMAGE_PATH = '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp';
-const INVALID_PUBLIC_IMAGE_PATHS = new Set([
-  '/images/events/2026/agm-2026.png',
-]);
+const INVALID_PUBLIC_IMAGE_PATHS = new Set<string>();
 const EVENT_IMAGE_MAP: EventImageMap = {
   'dino lotto 2026': '/images/events/2026/dino-lotto-2026.webp',
 };
@@ -83,8 +81,9 @@ export function isPublicNewsPostAllowed(title: string) {
 
 export function normalizeEventImage(title: string, imageUrl?: string | null) {
   const normalizedImageUrl = imageUrl?.trim() ?? '';
-  if (normalizedImageUrl) {
-    if (!INVALID_PUBLIC_IMAGE_PATHS.has(normalizedImageUrl)) return normalizedImageUrl;
+  const normalizedLocalPath = /^https?:\/\//i.test(normalizedImageUrl) ? normalizedImageUrl : normalizeLocalImagePath(normalizedImageUrl);
+  if (normalizedLocalPath) {
+    if (!INVALID_PUBLIC_IMAGE_PATHS.has(normalizedLocalPath)) return normalizedLocalPath;
   }
   const mappedImage = EVENT_IMAGE_MAP[normalizeName(title)] ?? null;
   return mappedImage && !INVALID_PUBLIC_IMAGE_PATHS.has(mappedImage) ? mappedImage : null;
@@ -92,8 +91,9 @@ export function normalizeEventImage(title: string, imageUrl?: string | null) {
 
 export function normalizeNewsImage(title: string, imageUrl?: string | null) {
   const normalizedImageUrl = imageUrl?.trim() ?? '';
-  if (normalizedImageUrl) {
-    if (!INVALID_PUBLIC_IMAGE_PATHS.has(normalizedImageUrl)) return normalizedImageUrl;
+  const normalizedLocalPath = /^https?:\/\//i.test(normalizedImageUrl) ? normalizedImageUrl : normalizeLocalImagePath(normalizedImageUrl);
+  if (normalizedLocalPath) {
+    if (!INVALID_PUBLIC_IMAGE_PATHS.has(normalizedLocalPath)) return normalizedLocalPath;
   }
   const mappedImage = NEWS_IMAGE_MAP[normalizeName(title)] ?? null;
   return mappedImage && !INVALID_PUBLIC_IMAGE_PATHS.has(mappedImage) ? mappedImage : null;

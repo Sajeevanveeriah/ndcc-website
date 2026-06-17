@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getPageLinkCards } from '@/lib/structured-content';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 const allowedSections = new Set([
   'header_nav',
@@ -19,5 +20,5 @@ export async function GET(request: Request) {
   }
 
   const data = await getPageLinkCards('site', section);
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=600' } });
 }

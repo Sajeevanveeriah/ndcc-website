@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getClubSettings } from '@/lib/club-settings';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 export async function GET() {
   const data = await getClubSettings();
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=600' } });
 }

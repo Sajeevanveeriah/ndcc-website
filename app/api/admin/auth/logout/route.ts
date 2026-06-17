@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { hashSessionToken, clearAuthCookie } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'syd1';
 
 export async function POST() {
   const cookieStore = cookies();
