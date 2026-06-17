@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { sendEmail, emailHtml } from '@/lib/email';
+import { sendEmail, emailHtml, getContactEmailConfig } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +9,22 @@ function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\n/g, '<br>');
+}
+
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function safeFailureReason(reason?: string) {
+  return (reason || 'Email was not sent.').replace(/re_[A-Za-z0-9_\-]+/g, '[redacted]').slice(0, 240);
 }
 
 export async function POST(request: Request) {
@@ -38,7 +52,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isValidEmail(email)) {
+    const safeName = sanitiseInput(name);
+    const safeEmail = sanitiseInput(email);
+    const safeMessage = sanitiseInput(message);
+    const safeEnquiryType = enquiry_type ? sanitiseInput(enquiry_type) : 'general';
+
+    if (!isValidEmail(safeEmail)) {
       return NextResponse.json(
         { success: false, error: 'Please provide a valid email address.' },
         { status: 400 }
@@ -55,10 +74,10 @@ export async function POST(request: Request) {
     const supabase = createServerClient();
 
     const { error } = await supabase.from('contacts').insert({
-      name: sanitiseInput(name),
-      email: sanitiseInput(email),
-      message: sanitiseInput(message),
-      enquiry_type: enquiry_type ? sanitiseInput(enquiry_type) : 'general',
+      name: safeName,
+      email: safeEmail,
+      message: safeMessage,
+      enquiry_type: safeEnquiryType,
       responded: false,
     });
 
@@ -70,22 +89,75 @@ export async function POST(request: Request) {
       );
     }
 
-    void sendEmail({
-      to: sanitiseInput(email),
+    const timestamp = new Date().toISOString();
+    const contactConfig = getContactEmailConfig();
+    const adminResult = await sendEmail({
+      to: contactConfig.effectiveContactRecipient,
+      cc: contactConfig.cc.length > 0 ? contactConfig.cc : undefined,
+      bcc: contactConfig.bcc.length > 0 ? contactConfig.bcc : undefined,
+      replyTo: safeEmail,
+      subject: `New website enquiry — ${safeEnquiryType} | NDCC Dinos`,
+      tags: [{ name: 'category', value: 'contact-enquiry' }],
+      html: emailHtml(
+        'New website enquiry',
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">A new enquiry was submitted from the NDCC website.</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+          <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:130px;">Name</td><td style="padding:6px 0;font-size:14px;">${escapeHtml(safeName)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;font-size:14px;"><a href="mailto:${escapeHtml(safeEmail)}" style="color:#800000;">${escapeHtml(safeEmail)}</a></td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Enquiry type</td><td style="padding:6px 0;font-size:14px;">${escapeHtml(safeEnquiryType)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Timestamp</td><td style="padding:6px 0;font-size:14px;">${escapeHtml(timestamp)}</td></tr>
+        </table>
+        <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Message</p>
+          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${escapeHtml(safeMessage)}</p>
+        </div>`
+      ),
+    });
+
+    const acknowledgementResult = await sendEmail({
+      to: safeEmail,
       subject: 'We received your message — NDCC Dinos',
+      tags: [{ name: 'category', value: 'contact-acknowledgement' }],
       html: emailHtml(
         'Thanks for getting in touch',
-        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(name)},</p>
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(safeName)},</p>
         <p style="font-size:15px;color:#374151;line-height:1.6;">We have received your message and will get back to you as soon as possible, usually within 1–2 business days.</p>
         <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Your message</p>
-          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${sanitiseInput(message)}</p>
+          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${escapeHtml(safeMessage)}</p>
         </div>
         <p style="font-size:14px;color:#6b7280;">If your enquiry is urgent, you can also reach us directly at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
+
+    if (adminResult.status !== 'sent') {
+      console.warn('[contacts] Admin notification email did not send', {
+        status: adminResult.status,
+        reason: safeFailureReason(adminResult.reason),
+        acknowledgementStatus: acknowledgementResult.status,
+      });
+      return NextResponse.json({
+        success: true,
+        emailStatus: 'failed',
+        message: 'Your enquiry was received, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.',
+      });
+    }
+
+    if (acknowledgementResult.status !== 'sent') {
+      console.warn('[contacts] Acknowledgement email did not send', {
+        status: acknowledgementResult.status,
+        reason: safeFailureReason(acknowledgementResult.reason),
+      });
+      return NextResponse.json({
+        success: true,
+        emailStatus: 'failed',
+        message: 'Your enquiry was received, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.',
+      });
+    }
+
     return NextResponse.json({
       success: true,
+      emailStatus: 'sent',
       message: 'Message sent successfully!',
     });
   } catch (err) {

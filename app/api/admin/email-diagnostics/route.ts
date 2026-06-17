@@ -38,9 +38,9 @@ export async function POST(request: Request) {
     ),
   });
 
-  if (result.status === 'failed') {
-    return NextResponse.json({ success: false, status: result.status, error: safeFailureReason(result.reason) }, { status: 502 });
+  if (result.status !== 'sent') {
+    return NextResponse.json({ success: false, status: result.status, error: safeFailureReason(result.reason) }, { status: result.status === 'skipped' ? 503 : 502 });
   }
 
-  return NextResponse.json({ success: true, status: result.status, reason: result.status === 'skipped' ? result.reason : undefined, id: result.status === 'sent' ? result.id : undefined });
+  return NextResponse.json({ success: true, status: result.status, id: result.id });
 }
