@@ -4,6 +4,7 @@ import { createAuthCookie, generateSessionToken, hashSessionToken, sessionExpiry
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'syd1';
 
 export async function POST(request: Request) {
   try {
