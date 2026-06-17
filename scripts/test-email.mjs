@@ -23,25 +23,25 @@ function emailHtml(title, body) {
   return `<!DOCTYPE html><html lang="en"><body style="font-family:Arial,sans-serif;"><h1>${title}</h1>${body}<p style="color:#666;font-size:12px;">NDCC website email test</p></body></html>`;
 }
 
-if (!recipient || !EMAIL_PATTERN.test(recipient)) {
-  console.error('Missing valid recipient. Pass an email argument or set NDCC_TEST_EMAIL_TO.');
-  process.exit(1);
-}
-
 const config = {
   resendApiKeyPresent: Boolean(process.env.RESEND_API_KEY),
   senderPresent: Boolean(from),
   senderValid: Boolean(from && senderValid(from)),
   contactToPresent: Boolean(process.env.CONTACT_TO_EMAIL),
   effectiveContactRecipient: maskEmail(process.env.CONTACT_TO_EMAIL || DEFAULT_CONTACT_EMAIL),
-  recipient: maskEmail(recipient),
+  recipient: recipient ? maskEmail(recipient) : '[not configured]',
 };
 
 console.log('Email test configuration:', config);
 
 if (!shouldSend) {
-  console.log('Dry run only. Re-run with --send to send test emails.');
+  console.log('Dry run only. Re-run with --send and a recipient to send test emails.');
   process.exit(0);
+}
+
+if (!recipient || !EMAIL_PATTERN.test(recipient)) {
+  console.error('Cannot send: pass a valid recipient email argument or set NDCC_TEST_EMAIL_TO.');
+  process.exit(1);
 }
 
 if (!process.env.RESEND_API_KEY || !from || !senderValid(from)) {

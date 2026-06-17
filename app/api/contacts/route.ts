@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { sendEmail, emailHtml, getContactEmailConfig } from '@/lib/email';
+import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     const timestamp = new Date().toISOString();
-    const contactConfig = getContactEmailConfig();
+    const contactConfig = getContactEmailRecipients();
     const adminResult = await sendEmail({
       to: contactConfig.effectiveContactRecipient,
       cc: contactConfig.cc.length > 0 ? contactConfig.cc : undefined,
@@ -139,19 +139,14 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         emailStatus: 'failed',
-        message: 'Your enquiry was received, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.',
-      });
+        message: 'Your enquiry was received, but the email notification could not be sent. Please email ndcc.secretary1@gmail.com if urgent.',
+      }, { status: 202 });
     }
 
     if (acknowledgementResult.status !== 'sent') {
       console.warn('[contacts] Acknowledgement email did not send', {
         status: acknowledgementResult.status,
         reason: safeFailureReason(acknowledgementResult.reason),
-      });
-      return NextResponse.json({
-        success: true,
-        emailStatus: 'failed',
-        message: 'Your enquiry was received, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.',
       });
     }
 
