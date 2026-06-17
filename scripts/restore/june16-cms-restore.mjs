@@ -15,8 +15,9 @@ const TABLES = {
   news: { key: ['title', 'published_at'] },
   events: { key: ['title', 'date'] },
   gallery_images: { key: ['title', 'image_url'] },
-  social_membership_products: { key: ['slug'] },
   volunteer_positions: { key: ['title'] },
+  social_membership_plans: { key: ['name'] },
+  social_membership_addons: { key: ['name'] },
 };
 
 const NEVER_UPDATE = new Set(['id', 'created_at', 'updated_at']);
@@ -39,8 +40,18 @@ function isEmptyOrInvalid(value) {
   if (typeof value === 'string') return INVALID_URL_VALUES.has(value.trim().toLowerCase());
   return false;
 }
+function evidenceFields(record) {
+  return record && typeof record === 'object' && record.fields && typeof record.fields === 'object'
+    ? record.fields
+    : record;
+}
+function manualReviewNote(record) {
+  return record && typeof record === 'object' && typeof record.notes === 'string' && record.notes.trim()
+    ? record.notes.trim()
+    : null;
+}
 function cleanRecord(record) {
-  return Object.fromEntries(Object.entries(record).filter(([key]) => !NEVER_UPDATE.has(key)));
+  return Object.fromEntries(Object.entries(evidenceFields(record)).filter(([key]) => !NEVER_UPDATE.has(key)));
 }
 function keyFilter(query, keyColumns, record) {
   for (const column of keyColumns) query = query.eq(column, record[column]);
@@ -75,14 +86,16 @@ async function main() {
       continue;
     }
     await writeFile(path.join(backupDir, `${table}.json`), JSON.stringify(await fetchAll(table), null, 2));
-    let inserts = 0, updates = 0, unchanged = 0;
-    for (const source of sourceRows) {
+    let inserts = 0, updates = 0, unchanged = 0, manualReview = 0;
+    for (const evidenceRow of sourceRows) {
+      const source = cleanRecord(evidenceRow);
+      if (manualReviewNote(evidenceRow)) manualReview++;
       if (config.key.some((column) => isEmptyOrInvalid(source[column]))) {
         throw new Error(`${table} evidence row is missing natural key ${config.key.join(', ')}`);
       }
       const { data: current, error } = await keyFilter(supabase.from(table).select('*'), config.key, source).maybeSingle();
       if (error) throw new Error(`${table} lookup failed: ${error.message}`);
-      const payload = cleanRecord(source);
+      const payload = source;
       if (!current) {
         if (!dryRun) {
           const { error: insertError } = await supabase.from(table).insert(payload);
@@ -104,9 +117,9 @@ async function main() {
         updates++;
       } else unchanged++;
     }
-    summary.push({ table, evidence: sourceRows.length, inserts, updates, unchanged });
+    summary.push({ table, evidence: sourceRows.length, inserts, updates, unchanged, skipped: 0, manualReview });
   }
   await writeFile(path.join(backupDir, 'summary.json'), JSON.stringify({ dryRun, evidencePath, summary }, null, 2));
-  console.log(JSON.stringify({ mode: dryRun ? 'dry-run' : 'apply', backupDir, summary }, null, 2));
+  console.log(JSON.stringify({ mode: dryRun ? 'dry-run' : 'apply', backupDir, destructiveOperations: false, deletes: 0, truncates: 0, deactivations: 0, summary }, null, 2));
 }
 main().catch((error) => { console.error(error.message); process.exit(1); });

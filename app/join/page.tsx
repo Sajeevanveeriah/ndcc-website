@@ -6,14 +6,15 @@ import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal
 import Card, { CardContent } from '@/components/ui/Card';
 import Input, { Textarea } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
+import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
 
 interface Plan { id: string; name: string; description: string; price: number; }
 interface Addon { id: string; name: string; description: string; price: number; usage_limit: number | null; }
 
 export default function JoinPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [addons, setAddons] = useState<Addon[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState('');
+  const [plans, setPlans] = useState<Plan[]>(fallbackMembershipPlans);
+  const [addons, setAddons] = useState<Addon[]>(fallbackMembershipAddons);
+  const [selectedPlan, setSelectedPlan] = useState(fallbackMembershipPlans[0]?.id || '');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
   const [message, setMessage] = useState('');

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
+import { fallbackEvents } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -44,12 +45,17 @@ const getPublishedEvents = unstable_cache(async () => {
 }, ['public-events'], { revalidate: 300, tags: ['events'] });
 
 export async function GET(request: Request) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return jsonNoCache({ success: false, error: 'Service not configured.' }, { status: 503 });
-  }
-
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (id) {
+      const event = fallbackEvents.find((item) => item.id === id);
+      if (!event) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
+      return jsonNoCache({ success: true, data: event });
+    }
+    return jsonNoCache({ success: true, data: fallbackEvents });
+  }
 
   if (id) {
     const { data, error } = await getPublishedEvent(id);
@@ -61,6 +67,6 @@ export async function GET(request: Request) {
 
   const { data, error } = await getPublishedEvents();
 
-  if (error) return jsonNoCache({ success: false, error }, { status: 500 });
-  return jsonNoCache({ success: true, data });
+  if (error) return jsonNoCache({ success: true, data: fallbackEvents });
+  return jsonNoCache({ success: true, data: data?.length ? data : fallbackEvents });
 }

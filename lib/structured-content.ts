@@ -1,5 +1,13 @@
 import { unstable_cache } from 'next/cache';
 import { NAV_LINKS } from '@/lib/constants';
+import {
+  fallbackFacilityFeatures,
+  fallbackHistoryCompetitions,
+  fallbackHistoryLineage,
+  fallbackHistoryPremierships,
+  fallbackLinksFor,
+  isProductionStaticBuild,
+} from '@/lib/fallback-content';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 
 export type PageLinkCard = {
@@ -83,6 +91,8 @@ export const fallbackFooterAffiliationLinks: PageLinkCard[] = [
 ];
 
 export function fallbackLinksForSection(pageSlug: string, sectionKey: string): PageLinkCard[] {
+  const fallback = fallbackLinksFor(pageSlug, sectionKey);
+  if (fallback.length) return fallback;
   if (pageSlug !== 'site') return [];
   if (sectionKey === 'header_nav') return fallbackHeaderLinks;
   if (sectionKey === 'footer_quick_links') return fallbackFooterQuickLinks;
@@ -139,7 +149,7 @@ function hasSupabaseEnv() {
 }
 
 async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
-  if (!hasSupabaseEnv()) return fallbackLinksForSection(pageSlug, sectionKey);
+  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackLinksForSection(pageSlug, sectionKey);
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase
@@ -166,7 +176,7 @@ export const getPageLinkCards = unstable_cache(getPageLinkCardsUncached, ['page-
 });
 
 async function getFacilityFeaturesUncached(): Promise<FacilityFeature[]> {
-  if (!hasSupabaseEnv()) return [];
+  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackFacilityFeatures;
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -186,7 +196,7 @@ export const getFacilityFeatures = unstable_cache(getFacilityFeaturesUncached, [
 });
 
 async function getHistoryLineageUncached(): Promise<HistoryLineageEntry[]> {
-  if (!hasSupabaseEnv()) return [];
+  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryLineage;
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -206,7 +216,7 @@ export const getHistoryLineage = unstable_cache(getHistoryLineageUncached, ['his
 });
 
 async function getHistoryPremiershipsUncached(): Promise<HistoryPremiership[]> {
-  if (!hasSupabaseEnv()) return [];
+  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryPremierships;
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -226,7 +236,7 @@ export const getHistoryPremierships = unstable_cache(getHistoryPremiershipsUncac
 });
 
 async function getHistoryCompetitionsUncached(): Promise<HistoryCompetition[]> {
-  if (!hasSupabaseEnv()) return [];
+  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryCompetitions;
   try {
     const supabase = createServerClient();
     const { data } = await supabase

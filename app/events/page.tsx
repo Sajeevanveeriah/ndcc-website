@@ -9,6 +9,7 @@ import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
+import { fallbackEvents } from '@/lib/fallback-content';
 
 function SkeletonCard() {
   return (
@@ -27,8 +28,8 @@ function SkeletonCard() {
 }
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<Event[]>(fallbackEvents);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     document.title = 'Events | NDCC Dinos';
@@ -41,10 +42,10 @@ export default function EventsPage() {
         if (res.ok && Array.isArray(json.data)) {
           setEvents(json.data as Event[]);
         } else {
-          setEvents([]);
+          setEvents(fallbackEvents);
         }
       } catch {
-        setEvents([]);
+        setEvents(fallbackEvents);
       } finally {
         setLoading(false);
       }
