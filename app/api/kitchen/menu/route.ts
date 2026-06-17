@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { normalizeImageSrc } from '@/lib/image-src';
 
 export const revalidate = 300;
 export const preferredRegion = 'syd1';
@@ -31,5 +32,5 @@ export async function GET() {
 
   if (itemsError) return NextResponse.json({ success: false, error: itemsError.message }, { status: 500 });
 
-  return NextResponse.json({ success: true, data: { menu, items: items ?? [] } }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
+  return NextResponse.json({ success: true, data: { menu, items: (items ?? []).map((item) => ({ ...item, image_url: normalizeImageSrc(item.image_url) })) } }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }

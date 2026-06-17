@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { normalisePublicText } from '@/lib/utils';
+import { normalizeImageSrc } from '@/lib/image-src';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
       title: normalisePublicText(row.title),
       body: normalisePublicText(row.body),
       cta_label: normalisePublicText(row.cta_label),
+      image_url: normalizeImageSrc(row.image_url),
     }]));
     return NextResponse.json({ success: true, data: mapped });
   } catch {

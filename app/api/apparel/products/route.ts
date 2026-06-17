@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { normalizeImageSrc } from '@/lib/image-src';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 export async function GET() {
   if (!isServerSupabaseConfigured()) return NextResponse.json({ success: true, data: [] });
@@ -14,5 +16,5 @@ export async function GET() {
     .order('name', { ascending: true });
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true, data: data ?? [] }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ success: true, data: (data ?? []).map((product) => ({ ...product, image_url: normalizeImageSrc(product.image_url) || '' })) }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }

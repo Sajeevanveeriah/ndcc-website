@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from './supabase-server';
 import { normalisePublicText } from './utils';
+import { normalizeImageSrc } from './image-src';
 
 export interface ContentBlock {
   block_key: string;
@@ -28,6 +29,7 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
       title: normalisePublicText(row.title),
       body: normalisePublicText(row.body),
       cta_label: normalisePublicText(row.cta_label),
+      image_url: normalizeImageSrc(row.image_url),
     }));
     return Object.fromEntries(cleaned.map((row) => [row.block_key, row as ContentBlock]));
   } catch {

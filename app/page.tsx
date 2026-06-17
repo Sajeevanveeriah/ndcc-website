@@ -23,6 +23,7 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { normalizeSeasonAppointmentImage } from '@/lib/public-content-normalizers';
+import { normalizeImageSrc } from '@/lib/image-src';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -69,7 +70,7 @@ const getSponsors = unstable_cache(async (): Promise<SponsorItem[]> => {
       .select('id, name, tier, website, logo_url')
       .eq('active', true)
       .order('created_at', { ascending: true });
-    return (data as SponsorItem[]) || [];
+    return ((data as SponsorItem[]) || []).map((sponsor) => ({ ...sponsor, logo_url: normalizeImageSrc(sponsor.logo_url) || '' }));
   } catch {
     return [];
   }
@@ -549,7 +550,7 @@ async function SponsorsSection() {
         name: s.name,
         tier: s.tier,
         website: s.website,
-        logo_url: s.logo_url,
+        logo_url: normalizeImageSrc(s.logo_url) || '',
       }));
 
   const sponsorshipTitle = blocks['home.sponsorship']?.title || 'Our Sponsors';
