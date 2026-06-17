@@ -11,7 +11,6 @@ import {
   SEED_EVENTS,
   SEED_NEWS,
   SEED_SPONSORS,
-  SEASON_APPOINTMENTS,
 } from '@/lib/constants';
 import type { Event, NewsPost, Sponsor } from '@/lib/types';
 import type { ContentBlock } from '@/lib/content-blocks';
@@ -26,7 +25,8 @@ export const fallbackContentBlocks: Record<string, ContentBlock> = {
   'home.hero': { block_key: 'home.hero', title: CLUB_NAME, body: `Home of the ${CLUB_NICKNAME} cricket community.`, image_url: null, cta_label: 'Join the Club', cta_url: '/join' },
   'home.quicklinks': { block_key: 'home.quicklinks', title: 'Explore the Club', body: `Everything you need to know about the ${CLUB_NICKNAME}.`, image_url: null, cta_label: null, cta_url: null },
   'home.season_status': { block_key: 'home.season_status', title: '2025/26 Season Complete', body: 'The 2025/26 season has concluded. The 2026/27 season begins October 2026. Pre-season training details will be announced on our Facebook page.', image_url: null, cta_label: 'View 2025/26 Results on PlayHQ', cta_url: playHqOrg },
-  'home.sponsorship': { block_key: 'home.sponsorship', title: 'Our Sponsors', body: 'Proudly supported by our local community partners.', image_url: null, cta_label: null, cta_url: null },
+  'home.sponsor_intro': { block_key: 'home.sponsor_intro', title: 'Our Sponsors', body: 'Thanks to all local businesses and partners supporting NDCC.', image_url: null, cta_label: null, cta_url: null },
+  'home.sponsorship': { block_key: 'home.sponsorship', title: 'Our Sponsors', body: 'Thanks to all local businesses and partners supporting NDCC.', image_url: null, cta_label: null, cta_url: null },
   'home.juniors': { block_key: 'home.juniors', title: `Ready to join the ${CLUB_NICKNAME}?`, body: 'Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.', image_url: null, cta_label: null, cta_url: null },
   'footer.acknowledgement': { block_key: 'footer.acknowledgement', title: null, body: ACKNOWLEDGEMENT, image_url: null, cta_label: null, cta_url: null },
   'about.hero': { block_key: 'about.hero', title: `About the ${CLUB_NICKNAME}`, body: `A proud community cricket club in Geelong, established in ${CLUB_ESTABLISHED}.`, image_url: null, cta_label: null, cta_url: null },
@@ -39,6 +39,10 @@ export const fallbackContentBlocks: Record<string, ContentBlock> = {
   'fixtures.status': { block_key: 'fixtures.status', title: '2025/26 Season Complete', body: 'The 2025/26 GCA season has concluded. You can view full results, ladders, and match details from the completed season on PlayHQ. The 2026/27 season begins in October 2026. Pre-season training details will be announced on our Facebook page.', image_url: null, cta_label: 'View 2025/26 Results on PlayHQ', cta_url: playHqOrg },
   'fixtures.team_links': { block_key: 'fixtures.team_links', title: 'Team Fixtures on PlayHQ', body: 'View fixtures, results, and ladders for each NDCC team on PlayHQ. Updated links for 2026/27 can be published from admin when the new season draw is released.', image_url: null, cta_label: 'View on PlayHQ', cta_url: null },
   'join.hero': { block_key: 'join.hero', title: 'Join the Club', body: 'Choose player registration via PlayHQ or apply for social membership below.', image_url: null, cta_label: null, cta_url: null },
+  'join.social_membership': { block_key: 'join.social_membership', title: 'Social Membership', body: 'Apply online and pay by bank transfer reference generated at checkout.', image_url: null, cta_label: null, cta_url: null },
+  'gallery.hero': { block_key: 'gallery.hero', title: 'Gallery', body: 'Match day photos, team shots, and club memories.', image_url: null, cta_label: null, cta_url: null },
+  'gallery.intro': { block_key: 'gallery.intro', title: 'Follow Us for More', body: 'Follow NDCC social channels for more photos and highlights.', image_url: null, cta_label: null, cta_url: null },
+  'sponsors.hero': { block_key: 'sponsors.hero', title: 'Our Sponsors', body: 'The generous support of sponsors keeps cricket thriving at NDCC.', image_url: null, cta_label: null, cta_url: null },
 };
 
 function card(id: string, page_slug: string, section_key: string, title: string, description: string, href: string, sort_order: number, icon: string | null = null, badge: string | null = null, is_external = /^https?:\/\//i.test(href)): PageLinkCard {
@@ -88,27 +92,78 @@ export const fallbackFacilityFeatures: FacilityFeature[] = [
   { id: 'fallback-oval', title: 'Oval & Outfield', description: 'Well-maintained turf wicket square and outfield at Grinter Reserve.', icon_key: 'oval', sort_order: 4, is_active: true },
 ];
 
+function normalizeFallbackKey(value: string) {
+  return value.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function getFallbackSponsorLogo(name: string) {
+  return Object.entries(fallbackSponsorLogos).find(([sponsorName]) => normalizeFallbackKey(sponsorName) === normalizeFallbackKey(name))?.[1] || '';
+}
+
 export const fallbackSponsorLogos: Record<string, string> = {
-  'Champion Trophies': '/images/2026/06/champion_trophy-1781148687999.jpg',
-  'Phoenix Truck Bodies': '/images/2026/06/phoenix-1781148703539.jpg',
+  APCO: '/images/2026/06/apco-1781148625016.png',
+  Bennett: '/images/2026/06/bennett-1781148645814.webp',
+  'Blackmans Brewery': '/images/2026/06/blackmans-1781148663993.webp',
   "Blackman's Brewery": '/images/2026/06/blackmans-1781148663993.webp',
+  'Champion Trophies': '/images/2026/06/champion_trophy-1781148687999.jpg',
+  GP: '/images/2026/06/gp-1781148742506.png',
+  Mahoney: '/images/2026/06/mahoney-1781148805224.png',
+  'Phoenix Truck Bodies': '/images/2026/06/phoenix-1781148703539.jpg',
 };
 
-export const fallbackSponsors: Sponsor[] = SEED_SPONSORS.map((sponsor) => ({
-  ...sponsor,
-  logo_url: sponsor.logo_url || fallbackSponsorLogos[sponsor.name] || '',
-  created_at: '2026-06-16T00:00:00+10:00',
-}));
+const june16SponsorAssets: Sponsor[] = [
+  { id: 'fallback-apco', name: 'APCO', tier: 'standard', logo_url: fallbackSponsorLogos.APCO, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-bennett', name: 'Bennett', tier: 'standard', logo_url: fallbackSponsorLogos.Bennett, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-blackmans', name: "Blackman's Brewery", tier: 'silver', logo_url: fallbackSponsorLogos["Blackman's Brewery"], website: 'https://www.blackmansbrewery.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-champion', name: 'Champion Trophies', tier: 'gold', logo_url: fallbackSponsorLogos['Champion Trophies'], website: 'https://www.swlocksmiths.com.au/trophies-giftware/', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-gp', name: 'GP', tier: 'standard', logo_url: fallbackSponsorLogos.GP, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-mahoney', name: 'Mahoney', tier: 'standard', logo_url: fallbackSponsorLogos.Mahoney, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-phoenix', name: 'Phoenix Truck Bodies', tier: 'silver', logo_url: fallbackSponsorLogos['Phoenix Truck Bodies'], website: 'https://phoenixtruckbodies.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+];
 
-export const fallbackSeasonAppointments = SEASON_APPOINTMENTS.map((appointment, index) => ({
-  id: `fallback-season-${index + 1}`,
-  name: appointment.name,
-  role: appointment.role,
-  image_url: appointment.image_url || appointment.image || null,
-  announcement_date: appointment.announcement_date,
-  sort_order: index + 1,
-  is_active: true,
-}));
+export const fallbackSponsors: Sponsor[] = [
+  ...SEED_SPONSORS.map((sponsor) => ({
+    ...sponsor,
+    logo_url: sponsor.logo_url || getFallbackSponsorLogo(sponsor.name),
+    created_at: '2026-06-16T00:00:00+10:00',
+  })),
+  ...june16SponsorAssets,
+].reduce<Sponsor[]>((merged, sponsor) => {
+  if (!merged.some((item) => normalizeFallbackKey(item.name) === normalizeFallbackKey(sponsor.name))) merged.push(sponsor);
+  return merged;
+}, []);
+
+export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: string }>(sponsors: T[] | null | undefined) {
+  const merged = [...((sponsors || []).filter((sponsor) => sponsor.name?.trim()) as Array<T & { name: string }>)] as Array<T & Sponsor>;
+  for (const sponsor of merged) {
+    const logo = getFallbackSponsorLogo(sponsor.name);
+    if ((!sponsor.logo_url || !sponsor.logo_url.trim()) && logo) sponsor.logo_url = logo;
+  }
+  for (const fallback of fallbackSponsors) {
+    if (!merged.some((sponsor) => normalizeFallbackKey(sponsor.name) === normalizeFallbackKey(fallback.name))) merged.push(fallback as T & Sponsor);
+  }
+  return merged;
+}
+
+export const fallbackSeasonAppointments = [
+  { id: 'fallback-craig-hillgrove', name: 'Craig Hillgrove', role: 'Head Coach', image_url: '/images/season-appointments/2026-27/craig-hillgrove-head-coach-2026-27.webp', announcement_date: '2026-03-01', sort_order: 1, is_active: true },
+  { id: 'fallback-kelsey-allan', name: 'Kelsey Allan', role: "Women's Coach", image_url: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp', announcement_date: '2026-03-15', sort_order: 2, is_active: true },
+  { id: 'fallback-aaron-morgan', name: 'Aaron Morgan', role: '', image_url: '/images/season-appointments/2026-27/aaron-morgan-re-signed-2026-27.webp', announcement_date: '2026-05-01', sort_order: 3, is_active: true },
+  { id: 'fallback-anthony-quarrell', name: 'Anthony Quarrell', role: '', image_url: '/images/season-appointments/2026-27/anthony-quarrell-re-signed-2026-27.webp', announcement_date: '2026-05-02', sort_order: 4, is_active: true },
+  { id: 'fallback-blake-ritchie', name: 'Blake Ritchie', role: '', image_url: '/images/season-appointments/2026-27/blake-ritchie-re-signed-2026-27.webp', announcement_date: '2026-05-03', sort_order: 5, is_active: true },
+  { id: 'fallback-freddie-norridge', name: 'Freddie Norridge', role: '', image_url: '/images/season-appointments/2026-27/freddie-norridge-signed-2026-27.webp', announcement_date: '2026-05-04', sort_order: 6, is_active: true },
+  { id: 'fallback-huey-neild', name: 'Huey Neild', role: '', image_url: '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp', announcement_date: '2026-05-05', sort_order: 7, is_active: true },
+  { id: 'fallback-nathan-keevil', name: 'Nathan Keevil', role: '', image_url: '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp', announcement_date: '2026-05-06', sort_order: 8, is_active: true },
+  { id: 'fallback-scott-kirby', name: 'Scott Kirby', role: '', image_url: '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp', announcement_date: '2026-05-07', sort_order: 9, is_active: true },
+];
+
+export function mergeSeasonAppointmentsWithFallback<T extends { name: string; sort_order?: number | null }>(appointments: T[] | null | undefined) {
+  const merged = [...((appointments || []).filter((appointment) => appointment.name?.trim()))];
+  for (const fallback of fallbackSeasonAppointments) {
+    if (!merged.some((appointment) => normalizeFallbackKey(appointment.name) === normalizeFallbackKey(fallback.name))) merged.push(fallback as unknown as T);
+  }
+  return merged.sort((a, b) => (Number(a.sort_order || 999) - Number(b.sort_order || 999)));
+}
 
 export const fallbackNews = SEED_NEWS.filter((post) => post.published).map((post) => ({
   ...post,
