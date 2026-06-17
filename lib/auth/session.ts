@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase-server';
-import { AUTH_COOKIE_NAME, AuthRole, SESSION_TTL_DAYS } from './config';
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, AuthRole, SESSION_TTL_DAYS } from './config';
 
 export interface CommitteeSessionUser {
   id: string;
@@ -31,7 +31,21 @@ export function createAuthCookie(token: string, expiresAt: Date) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     path: '/',
+    domain: AUTH_COOKIE_DOMAIN,
     expires: expiresAt,
+  };
+}
+
+export function clearAuthCookie() {
+  return {
+    name: AUTH_COOKIE_NAME,
+    value: '',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    domain: AUTH_COOKIE_DOMAIN,
+    maxAge: 0,
   };
 }
 
