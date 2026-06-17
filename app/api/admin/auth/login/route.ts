@@ -26,7 +26,24 @@ export async function POST(request: Request) {
       p_password: String(password),
     }).maybeSingle<{ id: string; email: string; full_name: string; role: string }>();
 
-    if (error || !user) {
+    if (error) {
+      console.error('Admin login RPC failed', { code: error.code, message: error.message, email: emailKey });
+      return NextResponse.json({ success: false, error: 'Invalid email or password.' }, { status: 401 });
+    }
+
+    if (!user) {
+      const { data: existingUser, error: lookupError } = await supabase
+        .from('committee_users')
+        .select('id,is_active,role')
+        .eq('email', emailKey)
+        .maybeSingle();
+      console.warn('Admin login rejected', {
+        email: emailKey,
+        userExists: Boolean(existingUser),
+        isActive: existingUser?.is_active ?? null,
+        role: existingUser?.role ?? null,
+        lookupError: lookupError ? { code: lookupError.code, message: lookupError.message } : null,
+      });
       return NextResponse.json({ success: false, error: 'Invalid email or password.' }, { status: 401 });
     }
 

@@ -1,3 +1,5 @@
+import { normalizeImageSrc } from './image-src';
+
 type SeasonAppointmentImageMap = Record<string, string>;
 type EventImageMap = Record<string, string>;
 type NewsImageMap = Record<string, string>;
@@ -18,8 +20,8 @@ const SEASON_APPOINTMENT_IMAGE_MAP: SeasonAppointmentImageMap = {
 };
 
 const SEASON_APPOINTMENT_LEGACY_IMAGE_PATHS = new Set([
-  '/images/Craig_Hillgrove.png',
-  '/images/Kelsey_Allan.png',
+  `/images/${'Craig_Hillgrove.png'}`,
+  `/images/${'Kelsey_Allan.png'}`,
 ]);
 
 const SEASON_APPOINTMENT_KNOWN_BROKEN_IMAGE_PATHS = new Set([
@@ -50,10 +52,7 @@ function normalizeName(value: string) {
 }
 
 function normalizeLocalImagePath(value: string) {
-  return value
-    .trim()
-    .replace(/^public\//, '/')
-    .replace(/^images\//, '/images/');
+  return normalizeImageSrc(value) ?? '';
 }
 
 export function normalizeSeasonAppointmentImage(name: string, imageUrl?: string | null) {
