@@ -145,7 +145,7 @@ function isMissingSortOrderColumnError(errorMessage: string, table: string) {
     && errorMessage.includes('news');
 }
 
-export async function GET(_request: Request, { params }: { params: { resource: string } }) {
+export async function GET(request: Request, { params }: { params: { resource: string } }) {
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
@@ -155,7 +155,13 @@ export async function GET(_request: Request, { params }: { params: { resource: s
   }
 
   const supabase = createServerClient();
+  const { searchParams } = new URL(request.url);
+  const limitParam = searchParams.get('limit');
+  const limit = limitParam ? Number(limitParam) : null;
   let query = supabase.from(config.table).select('*');
+  if (Number.isInteger(limit) && limit !== null && limit > 0 && limit <= 100) {
+    query = query.limit(limit);
+  }
   if (config.defaultOrder) {
     query = query.order(config.defaultOrder.column, { ascending: config.defaultOrder.ascending });
   }
