@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { NAV_LINKS } from '@/lib/constants';
-import { createServerClient } from './supabase-server';
+import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 
 export type PageLinkCard = {
   id: string;
@@ -135,22 +135,27 @@ export type CommitteeMemberContent = {
 };
 
 function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return isServerSupabaseConfigured();
 }
 
 async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
   if (!hasSupabaseEnv()) return fallbackLinksForSection(pageSlug, sectionKey);
   try {
     const supabase = createServerClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('page_link_cards')
       .select('*')
       .eq('page_slug', pageSlug)
       .eq('section_key', sectionKey)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
+    if (error) {
+      console.warn('Public page link cards query failed; using fallback.');
+      return fallbackLinksForSection(pageSlug, sectionKey);
+    }
     return data?.length ? (data as PageLinkCard[]) : fallbackLinksForSection(pageSlug, sectionKey);
   } catch {
+    console.warn('Public page link cards query timed out or failed; using fallback.');
     return fallbackLinksForSection(pageSlug, sectionKey);
   }
 }

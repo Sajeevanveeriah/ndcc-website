@@ -53,9 +53,13 @@ async function getClubSettingsUncached(): Promise<ClubSettings> {
       .eq('id', 'default')
       .maybeSingle();
 
-    if (error || !data) return fallbackClubSettings;
+    if (error || !data) {
+      if (error) console.warn('Public club settings query failed; using fallback.');
+      return fallbackClubSettings;
+    }
     return normalizeClubSettings(data as Partial<ClubSettings>);
   } catch {
+    console.warn('Public club settings query timed out or failed; using fallback.');
     return fallbackClubSettings;
   }
 }
