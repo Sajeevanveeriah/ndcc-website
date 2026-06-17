@@ -21,7 +21,7 @@ export default function ContactPage() {
     submitted_at: Date.now(),
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'warning' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [heroTitle, setHeroTitle] = useState('Contact Us');
   const [heroBody, setHeroBody] = useState('Have a question, want to join, or looking to get involved? We’d love to hear from you.');
@@ -80,12 +80,14 @@ export default function ContactPage() {
         body: JSON.stringify({ ...formData, submitted_at: formData.submitted_at }),
       });
 
+      const data = await response.json().catch(() => null);
+
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
 
-      setSubmitStatus('success');
+      setErrorMessage(data?.message || 'Message sent successfully!');
+      setSubmitStatus(data?.emailStatus === 'sent' ? 'success' : 'warning');
       setFormData({ name: '', email: '', enquiry_type: '', message: '', hp_field: '', submitted_at: Date.now() });
     } catch (err) {
       setSubmitStatus('error');
@@ -119,7 +121,16 @@ export default function ContactPage() {
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
                   <p className="text-green-800 font-body font-semibold">Message sent successfully!</p>
                   <p className="text-green-700 font-body text-sm mt-1">
-                    Thank you for your enquiry. A committee member will be in touch shortly.
+                    {errorMessage || 'Thank you for your enquiry. A committee member will be in touch shortly.'}
+                  </p>
+                </div>
+              )}
+
+              {submitStatus === 'warning' && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg" role="alert">
+                  <p className="text-yellow-900 font-body font-semibold">Enquiry received</p>
+                  <p className="text-yellow-800 font-body text-sm mt-1">
+                    {errorMessage || 'Your enquiry was saved, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.'}
                   </p>
                 </div>
               )}

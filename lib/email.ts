@@ -1,7 +1,7 @@
 import 'server-only';
-import { Resend } from 'resend';
+import { Resend, type CreateEmailOptions, type Tag } from 'resend';
 
-const ADMIN_EMAIL = 'ndcc.secretary1@gmail.com';
+const DEFAULT_CONTACT_EMAIL = 'ndcc.secretary1@gmail.com';
 
 let _resend: Resend | null = null;
 
@@ -16,6 +16,10 @@ export interface EmailPayload {
   to: EmailAddress;
   subject: string;
   html: string;
+  replyTo?: EmailAddress;
+  cc?: EmailAddress;
+  bcc?: EmailAddress;
+  tags?: Tag[];
 }
 
 function getResend(): Resend {
@@ -49,12 +53,18 @@ function isValidSenderAddress(value: string): boolean {
   return Boolean(namedMatch?.[1].trim() && EMAIL_PATTERN.test(namedMatch[2]));
 }
 
+function maskEmail(value: string): string {
+  const [local = '', domain = ''] = value.split('@');
+  if (!local || !domain) return '[invalid email]';
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
 function maskSenderPreview(value: string): string {
   const namedMatch = value.match(NAMED_EMAIL_PATTERN);
-  if (!namedMatch) return value;
+  if (!namedMatch) return maskEmail(value);
 
   const name = namedMatch[1].trim();
-  return `${name[0] ?? '*'}*** <${namedMatch[2]}>`;
+  return `${name[0] ?? '*'}*** <${maskEmail(namedMatch[2])}>`;
 }
 
 function getFromAddress(): SenderConfig {
@@ -93,16 +103,44 @@ function hasRecipients(to: EmailAddress): boolean {
   return to.trim().length > 0;
 }
 
+function parseEmailList(value?: string): string[] {
+  return (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function getContactEmailConfig() {
+  const configuredTo = process.env.CONTACT_TO_EMAIL?.trim() || '';
+  const effectiveRecipient = configuredTo || DEFAULT_CONTACT_EMAIL;
+  return {
+    contactToPresent: Boolean(configuredTo),
+    contactCcPresent: parseEmailList(process.env.CONTACT_CC_EMAILS).length > 0,
+    contactBccPresent: parseEmailList(process.env.CONTACT_BCC_EMAILS).length > 0,
+    effectiveContactRecipient: effectiveRecipient,
+    effectiveContactRecipientPreview: maskEmail(effectiveRecipient),
+    cc: parseEmailList(process.env.CONTACT_CC_EMAILS),
+    bcc: parseEmailList(process.env.CONTACT_BCC_EMAILS),
+    fallbackUsed: !configuredTo,
+  };
+}
 
 export function getEmailConfigStatus() {
   const sender = getFromAddress();
+  const contact = getContactEmailConfig();
   return {
     resendApiKeyPresent: Boolean(process.env.RESEND_API_KEY),
     resendFromPresent: sender.source !== 'missing',
     resendFromSource: sender.source,
     resendFromValid: sender.valid,
     resendFromPreview: sender.preview,
+    contactToPresent: contact.contactToPresent,
+    contactCcPresent: contact.contactCcPresent,
+    contactBccPresent: contact.contactBccPresent,
+    effectiveContactRecipientPreview: contact.effectiveContactRecipientPreview,
+    contactFallbackUsed: contact.fallbackUsed,
     ready: Boolean(process.env.RESEND_API_KEY && sender.address),
+    contactReady: Boolean(process.env.RESEND_API_KEY && sender.address && contact.effectiveContactRecipient),
   };
 }
 
@@ -114,8 +152,8 @@ function validatePayload(payload: EmailPayload): string | null {
 }
 
 /**
- * Fire-and-forget email. Failure never blocks a form submission.
- * Every email BCCs the admin inbox automatically.
+ * Send an email through Resend when email configuration is complete.
+ * Existing callers can continue passing only to, subject, and html.
  */
 export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult> {
   const validationError = validatePayload(payload);
@@ -137,27 +175,30 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     return { status: 'skipped', reason };
   }
 
-  const from = sender.address;
+  const email: CreateEmailOptions = {
+    from: sender.address,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
+    ...(payload.cc ? { cc: payload.cc } : {}),
+    ...(payload.bcc ? { bcc: payload.bcc } : {}),
+    ...(payload.tags ? { tags: payload.tags } : {}),
+  };
 
   try {
-    const result = await getResend().emails.send({
-      from,
-      to: payload.to,
-      bcc: ADMIN_EMAIL,
-      subject: payload.subject,
-      html: payload.html,
-    });
+    const result = await getResend().emails.send(email);
 
     if (result.error) {
       const reason = result.error.message || 'Resend returned an email send error.';
-      console.error('[email] Resend failed:', result.error);
+      console.error('[email] Resend failed:', { name: result.error.name, message: reason });
       return { status: 'failed', reason };
     }
 
     return { status: 'sent', id: result.data?.id };
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'Unknown Resend send error.';
-    console.error('[email] Resend failed:', err);
+    console.error('[email] Resend failed:', { message: reason });
     return { status: 'failed', reason };
   }
 }
