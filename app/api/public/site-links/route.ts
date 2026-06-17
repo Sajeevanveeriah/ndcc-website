@@ -20,5 +20,5 @@ export async function GET(request: Request) {
   }
 
   const data = await getPageLinkCards('site', section);
-  return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=600' } });
+  return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }

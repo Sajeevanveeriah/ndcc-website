@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
+export const preferredRegion = 'syd1';
 
 export async function GET() {
   if (!isServerSupabaseConfigured()) {
-    return NextResponse.json({ success: true, data: { menu: null, items: [] } });
+    return NextResponse.json({ success: true, data: { menu: null, items: [] } }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
   }
 
   const supabase = createServerClient();
@@ -18,7 +19,7 @@ export async function GET() {
     .maybeSingle();
 
   if (menuError) return NextResponse.json({ success: false, error: menuError.message }, { status: 500 });
-  if (!menu) return NextResponse.json({ success: true, data: { menu: null, items: [] } });
+  if (!menu) return NextResponse.json({ success: true, data: { menu: null, items: [] } }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 
   const { data: items, error: itemsError } = await supabase
     .from('kitchen_items')
@@ -30,5 +31,5 @@ export async function GET() {
 
   if (itemsError) return NextResponse.json({ success: false, error: itemsError.message }, { status: 500 });
 
-  return NextResponse.json({ success: true, data: { menu, items: items ?? [] } });
+  return NextResponse.json({ success: true, data: { menu, items: items ?? [] } }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }
