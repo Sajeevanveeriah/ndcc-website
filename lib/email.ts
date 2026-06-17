@@ -110,7 +110,7 @@ function parseEmailList(value?: string): string[] {
     .filter(Boolean);
 }
 
-export function getContactEmailConfig() {
+export function getContactEmailRecipients() {
   const configuredTo = process.env.CONTACT_TO_EMAIL?.trim() || '';
   const effectiveRecipient = configuredTo || DEFAULT_CONTACT_EMAIL;
   return {
@@ -125,9 +125,13 @@ export function getContactEmailConfig() {
   };
 }
 
+
+// Backwards-compatible alias for older internal callers.
+export const getContactEmailConfig = getContactEmailRecipients;
+
 export function getEmailConfigStatus() {
   const sender = getFromAddress();
-  const contact = getContactEmailConfig();
+  const contact = getContactEmailRecipients();
   return {
     resendApiKeyPresent: Boolean(process.env.RESEND_API_KEY),
     resendFromPresent: sender.source !== 'missing',
