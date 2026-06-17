@@ -21,6 +21,7 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { normalizeSeasonAppointmentImage } from '@/lib/public-content-normalizers';
+import { fallbackNews, fallbackSeasonAppointments, fallbackSponsors, isProductionStaticBuild } from '@/lib/fallback-content';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -61,8 +62,8 @@ const FALLBACK_SPONSOR_LOGOS: Record<string, string> = {
 };
 
 async function getLatestNews(): Promise<NewsItem[]> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return [];
+  if (isProductionStaticBuild || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return fallbackNews.slice(0, 3) as NewsItem[];
   }
 
   try {
@@ -70,13 +71,13 @@ async function getLatestNews(): Promise<NewsItem[]> {
     if (!Array.isArray(data)) return [];
     return data as NewsItem[];
   } catch {
-    return [];
+    return fallbackNews.slice(0, 3) as NewsItem[];
   }
 }
 
 const getSponsors = unstable_cache(async (): Promise<SponsorItem[]> => {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return [];
+  if (isProductionStaticBuild || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return fallbackSponsors as SponsorItem[];
   }
   try {
     const supabase = createServerClient();
@@ -87,13 +88,13 @@ const getSponsors = unstable_cache(async (): Promise<SponsorItem[]> => {
       .order('created_at', { ascending: true });
     return (data as SponsorItem[]) || [];
   } catch {
-    return [];
+    return fallbackSponsors as SponsorItem[];
   }
 }, ['home-sponsors'], { revalidate: 300, tags: ['sponsors'] });
 
 const getSeasonAppointments = unstable_cache(async (): Promise<SeasonAppointmentItem[]> => {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return [];
+  if (isProductionStaticBuild || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return fallbackSeasonAppointments;
   }
   try {
     const supabase = createServerClient();
@@ -105,7 +106,7 @@ const getSeasonAppointments = unstable_cache(async (): Promise<SeasonAppointment
       .order('announcement_date', { ascending: false });
     return (data as SeasonAppointmentItem[]) || [];
   } catch {
-    return [];
+    return fallbackSeasonAppointments;
   }
 }, ['home-season-appointments'], { revalidate: 300, tags: ['season-appointments'] });
 

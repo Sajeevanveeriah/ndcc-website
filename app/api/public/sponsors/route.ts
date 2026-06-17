@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
+import { fallbackSponsors } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,11 +17,11 @@ const getActiveSponsors = unstable_cache(async () => {
 
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ success: false, error: 'Service not configured.' }, { status: 503 });
+    return NextResponse.json({ success: true, data: fallbackSponsors });
   }
 
   const { data, error } = await getActiveSponsors();
 
-  if (error) return NextResponse.json({ success: false, error }, { status: 500 });
-  return NextResponse.json({ success: true, data });
+  if (error) return NextResponse.json({ success: true, data: fallbackSponsors });
+  return NextResponse.json({ success: true, data: data.length ? data : fallbackSponsors });
 }

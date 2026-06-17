@@ -7,6 +7,7 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
+import { fallbackGalleryImages } from '@/lib/fallback-content';
 
 type GalleryPhoto = {
   id: string;
@@ -19,7 +20,7 @@ type GalleryPhoto = {
 };
 
 export default function GalleryPage() {
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [photos, setPhotos] = useState<GalleryPhoto[]>(fallbackGalleryImages as GalleryPhoto[]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function GalleryPage() {
         if (!response.ok) throw new Error(result.error || 'Failed to load gallery');
         setPhotos(result.data ?? []);
       } catch {
-        setPhotos([]);
+        setPhotos(fallbackGalleryImages as GalleryPhoto[]);
       }
     }
     loadGallery();

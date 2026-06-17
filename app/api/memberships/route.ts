@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,10 @@ function isValidEmail(email: string): boolean {
 }
 
 export async function GET() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ success: true, plans: fallbackMembershipPlans, addons: fallbackMembershipAddons });
+  }
+
   const supabase = createServerClient();
 
   const [{ data: plans }, { data: addons }] = await Promise.all([
@@ -22,7 +27,11 @@ export async function GET() {
     supabase.from('social_membership_addons').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
   ]);
 
-  return NextResponse.json({ success: true, plans: plans || [], addons: addons || [] });
+  return NextResponse.json({
+    success: true,
+    plans: plans?.length ? plans : fallbackMembershipPlans,
+    addons: addons?.length ? addons : fallbackMembershipAddons,
+  });
 }
 
 export async function POST(request: Request) {

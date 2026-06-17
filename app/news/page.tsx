@@ -8,6 +8,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
+import { fallbackNews } from '@/lib/fallback-content';
 
 function SkeletonCard() {
   return (
@@ -23,8 +24,8 @@ function SkeletonCard() {
 }
 
 export default function NewsPage() {
-  const [posts, setPosts] = useState<NewsPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<NewsPost[]>(fallbackNews);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     document.title = 'News & Announcements | NDCC Dinos';
@@ -37,10 +38,10 @@ export default function NewsPage() {
         if (res.ok && Array.isArray(json.data)) {
           setPosts(json.data as NewsPost[]);
         } else {
-          setPosts([]);
+          setPosts(fallbackNews);
         }
       } catch {
-        setPosts([]);
+        setPosts(fallbackNews);
       } finally {
         setLoading(false);
       }

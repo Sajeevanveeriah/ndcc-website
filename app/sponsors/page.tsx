@@ -19,6 +19,7 @@ import {
 import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
+import { fallbackSponsors } from '@/lib/fallback-content';
 
 const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   major: 'danger',
@@ -31,9 +32,9 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 export default function SponsorsPage() {
   const clubEmail = `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
   const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [usingSeed, setUsingSeed] = useState(false);
+  const [sponsors, setSponsors] = useState<Sponsor[]>(fallbackSponsors);
+  const [loading, setLoading] = useState(false);
+  const [usingSeed, setUsingSeed] = useState(true);
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',

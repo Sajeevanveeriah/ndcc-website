@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { normalizeGalleryImage } from '@/lib/public-content-normalizers';
+import { fallbackGalleryImages } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,14 +19,15 @@ const getPublishedGalleryImages = unstable_cache(async () => {
 
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ success: false, error: 'Service not configured.' }, { status: 503 });
+    return NextResponse.json({ success: true, data: fallbackGalleryImages });
   }
 
   const { data, error } = await getPublishedGalleryImages();
 
   if (error) {
-    return NextResponse.json({ success: false, error }, { status: 500 });
+    return NextResponse.json({ success: true, data: fallbackGalleryImages });
   }
 
-  return NextResponse.json({ success: true, data: data.map((item) => normalizeGalleryImage(item)) });
+  const normalized = data.map((item) => normalizeGalleryImage(item));
+  return NextResponse.json({ success: true, data: normalized.length ? normalized : fallbackGalleryImages });
 }

@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 import { normalisePublicText } from './utils';
+import { fallbackBlocksForKeys, isProductionStaticBuild } from '@/lib/fallback-content';
 
 export interface ContentBlock {
   block_key: string;
@@ -12,8 +13,8 @@ export interface ContentBlock {
 }
 
 async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
-  if (!isServerSupabaseConfigured()) {
-    return {};
+  if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
+    return fallbackBlocksForKeys(keys);
   }
   try {
     const supabase = createServerClient();
@@ -25,7 +26,7 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
 
     if (error) {
       console.warn('Public content blocks query failed; using fallback.');
-      return {};
+      return fallbackBlocksForKeys(keys);
     }
 
     const cleaned = (data ?? []).map((row) => ({
@@ -37,7 +38,7 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
     return Object.fromEntries(cleaned.map((row) => [row.block_key, row as ContentBlock]));
   } catch {
     console.warn('Public content blocks query timed out or failed; using fallback.');
-    return {};
+    return fallbackBlocksForKeys(keys);
   }
 }
 
