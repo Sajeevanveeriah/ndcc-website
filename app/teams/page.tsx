@@ -13,7 +13,7 @@ const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Teams',

@@ -4,7 +4,7 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { truncateText } from '@/lib/utils';
 import NewsDetailClient from './NewsDetailClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 async function getPost(id: string): Promise<PublicNewsRecord | null> {
   try {
