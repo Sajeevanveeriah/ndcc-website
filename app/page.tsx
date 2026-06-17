@@ -7,7 +7,6 @@ import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -15,7 +14,6 @@ import {
   PLAYHQ_ORG_URL,
   FACEBOOK_URL,
   SEED_SPONSORS,
-  SPONSOR_TIERS,
 } from '@/lib/constants';
 import { formatDate, truncateText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
@@ -92,12 +90,6 @@ const getSeasonAppointments = unstable_cache(async (): Promise<SeasonAppointment
     return [];
   }
 }, ['home-season-appointments'], { revalidate: 300, tags: ['season-appointments'] });
-
-const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-  major: 'danger',
-  gold: 'warning',
-  silver: 'default',
-};
 
 const HERO_DEFAULT_BODY = `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`;
 
@@ -442,18 +434,20 @@ async function SeasonAppointmentsSection() {
           <span className="section-eyebrow">2026/27 Season</span>
           <h2 className="section-title">2026/27 Season Appointments</h2>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {seasonAppointments.map((appointment) => {
+        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="2026/27 season appointments carousel">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
+          <div className="homepage-marquee-track gap-5 py-2">
+          {[...seasonAppointments, ...seasonAppointments].map((appointment, index) => {
             const role = appointment.role.trim();
             const imageAlt = role
               ? `${appointment.name} appointed as ${role}`
               : `${appointment.name} season appointment announcement`;
 
             return (
-              <ScrollRevealItem key={appointment.id}>
               <div
-                className="group relative rounded-2xl overflow-hidden bg-maroon-900 shadow-md hover:shadow-xl transition-shadow duration-300"
-                style={{ aspectRatio: '3/4' }}
+                key={`${appointment.id}-${index}`}
+                className="group relative h-[360px] w-[270px] flex-none rounded-2xl overflow-hidden bg-maroon-900 shadow-md hover:shadow-xl transition-shadow duration-300"
               >
                 {appointment.image_url ? (
                   <SafeImage
@@ -490,9 +484,9 @@ async function SeasonAppointmentsSection() {
                   </p>
                 </div>
               </div>
-              </ScrollRevealItem>
             );
           })}
+          </div>
         </ScrollReveal>
         <p className="text-center text-gray-500 font-body text-sm mt-8">
           More appointments to be announced. Follow us on{' '}
@@ -565,66 +559,49 @@ async function SponsorsSection() {
             {sponsorshipBody}
           </p>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-label="Club sponsors">
-          {sponsors.map((sponsor) => {
-            const tierInfo = SPONSOR_TIERS.find((t) => t.value === sponsor.tier);
-            const card = (
-              <Card hover={Boolean(sponsor.website)} className="h-full border border-sky-100 hover:ring-2 hover:ring-maroon-200/40">
-                <CardContent className="p-6 flex flex-col items-center text-center h-full">
-                  <div className="w-full h-28 rounded-lg bg-white border border-gray-100 relative overflow-hidden mb-4">
-                    {sponsor.logo_url ? (
-                      <SafeImage
-                        src={sponsor.logo_url}
-                        alt={`${sponsor.name} logo`}
-                        fill
-                        className="object-contain p-3"
-                        sizes="(max-width: 1024px) 50vw, 320px"
-                        fallback={
-                          <div className="w-full h-full flex items-center justify-center text-lg font-bold text-maroon-700">
-                            {sponsor.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        }
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg font-bold text-maroon-700">
-                        {sponsor.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <p className="font-display font-bold text-gray-900 text-base mb-2">{sponsor.name}</p>
-                  {tierInfo && (
-                    <Badge variant={TIER_BADGE_VARIANT[sponsor.tier] || 'default'} className="text-xs mb-3">
-                      {tierInfo.label}
-                    </Badge>
+        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
+          <div className="homepage-marquee-track gap-4 py-2">
+            {[...sponsors, ...sponsors].map((sponsor, index) => {
+              const logo = (
+                <div className="flex h-32 w-56 flex-none items-center justify-center rounded-2xl border border-sky-100 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md">
+                  {sponsor.logo_url ? (
+                    <SafeImage
+                      src={sponsor.logo_url}
+                      alt={`${sponsor.name} logo`}
+                      width={190}
+                      height={82}
+                      className="max-h-20 w-auto object-contain"
+                      sizes="190px"
+                      fallback={
+                        <span className="text-lg font-bold text-maroon-700">{sponsor.name}</span>
+                      }
+                    />
+                  ) : (
+                    <span className="text-lg font-bold text-maroon-700">{sponsor.name}</span>
                   )}
-                  <p className="text-sm font-body text-maroon-700 font-semibold mt-auto">
-                    {sponsor.website ? 'Visit sponsor website' : 'Website coming soon'}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-
-            if (!sponsor.website) {
-              return (
-                <ScrollRevealItem key={sponsor.id} className="block">
-                  {card}
-                </ScrollRevealItem>
+                </div>
               );
-            }
 
-            return (
-              <ScrollRevealItem key={sponsor.id}>
+              if (!sponsor.website) {
+                return <div key={`${sponsor.id}-${index}`} aria-label={sponsor.name}>{logo}</div>;
+              }
+
+              return (
                 <a
+                  key={`${sponsor.id}-${index}`}
                   href={sponsor.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block group h-full"
+                  aria-label={`Visit ${sponsor.name} website`}
+                  className="block flex-none"
                 >
-                  {card}
+                  {logo}
                 </a>
-              </ScrollRevealItem>
-            );
-          })}
+              );
+            })}
+          </div>
         </ScrollReveal>
         <div className="text-center mt-8">
           <Link href="/sponsors" className="btn-secondary">

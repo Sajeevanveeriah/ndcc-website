@@ -186,3 +186,27 @@
   70%  { box-shadow: 0 0 0 10px rgba(128, 0, 0, 0); }
   100% { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0); }
 }
+
+.homepage-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: homepage-marquee 42s linear infinite;
+}
+
+.homepage-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homepage-marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@keyframes homepage-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
