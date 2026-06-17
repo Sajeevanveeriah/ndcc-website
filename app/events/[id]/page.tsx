@@ -7,7 +7,7 @@ import { formatDateTime, truncateText } from '@/lib/utils';
 import type { Event } from '@/lib/types';
 import EventDetailClient from './EventDetailClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 const getEvent = unstable_cache(async (id: string): Promise<Event | null> => {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
