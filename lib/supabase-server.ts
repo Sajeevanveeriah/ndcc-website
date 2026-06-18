@@ -32,7 +32,7 @@ export function isPublicSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
-export function createServerClient() {
+export function createServerClient(options: { fetchTimeoutMs?: number | null } = {}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -40,10 +40,10 @@ export function createServerClient() {
     throw new Error('Supabase server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
   }
 
+  const clientOptions = options.fetchTimeoutMs === null ? {} : { fetch: createTimeoutFetch(options.fetchTimeoutMs) };
+
   return createClient(supabaseUrl, serviceRoleKey, {
-    global: {
-      fetch: createTimeoutFetch(),
-    },
+    global: clientOptions,
     auth: {
       autoRefreshToken: false,
       persistSession: false,
