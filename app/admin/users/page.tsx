@@ -11,9 +11,8 @@ const VALID_ROLES = ['admin', 'president', 'secretary', 'committee'];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const USER_PROVISIONING_PRESETS = [
-  { fullName: 'John Elliott', role: 'president' },
-  { fullName: 'Troy Whitworth', role: 'committee' },
-  { fullName: 'Rick Mchutchinson', role: 'committee' },
+  { fullName: 'John Elliott', email: 'ndsc.cricket@gmail.com', role: 'president' },
+  { fullName: 'Troy Whitworth', email: 'ndcc.vicepres@gmail.com', role: 'committee' },
 ];
 
 export default function AdminUsersPage() {
@@ -99,12 +98,12 @@ export default function AdminUsersPage() {
         <p className="text-sm font-semibold text-gray-800 mb-2">Provisioning shortcuts</p>
         <div className="flex flex-wrap gap-2">
           {USER_PROVISIONING_PRESETS.map((preset) => (
-            <Button key={preset.fullName} type="button" variant="secondary" onClick={() => { setFullName(preset.fullName); setRole(preset.role); }}>
+            <Button key={preset.fullName} type="button" variant="secondary" onClick={() => { setFullName(preset.fullName); setEmail(preset.email); setRole(preset.role); }}>
               {preset.fullName}
             </Button>
           ))}
         </div>
-        <p className="text-xs text-gray-600 mt-2">Enter the verified email address and a temporary password manually; passwords are never preset or committed.</p>
+        <p className="text-xs text-gray-600 mt-2">The verified email address is filled for the selected office bearer. Enter a unique temporary password manually and require the user to change it at first sign-in; passwords are never preset or committed.</p>
       </div>
 
       <form onSubmit={create} className="bg-white p-4 rounded-xl border grid md:grid-cols-2 gap-3">
