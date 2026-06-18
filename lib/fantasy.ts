@@ -9,6 +9,7 @@ export type FantasyModule = {
 
 export const FANTASY_MODULES: FantasyModule[] = [
   { title: 'Rules', description: 'Read the club-first rules for NDCC Fantasy Cricket.', href: '/fantasy/rules', status: 'available' },
+  { title: 'Player List', description: 'Browse active fantasy players with their roles, teams and current prices.', href: '/fantasy/players', status: 'available' },
   { title: 'Player Leaderboard', description: 'View published-only player scoring from approved imports.', href: '/fantasy/leaderboard', status: 'available' },
   { title: 'Register / Login', description: 'Create or access your public fantasy manager account.', href: '/fantasy/register', status: 'available' },
   { title: 'My Squad', description: 'Pick a 15-player squad with captain, vice-captain, bench order and budget checks.', href: '/fantasy/squad', status: 'available' },
