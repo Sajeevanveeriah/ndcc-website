@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
+import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
@@ -215,6 +216,27 @@ export default function SponsorsPage() {
                           <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
                             {sponsor.name}
                           </h3>
+                          <div className="mb-4 flex h-28 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 p-4">
+                            {sponsor.logo_url ? (
+                              <SafeImage
+                                src={sponsor.logo_url}
+                                alt={`${sponsor.name} logo`}
+                                width={220}
+                                height={96}
+                                className="max-h-24 w-auto object-contain"
+                                sizes="220px"
+                                fallback={
+                                  <span className="text-center font-display text-lg font-bold text-maroon-800">
+                                    {sponsor.name}
+                                  </span>
+                                }
+                              />
+                            ) : (
+                              <span className="text-center font-display text-lg font-bold text-maroon-800">
+                                {sponsor.name}
+                              </span>
+                            )}
+                          </div>
                           {description && (
                             <p className="text-gray-600 font-body text-sm mb-3">{description}</p>
                           )}

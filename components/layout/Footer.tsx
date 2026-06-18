@@ -43,7 +43,7 @@ export default async function Footer() {
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
   const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
-  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
+  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url || '/images/Connection_Bri_Hayes_Rev1.jpg';
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
