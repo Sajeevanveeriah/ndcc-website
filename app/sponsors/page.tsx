@@ -21,6 +21,23 @@ import { validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 import { fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 
+
+const SPONSOR_DESCRIPTIONS_BY_NAME: Record<string, string> = {
+  'APCO': 'Australian-owned service station and convenience retailer with Geelong-region locations, including Newcomb and North Geelong.',
+  'Bennett': 'Proud local supporter of Newcomb and District Cricket Club.',
+  "Blackman's Brewery": SEED_SPONSOR_DESCRIPTIONS['seed-blackmans'],
+  'Champion Trophies': SEED_SPONSOR_DESCRIPTIONS['seed-champion'],
+  'GP': 'Proud local supporter of Newcomb and District Cricket Club.',
+  'Leopold Sportsmans Club': SEED_SPONSOR_DESCRIPTIONS['seed-leopold'],
+  'Mahoney': 'Geelong and Bellarine Peninsula real estate services.',
+  'MBR Cricket': SEED_SPONSOR_DESCRIPTIONS['seed-mbr'],
+  'Phoenix Truck Bodies': SEED_SPONSOR_DESCRIPTIONS['seed-phoenix'],
+};
+
+function getSponsorDescription(sponsor: Sponsor) {
+  return SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || SPONSOR_DESCRIPTIONS_BY_NAME[sponsor.name] || '';
+}
+
 const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   major: 'danger',
   gold: 'warning',
@@ -202,7 +219,7 @@ export default function SponsorsPage() {
               </div>
               <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sponsorsByTier[tier.value].map((sponsor) => {
-                  const description = SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || '';
+                  const description = getSponsorDescription(sponsor);
                   return (
                     <ScrollRevealItem key={sponsor.id}>
                     <a

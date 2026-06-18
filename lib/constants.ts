@@ -277,9 +277,9 @@ Congratulations to everyone involved in the Division 4 1st Eleven premiership, t
 export const SEED_SPONSORS: Omit<Sponsor, 'created_at'>[] = [
   {
     id: 'seed-mbr',
-    name: 'MBR Cricket (Mustaang Cricket Bat Repairs)',
+    name: 'MBR Cricket',
     tier: 'major',
-    logo_url: '',
+    logo_url: 'https://mbrcricket.com/cdn/shop/files/mbr-logo-gold.png?v=1781747781',
     website: 'https://mbrcricket.com',
     placement_type: 'homepage',
     active: true,
@@ -323,7 +323,7 @@ export const SEED_SPONSORS: Omit<Sponsor, 'created_at'>[] = [
 ];
 
 export const SEED_SPONSOR_DESCRIPTIONS: Record<string, string> = {
-  'seed-mbr': 'Geelong-based handcrafted cricket bats, repairs, pads and gloves. Owned by Raj Kumar Gurung.',
+  'seed-mbr': "Custom cricket bats built for each player's style and format, plus professional bat repairs from MBR Cricket in Geelong.",
   'seed-leopold': 'Local sports and dining club in Leopold. Club event venue partner.',
   'seed-champion': 'Trophy supply and engraving. 172 Malop St, Geelong. Over 50 years in business.',
   'seed-phoenix': 'Geelong-based truck body manufacturing and general engineering since 1995.',

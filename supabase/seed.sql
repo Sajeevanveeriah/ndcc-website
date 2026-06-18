@@ -6,7 +6,7 @@
 -- ============================================
 
 INSERT INTO sponsors (name, tier, website, placement_type, active) VALUES
-  ('Mustaang Cricket Bat Repairs (MBR Cricket)', 'major', 'https://mbrcricket.com', 'homepage', TRUE),
+  ('MBR Cricket', 'major', 'https://mbrcricket.com', 'homepage', TRUE),
   ('Leopold Sportsmans Club', 'gold', 'https://leopoldsporties.com', 'listing', TRUE),
   ('Champion Trophies', 'gold', 'https://www.swlocksmiths.com.au/trophies-giftware/', 'listing', TRUE),
   ('Phoenix Truck Bodies', 'silver', 'https://phoenixtruckbodies.com.au', 'listing', TRUE),
