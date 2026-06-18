@@ -13,20 +13,14 @@ export const metadata: Metadata = {
   description: 'View available NDCC Fantasy Cricket players, roles, teams, and prices.',
 };
 
-function cleanFantasyError(error: unknown) {
-  if (error instanceof Error && (error.name === 'AbortError' || error.message.toLowerCase().includes('abort'))) {
-    return 'Fantasy player data took too long to load. Please refresh, or try again shortly.';
-  }
-  return 'Fantasy player data is not available right now. Please try again shortly.';
-}
 
 async function getPlayers() {
   if (!isServerSupabaseConfigured()) return { players: [] as FantasyPlayerWithPrice[], error: null };
 
   try {
     return { players: await getActivePlayersWithLatestPrices(), error: null };
-  } catch (error) {
-    return { players: [] as FantasyPlayerWithPrice[], error: cleanFantasyError(error) };
+  } catch {
+    return { players: [] as FantasyPlayerWithPrice[], error: 'Player data is being refreshed. Please check back shortly.' };
   }
 }
 
@@ -46,7 +40,7 @@ export default async function FantasyPlayersPage() {
         {error ? (
           <Card>
             <CardContent className="p-8">
-              <h2 className="text-xl font-display font-bold text-gray-900 mb-2">Player list temporarily unavailable</h2>
+              <h2 className="text-xl font-display font-bold text-gray-900 mb-2">Player list is being refreshed</h2>
               <p className="font-body text-gray-700 mb-4">{error}</p>
               <Link href="/fantasy" className="btn-secondary">Back to Fantasy Cricket</Link>
             </CardContent>

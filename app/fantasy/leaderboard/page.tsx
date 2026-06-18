@@ -26,12 +26,9 @@ function roundHref(roundId: string | null) {
 
 export default async function FantasyLeaderboardPage({ searchParams }: PageProps) {
   let leaderboard;
-  let loadError = '';
-
   try {
     leaderboard = await getPublishedFantasyLeaderboard(searchParams?.round || null);
-  } catch (err) {
-    loadError = err instanceof Error ? err.message : 'Leaderboard data could not be loaded.';
+  } catch {
     leaderboard = { rows: [], rounds: [], selectedRoundId: null };
   }
 
@@ -84,13 +81,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
             </CardContent>
           </Card>
 
-          {loadError ? (
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-red-600 font-body">{loadError}</p>
-              </CardContent>
-            </Card>
-          ) : leaderboard.rows.length === 0 ? (
+          {leaderboard.rows.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <h2 className="text-xl font-display font-bold text-gray-900 mb-2">No published scores yet</h2>
