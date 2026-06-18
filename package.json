@@ -14,7 +14,8 @@
     "smoke:content": "node scripts/smoke-content.mjs",
     "admin:provision-office-bearers": "node scripts/provision-committee-office-bearers.mjs",
     "admin:provision-users": "node scripts/admin/provision-users.mjs",
-    "test:admin-login": "node scripts/test-admin-login.mjs"
+    "test:admin-login": "node scripts/test-admin-login.mjs",
+    "smoke:fantasy": "node scripts/smoke-fantasy-public.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",
