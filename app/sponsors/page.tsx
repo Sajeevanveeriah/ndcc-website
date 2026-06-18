@@ -60,7 +60,7 @@ export default function SponsorsPage() {
         const res = await fetch('/api/public/sponsors', { cache: 'no-store' });
         const json = await res.json();
 
-        if (res.ok && Array.isArray(json.data)) {
+        if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
           setSponsors(mergeSponsorsWithFallback(json.data as Sponsor[]));
         } else {
           setSponsors(fallbackSponsors);

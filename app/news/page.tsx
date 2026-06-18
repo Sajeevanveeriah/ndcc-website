@@ -35,7 +35,7 @@ export default function NewsPage() {
         const res = await fetch('/api/public/news', { cache: 'no-store' });
         const json = await res.json();
 
-        if (res.ok && Array.isArray(json.data)) {
+        if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
           setPosts(json.data as NewsPost[]);
         } else {
           setPosts(fallbackNews);

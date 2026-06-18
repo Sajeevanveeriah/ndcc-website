@@ -85,7 +85,7 @@ const getSeasonAppointments = unstable_cache(async (): Promise<SeasonAppointment
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .order('announcement_date', { ascending: false });
-    return (data as SeasonAppointmentItem[]) || [];
+    return mergeSeasonAppointmentsWithFallback(data as SeasonAppointmentItem[]) as SeasonAppointmentItem[];
   } catch {
     return fallbackSeasonAppointments;
   }

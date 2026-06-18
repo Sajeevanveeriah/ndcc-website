@@ -20,18 +20,22 @@ export async function GET() {
     return NextResponse.json({ success: true, plans: fallbackMembershipPlans, addons: fallbackMembershipAddons });
   }
 
-  const supabase = createServerClient();
+  try {
+    const supabase = createServerClient();
 
-  const [{ data: plans }, { data: addons }] = await Promise.all([
-    supabase.from('social_membership_plans').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
-    supabase.from('social_membership_addons').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
-  ]);
+    const [{ data: plans }, { data: addons }] = await Promise.all([
+      supabase.from('social_membership_plans').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+      supabase.from('social_membership_addons').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+    ]);
 
-  return NextResponse.json({
-    success: true,
-    plans: plans?.length ? plans : fallbackMembershipPlans,
-    addons: addons?.length ? addons : fallbackMembershipAddons,
-  });
+    return NextResponse.json({
+      success: true,
+      plans: plans?.length ? plans : fallbackMembershipPlans,
+      addons: addons?.length ? addons : fallbackMembershipAddons,
+    });
+  } catch {
+    return NextResponse.json({ success: true, plans: fallbackMembershipPlans, addons: fallbackMembershipAddons });
+  }
 }
 
 export async function POST(request: Request) {
