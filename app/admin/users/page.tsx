@@ -10,6 +10,12 @@ type User = { id: string; email: string; full_name: string; role: string; is_act
 const VALID_ROLES = ['admin', 'president', 'secretary', 'committee'];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const USER_PROVISIONING_PRESETS = [
+  { fullName: 'John Elliott', role: 'president' },
+  { fullName: 'Troy Whitworth', role: 'committee' },
+  { fullName: 'Rick Mchutchinson', role: 'committee' },
+];
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [email, setEmail] = useState('');
@@ -89,6 +95,18 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Committee Users</h1>
       {message && <p className="text-sm text-gray-600">{message}</p>}
+      <div className="bg-sky-50 border border-sky-100 rounded-xl p-4">
+        <p className="text-sm font-semibold text-gray-800 mb-2">Provisioning shortcuts</p>
+        <div className="flex flex-wrap gap-2">
+          {USER_PROVISIONING_PRESETS.map((preset) => (
+            <Button key={preset.fullName} type="button" variant="secondary" onClick={() => { setFullName(preset.fullName); setRole(preset.role); }}>
+              {preset.fullName}
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-600 mt-2">Enter the verified email address and a temporary password manually; passwords are never preset or committed.</p>
+      </div>
+
       <form onSubmit={create} className="bg-white p-4 rounded-xl border grid md:grid-cols-2 gap-3">
         <Input id="full-name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         <Input id="email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
