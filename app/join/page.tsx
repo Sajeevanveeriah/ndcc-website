@@ -24,22 +24,31 @@ export default function JoinPage() {
 
   useEffect(() => {
     const load = async () => {
-      const [membershipRes, contentRes] = await Promise.all([
-        fetch('/api/memberships', { cache: 'no-store' }),
-        fetch('/api/content-blocks?keys=join.hero', { cache: 'no-store' }),
-      ]);
-
-      const data = await membershipRes.json();
-      if (membershipRes.ok) {
-        setPlans(data.plans || []);
-        setAddons(data.addons || []);
-        if ((data.plans || []).length > 0) setSelectedPlan(data.plans[0].id);
+      try {
+        const membershipRes = await fetch('/api/memberships', { cache: 'no-store' });
+        const data = await membershipRes.json();
+        if (membershipRes.ok && Array.isArray(data.plans) && data.plans.length > 0) {
+          setPlans(data.plans);
+          setSelectedPlan(data.plans[0].id);
+        }
+        if (membershipRes.ok && Array.isArray(data.addons) && data.addons.length > 0) {
+          setAddons(data.addons);
+        }
+      } catch {
+        setPlans(fallbackMembershipPlans);
+        setAddons(fallbackMembershipAddons);
+        setSelectedPlan(fallbackMembershipPlans[0]?.id || '');
       }
 
-      const contentData = await contentRes.json();
-      const block = (contentData.data || []).find((b: { block_key: string }) => b.block_key === 'join.hero');
-      if (block?.title) setHeroTitle(block.title);
-      if (block?.body) setHeroBody(block.body);
+      try {
+        const contentRes = await fetch('/api/content-blocks?keys=join.hero', { cache: 'no-store' });
+        const contentData = await contentRes.json();
+        const block = (contentData.data || []).find((b: { block_key: string }) => b.block_key === 'join.hero');
+        if (block?.title) setHeroTitle(block.title);
+        if (block?.body) setHeroBody(block.body);
+      } catch {
+        // fallback copy remains in state
+      }
     };
     load();
   }, []);

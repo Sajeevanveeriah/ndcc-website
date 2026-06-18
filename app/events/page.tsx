@@ -39,7 +39,7 @@ export default function EventsPage() {
         const res = await fetch('/api/public/events', { cache: 'no-store' });
         const json = await res.json();
 
-        if (res.ok && Array.isArray(json.data)) {
+        if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
           setEvents(json.data as Event[]);
         } else {
           setEvents(fallbackEvents);

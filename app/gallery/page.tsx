@@ -29,7 +29,7 @@ export default function GalleryPage() {
         const response = await fetch('/api/gallery', { cache: 'no-store' });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Failed to load gallery');
-        setPhotos(result.data ?? []);
+        setPhotos(Array.isArray(result.data) && result.data.length > 0 ? result.data : fallbackGalleryImages as GalleryPhoto[]);
       } catch {
         setPhotos(fallbackGalleryImages as GalleryPhoto[]);
       }

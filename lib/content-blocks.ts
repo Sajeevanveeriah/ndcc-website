@@ -12,6 +12,29 @@ export interface ContentBlock {
   cta_url: string | null;
 }
 
+function mergeContentBlock(fallback: ContentBlock | undefined, db: Partial<ContentBlock> | undefined, key: string): ContentBlock {
+  return {
+    block_key: key,
+    title: normalisePublicText(db?.title) || fallback?.title || null,
+    body: normalisePublicText(db?.body) || fallback?.body || null,
+    image_url: normalisePublicText(db?.image_url) || fallback?.image_url || null,
+    cta_label: normalisePublicText(db?.cta_label) || fallback?.cta_label || null,
+    cta_url: normalisePublicText(db?.cta_url) || fallback?.cta_url || null,
+  };
+}
+
+function mergeContentBlocksForKeys(keys: string[], rows: Partial<ContentBlock>[] | null | undefined): Record<string, ContentBlock> {
+  const fallbackBlocks = fallbackBlocksForKeys(keys);
+  const dbByKey = new Map((rows ?? []).filter((row) => row.block_key).map((row) => [row.block_key as string, row]));
+
+  return Object.fromEntries(keys.flatMap((key) => {
+    const fallback = fallbackBlocks[key];
+    const db = dbByKey.get(key);
+    if (!fallback && !db) return [];
+    return [[key, mergeContentBlock(fallback, db, key)]];
+  }));
+}
+
 async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
   if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
     return fallbackBlocksForKeys(keys);
@@ -29,13 +52,7 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
       return fallbackBlocksForKeys(keys);
     }
 
-    const cleaned = (data ?? []).map((row) => ({
-      ...row,
-      title: normalisePublicText(row.title),
-      body: normalisePublicText(row.body),
-      cta_label: normalisePublicText(row.cta_label),
-    }));
-    return Object.fromEntries(cleaned.map((row) => [row.block_key, row as ContentBlock]));
+    return mergeContentBlocksForKeys(keys, data as Partial<ContentBlock>[]);
   } catch {
     console.warn('Public content blocks query timed out or failed; using fallback.');
     return fallbackBlocksForKeys(keys);

@@ -1,29 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getPublishedNews } from '@/lib/public-news';
-import { SEED_NEWS } from '@/lib/constants';
-import { isPublicNewsPostAllowed, normalizeNewsImage } from '@/lib/public-content-normalizers';
+import { fallbackNews } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 
 function getSeedNews(id?: string, limit?: number) {
-  const posts = SEED_NEWS
-    .filter((post) => post.published && isPublicNewsPostAllowed(post.title))
-    .map((post) => ({
-      ...post,
-      created_at: post.published_at || new Date(0).toISOString(),
-      image_url: normalizeNewsImage(post.title, post.image_url || post.image || null),
-    }))
-    .sort((a, b) => {
-      const sortA = typeof a.sort_order === 'number' ? a.sort_order : Number.MAX_SAFE_INTEGER;
-      const sortB = typeof b.sort_order === 'number' ? b.sort_order : Number.MAX_SAFE_INTEGER;
-      if (sortA !== sortB) return sortA - sortB;
-      return new Date(b.published_at || b.created_at).getTime() - new Date(a.published_at || a.created_at).getTime();
-    });
-
-  if (id) return posts.find((post) => post.id === id) ?? null;
-  return typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? posts.slice(0, limit) : posts;
+  if (id) return fallbackNews.find((post) => post.id === id) ?? null;
+  return typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? fallbackNews.slice(0, limit) : fallbackNews;
 }
 
 const noStoreHeaders = {
@@ -57,11 +42,9 @@ export async function GET(request: Request) {
     }
 
     const data = await getPublishedNews({ limit });
-    return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch news.' },
-      { status: 500, headers: noStoreHeaders },
-    );
+    const posts = Array.isArray(data) && data.length > 0 ? data : getSeedNews(undefined, limit);
+    return NextResponse.json({ success: true, data: posts }, { headers: noStoreHeaders });
+  } catch {
+    return NextResponse.json({ success: true, data: getSeedNews(undefined, limit) }, { headers: noStoreHeaders });
   }
 }
