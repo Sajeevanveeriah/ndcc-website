@@ -9,6 +9,41 @@ export interface CommitteeSessionUser {
   role: AuthRole;
 }
 
+export type SessionResolution =
+  | {
+      status: 'authenticated';
+      user: CommitteeSessionUser;
+      expiresAt: Date;
+    }
+  | {
+      status: 'unauthenticated';
+      reason: 'missing_token' | 'session_not_found' | 'expired' | 'inactive_user';
+    }
+  | {
+      status: 'unavailable';
+      reason: 'timeout' | 'database_error' | 'network_error';
+    };
+
+const SESSION_VALIDATION_TIMEOUT_MS = 15_000;
+
+function classifySessionError(error: unknown): SessionResolution {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return { status: 'unavailable', reason: 'timeout' };
+  }
+
+  if (error instanceof Error) {
+    if (error.name === 'AbortError' || error.message.toLowerCase().includes('abort')) {
+      return { status: 'unavailable', reason: 'timeout' };
+    }
+
+    if (error.message.toLowerCase().includes('fetch')) {
+      return { status: 'unavailable', reason: 'network_error' };
+    }
+  }
+
+  return { status: 'unavailable', reason: 'database_error' };
+}
+
 export function hashSessionToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -49,34 +84,48 @@ export function clearAuthCookie() {
   };
 }
 
-export async function getSessionUserFromToken(token?: string | null): Promise<CommitteeSessionUser | null> {
-  if (!token) return null;
+export async function resolveSessionFromToken(token?: string | null): Promise<SessionResolution> {
+  if (!token) return { status: 'unauthenticated', reason: 'missing_token' };
 
-  const supabase = createServerClient();
+  const supabase = createServerClient({ fetchTimeoutMs: SESSION_VALIDATION_TIMEOUT_MS });
   const tokenHash = hashSessionToken(token);
 
-  const { data, error } = await supabase
-    .from('committee_sessions')
-    .select('expires_at, committee_users(id, email, full_name, role, is_active)')
-    .eq('session_token_hash', tokenHash)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from('committee_sessions')
+      .select('expires_at, committee_users(id, email, full_name, role, is_active)')
+      .eq('session_token_hash', tokenHash)
+      .maybeSingle();
 
-  if (error || !data) return null;
+    if (error) return { status: 'unavailable', reason: 'database_error' };
+    if (!data) return { status: 'unauthenticated', reason: 'session_not_found' };
 
-  const expiresAt = new Date(data.expires_at);
-  if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
-    await supabase.from('committee_sessions').delete().eq('session_token_hash', tokenHash);
-    return null;
+    const expiresAt = new Date(data.expires_at);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
+      await supabase.from('committee_sessions').delete().eq('session_token_hash', tokenHash);
+      return { status: 'unauthenticated', reason: 'expired' };
+    }
+
+    const rawUser = Array.isArray(data.committee_users) ? data.committee_users[0] : data.committee_users;
+
+    if (!rawUser || !rawUser.is_active) return { status: 'unauthenticated', reason: 'inactive_user' };
+
+    return {
+      status: 'authenticated',
+      user: {
+        id: rawUser.id,
+        email: rawUser.email,
+        full_name: rawUser.full_name,
+        role: rawUser.role as AuthRole,
+      },
+      expiresAt,
+    };
+  } catch (error) {
+    return classifySessionError(error);
   }
+}
 
-  const rawUser = Array.isArray(data.committee_users) ? data.committee_users[0] : data.committee_users;
-
-  if (!rawUser || !rawUser.is_active) return null;
-
-  return {
-    id: rawUser.id,
-    email: rawUser.email,
-    full_name: rawUser.full_name,
-    role: rawUser.role as AuthRole,
-  };
+export async function getSessionUserFromToken(token?: string | null): Promise<CommitteeSessionUser | null> {
+  const resolution = await resolveSessionFromToken(token);
+  return resolution.status === 'authenticated' ? resolution.user : null;
 }

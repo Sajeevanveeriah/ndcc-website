@@ -42,36 +42,64 @@ const baseLinks = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isLoginPage = pathname === '/admin/login';
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (pathname === '/admin/login') {
+    if (isLoginPage) {
       setLoading(false);
-      return;
+      return undefined;
     }
+
+    let cancelled = false;
+    let retryTimeout: ReturnType<typeof setTimeout> | undefined;
 
     const checkSession = async () => {
       try {
         const response = await fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' });
+
+        if (response.status === 503) {
+          if (!cancelled) {
+            setMessage('Session validation is temporarily unavailable. Retrying automatically...');
+            retryTimeout = setTimeout(checkSession, 5000);
+          }
+          return;
+        }
+
+        if (response.status === 401) {
+          router.push('/admin/login');
+          return;
+        }
+
         const data = await parseApiResponse<{ authenticated?: boolean; user?: SessionUser }>(response);
         if (!data.authenticated) {
           router.push('/admin/login');
           return;
         }
-        setUser(data.user || null);
-      } catch {
-        setMessage('Your admin session has expired. Please sign in again.');
-        router.push('/admin/login');
+        if (!cancelled) {
+          setUser(data.user || null);
+          setMessage('');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : 'Session validation failed. Retrying automatically...');
+          retryTimeout = setTimeout(checkSession, 5000);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     checkSession();
-  }, [pathname, router]);
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
+  }, [isLoginPage, router]);
 
   const handleSignOut = async () => {
     const response = await fetch('/api/admin/auth/logout', { method: 'POST' });
@@ -79,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/admin/login');
   };
 
-  if (pathname === '/admin/login') return <>{children}</>;
+  if (isLoginPage) return <>{children}</>;
 
   if (loading) {
     return <div className="min-h-screen bg-sky-50 flex items-center justify-center">Loading...</div>;
