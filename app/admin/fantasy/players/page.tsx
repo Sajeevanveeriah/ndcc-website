@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Input, { Select } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { Pencil, Plus, Users } from 'lucide-react';
+import { Pencil, Plus, Upload, Users } from 'lucide-react';
 
 type PlayerRole = 'WK' | 'BAT' | 'AR' | 'BOWL';
 
@@ -18,6 +18,7 @@ type FantasyPlayer = {
   role: PlayerRole;
   team_label: string | null;
   active: boolean;
+  price_million: number;
 };
 
 type PlayerForm = {
@@ -26,6 +27,7 @@ type PlayerForm = {
   role: PlayerRole | '';
   team_label: string;
   active: boolean;
+  price_million: string;
 };
 
 const emptyPlayer: PlayerForm = {
@@ -34,6 +36,7 @@ const emptyPlayer: PlayerForm = {
   role: '',
   team_label: '',
   active: true,
+  price_million: '0.0',
 };
 
 const roleOptions = [
@@ -56,11 +59,13 @@ export default function AdminFantasyPlayersPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [csvImport, setCsvImport] = useState('');
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const response = await fetch('/api/admin/resources/fantasyPlayers', { cache: 'no-store' });
+        const response = await fetch('/api/admin/fantasy/players', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: FantasyPlayer[] }>(response);
         setPlayers(sortPlayers(result.data || []));
       } catch (err) {
@@ -89,6 +94,7 @@ export default function AdminFantasyPlayersPage() {
       role: player.role,
       team_label: player.team_label || '',
       active: player.active,
+      price_million: player.price_million.toFixed(1),
     });
     setFormErrors({});
     setFeedback(null);
@@ -99,6 +105,8 @@ export default function AdminFantasyPlayersPage() {
     const errors: Record<string, string> = {};
     if (!form.display_name.trim()) errors.display_name = 'Player name is required.';
     if (!form.role) errors.role = 'Role is required.';
+    const price = Number(form.price_million);
+    if (!Number.isFinite(price) || price < 0 || price > 99.9) errors.price_million = 'Price must be between 0.0 and 99.9.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -113,11 +121,12 @@ export default function AdminFantasyPlayersPage() {
       role: form.role,
       team_label: form.team_label.trim() || null,
       active: form.active,
+      price_million: Number(Number(form.price_million).toFixed(1)),
     };
 
     try {
       if (editingId) {
-        const response = await adminFetch('/api/admin/resources/fantasyPlayers', {
+        const response = await adminFetch('/api/admin/fantasy/players', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingId, ...payload }),
@@ -126,7 +135,7 @@ export default function AdminFantasyPlayersPage() {
         setPlayers((prev) => sortPlayers(prev.map((item) => (item.id === editingId ? result.data : item))));
         setFeedback({ type: 'success', message: 'Fantasy player updated.' });
       } else {
-        const response = await adminFetch('/api/admin/resources/fantasyPlayers', {
+        const response = await adminFetch('/api/admin/fantasy/players', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -140,6 +149,57 @@ export default function AdminFantasyPlayersPage() {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to save fantasy player.' });
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const parseCsvLine = (line: string) => line.split(',').map((value) => value.trim());
+
+  const handleCsvImport = async () => {
+    setFeedback(null);
+    const lines = csvImport.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      setFeedback({ type: 'error', message: 'CSV import needs a header row and at least one player row.' });
+      return;
+    }
+    const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+    const required = ['display_name', 'role', 'price_million'];
+    const missing = required.filter((header) => !headers.includes(header));
+    if (missing.length > 0) {
+      setFeedback({ type: 'error', message: `Missing required CSV column${missing.length === 1 ? '' : 's'}: ${missing.join(', ')}.` });
+      return;
+    }
+
+    const playersToImport = lines.slice(1).map((line) => {
+      const values = parseCsvLine(line);
+      const row = Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
+      return {
+        display_name: row.display_name,
+        role: row.role,
+        price_million: row.price_million,
+        playhq_player_id: row.playhq_player_id || null,
+        team_label: row.team_label || null,
+        active: row.active ? row.active.toLowerCase() !== 'false' : true,
+      };
+    });
+
+    setImporting(true);
+    try {
+      const response = await adminFetch('/api/admin/fantasy/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ players: playersToImport }),
+      });
+      await parseApiResponse(response);
+      const refreshed = await adminFetch('/api/admin/fantasy/players', { cache: 'no-store' });
+      const result = await parseApiResponse<{ data?: FantasyPlayer[] }>(refreshed);
+      setPlayers(sortPlayers(result.data || []));
+      setCsvImport('');
+      setFeedback({ type: 'success', message: `${playersToImport.length} fantasy player${playersToImport.length === 1 ? '' : 's'} imported.` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to import fantasy players.' });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -158,6 +218,13 @@ export default function AdminFantasyPlayersPage() {
 
       {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
 
+      <div className="mb-6 rounded-xl border border-gray-100 bg-white p-4">
+        <h2 className="text-lg font-display font-bold text-gray-900 flex items-center gap-2"><Upload className="h-5 w-5 text-maroon-700" />Manual CSV player import</h2>
+        <p className="mt-1 text-sm text-gray-600 font-body">Use verified club records when PlayHQ public data is unavailable. Required columns: display_name, role, price_million. Optional: playhq_player_id, team_label, active.</p>
+        <textarea className="form-input mt-3 min-h-28 w-full font-mono text-xs" value={csvImport} onChange={(event) => setCsvImport(event.target.value)} placeholder="display_name,role,price_million,playhq_player_id,team_label,active" aria-label="Fantasy player CSV import" />
+        <div className="mt-3 flex justify-end"><Button variant="secondary" onClick={handleCsvImport} isLoading={importing}>Import CSV players</Button></div>
+      </div>
+
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
@@ -175,6 +242,7 @@ export default function AdminFantasyPlayersPage() {
               <TableHeader>Name</TableHeader>
               <TableHeader>Role</TableHeader>
               <TableHeader>Team Label</TableHeader>
+              <TableHeader>Price</TableHeader>
               <TableHeader>PlayHQ ID</TableHeader>
               <TableHeader>Status</TableHeader>
               <TableHeader>Actions</TableHeader>
@@ -186,6 +254,7 @@ export default function AdminFantasyPlayersPage() {
                 <TableCell className="font-medium">{player.display_name}</TableCell>
                 <TableCell>{player.role}</TableCell>
                 <TableCell>{player.team_label || '—'}</TableCell>
+                <TableCell>{player.price_million.toFixed(1)}</TableCell>
                 <TableCell>{player.playhq_player_id || '—'}</TableCell>
                 <TableCell>{player.active ? <Badge variant="success">Active</Badge> : <Badge>Inactive</Badge>}</TableCell>
                 <TableCell>
@@ -203,6 +272,7 @@ export default function AdminFantasyPlayersPage() {
         <div className="space-y-4">
           <Input id="fantasy-player-name" label="Player name" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} error={formErrors.display_name} required />
           <Select id="fantasy-player-role" label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as PlayerRole })} options={roleOptions} error={formErrors.role} required />
+          <Input id="fantasy-player-price" label="Price (million)" type="number" min="0" max="99.9" step="0.1" value={form.price_million} onChange={(e) => setForm({ ...form, price_million: e.target.value })} error={formErrors.price_million} required />
           <Input id="fantasy-player-team" label="Team label (optional)" value={form.team_label} onChange={(e) => setForm({ ...form, team_label: e.target.value })} />
           <Input id="fantasy-player-playhq-id" label="PlayHQ player ID (optional)" value={form.playhq_player_id} onChange={(e) => setForm({ ...form, playhq_player_id: e.target.value })} />
           <label className="inline-flex items-center gap-2 text-sm">
