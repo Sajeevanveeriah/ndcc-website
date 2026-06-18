@@ -4,13 +4,20 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 
 export const dynamic = 'force-dynamic';
 
+function cleanLeaderboardError(error: unknown) {
+  if (error instanceof Error && (error.name === 'AbortError' || error.message.toLowerCase().includes('abort'))) {
+    return 'The manager leaderboard took too long to load. Please try again shortly.';
+  }
+  return error instanceof Error && error.message ? error.message : 'Could not load manager leaderboard.';
+}
+
 export async function GET() {
   if (!isServerSupabaseConfigured()) return NextResponse.json({ success: true, rows: [] });
   const supabase = createServerClient();
   const { data: scores, error } = await supabase
     .from('fantasy_manager_round_scores')
     .select('manager_id, net_points, total_points, transfer_penalty, fantasy_managers(display_name, team_name)');
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ success: false, error: cleanLeaderboardError(error) }, { status: 500 });
   const grouped = new Map<string, any>();
   for (const row of scores ?? []) {
     const current = grouped.get(row.manager_id) ?? {

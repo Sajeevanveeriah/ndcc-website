@@ -11,6 +11,13 @@ export const metadata: Metadata = { title: 'Fantasy Manager Leaderboard' };
 
 type Row = { managerId: string; displayName: string; teamName: string; totalPoints: number; transferPenalty: number; totalNetPoints: number; rank: number };
 
+function cleanLeaderboardError(error: unknown) {
+  if (error instanceof Error && (error.name === 'AbortError' || error.message.toLowerCase().includes('abort'))) {
+    return 'The manager leaderboard took too long to load. Please refresh, or try again shortly.';
+  }
+  return 'The manager leaderboard is temporarily unavailable. Please try again shortly.';
+}
+
 async function getRows(): Promise<Row[]> {
   if (!isServerSupabaseConfigured()) return [];
   const supabase = createServerClient();
@@ -29,6 +36,6 @@ async function getRows(): Promise<Row[]> {
 
 export default async function FantasyManagerLeaderboardPage() {
   let rows: Row[] = []; let error: string | null = null;
-  try { rows = await getRows(); } catch (err) { error = err instanceof Error ? err.message : 'Could not load manager leaderboard.'; }
+  try { rows = await getRows(); } catch (err) { error = cleanLeaderboardError(err); }
   return <section className="section-padding"><div className="container-width"><h1 className="section-title">Manager Leaderboard</h1><p className="font-body text-gray-700 mb-6">Classic fantasy rankings from saved manager round scores only.</p>{error ? <Card><CardContent className="p-6 text-red-600">{error}</CardContent></Card> : rows.length === 0 ? <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900 mb-2">No manager scores yet</h2><p className="font-body text-gray-700">The manager leaderboard appears after admins calculate and save round scores.</p></CardContent></Card> : <Table><TableHead><TableRow><TableHeader>Rank</TableHeader><TableHeader>Team</TableHeader><TableHeader>Manager</TableHeader><TableHeader>Total points</TableHeader><TableHeader>Transfer penalties</TableHeader><TableHeader>Net points</TableHeader></TableRow></TableHead><TableBody>{rows.map((row)=><TableRow key={row.managerId}><TableCell className="font-bold">{row.rank}</TableCell><TableCell>{row.teamName}</TableCell><TableCell>{row.displayName}</TableCell><TableCell>{row.totalPoints}</TableCell><TableCell>{row.transferPenalty}</TableCell><TableCell className="font-bold text-maroon-800">{row.totalNetPoints}</TableCell></TableRow>)}</TableBody></Table>}</div></section>;
 }

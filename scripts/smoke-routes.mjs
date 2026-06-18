@@ -21,6 +21,7 @@ const routes = [
   ['/fantasy/login', [200]],
   ['/fantasy/account', [200]],
   ['/fantasy/leaderboard', [200]],
+  ['/fantasy/players', [200]],
   ['/fantasy/manager-leaderboard', [200]],
   ['/admin/login', [200]],
   ['/admin', [200, 302, 307]],
