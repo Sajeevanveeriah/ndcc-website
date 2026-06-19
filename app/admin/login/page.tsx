@@ -27,6 +27,8 @@ export default function AdminLoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        cache: 'no-store',
+        credentials: 'include',
       });
       const data = await res.json();
 
