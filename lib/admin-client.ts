@@ -3,7 +3,7 @@ export async function adminFetch(url: string, options: RequestInit = {}): Promis
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30_000);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetch(url, { cache: 'no-store', credentials: 'include', ...options, signal: controller.signal });
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error('Request timed out. Please check your connection and try again.');

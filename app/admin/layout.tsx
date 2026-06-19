@@ -102,7 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [isLoginPage, router]);
 
   const handleSignOut = async () => {
-    const response = await fetch('/api/admin/auth/logout', { method: 'POST' });
+    const response = await fetch('/api/admin/auth/logout', { method: 'POST', cache: 'no-store', credentials: 'include' });
     await parseApiResponse(response).catch(() => undefined);
     router.push('/admin/login');
   };

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase-server';
+import { withSupabaseOperationRetry } from '@/lib/supabase-operation';
 import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, AuthRole, SESSION_TTL_DAYS } from './config';
 
 export interface CommitteeSessionUser {
@@ -68,6 +69,7 @@ export function createAuthCookie(token: string, expiresAt: Date) {
     path: '/',
     domain: AUTH_COOKIE_DOMAIN,
     expires: expiresAt,
+    maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
   };
 }
 
@@ -91,11 +93,11 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
   const tokenHash = hashSessionToken(token);
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await withSupabaseOperationRetry(() => supabase
       .from('committee_sessions')
       .select('expires_at, committee_users(id, email, full_name, role, is_active)')
       .eq('session_token_hash', tokenHash)
-      .maybeSingle();
+      .maybeSingle());
 
     if (error) return { status: 'unavailable', reason: 'database_error' };
     if (!data) return { status: 'unauthenticated', reason: 'session_not_found' };
