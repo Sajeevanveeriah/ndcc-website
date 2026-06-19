@@ -15,7 +15,14 @@
     "admin:provision-office-bearers": "node scripts/provision-committee-office-bearers.mjs",
     "admin:provision-users": "node scripts/admin/provision-users.mjs",
     "test:admin-login": "node scripts/test-admin-login.mjs",
-    "smoke:fantasy": "node scripts/smoke-fantasy-public.mjs"
+    "smoke:fantasy": "node scripts/smoke-fantasy.mjs",
+    "audit:public": "node scripts/audit-public-site.mjs",
+    "check:assets": "node scripts/check-public-assets.mjs",
+    "test:admin-auth": "node scripts/test-admin-auth.mjs",
+    "test:sponsors": "node scripts/test-sponsors.mjs",
+    "test:fantasy": "node scripts/test-fantasy.mjs",
+    "production:upsert-sponsors": "node scripts/production/upsert-verified-sponsors.mjs",
+    "production:closeout": "node scripts/production/apply-closeout.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",

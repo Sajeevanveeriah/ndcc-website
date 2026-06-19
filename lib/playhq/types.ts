@@ -1,0 +1,3 @@
+export type PlayHqPlayerRole = 'BAT' | 'BOWL' | 'AR' | 'WK';
+export interface PlayHqPlayerInput { id?: string; firstName?: string; lastName?: string; displayName?: string; teamName?: string; gradeName?: string; role?: string; sourceUrl?: string; }
+export interface NormalisedFantasyPlayer { display_name: string; first_name: string; last_name: string; team_name: string; grade_name: string; role: PlayHqPlayerRole; price_million: number; active: boolean; is_published: boolean; status: string; source: string; source_url: string; external_id: string | null; last_synced_at: string; manual_override: boolean; notes: string; }

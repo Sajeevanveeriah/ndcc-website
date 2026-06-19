@@ -15,7 +15,10 @@ export async function POST() {
     await supabase.from('committee_sessions').delete().eq('session_token_hash', hashSessionToken(token));
   }
 
-  const response = NextResponse.json({ success: true });
+  const response = NextResponse.json(
+    { success: true },
+    { headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' } },
+  );
   response.cookies.set(clearAuthCookie());
   return response;
 }
