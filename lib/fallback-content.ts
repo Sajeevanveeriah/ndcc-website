@@ -16,6 +16,7 @@ import type { Event, NewsPost, Sponsor } from '@/lib/types';
 import type { ContentBlock } from '@/lib/content-blocks';
 import type { FacilityFeature, HistoryCompetition, HistoryLineageEntry, HistoryPremiership, PageLinkCard } from '@/lib/structured-content';
 import { normalizeEventImage, normalizeGalleryImage, normalizeNewsImage } from '@/lib/public-content-normalizers';
+import { canonicalSponsorKey, canonicalSponsorName, normalizeSponsorName } from '@/lib/sponsor-canonical';
 
 export const isProductionStaticBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
@@ -93,32 +94,37 @@ export const fallbackFacilityFeatures: FacilityFeature[] = [
 ];
 
 function normalizeFallbackKey(value: string) {
-  return value.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
+  return normalizeSponsorName(value);
 }
 
 function getFallbackSponsorLogo(name: string) {
-  return Object.entries(fallbackSponsorLogos).find(([sponsorName]) => normalizeFallbackKey(sponsorName) === normalizeFallbackKey(name))?.[1] || '';
+  const key = canonicalSponsorKey(name);
+  return Object.entries(fallbackSponsorLogos).find(([sponsorName]) => canonicalSponsorKey(sponsorName) === key)?.[1] || '';
 }
 
 export const fallbackSponsorLogos: Record<string, string> = {
+  'APCO Newcomb': '/images/2026/06/apco-1781148625016.png',
   APCO: '/images/2026/06/apco-1781148625016.png',
   'MBR Cricket': 'https://mbrcricket.com/cdn/shop/files/mbr-logo-gold.png?v=1781747781',
+  'Bennett Racing': '/images/2026/06/bennett-1781148645814.webp',
   Bennett: '/images/2026/06/bennett-1781148645814.webp',
   'Blackmans Brewery': '/images/2026/06/blackmans-1781148663993.webp',
   "Blackman's Brewery": '/images/2026/06/blackmans-1781148663993.webp',
   'Champion Trophies': '/images/2026/06/champion_trophy-1781148687999.jpg',
+  'General Public Corio': '/images/2026/06/gp-1781148742506.png',
   GP: '/images/2026/06/gp-1781148742506.png',
+  'Mahoney Real Estate': '/images/2026/06/mahoney-1781148805224.png',
   Mahoney: '/images/2026/06/mahoney-1781148805224.png',
   'Phoenix Truck Bodies': '/images/2026/06/phoenix-1781148703539.jpg',
 };
 
 const june16SponsorAssets: Sponsor[] = [
-  { id: 'fallback-apco', name: 'APCO', tier: 'standard', logo_url: fallbackSponsorLogos.APCO, website: 'https://www.apco.com.au/', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
-  { id: 'fallback-bennett', name: 'Bennett', tier: 'standard', logo_url: fallbackSponsorLogos.Bennett, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
-  { id: 'fallback-blackmans', name: "Blackman's Brewery", tier: 'silver', logo_url: fallbackSponsorLogos["Blackman's Brewery"], website: 'https://www.blackmansbrewery.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-apco', name: 'APCO Newcomb', tier: 'standard', logo_url: fallbackSponsorLogos.APCO, website: 'https://www.apco.com.au/', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-bennett', name: 'Bennett Racing', tier: 'standard', logo_url: fallbackSponsorLogos.Bennett, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-blackmans', name: 'Blackmans Brewery', tier: 'silver', logo_url: fallbackSponsorLogos["Blackman's Brewery"], website: 'https://www.blackmansbrewery.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
   { id: 'fallback-champion', name: 'Champion Trophies', tier: 'gold', logo_url: fallbackSponsorLogos['Champion Trophies'], website: 'https://www.swlocksmiths.com.au/trophies-giftware/', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
-  { id: 'fallback-gp', name: 'GP', tier: 'standard', logo_url: fallbackSponsorLogos.GP, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
-  { id: 'fallback-mahoney', name: 'Mahoney', tier: 'standard', logo_url: fallbackSponsorLogos.Mahoney, website: 'https://www.realestate.com.au/agency/mahoney-real-estate-ISUSUH', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-gp', name: 'General Public Corio', tier: 'standard', logo_url: fallbackSponsorLogos.GP, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-mahoney', name: 'Mahoney Real Estate', tier: 'standard', logo_url: fallbackSponsorLogos.Mahoney, website: 'https://www.realestate.com.au/agency/mahoney-real-estate-ISUSUH', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
   { id: 'fallback-phoenix', name: 'Phoenix Truck Bodies', tier: 'silver', logo_url: fallbackSponsorLogos['Phoenix Truck Bodies'], website: 'https://phoenixtruckbodies.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
 ];
 
@@ -130,23 +136,27 @@ export const fallbackSponsors: Sponsor[] = [
   })),
   ...june16SponsorAssets,
 ].reduce<Sponsor[]>((merged, sponsor) => {
-  if (!merged.some((item) => normalizeFallbackKey(item.name) === normalizeFallbackKey(sponsor.name))) merged.push(sponsor);
+  if (!merged.some((item) => canonicalSponsorKey(item.name) === canonicalSponsorKey(sponsor.name))) merged.push({ ...sponsor, name: canonicalSponsorName(sponsor.name) });
   return merged;
 }, []);
 
 export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: string }>(sponsors: T[] | null | undefined) {
-  const merged = [...((sponsors || []).filter((sponsor) => sponsor.name?.trim()) as Array<T & { name: string }>)] as Array<T & Sponsor>;
-  for (const sponsor of merged) {
-    const fallback = fallbackSponsors.find((item) => normalizeFallbackKey(item.name) === normalizeFallbackKey(sponsor.name));
-    const logo = getFallbackSponsorLogo(sponsor.name) || fallback?.logo_url || '';
-    if (fallback?.name === 'MBR Cricket') sponsor.name = fallback.name;
-    if ((!sponsor.logo_url || !sponsor.logo_url.trim()) && logo) sponsor.logo_url = logo;
-    if ((!sponsor.website || !sponsor.website.trim()) && fallback?.website) sponsor.website = fallback.website;
+  const source = (sponsors || []).filter((sponsor) => sponsor.name?.trim()) as Array<T & Sponsor>;
+  const byCanonical = new Map<string, T & Sponsor>();
+  for (const sponsor of source) {
+    const key = canonicalSponsorKey(sponsor.name);
+    if (byCanonical.has(key)) continue;
+    const fallback = fallbackSponsors.find((item) => canonicalSponsorKey(item.name) === key);
+    byCanonical.set(key, {
+      ...sponsor,
+      name: canonicalSponsorName(sponsor.name),
+      logo_url: sponsor.logo_url?.trim() ? sponsor.logo_url : fallback?.logo_url || getFallbackSponsorLogo(sponsor.name) || '',
+      website: sponsor.website?.trim() ? sponsor.website : fallback?.website || '',
+      description: sponsor.description?.trim() ? sponsor.description : fallback?.description,
+    });
   }
-  for (const fallback of fallbackSponsors) {
-    if (!merged.some((sponsor) => normalizeFallbackKey(sponsor.name) === normalizeFallbackKey(fallback.name))) merged.push(fallback as T & Sponsor);
-  }
-  return merged;
+  if (byCanonical.size > 0) return Array.from(byCanonical.values());
+  return fallbackSponsors.map((sponsor) => ({ ...sponsor, name: canonicalSponsorName(sponsor.name) })) as Array<T & Sponsor>;
 }
 
 export const fallbackSeasonAppointments = [
