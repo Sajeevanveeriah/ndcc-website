@@ -76,6 +76,10 @@ export interface Sponsor {
   website: string;
   placement_type: string;
   active: boolean;
+  description?: string;
+  sort_order?: number;
+  source_url?: string | null;
+  logo_source_url?: string | null;
   created_at: string;
 }
 
