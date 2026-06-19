@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
 const execute = process.argv.includes('--execute');
 const sponsors = JSON.parse(readFileSync('data/sponsors/verified-sponsors-20260619.json', 'utf8'));
-const aliases = new Map([
-  ['apco', 'APCO Newcomb'], ['mahoney', 'Mahoney Real Estate'], ['bennett', 'Bennett Racing'], ['gp', 'General Public'],
-  ['leopold sportsmans club', 'Leopold Sporties'], ['mbr', 'MBR Cricket'], ['mustaang', 'MBR Cricket'], ["blackman's brewery", 'Blackmans Brewery'],
-]);
-function norm(value) { return String(value || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim(); }
-function canonical(value) { return aliases.get(norm(value)) || value; }
+const sponsorAliases = JSON.parse(readFileSync('data/sponsors/canonical-sponsor-aliases.json', 'utf8'));
+const aliases = new Map();
+function norm(value) { return String(value || '').toLowerCase().replace(/[’']/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim(); }
+for (const [canonicalName, names] of Object.entries(sponsorAliases)) {
+  aliases.set(norm(canonicalName), canonicalName);
+  for (const name of names) aliases.set(norm(name), canonicalName);
+}
+function canonical(value) { return aliases.get(norm(value)) || String(value || '').trim(); }
 function merge(existing, verified, sortOrder) {
   const next = { name: verified.display_name, active: true, sort_order: Number(existing?.sort_order || 0) || sortOrder };
   if (!existing?.website) next.website = verified.official_link;
@@ -34,7 +35,11 @@ const backupPath = `tmp/production-backups/sponsors-${new Date().toISOString().r
 writeFileSync(backupPath, JSON.stringify(existingRows || [], null, 2));
 console.log(`Backed up ${existingRows?.length || 0} sponsor rows to ${backupPath}`);
 let inserted = 0, updated = 0, unchanged = 0, errors = 0;
-const byName = new Map((existingRows || []).map((row) => [norm(canonical(row.name)), row]));
+const byName = new Map();
+for (const row of existingRows || []) {
+  const key = norm(canonical(row.name));
+  if (!byName.has(key)) byName.set(key, row);
+}
 for (const [index, sponsor] of sponsors.entries()) {
   const existing = byName.get(norm(sponsor.display_name));
   const payload = merge(existing, sponsor, index + 1);
