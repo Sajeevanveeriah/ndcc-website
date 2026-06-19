@@ -16,7 +16,7 @@ import type { Event, NewsPost, Sponsor } from '@/lib/types';
 import type { ContentBlock } from '@/lib/content-blocks';
 import type { FacilityFeature, HistoryCompetition, HistoryLineageEntry, HistoryPremiership, PageLinkCard } from '@/lib/structured-content';
 import { normalizeEventImage, normalizeGalleryImage, normalizeNewsImage } from '@/lib/public-content-normalizers';
-import { canonicalSponsorKey, canonicalSponsorName, normalizeSponsorName } from '@/lib/sponsor-canonical';
+import { canonicalSponsorKey, canonicalSponsorName } from '@/lib/sponsor-canonical';
 
 export const isProductionStaticBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
@@ -93,10 +93,6 @@ export const fallbackFacilityFeatures: FacilityFeature[] = [
   { id: 'fallback-oval', title: 'Oval & Outfield', description: 'Well-maintained turf wicket square and outfield at Grinter Reserve.', icon_key: 'oval', sort_order: 4, is_active: true },
 ];
 
-function normalizeFallbackKey(value: string) {
-  return normalizeSponsorName(value);
-}
-
 function getFallbackSponsorLogo(name: string) {
   const key = canonicalSponsorKey(name);
   return Object.entries(fallbackSponsorLogos).find(([sponsorName]) => canonicalSponsorKey(sponsorName) === key)?.[1] || '';
@@ -171,12 +167,20 @@ export const fallbackSeasonAppointments = [
   { id: 'fallback-scott-kirby', name: 'Scott Kirby', role: '', image_url: '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp', announcement_date: '2026-05-07', sort_order: 9, is_active: true },
 ];
 
-export function mergeSeasonAppointmentsWithFallback<T extends { name: string; sort_order?: number | null }>(appointments: T[] | null | undefined) {
-  const merged = [...((appointments || []).filter((appointment) => appointment.name?.trim()))];
-  for (const fallback of fallbackSeasonAppointments) {
-    if (!merged.some((appointment) => normalizeFallbackKey(appointment.name) === normalizeFallbackKey(fallback.name))) merged.push(fallback as unknown as T);
-  }
-  return merged.sort((a, b) => (Number(a.sort_order || 999) - Number(b.sort_order || 999)));
+export function mergeSeasonAppointmentsWithFallback<T extends { name: string; announcement_date?: string | null; sort_order?: number | null }>(appointments: T[] | null | undefined) {
+  const filtered = [...((appointments || []).filter((appointment) => appointment.name?.trim()))];
+  const merged = filtered.length > 0 ? filtered : fallbackSeasonAppointments as unknown as T[];
+  return merged.sort((a, b) => {
+    const sortOrderA = a.sort_order ?? 999;
+    const sortOrderB = b.sort_order ?? 999;
+    if (sortOrderA !== sortOrderB) return sortOrderA - sortOrderB;
+
+    const announcementDateA = Date.parse(a.announcement_date || '') || 0;
+    const announcementDateB = Date.parse(b.announcement_date || '') || 0;
+    if (announcementDateA !== announcementDateB) return announcementDateB - announcementDateA;
+
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export const fallbackNews = SEED_NEWS.filter((post) => post.published).map((post) => ({

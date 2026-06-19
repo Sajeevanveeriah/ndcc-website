@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
@@ -52,6 +52,10 @@ const resourceMap: Record<string, ResourceConfig> = {
   clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url'] },
 };
 
+const revalidationTags: Record<string, string[]> = {
+  seasonAppointments: ['season-appointments'],
+};
+
 const revalidationPaths: Record<string, string[]> = {
   events: ['/', '/events'],
   news: ['/', '/news'],
@@ -76,6 +80,9 @@ function revalidateForResource(resource: string, id?: string) {
   if (resource === 'news' && id) paths.push(`/news/${id}`);
   for (const p of paths) {
     try { revalidatePath(p); } catch { /* best-effort */ }
+  }
+  for (const tag of revalidationTags[resource] || []) {
+    try { revalidateTag(tag); } catch { /* best-effort */ }
   }
 }
 
