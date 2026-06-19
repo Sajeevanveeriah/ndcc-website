@@ -24,7 +24,9 @@
     "production:upsert-sponsors": "node scripts/production/upsert-verified-sponsors.mjs",
     "production:closeout": "node scripts/production/apply-closeout.mjs",
     "test:contact": "node scripts/test-contact-flow.mjs",
-    "test:admin-delete": "node scripts/test-admin-delete.mjs"
+    "test:admin-delete": "node scripts/test-admin-delete.mjs",
+    "test:season-appointments": "node scripts/test-season-appointments.mjs",
+    "smoke:season-appointments": "node scripts/smoke-season-appointments.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",
