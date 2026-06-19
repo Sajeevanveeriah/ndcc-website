@@ -8,6 +8,7 @@ import { parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Mail, CheckCircle, Eye } from 'lucide-react';
@@ -52,6 +53,11 @@ export default function AdminEnquiriesPage() {
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to update enquiry.');
     }
+  };
+
+  const handleDeleted = (id: string) => {
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+    setSelectedContact((current) => (current?.id === id ? null : current));
   };
 
   const getEnquiryLabel = (value: string) => {
@@ -190,6 +196,18 @@ export default function AdminEnquiriesPage() {
                         Responded
                       </Button>
                     )}
+                    <DeleteRecordButton
+                      resource="enquiries"
+                      recordId={c.id}
+                      recordLabel={`enquiry from ${c.name}`}
+                      recordDetails={[
+                        { label: 'Name', value: c.name },
+                        { label: 'Email', value: c.email },
+                        { label: 'Date', value: formatDate(c.created_at) },
+                      ]}
+                      onDeleted={handleDeleted}
+                      onSuccessMessage={setMessage}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
@@ -257,6 +275,18 @@ export default function AdminEnquiriesPage() {
                     Mark as Responded
                   </Button>
                 )}
+                <DeleteRecordButton
+                  resource="enquiries"
+                  recordId={selectedContact.id}
+                  recordLabel={`enquiry from ${selectedContact.name}`}
+                  recordDetails={[
+                    { label: 'Name', value: selectedContact.name },
+                    { label: 'Email', value: selectedContact.email },
+                    { label: 'Date', value: formatDate(selectedContact.created_at) },
+                  ]}
+                  onDeleted={handleDeleted}
+                  onSuccessMessage={setMessage}
+                />
                 <Button variant="secondary" size="sm" onClick={() => setSelectedContact(null)}>
                   Close
                 </Button>

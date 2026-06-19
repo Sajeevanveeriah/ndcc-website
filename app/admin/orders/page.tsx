@@ -5,6 +5,7 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import type { Order } from '@/lib/types';
 import Button from '@/components/ui/Button';
+import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Badge from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -63,6 +64,10 @@ export default function AdminOrdersPage() {
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to update payment status.');
     }
+  };
+
+  const handleDeleted = (id: string) => {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -197,6 +202,24 @@ export default function AdminOrdersPage() {
                       <CheckCircle className="h-4 w-4 mr-1" />
                       {o.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                     </Button>
+                    <DeleteRecordButton
+                      resource="orders"
+                      recordId={o.id}
+                      recordLabel={`order for ${o.customer_name}`}
+                      recordDetails={[
+                        { label: 'Customer', value: o.customer_name },
+                        { label: 'Email', value: o.customer_email },
+                        { label: 'Total', value: formatCurrency(o.total_amount) },
+                        { label: 'Payment', value: o.payment_status },
+                        { label: 'Processed', value: o.processed ? 'Yes' : 'No' },
+                        { label: 'Date', value: formatDate(o.created_at) },
+                      ]}
+                      dangerLevel={o.payment_status === 'paid' || o.processed ? 'strong' : 'normal'}
+                      requireTypedConfirmation={o.payment_status === 'paid' || o.processed}
+                      strongWarning="This order is paid or processed. Permanent deletion removes financial/order history for this record."
+                      onDeleted={handleDeleted}
+                      onSuccessMessage={setMessage}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
