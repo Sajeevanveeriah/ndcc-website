@@ -25,10 +25,13 @@ function emailHtml(title, body) {
 
 const config = {
   resendApiKeyPresent: Boolean(process.env.RESEND_API_KEY),
-  senderPresent: Boolean(from),
-  senderValid: Boolean(from && senderValid(from)),
+  resendFromPresent: Boolean(from),
+  resendFromValid: Boolean(from && senderValid(from)),
   contactToPresent: Boolean(process.env.CONTACT_TO_EMAIL),
   effectiveContactRecipient: maskEmail(process.env.CONTACT_TO_EMAIL || DEFAULT_CONTACT_EMAIL),
+  senderReadiness: Boolean(process.env.RESEND_API_KEY && from && senderValid(from)) ? 'ready' : 'not ready',
+  contactReadiness: Boolean(process.env.RESEND_API_KEY && from && senderValid(from) && process.env.CONTACT_TO_EMAIL) ? 'ready' : 'not ready',
+  safeTestSendStatus: shouldSend ? 'requested' : 'not requested',
   recipient: recipient ? maskEmail(recipient) : '[not configured]',
 };
 

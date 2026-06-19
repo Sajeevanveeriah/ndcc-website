@@ -1,0 +1,6 @@
+# TEST ONLY - synthetic fantasy import data, not real production players
+display_name,role,team_label,price_million,active,is_published
+Test Wicketkeeper,WK,Test XI,8.0,true,true
+Test Batter,BAT,Test XI,9.0,true,true
+Test Allrounder,AR,Test XI,10.0,true,true
+Test Bowler,BOWL,Test XI,7.0,true,true

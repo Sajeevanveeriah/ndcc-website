@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
-import Input from '@/components/ui/Input';
+import Input, { Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Handshake, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
@@ -21,6 +21,10 @@ const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
   website: '',
   placement_type: 'website',
   active: true,
+  description: '',
+  sort_order: 0,
+  source_url: '',
+  logo_source_url: '',
 };
 
 const asString = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -91,6 +95,10 @@ export default function AdminSponsorsPage() {
       website: asString(sponsor.website),
       placement_type: asString(sponsor.placement_type) || 'website',
       active: sponsor.active,
+      description: asString(sponsor.description),
+      sort_order: sponsor.sort_order || 0,
+      source_url: asString(sponsor.source_url),
+      logo_source_url: asString(sponsor.logo_source_url),
     });
     setFormErrors({});
     setFeedback(null);
@@ -117,6 +125,10 @@ export default function AdminSponsorsPage() {
       website: form.website.trim(),
       placement_type: form.placement_type.trim(),
       active: form.active,
+      description: asString(form.description).trim(),
+      sort_order: Number(form.sort_order) || 0,
+      source_url: asString(form.source_url).trim(),
+      logo_source_url: asString(form.logo_source_url).trim(),
     };
 
     try {
@@ -304,12 +316,43 @@ export default function AdminSponsorsPage() {
             placeholder="/images/sponsors/logo.png"
             helpText="Paste an external logo URL or upload a file to store under /images/cms."
           />
+          <Textarea
+            id="sponsor-description"
+            label="Description (optional)"
+            value={asString(form.description)}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={3}
+            placeholder="Short public sponsor description"
+          />
           <Input
             id="sponsor-website"
             label="Website (optional)"
             value={form.website}
             onChange={(e) => setForm({ ...form, website: e.target.value })}
             placeholder="https://example.com"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              id="sponsor-sort-order"
+              label="Sort order"
+              type="number"
+              value={String(form.sort_order || 0)}
+              onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+            />
+            <Input
+              id="sponsor-source-url"
+              label="Source URL (optional)"
+              value={asString(form.source_url)}
+              onChange={(e) => setForm({ ...form, source_url: e.target.value })}
+              placeholder="https://example.com"
+            />
+          </div>
+          <Input
+            id="sponsor-logo-source-url"
+            label="Logo source URL (optional)"
+            value={asString(form.logo_source_url)}
+            onChange={(e) => setForm({ ...form, logo_source_url: e.target.value })}
+            placeholder="https://example.com/logo.png"
           />
           <label className="flex items-center gap-2 cursor-pointer">
             <input

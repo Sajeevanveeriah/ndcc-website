@@ -22,7 +22,8 @@
     "test:sponsors": "node scripts/test-sponsors.mjs",
     "test:fantasy": "node scripts/test-fantasy.mjs",
     "production:upsert-sponsors": "node scripts/production/upsert-verified-sponsors.mjs",
-    "production:closeout": "node scripts/production/apply-closeout.mjs"
+    "production:closeout": "node scripts/production/apply-closeout.mjs",
+    "test:contact": "node scripts/test-contact-flow.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",

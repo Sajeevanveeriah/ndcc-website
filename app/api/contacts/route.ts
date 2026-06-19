@@ -64,29 +64,28 @@ export async function POST(request: Request) {
       );
     }
 
+    let dbStatus: 'saved' | 'failed' = 'failed';
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        { success: false, error: 'Service not configured.' },
-        { status: 503 }
-      );
-    }
+      console.error('Supabase contact insert skipped: server env is not configured.');
+    } else {
+      try {
+        const supabase = createServerClient({ fetchTimeoutMs: 12_000 });
+        const { error } = await supabase.from('contacts').insert({
+          name: safeName,
+          email: safeEmail,
+          message: safeMessage,
+          enquiry_type: safeEnquiryType,
+          responded: false,
+        });
 
-    const supabase = createServerClient();
-
-    const { error } = await supabase.from('contacts').insert({
-      name: safeName,
-      email: safeEmail,
-      message: safeMessage,
-      enquiry_type: safeEnquiryType,
-      responded: false,
-    });
-
-    if (error) {
-      console.error('Supabase contact insert error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to send message.' },
-        { status: 500 }
-      );
+        if (error) {
+          console.error('Supabase contact insert failed', { code: error.code });
+        } else {
+          dbStatus = 'saved';
+        }
+      } catch (dbError) {
+        console.error('Supabase contact insert unavailable', { message: dbError instanceof Error ? dbError.message : 'unknown' });
+      }
     }
 
     const timestamp = new Date().toISOString();
@@ -136,11 +135,23 @@ export async function POST(request: Request) {
         reason: safeFailureReason(adminResult.reason),
         acknowledgementStatus: acknowledgementResult.status,
       });
+      if (dbStatus === 'saved') {
+        return NextResponse.json({
+          success: true,
+          dbStatus,
+          emailStatus: 'failed',
+          acknowledgementStatus: acknowledgementResult.status,
+          message: 'Your enquiry was saved, but the email notification could not be sent. Please email ndsc.cricket@gmail.com if urgent.',
+        }, { status: 202 });
+      }
+
       return NextResponse.json({
-        success: true,
+        success: false,
+        dbStatus,
         emailStatus: 'failed',
-        message: 'Your enquiry was received, but the email notification could not be sent. Please email ndcc.secretary1@gmail.com if urgent.',
-      }, { status: 202 });
+        acknowledgementStatus: acknowledgementResult.status,
+        error: 'We could not send your enquiry right now. Please email ndsc.cricket@gmail.com directly.',
+      }, { status: 503 });
     }
 
     if (acknowledgementResult.status !== 'sent') {
@@ -152,13 +163,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      dbStatus,
       emailStatus: 'sent',
-      message: 'Message sent successfully!',
+      acknowledgementStatus: acknowledgementResult.status,
+      message: dbStatus === 'saved' ? 'Message sent successfully!' : 'Your enquiry email was sent, but saving a copy failed. We will still receive your message.',
     });
   } catch (err) {
     console.error('Contact route error:', err);
     return NextResponse.json(
-      { success: false, error: 'An unexpected error occurred.' },
+      { success: false, dbStatus: 'failed', emailStatus: 'failed', error: 'We could not process your enquiry right now. Please try again or email ndsc.cricket@gmail.com directly.' },
       { status: 500 }
     );
   }
