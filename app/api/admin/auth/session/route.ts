@@ -12,19 +12,19 @@ export async function GET() {
   if (session.status === 'authenticated') {
     return NextResponse.json(
       { authenticated: true, user: session.user, expiresAt: session.expiresAt.toISOString() },
-      { headers: { 'Cache-Control': 'no-store' } },
+      { headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' } },
     );
   }
 
   if (session.status === 'unavailable') {
     return NextResponse.json(
       { authenticated: null, unavailable: true, reason: session.reason, error: 'Session validation is temporarily unavailable.' },
-      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      { status: 503, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' } },
     );
   }
 
   return NextResponse.json(
     { authenticated: false, reason: session.reason },
-    { status: 401, headers: { 'Cache-Control': 'no-store' } },
+    { status: 401, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' } },
   );
 }
