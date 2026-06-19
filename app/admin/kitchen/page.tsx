@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
@@ -411,6 +412,23 @@ export default function AdminKitchenPage() {
                   {o.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                 </Button>
                 <span>{new Date(o.created_at).toLocaleString()}</span>
+                <DeleteRecordButton
+                  resource="kitchenOrders"
+                  recordId={o.id}
+                  recordLabel={`kitchen order for ${o.customer_name}`}
+                  recordDetails={[
+                    { label: 'Customer', value: o.customer_name },
+                    { label: 'Total', value: `$${o.total_amount}` },
+                    { label: 'Payment', value: o.payment_status },
+                    { label: 'Processed', value: o.processed ? 'Yes' : 'No' },
+                    { label: 'Date', value: new Date(o.created_at).toLocaleString() },
+                  ]}
+                  dangerLevel={o.payment_status === 'paid' || o.processed ? 'strong' : 'normal'}
+                  requireTypedConfirmation={o.payment_status === 'paid' || o.processed}
+                  strongWarning="This kitchen order is paid or processed. Permanent deletion removes order history for this record."
+                  onDeleted={(id) => setOrders((prev) => prev.filter((item) => item.id !== id))}
+                  onSuccessMessage={setMessage}
+                />
               </div>
             </div>
           ))

@@ -7,6 +7,7 @@ import type { Event, EventRegistration } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -273,6 +274,7 @@ export default function AdminEventsPage() {
                 <TableHeader>Payment</TableHeader>
                 <TableHeader>Processed</TableHeader>
                 <TableHeader>Created</TableHeader>
+                <TableHeader>Actions</TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -306,6 +308,20 @@ export default function AdminEventsPage() {
                     </label>
                   </TableCell>
                   <TableCell>{formatDate(registration.created_at)}</TableCell>
+                  <TableCell>
+                    <DeleteRecordButton
+                      resource="eventRegistrations"
+                      recordId={registration.id}
+                      recordLabel={`event registration from ${registration.name}`}
+                      recordDetails={[
+                        { label: 'Name', value: registration.name },
+                        { label: 'Email', value: registration.email },
+                        { label: 'Date', value: formatDate(registration.created_at) },
+                      ]}
+                      onDeleted={(id) => setRegistrations((prev) => prev.filter((item) => item.id !== id))}
+                      onSuccessMessage={(message) => setFeedback({ type: 'success', message })}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

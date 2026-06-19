@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { formatDate } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
+import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Badge from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -55,6 +56,10 @@ export default function AdminVolunteersPage() {
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to update volunteer.');
     }
+  };
+
+  const handleDeleted = (id: string) => {
+    setVolunteers((prev) => prev.filter((v) => v.id !== id));
   };
 
   const filteredVolunteers = volunteers.filter((v) => {
@@ -121,11 +126,25 @@ export default function AdminVolunteersPage() {
                 <TableCell>{v.status === 'contacted' ? <Badge variant="success">Contacted</Badge> : <Badge variant="warning">Pending</Badge>}</TableCell>
                 <TableCell>{formatDate(v.created_at)}</TableCell>
                 <TableCell>
-                  {v.status !== 'contacted' && (
-                    <Button variant="ghost" size="sm" onClick={() => handleMarkContacted(v.id)}>
-                      <CheckCircle className="h-4 w-4 mr-1" />Mark Contacted
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {v.status !== 'contacted' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleMarkContacted(v.id)}>
+                        <CheckCircle className="h-4 w-4 mr-1" />Mark Contacted
+                      </Button>
+                    )}
+                    <DeleteRecordButton
+                      resource="volunteerExpressions"
+                      recordId={v.id}
+                      recordLabel={`volunteer EOI from ${v.full_name}`}
+                      recordDetails={[
+                        { label: 'Name', value: v.full_name },
+                        { label: 'Email', value: v.email },
+                        { label: 'Date', value: formatDate(v.created_at) },
+                      ]}
+                      onDeleted={handleDeleted}
+                      onSuccessMessage={setMessage}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

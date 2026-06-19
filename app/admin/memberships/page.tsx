@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Input from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
 
@@ -216,7 +217,23 @@ export default function AdminMembershipsPage() {
           <Button size="sm" variant="secondary" onClick={loadApplications} isLoading={loadingApplications}>Refresh</Button>
         </div>
         <ul className="space-y-2 text-sm text-gray-700">
-          {applications.map((app) => <li key={app.id}>{app.full_name} · {app.email} · {app.status}</li>)}
+          {applications.map((app) => (
+            <li key={app.id} className="flex items-center justify-between gap-3">
+              <span>{app.full_name} · {app.email} · {app.status}</span>
+              <DeleteRecordButton
+                resource="membershipApplications"
+                recordId={app.id}
+                recordLabel={`membership application from ${app.full_name}`}
+                recordDetails={[
+                  { label: 'Name', value: app.full_name },
+                  { label: 'Email', value: app.email },
+                  { label: 'Date', value: new Date(app.created_at).toLocaleString() },
+                ]}
+                onDeleted={(id) => setApplications((prev) => prev.filter((item) => item.id !== id))}
+                onSuccessMessage={setMessage}
+              />
+            </li>
+          ))}
           {!loadingApplications && applications.length === 0 && <li>No recent applications found.</li>}
         </ul>
       </div>
