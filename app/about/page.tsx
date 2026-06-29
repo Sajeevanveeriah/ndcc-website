@@ -36,6 +36,15 @@ export default async function AboutPage() {
   const historyBody = blocks['about.history']?.body;
   const historyImage = blocks['about.history']?.image_url || '/images/Turf_Ground.jpg';
 
+  const currentYear = new Date().getFullYear();
+  const yearsStrong = Math.max(currentYear - CLUB_ESTABLISHED, 0);
+  const premiershipCount = premierships.length;
+  const gcaLineage = lineageEntries.find(
+    (entry) => entry.association_abbr === CLUB_ASSOCIATION_SHORT && /present/i.test(entry.end_season)
+  );
+  const gcaStartYear = Number(gcaLineage?.start_season.slice(0, 4));
+  const seasonsInGca = Math.max(currentYear - (Number.isFinite(gcaStartYear) ? gcaStartYear : 1995), 0);
+
   const competitionsByAbbr = Object.fromEntries(competitions.map((item) => [item.abbreviation, item.name]));
   const activeCommittee = committeeMembers.length > 0
     ? committeeMembers.map((member) => ({ name: member.name, role: member.role }))
@@ -83,6 +92,39 @@ export default async function AboutPage() {
           </div>
         </div>
       </section>
+
+      <section className="section-padding bg-maroon-900 text-white">
+        <div className="container-width">
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+            <ScrollRevealItem>
+              <p className="font-display text-5xl sm:text-6xl font-bold text-amber-300">
+                <AnimatedCounter to={yearsStrong} />
+              </p>
+              <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Years Strong</p>
+            </ScrollRevealItem>
+            <ScrollRevealItem>
+              <p className="font-display text-5xl sm:text-6xl font-bold text-amber-300">
+                <AnimatedCounter to={premiershipCount} />
+              </p>
+              <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Premierships Won</p>
+            </ScrollRevealItem>
+            <ScrollRevealItem>
+              <p className="font-display text-5xl sm:text-6xl font-bold text-amber-300">
+                <AnimatedCounter to={seasonsInGca} />
+              </p>
+              <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Seasons in the {CLUB_ASSOCIATION_SHORT}</p>
+            </ScrollRevealItem>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      <div className="container-width px-4">
+        <div className="flex items-center justify-center gap-4 py-10" aria-hidden="true">
+          <span className="h-px w-20 bg-gradient-to-r from-transparent to-maroon-200" />
+          <span className="h-2.5 w-2.5 rotate-45 rounded-[2px] bg-maroon-600" />
+          <span className="h-px w-20 bg-gradient-to-l from-transparent to-maroon-200" />
+        </div>
+      </div>
 
       <section className="section-padding surface-sky">
         <div className="container-width">
