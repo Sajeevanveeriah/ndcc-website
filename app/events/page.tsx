@@ -9,7 +9,7 @@ import Badge from '@/components/ui/Badge';
 import { Event } from '@/lib/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
-import { fallbackEvents } from '@/lib/fallback-content';
+import { fallbackEvents, mergeEventsWithFallback } from '@/lib/fallback-content';
 
 function SkeletonCard() {
   return (
@@ -40,7 +40,7 @@ export default function EventsPage() {
         const json = await res.json();
 
         if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
-          setEvents(json.data as Event[]);
+          setEvents(mergeEventsWithFallback(json.data as Event[]));
         } else {
           setEvents(fallbackEvents);
         }

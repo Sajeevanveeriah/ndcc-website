@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { fallbackEvents } from '@/lib/fallback-content';
+import { fallbackEvents, mergeEventsWithFallback } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -68,5 +68,5 @@ export async function GET(request: Request) {
   const { data, error } = await getPublishedEvents();
 
   if (error) return jsonNoCache({ success: true, data: fallbackEvents });
-  return jsonNoCache({ success: true, data: data?.length ? data : fallbackEvents });
+  return jsonNoCache({ success: true, data: mergeEventsWithFallback(data) });
 }

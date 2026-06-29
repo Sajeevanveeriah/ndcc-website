@@ -20,6 +20,7 @@ import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { getInitials, validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 import { fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
 
 
 const SPONSOR_DESCRIPTIONS_BY_NAME: Record<string, string> = {
@@ -240,7 +241,7 @@ export default function SponsorsPage() {
                           <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
                             {sponsor.name}
                           </h3>
-                          <div className={`mb-4 h-28 overflow-hidden rounded-lg ${hasLogo ? 'flex items-center justify-center border border-gray-100 bg-gray-50 p-4' : ''}`}>
+                          <div className={`mb-4 h-28 overflow-hidden rounded-lg ${hasLogo ? `flex items-center justify-center border ${sponsorLogoSurfaceClass(sponsor.name)}` : ''}`}>
                             {hasLogo ? (
                               <SafeImage
                                 src={sponsor.logo_url}

@@ -22,6 +22,7 @@ import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarqu
 import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews, fallbackSponsors, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -465,7 +466,7 @@ async function SponsorsSection() {
                 </div>
               );
               const logo = (
-                <div className="flex h-32 w-56 flex-none items-center justify-center rounded-2xl border border-sky-100 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md">
+                <div className={`flex h-32 w-56 flex-none items-center justify-center rounded-2xl border shadow-sm transition-shadow duration-300 hover:shadow-md ${sponsorLogoSurfaceClass(sponsor.name)}`}>
                   {sponsor.logo_url ? (
                     <SafeImage
                       src={sponsor.logo_url}
