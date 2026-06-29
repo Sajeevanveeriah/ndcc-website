@@ -164,7 +164,13 @@ export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: s
       description: sponsor.description?.trim() ? sponsor.description : fallback?.description,
     });
   }
-  if (byCanonical.size > 0) return Array.from(byCanonical.values());
+  if (byCanonical.size > 0) {
+    for (const sponsor of fallbackSponsors) {
+      const key = canonicalSponsorKey(sponsor.name);
+      if (!byCanonical.has(key)) byCanonical.set(key, { ...sponsor, name: canonicalSponsorName(sponsor.name) } as T & Sponsor);
+    }
+    return Array.from(byCanonical.values());
+  }
   return fallbackSponsors.map((sponsor) => ({ ...sponsor, name: canonicalSponsorName(sponsor.name) })) as Array<T & Sponsor>;
 }
 
@@ -209,6 +215,36 @@ export const fallbackEvents = SEED_EVENTS.map((event) => ({
   created_at: event.date,
   image_url: normalizeEventImage(event.title, event.image_url || null),
 })) as Event[];
+
+export function canonicalEventKey(event: Pick<Event, 'id' | 'title'>) {
+  const titleKey = String(event.title || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return titleKey || String(event.id || '').trim();
+}
+
+export function mergeEventsWithFallback<T extends Partial<Event> & { id: string; title: string }>(events: T[] | null | undefined) {
+  const byCanonical = new Map<string, T | Event>();
+
+  for (const event of (events || []).filter((item) => item.title?.trim())) {
+    byCanonical.set(canonicalEventKey(event as Event), {
+      ...event,
+      image_url: normalizeEventImage(event.title, event.image_url || null),
+    });
+  }
+
+  for (const event of fallbackEvents) {
+    const key = canonicalEventKey(event);
+    if (!byCanonical.has(key)) byCanonical.set(key, event);
+  }
+
+  return Array.from(byCanonical.values()).sort((a, b) => {
+    const aTime = Date.parse(String(a.date || '')) || Number.MAX_SAFE_INTEGER;
+    const bTime = Date.parse(String(b.date || '')) || Number.MAX_SAFE_INTEGER;
+    return aTime - bTime;
+  }) as Array<T & Event>;
+}
 
 export const fallbackGalleryImages = [
   normalizeGalleryImage({ id: 'fallback-gallery-u13-premiers', title: 'Under 13 Juniors Premiers 2025/26', caption: 'Under 13 Juniors premiership celebration.', image_url: '/images/achievements/2025-26/u13-juniors-premiers-2025-26.webp', alt_text: 'Under 13 Juniors premiers celebration image', allow_download: false, sort_order: 1 }),
