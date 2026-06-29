@@ -93,7 +93,7 @@ export default function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b-2 border-maroon-700',
         scrolled
-          ? 'bg-white/95 backdrop-blur-sm shadow-sm'
+          ? 'bg-white/90 backdrop-blur-md shadow-md'
           : 'bg-white'
       )}
       role="navigation"
@@ -214,7 +214,7 @@ export default function Navbar() {
             {/* Join CTA button */}
             <Link
               href="/join"
-              className="ml-3 px-4 py-2 bg-maroon-700 text-white text-sm font-semibold rounded-lg hover:bg-maroon-800 transition-colors"
+              className="ml-3 px-4 py-2 bg-maroon-700 text-white text-sm font-semibold rounded-lg hover:bg-maroon-800 transition-colors focus-ring"
             >
               Join the Club
             </Link>
@@ -223,7 +223,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors"
+            className="lg:hidden p-2 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors focus-ring"
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
           >
@@ -263,7 +263,7 @@ export default function Navbar() {
           ))}
           <Link
             href="/join"
-            className="block px-4 py-3 mt-1 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-xl hover:bg-maroon-800 transition-colors"
+            className="block px-4 py-3 mt-1 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-xl hover:bg-maroon-800 transition-colors focus-ring"
           >
             Join the Club
           </Link>

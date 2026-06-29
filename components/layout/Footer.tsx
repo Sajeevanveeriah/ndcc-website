@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
+import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
 import { fallbackLinksFor } from '@/lib/fallback-content';
-import { ACKNOWLEDGEMENT } from '@/lib/constants';
+import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
 
 function isExternalLink(link: PageLinkCard) {
   return link.is_external || /^https?:\/\//i.test(link.href);
@@ -110,6 +110,26 @@ export default async function Footer() {
                     {settings.phone}
                   </a>
                 </div>
+              </div>
+              <div className="mt-5 flex items-center gap-3">
+                <a
+                  href={settings.facebook_url || FACEBOOK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Newcomb & District Cricket Club on Facebook"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
+                >
+                  <Facebook className="h-4 w-4" />
+                </a>
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Newcomb & District Cricket Club on Instagram"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
+                >
+                  <Instagram className="h-4 w-4" />
+                </a>
               </div>
             </ScrollRevealItem>
 
