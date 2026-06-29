@@ -6,17 +6,21 @@ import Badge from '@/components/ui/Badge';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards } from '@/lib/structured-content';
+import { fallbackLinksFor } from '@/lib/fallback-content';
 
 export const metadata: Metadata = {
   title: 'Fixtures & Results',
 };
 
 export default async function FixturesPage() {
-  const [settings, blocks, teamLinks] = await Promise.all([
+  const [settings, blocks, cmsTeamLinks] = await Promise.all([
     getClubSettings(),
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
     getPageLinkCards('fixtures', 'team_links'),
   ]);
+  // On a Supabase cold start the query aborts; show the static PlayHQ team links instead of an
+  // empty grid. CMS rows win whenever Supabase is warm.
+  const teamLinks = cmsTeamLinks.length > 0 ? cmsTeamLinks : fallbackLinksFor('fixtures', 'team_links');
 
   return (
     <>
