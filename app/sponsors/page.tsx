@@ -19,7 +19,6 @@ import {
 import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { getInitials, validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
-import { fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
 
 
@@ -50,8 +49,9 @@ const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'da
 export default function SponsorsPage() {
   const clubEmail = `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
   const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
-  const [sponsors, setSponsors] = useState<Sponsor[]>(fallbackSponsors);
-  const [loading, setLoading] = useState(false);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -79,13 +79,11 @@ export default function SponsorsPage() {
         const res = await fetch('/api/public/sponsors', { cache: 'no-store' });
         const json = await res.json();
 
-        if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
-          setSponsors(mergeSponsorsWithFallback(json.data as Sponsor[]));
-        } else {
-          setSponsors(fallbackSponsors);
-        }
-      } catch {
-        setSponsors(fallbackSponsors);
+        if (!res.ok || json.success === false) throw new Error(json.error || 'Failed to load sponsors');
+        setSponsors(Array.isArray(json.data) ? (json.data as Sponsor[]) : []);
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load sponsors');
+        setSponsors([]);
       } finally {
         setLoading(false);
       }
@@ -208,7 +206,29 @@ export default function SponsorsPage() {
           </div>
         </section>
       ) : (
-        tiersWithSponsors.map((tier, idx) => (
+        loadError ? (
+          <section className="section-padding">
+            <div className="container-width">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">Sponsors could not be loaded</h2>
+                  <p className="text-gray-600 font-body">{loadError}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        ) : tiersWithSponsors.length === 0 ? (
+          <section className="section-padding">
+            <div className="container-width">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">No active sponsors published</h2>
+                  <p className="text-gray-600 font-body">Active sponsor records will appear here after they are published in the CMS.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        ) : tiersWithSponsors.map((tier, idx) => (
           <section
             key={tier.value}
             className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-gray-50'}
@@ -241,14 +261,14 @@ export default function SponsorsPage() {
                           <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
                             {sponsor.name}
                           </h3>
-                          <div className={`mb-4 h-28 overflow-hidden rounded-lg ${hasLogo ? `flex items-center justify-center border ${sponsorLogoSurfaceClass(sponsor.name)}` : ''}`}>
+                          <div className={`mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl border ${hasLogo ? sponsorLogoSurfaceClass(sponsor.name) : 'border-maroon-900 bg-maroon-900'}`}>
                             {hasLogo ? (
                               <SafeImage
                                 src={sponsor.logo_url}
                                 alt={`${sponsor.name} logo`}
                                 width={220}
                                 height={96}
-                                className="max-h-24 w-auto object-contain"
+                                className="max-h-24 max-w-[85%] w-auto object-contain drop-shadow-sm"
                                 sizes="220px"
                                 fallback={logoFallback}
                               />

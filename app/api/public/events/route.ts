@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
-import { createServerClient } from '@/lib/supabase-server';
-import { fallbackEvents, mergeEventsWithFallback } from '@/lib/fallback-content';
+import { fallbackEvents } from '@/lib/fallback-content';
+import { getPublicEvents } from '@/lib/public-data';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -23,50 +22,18 @@ function jsonNoCache(body: unknown, init?: ResponseInit) {
   });
 }
 
-const getPublishedEvent = unstable_cache(async (id: string) => {
-  const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('id', id)
-    .eq('published', true)
-    .maybeSingle();
-  return { data, error: error?.message ?? null };
-}, ['public-events-by-id'], { revalidate: 300, tags: ['events'] });
-
-const getPublishedEvents = unstable_cache(async () => {
-  const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('published', true)
-    .order('date', { ascending: true });
-  return { data: data ?? [], error: error?.message ?? null };
-}, ['public-events'], { revalidate: 300, tags: ['events'] });
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
+  const result = await getPublicEvents();
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    if (id) {
-      const event = fallbackEvents.find((item) => item.id === id);
-      if (!event) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
-      return jsonNoCache({ success: true, data: event });
-    }
-    return jsonNoCache({ success: true, data: fallbackEvents });
-  }
+  if (result.error) return jsonNoCache({ success: false, data: id ? null : [], error: result.error }, { status: 500 });
 
   if (id) {
-    const { data, error } = await getPublishedEvent(id);
-
-    if (error) return jsonNoCache({ success: false, error }, { status: 500 });
-    if (!data) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
-    return jsonNoCache({ success: true, data });
+    const event = result.data.find((item) => item.id === id) || (result.source === 'fallback' ? fallbackEvents.find((item) => item.id === id) : undefined);
+    if (!event) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
+    return jsonNoCache({ success: true, data: event, source: result.source });
   }
 
-  const { data, error } = await getPublishedEvents();
-
-  if (error) return jsonNoCache({ success: true, data: fallbackEvents });
-  return jsonNoCache({ success: true, data: mergeEventsWithFallback(data) });
+  return jsonNoCache({ success: true, data: result.data, source: result.source });
 }
