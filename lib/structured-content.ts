@@ -1,13 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { NAV_LINKS } from '@/lib/constants';
-import {
-  fallbackFacilityFeatures,
-  fallbackHistoryCompetitions,
-  fallbackHistoryLineage,
-  fallbackHistoryPremierships,
-  fallbackLinksFor,
-  isProductionStaticBuild,
-} from '@/lib/fallback-content';
+import { isProductionStaticBuild } from '@/lib/fallback-content';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 
 export type PageLinkCard = {
@@ -25,81 +17,6 @@ export type PageLinkCard = {
 };
 
 
-export const fallbackHeaderLinks: PageLinkCard[] = NAV_LINKS.map((link, index) => ({
-  id: `fallback-header-${index + 1}`,
-  page_slug: 'site',
-  section_key: 'header_nav',
-  title: link.label,
-  description: '',
-  href: link.href,
-  icon: null,
-  badge: null,
-  is_external: Boolean(link.openInNewTab),
-  sort_order: index + 1,
-  is_active: true,
-}));
-
-export const fallbackFooterQuickLinks: PageLinkCard[] = NAV_LINKS.slice(0, 6).map((link, index) => ({
-  id: `fallback-footer-quick-${index + 1}`,
-  page_slug: 'site',
-  section_key: 'footer_quick_links',
-  title: link.label,
-  description: '',
-  href: link.href,
-  icon: null,
-  badge: null,
-  is_external: Boolean(link.openInNewTab),
-  sort_order: index + 1,
-  is_active: true,
-}));
-
-export const fallbackFooterGetInvolvedLinks: PageLinkCard[] = [
-  ...NAV_LINKS.slice(6).map((link, index) => ({
-    id: `fallback-footer-involved-${index + 1}`,
-    page_slug: 'site',
-    section_key: 'footer_get_involved',
-    title: link.label,
-    description: '',
-    href: link.href,
-    icon: null,
-    badge: null,
-    is_external: Boolean(link.openInNewTab),
-    sort_order: index + 1,
-    is_active: true,
-  })),
-  {
-    id: 'fallback-footer-committee-login',
-    page_slug: 'site',
-    section_key: 'footer_get_involved',
-    title: 'Committee Login',
-    description: '',
-    href: '/admin/login',
-    icon: null,
-    badge: null,
-    is_external: false,
-    sort_order: 99,
-    is_active: true,
-  },
-];
-
-export const fallbackFooterAffiliationLinks: PageLinkCard[] = [
-  { id: 'fallback-affiliation-gca', page_slug: 'site', section_key: 'footer_affiliations', title: 'Geelong Cricket Association', description: '', href: 'https://cricketgeelong.com.au/', icon: null, badge: null, is_external: true, sort_order: 1, is_active: true },
-  { id: 'fallback-affiliation-newcomb-power', page_slug: 'site', section_key: 'footer_affiliations', title: 'Newcomb Power Football & Netball Club', description: '', href: 'https://newcombpowerfnc.com.au/', icon: null, badge: null, is_external: true, sort_order: 2, is_active: true },
-  { id: 'fallback-affiliation-softball', page_slug: 'site', section_key: 'footer_affiliations', title: 'Softball club details', description: '', href: '/contact?topic=softball', icon: null, badge: null, is_external: false, sort_order: 3, is_active: true },
-  { id: 'fallback-affiliation-darts', page_slug: 'site', section_key: 'footer_affiliations', title: 'Darts club details', description: '', href: '/contact?topic=darts', icon: null, badge: null, is_external: false, sort_order: 4, is_active: true },
-  { id: 'fallback-affiliation-good-sports', page_slug: 'site', section_key: 'footer_affiliations', title: 'Good Sports Level 3', description: '', href: 'https://goodsports.com.au/', icon: null, badge: null, is_external: true, sort_order: 5, is_active: true },
-];
-
-export function fallbackLinksForSection(pageSlug: string, sectionKey: string): PageLinkCard[] {
-  const fallback = fallbackLinksFor(pageSlug, sectionKey);
-  if (fallback.length) return fallback;
-  if (pageSlug !== 'site') return [];
-  if (sectionKey === 'header_nav') return fallbackHeaderLinks;
-  if (sectionKey === 'footer_quick_links') return fallbackFooterQuickLinks;
-  if (sectionKey === 'footer_get_involved') return fallbackFooterGetInvolvedLinks;
-  if (sectionKey === 'footer_affiliations') return fallbackFooterAffiliationLinks;
-  return [];
-}
 
 export type FacilityFeature = {
   id: string;
@@ -149,7 +66,10 @@ function hasSupabaseEnv() {
 }
 
 async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackLinksForSection(pageSlug, sectionKey);
+  if (isProductionStaticBuild || !hasSupabaseEnv()) {
+    console.error('Supabase is not configured for page link cards.', { pageSlug, sectionKey });
+    return [];
+  }
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase
@@ -160,13 +80,13 @@ async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): P
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     if (error) {
-      console.warn('Public page link cards query failed; using fallback.');
-      return fallbackLinksForSection(pageSlug, sectionKey);
+      console.error('Public page link cards query failed.', { pageSlug, sectionKey, error: error.message });
+      return [];
     }
     return (data as PageLinkCard[]) || [];
-  } catch {
-    console.warn('Public page link cards query timed out or failed; using fallback.');
-    return fallbackLinksForSection(pageSlug, sectionKey);
+  } catch (error) {
+    console.error('Public page link cards query timed out or failed.', { pageSlug, sectionKey, error });
+    return [];
   }
 }
 
@@ -176,7 +96,7 @@ export const getPageLinkCards = unstable_cache(getPageLinkCardsUncached, ['page-
 });
 
 async function getFacilityFeaturesUncached(): Promise<FacilityFeature[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackFacilityFeatures;
+  if (isProductionStaticBuild || !hasSupabaseEnv()) { console.error('Supabase is not configured for facility features.'); return []; }
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -185,7 +105,8 @@ async function getFacilityFeaturesUncached(): Promise<FacilityFeature[]> {
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     return (data as FacilityFeature[]) || [];
-  } catch {
+  } catch (error) {
+    console.error('Public structured content query failed.', { error });
     return [];
   }
 }
@@ -196,7 +117,7 @@ export const getFacilityFeatures = unstable_cache(getFacilityFeaturesUncached, [
 });
 
 async function getHistoryLineageUncached(): Promise<HistoryLineageEntry[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryLineage;
+  if (isProductionStaticBuild || !hasSupabaseEnv()) { console.error('Supabase is not configured for history lineage.'); return []; }
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -205,7 +126,8 @@ async function getHistoryLineageUncached(): Promise<HistoryLineageEntry[]> {
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     return (data as HistoryLineageEntry[]) || [];
-  } catch {
+  } catch (error) {
+    console.error('Public structured content query failed.', { error });
     return [];
   }
 }
@@ -216,7 +138,7 @@ export const getHistoryLineage = unstable_cache(getHistoryLineageUncached, ['his
 });
 
 async function getHistoryPremiershipsUncached(): Promise<HistoryPremiership[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryPremierships;
+  if (isProductionStaticBuild || !hasSupabaseEnv()) { console.error('Supabase is not configured for history premierships.'); return []; }
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -225,7 +147,8 @@ async function getHistoryPremiershipsUncached(): Promise<HistoryPremiership[]> {
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     return (data as HistoryPremiership[]) || [];
-  } catch {
+  } catch (error) {
+    console.error('Public structured content query failed.', { error });
     return [];
   }
 }
@@ -236,7 +159,7 @@ export const getHistoryPremierships = unstable_cache(getHistoryPremiershipsUncac
 });
 
 async function getHistoryCompetitionsUncached(): Promise<HistoryCompetition[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryCompetitions;
+  if (isProductionStaticBuild || !hasSupabaseEnv()) { console.error('Supabase is not configured for history competitions.'); return []; }
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -244,7 +167,8 @@ async function getHistoryCompetitionsUncached(): Promise<HistoryCompetition[]> {
       .select('*')
       .order('abbreviation', { ascending: true });
     return (data as HistoryCompetition[]) || [];
-  } catch {
+  } catch (error) {
+    console.error('Public structured content query failed.', { error });
     return [];
   }
 }
@@ -255,7 +179,7 @@ export const getHistoryCompetitions = unstable_cache(getHistoryCompetitionsUncac
 });
 
 async function getCommitteeMembersUncached(): Promise<CommitteeMemberContent[]> {
-  if (!hasSupabaseEnv()) return [];
+  if (!hasSupabaseEnv()) { console.error('Supabase is not configured for committee members.'); return []; }
   try {
     const supabase = createServerClient();
     const { data } = await supabase
@@ -264,7 +188,8 @@ async function getCommitteeMembersUncached(): Promise<CommitteeMemberContent[]> 
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     return (data as CommitteeMemberContent[]) || [];
-  } catch {
+  } catch (error) {
+    console.error('Public structured content query failed.', { error });
     return [];
   }
 }

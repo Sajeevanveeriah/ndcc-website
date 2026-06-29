@@ -1,11 +1,11 @@
 import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
-import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, isProductionStaticBuild } from '@/lib/fallback-content';
+import { isProductionStaticBuild } from '@/lib/fallback-content';
 import { normalizeEventImage, normalizeGalleryImage } from '@/lib/public-content-normalizers';
 import type { Event, Sponsor } from '@/lib/types';
 
 export type PublicDataResult<T> =
-  | { data: T; error: null; source: 'supabase' | 'fallback' }
+  | { data: T; error: null; source: 'supabase' }
   | { data: T; error: string; source: 'supabase' };
 
 export type GalleryPhoto = {
@@ -51,7 +51,7 @@ const getActiveSponsorsFromSupabase = unstable_cache(async () => {
 
 export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
   if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    return { data: fallbackEvents, error: null, source: 'fallback' };
+    return { data: [], error: 'Supabase is not configured for public events.', source: 'supabase' };
   }
 
   try {
@@ -72,7 +72,7 @@ export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
 
 export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[]>> {
   if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    return { data: fallbackGalleryImages as GalleryPhoto[], error: null, source: 'fallback' };
+    return { data: [], error: 'Supabase is not configured for public gallery images.', source: 'supabase' };
   }
 
   try {
@@ -86,7 +86,7 @@ export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[
 
 export async function getPublicSponsors(): Promise<PublicDataResult<Sponsor[]>> {
   if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    return { data: fallbackSponsors, error: null, source: 'fallback' };
+    return { data: [], error: 'Supabase is not configured for public sponsors.', source: 'supabase' };
   }
 
   try {

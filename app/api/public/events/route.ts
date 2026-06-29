@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { fallbackEvents } from '@/lib/fallback-content';
 import { getPublicEvents } from '@/lib/public-data';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +29,7 @@ export async function GET(request: Request) {
   if (result.error) return jsonNoCache({ success: false, data: id ? null : [], error: result.error }, { status: 500 });
 
   if (id) {
-    const event = result.data.find((item) => item.id === id) || (result.source === 'fallback' ? fallbackEvents.find((item) => item.id === id) : undefined);
+    const event = result.data.find((item) => item.id === id);
     if (!event) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
     return jsonNoCache({ success: true, data: event, source: result.source });
   }

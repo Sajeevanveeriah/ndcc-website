@@ -2,13 +2,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
-import { ACKNOWLEDGEMENT } from '@/lib/constants';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
 
 function isExternalLink(link: PageLinkCard) {
   return link.is_external || /^https?:\/\//i.test(link.href);
+}
+
+function FooterDataNotice({ label }: { label: string }) {
+  return (
+    <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-xs font-body text-amber-100">
+      {label} CMS links are not available. Check Supabase page_link_cards.
+    </p>
+  );
 }
 
 function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
@@ -42,8 +49,8 @@ export default async function Footer() {
   ]);
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
-  const acknowledgement = blocks['footer.acknowledgement']?.body || ACKNOWLEDGEMENT;
-  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url || '/images/Connection_Bri_Hayes_Rev1.jpg';
+  const acknowledgement = blocks['footer.acknowledgement']?.body;
+  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
@@ -56,7 +63,7 @@ export default async function Footer() {
       >
         <div className="container-width">
           <p className="text-sm text-maroon-200 font-body leading-relaxed max-w-4xl">
-            {acknowledgement}
+            {acknowledgement || 'Footer acknowledgement CMS block is not available. Check Supabase content_blocks for footer.acknowledgement.'}
           </p>
         </div>
       </div>
@@ -105,6 +112,9 @@ export default async function Footer() {
             {/* Quick Links */}
             <ScrollRevealItem>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Quick Links</h3>
+              {quickLinks.length === 0 ? (
+                <FooterDataNotice label="Quick Links" />
+              ) : (
               <ul className="space-y-2">
                 {quickLinks.map((link) => (
                   <li key={link.id}>
@@ -115,11 +125,15 @@ export default async function Footer() {
                   </li>
                 ))}
               </ul>
+              )}
             </ScrollRevealItem>
 
             {/* More Links */}
             <ScrollRevealItem>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Get Involved</h3>
+              {getInvolvedLinks.length === 0 ? (
+                <FooterDataNotice label="Get Involved" />
+              ) : (
               <ul className="space-y-2">
                 {getInvolvedLinks.map((link) => (
                   <li key={link.id}>
@@ -130,11 +144,15 @@ export default async function Footer() {
                   </li>
                 ))}
               </ul>
+              )}
             </ScrollRevealItem>
 
             {/* Partners */}
             <ScrollRevealItem>
               <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Affiliations</h3>
+              {affiliationLinks.length === 0 ? (
+                <FooterDataNotice label="Affiliations" />
+              ) : (
               <ul className="space-y-2">
                 {affiliationLinks.map((link) => (
                   <li key={link.id}>
@@ -145,6 +163,7 @@ export default async function Footer() {
                   </li>
                 ))}
               </ul>
+              )}
             </ScrollRevealItem>
           </ScrollReveal>
         </div>
