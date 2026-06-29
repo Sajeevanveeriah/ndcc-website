@@ -6,6 +6,7 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getClubSettings } from '@/lib/club-settings';
 import { normalisePublicText } from '@/lib/utils';
 import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content';
+import { fallbackFacilityFeatures } from '@/lib/fallback-content';
 import { CLUB_ADDRESS, CLUB_ESTABLISHED } from '@/lib/constants';
 
 export const metadata: Metadata = {
@@ -30,9 +31,10 @@ export default async function FacilitiesPage() {
     getClubSettings(),
   ]);
 
-  const featureStats = features.length > 0
-    ? features.slice(0, 3).map((feature) => feature.title)
-    : ['4 Club Turf Lanes', '3 Public Synthetic Lanes', 'Clubrooms & Pavilion'];
+  // On a Supabase cold start the query aborts; show the static fallback (real facility
+  // features) instead of a blank grid. Live CMS features are used whenever Supabase is warm.
+  const featureCards = features.length > 0 ? features : fallbackFacilityFeatures;
+  const featureStats = featureCards.slice(0, 3).map((feature) => feature.title);
   const statItems = [...featureStats, `Est. ${CLUB_ESTABLISHED}`];
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(settings.address || CLUB_ADDRESS)}`;
 
@@ -121,7 +123,7 @@ export default async function FacilitiesPage() {
             <p className="section-subtitle mx-auto">{normalisePublicText(blocks['facilities.features_intro']?.body)}</p>
           </div>
           <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
+            {featureCards.map((feature) => (
               <ScrollRevealItem key={feature.id}>
               <Card hover className="h-full">
                 <CardContent className="p-6">

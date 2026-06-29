@@ -14,6 +14,7 @@ import {
 import { getInitials, normalisePublicText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships, getPageLinkCards } from '@/lib/structured-content';
+import { fallbackCommitteeMembers, fallbackHistoryCompetitions, fallbackHistoryLineage, fallbackHistoryPremierships } from '@/lib/fallback-content';
 
 export const metadata: Metadata = {
   title: 'About',
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 const premiershipTeams = ['1st XI', '2nd XI', '3rd XI', '4th XI', '5th XI'];
 
 export default async function AboutPage() {
-  const [blocks, lineageEntries, premierships, competitions, committeeMembers, aboutArticles] = await Promise.all([
+  const [blocks, cmsLineage, cmsPremierships, cmsCompetitions, cmsCommittee, aboutArticles] = await Promise.all([
     getContentBlocks(['about.hero', 'about.history', 'about.affiliation', 'about.goodsports', 'about.partnership', 'about.committee']),
     getHistoryLineage(),
     getHistoryPremierships(),
@@ -30,6 +31,14 @@ export default async function AboutPage() {
     getCommitteeMembers(),
     getPageLinkCards('about', 'articles'),
   ]);
+
+  // An empty result means the Supabase query aborted on a cold start (these tables are always
+  // populated in production), so render the static fallback — real club history — instead of a
+  // blank section. CMS rows win whenever Supabase is warm.
+  const lineageEntries = cmsLineage.length > 0 ? cmsLineage : fallbackHistoryLineage;
+  const premierships = cmsPremierships.length > 0 ? cmsPremierships : fallbackHistoryPremierships;
+  const competitions = cmsCompetitions.length > 0 ? cmsCompetitions : fallbackHistoryCompetitions;
+  const committeeMembers = cmsCommittee.length > 0 ? cmsCommittee : fallbackCommitteeMembers;
 
   const historyTitle = blocks['about.history']?.title || 'Our History';
   const historyBody = blocks['about.history']?.body;
@@ -158,7 +167,7 @@ export default async function AboutPage() {
                   <CardContent className="p-6 space-y-3">
                     <h3 className="text-xl font-display font-bold text-maroon-800">{teamLabel}</h3>
                     {teamPremierships.length === 0 ? (
-                      <p className="text-sm text-gray-500">No premierships recorded.</p>
+                      <p className="text-sm text-gray-500">No premierships recorded yet.</p>
                     ) : (
                       <ul className="space-y-2 text-sm text-gray-700">
                         {teamPremierships.map((item) => (
@@ -255,14 +264,6 @@ export default async function AboutPage() {
               {blocks['about.committee']?.body || `The people who keep the ${CLUB_NICKNAME} running behind the scenes.`}
             </p>
           </div>
-          {activeCommittee.length === 0 ? (
-            <Card className="max-w-3xl mx-auto">
-              <CardContent className="p-8 text-center">
-                <h3 className="text-2xl font-display font-bold text-maroon-800 mb-2">No active committee members published</h3>
-                <p className="text-gray-600 font-body">Committee records are loaded directly from Supabase and are not replaced by a hard-coded list when the table is empty.</p>
-              </CardContent>
-            </Card>
-          ) : (
           <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
             {activeCommittee.map((member) => (
               <ScrollRevealItem key={member.name}>
@@ -280,7 +281,6 @@ export default async function AboutPage() {
               </ScrollRevealItem>
             ))}
           </ScrollReveal>
-          )}
         </div>
       </section>
 

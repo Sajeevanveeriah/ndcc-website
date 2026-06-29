@@ -5,17 +5,17 @@ import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
+import { fallbackLinksFor } from '@/lib/fallback-content';
+import { ACKNOWLEDGEMENT } from '@/lib/constants';
 
 function isExternalLink(link: PageLinkCard) {
   return link.is_external || /^https?:\/\//i.test(link.href);
 }
 
-function FooterDataNotice({ label }: { label: string }) {
-  return (
-    <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-xs font-body text-amber-100">
-      {label} CMS links are not available. Check Supabase page_link_cards.
-    </p>
-  );
+// Prefer live CMS links; fall back to sensible defaults on a Supabase cold start so the
+// footer is never blank and never shows a diagnostic. An empty section is hidden entirely.
+function resolveLinks(live: PageLinkCard[], pageSlug: string, sectionKey: string) {
+  return live.length > 0 ? live : fallbackLinksFor(pageSlug, sectionKey);
 }
 
 function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
@@ -40,7 +40,7 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  const [settings, blocks, quickLinks, getInvolvedLinks, affiliationLinks] = await Promise.all([
+  const [settings, blocks, cmsQuickLinks, cmsGetInvolvedLinks, cmsAffiliationLinks] = await Promise.all([
     getClubSettings(),
     getContentBlocks(['footer.acknowledgement']),
     getPageLinkCards('site', 'footer_quick_links'),
@@ -51,6 +51,10 @@ export default async function Footer() {
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
   const acknowledgement = blocks['footer.acknowledgement']?.body;
   const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
+
+  const quickLinks = resolveLinks(cmsQuickLinks, 'site', 'footer_quick_links');
+  const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks, 'site', 'footer_get_involved');
+  const affiliationLinks = resolveLinks(cmsAffiliationLinks, 'site', 'footer_affiliations');
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
@@ -63,7 +67,7 @@ export default async function Footer() {
       >
         <div className="container-width">
           <p className="text-sm text-maroon-200 font-body leading-relaxed max-w-4xl">
-            {acknowledgement || 'Footer acknowledgement CMS block is not available. Check Supabase content_blocks for footer.acknowledgement.'}
+            {acknowledgement || ACKNOWLEDGEMENT}
           </p>
         </div>
       </div>
@@ -110,61 +114,55 @@ export default async function Footer() {
             </ScrollRevealItem>
 
             {/* Quick Links */}
-            <ScrollRevealItem>
-              <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Quick Links</h3>
-              {quickLinks.length === 0 ? (
-                <FooterDataNotice label="Quick Links" />
-              ) : (
-              <ul className="space-y-2">
-                {quickLinks.map((link) => (
-                  <li key={link.id}>
-                    <FooterLink
-                      link={link}
-                      className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                    />
-                  </li>
-                ))}
-              </ul>
-              )}
-            </ScrollRevealItem>
+            {quickLinks.length > 0 && (
+              <ScrollRevealItem>
+                <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Quick Links</h3>
+                <ul className="space-y-2">
+                  {quickLinks.map((link) => (
+                    <li key={link.id}>
+                      <FooterLink
+                        link={link}
+                        className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </ScrollRevealItem>
+            )}
 
             {/* More Links */}
-            <ScrollRevealItem>
-              <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Get Involved</h3>
-              {getInvolvedLinks.length === 0 ? (
-                <FooterDataNotice label="Get Involved" />
-              ) : (
-              <ul className="space-y-2">
-                {getInvolvedLinks.map((link) => (
-                  <li key={link.id}>
-                    <FooterLink
-                      link={link}
-                      className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                    />
-                  </li>
-                ))}
-              </ul>
-              )}
-            </ScrollRevealItem>
+            {getInvolvedLinks.length > 0 && (
+              <ScrollRevealItem>
+                <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Get Involved</h3>
+                <ul className="space-y-2">
+                  {getInvolvedLinks.map((link) => (
+                    <li key={link.id}>
+                      <FooterLink
+                        link={link}
+                        className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </ScrollRevealItem>
+            )}
 
             {/* Partners */}
-            <ScrollRevealItem>
-              <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Affiliations</h3>
-              {affiliationLinks.length === 0 ? (
-                <FooterDataNotice label="Affiliations" />
-              ) : (
-              <ul className="space-y-2">
-                {affiliationLinks.map((link) => (
-                  <li key={link.id}>
-                    <FooterLink
-                      link={link}
-                      className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
-                    />
-                  </li>
-                ))}
-              </ul>
-              )}
-            </ScrollRevealItem>
+            {affiliationLinks.length > 0 && (
+              <ScrollRevealItem>
+                <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Affiliations</h3>
+                <ul className="space-y-2">
+                  {affiliationLinks.map((link) => (
+                    <li key={link.id}>
+                      <FooterLink
+                        link={link}
+                        className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </ScrollRevealItem>
+            )}
           </ScrollReveal>
         </div>
       </div>
