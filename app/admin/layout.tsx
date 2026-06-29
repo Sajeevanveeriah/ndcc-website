@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
+import Button from '@/components/ui/Button';
 import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
+
+const SESSION_CHECK_TIMEOUT_MS = 8_000;
 
 type SessionUser = {
   id: string;
@@ -58,8 +61,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     let retryTimeout: ReturnType<typeof setTimeout> | undefined;
 
     const checkSession = async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
+
       try {
-        const response = await fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' });
+        const response = await fetch('/api/admin/auth/session', {
+          cache: 'no-store',
+          credentials: 'include',
+          signal: controller.signal,
+        });
 
         if (response.status === 503) {
           if (!cancelled) {
@@ -85,10 +95,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       } catch (error) {
         if (!cancelled) {
-          setMessage(error instanceof Error ? error.message : 'Session validation failed. Retrying automatically...');
+          const isAbort = error instanceof Error && error.name === 'AbortError';
+          setMessage(isAbort ? 'Session validation timed out. Retrying automatically...' : error instanceof Error ? error.message : 'Session validation failed. Retrying automatically...');
           retryTimeout = setTimeout(checkSession, 5000);
         }
       } finally {
+        clearTimeout(timeout);
         if (!cancelled) setLoading(false);
       }
     };
@@ -113,7 +125,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <div className="min-h-screen bg-sky-50 flex items-center justify-center">Loading...</div>;
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center p-6">
+        <div className="max-w-md rounded-xl border border-red-100 bg-white p-6 text-center shadow-sm">
+          <h1 className="text-xl font-display font-bold text-gray-900">Admin session unavailable</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            {message || 'We could not confirm your admin session. Please wait for the automatic retry or sign in again.'}
+          </p>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button type="button" variant="primary" onClick={() => window.location.reload()}>Retry</Button>
+            <Button type="button" variant="secondary" onClick={() => router.push('/admin/login')}>Back to sign in</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const sidebarLinks = user.role === 'admin'
     ? [...baseLinks, { href: '/admin/users', label: 'Users', icon: Users }]
