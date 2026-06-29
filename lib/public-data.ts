@@ -1,12 +1,17 @@
 import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
-import { isProductionStaticBuild } from '@/lib/fallback-content';
+import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { normalizeEventImage, normalizeGalleryImage } from '@/lib/public-content-normalizers';
 import type { Event, Sponsor } from '@/lib/types';
 
-export type PublicDataResult<T> =
-  | { data: T; error: null; source: 'supabase' }
-  | { data: T; error: string; source: 'supabase' };
+export type PublicDataSource = 'supabase' | 'fallback';
+
+export type PublicDataResult<T> = {
+  data: T;
+  error: string | null;
+  source: PublicDataSource;
+  degraded: boolean;
+};
 
 export type GalleryPhoto = {
   id: string;
@@ -49,14 +54,18 @@ const getActiveSponsorsFromSupabase = unstable_cache(async () => {
   return { data: data ?? [], error: error?.message ?? null };
 }, ['public-sponsors-data'], { revalidate: 300, tags: ['sponsors'] });
 
+function fallbackResult<T>(data: T, error: string | null = null): PublicDataResult<T> {
+  return { data, error, source: 'fallback', degraded: true };
+}
+
 export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    return { data: [], error: 'Supabase is not configured for public events.', source: 'supabase' };
-  }
+  const fallback = fallbackEvents as Event[];
+  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getPublishedEventsFromSupabase();
-    if (error) return { data: [], error, source: 'supabase' };
+    if (error) return fallbackResult(fallback, error);
+    if (data.length === 0) return fallbackResult(fallback);
     return {
       data: (data as Event[]).map((event) => ({
         ...event,
@@ -64,36 +73,37 @@ export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
       })),
       error: null,
       source: 'supabase',
+      degraded: false,
     };
   } catch (err) {
-    return { data: [], error: err instanceof Error ? err.message : 'Failed to load events', source: 'supabase' };
+    return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load events');
   }
 }
 
 export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[]>> {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    return { data: [], error: 'Supabase is not configured for public gallery images.', source: 'supabase' };
-  }
+  const fallback = fallbackGalleryImages as GalleryPhoto[];
+  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getPublishedGalleryFromSupabase();
-    if (error) return { data: [], error, source: 'supabase' };
-    return { data: data.map((item) => normalizeGalleryImage(item)) as GalleryPhoto[], error: null, source: 'supabase' };
+    if (error) return fallbackResult(fallback, error);
+    if (data.length === 0) return fallbackResult(fallback);
+    return { data: data.map((item) => normalizeGalleryImage(item)) as GalleryPhoto[], error: null, source: 'supabase', degraded: false };
   } catch (err) {
-    return { data: [], error: err instanceof Error ? err.message : 'Failed to load gallery', source: 'supabase' };
+    return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load gallery');
   }
 }
 
 export async function getPublicSponsors(): Promise<PublicDataResult<Sponsor[]>> {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    return { data: [], error: 'Supabase is not configured for public sponsors.', source: 'supabase' };
-  }
+  const fallback = fallbackSponsors as Sponsor[];
+  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getActiveSponsorsFromSupabase();
-    if (error) return { data: [], error, source: 'supabase' };
-    return { data: data as Sponsor[], error: null, source: 'supabase' };
+    if (error) return fallbackResult(fallback, error);
+    if (data.length === 0) return fallbackResult(fallback);
+    return { data: mergeSponsorsWithFallback(data as Sponsor[]), error: null, source: 'supabase', degraded: false };
   } catch (err) {
-    return { data: [], error: err instanceof Error ? err.message : 'Failed to load sponsors', source: 'supabase' };
+    return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load sponsors');
   }
 }

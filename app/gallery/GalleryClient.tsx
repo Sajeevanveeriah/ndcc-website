@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
 import type { GalleryPhoto } from '@/lib/public-data';
 
-export default function GalleryClient({ photos, error }: { photos: GalleryPhoto[]; error: string | null }) {
+export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; error?: string | null }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const activePhoto = useMemo(
     () => (activeIndex === null ? null : photos[activeIndex] ?? null),
@@ -20,14 +20,7 @@ export default function GalleryClient({ photos, error }: { photos: GalleryPhoto[
       <section className="section-padding">
         <div className="container-width max-w-6xl mx-auto">
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 mb-12">
-            {error ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">Gallery could not be loaded</h2>
-                  <p className="text-gray-600 font-body">{error}</p>
-                </CardContent>
-              </Card>
-            ) : photos.length === 0 ? (
+            {photos.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">No published gallery images</h2>

@@ -19,5 +19,5 @@ export async function GET(request: Request) {
   }
 
   const data = await getPageLinkCards('site', section);
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data, source: data.some((link) => link.id.startsWith('fallback-')) ? 'fallback' : 'supabase', degraded: data.some((link) => link.id.startsWith('fallback-')), error: null });
 }

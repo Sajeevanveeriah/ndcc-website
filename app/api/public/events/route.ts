@@ -26,13 +26,11 @@ export async function GET(request: Request) {
   const id = searchParams.get('id');
   const result = await getPublicEvents();
 
-  if (result.error) return jsonNoCache({ success: false, data: id ? null : [], error: result.error }, { status: 500 });
-
   if (id) {
     const event = result.data.find((item) => item.id === id);
     if (!event) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
-    return jsonNoCache({ success: true, data: event, source: result.source });
+    return jsonNoCache({ success: true, data: event, source: result.source, degraded: result.degraded, error: result.error });
   }
 
-  return jsonNoCache({ success: true, data: result.data, source: result.source });
+  return jsonNoCache({ success: true, data: result.data, source: result.source, degraded: result.degraded, error: result.error });
 }
