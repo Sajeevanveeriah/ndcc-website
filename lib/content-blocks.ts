@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 import { normalisePublicText } from './utils';
-import { isProductionStaticBuild } from '@/lib/fallback-content';
+import { fallbackBlocksForKeys, isProductionStaticBuild } from '@/lib/fallback-content';
 
 export interface ContentBlock {
   block_key: string;
@@ -12,28 +12,36 @@ export interface ContentBlock {
   cta_url: string | null;
 }
 
+function resolveContentBlock(
+  key: string,
+  db: Partial<ContentBlock> | undefined,
+  fallback: ContentBlock | undefined
+): ContentBlock | null {
+  if (!db && !fallback) return null;
+
+  return {
+    block_key: key,
+    title: normalisePublicText(db?.title) || fallback?.title || null,
+    body: normalisePublicText(db?.body) || fallback?.body || null,
+    image_url: normalisePublicText(db?.image_url) || fallback?.image_url || null,
+    cta_label: normalisePublicText(db?.cta_label) || fallback?.cta_label || null,
+    cta_url: normalisePublicText(db?.cta_url) || fallback?.cta_url || null,
+  };
+}
+
 function mapContentBlocksForKeys(keys: string[], rows: Partial<ContentBlock>[] | null | undefined): Record<string, ContentBlock> {
   const dbByKey = new Map((rows ?? []).filter((row) => row.block_key).map((row) => [row.block_key as string, row]));
+  const fallbackByKey = fallbackBlocksForKeys(keys);
 
   return Object.fromEntries(keys.flatMap((key) => {
-    const db = dbByKey.get(key);
-    if (!db) return [];
-    return [[key, {
-      block_key: key,
-      title: normalisePublicText(db.title) || null,
-      body: normalisePublicText(db.body) || null,
-      image_url: normalisePublicText(db.image_url) || null,
-      cta_label: normalisePublicText(db.cta_label) || null,
-      cta_url: normalisePublicText(db.cta_url) || null,
-    } satisfies ContentBlock]];
+    const resolved = resolveContentBlock(key, dbByKey.get(key), fallbackByKey[key]);
+    return resolved ? [[key, resolved]] : [];
   }));
 }
 
 async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
-    console.error('Supabase is not configured for public content blocks.', { keys });
-    return {};
-  }
+  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackBlocksForKeys(keys);
+
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase
@@ -43,14 +51,14 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
       .in('block_key', keys);
 
     if (error) {
-      console.error('Public content blocks query failed.', { keys, error: error.message });
-      return {};
+      console.warn('Public content blocks query failed; using controlled fallbacks.', { keys, error: error.message });
+      return fallbackBlocksForKeys(keys);
     }
 
     return mapContentBlocksForKeys(keys, data as Partial<ContentBlock>[]);
   } catch (error) {
-    console.error('Public content blocks query timed out or failed.', { keys, error });
-    return {};
+    console.warn('Public content blocks query failed; using controlled fallbacks.', { keys, error: error instanceof Error ? error.message : 'unknown' });
+    return fallbackBlocksForKeys(keys);
   }
 }
 

@@ -7,7 +7,6 @@ import Badge from '@/components/ui/Badge';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
 import { getPublicEvents } from '@/lib/public-data';
-import { fallbackEvents } from '@/lib/fallback-content';
 
 export const metadata: Metadata = {
   title: 'Events',
@@ -16,10 +15,7 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function EventsPage() {
-  const { data: liveEvents, error } = await getPublicEvents();
-  // On a Supabase cold start the query aborts; show the static fallback (real upcoming events)
-  // instead of a diagnostic. Live CMS events are used whenever Supabase is warm.
-  const events = error ? fallbackEvents : liveEvents;
+  const { data: events } = await getPublicEvents();
 
   return (
     <>
