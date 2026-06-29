@@ -10,7 +10,6 @@ import {
   CLUB_GROUND,
   CLUB_ASSOCIATION,
   CLUB_ASSOCIATION_SHORT,
-  COMMITTEE,
 } from '@/lib/constants';
 import { getInitials, normalisePublicText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
@@ -46,9 +45,7 @@ export default async function AboutPage() {
   const seasonsInGca = Math.max(currentYear - (Number.isFinite(gcaStartYear) ? gcaStartYear : 1995), 0);
 
   const competitionsByAbbr = Object.fromEntries(competitions.map((item) => [item.abbreviation, item.name]));
-  const activeCommittee = committeeMembers.length > 0
-    ? committeeMembers.map((member) => ({ name: member.name, role: member.role }))
-    : COMMITTEE;
+  const activeCommittee = committeeMembers.map((member) => ({ name: member.name, role: member.role }));
 
   return (
     <>
@@ -258,13 +255,21 @@ export default async function AboutPage() {
               {blocks['about.committee']?.body || `The people who keep the ${CLUB_NICKNAME} running behind the scenes.`}
             </p>
           </div>
-          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          {activeCommittee.length === 0 ? (
+            <Card className="max-w-3xl mx-auto">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-2xl font-display font-bold text-maroon-800 mb-2">No active committee members published</h3>
+                <p className="text-gray-600 font-body">Committee records are loaded directly from Supabase and are not replaced by a hard-coded list when the table is empty.</p>
+              </CardContent>
+            </Card>
+          ) : (
+          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
             {activeCommittee.map((member) => (
               <ScrollRevealItem key={member.name}>
-                <Card className="group">
-                  <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-maroon-200 transition-all duration-300">
-                      <span className="text-maroon-700 font-display font-bold text-lg">
+                <Card hover className="group h-full">
+                  <CardContent className="p-7 text-center h-full flex flex-col items-center">
+                    <div className="w-20 h-20 bg-gradient-to-br from-maroon-700 to-maroon-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-md group-hover:scale-105 transition-all duration-300">
+                      <span className="text-amber-300 font-display font-bold text-xl">
                         {getInitials(member.name)}
                       </span>
                     </div>
@@ -275,6 +280,7 @@ export default async function AboutPage() {
               </ScrollRevealItem>
             ))}
           </ScrollReveal>
+          )}
         </div>
       </section>
 

@@ -1,7 +1,6 @@
 export const revalidate = 300;
 
 import { Suspense } from 'react';
-import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
@@ -19,22 +18,14 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { getFallbackSeasonAppointments } from '@/lib/public-season-appointments';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
-import { createServerClient } from '@/lib/supabase-server';
 import { getPageLinkCards } from '@/lib/structured-content';
-import { fallbackNews, fallbackSponsors, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { fallbackNews, isProductionStaticBuild } from '@/lib/fallback-content';
 import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
+import { getPublicSponsors } from '@/lib/public-data';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
 };
-
-interface SponsorItem {
-  id: string;
-  name: string;
-  tier: string;
-  website: string;
-  logo_url: string;
-}
 
 async function getLatestNews(): Promise<NewsItem[]> {
   if (isProductionStaticBuild || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -49,23 +40,6 @@ async function getLatestNews(): Promise<NewsItem[]> {
     return fallbackNews.slice(0, 3) as NewsItem[];
   }
 }
-
-const getSponsors = unstable_cache(async (): Promise<SponsorItem[]> => {
-  if (isProductionStaticBuild || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return fallbackSponsors as SponsorItem[];
-  }
-  try {
-    const supabase = createServerClient();
-    const { data } = await supabase
-      .from('sponsors')
-      .select('id, name, tier, website, logo_url')
-      .eq('active', true)
-      .order('created_at', { ascending: true });
-    return mergeSponsorsWithFallback(data as SponsorItem[]) as SponsorItem[];
-  } catch {
-    return fallbackSponsors as SponsorItem[];
-  }
-}, ['home-sponsors'], { revalidate: 300, tags: ['sponsors'] });
 
 const HERO_DEFAULT_BODY = `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`;
 
@@ -434,10 +408,10 @@ function SponsorsSkeleton() {
 async function SponsorsSection() {
   const [blocks, dbSponsors] = await Promise.all([
     getContentBlocks(['home.sponsor_intro', 'home.sponsorship']),
-    getSponsors(),
+    getPublicSponsors(),
   ]);
 
-  const sponsors = mergeSponsorsWithFallback(dbSponsors).filter((sponsor) => sponsor.logo_url?.trim());
+  const sponsors = dbSponsors.error ? [] : dbSponsors.data;
 
   const sponsorBlock = blocks['home.sponsor_intro'] || blocks['home.sponsorship'];
   const sponsorshipTitle = sponsorBlock?.title || 'Our Sponsors';
@@ -453,6 +427,21 @@ async function SponsorsSection() {
             {sponsorshipBody}
           </p>
         </ScrollReveal>
+        {dbSponsors.error ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <h3 className="text-2xl font-display font-bold text-maroon-800 mb-2">Sponsors could not be loaded</h3>
+              <p className="text-gray-600 font-body">{dbSponsors.error}</p>
+            </CardContent>
+          </Card>
+        ) : sponsors.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <h3 className="text-2xl font-display font-bold text-maroon-800 mb-2">No active sponsors published</h3>
+              <p className="text-gray-600 font-body">Active sponsor records will appear here after they are published in the CMS.</p>
+            </CardContent>
+          </Card>
+        ) : (
         <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
@@ -502,6 +491,7 @@ async function SponsorsSection() {
             })}
           </div>
         </ScrollReveal>
+        )}
         <div className="text-center mt-8">
           <Link href="/sponsors" className="btn-secondary">
             View All Sponsors

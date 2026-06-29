@@ -163,7 +163,7 @@ async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): P
       console.warn('Public page link cards query failed; using fallback.');
       return fallbackLinksForSection(pageSlug, sectionKey);
     }
-    return data?.length ? (data as PageLinkCard[]) : fallbackLinksForSection(pageSlug, sectionKey);
+    return (data as PageLinkCard[]) || [];
   } catch {
     console.warn('Public page link cards query timed out or failed; using fallback.');
     return fallbackLinksForSection(pageSlug, sectionKey);

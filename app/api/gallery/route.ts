@@ -1,33 +1,10 @@
 import { NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
-import { createServerClient } from '@/lib/supabase-server';
-import { normalizeGalleryImage } from '@/lib/public-content-normalizers';
-import { fallbackGalleryImages } from '@/lib/fallback-content';
+import { getPublicGallery } from '@/lib/public-data';
 
 export const dynamic = 'force-dynamic';
 
-const getPublishedGalleryImages = unstable_cache(async () => {
-  const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from('gallery_images')
-    .select('id,title,caption,image_url,alt_text,allow_download,sort_order')
-    .eq('published', true)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: false });
-  return { data: data ?? [], error: error?.message ?? null };
-}, ['public-gallery'], { revalidate: 300, tags: ['gallery'] });
-
 export async function GET() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ success: true, data: fallbackGalleryImages });
-  }
-
-  const { data, error } = await getPublishedGalleryImages();
-
-  if (error) {
-    return NextResponse.json({ success: true, data: fallbackGalleryImages });
-  }
-
-  const normalized = data.map((item) => normalizeGalleryImage(item));
-  return NextResponse.json({ success: true, data: normalized.length ? normalized : fallbackGalleryImages });
+  const result = await getPublicGallery();
+  if (result.error) return NextResponse.json({ success: false, data: [], error: result.error }, { status: 500 });
+  return NextResponse.json({ success: true, data: result.data, source: result.source });
 }
