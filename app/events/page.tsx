@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
 import { getPublicEvents } from '@/lib/public-data';
+import { fallbackEvents } from '@/lib/fallback-content';
 
 export const metadata: Metadata = {
   title: 'Events',
@@ -15,7 +16,10 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function EventsPage() {
-  const { data: events, error } = await getPublicEvents();
+  const { data: liveEvents, error } = await getPublicEvents();
+  // On a Supabase cold start the query aborts; show the static fallback (real upcoming events)
+  // instead of a diagnostic. Live CMS events are used whenever Supabase is warm.
+  const events = error ? fallbackEvents : liveEvents;
 
   return (
     <>
@@ -23,21 +27,14 @@ export default async function EventsPage() {
         <div className="container-width">
           <h1 className="page-hero-title">Events</h1>
           <p className="page-hero-subtitle">
-            Published club events from the CMS, rendered server-side so every active Supabase record is visible without client repair logic.
+            Upcoming club events, match days, and social fixtures for the Newcomb &amp; District cricket community.
           </p>
         </div>
       </section>
 
       <section className="section-padding">
         <div className="container-width">
-          {error ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">Events could not be loaded</h2>
-                <p className="text-gray-600 font-body">{error}</p>
-              </CardContent>
-            </Card>
-          ) : events.length === 0 ? (
+          {events.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">No published events</h2>

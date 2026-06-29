@@ -23,6 +23,24 @@ const config: Config = {
           950: '#2d0000',
         },
         sky_accent: '#ADD8E6',
+        // Additive only: a warm off-white for layered surfaces, plus an explicit gold
+        // ramp around the existing brand gold (#D4A017) for new accents. No existing
+        // brand colour values are changed.
+        cream: '#FBF7F0',
+        gold: {
+          50: '#fbf6e9',
+          100: '#f5e9c6',
+          200: '#ecd591',
+          300: '#e0bd55',
+          400: '#d4a017',
+          500: '#b8870f',
+          600: '#946a0c',
+        },
+      },
+      boxShadow: {
+        soft: '0 1px 2px rgba(45,0,0,0.04), 0 4px 16px rgba(45,0,0,0.06)',
+        card: '0 1px 3px rgba(17,24,39,0.06), 0 10px 28px -10px rgba(45,0,0,0.12)',
+        lift: '0 16px 38px -14px rgba(45,0,0,0.30)',
       },
       fontFamily: {
         display: ['Barlow Condensed', 'Oswald', 'Archivo', 'Inter', 'system-ui', 'sans-serif'],

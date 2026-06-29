@@ -18,8 +18,9 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { getFallbackSeasonAppointments } from '@/lib/public-season-appointments';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
+import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
-import { fallbackNews, isProductionStaticBuild } from '@/lib/fallback-content';
+import { fallbackNews, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
 import { getPublicSponsors } from '@/lib/public-data';
 
@@ -411,7 +412,9 @@ async function SponsorsSection() {
     getPublicSponsors(),
   ]);
 
-  const sponsors = dbSponsors.error ? [] : dbSponsors.data;
+  // On a Supabase cold start the query aborts; merge with the static fallback so the public
+  // always sees real sponsors (CMS rows win whenever Supabase is warm) instead of a diagnostic.
+  const sponsors = mergeSponsorsWithFallback(dbSponsors.error ? [] : dbSponsors.data);
 
   const sponsorBlock = blocks['home.sponsor_intro'] || blocks['home.sponsorship'];
   const sponsorshipTitle = sponsorBlock?.title || 'Our Sponsors';
@@ -427,21 +430,6 @@ async function SponsorsSection() {
             {sponsorshipBody}
           </p>
         </ScrollReveal>
-        {dbSponsors.error ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-display font-bold text-maroon-800 mb-2">Sponsors could not be loaded</h3>
-              <p className="text-gray-600 font-body">{dbSponsors.error}</p>
-            </CardContent>
-          </Card>
-        ) : sponsors.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-display font-bold text-maroon-800 mb-2">No active sponsors published</h3>
-              <p className="text-gray-600 font-body">Active sponsor records will appear here after they are published in the CMS.</p>
-            </CardContent>
-          </Card>
-        ) : (
         <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
@@ -454,26 +442,33 @@ async function SponsorsSection() {
                   </span>
                 </div>
               );
-              const logo = (
-                <div className={`flex h-32 w-56 flex-none items-center justify-center rounded-2xl border shadow-sm transition-shadow duration-300 hover:shadow-md ${sponsorLogoSurfaceClass(sponsor.name)}`}>
-                  {sponsor.logo_url ? (
-                    <SafeImage
-                      src={sponsor.logo_url}
-                      alt={`${sponsor.name} logo`}
-                      width={190}
-                      height={82}
-                      className="max-h-20 w-auto object-contain"
-                      sizes="190px"
-                      fallback={brandedFallback}
-                    />
-                  ) : (
-                    brandedFallback
-                  )}
-                </div>
+              const chip = (
+                <>
+                  <div className={`flex h-28 w-56 items-center justify-center rounded-2xl border shadow-soft ring-1 ring-maroon-100/60 transition-shadow duration-300 group-hover:shadow-card ${sponsorLogoSurfaceClass(sponsor.name)}`}>
+                    {sponsor.logo_url ? (
+                      <SafeImage
+                        src={sponsor.logo_url}
+                        alt={`${sponsor.name} logo`}
+                        width={190}
+                        height={70}
+                        className="max-h-16 w-auto object-contain"
+                        sizes="190px"
+                        fallback={brandedFallback}
+                      />
+                    ) : (
+                      brandedFallback
+                    )}
+                  </div>
+                  <span className="sponsor-caption">{sponsor.name}</span>
+                </>
               );
 
               if (!sponsor.website) {
-                return <div key={`${sponsor.id}-${index}`} aria-label={sponsor.name}>{logo}</div>;
+                return (
+                  <div key={`${sponsor.id}-${index}`} className="group flex-none" aria-label={sponsor.name}>
+                    {chip}
+                  </div>
+                );
               }
 
               return (
@@ -483,15 +478,14 @@ async function SponsorsSection() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Visit ${sponsor.name} website`}
-                  className="block flex-none"
+                  className="group block flex-none rounded-2xl focus-ring"
                 >
-                  {logo}
+                  {chip}
                 </a>
               );
             })}
           </div>
         </ScrollReveal>
-        )}
         <div className="text-center mt-8">
           <Link href="/sponsors" className="btn-secondary">
             View All Sponsors
@@ -553,6 +547,8 @@ export default function HomePage() {
       >
         <HeroSection />
       </Suspense>
+
+      <HomeStatsStrip />
 
       <Suspense fallback={<QuickLinksSkeleton />}>
         <QuickLinksSection />

@@ -20,6 +20,7 @@ import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { getInitials, validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
+import { mergeSponsorsWithFallback } from '@/lib/fallback-content';
 
 
 const SPONSOR_DESCRIPTIONS_BY_NAME: Record<string, string> = {
@@ -51,7 +52,6 @@ export default function SponsorsPage() {
   const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -80,10 +80,13 @@ export default function SponsorsPage() {
         const json = await res.json();
 
         if (!res.ok || json.success === false) throw new Error(json.error || 'Failed to load sponsors');
-        setSponsors(Array.isArray(json.data) ? (json.data as Sponsor[]) : []);
-      } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'Failed to load sponsors');
-        setSponsors([]);
+        // Merge live CMS sponsors with the static fallback so every sponsor (all nine) renders
+        // with a visible name, even if the API returns a partial list. CMS rows win when present.
+        setSponsors(mergeSponsorsWithFallback(Array.isArray(json.data) ? (json.data as Sponsor[]) : []));
+      } catch {
+        // On a Supabase cold start the API aborts; show the static fallback (real sponsors)
+        // instead of a diagnostic so the grid is never empty or broken.
+        setSponsors(mergeSponsorsWithFallback([]));
       } finally {
         setLoading(false);
       }
@@ -206,18 +209,7 @@ export default function SponsorsPage() {
           </div>
         </section>
       ) : (
-        loadError ? (
-          <section className="section-padding">
-            <div className="container-width">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">Sponsors could not be loaded</h2>
-                  <p className="text-gray-600 font-body">{loadError}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        ) : tiersWithSponsors.length === 0 ? (
+        tiersWithSponsors.length === 0 ? (
           <section className="section-padding">
             <div className="container-width">
               <Card>
@@ -258,10 +250,7 @@ export default function SponsorsPage() {
                     >
                       <Card hover className="h-full">
                         <CardContent className="p-6">
-                          <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
-                            {sponsor.name}
-                          </h3>
-                          <div className={`mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl border ${hasLogo ? sponsorLogoSurfaceClass(sponsor.name) : 'border-maroon-900 bg-maroon-900'}`}>
+                          <div className={`mb-3 flex h-32 items-center justify-center overflow-hidden rounded-xl border ring-1 ring-maroon-100 ${hasLogo ? sponsorLogoSurfaceClass(sponsor.name) : 'border-maroon-900 bg-maroon-900'}`}>
                             {hasLogo ? (
                               <SafeImage
                                 src={sponsor.logo_url}
@@ -276,6 +265,11 @@ export default function SponsorsPage() {
                               logoFallback
                             )}
                           </div>
+                          {/* Name caption beneath the logo so a low-contrast or missing logo still
+                              shows an identifiable, non-empty card. */}
+                          <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
+                            {sponsor.name}
+                          </h3>
                           {description && (
                             <p className="text-gray-600 font-body text-sm mb-3">{description}</p>
                           )}

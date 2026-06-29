@@ -15,7 +15,7 @@ import {
 } from '@/lib/constants';
 import type { Event, NewsPost, Sponsor } from '@/lib/types';
 import type { ContentBlock } from '@/lib/content-blocks';
-import type { FacilityFeature, HistoryCompetition, HistoryLineageEntry, HistoryPremiership, PageLinkCard } from '@/lib/structured-content';
+import type { CommitteeMemberContent, FacilityFeature, HistoryCompetition, HistoryLineageEntry, HistoryPremiership, PageLinkCard } from '@/lib/structured-content';
 import { normalizeEventImage, normalizeGalleryImage, normalizeNewsImage } from '@/lib/public-content-normalizers';
 import { canonicalSponsorKey, canonicalSponsorName } from '@/lib/sponsor-canonical';
 
@@ -64,6 +64,28 @@ export const fallbackPageLinkCards: Record<string, PageLinkCard[]> = {
     card('fallback-home-merch', 'home', 'quick_links', 'Merchandise', 'Get your official NDCC gear and support the club.', '/merchandise', 4, '🛒'),
     card('fallback-home-volunteer', 'home', 'quick_links', 'Volunteer', 'Help out on match days - canteen, scoring, and more.', '/volunteer', 5, '🤝'),
     card('fallback-home-contact', 'home', 'quick_links', 'Contact', 'Get in touch with the club or make an enquiry.', '/contact', 6, '✉️'),
+  ],
+  // Footer columns. The CMS owns these (page_link_cards / site:*); these defaults only
+  // render when Supabase is cold or a section is unpopulated, so the footer is never blank
+  // and never shows a diagnostic. CMS rows override these whenever Supabase is warm.
+  'site:footer_quick_links': [
+    card('fallback-footer-about', 'site', 'footer_quick_links', 'About Us', '', '/about', 1),
+    card('fallback-footer-teams', 'site', 'footer_quick_links', 'Our Teams', '', '/teams', 2),
+    card('fallback-footer-fixtures', 'site', 'footer_quick_links', 'Fixtures', '', '/fixtures', 3),
+    card('fallback-footer-events', 'site', 'footer_quick_links', 'Events', '', '/events', 4),
+    card('fallback-footer-news', 'site', 'footer_quick_links', 'News', '', '/news', 5),
+    card('fallback-footer-contact', 'site', 'footer_quick_links', 'Contact', '', '/contact', 6),
+  ],
+  'site:footer_get_involved': [
+    card('fallback-footer-join', 'site', 'footer_get_involved', 'Join the Club', '', '/join', 1),
+    card('fallback-footer-volunteer', 'site', 'footer_get_involved', 'Volunteer', '', '/volunteer', 2),
+    card('fallback-footer-sponsor', 'site', 'footer_get_involved', 'Become a Sponsor', '', '/sponsors', 3),
+    card('fallback-footer-merch', 'site', 'footer_get_involved', 'Merchandise', '', '/merchandise', 4),
+  ],
+  'site:footer_affiliations': [
+    card('fallback-footer-gca', 'site', 'footer_affiliations', 'Geelong Cricket Association', '', playHqOrg, 1, null, null, true),
+    card('fallback-footer-cv', 'site', 'footer_affiliations', 'Cricket Victoria', '', 'https://www.cricketvictoria.com.au', 2, null, null, true),
+    card('fallback-footer-playhq', 'site', 'footer_affiliations', 'PlayHQ', '', 'https://www.playhq.com', 3, null, null, true),
   ],
   'fixtures:team_links': [
     card('fallback-fixtures-firsts', 'fixtures', 'team_links', '1st XI', 'GCA Grade 4', 'https://www.playhq.com/cricket-australia/org/newcomb-and-district-cricket-club/2c2bff9c/geelong-cricket-association-mens-competition-summer-202526/teams/newcomb-and-district-1sts/0f74d5e7', 1, null, 'GCA Grade 4', true),
@@ -176,14 +198,34 @@ export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: s
 
 export const fallbackSeasonAppointments = [
   { id: 'fallback-craig-hillgrove', name: 'Craig Hillgrove', role: 'Head Coach', image_url: '/images/season-appointments/2026-27/craig-hillgrove-head-coach-2026-27.webp', announcement_date: '2026-03-01', sort_order: 1, is_active: true },
-  { id: 'fallback-kelsey-allan', name: 'Kelsey Allan', role: "Women's Coach", image_url: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp', announcement_date: '2026-03-15', sort_order: 2, is_active: true },
-  { id: 'fallback-aaron-morgan', name: 'Aaron Morgan', role: '', image_url: '/images/season-appointments/2026-27/aaron-morgan-re-signed-2026-27.webp', announcement_date: '2026-05-01', sort_order: 3, is_active: true },
-  { id: 'fallback-anthony-quarrell', name: 'Anthony Quarrell', role: '', image_url: '/images/season-appointments/2026-27/anthony-quarrell-re-signed-2026-27.webp', announcement_date: '2026-05-02', sort_order: 4, is_active: true },
-  { id: 'fallback-blake-ritchie', name: 'Blake Ritchie', role: '', image_url: '/images/season-appointments/2026-27/blake-ritchie-re-signed-2026-27.webp', announcement_date: '2026-05-03', sort_order: 5, is_active: true },
-  { id: 'fallback-freddie-norridge', name: 'Freddie Norridge', role: '', image_url: '/images/season-appointments/2026-27/freddie-norridge-signed-2026-27.webp', announcement_date: '2026-05-04', sort_order: 6, is_active: true },
-  { id: 'fallback-huey-neild', name: 'Huey Neild', role: '', image_url: '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp', announcement_date: '2026-05-05', sort_order: 7, is_active: true },
-  { id: 'fallback-nathan-keevil', name: 'Nathan Keevil', role: '', image_url: '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp', announcement_date: '2026-05-06', sort_order: 8, is_active: true },
-  { id: 'fallback-scott-kirby', name: 'Scott Kirby', role: '', image_url: '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp', announcement_date: '2026-05-07', sort_order: 9, is_active: true },
+  { id: 'fallback-jason-robertson', name: 'Jason Robertson', role: 'Assistant Coach', image_url: null, announcement_date: '2026-03-02', sort_order: 2, is_active: true },
+  { id: 'fallback-daniel-harrison', name: 'Daniel Harrison', role: 'Assistant Coach', image_url: null, announcement_date: '2026-03-03', sort_order: 3, is_active: true },
+  { id: 'fallback-kelsey-allan', name: 'Kelsey Allan', role: "Women's Coach", image_url: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp', announcement_date: '2026-03-15', sort_order: 4, is_active: true },
+  { id: 'fallback-aaron-morgan', name: 'Aaron Morgan', role: 'Player', image_url: '/images/season-appointments/2026-27/aaron-morgan-re-signed-2026-27.webp', announcement_date: '2026-05-01', sort_order: 5, is_active: true },
+  { id: 'fallback-anthony-quarrell', name: 'Anthony Quarrell', role: 'Player', image_url: '/images/season-appointments/2026-27/anthony-quarrell-re-signed-2026-27.webp', announcement_date: '2026-05-02', sort_order: 6, is_active: true },
+  { id: 'fallback-blake-ritchie', name: 'Blake Ritchie', role: 'Player', image_url: '/images/season-appointments/2026-27/blake-ritchie-re-signed-2026-27.webp', announcement_date: '2026-05-03', sort_order: 7, is_active: true },
+  { id: 'fallback-nathan-keevil', name: 'Nathan Keevil', role: 'Player', image_url: '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp', announcement_date: '2026-05-04', sort_order: 8, is_active: true },
+  { id: 'fallback-tyler-oneil', name: "Tyler O'Neil", role: 'Player', image_url: null, announcement_date: '2026-05-05', sort_order: 9, is_active: true },
+  { id: 'fallback-rhys-bath', name: 'Rhys Bath', role: 'Player', image_url: null, announcement_date: '2026-05-06', sort_order: 10, is_active: true },
+  { id: 'fallback-huey-neild', name: 'Huey Neild', role: 'Player', image_url: '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp', announcement_date: '2026-05-07', sort_order: 11, is_active: true },
+  { id: 'fallback-gautham-ranjith', name: 'Gautham Ranjith', role: 'Returning Player', image_url: null, announcement_date: '2026-05-08', sort_order: 12, is_active: true },
+  { id: 'fallback-freddie-norridge', name: 'Freddie Norridge', role: 'Player', image_url: '/images/season-appointments/2026-27/freddie-norridge-signed-2026-27.webp', announcement_date: '2026-05-09', sort_order: 13, is_active: true },
+  { id: 'fallback-caitlin-rose-neil', name: 'Caitlin-Rose Neil', role: 'Player', image_url: null, announcement_date: '2026-05-10', sort_order: 14, is_active: true },
+  { id: 'fallback-skye-green', name: 'Skye Green', role: 'Player', image_url: null, announcement_date: '2026-05-11', sort_order: 15, is_active: true },
+  { id: 'fallback-jodie-clark', name: 'Jodie Clark', role: 'Player', image_url: null, announcement_date: '2026-05-12', sort_order: 16, is_active: true },
+  { id: 'fallback-elliot-ridway', name: 'Elliot Ridway', role: 'Player', image_url: null, announcement_date: '2026-05-13', sort_order: 17, is_active: true },
+  { id: 'fallback-harvey-cliff', name: 'Harvey Cliff', role: 'Player', image_url: null, announcement_date: '2026-05-14', sort_order: 18, is_active: true },
+  { id: 'fallback-scott-kirby', name: 'Scott Kirby', role: 'Player', image_url: '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp', announcement_date: '2026-05-15', sort_order: 19, is_active: true },
+];
+
+// Committee & office bearers shown on /about. Mirrors the live committee_members table so a
+// Supabase cold start renders the real committee instead of a blank section or a diagnostic.
+export const fallbackCommitteeMembers: CommitteeMemberContent[] = [
+  { id: 'fallback-committee-president', name: 'John Elliott', role: 'President', sort_order: 1, is_active: true },
+  { id: 'fallback-committee-vice-president', name: 'Troy Whitworth', role: 'Vice President', sort_order: 2, is_active: true },
+  { id: 'fallback-committee-treasurer', name: 'Laura Hudson', role: 'Treasurer', sort_order: 3, is_active: true },
+  { id: 'fallback-committee-head-coach', name: 'Craig Hillgrove', role: 'Head Coach', sort_order: 4, is_active: true },
+  { id: 'fallback-committee-junior-coordinator', name: 'Marcus Pearson', role: 'Junior Coordinator', sort_order: 5, is_active: true },
 ];
 
 export function mergeSeasonAppointmentsWithFallback<T extends { name: string; announcement_date?: string | null; sort_order?: number | null }>(appointments: T[] | null | undefined) {
