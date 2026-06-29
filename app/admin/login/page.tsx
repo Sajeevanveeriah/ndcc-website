@@ -24,6 +24,10 @@ function messageForStatus(status: number, fallback?: string) {
   return fallback || 'Sign-in failed. Please try again.';
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -53,12 +57,13 @@ export default function AdminLoginPage() {
       });
       const data = await readLoginResponse(res);
 
-      if (!res.ok) return setError(messageForStatus(res.status, data.error));
+      if (!res.ok) return setError(`${messageForStatus(res.status, data.error)}${data.requestId ? ` Reference: ${data.requestId}` : ''}`);
 
-      router.push('/admin');
+      setLoading(false);
+      router.replace('/admin');
       router.refresh();
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if (isAbortError(err)) {
         setError('Login service timed out. Please try again in a minute.');
       } else {
         setError('An unexpected error occurred. Please try again.');

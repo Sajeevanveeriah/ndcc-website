@@ -10,6 +10,7 @@ export const maxDuration = 10;
 const CREDENTIAL_RPC_TIMEOUT_MS = 4_500;
 const SESSION_INSERT_TIMEOUT_MS = 4_500;
 const UNAVAILABLE_MESSAGE = 'Admin login service is temporarily unavailable';
+const OPERATION_TIMEOUT_ERROR = { code: 'AbortError', message: 'Supabase operation timed out' };
 
 function jsonNoStore(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, {
@@ -28,6 +29,19 @@ function elapsedMs(startedAt: number) {
 
 function logAuthStage(stage: string, details: Record<string, unknown>) {
   console.info('Admin login stage', { stage, ...details });
+}
+
+function timeoutResult<TData>(timeoutMs: number) {
+  return new Promise<{ data: TData | null; error: typeof OPERATION_TIMEOUT_ERROR; status: number }>((resolve) => {
+    setTimeout(() => resolve({ data: null, error: OPERATION_TIMEOUT_ERROR, status: 504 }), timeoutMs);
+  });
+}
+
+function withOperationTimeout<TData, TResult extends { data: TData | null; error: unknown; status?: number }>(
+  operation: PromiseLike<TResult>,
+  timeoutMs: number,
+) {
+  return Promise.race([operation, timeoutResult<TData>(timeoutMs)]);
 }
 
 export async function POST(request: Request) {
@@ -66,10 +80,13 @@ export async function POST(request: Request) {
     logAuthStage('Supabase configuration readiness', { requestId: id, httpStatus: 200, elapsedMs: elapsedMs(startedAt) });
 
     const credentialClient = createServerClient({ fetchTimeoutMs: CREDENTIAL_RPC_TIMEOUT_MS });
-    const { data: user, error, status, operationMeta } = await withSupabaseOperationRetry(() => credentialClient.rpc('ndcc_verify_committee_user', {
-      p_email: emailKey,
-      p_password: String(password),
-    }).maybeSingle<{ id: string; email: string; full_name: string; role: string }>(),
+    const { data: user, error, status, operationMeta } = await withSupabaseOperationRetry(() => withOperationTimeout(
+      credentialClient.rpc('ndcc_verify_committee_user', {
+        p_email: emailKey,
+        p_password: String(password),
+      }).maybeSingle<{ id: string; email: string; full_name: string; role: string }>(),
+      CREDENTIAL_RPC_TIMEOUT_MS,
+    ),
       (retry) => logAuthStage('credential RPC retry', { requestId: id, retryCount: retry.attempt, httpStatus: retry.status, supabaseCode: retry.code, elapsedMs: elapsedMs(startedAt) }),
     );
 
@@ -90,11 +107,14 @@ export async function POST(request: Request) {
     logAuthStage('credential RPC', { requestId: id, httpStatus: 200, retryCount: operationMeta.attempts - 1, elapsedMs: elapsedMs(startedAt) });
 
     const sessionClient = createServerClient({ fetchTimeoutMs: SESSION_INSERT_TIMEOUT_MS });
-    const { error: sessionError, status: sessionStatus, operationMeta: sessionMeta } = await withSupabaseOperationRetry(() => sessionClient.from('committee_sessions').insert({
-      user_id: user.id,
-      session_token_hash: tokenHash,
-      expires_at: expiresAt.toISOString(),
-    }),
+    const { error: sessionError, status: sessionStatus, operationMeta: sessionMeta } = await withSupabaseOperationRetry(() => withOperationTimeout(
+      sessionClient.from('committee_sessions').insert({
+        user_id: user.id,
+        session_token_hash: tokenHash,
+        expires_at: expiresAt.toISOString(),
+      }),
+      SESSION_INSERT_TIMEOUT_MS,
+    ),
       (retry) => logAuthStage('session insert retry', { requestId: id, retryCount: retry.attempt, httpStatus: retry.status, supabaseCode: retry.code, elapsedMs: elapsedMs(startedAt) }),
     );
 
