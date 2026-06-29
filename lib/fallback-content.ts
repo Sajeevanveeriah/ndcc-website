@@ -81,6 +81,7 @@ export const fallbackPageLinkCards: Record<string, PageLinkCard[]> = {
     card('fallback-footer-volunteer', 'site', 'footer_get_involved', 'Volunteer', '', '/volunteer', 2),
     card('fallback-footer-sponsor', 'site', 'footer_get_involved', 'Become a Sponsor', '', '/sponsors', 3),
     card('fallback-footer-merch', 'site', 'footer_get_involved', 'Merchandise', '', '/merchandise', 4),
+    card('fallback-footer-committee-login', 'site', 'footer_get_involved', 'Committee Login', '', '/admin/login', 99),
   ],
   'site:footer_affiliations': [
     card('fallback-footer-gca', 'site', 'footer_affiliations', 'Geelong Cricket Association', '', playHqOrg, 1, null, null, true),
