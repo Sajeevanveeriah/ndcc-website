@@ -25,7 +25,7 @@ export type SessionResolution =
       reason: 'timeout' | 'database_error' | 'network_error';
     };
 
-const SESSION_VALIDATION_TIMEOUT_MS = 15_000;
+const SESSION_VALIDATION_TIMEOUT_MS = 5_000;
 
 function classifySessionError(error: unknown): SessionResolution {
   if (error instanceof DOMException && error.name === 'AbortError') {
@@ -104,7 +104,6 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
 
     const expiresAt = new Date(data.expires_at);
     if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
-      await supabase.from('committee_sessions').delete().eq('session_token_hash', tokenHash);
       return { status: 'unauthenticated', reason: 'expired' };
     }
 
