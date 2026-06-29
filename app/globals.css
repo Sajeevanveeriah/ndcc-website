@@ -130,6 +130,14 @@
   /* Updated: was bg-sky-50 (barely visible). Now a genuine sky_accent tint. */
   .surface-sky {
     background-color: rgba(173, 216, 230, 0.18);
+    /* Very light maroon diagonal stripe to add subtle texture over the flat tint. */
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(128, 0, 0, 0.022) 0px,
+      rgba(128, 0, 0, 0.022) 1px,
+      transparent 1px,
+      transparent 16px
+    );
   }
 
   /* Image zoom on card hover: apply to the <img>, with `group` + overflow-hidden on the container */

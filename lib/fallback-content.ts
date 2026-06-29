@@ -1,5 +1,6 @@
 import {
   ACKNOWLEDGEMENT,
+  CLUB_ADDRESS,
   CLUB_ASSOCIATION,
   CLUB_ASSOCIATION_SHORT,
   CLUB_ESTABLISHED,
@@ -44,6 +45,11 @@ export const fallbackContentBlocks: Record<string, ContentBlock> = {
   'gallery.hero': { block_key: 'gallery.hero', title: 'Gallery', body: 'Match day photos, team shots, and club memories.', image_url: null, cta_label: null, cta_url: null },
   'gallery.intro': { block_key: 'gallery.intro', title: 'Follow Us for More', body: 'Follow NDCC social channels for more photos and highlights.', image_url: null, cta_label: null, cta_url: null },
   'sponsors.hero': { block_key: 'sponsors.hero', title: 'Our Sponsors', body: 'The generous support of sponsors keeps cricket thriving at NDCC.', image_url: null, cta_label: null, cta_url: null },
+  'facilities.hero': { block_key: 'facilities.hero', title: 'Our Facilities', body: `Home of the ${CLUB_NICKNAME}, ${CLUB_GROUND} offers turf and synthetic practice wickets, a match-day oval, and clubrooms for players, families, and the wider Newcomb community.`, image_url: null, cta_label: null, cta_url: null },
+  'facilities.intro': { block_key: 'facilities.intro', title: CLUB_GROUND, body: `The ${CLUB_NICKNAME} play and train at ${CLUB_GROUND}, ${CLUB_ADDRESS}. The ground features a well-maintained turf wicket square and outfield, with clubrooms, change rooms, and a canteen shared with the Newcomb Power Football & Netball Club as part of the Newcomb and District Sports Club precinct.`, image_url: '/images/Turf_Ground.jpg', cta_label: null, cta_url: null },
+  'facilities.training': { block_key: 'facilities.training', title: 'Training Facility', body: 'Pre-season and in-season training runs at the Peter ‘Skinny’ Harrison Training Facility, with four club turf practice lanes and three public synthetic lanes for players of all ages. The synthetic lanes are open to the community for practice all year round.', image_url: '/images/Turf.jpg', cta_label: null, cta_url: null },
+  'facilities.features_intro': { block_key: 'facilities.features_intro', title: 'Facility Features', body: `Everything you need for a season of cricket — practice wickets, a match-day oval, clubrooms, and a canteen, all at ${CLUB_GROUND}.`, image_url: null, cta_label: null, cta_url: null },
+  'facilities.cta': { block_key: 'facilities.cta', title: 'Visit or Enquire', body: `Want to visit ${CLUB_GROUND}, enquire about facility hire, or get involved with the ${CLUB_NICKNAME}? Get in touch and we will be happy to help.`, image_url: null, cta_label: 'Contact Us', cta_url: '/contact' },
 };
 
 function card(id: string, page_slug: string, section_key: string, title: string, description: string, href: string, sort_order: number, icon: string | null = null, badge: string | null = null, is_external = /^https?:\/\//i.test(href)): PageLinkCard {
@@ -101,7 +107,12 @@ function getFallbackSponsorLogo(name: string) {
 export const fallbackSponsorLogos: Record<string, string> = {
   'APCO Newcomb': '/images/2026/06/apco-1781148625016.png',
   APCO: '/images/2026/06/apco-1781148625016.png',
-  'MBR Cricket': 'https://mbrcricket.com/cdn/shop/files/mbr-logo-gold.png?v=1781747781',
+  // TODO: place the MBR Cricket logo at public/images/sponsors/mbr-cricket-logo.png.
+  // The original was an external gold-on-transparent CDN PNG that rendered near-invisible
+  // on the white sponsor card; localising it removes the third-party dependency. Until the
+  // file is added, sponsor slots fall back to a branded maroon/gold initials card, so no
+  // empty white box is shown (see SponsorsSection marquee and the sponsors page grid).
+  'MBR Cricket': '/images/sponsors/mbr-cricket-logo.png',
   'Bennett Racing': '/images/2026/06/bennett-1781148645814.webp',
   Bennett: '/images/2026/06/bennett-1781148645814.webp',
   'Blackmans Brewery': '/images/2026/06/blackmans-1781148663993.webp',
@@ -127,7 +138,9 @@ const june16SponsorAssets: Sponsor[] = [
 export const fallbackSponsors: Sponsor[] = [
   ...SEED_SPONSORS.map((sponsor) => ({
     ...sponsor,
-    logo_url: sponsor.logo_url || getFallbackSponsorLogo(sponsor.name),
+    // Prefer the curated local asset over the seed-provided URL so the external
+    // mbrcricket.com CDN link is superseded by the local MBR logo path.
+    logo_url: getFallbackSponsorLogo(sponsor.name) || sponsor.logo_url,
     created_at: '2026-06-16T00:00:00+10:00',
   })),
   ...june16SponsorAssets,

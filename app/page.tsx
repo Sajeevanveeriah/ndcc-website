@@ -436,7 +436,7 @@ async function SponsorsSection() {
     getSponsors(),
   ]);
 
-  const sponsors = mergeSponsorsWithFallback(dbSponsors).filter((sponsor) => sponsor.logo_url.trim());
+  const sponsors = mergeSponsorsWithFallback(dbSponsors).filter((sponsor) => sponsor.logo_url?.trim());
 
   const sponsorBlock = blocks['home.sponsor_intro'] || blocks['home.sponsorship'];
   const sponsorshipTitle = sponsorBlock?.title || 'Our Sponsors';
@@ -457,6 +457,13 @@ async function SponsorsSection() {
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
           <div className="homepage-marquee-track gap-4 py-2">
             {[...sponsors, ...sponsors].map((sponsor, index) => {
+              const brandedFallback = (
+                <div className="flex h-full w-full items-center justify-center rounded-xl bg-maroon-800 px-3 text-center">
+                  <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-amber-300">
+                    {sponsor.name}
+                  </span>
+                </div>
+              );
               const logo = (
                 <div className="flex h-32 w-56 flex-none items-center justify-center rounded-2xl border border-sky-100 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md">
                   {sponsor.logo_url ? (
@@ -467,9 +474,11 @@ async function SponsorsSection() {
                       height={82}
                       className="max-h-20 w-auto object-contain"
                       sizes="190px"
-                      fallback={null}
+                      fallback={brandedFallback}
                     />
-                  ) : null}
+                  ) : (
+                    brandedFallback
+                  )}
                 </div>
               );
 

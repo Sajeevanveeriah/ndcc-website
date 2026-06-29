@@ -6,6 +6,7 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getClubSettings } from '@/lib/club-settings';
 import { normalisePublicText } from '@/lib/utils';
 import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content';
+import { CLUB_ADDRESS, CLUB_ESTABLISHED } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Facilities',
@@ -29,6 +30,12 @@ export default async function FacilitiesPage() {
     getClubSettings(),
   ]);
 
+  const featureStats = features.length > 0
+    ? features.slice(0, 3).map((feature) => feature.title)
+    : ['4 Club Turf Lanes', '3 Public Synthetic Lanes', 'Clubrooms & Pavilion'];
+  const statItems = [...featureStats, `Est. ${CLUB_ESTABLISHED}`];
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(settings.address || CLUB_ADDRESS)}`;
+
   return (
     <>
       <section className="page-hero">
@@ -38,15 +45,39 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
+      <section className="bg-maroon-800 text-white" aria-label="Facility highlights">
+        <div className="container-width px-4 sm:px-6 lg:px-8 py-6">
+          <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5 text-center">
+            {statItems.map((item) => (
+              <li key={item} className="px-2 sm:border-r sm:border-white/15 sm:last:border-r-0">
+                <span className="font-display text-base sm:text-lg font-bold uppercase tracking-wide leading-tight">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="section-padding">
         <div className="container-width">
           <ScrollReveal className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="section-title">{blocks['facilities.intro']?.title || 'Grinter Reserve'}</h2>
               <p className="text-gray-500 font-body text-sm mb-6">{settings.address}</p>
-              <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                {normalisePublicText(blocks['facilities.intro']?.body)}
-              </p>
+              <div className="prose prose-sm max-w-none text-gray-700 font-body leading-relaxed whitespace-pre-line">
+                <p>{normalisePublicText(blocks['facilities.intro']?.body)}</p>
+              </div>
+              <a
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary mt-6 inline-flex items-center"
+              >
+                <svg className="mr-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                </svg>
+                Get Directions
+              </a>
             </div>
             <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
               <Image
@@ -75,9 +106,9 @@ export default async function FacilitiesPage() {
             </div>
             <div className="order-1 lg:order-2">
               <h2 className="section-title">{blocks['facilities.training']?.title || 'Training Facility'}</h2>
-              <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
-                {normalisePublicText(blocks['facilities.training']?.body)}
-              </p>
+              <div className="prose prose-sm max-w-none text-gray-700 font-body leading-relaxed whitespace-pre-line">
+                <p>{normalisePublicText(blocks['facilities.training']?.body)}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -92,7 +123,7 @@ export default async function FacilitiesPage() {
           <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
               <ScrollRevealItem key={feature.id}>
-              <Card>
+              <Card hover className="h-full">
                 <CardContent className="p-6">
                   <div className="w-14 h-14 bg-maroon-50 rounded-lg flex items-center justify-center mb-4">
                     <svg className="w-8 h-8 text-maroon-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
