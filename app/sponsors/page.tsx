@@ -17,7 +17,7 @@ import {
   SEED_SPONSOR_DESCRIPTIONS,
 } from '@/lib/constants';
 import { sponsorshipDownloads2026_27 } from '@/lib/assets';
-import { validateEmail } from '@/lib/utils';
+import { getInitials, validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 import { fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 
@@ -220,6 +220,13 @@ export default function SponsorsPage() {
               <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sponsorsByTier[tier.value].map((sponsor) => {
                   const description = getSponsorDescription(sponsor);
+                  const hasLogo = Boolean(sponsor.logo_url?.trim());
+                  const logoFallback = (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
+                      <span className="font-display text-2xl font-bold leading-none text-amber-300">{getInitials(sponsor.name)}</span>
+                      <span className="font-display text-xs font-semibold uppercase tracking-wide text-amber-100">{sponsor.name}</span>
+                    </div>
+                  );
                   return (
                     <ScrollRevealItem key={sponsor.id}>
                     <a
@@ -233,8 +240,8 @@ export default function SponsorsPage() {
                           <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
                             {sponsor.name}
                           </h3>
-                          <div className="mb-4 flex h-28 items-center justify-center rounded-lg border border-gray-100 bg-gray-50 p-4">
-                            {sponsor.logo_url ? (
+                          <div className={`mb-4 h-28 overflow-hidden rounded-lg ${hasLogo ? 'flex items-center justify-center border border-gray-100 bg-gray-50 p-4' : ''}`}>
+                            {hasLogo ? (
                               <SafeImage
                                 src={sponsor.logo_url}
                                 alt={`${sponsor.name} logo`}
@@ -242,16 +249,10 @@ export default function SponsorsPage() {
                                 height={96}
                                 className="max-h-24 w-auto object-contain"
                                 sizes="220px"
-                                fallback={
-                                  <span className="text-center font-display text-lg font-bold text-maroon-800">
-                                    {sponsor.name}
-                                  </span>
-                                }
+                                fallback={logoFallback}
                               />
                             ) : (
-                              <span className="text-center font-display text-lg font-bold text-maroon-800">
-                                {sponsor.name}
-                              </span>
+                              logoFallback
                             )}
                           </div>
                           {description && (
@@ -271,6 +272,19 @@ export default function SponsorsPage() {
                     </ScrollRevealItem>
                   );
                 })}
+                {idx === tiersWithSponsors.length - 1 && (
+                  <ScrollRevealItem key="become-a-sponsor-cta">
+                    <Link href="#enquiry-form" className="group block h-full">
+                      <Card hover className="h-full border-2 border-dashed border-maroon-200">
+                        <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
+                          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 text-2xl font-bold text-maroon-700 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
+                          <h3 className="font-display text-lg font-bold text-maroon-800">Become a Sponsor</h3>
+                          <p className="mt-1 font-body text-sm text-gray-600">Partner with the Dinos — enquire below.</p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </ScrollRevealItem>
+                )}
               </ScrollReveal>
             </div>
           </section>
