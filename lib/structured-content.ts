@@ -34,6 +34,28 @@ function hasSupabaseEnv() { return isServerSupabaseConfigured(); }
 function fallbackPageLinks(pageSlug: string, sectionKey: string) { return fallbackLinksFor(pageSlug, sectionKey) as PageLinkCard[]; }
 function warnFallback(message: string, metadata?: Record<string, unknown>) { console.warn(message, metadata); }
 
+function pageLinkStableKey(link: Pick<PageLinkCard, 'title' | 'href'>) {
+  return `${link.title.trim().toLowerCase()}::${link.href.trim().toLowerCase()}`;
+}
+
+function sortPageLinks(links: PageLinkCard[]) {
+  return [...links].sort((a, b) => {
+    const sortOrder = a.sort_order - b.sort_order;
+    if (sortOrder !== 0) return sortOrder;
+    return a.title.localeCompare(b.title);
+  });
+}
+
+function mergePageLinksWithFallback(rows: PageLinkCard[], fallback: PageLinkCard[]) {
+  if (rows.length === 0) return fallback;
+
+  const merged = new Map<string, PageLinkCard>();
+  for (const link of fallback) merged.set(pageLinkStableKey(link), link);
+  for (const link of rows) merged.set(pageLinkStableKey(link), link);
+
+  return sortPageLinks(Array.from(merged.values()));
+}
+
 async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
   const fallback = fallbackPageLinks(pageSlug, sectionKey);
   if (isProductionStaticBuild || !hasSupabaseEnv()) return fallback;
@@ -48,7 +70,7 @@ async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): P
       .order('sort_order', { ascending: true });
     if (error) { warnFallback('Public page link cards query failed; using controlled fallbacks.', { pageSlug, sectionKey, error: error.message }); return fallback; }
     const rows = (data as PageLinkCard[]) || [];
-    return rows.length > 0 ? rows : fallback;
+    return mergePageLinksWithFallback(rows, fallback);
   } catch (error) {
     warnFallback('Public page link cards query failed; using controlled fallbacks.', { pageSlug, sectionKey, error: error instanceof Error ? error.message : 'unknown' });
     return fallback;
