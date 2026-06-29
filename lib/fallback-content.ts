@@ -101,7 +101,12 @@ function getFallbackSponsorLogo(name: string) {
 export const fallbackSponsorLogos: Record<string, string> = {
   'APCO Newcomb': '/images/2026/06/apco-1781148625016.png',
   APCO: '/images/2026/06/apco-1781148625016.png',
-  'MBR Cricket': 'https://mbrcricket.com/cdn/shop/files/mbr-logo-gold.png?v=1781747781',
+  // TODO: place the MBR Cricket logo at public/images/sponsors/mbr-cricket-logo.png.
+  // The original was an external gold-on-transparent CDN PNG that rendered near-invisible
+  // on the white sponsor card; localising it removes the third-party dependency. Until the
+  // file is added, sponsor slots fall back to a branded maroon/gold initials card, so no
+  // empty white box is shown (see SponsorsSection marquee and the sponsors page grid).
+  'MBR Cricket': '/images/sponsors/mbr-cricket-logo.png',
   'Bennett Racing': '/images/2026/06/bennett-1781148645814.webp',
   Bennett: '/images/2026/06/bennett-1781148645814.webp',
   'Blackmans Brewery': '/images/2026/06/blackmans-1781148663993.webp',
@@ -127,7 +132,9 @@ const june16SponsorAssets: Sponsor[] = [
 export const fallbackSponsors: Sponsor[] = [
   ...SEED_SPONSORS.map((sponsor) => ({
     ...sponsor,
-    logo_url: sponsor.logo_url || getFallbackSponsorLogo(sponsor.name),
+    // Prefer the curated local asset over the seed-provided URL so the external
+    // mbrcricket.com CDN link is superseded by the local MBR logo path.
+    logo_url: getFallbackSponsorLogo(sponsor.name) || sponsor.logo_url,
     created_at: '2026-06-16T00:00:00+10:00',
   })),
   ...june16SponsorAssets,
