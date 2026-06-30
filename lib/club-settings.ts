@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { createPublicServerClient, isPublicSupabaseConfigured } from '@/lib/supabase-server';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
+import { isProductionStaticBuild } from '@/lib/fallback-content';
 
 function textOrFallback(value: unknown, fallback: string | null) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
@@ -41,7 +42,7 @@ export function normalizeClubSettings(row: Partial<ClubSettings> | null | undefi
 }
 
 async function getClubSettingsUncached(): Promise<ClubSettings> {
-  if (!isPublicSupabaseConfigured()) {
+  if (isProductionStaticBuild || !isPublicSupabaseConfigured()) {
     return fallbackClubSettings;
   }
 
@@ -49,7 +50,7 @@ async function getClubSettingsUncached(): Promise<ClubSettings> {
     const supabase = createPublicServerClient();
     const { data, error } = await supabase
       .from('club_settings')
-      .select('*')
+      .select('id,club_name,club_short,club_nickname,established_year,email,phone,ground_name,address,association_name,association_short,facebook_url,instagram_url,instagram_handle,playhq_url,google_maps_embed_url,updated_at')
       .eq('id', 'default')
       .maybeSingle();
 

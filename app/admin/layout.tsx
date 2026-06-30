@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 
 const SESSION_CHECK_TIMEOUT_MS = 8_000;
+const SESSION_RETRY_DELAYS_MS = [10_000, 30_000, 60_000] as const;
 
 type SessionUser = {
   id: string;
@@ -50,6 +51,63 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<SessionUser | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const runSessionCheck = useCallback(async (retryAttempt = 0, allowAutoRetry = true) => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
+
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/auth/session', {
+        cache: 'no-store',
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      if (response.status === 503) {
+        const nextDelay = SESSION_RETRY_DELAYS_MS[retryAttempt];
+        if (allowAutoRetry && nextDelay) {
+          setMessage(`Session validation is temporarily unavailable. Automatic retry ${retryAttempt + 1} of ${SESSION_RETRY_DELAYS_MS.length} will run in ${Math.round(nextDelay / 1000)} seconds.`);
+          retryTimeoutRef.current = setTimeout(() => runSessionCheck(retryAttempt + 1, true), nextDelay);
+        } else {
+          setMessage('Session validation is temporarily unavailable. Supabase may still be recovering. Use Retry when ready or return to sign in.');
+        }
+        setUser(null);
+        return;
+      }
+
+      if (response.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+
+      const data = await parseApiResponse<{ authenticated?: boolean; user?: SessionUser }>(response);
+      if (!data.authenticated) {
+        router.push('/admin/login');
+        return;
+      }
+      setUser(data.user || null);
+      setMessage('');
+    } catch (error) {
+      const isAbort = error instanceof Error && error.name === 'AbortError';
+      const nextDelay = SESSION_RETRY_DELAYS_MS[retryAttempt];
+      if (allowAutoRetry && nextDelay) {
+        setMessage(`${isAbort ? 'Session validation timed out' : 'Session validation failed'}. Automatic retry ${retryAttempt + 1} of ${SESSION_RETRY_DELAYS_MS.length} will run in ${Math.round(nextDelay / 1000)} seconds.`);
+        retryTimeoutRef.current = setTimeout(() => runSessionCheck(retryAttempt + 1, true), nextDelay);
+      } else {
+        setMessage(isAbort ? 'Session validation timed out. Use Retry when Supabase has recovered or return to sign in.' : 'Session validation failed. Use Retry when Supabase has recovered or return to sign in.');
+      }
+      setUser(null);
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => {
     if (isLoginPage) {
@@ -57,61 +115,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return undefined;
     }
 
-    let cancelled = false;
-    let retryTimeout: ReturnType<typeof setTimeout> | undefined;
-
-    const checkSession = async () => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
-
-      try {
-        const response = await fetch('/api/admin/auth/session', {
-          cache: 'no-store',
-          credentials: 'include',
-          signal: controller.signal,
-        });
-
-        if (response.status === 503) {
-          if (!cancelled) {
-            setMessage('Session validation is temporarily unavailable. Retrying automatically...');
-            retryTimeout = setTimeout(checkSession, 5000);
-          }
-          return;
-        }
-
-        if (response.status === 401) {
-          router.push('/admin/login');
-          return;
-        }
-
-        const data = await parseApiResponse<{ authenticated?: boolean; user?: SessionUser }>(response);
-        if (!data.authenticated) {
-          router.push('/admin/login');
-          return;
-        }
-        if (!cancelled) {
-          setUser(data.user || null);
-          setMessage('');
-        }
-      } catch (error) {
-        if (!cancelled) {
-          const isAbort = error instanceof Error && error.name === 'AbortError';
-          setMessage(isAbort ? 'Session validation timed out. Retrying automatically...' : error instanceof Error ? error.message : 'Session validation failed. Retrying automatically...');
-          retryTimeout = setTimeout(checkSession, 5000);
-        }
-      } finally {
-        clearTimeout(timeout);
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    checkSession();
-
+    runSessionCheck(0, true);
     return () => {
-      cancelled = true;
-      if (retryTimeout) clearTimeout(retryTimeout);
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     };
-  }, [isLoginPage, router]);
+  }, [isLoginPage, runSessionCheck]);
 
   const handleSignOut = async () => {
     const response = await fetch('/api/admin/auth/logout', { method: 'POST', cache: 'no-store', credentials: 'include' });
@@ -134,7 +142,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {message || 'We could not confirm your admin session. Please wait for the automatic retry or sign in again.'}
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button type="button" variant="primary" onClick={() => window.location.reload()}>Retry</Button>
+            <Button type="button" variant="primary" onClick={() => runSessionCheck(0, false)}>Retry</Button>
             <Button type="button" variant="secondary" onClick={() => router.push('/admin/login')}>Back to sign in</Button>
           </div>
         </div>
