@@ -11,7 +11,7 @@ function firstArray(payload: unknown): unknown[] {
 }
 function text(...values: unknown[]) { return values.find((v) => typeof v === 'string' && v.trim()) as string | undefined; }
 function num(value: unknown) { const n = Number(value); return Number.isFinite(n) ? n : null; }
-function entityName(value: unknown) { const r = asRecord(value); return text(r.name, r.displayName, r.fullName, r.teamName) || 'TBC'; }
+function entityName(value: unknown) { const r = asRecord(value); return text(r.name, r.displayName, r.fullName, r.teamName); }
 
 export function normaliseSeasons(payload: unknown): PlayHQSeason[] {
   return firstArray(payload).map((item) => {

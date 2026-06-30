@@ -29,7 +29,8 @@
     "smoke:season-appointments": "node scripts/smoke-season-appointments.mjs",
     "test:committee-auth-schema": "node scripts/test-committee-auth-schema.mjs",
     "test:core-schema": "node scripts/test-core-schema-migrations.mjs",
-    "test:playhq-config": "node scripts/test-playhq-config.mjs"
+    "test:playhq-config": "node scripts/test-playhq-config.mjs",
+    "test:playhq-normalise": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-playhq-normalise.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",
