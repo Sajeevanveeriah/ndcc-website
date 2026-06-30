@@ -1,5 +1,6 @@
 -- Custom DB-backed auth for committee/admin portal
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 CREATE TABLE IF NOT EXISTS committee_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
