@@ -28,7 +28,8 @@
     "test:season-appointments": "node scripts/test-season-appointments.mjs",
     "smoke:season-appointments": "node scripts/smoke-season-appointments.mjs",
     "test:committee-auth-schema": "node scripts/test-committee-auth-schema.mjs",
-    "test:core-schema": "node scripts/test-core-schema-migrations.mjs"
+    "test:core-schema": "node scripts/test-core-schema-migrations.mjs",
+    "test:playhq-config": "node scripts/test-playhq-config.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",

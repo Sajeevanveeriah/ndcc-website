@@ -5,103 +5,137 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks } from '@/lib/content-blocks';
-import { getPageLinkCards } from '@/lib/structured-content';
-import { fallbackLinksFor } from '@/lib/fallback-content';
+import { getPlayHQPublicData } from '@/lib/playhq/client';
+import type { PlayHQFixture, PlayHQLadderRow } from '@/lib/playhq/types';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Fixtures & Results',
 };
 
+function fixtureTime(value: string | null) {
+  if (!value) return 'Date TBC';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Australia/Melbourne' }).format(date);
+}
+
+function splitFixtures(fixtures: PlayHQFixture[]) {
+  const now = Date.now();
+  const upcoming = fixtures
+    .filter((fixture) => !fixture.startsAt || Date.parse(fixture.startsAt) >= now)
+    .sort((a, b) => (Date.parse(a.startsAt || '') || Number.MAX_SAFE_INTEGER) - (Date.parse(b.startsAt || '') || Number.MAX_SAFE_INTEGER));
+  const results = fixtures
+    .filter((fixture) => fixture.startsAt && Date.parse(fixture.startsAt) < now)
+    .sort((a, b) => (Date.parse(b.startsAt || '') || 0) - (Date.parse(a.startsAt || '') || 0));
+  return { upcoming, results };
+}
+
+function groupByGrade<T extends { gradeId: string; gradeName: string }>(rows: T[]) {
+  return rows.reduce<Record<string, { gradeName: string; rows: T[] }>>((groups, row) => {
+    const key = row.gradeId || row.gradeName;
+    groups[key] ||= { gradeName: row.gradeName, rows: [] };
+    groups[key].rows.push(row);
+    return groups;
+  }, {});
+}
+
+function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; result?: boolean }) {
+  return (
+    <Card className="h-full">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
+          <span className="text-xs text-gray-500 font-body">{fixtureTime(fixture.startsAt)}</span>
+        </div>
+        <div>
+          <p className="font-display font-bold text-gray-900">{fixture.homeTeam}</p>
+          <p className="text-sm text-gray-500">v</p>
+          <p className="font-display font-bold text-gray-900">{fixture.awayTeam}</p>
+        </div>
+        {(fixture.homeScore || fixture.awayScore) && (
+          <p className="text-sm font-semibold text-maroon-700">{fixture.homeScore || 'TBC'} · {fixture.awayScore || 'TBC'}</p>
+        )}
+        {fixture.venue && <p className="text-sm text-gray-600 font-body">{fixture.venue}</p>}
+        {fixture.playHQUrl && <Link href={fixture.playHQUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-maroon-700 hover:underline">View on PlayHQ</Link>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function LadderTable({ rows }: { rows: PlayHQLadderRow[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
+      <table className="min-w-full divide-y divide-gray-100 text-sm">
+        <thead className="bg-sky-50 text-left text-gray-600">
+          <tr><th className="px-4 py-3">Pos</th><th className="px-4 py-3">Team</th><th className="px-4 py-3">P</th><th className="px-4 py-3">Pts</th><th className="px-4 py-3">%</th></tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {rows.map((row, index) => <tr key={`${row.gradeId}-${row.teamName}-${index}`}><td className="px-4 py-3">{row.position ?? '-'}</td><td className="px-4 py-3 font-medium text-gray-900">{row.teamName}</td><td className="px-4 py-3">{row.played ?? '-'}</td><td className="px-4 py-3">{row.points ?? '-'}</td><td className="px-4 py-3">{row.percentage ?? '-'}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default async function FixturesPage() {
-  const [settings, blocks, cmsTeamLinks] = await Promise.all([
+  const [settings, blocks, playhq] = await Promise.all([
     getClubSettings(),
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
-    getPageLinkCards('fixtures', 'team_links'),
+    getPlayHQPublicData(),
   ]);
-  // On a Supabase cold start the query aborts; show the static PlayHQ team links instead of an
-  // empty grid. CMS rows win whenever Supabase is warm.
-  const teamLinks = cmsTeamLinks.length > 0 ? cmsTeamLinks : fallbackLinksFor('fixtures', 'team_links');
+  const { upcoming, results } = splitFixtures(playhq.fixtures);
+  const upcomingByGrade = groupByGrade(upcoming);
+  const resultsByGrade = groupByGrade(results.slice(0, 12));
+  const laddersByGrade = groupByGrade(playhq.ladders);
 
   return (
     <>
       <section className="page-hero">
         <div className="container-width">
-          <ScrollReveal onMount delay={0}>
-            <h1 className="page-hero-title">{blocks['fixtures.hero']?.title || 'Fixtures & Results'}</h1>
-          </ScrollReveal>
-          <ScrollReveal onMount delay={0.15}>
-            <p className="page-hero-subtitle">
-              {blocks['fixtures.hero']?.body || `Follow the ${settings.club_nickname} throughout the season across all grades.`}
-            </p>
-          </ScrollReveal>
+          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{blocks['fixtures.hero']?.title || 'Fixtures & Results'}</h1></ScrollReveal>
+          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{blocks['fixtures.hero']?.body || `Follow the ${settings.club_nickname} throughout the season across all grades.`}</p></ScrollReveal>
         </div>
       </section>
 
       <section className="section-padding">
-        <div className="container-width">
+        <div className="container-width space-y-8">
           <Card className="border-l-4 border-l-maroon-700">
             <CardContent className="p-8">
-              <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">
-                {blocks['fixtures.status']?.title || 'Season Status'}
-              </h2>
-              <p className="text-gray-700 font-body leading-relaxed mb-4 max-w-3xl">
-                {blocks['fixtures.status']?.body || `Keep track of upcoming fixtures, results, and ladder updates for the ${settings.club_nickname}.`}{' '}
-                <Link href={settings.facebook_url || '#'} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
-                  Facebook page
-                </Link>.
-              </p>
-              <Link
-                href={blocks['fixtures.status']?.cta_url || settings.playhq_url || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary inline-flex items-center"
-              >
-                {blocks['fixtures.status']?.cta_label || 'View Results on PlayHQ'}
-                <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                </svg>
-              </Link>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">{blocks['fixtures.status']?.title || 'PlayHQ Fixtures'}</h2>
+                  <p className="text-gray-700 font-body leading-relaxed max-w-3xl">
+                    {playhq.message || blocks['fixtures.status']?.body || `Live fixtures, results and ladders for the ${settings.club_nickname}.`}
+                  </p>
+                </div>
+                {playhq.selectedSeasonId && <Badge variant="default">Season {playhq.selectedSeasonId.slice(-6)}</Badge>}
+              </div>
             </CardContent>
           </Card>
+
+          {!playhq.configured ? (
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900">Fixtures will appear once PlayHQ is configured</h2><p className="mt-2 text-gray-600 font-body">The site is ready for the PlayHQ Public API. No fixture data is shown until the server-only PlayHQ environment variables are set.</p></CardContent></Card>
+          ) : playhq.fixtures.length === 0 ? (
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900">No fixtures returned by PlayHQ</h2><p className="mt-2 text-gray-600 font-body">Check the selected season and grade configuration in Vercel if fixtures are expected.</p></CardContent></Card>
+          ) : (
+            <>
+              <section>
+                <h2 className="section-title mb-6">Upcoming Fixtures</h2>
+                {Object.values(upcomingByGrade).length === 0 ? <p className="text-gray-600 font-body">No upcoming fixtures are currently listed.</p> : Object.values(upcomingByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-gray-900">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}</div></div>)}
+              </section>
+
+              <section>
+                <h2 className="section-title mb-6">Recent Results</h2>
+                {Object.values(resultsByGrade).length === 0 ? <p className="text-gray-600 font-body">No recent results are currently listed.</p> : Object.values(resultsByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-gray-900">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} result />)}</div></div>)}
+              </section>
+            </>
+          )}
         </div>
       </section>
 
-      <section className="section-padding surface-sky">
-        <div className="container-width">
-          <h2 className="section-title mb-8">{blocks['fixtures.team_links']?.title || 'Team Fixtures on PlayHQ'}</h2>
-          <p className="text-gray-600 font-body mb-8 max-w-3xl">
-            {blocks['fixtures.team_links']?.body || 'Quick links to each NDCC team fixture page on PlayHQ.'}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teamLinks.map((team) => (
-              <a
-                key={team.id}
-                href={team.href}
-                target={team.is_external ? '_blank' : undefined}
-                rel={team.is_external ? 'noopener noreferrer' : undefined}
-                className="block group"
-              >
-                <Card hover className="h-full">
-                  <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-6 py-4">
-                    <h3 className="text-white font-display font-bold text-lg">{team.title}</h3>
-                  </div>
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="default">{team.badge || team.description}</Badge>
-                      <span className="text-maroon-700 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
-                        {blocks['fixtures.team_links']?.cta_label || 'View on PlayHQ'}
-                        <svg className="ml-1 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                        </svg>
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+      {playhq.ladders.length > 0 && <section className="section-padding surface-sky"><div className="container-width"><h2 className="section-title mb-8">Ladders</h2>{Object.values(laddersByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-gray-900">{group.gradeName}</h3><LadderTable rows={group.rows} /></div>)}</div></section>}
     </>
   );
 }
