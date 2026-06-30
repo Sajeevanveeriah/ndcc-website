@@ -11,10 +11,27 @@ const LOGIN_TIMEOUT_MS = 12_000;
 
 async function readLoginResponse(response: Response) {
   try {
-    return await response.json() as { error?: string; requestId?: string };
+    return await response.json() as { error?: string; requestId?: string; stage?: string; diagnosticCode?: string };
   } catch {
     return { error: response.ok ? undefined : 'Sign-in failed. Please try again.' };
   }
+}
+
+function stageLabel(stage?: string) {
+  const labels: Record<string, string> = {
+    supabase_config: 'Supabase configuration',
+    credential_rpc: 'Credential verification',
+    session_insert: 'Session creation',
+    unexpected: 'Unexpected login error',
+  };
+  return stage ? labels[stage] : undefined;
+}
+
+function loginErrorMessage(status: number, data: { error?: string; requestId?: string; stage?: string }) {
+  const message = messageForStatus(status, data.error);
+  const reference = data.requestId ? ` Reference: ${data.requestId}` : '';
+  const stage = stageLabel(data.stage);
+  return `${message}${reference}${stage ? ` Stage: ${stage}` : ''}`;
 }
 
 function messageForStatus(status: number, fallback?: string) {
@@ -57,7 +74,7 @@ export default function AdminLoginPage() {
       });
       const data = await readLoginResponse(res);
 
-      if (!res.ok) return setError(`${messageForStatus(res.status, data.error)}${data.requestId ? ` Reference: ${data.requestId}` : ''}`);
+      if (!res.ok) return setError(loginErrorMessage(res.status, data));
 
       setLoading(false);
       router.replace('/admin');

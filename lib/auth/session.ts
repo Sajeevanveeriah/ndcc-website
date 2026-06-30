@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase-server';
-import { withSupabaseOperationRetry } from '@/lib/supabase-operation';
 import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, AuthRole, SESSION_TTL_DAYS } from './config';
 
 export interface CommitteeSessionUser {
@@ -93,11 +92,11 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
   const tokenHash = hashSessionToken(token);
 
   try {
-    const { data, error } = await withSupabaseOperationRetry(() => supabase
+    const { data, error } = await supabase
       .from('committee_sessions')
       .select('expires_at, committee_users(id, email, full_name, role, is_active)')
       .eq('session_token_hash', tokenHash)
-      .maybeSingle());
+      .maybeSingle();
 
     if (error) return { status: 'unavailable', reason: 'database_error' };
     if (!data) return { status: 'unauthenticated', reason: 'session_not_found' };

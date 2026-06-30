@@ -2,9 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
-import { getClubSettings } from '@/lib/club-settings';
-import { getContentBlocks } from '@/lib/content-blocks';
-import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
+import { type PageLinkCard } from '@/lib/structured-content';
+import { getSiteChromeData } from '@/lib/site-chrome';
 import { fallbackLinksFor } from '@/lib/fallback-content';
 import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
 
@@ -40,17 +39,11 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  const [settings, blocks, cmsQuickLinks, cmsGetInvolvedLinks, cmsAffiliationLinks] = await Promise.all([
-    getClubSettings(),
-    getContentBlocks(['footer.acknowledgement']),
-    getPageLinkCards('site', 'footer_quick_links'),
-    getPageLinkCards('site', 'footer_get_involved'),
-    getPageLinkCards('site', 'footer_affiliations'),
-  ]);
+  const { settings, acknowledgement: acknowledgementBlock, quickLinks: cmsQuickLinks, getInvolvedLinks: cmsGetInvolvedLinks, affiliationLinks: cmsAffiliationLinks } = await getSiteChromeData();
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
-  const acknowledgement = blocks['footer.acknowledgement']?.body;
-  const acknowledgementImage = blocks['footer.acknowledgement']?.image_url;
+  const acknowledgement = acknowledgementBlock?.body;
+  const acknowledgementImage = acknowledgementBlock?.image_url;
 
   const quickLinks = resolveLinks(cmsQuickLinks, 'site', 'footer_quick_links');
   const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks, 'site', 'footer_get_involved');

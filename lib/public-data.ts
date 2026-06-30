@@ -23,18 +23,20 @@ export type GalleryPhoto = {
   sort_order: number;
 };
 
+const PUBLIC_QUERY_TIMEOUT_MS = 5_000;
+
 const getPublishedEventsFromSupabase = unstable_cache(async () => {
-  const supabase = createServerClient();
+  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('events')
-    .select('*')
+    .select('id,title,description,date,location,capacity,ticket_price,stripe_link,published,image_url')
     .eq('published', true)
     .order('date', { ascending: true });
   return { data: data ?? [], error: error?.message ?? null };
 }, ['public-events-data'], { revalidate: 300, tags: ['events'] });
 
 const getPublishedGalleryFromSupabase = unstable_cache(async () => {
-  const supabase = createServerClient();
+  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('gallery_images')
     .select('id,title,caption,image_url,alt_text,allow_download,sort_order')
@@ -45,10 +47,10 @@ const getPublishedGalleryFromSupabase = unstable_cache(async () => {
 }, ['public-gallery-data'], { revalidate: 300, tags: ['gallery'] });
 
 const getActiveSponsorsFromSupabase = unstable_cache(async () => {
-  const supabase = createServerClient();
+  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('sponsors')
-    .select('*')
+    .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order')
     .eq('active', true)
     .order('created_at', { ascending: true });
   return { data: data ?? [], error: error?.message ?? null };

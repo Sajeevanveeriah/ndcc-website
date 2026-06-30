@@ -1,3 +1,49 @@
-export type PlayHqPlayerRole = 'BAT' | 'BOWL' | 'AR' | 'WK';
-export interface PlayHqPlayerInput { id?: string; firstName?: string; lastName?: string; displayName?: string; teamName?: string; gradeName?: string; role?: string; sourceUrl?: string; }
-export interface NormalisedFantasyPlayer { display_name: string; first_name: string; last_name: string; team_name: string; grade_name: string; role: PlayHqPlayerRole; price_million: number; active: boolean; is_published: boolean; status: string; source: string; source_url: string; external_id: string | null; last_synced_at: string; manual_override: boolean; notes: string; }
+export type PlayHQSeason = { id: string; name: string; startDate?: string | null; endDate?: string | null };
+export type PlayHQTeam = { id: string; name: string; gradeId?: string | null; gradeName?: string | null };
+export type PlayHQGrade = { id: string; name: string; seasonId?: string | null };
+export type PlayHQFixture = {
+  id: string;
+  gradeId: string;
+  gradeName: string;
+  homeTeam: string;
+  awayTeam: string;
+  startsAt: string | null;
+  venue: string | null;
+  status: string | null;
+  homeScore?: string | null;
+  awayScore?: string | null;
+  playHQUrl?: string | null;
+};
+export type PlayHQLadderRow = { gradeId: string; gradeName: string; teamName: string; position: number | null; played: number | null; points: number | null; percentage?: number | null };
+export type PlayHQPublicData = {
+  configured: boolean;
+  message?: string;
+  seasons: PlayHQSeason[];
+  selectedSeasonId: string | null;
+  teams: PlayHQTeam[];
+  grades: PlayHQGrade[];
+  fixtures: PlayHQFixture[];
+  ladders: PlayHQLadderRow[];
+  error?: string | null;
+};
+export type PlayHqPlayerInput = {
+  id?: string;
+  playerId?: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  teamName?: string;
+  gradeName?: string;
+  role?: string;
+  sourceUrl?: string;
+};
+export type NormalisedPlayHqPlayer = {
+  playhq_player_id: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  team_label: string;
+  grade_label: string;
+  role: string;
+  source: string;
+};

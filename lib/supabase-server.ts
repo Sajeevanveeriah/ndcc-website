@@ -24,8 +24,32 @@ function createTimeoutFetch(timeoutMs = SUPABASE_FETCH_TIMEOUT_MS): typeof fetch
   };
 }
 
+export type SupabaseServerReadiness = {
+  nextPublicSupabaseUrlPresent: boolean;
+  serviceRoleKeyPresent: boolean;
+  serviceRoleKeyLooksJwt: boolean;
+  anonKeyPresent: boolean;
+  canCreateServerClient: boolean;
+};
+
+function looksLikeJwt(value: string | undefined) {
+  return Boolean(value && value.split('.').length === 3);
+}
+
+export function getSupabaseServerReadiness(env: NodeJS.ProcessEnv = process.env): SupabaseServerReadiness {
+  const nextPublicSupabaseUrlPresent = Boolean(env.NEXT_PUBLIC_SUPABASE_URL);
+  const serviceRoleKeyPresent = Boolean(env.SUPABASE_SERVICE_ROLE_KEY);
+  return {
+    nextPublicSupabaseUrlPresent,
+    serviceRoleKeyPresent,
+    serviceRoleKeyLooksJwt: looksLikeJwt(env.SUPABASE_SERVICE_ROLE_KEY),
+    anonKeyPresent: Boolean(env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    canCreateServerClient: nextPublicSupabaseUrlPresent && serviceRoleKeyPresent,
+  };
+}
+
 export function isServerSupabaseConfigured() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return getSupabaseServerReadiness().canCreateServerClient;
 }
 
 export function isPublicSupabaseConfigured() {
@@ -37,7 +61,9 @@ export function createServerClient(options: { fetchTimeoutMs?: number | null } =
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Supabase server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+    const error = new Error('Supabase server client configuration is incomplete.');
+    error.name = 'SupabaseServerConfigError';
+    throw error;
   }
 
   const clientOptions = options.fetchTimeoutMs === null ? {} : { fetch: createTimeoutFetch(options.fetchTimeoutMs) };
@@ -56,7 +82,9 @@ export function createPublicServerClient() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !anonKey) {
-    throw new Error('Supabase public server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+    const error = new Error('Supabase public server client configuration is incomplete.');
+    error.name = 'SupabasePublicConfigError';
+    throw error;
   }
 
   return createClient(supabaseUrl, anonKey, {
