@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION ndcc_verify_committee_user(p_email TEXT, p_password T
 RETURNS TABLE (id UUID, email TEXT, full_name TEXT, role TEXT)
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT u.id, u.email, u.full_name, u.role
   FROM committee_users u
@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION ndcc_set_committee_password(p_user_id UUID, p_passwor
 RETURNS VOID
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   UPDATE committee_users
   SET password_hash = crypt(p_password, gen_salt('bf', 10)),
@@ -60,7 +60,7 @@ CREATE OR REPLACE FUNCTION ndcc_admin_create_committee_user(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   new_user_id UUID;
@@ -104,7 +104,7 @@ CREATE OR REPLACE FUNCTION ndcc_bootstrap_first_admin(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   existing_admins INTEGER;
