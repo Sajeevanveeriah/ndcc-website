@@ -10,6 +10,8 @@ export const maxDuration = 10;
 const CREDENTIAL_RPC_TIMEOUT_MS = 4_500;
 const SESSION_INSERT_TIMEOUT_MS = 4_500;
 const UNAVAILABLE_MESSAGE = 'Admin login service is temporarily unavailable';
+type LoginUnavailableStage = 'supabase_config' | 'credential_rpc' | 'session_insert' | 'unexpected';
+type LoginDiagnosticCode = 'SUPABASE_SERVER_CONFIG_MISSING' | 'CREDENTIAL_RPC_FAILED' | 'SESSION_INSERT_FAILED' | 'UNEXPECTED_LOGIN_ERROR';
 const OPERATION_TIMEOUT_ERROR = { code: 'AbortError', message: 'Supabase operation timed out' };
 
 function jsonNoStore(body: Record<string, unknown>, status = 200) {
@@ -17,6 +19,10 @@ function jsonNoStore(body: Record<string, unknown>, status = 200) {
     status,
     headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' },
   });
+}
+
+function unavailableJson(requestId: string, stage: LoginUnavailableStage, diagnosticCode: LoginDiagnosticCode) {
+  return jsonNoStore({ success: false, error: UNAVAILABLE_MESSAGE, requestId, stage, diagnosticCode }, 503);
 }
 
 function requestId() {
@@ -73,7 +79,7 @@ export async function POST(request: Request) {
 
     if (!isServerSupabaseConfigured()) {
       logAuthStage('Supabase configuration readiness', { requestId: id, httpStatus: 503, elapsedMs: elapsedMs(startedAt) });
-      return jsonNoStore({ success: false, error: UNAVAILABLE_MESSAGE, requestId: id }, 503);
+      return unavailableJson(id, 'supabase_config', 'SUPABASE_SERVER_CONFIG_MISSING');
     }
 
     logAuthStage('request validation', { requestId: id, httpStatus: 200, elapsedMs: elapsedMs(startedAt) });
@@ -92,7 +98,7 @@ export async function POST(request: Request) {
 
     if (error) {
       logAuthStage('credential RPC', { requestId: id, httpStatus: 503, supabaseCode: error.code, retryCount: operationMeta.attempts - 1, supabaseStatus: status, elapsedMs: elapsedMs(startedAt) });
-      return jsonNoStore({ success: false, error: UNAVAILABLE_MESSAGE, requestId: id }, 503);
+      return unavailableJson(id, 'credential_rpc', 'CREDENTIAL_RPC_FAILED');
     }
 
     if (!user) {
@@ -120,7 +126,7 @@ export async function POST(request: Request) {
 
     if (sessionError) {
       logAuthStage('session insert', { requestId: id, httpStatus: 503, supabaseCode: sessionError.code, retryCount: sessionMeta.attempts - 1, supabaseStatus: sessionStatus, elapsedMs: elapsedMs(startedAt) });
-      return jsonNoStore({ success: false, error: UNAVAILABLE_MESSAGE, requestId: id }, 503);
+      return unavailableJson(id, 'session_insert', 'SESSION_INSERT_FAILED');
     }
 
     const response = jsonNoStore({
@@ -140,6 +146,6 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('Login route error', { requestId: id, name: error instanceof Error ? error.name : 'unknown', elapsedMs: elapsedMs(startedAt) });
-    return jsonNoStore({ success: false, error: UNAVAILABLE_MESSAGE, requestId: id }, 503);
+    return unavailableJson(id, 'unexpected', 'UNEXPECTED_LOGIN_ERROR');
   }
 }

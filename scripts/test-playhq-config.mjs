@@ -20,6 +20,7 @@ const diagnosticsRoute = read('app/api/admin/playhq/diagnostics/route.ts');
 const authMigration = read('supabase/migrations/20260630_repair_committee_auth_crypt_resolution.sql');
 const ioMigration = read('supabase/migrations/20260630_reduce_public_query_io.sql');
 const policyMigration = read('supabase/migrations/20260630_cleanup_duplicate_public_read_policies.sql');
+const readinessRoute = read('app/api/admin/auth/readiness/route.ts');
 
 if (!configSource.includes("import 'server-only'")) fail('PlayHQ config must be server-only.');
 if (!clientSource.includes("'x-api-key': config.apiKey")) fail('PlayHQ client must send x-api-key from server env.');
@@ -33,6 +34,8 @@ if (!ioMigration.includes('idx_event_registrations_event_id') || !ioMigration.in
 if (!policyMigration.includes('DROP POLICY IF EXISTS committee_members_public_read_active')) fail('Policy cleanup migration must drop known duplicate public-read policies.');
 if (/DROP POLICY[^;]+committee_(users|sessions)/i.test(policyMigration)) fail('Policy cleanup migration must not alter committee auth table policies.');
 if (fixturesRoute.includes('PLAYHQ_API_KEY') || fixturesRoute.includes('x-api-key')) fail('Public PlayHQ fixtures route must not expose key handling.');
+if (!readinessRoute.includes("process.env.ADMIN_AUTH_READINESS_ENABLED !== 'true'") || !readinessRoute.includes('return hidden()')) fail('Readiness route must return 404 unless explicitly enabled.');
+if (!readinessRoute.includes("request.headers.get('x-diagnostic-token')") || !readinessRoute.includes('ADMIN_DIAGNOSTIC_TOKEN')) fail('Readiness route must require diagnostic token header.');
 
 for (const file of walk(root)) {
   const rel = path.relative(root, file);

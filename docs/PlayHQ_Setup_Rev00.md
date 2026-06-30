@@ -24,3 +24,7 @@ Apply the Supabase repair/index migrations only after the SQL Editor can run `se
 
 ## Diagnostics
 Use `/api/admin/playhq/diagnostics` while signed in as a committee admin user. The route returns configuration booleans, safe base URL, organisation ID last four characters, counts and errors. It never returns the PlayHQ API key.
+
+
+## Deployment note
+Redeploy Vercel after changing PlayHQ environment variables. Do not use `NEXT_PUBLIC_` for any PlayHQ secret.
