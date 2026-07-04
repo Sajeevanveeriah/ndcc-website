@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Archivo, Barlow_Condensed, Inter, Oswald } from 'next/font/google';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ThemeProvider from '@/components/common/ThemeProvider';
@@ -14,6 +15,15 @@ import {
   PLAYHQ_ORG_URL,
 } from '@/lib/constants';
 import './globals.css';
+
+// Self-hosted via next/font: replaces the render-blocking Google Fonts
+// @import that used to live in globals.css. Weights match that import.
+const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-inter', display: 'swap' });
+const barlowCondensed = Barlow_Condensed({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-barlow-condensed', display: 'swap' });
+const archivo = Archivo({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-archivo', display: 'swap' });
+const oswald = Oswald({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-oswald', display: 'swap' });
+
+const fontVariables = `${inter.variable} ${barlowCondensed.variable} ${archivo.variable} ${oswald.variable}`;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
 
@@ -80,7 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     // suppressHydrationWarning is required by next-themes: it stamps the theme
     // class on <html> before hydration, which is an expected mismatch.
-    <html lang="en-AU" suppressHydrationWarning>
+    <html lang="en-AU" suppressHydrationWarning className={fontVariables}>
       <head>
         <meta name="theme-color" content="#800000" />
         <script

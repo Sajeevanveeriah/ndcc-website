@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Oswald:wght@500;600&display=swap');
-
 @layer base {
   html {
     scroll-behavior: smooth;
