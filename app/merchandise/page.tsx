@@ -427,7 +427,7 @@ function MerchandiseContent() {
                   const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
                   const iconData = PRODUCT_ICONS[product.id];
                   return (
-                    <Card key={product.id}>
+                    <Card key={product.id} className="hover-lift">
                   {product.image ? (
                     <div
                       className="h-36 bg-cover bg-center"
