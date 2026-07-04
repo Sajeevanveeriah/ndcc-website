@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Archivo, Barlow_Condensed, Inter, Oswald } from 'next/font/google';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ThemeProvider from '@/components/common/ThemeProvider';
+import RouteProgress from '@/components/common/RouteProgress';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -100,6 +102,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen flex flex-col">
         <ThemeProvider>
+          {/* useSearchParams requires a Suspense boundary during prerender. */}
+          <Suspense fallback={null}>
+            <RouteProgress />
+          </Suspense>
           <Navbar />
           <main className="flex-1 pt-24 lg:pt-28">{children}</main>
           <Footer />

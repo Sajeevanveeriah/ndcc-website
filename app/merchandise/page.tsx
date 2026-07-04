@@ -144,6 +144,10 @@ function MerchandiseContent() {
     current_window: null,
     next_window: null,
   });
+  // True when the live products fetch failed and the static PRODUCTS
+  // fallback is standing in for the real catalogue.
+  const [liveProductsFailed, setLiveProductsFailed] = useState(false);
+  const [productsReloadKey, setProductsReloadKey] = useState(0);
 
   const stripeEnabled = isStripeConfigured();
 
@@ -155,27 +159,25 @@ function MerchandiseContent() {
     } else if (searchParams.get('cancelled') === 'true') {
       setSubmitStatus('cancelled');
     }
+  }, [searchParams]);
 
-    void (async () => {
+  useEffect(() => {
+    // Set on cleanup so a slow response from a superseded run (an earlier
+    // mount or an older Try again click) can't clobber newer state.
+    let stale = false;
+
+    // Each loader catches and logs its own failure so one unreachable
+    // endpoint can't silently discard what the other two returned.
+    const loadProducts = async () => {
       try {
-        const [productsRes, windowsRes, blocksRes] = await Promise.all([
-          fetch('/api/apparel/products', { cache: 'no-store' }),
-          fetch('/api/apparel/windows', { cache: 'no-store' }),
-          fetch('/api/public/content-blocks?key=merch.hero&key=merch.ordering', { cache: 'no-store' }),
-        ]);
-        const productsData = await productsRes.json();
-        const windowsData = await windowsRes.json();
-        const blocksPayload = await blocksRes.json();
-        const blocks = blocksPayload?.data || {};
-        const orderingBody = blocks['merch.ordering']?.body || '';
-        setHeroContent({
-          title: blocks['merch.hero']?.title || 'Club Merchandise',
-          body: blocks['merch.hero']?.body || `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
-          orderTitle: blocks['merch.ordering']?.title || 'Ordering Information',
-          orderBody: orderingBody.startsWith('Use this section to provide') ? '' : orderingBody,
-        });
-        if (productsRes.ok && Array.isArray(productsData.data) && productsData.data.length > 0) {
-          setProducts(productsData.data
+        const res = await fetch('/api/apparel/products', { cache: 'no-store' });
+        const payload = await res.json();
+        if (!res.ok || !Array.isArray(payload?.data)) {
+          throw new Error(`Products request failed with status ${res.status}`);
+        }
+        if (stale) return;
+        if (payload.data.length > 0) {
+          setProducts(payload.data
             .sort((a: ApiProduct, b: ApiProduct) => (a.display_order ?? 9999) - (b.display_order ?? 9999))
             .map((p: ApiProduct) => ({
               id: p.slug,
@@ -188,14 +190,48 @@ function MerchandiseContent() {
               category: p.category || 'General',
             })));
         }
-        if (windowsRes.ok && windowsData.data) {
-          setWindowState(windowsData.data);
-        }
-      } catch {
-        // Keep safe defaults.
+        setLiveProductsFailed(false);
+      } catch (err) {
+        console.error('[merchandise] Failed to load live products; showing static fallback list:', err);
+        if (!stale) setLiveProductsFailed(true);
       }
-    })();
-  }, [searchParams]);
+    };
+
+    const loadWindows = async () => {
+      try {
+        const res = await fetch('/api/apparel/windows', { cache: 'no-store' });
+        const payload = await res.json();
+        if (!stale && res.ok && payload?.data) {
+          setWindowState(payload.data);
+        }
+      } catch (err) {
+        console.error('[merchandise] Failed to load order windows; keeping open defaults:', err);
+      }
+    };
+
+    const loadContentBlocks = async () => {
+      try {
+        const res = await fetch('/api/public/content-blocks?key=merch.hero&key=merch.ordering', { cache: 'no-store' });
+        const payload = await res.json();
+        if (stale) return;
+        const blocks = payload?.data || {};
+        const orderingBody = blocks['merch.ordering']?.body || '';
+        setHeroContent({
+          title: blocks['merch.hero']?.title || 'Club Merchandise',
+          body: blocks['merch.hero']?.body || `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
+          orderTitle: blocks['merch.ordering']?.title || 'Ordering Information',
+          orderBody: orderingBody.startsWith('Use this section to provide') ? '' : orderingBody,
+        });
+      } catch (err) {
+        console.error('[merchandise] Failed to load content blocks; keeping default copy:', err);
+      }
+    };
+
+    void Promise.all([loadProducts(), loadWindows(), loadContentBlocks()]);
+    return () => {
+      stale = true;
+    };
+  }, [productsReloadKey]);
 
   function handleAddToOrder(productId: string) {
     const product = products.find((p) => p.id === productId);
@@ -371,6 +407,20 @@ function MerchandiseContent() {
               <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{heroContent.orderBody}</p>
             </div>
           )}
+          {liveProductsFailed && (
+            <div className="mb-6 rounded-xl border border-sky-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3" role="status">
+              <p className="font-body text-sm text-gray-700">
+                Showing a shortened product list while we reconnect. The full range will appear automatically once available.
+              </p>
+              <button
+                type="button"
+                onClick={() => setProductsReloadKey((key) => key + 1)}
+                className="focus-ring inline-flex items-center rounded-lg border border-maroon-300 px-3 py-1.5 font-body text-sm font-semibold text-maroon-700 transition-colors hover:bg-maroon-50 dark:hover:bg-maroon-900/40"
+              >
+                Try again
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {!windowState.processing_open && (
               <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
@@ -386,7 +436,7 @@ function MerchandiseContent() {
                   const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
                   const iconData = PRODUCT_ICONS[product.id];
                   return (
-                    <Card key={product.id}>
+                    <Card key={product.id} className="hover-lift">
                   {product.image ? (
                     <div
                       className="h-36 bg-cover bg-center"

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { createServerClient } from '@/lib/supabase-server';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
+import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,12 @@ async function getRows(): Promise<Row[]> {
 
 export default async function FantasyManagerLeaderboardPage() {
   let rows: Row[] = [];
-  try { rows = await getRows(); } catch { rows = []; }
-  return <section className="section-padding"><div className="container-width"><FantasyBackLink /><h1 className="section-title">Manager Leaderboard</h1><p className="font-body text-gray-700 mb-6">Classic fantasy rankings from saved manager round scores only.</p>{rows.length === 0 ? <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900 mb-2">No manager scores yet</h2><p className="font-body text-gray-700">The manager leaderboard appears after admins calculate and save round scores.</p></CardContent></Card> : <Table><TableHead><TableRow><TableHeader>Rank</TableHeader><TableHeader>Team</TableHeader><TableHeader>Manager</TableHeader><TableHeader>Total points</TableHeader><TableHeader>Transfer penalties</TableHeader><TableHeader>Net points</TableHeader></TableRow></TableHead><TableBody>{rows.map((row)=><TableRow key={row.managerId}><TableCell className="font-bold">{row.rank}</TableCell><TableCell>{row.teamName}</TableCell><TableCell>{row.displayName}</TableCell><TableCell>{row.totalPoints}</TableCell><TableCell>{row.transferPenalty}</TableCell><TableCell className="font-bold text-maroon-800">{row.totalNetPoints}</TableCell></TableRow>)}</TableBody></Table>}</div></section>;
+  let loadFailed = false;
+  try {
+    rows = await getRows();
+  } catch (err) {
+    console.error('[fantasy/manager-leaderboard] Failed to load manager round scores; showing failure state:', err);
+    loadFailed = true;
+  }
+  return <section className="section-padding"><div className="container-width"><FantasyBackLink /><h1 className="section-title">Manager Leaderboard</h1><p className="font-body text-gray-700 mb-6">Classic fantasy rankings from saved manager round scores only.</p>{loadFailed ? <DataLoadErrorCard title="We couldn&rsquo;t load the manager leaderboard" retryHref="/fantasy/manager-leaderboard" backHref="/fantasy" backLabel="Back to Fantasy Cricket" /> : rows.length === 0 ? <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900 mb-2">No manager scores yet</h2><p className="font-body text-gray-700">The manager leaderboard appears after admins calculate and save round scores.</p></CardContent></Card> : <Table><TableHead><TableRow><TableHeader>Rank</TableHeader><TableHeader>Team</TableHeader><TableHeader>Manager</TableHeader><TableHeader>Total points</TableHeader><TableHeader>Transfer penalties</TableHeader><TableHeader>Net points</TableHeader></TableRow></TableHead><TableBody>{rows.map((row)=><TableRow key={row.managerId}><TableCell className="font-bold">{row.rank}</TableCell><TableCell>{row.teamName}</TableCell><TableCell>{row.displayName}</TableCell><TableCell>{row.totalPoints}</TableCell><TableCell>{row.transferPenalty}</TableCell><TableCell className="font-bold text-maroon-800">{row.totalNetPoints}</TableCell></TableRow>)}</TableBody></Table>}</div></section>;
 }

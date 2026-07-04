@@ -57,6 +57,9 @@ const getActiveSponsorsFromSupabase = unstable_cache(async () => {
 }, ['public-sponsors-data'], { revalidate: 300, tags: ['sponsors'] });
 
 function fallbackResult<T>(data: T, error: string | null = null): PublicDataResult<T> {
+  // A non-null error means the live query failed (not a genuine empty
+  // result), so record it — otherwise a Supabase outage is invisible in logs.
+  if (error) console.error('[public-data] Live query failed; serving static fallback content:', error);
   return { data, error, source: 'fallback', degraded: true };
 }
 

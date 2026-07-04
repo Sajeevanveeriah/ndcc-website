@@ -22,7 +22,10 @@ export function TableBody({ className, children }: TableProps) {
 }
 
 export function TableRow({ className, children }: TableProps) {
-  return <tr className={cn('hover:bg-gray-50 transition-colors', className)}>{children}</tr>;
+  // Explicit dark variant: the dark compatibility layer in globals.css only
+  // remaps `bg-*` classes, so a bare hover:bg-* would flash light rows on
+  // dark surfaces.
+  return <tr className={cn('hover:bg-sky-50/70 dark:hover:bg-slate-700/60 transition-colors', className)}>{children}</tr>;
 }
 
 export function TableHeader({ className, children }: TableProps) {

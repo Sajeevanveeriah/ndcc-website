@@ -38,9 +38,13 @@ export default function NewsPage() {
         if (res.ok && Array.isArray(json.data) && json.data.length > 0) {
           setPosts(json.data as NewsPost[]);
         } else {
+          if (!res.ok) {
+            console.error(`[news] /api/public/news responded ${res.status}; showing static fallback`);
+          }
           setPosts(fallbackNews);
         }
-      } catch {
+      } catch (err) {
+        console.error('[news] Failed to load news; showing static fallback:', err);
         setPosts(fallbackNews);
       } finally {
         setLoading(false);

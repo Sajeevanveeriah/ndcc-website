@@ -33,9 +33,13 @@ const getTeams = unstable_cache(async (): Promise<TeamInfo[]> => {
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true });
 
-    if (error) return TEAMS;
+    if (error) {
+      console.error('[teams] Failed to load teams from Supabase; serving static fallback:', error.message);
+      return TEAMS;
+    }
     return (data as TeamInfo[]) || [];
-  } catch {
+  } catch (err) {
+    console.error('[teams] Failed to load teams from Supabase; serving static fallback:', err);
     return TEAMS;
   }
 }, ['teams'], { revalidate: 300, tags: ['teams'] });

@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { getActivePlayersWithLatestPrices, type FantasyPlayerWithPrice } from '@/lib/fantasy-game';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
+import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,17 +16,18 @@ export const metadata: Metadata = {
 
 
 async function getPlayers() {
-  if (!isServerSupabaseConfigured()) return { players: [] as FantasyPlayerWithPrice[], error: null };
+  if (!isServerSupabaseConfigured()) return { players: [] as FantasyPlayerWithPrice[], loadFailed: false };
 
   try {
-    return { players: await getActivePlayersWithLatestPrices(), error: null };
-  } catch {
-    return { players: [] as FantasyPlayerWithPrice[], error: 'Player data is being refreshed. Please check back shortly.' };
+    return { players: await getActivePlayersWithLatestPrices(), loadFailed: false };
+  } catch (err) {
+    console.error('[fantasy/players] Failed to load active players with latest prices; showing failure state:', err);
+    return { players: [] as FantasyPlayerWithPrice[], loadFailed: true };
   }
 }
 
 export default async function FantasyPlayersPage() {
-  const { players, error } = await getPlayers();
+  const { players, loadFailed } = await getPlayers();
 
   return (
     <section className="section-padding">
@@ -39,14 +40,13 @@ export default async function FantasyPlayersPage() {
           </p>
         </div>
 
-        {error ? (
-          <Card>
-            <CardContent className="p-8">
-              <h2 className="text-xl font-display font-bold text-gray-900 mb-2">Player list is being refreshed</h2>
-              <p className="font-body text-gray-700 mb-4">{error}</p>
-              <Link href="/fantasy" className="btn-secondary">Back to Fantasy Cricket</Link>
-            </CardContent>
-          </Card>
+        {loadFailed ? (
+          <DataLoadErrorCard
+            title="We couldn&rsquo;t load the player list"
+            retryHref="/fantasy/players"
+            backHref="/fantasy"
+            backLabel="Back to Fantasy Cricket"
+          />
         ) : players.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
