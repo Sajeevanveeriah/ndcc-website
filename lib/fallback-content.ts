@@ -136,6 +136,9 @@ export const fallbackSponsorLogos: Record<string, string> = {
   // file is added, sponsor slots fall back to a branded maroon/gold initials card, so no
   // empty white box is shown (see SponsorsSection marquee and the sponsors page grid).
   'MBR Cricket': '/images/sponsors/mbr-cricket-logo.png',
+  // TODO: replace with a dark-text or high-contrast Bennett Racing logo from the club.
+  // The current asset is light text on transparency; LogoChip's dark plate keeps it
+  // legible, but a proper asset is the real fix.
   'Bennett Racing': '/images/2026/06/bennett-1781148645814.webp',
   Bennett: '/images/2026/06/bennett-1781148645814.webp',
   'Blackmans Brewery': '/images/2026/06/blackmans-1781148663993.webp',

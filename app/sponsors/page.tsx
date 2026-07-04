@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
-import SafeImage from '@/components/common/SafeImage';
+import LogoChip from '@/components/common/LogoChip';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
@@ -19,7 +19,6 @@ import {
 import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { getInitials, validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
-import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
 import { mergeSponsorsWithFallback } from '@/lib/fallback-content';
 
 
@@ -233,7 +232,6 @@ export default function SponsorsPage() {
               <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sponsorsByTier[tier.value].map((sponsor) => {
                   const description = getSponsorDescription(sponsor);
-                  const hasLogo = Boolean(sponsor.logo_url?.trim());
                   const logoFallback = (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
                       <span className="font-display text-2xl font-bold leading-none text-amber-300">{getInitials(sponsor.name)}</span>
@@ -250,21 +248,16 @@ export default function SponsorsPage() {
                     >
                       <Card hover className="h-full">
                         <CardContent className="p-6">
-                          <div className={`mb-3 flex h-32 items-center justify-center overflow-hidden rounded-xl border ring-1 ring-maroon-100 ${hasLogo ? sponsorLogoSurfaceClass(sponsor.name) : 'border-maroon-900 bg-maroon-900'}`}>
-                            {hasLogo ? (
-                              <SafeImage
-                                src={sponsor.logo_url}
-                                alt={`${sponsor.name} logo`}
-                                width={220}
-                                height={96}
-                                className="max-h-24 max-w-[85%] w-auto object-contain drop-shadow-sm"
-                                sizes="220px"
-                                fallback={logoFallback}
-                              />
-                            ) : (
-                              logoFallback
-                            )}
-                          </div>
+                          <LogoChip
+                            name={sponsor.name}
+                            src={sponsor.logo_url}
+                            width={220}
+                            height={96}
+                            sizes="220px"
+                            className="mb-3 h-32 rounded-xl ring-1 ring-maroon-100"
+                            imageClassName="max-h-24 max-w-[85%] w-auto drop-shadow-sm"
+                            fallback={logoFallback}
+                          />
                           {/* Name caption beneath the logo so a low-contrast or missing logo still
                               shows an identifiable, non-empty card. */}
                           <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">

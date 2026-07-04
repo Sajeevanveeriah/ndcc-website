@@ -21,7 +21,7 @@ import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarqu
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
-import { sponsorLogoSurfaceClass } from '@/lib/sponsor-logo-surface';
+import LogoChip from '@/components/common/LogoChip';
 import { getPublicSponsors } from '@/lib/public-data';
 
 type NewsItem = PublicNewsRecord & {
@@ -444,21 +444,16 @@ async function SponsorsSection() {
               );
               const chip = (
                 <>
-                  <div className={`flex h-28 w-56 items-center justify-center rounded-2xl border shadow-soft ring-1 ring-maroon-100/60 transition-shadow duration-300 group-hover:shadow-card ${sponsorLogoSurfaceClass(sponsor.name)}`}>
-                    {sponsor.logo_url ? (
-                      <SafeImage
-                        src={sponsor.logo_url}
-                        alt={`${sponsor.name} logo`}
-                        width={190}
-                        height={70}
-                        className="max-h-16 w-auto object-contain"
-                        sizes="190px"
-                        fallback={brandedFallback}
-                      />
-                    ) : (
-                      brandedFallback
-                    )}
-                  </div>
+                  <LogoChip
+                    name={sponsor.name}
+                    src={sponsor.logo_url}
+                    width={190}
+                    height={70}
+                    sizes="190px"
+                    className="h-28 w-56 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-shadow duration-300 group-hover:shadow-card"
+                    imageClassName="max-h-16 w-auto"
+                    fallback={brandedFallback}
+                  />
                   <span className="sponsor-caption">{sponsor.name}</span>
                 </>
               );
