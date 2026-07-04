@@ -13,8 +13,16 @@ function isExternalLink(link: PageLinkCard) {
 
 // Prefer live CMS links; fall back to sensible defaults on a Supabase cold start so the
 // footer is never blank and never shows a diagnostic. An empty section is hidden entirely.
+// Links are deduped by href (first occurrence wins, order preserved) so a duplicate
+// re-seed or import can never make the footer visibly repeat a link.
 function resolveLinks(live: PageLinkCard[], pageSlug: string, sectionKey: string) {
-  return live.length > 0 ? live : fallbackLinksFor(pageSlug, sectionKey);
+  const links = live.length > 0 ? live : fallbackLinksFor(pageSlug, sectionKey);
+  const seen = new Set<string>();
+  return links.filter((link) => {
+    if (seen.has(link.href)) return false;
+    seen.add(link.href);
+    return true;
+  });
 }
 
 function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
