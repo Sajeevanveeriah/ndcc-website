@@ -125,29 +125,22 @@ Set these as **server-only** environment variables (for local `.env.local` and V
 - `GITHUB_MEDIA_BASE_PATH` (for example `public/images/cms`)
 - `GITHUB_COMMITTER_NAME`
 - `GITHUB_COMMITTER_EMAIL`
-- `VERCEL_DEPLOY_HOOK_URL`
 
 Image uploads from admin forms commit files to GitHub via the Contents API under `public/images` (or a `public/images` subfolder), then return a browser URL that starts with `/images/` and removes the leading `public` segment (for example `/images/cms/YYYY/MM/file.webp`). If `GITHUB_MEDIA_BASE_PATH` is set to `images/cms`, the upload API interprets it as `public/images/cms`; paths outside `public/images` are rejected so uploaded files are web-accessible after deployment.
-Set `VERCEL_DEPLOY_HOOK_URL` to a Vercel Production Deploy Hook so uploaded images are published on the live site immediately after upload. The admin form warns editors that a newly uploaded image may not appear publicly until the triggered deployment completes.
+Publication relies on Vercel's git auto-deploy: the commit the upload creates on `main` triggers a production deployment automatically. Do **not** configure a Vercel deploy hook for uploads — firing a hook as well creates a second deployment for the same commit, and Vercel cancels both, leaving the image unpublished (`VERCEL_DEPLOY_HOOK_URL` is no longer read by the upload route and can be deleted).
 Configure these environment variables in **Vercel Production** for the production project.
 When environment variables are added or changed in Vercel, trigger a new deployment for them to take effect.
 
 **GitHub token permissions:** `GITHUB_CONTENTS_TOKEN` must be a fine-grained personal access token (or classic token) with **Contents: Read and write** permission on this repository only. If the token expires or loses access, uploads fail with a clear "GitHub authentication failed" error.
 
-**Creating the Vercel Deploy Hook:**
-
-1. In Vercel, open the project → **Settings → Git → Deploy Hooks**.
-2. Create a hook named e.g. `cms-media-upload` for the `main` branch.
-3. Copy the generated URL into the `VERCEL_DEPLOY_HOOK_URL` environment variable (Production) and redeploy once so the variable takes effect.
-
 **Expected upload sequence:**
 
 1. Admin picks a file in a CMS image field (JPEG/PNG/WebP/GIF, max 4 MB).
 2. The API commits the file to GitHub under `public/images/...` on the configured branch and returns the commit link.
-3. The API POSTs to the Vercel deploy hook; the admin UI reports whether the deployment was triggered, skipped (no hook configured), or failed.
-4. The image becomes publicly visible only after that deployment finishes. The saved `/images/...` URL is correct immediately, but the file is not live until deploy completes.
+3. Vercel detects the new commit on `main` and automatically starts a production deployment.
+4. The image becomes publicly visible only after that deployment finishes (about a minute). The saved `/images/...` URL is correct immediately, but the file is not live until deploy completes.
 
-**Diagnostics:** `/admin/media-diagnostics` shows which media env vars are present (without exposing values), validates the media base path, can test GitHub token/repo/branch access without committing anything, and can fire a test POST to the deploy hook (this triggers a real production deployment).
+**Diagnostics:** `/admin/media-diagnostics` shows which media env vars are present (without exposing values), validates the media base path, and can test GitHub token/repo/branch access without committing anything.
 
 **Troubleshooting a broken public image:**
 
@@ -227,7 +220,7 @@ Configure production values and redeploy after every change:
 - `RESEND_API_KEY`
 - `RESEND_FROM`
 - `RESEND_FROM_EMAIL`
-- GitHub media upload variables already used by this repo: `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL`, `VERCEL_DEPLOY_HOOK_URL`
+- GitHub media upload variables already used by this repo: `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` (`VERCEL_DEPLOY_HOOK_URL` is no longer used — uploads publish via Vercel's git auto-deploy)
 - Stripe variables already used by this repo: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - Bank transfer email variables already used by this repo: `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER`
 

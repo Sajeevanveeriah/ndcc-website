@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input, { Select } from '@/components/ui/Input';
+import Modal from '@/components/ui/Modal';
 import { parseApiResponse } from '@/lib/admin-client';
+import { Trash2 } from 'lucide-react';
 
 type Lineage = {
   id: string;
@@ -51,6 +53,7 @@ export default function AdminHistoryPage() {
   const [premForm, setPremForm] = useState({ id: '', team_label: '1st XI', season_label: '', competition_abbr: 'GCA', grade_label: '', sort_order: '1', is_active: true });
   const [competitionForm, setCompetitionForm] = useState({ id: '', abbreviation: '', name: '' });
   const [committeeForm, setCommitteeForm] = useState({ id: '', name: '', role: '', sort_order: '1', is_active: true });
+  const [committeeDeleteConfirm, setCommitteeDeleteConfirm] = useState<string | null>(null);
 
   const loadAll = useCallback(async function loadAll() {
     try {
@@ -193,6 +196,21 @@ export default function AdminHistoryPage() {
     }
   }
 
+  async function deleteCommittee(id: string) {
+    try {
+      const res = await fetch(`/api/admin/resources/committeeMembers?id=${id}`, { method: 'DELETE' });
+      await parseApiResponse(res);
+      setCommitteeMembers((prev) => prev.filter((member) => member.id !== id));
+      if (committeeForm.id === id) {
+        setCommitteeForm({ id: '', name: '', role: '', sort_order: '1', is_active: true });
+      }
+      setStatus('Committee member deleted.');
+      setCommitteeDeleteConfirm(null);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to delete committee member.');
+    }
+  }
+
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">History & Committee</h1>
@@ -285,11 +303,30 @@ export default function AdminHistoryPage() {
           {committeeMembers.map((member) => (
             <li key={member.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{member.name} · {member.role} · sort {member.sort_order}</span>
-              <Button size="sm" variant="ghost" onClick={() => setCommitteeForm({ id: member.id, name: member.name, role: member.role, sort_order: String(member.sort_order), is_active: member.is_active })}>Edit</Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setCommitteeForm({ id: member.id, name: member.name, role: member.role, sort_order: String(member.sort_order), is_active: member.is_active })}>Edit</Button>
+                <Button size="sm" variant="ghost" onClick={() => setCommitteeDeleteConfirm(member.id)} aria-label={`Delete ${member.name}`}>
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
       </section>
+
+      <Modal
+        isOpen={!!committeeDeleteConfirm}
+        onClose={() => setCommitteeDeleteConfirm(null)}
+        title="Delete Committee Member"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">Are you sure you want to delete this committee member? They will be removed from the About page.</p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setCommitteeDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="danger" onClick={() => committeeDeleteConfirm && deleteCommittee(committeeDeleteConfirm)}>Delete</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

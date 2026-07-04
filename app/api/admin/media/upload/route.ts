@@ -122,48 +122,23 @@ export async function POST(request: Request) {
   const commitSha = typeof commitDetails?.commit?.sha === 'string' ? commitDetails.commit.sha : null;
   const commitUrl = typeof commitDetails?.commit?.html_url === 'string' ? commitDetails.commit.html_url : null;
 
-  let warning = env.basePathWarning;
-  const deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL;
+  const warning = env.basePathWarning;
 
-  let deployTriggered = false;
-  let deployStatus: 'success' | 'skipped' | 'failed' = 'skipped';
-  let deployMessage: string;
-
-  if (!deployHookUrl) {
-    deployMessage = 'Image uploaded to GitHub, but no deploy hook is configured. It may not appear on the live site until production is redeployed.';
-    warning = [warning, deployMessage].filter(Boolean).join(' ');
-  } else {
-    try {
-      const deployResponse = await fetch(deployHookUrl, { method: 'POST' });
-      if (deployResponse.ok) {
-        deployTriggered = true;
-        deployStatus = 'success';
-        deployMessage = 'Vercel deployment triggered. The image will appear on the live site once the deployment completes.';
-      } else {
-        deployStatus = 'failed';
-        deployMessage = `Image uploaded to GitHub, but the Vercel deploy hook returned ${deployResponse.status}. The image may not appear publicly until a deployment is triggered manually.`;
-        warning = [warning, deployMessage].filter(Boolean).join(' ');
-      }
-    } catch {
-      deployStatus = 'failed';
-      deployMessage = 'Image uploaded to GitHub, but the Vercel deploy hook could not be reached. The image may not appear publicly until a deployment is triggered manually.';
-      warning = [warning, deployMessage].filter(Boolean).join(' ');
-    }
-  }
-
+  // The commit to the production branch already triggers Vercel's git auto-deploy.
+  // Do not fire a deploy hook here: a second deployment for the same commit races
+  // the git-push deployment and Vercel cancels both, leaving production stale.
   return NextResponse.json({
     success: true,
     path: publicPath,
     ...(warning ? { warning } : {}),
-    deployTriggered,
-    deployStatus,
-    deployMessage,
+    deployStatus: 'success',
+    deployMessage: 'Image uploaded. The site will update automatically in about a minute.',
     metadata: {
       publicPath,
       repoPath,
       ...(commitSha ? { commitSha } : {}),
       ...(commitUrl ? { commitUrl } : {}),
-      deployment: !deployHookUrl ? 'not_configured' : deployStatus === 'failed' ? 'failed' : 'triggered',
+      deployment: 'triggered',
     },
   });
 }
