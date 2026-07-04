@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import ThemeProvider from '@/components/common/ThemeProvider';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -77,7 +78,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-AU">
+    // suppressHydrationWarning is required by next-themes: it stamps the theme
+    // class on <html> before hydration, which is an expected mismatch.
+    <html lang="en-AU" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#800000" />
         <script
@@ -86,9 +89,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 pt-24 lg:pt-28">{children}</main>
-        <Footer />
+        <ThemeProvider>
+          <Navbar />
+          <main className="flex-1 pt-24 lg:pt-28">{children}</main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );
