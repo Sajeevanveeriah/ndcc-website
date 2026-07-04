@@ -1,3 +1,4 @@
+-- Superseded by 20260704_consolidate_committee_auth_canonical.sql - see that file for why.
 -- Repair ndcc_verify_committee_user so Supabase resolves pgcrypto reliably.
 -- Supabase commonly installs pgcrypto in the extensions schema. Use extensions.crypt
 -- explicitly so credential checks do not depend on an unsafe or incomplete search_path.
