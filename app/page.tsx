@@ -37,7 +37,8 @@ async function getLatestNews(): Promise<NewsItem[]> {
     const data = await getPublishedNews({ limit: 3 });
     if (!Array.isArray(data)) return [];
     return data as NewsItem[];
-  } catch {
+  } catch (err) {
+    console.error('[home] Failed to load published news; serving static fallback:', err);
     return fallbackNews.slice(0, 3) as NewsItem[];
   }
 }

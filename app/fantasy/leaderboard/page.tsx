@@ -6,6 +6,7 @@ import { CLUB_SHORT } from '@/lib/constants';
 import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
 import { Trophy } from 'lucide-react';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
+import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket Leaderboard',
@@ -27,9 +28,12 @@ function roundHref(roundId: string | null) {
 
 export default async function FantasyLeaderboardPage({ searchParams }: PageProps) {
   let leaderboard;
+  let loadFailed = false;
   try {
     leaderboard = await getPublishedFantasyLeaderboard(searchParams?.round || null);
-  } catch {
+  } catch (err) {
+    console.error('[fantasy/leaderboard] Failed to load published leaderboard; showing failure state:', err);
+    loadFailed = true;
     leaderboard = { rows: [], rounds: [], selectedRoundId: null };
   }
 
@@ -77,7 +81,14 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
             </CardContent>
           </Card>
 
-          {leaderboard.rows.length === 0 ? (
+          {loadFailed ? (
+            <DataLoadErrorCard
+              title="We couldn&rsquo;t load the leaderboard"
+              retryHref={roundHref(searchParams?.round || null)}
+              backHref="/fantasy"
+              backLabel="Back to Fantasy Cricket"
+            />
+          ) : leaderboard.rows.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <h2 className="text-xl font-display font-bold text-gray-900 mb-2">No published scores yet</h2>
