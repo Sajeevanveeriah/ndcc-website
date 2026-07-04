@@ -25,6 +25,9 @@ export default function RouteProgress() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRef = useRef(false);
+  // Last route the router actually committed, so popstate can tell a real
+  // back/forward navigation from a hash-only history entry.
+  const committedRouteRef = useRef<string | null>(null);
 
   const clearTimers = useCallback(() => {
     if (trickleTimer.current) clearInterval(trickleTimer.current);
@@ -59,6 +62,7 @@ export default function RouteProgress() {
 
   // The route actually changed: complete the bar.
   useEffect(() => {
+    committedRouteRef.current = window.location.pathname + window.location.search;
     finish();
   }, [pathname, searchParams, finish]);
 
@@ -77,6 +81,9 @@ export default function RouteProgress() {
         return;
       }
       if (destination.origin !== window.location.origin) return;
+      // API endpoints (e.g. admin CSV exports) download or stream instead of
+      // navigating, so the bar would never complete.
+      if (destination.pathname.startsWith('/api/')) return;
       // Same-page hash jumps and links to the exact current URL don't
       // trigger a route change, so the bar would never complete.
       if (
@@ -88,7 +95,12 @@ export default function RouteProgress() {
       start();
     };
 
-    const handlePopState = () => start();
+    const handlePopState = () => {
+      // By popstate time location already reflects the target entry; if only
+      // the hash differs from the committed route, no route change follows.
+      if (window.location.pathname + window.location.search === committedRouteRef.current) return;
+      start();
+    };
 
     document.addEventListener('click', handleClick, true);
     window.addEventListener('popstate', handlePopState);

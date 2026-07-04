@@ -162,6 +162,10 @@ function MerchandiseContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    // Set on cleanup so a slow response from a superseded run (an earlier
+    // mount or an older Try again click) can't clobber newer state.
+    let stale = false;
+
     // Each loader catches and logs its own failure so one unreachable
     // endpoint can't silently discard what the other two returned.
     const loadProducts = async () => {
@@ -171,6 +175,7 @@ function MerchandiseContent() {
         if (!res.ok || !Array.isArray(payload?.data)) {
           throw new Error(`Products request failed with status ${res.status}`);
         }
+        if (stale) return;
         if (payload.data.length > 0) {
           setProducts(payload.data
             .sort((a: ApiProduct, b: ApiProduct) => (a.display_order ?? 9999) - (b.display_order ?? 9999))
@@ -188,7 +193,7 @@ function MerchandiseContent() {
         setLiveProductsFailed(false);
       } catch (err) {
         console.error('[merchandise] Failed to load live products; showing static fallback list:', err);
-        setLiveProductsFailed(true);
+        if (!stale) setLiveProductsFailed(true);
       }
     };
 
@@ -196,7 +201,7 @@ function MerchandiseContent() {
       try {
         const res = await fetch('/api/apparel/windows', { cache: 'no-store' });
         const payload = await res.json();
-        if (res.ok && payload?.data) {
+        if (!stale && res.ok && payload?.data) {
           setWindowState(payload.data);
         }
       } catch (err) {
@@ -208,6 +213,7 @@ function MerchandiseContent() {
       try {
         const res = await fetch('/api/public/content-blocks?key=merch.hero&key=merch.ordering', { cache: 'no-store' });
         const payload = await res.json();
+        if (stale) return;
         const blocks = payload?.data || {};
         const orderingBody = blocks['merch.ordering']?.body || '';
         setHeroContent({
@@ -222,6 +228,9 @@ function MerchandiseContent() {
     };
 
     void Promise.all([loadProducts(), loadWindows(), loadContentBlocks()]);
+    return () => {
+      stale = true;
+    };
   }, [productsReloadKey]);
 
   function handleAddToOrder(productId: string) {
@@ -406,7 +415,7 @@ function MerchandiseContent() {
               <button
                 type="button"
                 onClick={() => setProductsReloadKey((key) => key + 1)}
-                className="focus-ring inline-flex items-center rounded-lg border border-maroon-300 px-3 py-1.5 font-body text-sm font-semibold text-maroon-700 transition-colors hover:bg-maroon-50"
+                className="focus-ring inline-flex items-center rounded-lg border border-maroon-300 px-3 py-1.5 font-body text-sm font-semibold text-maroon-700 transition-colors hover:bg-maroon-50 dark:hover:bg-maroon-900/40"
               >
                 Try again
               </button>
