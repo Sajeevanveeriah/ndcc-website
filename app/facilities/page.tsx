@@ -155,7 +155,7 @@ export default async function FacilitiesPage() {
             <h2 className="section-title">Facilities Articles</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {articles.map((article) => (
-                <Card key={article.id}>
+                <Card key={article.id} hover>
                   <CardContent className="p-6">
                     <h3 className="font-display font-bold text-gray-900 text-xl">{article.title}</h3>
                     <p className="text-gray-600 mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
