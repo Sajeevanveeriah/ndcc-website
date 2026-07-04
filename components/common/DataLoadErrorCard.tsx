@@ -21,7 +21,7 @@ export default function DataLoadErrorCard({ title, retryHref, backHref, backLabe
       <CardContent className="p-8">
         <h2 className="text-xl font-display font-bold text-gray-900 mb-2">{title}</h2>
         <p className="font-body text-gray-700 mb-4">
-          We couldn&apos;t load this just now. This is usually temporary &mdash; try refreshing in a minute.
+          We couldn&apos;t load this just now. This is usually temporary - try refreshing in a minute.
         </p>
         <div className="flex flex-wrap gap-3">
           <a href={retryHref} className="btn-primary">
