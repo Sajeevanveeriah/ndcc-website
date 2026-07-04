@@ -29,7 +29,21 @@ export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}
   for (const [key, value] of Object.entries(authHeaders)) headers.set(key, value);
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
-  const response = await fetch(url, { ...options, headers });
+  // Without a deadline a hung Supabase request never rejects, leaving loading
+  // states spinning forever. Abort and surface a readable error instead.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers, signal: options.signal ?? controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The fantasy service is taking too long to respond. Please try again shortly.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `Request failed (${response.status})`);
   return body as T;
