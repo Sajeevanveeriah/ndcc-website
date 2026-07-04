@@ -101,7 +101,6 @@ export function getMediaConfigStatus() {
     basePathError: normalized && 'error' in normalized ? normalized.error : null,
     committerNamePresent: Boolean(process.env.GITHUB_COMMITTER_NAME),
     committerEmailPresent: Boolean(process.env.GITHUB_COMMITTER_EMAIL),
-    deployHookPresent: Boolean(process.env.VERCEL_DEPLOY_HOOK_URL),
     ready:
       Boolean(process.env.GITHUB_CONTENTS_TOKEN)
       && Boolean(process.env.GITHUB_REPO_OWNER)

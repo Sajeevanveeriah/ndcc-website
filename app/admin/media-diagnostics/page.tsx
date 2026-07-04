@@ -18,7 +18,6 @@ type MediaStatus = {
   basePathError: string | null;
   committerNamePresent: boolean;
   committerEmailPresent: boolean;
-  deployHookPresent: boolean;
   ready: boolean;
 };
 
@@ -28,9 +27,7 @@ export default function AdminMediaDiagnosticsPage() {
   const [status, setStatus] = useState<MediaStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [githubFeedback, setGithubFeedback] = useState<Feedback | null>(null);
-  const [deployFeedback, setDeployFeedback] = useState<Feedback | null>(null);
   const [testingGithub, setTestingGithub] = useState(false);
-  const [testingDeploy, setTestingDeploy] = useState(false);
 
   useEffect(() => {
     adminFetch('/api/admin/media-diagnostics', { cache: 'no-store' })
@@ -39,11 +36,9 @@ export default function AdminMediaDiagnosticsPage() {
       .catch((error) => setStatusError(error instanceof Error ? error.message : 'Failed to load media diagnostics.'));
   }, []);
 
-  async function runTest(action: 'test-github' | 'test-deploy-hook') {
-    const setFeedback = action === 'test-github' ? setGithubFeedback : setDeployFeedback;
-    const setLoading = action === 'test-github' ? setTestingGithub : setTestingDeploy;
-    setLoading(true);
-    setFeedback(null);
+  async function runTest(action: 'test-github') {
+    setTestingGithub(true);
+    setGithubFeedback(null);
     try {
       const res = await adminFetch('/api/admin/media-diagnostics', {
         method: 'POST',
@@ -51,11 +46,11 @@ export default function AdminMediaDiagnosticsPage() {
         body: JSON.stringify({ action }),
       });
       const data = await parseApiResponse<{ message: string }>(res);
-      setFeedback({ type: 'success', message: data.message });
+      setGithubFeedback({ type: 'success', message: data.message });
     } catch (error) {
-      setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Test failed.' });
+      setGithubFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Test failed.' });
     } finally {
-      setLoading(false);
+      setTestingGithub(false);
     }
   }
 
@@ -64,7 +59,7 @@ export default function AdminMediaDiagnosticsPage() {
       <div>
         <h1 className="text-2xl font-display font-bold text-gray-900">Media Diagnostics</h1>
         <p className="text-gray-500 font-body mt-1">
-          Check the CMS image upload pipeline (GitHub commit + Vercel deploy hook) without exposing secret values.
+          Check the CMS image upload pipeline (GitHub commit + Vercel git auto-deploy) without exposing secret values.
         </p>
       </div>
 
@@ -81,15 +76,9 @@ export default function AdminMediaDiagnosticsPage() {
           <div><dt className="text-gray-500">Base path under public/images</dt><dd className="font-semibold">{status?.basePathResolvesUnderPublicImages ? 'Yes' : 'No'}</dd></div>
           <div><dt className="text-gray-500">GITHUB_COMMITTER_NAME</dt><dd className="font-semibold">{status?.committerNamePresent ? 'Present' : 'Missing'}</dd></div>
           <div><dt className="text-gray-500">GITHUB_COMMITTER_EMAIL</dt><dd className="font-semibold">{status?.committerEmailPresent ? 'Present' : 'Missing'}</dd></div>
-          <div><dt className="text-gray-500">VERCEL_DEPLOY_HOOK_URL</dt><dd className="font-semibold">{status?.deployHookPresent ? 'Present' : 'Missing'}</dd></div>
           <div><dt className="text-gray-500">Uploads ready</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — uploads will fail with a configuration error'}</dd></div>
         </dl>
         {status?.basePathError && <p className="text-sm text-amber-700">{status.basePathError}</p>}
-        {status && !status.deployHookPresent && (
-          <p className="text-sm text-amber-700">
-            Without a deploy hook, uploaded images are committed to GitHub but will not appear on the live site until production is redeployed.
-          </p>
-        )}
       </section>
 
       <section className="bg-white border rounded-xl p-5 space-y-3">
@@ -103,25 +92,12 @@ export default function AdminMediaDiagnosticsPage() {
         )}
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-3">
-        <h2 className="text-lg font-semibold">Test Vercel deploy hook</h2>
-        <p className="text-sm text-amber-700">
-          This sends a real POST to the deploy hook and will trigger a production deployment. Only run it when you intend to redeploy.
-        </p>
-        <Button type="button" variant="secondary" isLoading={testingDeploy} onClick={() => runTest('test-deploy-hook')}>
-          Trigger deploy hook test
-        </Button>
-        {deployFeedback && (
-          <p className={`text-sm ${deployFeedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{deployFeedback.message}</p>
-        )}
-      </section>
-
       <section className="bg-white border rounded-xl p-5 space-y-2">
         <h2 className="text-lg font-semibold">Expected upload sequence</h2>
         <ol className="list-decimal pl-5 text-sm text-gray-600 space-y-1">
           <li>Admin uploads an image in a CMS form — the file is committed to GitHub under <code>public/images</code>.</li>
-          <li>The Vercel deploy hook is triggered automatically (if configured).</li>
-          <li>The image URL is saved with the CMS item, but the image only becomes publicly visible after the deployment completes.</li>
+          <li>Vercel detects the new commit and automatically starts a production deployment. No deploy hook is used — a second deployment for the same commit would race the automatic one and Vercel would cancel both.</li>
+          <li>The image URL is saved with the CMS item, but the image only becomes publicly visible after the deployment completes (about a minute).</li>
         </ol>
       </section>
     </div>

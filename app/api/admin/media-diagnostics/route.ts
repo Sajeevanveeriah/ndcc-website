@@ -44,22 +44,9 @@ async function testGitHubAccess() {
   return { ok: true, message: 'GitHub token, repository and branch are reachable. Uploads should be able to commit.' };
 }
 
-async function testDeployHook() {
-  const deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL;
-  if (!deployHookUrl) {
-    return { ok: false, message: 'VERCEL_DEPLOY_HOOK_URL is not configured. Uploaded images will not appear on the live site until production is redeployed manually.' };
-  }
-
-  const response = await fetch(deployHookUrl, { method: 'POST' }).catch(() => null);
-  if (!response) {
-    return { ok: false, message: 'Could not reach the Vercel deploy hook. Check the hook URL in Vercel project settings.' };
-  }
-  if (!response.ok) {
-    return { ok: false, message: `Vercel deploy hook returned status ${response.status}. Recreate the deploy hook in Vercel project settings.` };
-  }
-  return { ok: true, message: 'Vercel deploy hook accepted the request. A production deployment has been triggered.' };
-}
-
+// Uploads publish via Vercel's git auto-deploy of the CMS commit. A deploy-hook test
+// action used to live here; it was removed because firing the hook alongside an
+// in-flight git deployment makes Vercel cancel both, leaving production stale.
 export async function POST(request: Request) {
   const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
@@ -67,8 +54,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const action = typeof body?.action === 'string' ? body.action : '';
 
-  if (action === 'test-github' || action === 'test-deploy-hook') {
-    const result = action === 'test-github' ? await testGitHubAccess() : await testDeployHook();
+  if (action === 'test-github') {
+    const result = await testGitHubAccess();
     return NextResponse.json(
       { success: result.ok, message: result.message, ...(result.ok ? {} : { error: result.message }) },
       { status: result.ok ? 200 : 502 }
