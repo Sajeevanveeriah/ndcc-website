@@ -4,7 +4,8 @@ import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { CLUB_SHORT } from '@/lib/constants';
 import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
-import { ArrowLeft, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
+import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket Leaderboard',
@@ -50,12 +51,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
 
       <section className="section-padding">
         <div className="container-width">
-          <div className="mb-8">
-            <Link href="/fantasy" className="inline-flex items-center text-maroon-700 hover:underline font-body font-semibold">
-              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-              Back to Fantasy Cricket
-            </Link>
-          </div>
+          <FantasyBackLink />
 
           <Card className="mb-6">
             <CardContent className="p-6">

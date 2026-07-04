@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -43,8 +44,9 @@ const config: Config = {
         lift: '0 16px 38px -14px rgba(45,0,0,0.30)',
       },
       fontFamily: {
-        display: ['Barlow Condensed', 'Oswald', 'Archivo', 'Inter', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
+        // CSS variables provided by next/font in app/layout.tsx.
+        display: ['var(--font-barlow-condensed)', 'var(--font-oswald)', 'var(--font-archivo)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       animation: {
         'ken-burns':  'kenBurns 18s ease-in-out infinite alternate',

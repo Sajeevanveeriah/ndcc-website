@@ -55,6 +55,8 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
   if (loading) return <Card><CardContent className="p-6">Loading fantasy squad tools…</CardContent></Card>;
   if (error && error.includes('sign in')) return <Card><CardContent className="p-6"><p className="font-body text-gray-700 mb-4">Sign in to manage your squad.</p><Link href="/fantasy/login" className="btn-primary">Sign in</Link></CardContent></Card>;
 
+  if (readonlyMode && selection.length === 0) return <Card><CardContent className="p-6"><p className="font-body text-gray-700 mb-4">No squad submitted yet. Build and save your 15-player squad to see it here.</p><Link href="/fantasy/squad" className="btn-primary">Build my squad</Link></CardContent></Card>;
+
   return (
     <div className="space-y-6">
       <Card><CardContent className="p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-body"><div><strong>Squad</strong><br />{selection.length}/15</div><div><strong>Starters</strong><br />{selection.filter((item) => item.positionType === 'starter').length}/11</div><div><strong>Bench</strong><br />{selection.filter((item) => item.positionType === 'bench').length}/4</div><div><strong>Budget</strong><br />{budgetUsed.toFixed(1)} / {Number(settings?.squad_budget ?? 100).toFixed(1)}</div></div><p className="mt-4 text-sm text-gray-600 font-body">Select exactly 2 WK, 5 BAT, 3 AR and 5 BOWL. Captain and vice-captain must be starters. Bench players need order 1–4.</p></CardContent></Card>

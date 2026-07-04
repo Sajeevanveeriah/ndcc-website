@@ -5,6 +5,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { getActivePlayersWithLatestPrices, type FantasyPlayerWithPrice } from '@/lib/fantasy-game';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
+import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export default async function FantasyPlayersPage() {
   return (
     <section className="section-padding">
       <div className="container-width">
+        <FantasyBackLink />
         <div className="mb-8 max-w-3xl">
           <h1 className="section-title">Fantasy Player List</h1>
           <p className="font-body text-gray-700 leading-relaxed">

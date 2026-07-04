@@ -10,8 +10,8 @@ export default function Card({ className, children, hover = false }: CardProps) 
   return (
     <div
       className={cn(
-        'bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden',
-        hover && 'hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 transition-all duration-300',
+        'bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700',
+        hover && 'hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 transition-all duration-300 dark:hover:border-maroon-700',
         className
       )}
     >
@@ -21,7 +21,7 @@ export default function Card({ className, children, hover = false }: CardProps) 
 }
 
 export function CardHeader({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn('px-6 py-4 border-b border-gray-100', className)}>{children}</div>;
+  return <div className={cn('px-6 py-4 border-b border-gray-100 dark:border-slate-700', className)}>{children}</div>;
 }
 
 export function CardContent({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -30,6 +30,6 @@ export function CardContent({ className, children }: { className?: string; child
 
 export function CardFooter({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn('px-6 py-4 bg-gray-50 border-t border-gray-100', className)}>{children}</div>
+    <div className={cn('px-6 py-4 bg-gray-50 border-t border-gray-100 dark:bg-slate-800/60 dark:border-slate-700', className)}>{children}</div>
   );
 }

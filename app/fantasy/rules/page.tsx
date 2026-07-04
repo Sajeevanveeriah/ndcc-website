@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_SHORT } from '@/lib/constants';
 import { FANTASY_RULE_SECTIONS } from '@/lib/fantasy';
+import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket Rules',
@@ -27,12 +27,7 @@ export default function FantasyRulesPage() {
 
       <section className="section-padding">
         <div className="container-width">
-          <div className="mb-8">
-            <Link href="/fantasy" className="inline-flex items-center text-maroon-700 hover:underline font-body font-semibold">
-              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-              Back to Fantasy Cricket
-            </Link>
-          </div>
+          <FantasyBackLink />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">

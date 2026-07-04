@@ -52,8 +52,28 @@ const resourceMap: Record<string, ResourceConfig> = {
   clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url'] },
 };
 
+// Tag names must match the `tags` arrays on the public unstable_cache wrappers
+// (lib/public-data.ts, lib/public-news.ts, lib/content-blocks.ts, lib/club-settings.ts,
+// lib/structured-content.ts, lib/site-chrome.ts, app/teams/page.tsx, app/events/[id]/page.tsx,
+// app/api/content-blocks/route.ts). revalidatePath alone does not purge unstable_cache
+// entries, so without these tags a CMS save stays invisible until the 300s window or a
+// redeploy. The site-chrome cache is tagged with club-settings/content-blocks/page-link-cards,
+// so those writes invalidate the navbar/footer data automatically.
 const revalidationTags: Record<string, string[]> = {
+  events: ['events'],
+  news: ['news'],
+  sponsors: ['sponsors'],
+  galleryImages: ['gallery'],
   seasonAppointments: ['season-appointments'],
+  teams: ['teams'],
+  pageLinkCards: ['page-link-cards'],
+  facilityFeatures: ['facility-features'],
+  historyLineage: ['history'],
+  historyPremierships: ['history'],
+  historyCompetitions: ['history'],
+  committeeMembers: ['committee-members'],
+  contentBlocks: ['content-blocks'],
+  clubSettings: ['club-settings'],
 };
 
 const revalidationPaths: Record<string, string[]> = {
@@ -75,7 +95,17 @@ const revalidationPaths: Record<string, string[]> = {
   clubSettings: ['/', '/about', '/contact', '/join', '/facilities', '/fixtures', '/sponsors', '/fantasy'],
 };
 
-function revalidateForResource(resource: string, id?: string) {
+const CHROME_SCOPED_RESOURCES = new Set(['contentBlocks', 'pageLinkCards', 'clubSettings']);
+
+function affectsSiteChrome(resource: string, record?: Record<string, unknown> | null) {
+  if (!CHROME_SCOPED_RESOURCES.has(resource)) return false;
+  if (resource === 'clubSettings') return true;
+  if (!record) return true; // deletes only return the id, so assume the chrome may be affected
+  const key = record.block_key ?? record.section_key;
+  return typeof key === 'string' && key.startsWith('footer');
+}
+
+function revalidateForResource(resource: string, id?: string, record?: Record<string, unknown> | null) {
   const paths = revalidationPaths[resource] ? [...revalidationPaths[resource]] : [];
   if (resource === 'news' && id) paths.push(`/news/${id}`);
   for (const p of paths) {
@@ -83,6 +113,11 @@ function revalidateForResource(resource: string, id?: string) {
   }
   for (const tag of revalidationTags[resource] || []) {
     try { revalidateTag(tag); } catch { /* best-effort */ }
+  }
+  // Footer content renders on every page via the root layout, so a footer-scoped
+  // write must refresh the layout, not just the paths listed above.
+  if (affectsSiteChrome(resource, record)) {
+    try { revalidatePath('/', 'layout'); } catch { /* best-effort */ }
   }
 }
 
@@ -250,7 +285,7 @@ export async function POST(request: Request, { params }: { params: { resource: s
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource, data?.id);
+  revalidateForResource(params.resource, data?.id, data);
   return NextResponse.json({ success: true, data });
 }
 
@@ -300,7 +335,7 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource, id);
+  revalidateForResource(params.resource, id, data);
   return NextResponse.json({ success: true, data });
 }
 

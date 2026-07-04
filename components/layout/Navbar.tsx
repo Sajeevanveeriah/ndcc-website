@@ -8,6 +8,7 @@ import { Menu, X, ChevronDown } from 'lucide-react';
 import { NAV_LINKS } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
+import ThemeToggle from '@/components/common/ThemeToggle';
 type HeaderLink = {
   id?: string;
   label: string;
@@ -93,8 +94,8 @@ export default function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b-2 border-maroon-700',
         scrolled
-          ? 'bg-white/90 backdrop-blur-md shadow-md'
-          : 'bg-white'
+          ? 'bg-white/90 backdrop-blur-md shadow-md dark:bg-slate-900/90'
+          : 'bg-white dark:bg-slate-900'
       )}
       role="navigation"
       aria-label="Main navigation"
@@ -139,10 +140,10 @@ export default function Navbar() {
               priority
             />
             <div className="hidden sm:flex flex-col">
-              <span className="text-maroon-700 font-display font-semibold uppercase tracking-wide text-lg leading-none block">
+              <span className="text-maroon-700 dark:text-maroon-200 font-display font-semibold uppercase tracking-wide text-lg leading-none block">
                 {settings.club_short}
               </span>
-              <span className="text-gray-400 text-[10.5px] font-body tracking-[0.08em] uppercase mt-1">
+              <span className="text-gray-400 dark:text-slate-400 text-[10.5px] font-body tracking-[0.08em] uppercase mt-1">
                 The Dinos · Est. {settings.established_year}
               </span>
             </div>
@@ -159,8 +160,8 @@ export default function Navbar() {
                 className={cn(
                   'px-3 py-2 text-sm font-body font-medium transition-colors',
                   pathname === link.href
-                    ? 'text-maroon-700 border-b-2 border-maroon-700 pb-[6px] rounded-none'
-                    : 'nav-underline text-gray-600 hover:text-maroon-700 rounded-lg'
+                    ? 'text-maroon-700 border-b-2 border-maroon-700 pb-[6px] rounded-none dark:text-maroon-200 dark:border-maroon-300'
+                    : 'nav-underline text-gray-600 hover:text-maroon-700 rounded-lg dark:text-slate-300 dark:hover:text-maroon-200'
                 )}
               >
                 {link.label}
@@ -169,11 +170,11 @@ export default function Navbar() {
 
             {/* More dropdown */}
             <div className="relative group">
-              <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors">
+              <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800">
                 More <ChevronDown className="h-3.5 w-3.5" />
               </button>
               <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px] dark:bg-slate-800 dark:border-slate-700">
                   {moreLinks.map((link) => (
                     <Link
                       key={`${link.href}-${link.label}`}
@@ -183,8 +184,8 @@ export default function Navbar() {
                       className={cn(
                         'block px-4 py-2 text-sm font-body transition-colors',
                         pathname === link.href
-                          ? 'text-maroon-700 bg-maroon-50'
-                          : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50'
+                          ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-slate-700'
+                          : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-700'
                       )}
                     >
                       {link.label}
@@ -196,20 +197,22 @@ export default function Navbar() {
 
             {sessionUser && (
               <div className="relative group ml-2">
-                <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors">
+                <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800">
                   {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" />
                 </button>
                 <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
-                  <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px]">
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Account</Link>
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">Admin Panel</Link>
-                    <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
+                  <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px] dark:bg-slate-800 dark:border-slate-700">
+                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-700">Account</Link>
+                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-700">Admin Panel</Link>
+                    <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-700">
                       Logout
                     </button>
                   </div>
                 </div>
               </div>
             )}
+
+            <ThemeToggle className="ml-3" />
 
             {/* Join CTA button */}
             <Link
@@ -223,11 +226,11 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors focus-ring"
+            className="lg:hidden p-2 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors focus-ring dark:border-slate-700 dark:hover:bg-slate-800"
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
           >
-            {isOpen ? <X className="h-6 w-6 text-gray-700" /> : <Menu className="h-6 w-6 text-gray-700" />}
+            {isOpen ? <X className="h-6 w-6 text-gray-700 dark:text-slate-200" /> : <Menu className="h-6 w-6 text-gray-700 dark:text-slate-200" />}
           </button>
         </div>
       </div>
@@ -244,7 +247,7 @@ export default function Navbar() {
               exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             >
-              <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
+              <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto dark:bg-slate-900 dark:border-slate-700">
           {navLinks.map((link) => (
             <Link
               key={`${link.href}-${link.label}`}
@@ -254,8 +257,8 @@ export default function Navbar() {
               className={cn(
                 'block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors',
                 pathname === link.href
-                  ? 'text-maroon-700 bg-maroon-50'
-                  : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50'
+                  ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-slate-800'
+                  : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800'
               )}
             >
               {link.label}
@@ -269,14 +272,18 @@ export default function Navbar() {
           </Link>
           {sessionUser && (
             <>
-              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
+              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800">
                 {sessionUser.full_name} ({sessionUser.role})
               </Link>
-              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50">
+              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800">
                 Logout
               </button>
             </>
           )}
+          <div className="flex items-center justify-between px-4 pt-3 mt-2 border-t border-gray-200 dark:border-slate-700">
+            <span className="text-sm font-body font-medium text-gray-600 dark:text-slate-300">Theme</span>
+            <ThemeToggle />
+          </div>
               </div>
             </m.div>
           )}

@@ -1,3 +1,4 @@
+-- Superseded by 20260704_consolidate_committee_auth_canonical.sql - see that file for why.
 -- Repair core schema dependencies for orders, committee auth, social memberships, and bank reconciliation.
 -- Idempotent and non-destructive. Preserves existing rows.
 

@@ -1,3 +1,4 @@
+-- Superseded by 20260704_consolidate_committee_auth_canonical.sql - see that file for why.
 -- Repair custom committee auth schema and pgcrypto resolution.
 -- Safe/idempotent: creates missing auth tables, columns, indexes, RLS policies, and functions.
 -- Does not insert passwords, delete data or remove existing data.

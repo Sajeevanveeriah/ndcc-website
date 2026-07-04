@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Oswald:wght@500;600&display=swap');
-
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -13,6 +11,11 @@
   :focus-visible {
     outline: 2px solid theme('colors.maroon.600');
     outline-offset: 2px;
+  }
+
+  /* Dark maroon-600 is invisible against dark surfaces. */
+  .dark :focus-visible {
+    outline-color: theme('colors.maroon.300');
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -37,7 +40,7 @@
   }
 
   body {
-    @apply font-body text-gray-800 antialiased bg-slate-50;
+    @apply font-body text-gray-800 antialiased bg-slate-50 dark:bg-slate-900 dark:text-slate-100;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -47,15 +50,15 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-maroon-700 text-white font-body font-semibold rounded-[10px] shadow-sm hover:bg-maroon-800 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center px-6 py-3 bg-maroon-700 text-white font-body font-semibold rounded-[10px] shadow-sm hover:bg-maroon-800 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:border-maroon-300 dark:text-maroon-200 dark:hover:bg-maroon-700 dark:hover:border-maroon-700 dark:hover:text-white dark:focus:ring-offset-slate-900;
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-800 font-body font-semibold rounded-lg shadow-sm hover:bg-sky-300 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-800 font-body font-semibold rounded-lg shadow-sm hover:bg-sky-300 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
   }
 
   .btn-outline-white {
@@ -71,19 +74,19 @@
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden;
+    @apply bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700;
   }
 
   .card-hover {
-    @apply card hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 transition-all duration-300;
+    @apply card hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 transition-all duration-300 dark:hover:border-maroon-700;
   }
 
   .form-input {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg font-body text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200;
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg font-body text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-500;
   }
 
   .form-label {
-    @apply block text-sm font-semibold text-gray-700 mb-1.5 font-body;
+    @apply block text-sm font-semibold text-gray-700 mb-1.5 font-body dark:text-slate-300;
   }
 
   .page-hero {
@@ -120,11 +123,11 @@
   }
 
   .section-title {
-    @apply text-3xl sm:text-4xl font-display font-semibold uppercase tracking-wide text-maroon-800 mb-4;
+    @apply text-3xl sm:text-4xl font-display font-semibold uppercase tracking-wide text-maroon-800 mb-4 dark:text-maroon-100;
   }
 
   .section-subtitle {
-    @apply text-lg text-gray-600 font-body max-w-2xl;
+    @apply text-lg text-gray-600 font-body max-w-2xl dark:text-slate-400;
   }
 
   /* Updated: was bg-sky-50 (barely visible). Now a genuine sky_accent tint. */
@@ -152,7 +155,7 @@
 
   .nav-underline::after {
     content: '';
-    @apply absolute left-3 right-3 bottom-1 h-0.5 bg-maroon-700 origin-left scale-x-0 transition-transform duration-200;
+    @apply absolute left-3 right-3 bottom-1 h-0.5 bg-maroon-700 origin-left scale-x-0 transition-transform duration-200 dark:bg-maroon-300;
   }
 
   .nav-underline:hover::after {
@@ -160,11 +163,11 @@
   }
 
   .section-eyebrow {
-    @apply inline-block text-[11px] font-semibold tracking-[0.14em] uppercase text-maroon-700 bg-maroon-50 px-3.5 py-1 rounded-full mb-3;
+    @apply inline-block text-[11px] font-semibold tracking-[0.14em] uppercase text-maroon-700 bg-maroon-50 px-3.5 py-1 rounded-full mb-3 dark:text-maroon-200 dark:bg-maroon-900/40;
   }
 
   .card-hover-sponsor {
-    @apply card hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 hover:ring-2 hover:ring-maroon-200/40 transition-all duration-300;
+    @apply card hover:shadow-lg hover:border-maroon-100 hover:-translate-y-1 hover:ring-2 hover:ring-maroon-200/40 transition-all duration-300 dark:hover:border-maroon-700 dark:hover:ring-maroon-700/40;
   }
 
   /* ---- Part B: additive depth / surface / motion utilities (no existing rule changed) ---- */
@@ -182,7 +185,7 @@
 
   /* Layered light surface: soft vertical gradient, hairline border, soft shadow. */
   .surface-panel {
-    @apply rounded-2xl border border-gray-200/70 bg-gradient-to-b from-white to-cream shadow-card;
+    @apply rounded-2xl border border-gray-200/70 bg-gradient-to-b from-white to-cream shadow-card dark:border-slate-700 dark:from-slate-800 dark:to-slate-900;
   }
 
   /* Dark maroon band to break up the page and create vertical rhythm. */
@@ -222,9 +225,42 @@
 
   /* Sponsor marquee caption beneath each logo chip. */
   .sponsor-caption {
-    @apply mt-2 block w-56 truncate text-center font-body text-xs font-semibold text-gray-500;
+    @apply mt-2 block w-56 truncate text-center font-body text-xs font-semibold text-gray-500 dark:text-slate-400;
   }
 }
+
+/* Tone the sky tint down on dark surfaces; the light-mode alpha reads as a grey wash. */
+.dark .surface-sky {
+  background-color: rgba(173, 216, 230, 0.06);
+}
+
+/* ---- Dark-mode compatibility layer ----
+   Public pages were written against the light utility ramps (bg-white sections,
+   text-gray-* copy, maroon-700 headings). Rather than touch hundreds of call
+   sites, remap those ramps when dark mode is active. :where() keeps each
+   selector at one class of specificity, so any explicit dark:* utility on an
+   element still beats this layer. */
+:where(.dark) .bg-white { background-color: theme('colors.slate.800'); }
+:where(.dark) .bg-gray-50,
+:where(.dark) .bg-slate-50,
+:where(.dark) .bg-cream { background-color: theme('colors.slate.900'); }
+:where(.dark) .bg-gray-100 { background-color: theme('colors.slate.800'); }
+:where(.dark) .bg-maroon-50,
+:where(.dark) .bg-maroon-100 { background-color: theme('colors.maroon.950'); }
+:where(.dark) .text-gray-900,
+:where(.dark) .text-gray-800 { color: theme('colors.slate.100'); }
+:where(.dark) .text-gray-700 { color: theme('colors.slate.300'); }
+:where(.dark) .text-gray-600,
+:where(.dark) .text-gray-500 { color: theme('colors.slate.400'); }
+:where(.dark) .text-maroon-900,
+:where(.dark) .text-maroon-800,
+:where(.dark) .text-maroon-700 { color: theme('colors.maroon.200'); }
+:where(.dark) .text-maroon-600 { color: theme('colors.maroon.300'); }
+:where(.dark) .border-gray-100,
+:where(.dark) .border-gray-200 { border-color: theme('colors.slate.700'); }
+:where(.dark) .border-gray-300 { border-color: theme('colors.slate.600'); }
+:where(.dark) .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+:where(.dark) .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: theme('colors.slate.700'); }
 
 /* Animation keyframes */
 @keyframes kenBurns {

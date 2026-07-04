@@ -26,7 +26,7 @@ export default function Button({
     primary: 'bg-maroon-700 text-white shadow-sm hover:bg-maroon-800 hover:shadow-md focus:ring-maroon-500',
     secondary:
       'border-2 border-maroon-700 text-maroon-700 hover:bg-maroon-700 hover:text-white hover:shadow-md focus:ring-maroon-500',
-    accent: 'bg-sky_accent text-maroon-800 shadow-sm hover:bg-sky-300 hover:shadow-md focus:ring-sky-400',
+    accent: 'bg-sky_accent text-maroon-800 dark:text-maroon-800 shadow-sm hover:bg-sky-300 hover:shadow-md focus:ring-sky-400',
     ghost: 'text-maroon-700 hover:bg-maroon-50 focus:ring-maroon-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   };
