@@ -15,9 +15,7 @@ export default function FantasyRulesPage() {
     <>
       <section className="page-hero">
         <div className="container-width">
-          <p className="text-sm font-body font-semibold uppercase tracking-[0.25em] text-maroon-100 mb-3">
-            {CLUB_SHORT} Fantasy Cricket
-          </p>
+          <span className="eyebrow-gold">{CLUB_SHORT} Fantasy Cricket</span>
           <h1 className="page-hero-title">Fantasy Cricket Rules</h1>
           <p className="page-hero-subtitle">
             How NDCC Fantasy Cricket squads, transfers, chips, scores, leagues, and leaderboards work.

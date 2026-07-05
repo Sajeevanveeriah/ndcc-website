@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
@@ -537,7 +538,7 @@ function MerchandiseContent() {
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                          className="h-11 w-11 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-base focus-ring"
                           onClick={() =>
                             setQuantities((prev) => ({
                               ...prev,
@@ -553,7 +554,7 @@ function MerchandiseContent() {
                         </span>
                         <button
                           type="button"
-                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                          className="h-11 w-11 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-base focus-ring"
                           onClick={() =>
                             setQuantities((prev) => ({
                               ...prev,
@@ -594,7 +595,10 @@ function MerchandiseContent() {
 
           {submitStatus === 'success' && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-3" role="alert">
-              <p className="text-green-800 font-body font-semibold">Order confirmed!</p>
+              <p className="text-green-800 font-body font-semibold flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+                Order confirmed!
+              </p>
               {orderConfirmation?.payment_reference && (
                 <div className="bg-white border border-green-300 rounded-lg p-3">
                   <p className="text-green-900 font-body text-sm font-semibold">Your Payment Reference:</p>
@@ -619,18 +623,24 @@ function MerchandiseContent() {
           )}
 
           {submitStatus === 'cancelled' && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg" role="alert">
-              <p className="text-yellow-800 font-body font-semibold">Payment cancelled</p>
-              <p className="text-yellow-700 font-body text-sm mt-1">
-                Your payment was cancelled. Your order has not been placed. You can try again below.
-              </p>
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3" role="alert">
+              <AlertTriangle className="h-5 w-5 text-yellow-800 mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-yellow-800 font-body font-semibold">Payment cancelled</p>
+                <p className="text-yellow-700 font-body text-sm mt-1">
+                  Your payment was cancelled. Your order has not been placed. You can try again below.
+                </p>
+              </div>
             </div>
           )}
 
           {submitStatus === 'error' && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
-              <p className="text-red-800 font-body font-semibold">Failed to submit order</p>
-              <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
+              <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-red-800 font-body font-semibold">Failed to submit order</p>
+                <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+              </div>
             </div>
           )}
 
