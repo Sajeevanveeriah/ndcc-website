@@ -63,11 +63,11 @@ export default async function Footer() {
       <div
         className="px-4 sm:px-6 lg:px-8 py-5 border-b border-white/10"
         style={acknowledgementImage
-          ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.75), rgba(74,0,0,0.75)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+          ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.85), rgba(74,0,0,0.85)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
           : { background: 'rgba(255,255,255,0.06)' }}
       >
         <div className="container-width">
-          <p className="text-sm text-maroon-200 font-body leading-relaxed max-w-4xl">
+          <p className="text-sm text-maroon-100 font-body leading-relaxed max-w-4xl">
             {acknowledgement || ACKNOWLEDGEMENT}
           </p>
         </div>
@@ -137,7 +137,7 @@ export default async function Footer() {
             {/* Quick Links */}
             {quickLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Quick Links</h3>
+                <h3 className="font-display font-semibold uppercase tracking-[0.08em] text-[13px] text-gold-200 mb-4 pb-2 border-b border-gold-400/25">Quick Links</h3>
                 <ul className="space-y-2">
                   {quickLinks.map((link) => (
                     <li key={link.id}>
@@ -154,7 +154,7 @@ export default async function Footer() {
             {/* More Links */}
             {getInvolvedLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Get Involved</h3>
+                <h3 className="font-display font-semibold uppercase tracking-[0.08em] text-[13px] text-gold-200 mb-4 pb-2 border-b border-gold-400/25">Get Involved</h3>
                 <ul className="space-y-2">
                   {getInvolvedLinks.map((link) => (
                     <li key={link.id}>
@@ -171,7 +171,7 @@ export default async function Footer() {
             {/* Partners */}
             {affiliationLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="font-display font-semibold uppercase tracking-wide text-[13px] mb-4 pb-2 border-b border-white/10">Affiliations</h3>
+                <h3 className="font-display font-semibold uppercase tracking-[0.08em] text-[13px] text-gold-200 mb-4 pb-2 border-b border-gold-400/25">Affiliations</h3>
                 <ul className="space-y-2">
                   {affiliationLinks.map((link) => (
                     <li key={link.id}>

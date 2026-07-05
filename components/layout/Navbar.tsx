@@ -100,9 +100,9 @@ export default function Navbar() {
       role="navigation"
       aria-label="Main navigation"
     >
-      {/* Maroon top bar */}
-      <div className="bg-maroon-700 px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between">
-        <span className="hidden sm:block text-[11px] text-maroon-100 font-body tracking-wide">
+      {/* Maroon utility bar */}
+      <div className="bg-maroon-700 px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between">
+        <span className="hidden sm:block text-[10.5px] text-maroon-100 font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
         <div className="flex gap-4 ml-auto">
@@ -110,7 +110,7 @@ export default function Navbar() {
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-sky_accent hover:text-white transition-colors font-body"
+            className="text-[10.5px] font-semibold text-sky_accent hover:text-white transition-colors font-body"
           >
             Facebook
           </a>
@@ -118,11 +118,11 @@ export default function Navbar() {
             href={settings.playhq_url || fallbackClubSettings.playhq_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-sky_accent hover:text-white transition-colors font-body"
+            className="text-[10.5px] font-semibold text-sky_accent hover:text-white transition-colors font-body"
           >
             PlayHQ
           </a>
-          <Link href="/contact" className="text-[11px] text-sky_accent hover:text-white transition-colors font-body">
+          <Link href="/contact" className="text-[10.5px] font-semibold text-sky_accent hover:text-white transition-colors font-body">
             Contact
           </Link>
         </div>
@@ -160,7 +160,7 @@ export default function Navbar() {
                 className={cn(
                   'px-3 py-2 text-sm font-body font-medium transition-colors',
                   pathname === link.href
-                    ? 'text-maroon-700 border-b-2 border-maroon-700 pb-[6px] rounded-none dark:text-maroon-200 dark:border-maroon-300'
+                    ? "relative text-maroon-700 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:text-maroon-200 dark:after:bg-maroon-300"
                     : 'nav-underline text-gray-600 hover:text-maroon-700 rounded-lg dark:text-slate-300 dark:hover:text-maroon-200'
                 )}
               >
@@ -247,7 +247,7 @@ export default function Navbar() {
               exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
             >
-              <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto dark:bg-slate-900 dark:border-slate-700">
+              <div className="bg-white px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto shadow-[inset_0_10px_14px_-12px_rgba(45,0,0,0.20)] dark:bg-slate-900 dark:shadow-[inset_0_10px_14px_-12px_rgba(0,0,0,0.55)]">
           {navLinks.map((link) => (
             <Link
               key={`${link.href}-${link.label}`}
