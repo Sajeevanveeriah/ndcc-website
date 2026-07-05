@@ -17,7 +17,7 @@ type DataLoadErrorCardProps = {
  */
 export default function DataLoadErrorCard({ title, retryHref, backHref, backLabel }: DataLoadErrorCardProps) {
   return (
-    <Card>
+    <Card className="border-l-4 border-l-maroon-700">
       <CardContent className="p-8">
         <h2 className="text-xl font-display font-bold text-gray-900 mb-2">{title}</h2>
         <p className="font-body text-gray-700 mb-4">

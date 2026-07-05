@@ -176,7 +176,7 @@
   /* Gold companion to .section-eyebrow for text sitting on maroon bands and
      photo heroes — the honour-board "gold lettering" label treatment. */
   .eyebrow-gold {
-    @apply inline-block text-[11px] font-semibold tracking-[0.18em] uppercase text-gold-200 mb-3;
+    @apply inline-block text-[11px] font-bold tracking-[0.14em] uppercase text-gold-200 bg-gold-400/15 px-3.5 py-1 rounded-full mb-3;
   }
 
   /* Sponsor tiles read one step more premium than a plain card: the shared

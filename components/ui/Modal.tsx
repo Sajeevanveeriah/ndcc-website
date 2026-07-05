@@ -48,23 +48,23 @@ export default function Modal({ isOpen, onClose, title, children, className, siz
       aria-modal="true"
       aria-label={title}
     >
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 bg-maroon-950/60 backdrop-blur-[2px]" onClick={onClose} />
       <div
         className={cn(
-          'relative bg-white rounded-xl shadow-2xl w-full max-h-[90vh] overflow-y-auto',
+          'relative bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-h-[90vh] overflow-y-auto dark:bg-slate-800 dark:ring-slate-700',
           sizes[size],
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 className="text-xl font-display font-bold text-gray-900">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
+            <h2 className="text-xl font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-100">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors focus-ring dark:hover:bg-slate-700"
               aria-label="Close"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-gray-500 dark:text-slate-400" />
             </button>
           </div>
         )}
