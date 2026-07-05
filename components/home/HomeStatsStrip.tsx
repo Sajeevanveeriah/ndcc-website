@@ -24,7 +24,7 @@ export default function HomeStatsStrip() {
         <ul className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 text-center">
           {stats.map((stat) => (
             <li key={stat.label} className="lg:border-r lg:border-white/10 lg:last:border-r-0">
-              <p className="stat-value text-4xl sm:text-5xl text-amber-300">
+              <p className="stat-value text-4xl sm:text-5xl text-gold-200">
                 {stat.animate ? <AnimatedCounter to={stat.value} /> : stat.value}
               </p>
               <p className="stat-label text-maroon-100">{stat.label}</p>
