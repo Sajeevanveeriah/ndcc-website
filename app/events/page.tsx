@@ -38,7 +38,7 @@ export default async function EventsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map((event) => {
                 const imageUrl = normalizeEventImage(event.title, event.image_url);
                 return (
@@ -57,7 +57,7 @@ export default async function EventsPage() {
                         </div>
                       )}
                       <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-6 py-4">
-                        <p className="text-maroon-200 font-body text-sm">{formatDate(event.date)}</p>
+                        <p className="text-gold-200 font-body text-xs font-semibold uppercase tracking-[0.08em]">{formatDate(event.date)}</p>
                         <h3 className="text-white font-display font-bold text-xl mt-1">{event.title}</h3>
                       </div>
                       <CardContent>

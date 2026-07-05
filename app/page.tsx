@@ -6,10 +6,13 @@ import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
+import type { LucideIcon } from 'lucide-react';
+import { Trophy, Users, Calendar, ShoppingCart, Handshake, Mail } from 'lucide-react';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
   CLUB_ESTABLISHED,
+  CLUB_ASSOCIATION,
   PLAYHQ_ORG_URL,
   FACEBOOK_URL,
 } from '@/lib/constants';
@@ -65,10 +68,15 @@ function HeroView({
         className="object-cover animate-ken-burns"
         priority
       />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.88) 0%, rgba(45,0,0,0.58) 55%, rgba(45,0,0,0.32) 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.90) 0%, rgba(45,0,0,0.62) 55%, rgba(45,0,0,0.34) 100%)' }} />
+      {/* Mobile crops put more sky behind the title; deepen the scrim so copy always sits on a dark patch. */}
+      <div className="absolute inset-0 sm:hidden bg-maroon-950/30" aria-hidden="true" />
       <div className="container-width relative z-10 flex-1 flex items-center section-padding">
         <div className="w-full">
           <ScrollReveal onMount delay={0}>
+            <span className="eyebrow-gold">
+              Est. {CLUB_ESTABLISHED} &middot; {CLUB_ASSOCIATION}
+            </span>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
               {title}
             </h1>
@@ -106,9 +114,30 @@ async function HeroSection() {
   );
 }
 
+// CMS page_link_cards.icon stores emoji glyphs today; map the known ones onto
+// the Lucide set already used across the site so quick-link icons render
+// consistently across OS/browser. Unrecognised strings fall through and render
+// as-is, so a custom CMS icon can never produce a blank slot. No data change.
+const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
+  '🏏': Trophy,
+  '👥': Users,
+  '📅': Calendar,
+  '🛒': ShoppingCart,
+  '🤝': Handshake,
+  '✉️': Mail,
+};
+
+function QuickLinkIcon({ icon }: { icon: string }) {
+  const Icon = QUICK_LINK_ICONS[icon.trim()];
+  if (Icon) {
+    return <Icon className="h-8 w-8 text-maroon-700 mb-3 dark:text-maroon-300" aria-hidden="true" />;
+  }
+  return <span className="text-3xl mb-3 block" aria-hidden="true">{icon}</span>;
+}
+
 function QuickLinksSkeleton() {
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding bg-white">
       <div className="container-width">
         <div className="text-center mb-12">
           <span className="section-eyebrow">Quick Links</span>
@@ -117,7 +146,7 @@ function QuickLinksSkeleton() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[0, 1, 2].map((index) => (
-            <div key={index} className="h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6">
+            <div key={index} className="h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6 shadow-sm">
               <div className="h-8 w-8 rounded bg-gray-200 animate-pulse mb-3" />
               <div className="h-6 w-2/3 rounded bg-gray-200 animate-pulse mb-3" />
               <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
@@ -136,7 +165,7 @@ async function QuickLinksSection() {
   ]);
 
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding bg-white">
       <div className="container-width">
         <ScrollReveal className="text-center mb-12">
           <span className="section-eyebrow">Quick Links</span>
@@ -150,9 +179,9 @@ async function QuickLinksSection() {
             <ScrollRevealItem key={link.id}>
             <Link
               href={link.href}
-              className="group h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              className="group h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700 dark:border-l-maroon-500"
             >
-              {link.icon && <span className="text-3xl mb-3 block" aria-hidden="true">{link.icon}</span>}
+              {link.icon && <QuickLinkIcon icon={link.icon} />}
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-xl font-display font-bold text-maroon-800 mb-2 group-hover:text-maroon-700 transition-colors">
                   {link.title}
@@ -181,17 +210,16 @@ function SeasonStatusView({
   ctaUrl: string;
 }) {
   return (
-    <section className="section-padding surface-sky">
+    // The first true "honour board" moment on the page: a full-bleed maroon
+    // band rather than a card floating on a tinted section.
+    <section className="band-maroon section-padding">
       <div className="container-width">
         <ScrollReveal>
-        <div
-          className="relative overflow-hidden rounded-2xl p-8 sm:p-10 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #2d0000 0%, #800000 100%)' }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center">
           <div>
-            <h2 className="section-title" style={{ color: '#ffffff' }}>Season Update</h2>
-            <h3 className="text-xl font-display font-bold mb-3" style={{ color: '#ffffff' }}>{title}</h3>
-            <p className="font-body leading-relaxed mb-0" style={{ color: 'rgba(255,255,255,0.65)' }}>
+            <span className="eyebrow-gold">Season Update</span>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold uppercase tracking-wide text-white mb-3">{title}</h2>
+            <p className="font-body leading-relaxed mb-0 text-white/75">
               {body}{' '}
               <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-sky_accent hover:underline font-semibold">
                 Facebook page
@@ -310,7 +338,7 @@ async function NewsSection() {
                 )}
                 <CardContent className="p-6">
                   {article.published_at && (
-                    <p className="text-sm text-maroon-600 font-body font-semibold mb-2">
+                    <p className="text-xs uppercase tracking-[0.08em] text-maroon-600 font-body font-semibold mb-2">
                       {formatDate(article.published_at)}
                     </p>
                   )}
@@ -345,7 +373,7 @@ async function NewsSection() {
 
 function SeasonAppointmentsSkeleton() {
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding bg-white">
       <div className="container-width">
         <div className="text-center mb-12">
           <span className="section-eyebrow">2026/27 Season</span>
@@ -438,7 +466,7 @@ async function SponsorsSection() {
             {[...sponsors, ...sponsors].map((sponsor, index) => {
               const brandedFallback = (
                 <div className="flex h-full w-full items-center justify-center rounded-xl bg-maroon-800 px-3 text-center">
-                  <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-amber-300">
+                  <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-gold-200">
                     {sponsor.name}
                   </span>
                 </div>
@@ -451,7 +479,7 @@ async function SponsorsSection() {
                     width={190}
                     height={70}
                     sizes="190px"
-                    className="h-28 w-56 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-shadow duration-300 group-hover:shadow-card"
+                    className="h-28 w-56 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-all duration-300 group-hover:shadow-lift group-hover:ring-2 group-hover:ring-maroon-200/70 group-hover:-translate-y-1"
                     imageClassName="max-h-16 w-auto"
                     fallback={brandedFallback}
                   />
@@ -494,8 +522,9 @@ async function SponsorsSection() {
 
 function JuniorsCtaView({ title, body }: { title: string; body: string }) {
   return (
-    <section className="bg-maroon-950 text-white section-padding">
+    <section className="band-maroon section-padding">
       <ScrollReveal className="container-width text-center">
+        <span className="eyebrow-gold">Get Involved</span>
         <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
           {title}
         </h2>

@@ -43,9 +43,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
     <>
       <section className="page-hero">
         <div className="container-width">
-          <p className="text-sm font-body font-semibold uppercase tracking-[0.25em] text-maroon-100 mb-3">
-            {CLUB_SHORT} Fantasy Cricket
-          </p>
+          <span className="eyebrow-gold">{CLUB_SHORT} Fantasy Cricket</span>
           <h1 className="page-hero-title">Player Leaderboard</h1>
           <p className="page-hero-subtitle">
             Published fantasy import batches only. Draft, reviewed, and rejected imports are never shown here.

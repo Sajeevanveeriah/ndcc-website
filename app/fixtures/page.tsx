@@ -43,7 +43,7 @@ function groupByGrade<T extends { gradeId: string; gradeName: string }>(rows: T[
 
 function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; result?: boolean }) {
   return (
-    <Card className="h-full">
+    <Card className="h-full hover-lift">
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
@@ -65,14 +65,21 @@ function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; resu
 }
 
 function LadderTable({ rows }: { rows: PlayHQLadderRow[] }) {
+  // Scorebook-ledger styling: maroon-tinted header, centred numeric columns.
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
-      <table className="min-w-full divide-y divide-gray-100 text-sm">
-        <thead className="bg-sky-50 text-left text-gray-600">
-          <tr><th className="px-4 py-3">Pos</th><th className="px-4 py-3">Team</th><th className="px-4 py-3">P</th><th className="px-4 py-3">Pts</th><th className="px-4 py-3">%</th></tr>
+    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-slate-700">
+      <table className="min-w-full divide-y divide-gray-200 text-sm">
+        <thead className="bg-maroon-50/60 text-left dark:bg-slate-800/80">
+          <tr>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">Pos</th>
+            <th className="px-4 py-3 font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">Team</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">P</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">Pts</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">%</th>
+          </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
-          {rows.map((row, index) => <tr key={`${row.gradeId}-${row.teamName}-${index}`}><td className="px-4 py-3">{row.position ?? '-'}</td><td className="px-4 py-3 font-medium text-gray-900">{row.teamName}</td><td className="px-4 py-3">{row.played ?? '-'}</td><td className="px-4 py-3">{row.points ?? '-'}</td><td className="px-4 py-3">{row.percentage ?? '-'}</td></tr>)}
+        <tbody className="divide-y divide-gray-200">
+          {rows.map((row, index) => <tr key={`${row.gradeId}-${row.teamName}-${index}`} className="hover:bg-sky-50/70 dark:hover:bg-slate-700/60 transition-colors"><td className="px-4 py-3 text-center font-display font-bold text-maroon-700">{row.position ?? '-'}</td><td className="px-4 py-3 font-medium text-gray-900">{row.teamName}</td><td className="px-4 py-3 text-center">{row.played ?? '-'}</td><td className="px-4 py-3 text-center font-semibold">{row.points ?? '-'}</td><td className="px-4 py-3 text-center">{row.percentage ?? '-'}</td></tr>)}
         </tbody>
       </table>
     </div>
@@ -101,19 +108,19 @@ export default async function FixturesPage() {
 
       <section className="section-padding">
         <div className="container-width space-y-8">
-          <Card className="border-l-4 border-l-maroon-700">
-            <CardContent className="p-8">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">{blocks['fixtures.status']?.title || 'PlayHQ Fixtures'}</h2>
-                  <p className="text-gray-700 font-body leading-relaxed max-w-3xl">
-                    {playhq.message || blocks['fixtures.status']?.body || `Live fixtures, results and ladders for the ${settings.club_nickname}.`}
-                  </p>
-                </div>
-                {playhq.selectedSeasonId && <Badge variant="default">Season {playhq.selectedSeasonId.slice(-6)}</Badge>}
+          {/* Season status plaque — same honour-board treatment as the homepage band. */}
+          <div className="band-maroon rounded-2xl shadow-card p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <span className="eyebrow-gold">Season Status</span>
+                <h2 className="text-2xl font-display font-bold uppercase tracking-wide text-white mb-3">{blocks['fixtures.status']?.title || 'PlayHQ Fixtures'}</h2>
+                <p className="text-white/75 font-body leading-relaxed max-w-3xl">
+                  {playhq.message || blocks['fixtures.status']?.body || `Live fixtures, results and ladders for the ${settings.club_nickname}.`}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              {playhq.selectedSeasonId && <Badge variant="default">Season {playhq.selectedSeasonId.slice(-6)}</Badge>}
+            </div>
+          </div>
 
           {!playhq.configured ? (
             <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900">Fixtures will appear once PlayHQ is configured</h2><p className="mt-2 text-gray-600 font-body">The site is ready for the PlayHQ Public API. No fixture data is shown until the server-only PlayHQ environment variables are set.</p></CardContent></Card>

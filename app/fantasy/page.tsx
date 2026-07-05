@@ -22,7 +22,7 @@ export default function FantasyPage() {
     <>
       <section className="page-hero">
         <div className="container-width">
-          <p className="text-sm font-body font-semibold uppercase tracking-[0.25em] text-maroon-100 mb-3">{CLUB_SHORT} Dinos</p>
+          <span className="eyebrow-gold">{CLUB_SHORT} Dinos</span>
           <ScrollReveal onMount delay={0}><h1 className="page-hero-title">Fantasy Cricket</h1></ScrollReveal>
           <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">Pick your NDCC fantasy squad, follow published player scores, make transfers, and compete in classic private leagues.</p></ScrollReveal>
         </div>

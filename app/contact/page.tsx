@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
+import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
@@ -118,27 +119,36 @@ export default function ContactPage() {
               <p className="text-gray-600 font-body mb-8">{formIntro}</p>
 
               {submitStatus === 'success' && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
-                  <p className="text-green-800 font-body font-semibold">Message sent successfully!</p>
-                  <p className="text-green-700 font-body text-sm mt-1">
-                    {errorMessage || 'Thank you for your enquiry. A committee member will be in touch shortly.'}
-                  </p>
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
+                  <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="text-green-800 font-body font-semibold">Message sent successfully!</p>
+                    <p className="text-green-700 font-body text-sm mt-1">
+                      {errorMessage || 'Thank you for your enquiry. A committee member will be in touch shortly.'}
+                    </p>
+                  </div>
                 </div>
               )}
 
               {submitStatus === 'warning' && (
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg" role="alert">
-                  <p className="text-yellow-900 font-body font-semibold">Enquiry received</p>
-                  <p className="text-yellow-800 font-body text-sm mt-1">
-                    {errorMessage || 'Your enquiry was saved, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.'}
-                  </p>
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3" role="alert">
+                  <AlertTriangle className="h-5 w-5 text-yellow-800 mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="text-yellow-900 font-body font-semibold">Enquiry received</p>
+                    <p className="text-yellow-800 font-body text-sm mt-1">
+                      {errorMessage || 'Your enquiry was saved, but email notification failed. Please email ndcc.secretary1@gmail.com if urgent.'}
+                    </p>
+                  </div>
                 </div>
               )}
 
               {submitStatus === 'error' && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
-                  <p className="text-red-800 font-body font-semibold">Failed to send message</p>
-                  <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
+                  <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="text-red-800 font-body font-semibold">Failed to send message</p>
+                    <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+                  </div>
                 </div>
               )}
 

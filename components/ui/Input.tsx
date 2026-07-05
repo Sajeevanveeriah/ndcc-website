@@ -1,7 +1,18 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
 import { forwardRef } from 'react';
+
+/* Shared inline field-error caption: icon + red text, one recipe site-wide. */
+function FieldError({ error }: { error: string }) {
+  return (
+    <p className="mt-1 flex items-start gap-1 text-sm text-red-600 dark:text-red-400">
+      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {error}
+    </p>
+  );
+}
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -20,6 +31,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={id}
+          aria-invalid={error ? true : undefined}
           className={cn(
             'form-input',
             error && 'border-red-500 focus:ring-red-500',
@@ -27,7 +39,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {error && <FieldError error={error} />}
       </div>
     );
   }
@@ -53,6 +65,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={id}
+          aria-invalid={error ? true : undefined}
           className={cn(
             'form-input min-h-[120px] resize-y',
             error && 'border-red-500 focus:ring-red-500',
@@ -60,7 +73,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {error && <FieldError error={error} />}
       </div>
     );
   }
@@ -86,6 +99,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           id={id}
+          aria-invalid={error ? true : undefined}
           className={cn(
             'form-input',
             error && 'border-red-500 focus:ring-red-500',
@@ -100,7 +114,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {error && <FieldError error={error} />}
       </div>
     );
   }

@@ -22,34 +22,42 @@ export default function CommitteeMinutesPage() {
   }, []);
 
   return (
-    <div className="container-width py-10 space-y-4">
-      <h1 className="text-3xl font-display font-bold">Committee Minutes</h1>
-      {loading && (
-        <div className="bg-white border rounded-xl divide-y">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="p-4 animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-2/3" />
-              <div className="h-3 bg-gray-200 rounded w-1/3" />
+    <>
+      <section className="page-hero">
+        <div className="container-width">
+          <h1 className="page-hero-title">Committee Minutes</h1>
+        </div>
+      </section>
+      <section className="section-padding">
+        <div className="container-width space-y-4">
+          {loading && (
+            <div className="card divide-y divide-gray-200" aria-busy="true" aria-live="polite">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-5 animate-pulse space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-2/3 dark:bg-slate-700" />
+                  <div className="h-3 bg-gray-200 rounded w-1/3 dark:bg-slate-700" />
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          {error && (
+            <p className="text-red-600 font-body text-sm dark:text-red-400">{error}</p>
+          )}
+          {!loading && !error && minutes.length === 0 && (
+            <p className="text-gray-500 font-body">No minutes published yet.</p>
+          )}
+          {!loading && !error && minutes.length > 0 && (
+            <div className="card divide-y divide-gray-200">
+              {minutes.map((m) => (
+                <Link key={m.id} href={`/committee/minutes/${m.id}`} className="block p-5 hover:bg-maroon-50/40 transition-colors focus-ring dark:hover:bg-slate-700/50">
+                  <p className="font-semibold font-body text-gray-900">{m.title}</p>
+                  <p className="text-xs uppercase tracking-[0.06em] text-gray-500 font-body mt-1">{m.meeting_date} · <span className="capitalize">{m.status}</span></p>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-      {error && (
-        <p className="text-red-600 font-body text-sm">{error}</p>
-      )}
-      {!loading && !error && minutes.length === 0 && (
-        <p className="text-gray-500 font-body">No minutes published yet.</p>
-      )}
-      {!loading && !error && minutes.length > 0 && (
-        <div className="bg-white border rounded-xl divide-y">
-          {minutes.map((m) => (
-            <Link key={m.id} href={`/committee/minutes/${m.id}`} className="block p-4 hover:bg-gray-50 transition-colors">
-              <p className="font-semibold font-body text-gray-900">{m.title}</p>
-              <p className="text-sm text-gray-500 font-body mt-0.5">{m.meeting_date} · <span className="capitalize">{m.status}</span></p>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+      </section>
+    </>
   );
 }

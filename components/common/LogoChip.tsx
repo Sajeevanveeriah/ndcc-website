@@ -36,7 +36,7 @@ export default function LogoChip({
 }: LogoChipProps) {
   const brandedFallback = fallback ?? (
     <div className="flex h-full w-full items-center justify-center rounded-xl bg-maroon-800 px-3 text-center">
-      <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-amber-300">
+      <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-gold-200">
         {name}
       </span>
     </div>

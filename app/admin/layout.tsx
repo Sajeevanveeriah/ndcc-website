@@ -156,15 +156,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-sky-50 flex">
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-24 lg:bottom-0 bg-maroon-800">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-24 lg:bottom-0 bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
-          <Link href="/admin" className="text-white font-display font-bold text-xl">{CLUB_SHORT} Admin</Link>
+          <Link href="/admin" className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
+          <p className="text-[10.5px] uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {sidebarLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
-              <Link key={link.href} href={link.href} className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm', isActive ? 'bg-maroon-700 text-white' : 'text-maroon-200 hover:bg-maroon-700/50 hover:text-white')}>
+              <Link key={link.href} href={link.href} className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body transition-colors', isActive ? 'bg-maroon-700 text-white shadow-inner ring-1 ring-white/10 border-l-2 border-gold-400' : 'text-maroon-200 hover:bg-maroon-700/50 hover:text-white')}>
                 <link.icon className="h-5 w-5" />{link.label}
               </Link>
             );
@@ -181,8 +182,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 lg:pl-64">
         <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="px-4 py-3 flex items-center justify-between">
-            <button onClick={() => setMobileOpen((v) => !v)}>{mobileOpen ? <X /> : <Menu />}</button>
-            <span className="font-bold">{CLUB_SHORT} Admin</span>
+            <button
+              onClick={() => setMobileOpen((v) => !v)}
+              className="p-2 -m-1 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors focus-ring"
+              aria-label={mobileOpen ? 'Close admin menu' : 'Open admin menu'}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <X /> : <Menu />}
+            </button>
+            <span className="font-display font-bold uppercase tracking-wide text-maroon-800">{CLUB_SHORT} Admin</span>
           </div>
           {mobileOpen && <nav className="px-4 pb-3 space-y-1 max-h-[70vh] overflow-y-auto">{sidebarLinks.map((link) => <Link className="block py-2" key={link.href} href={link.href}>{link.label}</Link>)}</nav>}
         </header>

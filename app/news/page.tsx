@@ -5,7 +5,6 @@ import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
 import { fallbackNews } from '@/lib/fallback-content';
@@ -105,7 +104,7 @@ export default function NewsPage() {
                       <CardContent className="p-6 flex-1">
                         <div className="flex flex-wrap items-center gap-3 mb-3">
                           {post.published_at && (
-                            <Badge variant="default">{formatDate(post.published_at)}</Badge>
+                            <span className="font-body text-xs font-semibold uppercase tracking-[0.08em] text-maroon-600">{formatDate(post.published_at)}</span>
                           )}
                           <span className="font-body text-sm text-gray-500">by {post.author}</span>
                         </div>

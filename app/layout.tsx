@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { Archivo, Barlow_Condensed, Inter, Oswald } from 'next/font/google';
+import { Barlow_Condensed, Inter } from 'next/font/google';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ThemeProvider from '@/components/common/ThemeProvider';
@@ -20,12 +20,13 @@ import './globals.css';
 
 // Self-hosted via next/font: replaces the render-blocking Google Fonts
 // @import that used to live in globals.css. Weights match that import.
+// Only the two families that actually render are loaded: Barlow Condensed
+// (font-display) and Inter (font-body). Oswald/Archivo sat behind Barlow
+// Condensed in the display stack and never painted.
 const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-inter', display: 'swap' });
 const barlowCondensed = Barlow_Condensed({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-barlow-condensed', display: 'swap' });
-const archivo = Archivo({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-archivo', display: 'swap' });
-const oswald = Oswald({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-oswald', display: 'swap' });
 
-const fontVariables = `${inter.variable} ${barlowCondensed.variable} ${archivo.variable} ${oswald.variable}`;
+const fontVariables = `${inter.variable} ${barlowCondensed.variable}`;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
 

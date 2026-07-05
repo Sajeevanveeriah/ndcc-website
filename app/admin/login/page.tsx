@@ -94,10 +94,10 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="bg-maroon-800 px-6 py-8 text-center">
-            <h1 className="text-3xl font-display font-bold text-white">{CLUB_SHORT}</h1>
-            <p className="text-maroon-200 font-body mt-1">Admin Portal</p>
+        <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+          <div className="band-maroon px-6 py-8 text-center">
+            <h1 className="text-3xl font-display font-bold text-white uppercase tracking-wide">{CLUB_SHORT}</h1>
+            <p className="text-gold-200 font-body text-xs font-semibold uppercase tracking-[0.14em] mt-1.5">Admin Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="p-6 space-y-4">

@@ -7,14 +7,15 @@ interface TableProps {
 
 export function Table({ className, children }: TableProps) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
       <table className={cn('min-w-full divide-y divide-gray-200', className)}>{children}</table>
     </div>
   );
 }
 
 export function TableHead({ className, children }: TableProps) {
-  return <thead className={cn('bg-gray-50', className)}>{children}</thead>;
+  // Maroon-tinted "scorebook ledger" header rather than a generic grey grid.
+  return <thead className={cn('bg-maroon-50/60 dark:bg-slate-800/80', className)}>{children}</thead>;
 }
 
 export function TableBody({ className, children }: TableProps) {
@@ -32,7 +33,7 @@ export function TableHeader({ className, children }: TableProps) {
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider font-body',
+        'px-4 py-3 text-left text-xs font-semibold text-maroon-800 uppercase tracking-wider font-body dark:text-slate-300',
         className
       )}
     >

@@ -129,9 +129,9 @@ export default function KitchenPage() {
                     <p className="text-sm text-red-600">Sold out</p>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => setCart((c) => ({ ...c, [item.id]: Math.max(0, (c[item.id] || 0) - 1) }))}>-</Button>
-                      <span>{cart[item.id] || 0}</span>
-                      <Button size="sm" variant="ghost" onClick={() => setCart((c) => ({ ...c, [item.id]: (c[item.id] || 0) + 1 }))}>+</Button>
+                      <Button size="sm" variant="ghost" className="h-11 w-11 p-0 border border-gray-200 dark:border-slate-600" aria-label={`Remove one ${item.name}`} onClick={() => setCart((c) => ({ ...c, [item.id]: Math.max(0, (c[item.id] || 0) - 1) }))}>-</Button>
+                      <span className="w-6 text-center font-semibold">{cart[item.id] || 0}</span>
+                      <Button size="sm" variant="ghost" className="h-11 w-11 p-0 border border-gray-200 dark:border-slate-600" aria-label={`Add one ${item.name}`} onClick={() => setCart((c) => ({ ...c, [item.id]: (c[item.id] || 0) + 1 }))}>+</Button>
                     </div>
                   )}
                 </CardContent>
@@ -141,8 +141,8 @@ export default function KitchenPage() {
 
           <Card>
             <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Kitchen Order</h3>
-              <p className="text-sm text-gray-600">Total: {formatCurrency(total)}</p>
+              <h3 className="text-lg font-display font-bold uppercase tracking-wide text-maroon-800">Kitchen Order</h3>
+              <p className="font-display text-lg font-bold text-gray-900">Total: {formatCurrency(total)}</p>
               <form className="space-y-3" onSubmit={submitOrder}>
                 <input type="text" name="website" className="hidden" value={hpField} onChange={(e) => setHpField(e.target.value)} tabIndex={-1} autoComplete="off" />
                 <Input id="k_name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />

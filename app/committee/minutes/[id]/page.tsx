@@ -64,7 +64,7 @@ export default function CommitteeMinuteDetailPage() {
       <p className="text-sm text-gray-500 font-body">
         {minute.meeting_date} · <span className="capitalize">{minute.status}</span>
       </p>
-      <article className="bg-white border rounded-xl p-5 whitespace-pre-wrap font-body text-gray-800 leading-relaxed">
+      <article className="card p-6 whitespace-pre-wrap font-body text-gray-800 leading-relaxed">
         {minute.content}
       </article>
       <div className="flex gap-3 flex-wrap">

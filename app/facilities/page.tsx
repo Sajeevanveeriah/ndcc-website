@@ -47,12 +47,12 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
-      <section className="bg-maroon-800 text-white" aria-label="Facility highlights">
+      <section className="band-maroon" aria-label="Facility highlights">
         <div className="container-width px-4 sm:px-6 lg:px-8 py-6">
           <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5 text-center">
             {statItems.map((item) => (
               <li key={item} className="px-2 sm:border-r sm:border-white/15 sm:last:border-r-0">
-                <span className="font-display text-base sm:text-lg font-bold uppercase tracking-wide leading-tight">{item}</span>
+                <span className="font-display text-base sm:text-lg font-bold uppercase tracking-wide leading-tight text-gold-100">{item}</span>
               </li>
             ))}
           </ul>

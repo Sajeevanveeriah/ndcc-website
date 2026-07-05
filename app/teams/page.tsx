@@ -66,22 +66,20 @@ export default async function TeamsPage() {
       {/* Head Coach */}
       <section className="section-padding surface-sky">
         <div className="container-width">
-          <Card className="border-l-4 border-l-maroon-700">
-            <CardContent className="p-8">
-              <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">
-                Head Coach: Craig Hillgrove
-              </h2>
-              <p className="text-gray-700 font-body leading-relaxed max-w-3xl">
-                Craig oversees coaching across all senior and junior teams at NDCC, working with
-                team captains and assistant coaches to develop players at every level. If you are
-                interested in joining the club or have questions about training, get in touch via
-                the{' '}
-                <Link href="/contact" className="text-maroon-700 hover:underline font-semibold">
-                  contact page
-                </Link>.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="surface-panel border-l-4 border-l-maroon-700 p-8">
+            <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">
+              Head Coach: Craig Hillgrove
+            </h2>
+            <p className="text-gray-700 font-body leading-relaxed max-w-3xl">
+              Craig oversees coaching across all senior and junior teams at NDCC, working with
+              team captains and assistant coaches to develop players at every level. If you are
+              interested in joining the club or have questions about training, get in touch via
+              the{' '}
+              <Link href="/contact" className="text-maroon-700 hover:underline font-semibold">
+                contact page
+              </Link>.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -167,8 +165,9 @@ export default async function TeamsPage() {
       </section>
 
       {/* Join CTA */}
-      <section className="section-padding bg-gradient-to-br from-maroon-700 to-maroon-900 text-white">
+      <section className="band-maroon section-padding">
         <div className="container-width text-center">
+          <span className="eyebrow-gold">Get Involved</span>
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
             Join a Team
           </h2>
