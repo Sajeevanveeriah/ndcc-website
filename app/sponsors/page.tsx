@@ -2,12 +2,14 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import LogoChip from '@/components/common/LogoChip';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import {
   SPONSOR_TIERS,
   CLUB_NAME,
@@ -225,7 +227,9 @@ export default function SponsorsPage() {
             className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-gray-50'}
           >
             <div className="container-width">
-              <div className="flex items-center gap-3 mb-8">
+              {/* Honour-board tier divider: short maroon rule + gold-tinted tier badge. */}
+              <div className="flex items-center gap-4 mb-8">
+                <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
                 <h2 className="section-title mb-0">{tier.label}s</h2>
                 <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
               </div>
@@ -234,8 +238,8 @@ export default function SponsorsPage() {
                   const description = getSponsorDescription(sponsor);
                   const logoFallback = (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
-                      <span className="font-display text-2xl font-bold leading-none text-amber-300">{getInitials(sponsor.name)}</span>
-                      <span className="font-display text-xs font-semibold uppercase tracking-wide text-amber-100">{sponsor.name}</span>
+                      <span className="font-display text-2xl font-bold leading-none text-gold-200">{getInitials(sponsor.name)}</span>
+                      <span className="font-display text-xs font-semibold uppercase tracking-wide text-gold-100">{sponsor.name}</span>
                     </div>
                   );
                   return (
@@ -246,7 +250,7 @@ export default function SponsorsPage() {
                       rel={sponsor.website ? 'noopener noreferrer' : undefined}
                       className="block group"
                     >
-                      <Card hover className="h-full">
+                      <div className="card-hover-sponsor h-full">
                         <CardContent className="p-6">
                           <LogoChip
                             name={sponsor.name}
@@ -275,7 +279,7 @@ export default function SponsorsPage() {
                             </p>
                           )}
                         </CardContent>
-                      </Card>
+                      </div>
                     </a>
                     </ScrollRevealItem>
                   );
@@ -300,8 +304,9 @@ export default function SponsorsPage() {
       )}
 
       {/* Become a Sponsor */}
-      <section className="section-padding bg-maroon-800 text-white">
+      <section className="band-maroon section-padding">
         <div className="container-width text-center">
+          <span className="eyebrow-gold">Partner With the Dinos</span>
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">Become a Sponsor</h2>
           <p className="text-maroon-100 font-body text-lg max-w-2xl mx-auto mb-6">
             Interested in partnering with the Dinos? We offer flexible sponsorship packages for
@@ -319,23 +324,34 @@ export default function SponsorsPage() {
           <Card>
             <CardContent className="p-6">
               <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">2026/27 Sponsorship Packages</h2>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4" aria-label="Sponsorship package summary">
-                {[
-                  ['Social Membership', 'AUD 75'],
-                  ['Match Day Ball Sponsor', 'AUD 150'],
-                  ['Player Sponsorship', 'AUD 350'],
-                  ['Bronze Sponsorship', 'AUD 450'],
-                  ['Silver Sponsorship', 'AUD 850'],
-                  ['Gold Sponsorship', 'AUD 1,150'],
-                  ['Diamond Sponsorship', 'AUD 1,550'],
-                  ['Platinum Sponsorship', 'AUD 2,100'],
-                ].map(([tier, price]) => (
-                  <li key={tier} className="rounded-lg border border-gray-200 bg-white px-3 py-3 list-none">
-                    <p className="text-xs font-body uppercase tracking-wide text-gray-500">{tier}</p>
-                    <p className="text-base font-display font-bold text-maroon-700 mt-1">{price}</p>
-                  </li>
-                ))}
-              </ul>
+              {/* Same 8 real packages/prices, presented as a scannable ledger table. */}
+              <div className="mb-4" aria-label="Sponsorship package summary">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableHeader>Package</TableHeader>
+                      <TableHeader className="text-right">Price</TableHeader>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {[
+                      ['Social Membership', 'AUD 75'],
+                      ['Match Day Ball Sponsor', 'AUD 150'],
+                      ['Player Sponsorship', 'AUD 350'],
+                      ['Bronze Sponsorship', 'AUD 450'],
+                      ['Silver Sponsorship', 'AUD 850'],
+                      ['Gold Sponsorship', 'AUD 1,150'],
+                      ['Diamond Sponsorship', 'AUD 1,550'],
+                      ['Platinum Sponsorship', 'AUD 2,100'],
+                    ].map(([tier, price]) => (
+                      <TableRow key={tier}>
+                        <TableCell className="font-semibold text-gray-900">{tier}</TableCell>
+                        <TableCell className="text-right font-display font-bold text-maroon-700">{price}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <div className="space-y-2">
                 {sponsorshipDownloads2026_27.map((download) => (
                   <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 hover:text-maroon-500 hover:underline font-body">
@@ -369,19 +385,25 @@ export default function SponsorsPage() {
           </p>
 
           {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" role="alert">
-              <p className="text-green-800 font-body font-semibold">Enquiry sent successfully!</p>
-              <p className="text-green-700 font-body text-sm mt-1">
-                Thank you for your interest in sponsoring {CLUB_NAME}. A committee member will be in
-                touch shortly to discuss partnership opportunities.
-              </p>
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
+              <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-green-800 font-body font-semibold">Enquiry sent successfully!</p>
+                <p className="text-green-700 font-body text-sm mt-1">
+                  Thank you for your interest in sponsoring {CLUB_NAME}. A committee member will be in
+                  touch shortly to discuss partnership opportunities.
+                </p>
+              </div>
             </div>
           )}
 
           {submitStatus === 'error' && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
-              <p className="text-red-800 font-body font-semibold">Failed to send enquiry</p>
-              <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
+              <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-red-800 font-body font-semibold">Failed to send enquiry</p>
+                <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+              </div>
             </div>
           )}
 

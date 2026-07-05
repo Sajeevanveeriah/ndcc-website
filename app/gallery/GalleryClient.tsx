@@ -32,7 +32,7 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
                 key={photo.id}
                 type="button"
                 onClick={() => setActiveIndex(index)}
-                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-gray-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-gray-200 shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700"
               >
                 <SafeImage
                   src={photo.image_url}

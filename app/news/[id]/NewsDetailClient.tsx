@@ -50,11 +50,11 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
           <h1 className="page-hero-title">{post.title}</h1>
           <div className="flex flex-wrap items-center gap-4 mt-2">
             {post.published_at && (
-              <span className="font-body text-maroon-200 text-sm">
+              <span className="font-body text-gold-200 text-xs font-semibold uppercase tracking-[0.08em]">
                 {formatDate(post.published_at)}
               </span>
             )}
-            <span className="font-body text-maroon-200 text-sm">by {post.author}</span>
+            <span className="font-body text-maroon-100 text-sm">by {post.author}</span>
           </div>
         </div>
       </section>
