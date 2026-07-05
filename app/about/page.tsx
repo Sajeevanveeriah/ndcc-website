@@ -61,6 +61,7 @@ export default async function AboutPage() {
       <section className="page-hero">
         <div className="container-width">
           <ScrollReveal onMount delay={0}>
+            <span className="eyebrow-gold">Est. {CLUB_ESTABLISHED} &middot; {CLUB_ASSOCIATION}</span>
             <h1 className="page-hero-title">{blocks['about.hero']?.title || `About the ${CLUB_NICKNAME}`}</h1>
           </ScrollReveal>
           <ScrollReveal onMount delay={0.15}>
@@ -99,23 +100,23 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section-padding bg-maroon-900 text-white">
+      <section className="band-maroon section-padding">
         <div className="container-width">
           <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
             <ScrollRevealItem>
-              <p className="font-display text-5xl sm:text-6xl font-bold text-amber-300">
+              <p className="font-display text-5xl sm:text-6xl font-bold text-gold-200">
                 <AnimatedCounter to={yearsStrong} />
               </p>
               <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Years Strong</p>
             </ScrollRevealItem>
             <ScrollRevealItem>
-              <p className="font-display text-5xl sm:text-6xl font-bold text-amber-300">
+              <p className="font-display text-5xl sm:text-6xl font-bold text-gold-200">
                 <AnimatedCounter to={premiershipCount} />
               </p>
               <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Premierships Won</p>
             </ScrollRevealItem>
             <ScrollRevealItem>
-              <p className="font-display text-5xl sm:text-6xl font-bold text-amber-300">
+              <p className="font-display text-5xl sm:text-6xl font-bold text-gold-200">
                 <AnimatedCounter to={seasonsInGca} />
               </p>
               <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Seasons in the {CLUB_ASSOCIATION_SHORT}</p>
@@ -163,22 +164,21 @@ export default async function AboutPage() {
               const teamPremierships = premierships.filter((item) => item.team_label === teamLabel);
               return (
                 <ScrollRevealItem key={teamLabel}>
-                <Card>
-                  <CardContent className="p-6 space-y-3">
-                    <h3 className="text-xl font-display font-bold text-maroon-800">{teamLabel}</h3>
-                    {teamPremierships.length === 0 ? (
-                      <p className="text-sm text-gray-500">No premierships recorded yet.</p>
-                    ) : (
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        {teamPremierships.map((item) => (
-                          <li key={item.id} className="border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
-                            <span className="font-semibold">{item.season_label}</span> · {competitionsByAbbr[item.competition_abbr] || item.competition_abbr} · {item.grade_label}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* The literal honour board: gold-lettered premiership plaques. */}
+                <div className="h-full band-maroon rounded-xl shadow-card p-6 space-y-3">
+                  <h3 className="text-xl font-display font-bold uppercase tracking-wide text-gold-200 border-b border-gold-400/25 pb-3">{teamLabel}</h3>
+                  {teamPremierships.length === 0 ? (
+                    <p className="text-sm text-white/60 font-body">No premierships recorded yet.</p>
+                  ) : (
+                    <ul className="space-y-2 text-sm text-white/85 font-body">
+                      {teamPremierships.map((item) => (
+                        <li key={item.id} className="border-b border-white/10 pb-2 last:border-b-0 last:pb-0">
+                          <span className="font-semibold text-gold-100">{item.season_label}</span> · {competitionsByAbbr[item.competition_abbr] || item.competition_abbr} · {item.grade_label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 </ScrollRevealItem>
               );
             })}
@@ -195,15 +195,13 @@ export default async function AboutPage() {
                 {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
               </p>
             </div>
-            <Card>
-              <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-maroon-700 font-display font-bold text-2xl">{CLUB_ASSOCIATION_SHORT}</span>
-                </div>
-                <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{CLUB_ASSOCIATION}</h3>
-                <p className="text-gray-600 font-body text-sm">Affiliated since {CLUB_ESTABLISHED}</p>
-              </CardContent>
-            </Card>
+            <div className="surface-panel p-8 text-center">
+              <div className="w-20 h-20 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-maroon-700 font-display font-bold text-2xl">{CLUB_ASSOCIATION_SHORT}</span>
+              </div>
+              <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{CLUB_ASSOCIATION}</h3>
+              <p className="text-gray-600 font-body text-sm">Affiliated since {CLUB_ESTABLISHED}</p>
+            </div>
           </ScrollReveal>
         </div>
       </section>
@@ -270,7 +268,7 @@ export default async function AboutPage() {
                 <Card hover className="group h-full">
                   <CardContent className="p-7 text-center h-full flex flex-col items-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-maroon-700 to-maroon-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-md group-hover:scale-105 transition-all duration-300">
-                      <span className="text-amber-300 font-display font-bold text-xl">
+                      <span className="text-gold-200 font-display font-bold text-xl">
                         {getInitials(member.name)}
                       </span>
                     </div>

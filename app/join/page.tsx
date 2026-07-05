@@ -89,12 +89,14 @@ export default function JoinPage() {
   };
 
   return (
-    <div className="container-width py-12 space-y-10">
-      <div>
-        <ScrollReveal onMount delay={0}><h1 className="text-4xl font-display font-bold text-gray-900">{heroTitle}</h1></ScrollReveal>
-        <ScrollReveal onMount delay={0.15}><p className="text-gray-600 mt-3">{heroBody}</p></ScrollReveal>
+    <>
+    <section className="page-hero">
+      <div className="container-width">
+        <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroTitle}</h1></ScrollReveal>
+        <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{heroBody}</p></ScrollReveal>
       </div>
-
+    </section>
+    <div className="container-width px-4 sm:px-6 lg:px-8 py-12 space-y-10">
       <ScrollReveal stagger className="grid md:grid-cols-2 gap-6">
         <ScrollRevealItem>
           <Card>
@@ -127,31 +129,34 @@ export default function JoinPage() {
             <Input id="email" label="Email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} required />
             <Input id="phone" label="Phone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
 
-            <label className="block text-sm font-medium text-gray-700">Membership Plan</label>
-            <select className="w-full border rounded-lg px-3 py-2" value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)}>
-              {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} — {formatCurrency(plan.price)}</option>)}
-            </select>
+            <div>
+              <label htmlFor="membership_plan" className="form-label">Membership Plan</label>
+              <select id="membership_plan" className="form-input" value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)}>
+                {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} — {formatCurrency(plan.price)}</option>)}
+              </select>
+            </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">Optional Add-ons</p>
+              <p className="form-label">Optional Add-ons</p>
               {addons.map((addon) => (
-                <label key={addon.id} className="flex items-center justify-between border rounded-lg px-3 py-2">
+                <label key={addon.id} className="flex items-center justify-between gap-3 border border-gray-300 rounded-lg px-4 py-3 font-body text-gray-800 cursor-pointer transition-colors hover:border-maroon-300 has-[:checked]:border-maroon-500 has-[:checked]:bg-maroon-50/50 dark:border-slate-600 dark:text-slate-100">
                   <span>{addon.name} {addon.usage_limit ? `(limit ${addon.usage_limit})` : ''}</span>
                   <span className="flex items-center gap-3">
-                    <span>{formatCurrency(addon.price)}</span>
-                    <input type="checkbox" checked={Boolean(selectedAddons[addon.id])} onChange={(e) => setSelectedAddons((p) => ({ ...p, [addon.id]: e.target.checked }))} />
+                    <span className="font-semibold">{formatCurrency(addon.price)}</span>
+                    <input type="checkbox" className="h-4 w-4 accent-maroon-700" checked={Boolean(selectedAddons[addon.id])} onChange={(e) => setSelectedAddons((p) => ({ ...p, [addon.id]: e.target.checked }))} />
                   </span>
                 </label>
               ))}
             </div>
 
             <Textarea id="notes" label="Notes" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
-            <p className="font-semibold">Estimated Total: {formatCurrency(total)}</p>
+            <p className="font-display text-lg font-bold text-maroon-800 border-t border-gray-200 pt-4">Estimated Total: {formatCurrency(total)}</p>
             <Button type="submit" isLoading={loading}>Submit Social Membership</Button>
             {message && <p className="text-sm text-gray-600">{message}</p>}
           </form>
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
