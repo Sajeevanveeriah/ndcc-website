@@ -19,6 +19,8 @@ export default function EventDetailClient({ event }: { event: Event }) {
     email: '',
     phone: '',
     quantity: 1,
+    hp_field: '',
+    submitted_at: Date.now(),
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -62,6 +64,8 @@ export default function EventDetailClient({ event }: { event: Event }) {
           email: formData.email,
           phone: formData.phone,
           quantity: formData.quantity,
+          hp_field: formData.hp_field,
+          submitted_at: formData.submitted_at,
         }),
       });
 
@@ -75,7 +79,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
       const paymentHelp = data?.payment_reference ? ` Payment reference: ${data.payment_reference}.` : '';
       const bankHelp = data?.bank_details?.bsb ? ` Bank transfer: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.` : '';
       setErrorMessage(`Registration confirmed.${paymentHelp}${bankHelp} Example reference format: NDCC-YYYYMMDD-1234`);
-      setFormData({ name: '', email: '', phone: '', quantity: 1 });
+      setFormData({ name: '', email: '', phone: '', quantity: 1, hp_field: '', submitted_at: Date.now() });
       setFormErrors({});
     } catch (err) {
       setSubmitStatus('error');
@@ -218,6 +222,15 @@ export default function EventDetailClient({ event }: { event: Event }) {
                   )}
 
                   <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <input
+                      type="text"
+                      name="website"
+                      value={formData.hp_field}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
+                      className="hidden"
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
                     <Input
                       id="reg_name"
                       label="Your Name"

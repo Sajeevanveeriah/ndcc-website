@@ -39,7 +39,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid request body.' }, { status: 400 });
+  }
   const { full_name, email, phone, notes, membership_plan_id, addons, hp_field, submitted_at } = body;
 
   const ip = getClientIp(request);

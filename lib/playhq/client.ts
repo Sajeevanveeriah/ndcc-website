@@ -2,7 +2,7 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getPlayHQConfig } from './config';
 import { normaliseFixtures, normaliseGrades, normaliseLadder, normaliseSeasons, normaliseTeams } from './normalise';
-import type { PlayHQGrade, PlayHQPublicData } from './types';
+import type { PlayHQGrade, PlayHQPublicData, PlayHQSeason } from './types';
 
 const PLAYHQ_TIMEOUT_MS = 8_000;
 
@@ -61,16 +61,29 @@ export async function getPlayHQGameSummary(gameId: string) {
   return playHQFetch(endpoints.cricketGameSummary(gameId));
 }
 
+// Prefer the season whose date range covers today, then the most recently started
+// season, before falling back to whatever PlayHQ returned first.
+function pickCurrentSeasonId(seasons: PlayHQSeason[]): string | null {
+  const now = Date.now();
+  const startOf = (season: PlayHQSeason) => Date.parse(season.startDate || '');
+  const endOf = (season: PlayHQSeason) => Date.parse(season.endDate || '');
+  const byStartDesc = [...seasons].sort((a, b) => (startOf(b) || 0) - (startOf(a) || 0));
+  const covering = byStartDesc.find((season) => startOf(season) <= now && now <= endOf(season));
+  const mostRecentlyStarted = byStartDesc.find((season) => startOf(season) <= now);
+  return covering?.id || mostRecentlyStarted?.id || byStartDesc[0]?.id || null;
+}
+
 async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
   const config = getPlayHQConfig();
+  const fetchedAt = new Date().toISOString();
   if (!config.configured) {
-    return { configured: false, message: 'Fixtures will appear once PlayHQ is configured.', seasons: [], selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
+    return { configured: false, message: 'Fixtures will appear once PlayHQ is configured.', fetchedAt, seasons: [], selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
   }
 
   try {
     const seasons = await getPlayHQSeasons();
-    const selectedSeasonId = config.defaultSeasonId || seasons[0]?.id || null;
-    if (!selectedSeasonId) return { configured: true, message: 'No PlayHQ seasons were returned for this organisation.', seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
+    const selectedSeasonId = config.defaultSeasonId || pickCurrentSeasonId(seasons);
+    if (!selectedSeasonId) return { configured: true, message: 'No PlayHQ seasons were returned for this organisation.', fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
 
     const [teams, allGrades] = await Promise.all([getPlayHQTeams(selectedSeasonId), getPlayHQGrades(selectedSeasonId)]);
     const grades = config.defaultGradeIds.length ? allGrades.filter((grade) => config.defaultGradeIds.includes(grade.id)) : allGrades;
@@ -79,10 +92,12 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
       Promise.all(grades.map((grade) => getPlayHQGradeLadder(grade).catch(() => []))),
     ]);
 
-    return { configured: true, seasons, selectedSeasonId, teams, grades, fixtures: fixturesByGrade.flat(), ladders: laddersByGrade.flat(), error: null };
+    return { configured: true, fetchedAt, seasons, selectedSeasonId, teams, grades, fixtures: fixturesByGrade.flat(), ladders: laddersByGrade.flat(), error: null };
   } catch (error) {
-    return { configured: true, message: 'PlayHQ data is temporarily unavailable.', seasons: [], selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: error instanceof Error ? error.message : 'Unknown PlayHQ error' };
+    return { configured: true, message: 'PlayHQ data is temporarily unavailable.', fetchedAt, seasons: [], selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: error instanceof Error ? error.message : 'Unknown PlayHQ error' };
   }
 }
 
-export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data'], { revalidate: 3600, tags: ['playhq'] });
+// unstable_cache options are fixed at module load, so read the configured TTL here
+// rather than hardcoding it; getPlayHQConfig reads straight from process.env.
+export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data'], { revalidate: getPlayHQConfig().revalidateSeconds, tags: ['playhq'] });

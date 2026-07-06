@@ -7,8 +7,17 @@ import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
+function sanitiseInput(str: string): string {
+  return str.replace(/<[^>]*>/g, '').trim();
+}
+
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid request body.' }, { status: 400 });
+  }
   const { customer_name, customer_email, customer_phone, items, hp_field, submitted_at } = body;
 
   const ip = getClientIp(request);
@@ -35,7 +44,10 @@ export async function POST(request: Request) {
     .select('id,name,price,is_available,is_hidden')
     .in('id', itemIds);
 
-  if (itemsError) return NextResponse.json({ success: false, error: itemsError.message }, { status: 500 });
+  if (itemsError) {
+    console.error('Supabase kitchen items lookup error:', itemsError);
+    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
+  }
   const byId = new Map((dbItems ?? []).map((i) => [i.id, i]));
 
   let total = 0;
@@ -56,9 +68,9 @@ export async function POST(request: Request) {
   const { data: linkedOrder, error: linkedOrderError } = await supabase
     .from('orders')
     .insert({
-      customer_name,
-      customer_email,
-      customer_phone: customer_phone || '',
+      customer_name: sanitiseInput(customer_name),
+      customer_email: sanitiseInput(customer_email),
+      customer_phone: customer_phone ? sanitiseInput(customer_phone) : '',
       items: orderItems.map((i) => ({ name: i.name, size: 'kitchen', quantity: i.quantity, price: i.price })),
       total_amount: total,
       payment_status: 'pending_bank_transfer',
@@ -71,12 +83,15 @@ export async function POST(request: Request) {
     .select('id')
     .single();
 
-  if (linkedOrderError) return NextResponse.json({ success: false, error: linkedOrderError.message }, { status: 500 });
+  if (linkedOrderError) {
+    console.error('Supabase kitchen linked order insert error:', linkedOrderError);
+    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
+  }
 
   const { data: kitchenOrder, error: kitchenOrderError } = await supabase
     .from('kitchen_orders')
     .insert({
-      customer_name,
+      customer_name: sanitiseInput(customer_name),
       total_amount: total,
       status: 'submitted',
       payment_status: 'pending_bank_transfer',
@@ -87,7 +102,10 @@ export async function POST(request: Request) {
     .select('id')
     .single();
 
-  if (kitchenOrderError) return NextResponse.json({ success: false, error: kitchenOrderError.message }, { status: 500 });
+  if (kitchenOrderError) {
+    console.error('Supabase kitchen order insert error:', kitchenOrderError);
+    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
+  }
 
   const { error: orderItemsError } = await supabase.from('kitchen_order_items').insert(
     orderItems.map((i) => ({
@@ -97,7 +115,10 @@ export async function POST(request: Request) {
       price: i.price,
     }))
   );
-  if (orderItemsError) return NextResponse.json({ success: false, error: orderItemsError.message }, { status: 500 });
+  if (orderItemsError) {
+    console.error('Supabase kitchen order items insert error:', orderItemsError);
+    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
+  }
 
   const kitchenItemListHtml = orderItems
     .map((i) =>
@@ -109,11 +130,11 @@ export async function POST(request: Request) {
     )
     .join('');
   void sendEmail({
-    to: customer_email,
+    to: sanitiseInput(customer_email),
     subject: `Kitchen order confirmed — Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
       'Kitchen Order Confirmation',
-      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${customer_name},</p>
+      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(customer_name)},</p>
       <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received. Please complete payment using the bank transfer details below.</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <thead>

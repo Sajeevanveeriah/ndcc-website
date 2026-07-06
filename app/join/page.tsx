@@ -7,6 +7,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Input, { Textarea } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
+import { PLAYHQ_ORG_URL } from '@/lib/constants';
 
 interface Plan { id: string; name: string; description: string; price: number; }
 interface Addon { id: string; name: string; description: string; price: number; usage_limit: number | null; }
@@ -103,7 +104,7 @@ export default function JoinPage() {
             <CardContent className="p-6 space-y-3">
               <h2 className="text-2xl font-display font-bold">Player Registration</h2>
               <p className="text-gray-600">Player registrations stay on PlayHQ as required.</p>
-              <a href={process.env.NEXT_PUBLIC_PLAYHQ_URL || '#'} target="_blank" rel="noopener noreferrer">
+              <a href={PLAYHQ_ORG_URL} target="_blank" rel="noopener noreferrer">
                 <Button>Go to PlayHQ</Button>
               </a>
             </CardContent>

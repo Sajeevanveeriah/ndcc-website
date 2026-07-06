@@ -2,13 +2,17 @@
 
 Official website for the Newcomb and District Cricket Club — the Dinos. Competing in the Geelong Cricket Association since 1972.
 
+**Production:** [www.ndcc.com.au](https://www.ndcc.com.au)
+
 ## Tech Stack
 
 - **Framework:** Next.js 14 (App Router) with TypeScript
-- **Styling:** Tailwind CSS
+- **Styling:** Tailwind CSS (club branding: maroon and blue primary, gold for emphasis only)
 - **Database:** Supabase Postgres (managed via `supabase/migrations`)
-- **Payments:** Stripe (Payment Links)
-- **Deployment:** Vercel
+- **Email:** Resend API for app notifications; Supabase SMTP for auth emails
+- **Payments:** bank-transfer orders live today; Stripe-ready (Payment Links / Checkout) but dormant until explicitly enabled
+- **Fixtures:** PlayHQ Public API (fixtures come from PlayHQ only — never manually entered)
+- **Deployment:** Vercel (region `sin1`, daily keep-alive cron)
 
 ## Getting Started
 
@@ -31,6 +35,13 @@ Copy `.env.example` to `.env.local` and fill in your values:
 cp .env.example .env.local
 ```
 
+Variables split by exposure (full annotated list in `.env.example`):
+
+- **Public (browser-safe, `NEXT_PUBLIC_*`)**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (only used if Stripe modes are enabled).
+- **Server-only (never expose)**: `SUPABASE_SERVICE_ROLE_KEY`, `PLAYHQ_*`, `RESEND_*`, `CONTACT_*`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `EMAIL_TEST_MODE`, `NDCC_BANK_*`, `GITHUB_*` media upload vars, `AUTH_COOKIE_DOMAIN` (optional).
+- **Optional email vars**: `EMAIL_TEST_MODE` (simulate sends), `CONTACT_TO_EMAIL` / `CONTACT_CC_EMAILS` / `CONTACT_BCC_EMAILS`.
+- **Optional payment vars**: `PAYMENT_PROVIDER` (`manual` | `stripe_payment_link` | `stripe_checkout`, default `manual`), `PAYMENT_TEST_MODE` (default `true`), plus the three Stripe keys.
+
 ### Database Setup
 
 1. Create a new Supabase project at [supabase.com](https://supabase.com)
@@ -48,10 +59,40 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Admin Setup (Custom Committee Auth)
 
-1. Apply `20260401_custom_committee_auth.sql` and later migrations.
+1. Apply `20260401_custom_committee_auth.sql` and later migrations (pgcrypto is required for password hashing; the repair migrations handle it).
 2. Bootstrap the first admin using `POST /api/admin/auth/bootstrap`.
-3. Log in at `/admin/login`.
+3. Log in at `/admin/login` (password field has a show/hide toggle).
 4. Manage committee users in `/admin/users` (admin-only). Roles available: `admin`, `president`, `secretary`, `committee`.
+
+Sessions are cookie-based (hashed tokens in `committee_sessions`) with a 14-day absolute TTL **and** a sliding inactivity window: the admin UI warns at 9 minutes of inactivity and signs out at 10; the server independently expires sessions idle for more than 15 minutes (`last_seen_at`). A root `middleware.ts` redirects cookie-less visits to `/admin/*` straight to the login page.
+
+### CMS Modules and Content Freshness
+
+CMS-backed modules (public route ← table): news (`news`), events (`events`), gallery (`gallery_images`), merchandise (`apparel_products` + `merch_order_windows`), sponsors (`sponsors`), committee (`committee_members`, rendered on `/about` and `/contact`), teams (`teams`), facilities (`facility_features`), history, season appointments, kitchen menus, volunteer positions, content blocks and page link cards (footer/nav/page copy) via `/admin/site-pages` and `/admin/content`.
+
+Freshness model: public server pages use ISR (`revalidate = 300`) over tagged `unstable_cache` reads; every admin create/edit/delete through `/api/admin/resources/*` calls `revalidateTag`/`revalidatePath`, so CMS changes appear on the public site immediately — no redeploy needed. Public JSON APIs (`/api/public/*`, `/api/apparel/*`) are `force-dynamic` with `no-store` headers. Live CMS rows are the single source of truth: static fallback content renders only during the production build phase, when Supabase env is missing, or when a live query fails — never on top of a successful (even empty) live result.
+
+### PlayHQ (Fixtures)
+
+Fixtures come from the PlayHQ Public API only — the repo contains no manually-entered fixture data and must never gain any. Configuration is centralised in `lib/playhq/config.ts` and driven by server-only env vars:
+
+- `PLAYHQ_API_BASE_URL` (default `https://api.caprod.playhq.com`)
+- `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`
+- `PLAYHQ_DEFAULT_SEASON_ID` (optional; when unset the current/most recent season is auto-selected)
+- `PLAYHQ_DEFAULT_GRADE_IDS` (optional)
+- `PLAYHQ_CACHE_REVALIDATE_SECONDS` (default 3600)
+
+Never prefix PlayHQ vars with `NEXT_PUBLIC`. When the API is unconfigured or returns no fixtures, `/fixtures` shows an explanatory card with an external PlayHQ CTA (from the `fixtures.status` content block, club settings `playhq_url`, or the `PLAYHQ_ORG_URL` constant) — no fake fixtures. Per-team PlayHQ links are admin-editable as `fixtures / team_links` page link cards. The club-wide PlayHQ org URL lives in `lib/constants.ts` (`PLAYHQ_ORG_URL`) and in CMS club settings.
+
+### Payments
+
+Three modes, selected by `PAYMENT_PROVIDER` (server-only) plus per-product fields (`payment_mode`, `payment_link_url`, `stripe_price_id`, `checkout_enabled`):
+
+1. **`manual` (live today):** merchandise orders post to `/api/orders`, get an `NDCC-…` payment reference and bank-transfer details (from `NDCC_BANK_*` env), and are reconciled in `/admin/payments`. No card charging anywhere.
+2. **`stripe_payment_link` (one admin step):** create a Payment Link in the Stripe dashboard, paste it into a product's `payment_link_url` with `payment_mode = stripe_payment_link` in `/admin/apparel` — the product card shows a safe external "Pay online" button. Recommended first rollout path.
+3. **`stripe_checkout` (future):** set `PAYMENT_PROVIDER=stripe_checkout` plus the Stripe keys; `/api/checkout` creates Checkout Sessions with **server-side prices from `apparel_products`** (client prices are never trusted) and the webhook (`/api/stripe/webhook`, signature-verified) marks orders paid only when `payment_status === 'paid'` and amounts match.
+
+**Safety:** live charging is impossible until `PAYMENT_PROVIDER=stripe_checkout` *and* Stripe keys are deliberately configured; keep `PAYMENT_TEST_MODE=true` until go-live.
 
 ### Email Setup
 
@@ -90,6 +131,7 @@ DNS changes are manual in Namecheap. For BasicDNS, use **Advanced DNS → Mail S
   - Add/confirm TXT host `resend._domainkey` for DKIM.
   - Add MX host `send` for Resend return-path feedback SMTP.
   - Add TXT host `send` for SPF.
+  - Add/confirm a DMARC TXT record at `_dmarc` (start with `v=DMARC1; p=none; rua=mailto:<monitoring inbox>` and tighten to `quarantine`/`reject` after monitoring).
   - Keep Resend receiving disabled unless inbound email webhooks are intentionally implemented.
   - Do not change the root `@` MX records unless the club intentionally changes mailbox provider.
 - Vercel environment variable checklist:
@@ -112,7 +154,12 @@ Local DNS check commands from Windows PowerShell:
 Resolve-DnsName -Type TXT resend._domainkey.ndcc.com.au
 Resolve-DnsName -Type TXT send.ndcc.com.au
 Resolve-DnsName -Type MX send.ndcc.com.au
+Resolve-DnsName -Type TXT _dmarc.ndcc.com.au
 ```
+
+#### Email test mode
+
+Set `EMAIL_TEST_MODE=true` locally (or temporarily in a preview environment) to log/simulate every app email instead of sending it — form flows and `/admin/email-diagnostics` still exercise the full path. Leave it unset/false in production. Never run bulk sends while testing; real test sends should go only to a configured admin/test recipient, triggered deliberately.
 
 ### GitHub-backed CMS Image Upload Setup
 
@@ -162,35 +209,76 @@ When environment variables are added or changed in Vercel, trigger a new deploym
 
 ```
 app/
-  ├── page.tsx              # Home
+  ├── page.tsx              # Home (hero, quick links, news, events, sponsors, gallery, join CTA)
   ├── about/                # Club history & committee
   ├── teams/                # Senior Men, Women, Juniors
   ├── facilities/           # Grinter Reserve & training facility
-  ├── fixtures/             # Fixtures & results (PlayHQ link)
+  ├── fixtures/             # PlayHQ fixtures & ladders
+  ├── fantasy/              # Fantasy cricket (register/login/squad/transfers/leagues/leaderboards/rules)
   ├── events/               # Events listing & registration
   ├── news/                 # News & announcements
   ├── merchandise/          # Club apparel & orders
+  ├── kitchen/              # Kitchen menu & pre-orders
+  ├── join/                 # Membership / join the club
   ├── sponsors/             # Sponsor tiers & enquiry form
   ├── gallery/              # Photo gallery
-  ├── volunteer/            # Volunteer registration
-  ├── contact/              # Contact form & details
-  ├── admin/                # Protected admin dashboard
-  └── api/                  # API routes for form submissions
+  ├── volunteer/            # Volunteer expressions of interest
+  ├── contact/              # Contact form, CMS committee list, map
+  ├── committee/            # Committee-only meeting minutes
+  ├── admin/                # Protected admin dashboard (custom committee auth)
+  └── api/                  # Public content APIs, form submissions, admin resource API
 components/
-  ├── ui/                   # Reusable UI components
+  ├── ui/                   # Reusable UI primitives (Input incl. PasswordInput, Card, Button…)
+  ├── common/               # SafeImage, ScrollReveal, LogoChip, theme toggle…
+  ├── home/                 # Home page sections
+  ├── fantasy/              # Fantasy UI components
   ├── layout/               # Navbar & Footer
-  ├── forms/                # Form components
-  └── admin/                # Admin components
+  └── admin/                # Admin components (InactivityGuard, batch actions…)
 lib/
-  ├── supabase.ts           # Supabase client
-  ├── supabase-server.ts    # Server-side Supabase client
-  ├── stripe.ts             # Stripe configuration
-  ├── types.ts              # TypeScript interfaces
-  ├── constants.ts          # Club data & constants
-  └── utils.ts              # Helper functions
+  ├── supabase.ts / supabase-server.ts   # Supabase clients
+  ├── auth/                 # Committee session auth (config, session, guard)
+  ├── playhq/               # PlayHQ config, client, normalisers
+  ├── payments/             # Payment config & reconciliation matching
+  ├── public-data.ts / public-news.ts / structured-content.ts / content-blocks.ts  # tagged public reads
+  ├── fallback-content.ts   # cold-start/build-phase fallbacks (never override live data)
+  ├── email.ts              # Resend app email (server-only, non-blocking, test mode)
+  └── constants.ts / types.ts / utils.ts
+middleware.ts               # Redirects cookie-less /admin visits to /admin/login
 supabase/
-  └── schema.sql            # Database schema & RLS policies
+  ├── migrations/           # Source of truth — apply in timestamp order
+  └── schema.sql            # Legacy snapshot (not authoritative)
+scripts/                    # Smoke tests & operational scripts (see package.json)
 ```
+
+## Fantasy League
+
+- **Public routes:** `/fantasy` (hub), `/fantasy/register`, `/fantasy/login`, `/fantasy/account`, `/fantasy/squad`, `/fantasy/team`, `/fantasy/transfers`, `/fantasy/leagues`, `/fantasy/players`, `/fantasy/leaderboard`, `/fantasy/manager-leaderboard`, `/fantasy/rules`.
+- **Flow:** Supabase Auth signup → email confirmation (requires Supabase SMTP configured) → fantasy manager profile auto-created/upserted on first authenticated visit (no duplicates) → squad building within budget/role limits → transfers and chips → leaderboards.
+- **Admin controls** (`/admin/fantasy/*`): registration open/closed, team selection open/closed, season label, budget/role limits, rounds with lock deadlines (enforced server-side), scoring rules, player imports, round score calculation. Rules text is editable via the `fantasy.rules` content block in `/admin/content`.
+- **Smoke tests:** `npm run smoke:fantasy` and `npm run test:fantasy`; full live acceptance steps are in the operator checklist below.
+
+## Verification Checklist
+
+Run before claiming any change is release-ready:
+
+1. `npm run lint`
+2. `npx tsc --noEmit`
+3. `npm run build`
+4. Public route smoke test: `npm run smoke` (or manually `/`, `/news`, `/events`, `/gallery`, `/merchandise`, `/contact`, `/fixtures`, `/fantasy`, `/admin/login`)
+5. Data checks: public news/events/gallery/committee/sponsors match live published/active Supabase rows exactly (no seed content when Supabase is up); merchandise lists all active products.
+6. Admin CRUD smoke: login (incl. show-password), create/edit/unpublish/delete a draft news item, edit a committee member and confirm `/contact` updates, batch publish/unpublish on safe records, product edit.
+7. Email: with `EMAIL_TEST_MODE=true`, submit contact/volunteer forms and confirm simulated sends in logs and `/admin/email-diagnostics`.
+8. PlayHQ: `/fixtures` renders live data or the PlayHQ CTA card; `npm run test:playhq-config`.
+9. Payments: manual order flow issues a payment reference; no checkout path is live unless `PAYMENT_PROVIDER=stripe_checkout` is deliberately set.
+10. Admin inactivity: idle 9 minutes → warning; extend works; 10 minutes → signed out.
+
+## Known Limitations
+
+- **Stripe checkout is dormant by design** — the club has not finalised a payment provider. Payment Links per product are the recommended first step.
+- **Supabase Auth emails depend on Supabase SMTP** being configured in the dashboard; until then fantasy signup confirmations do not send.
+- **Migration bookkeeping drift:** some early tables exist in production but their base `CREATE TABLE` statements predate the migrations folder; a brand-new environment needs `supabase/schema.sql` as a starting reference plus the migrations. Production is unaffected.
+- **CMS image uploads deploy via git commits** to `main`, so an uploaded image becomes visible only after the auto-deployment finishes (~1 minute).
+- **Supabase dashboard settings** (leaked-password protection, Auth SMTP, redirect URLs) cannot be managed from this repo and must be maintained in the dashboard.
 
 ## Club Details
 
@@ -221,7 +309,10 @@ Configure production values and redeploy after every change:
 - `RESEND_FROM`
 - `RESEND_FROM_EMAIL`
 - GitHub media upload variables already used by this repo: `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` (`VERCEL_DEPLOY_HOOK_URL` is no longer used — uploads publish via Vercel's git auto-deploy)
-- Stripe variables already used by this repo: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Stripe variables already used by this repo: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (leave unset until a Stripe mode is enabled)
+- Payment mode switches: `PAYMENT_PROVIDER` (`manual` unless going live with Stripe), `PAYMENT_TEST_MODE`
+- PlayHQ (server-only): `PLAYHQ_API_BASE_URL`, `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_DEFAULT_SEASON_ID`, `PLAYHQ_DEFAULT_GRADE_IDS`, `PLAYHQ_CACHE_REVALIDATE_SECONDS`
+- Contact recipients (optional): `CONTACT_TO_EMAIL`, `CONTACT_CC_EMAILS`, `CONTACT_BCC_EMAILS`; keep `EMAIL_TEST_MODE` unset/false in production
 - Bank transfer email variables already used by this repo: `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER`
 
 ### Namecheap DNS for Resend sending
