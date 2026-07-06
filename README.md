@@ -277,6 +277,7 @@ Run before claiming any change is release-ready:
 - **Stripe checkout is dormant by design** — the club has not finalised a payment provider. Payment Links per product are the recommended first step.
 - **Supabase Auth emails depend on Supabase SMTP** being configured in the dashboard; until then fantasy signup confirmations do not send.
 - **Migration bookkeeping drift:** some early tables exist in production but their base `CREATE TABLE` statements predate the migrations folder; a brand-new environment needs `supabase/schema.sql` as a starting reference plus the migrations. Production is unaffected.
+- **Supabase preview branching fails on historical migration filenames.** The Supabase CLI treats the filename prefix before the first underscore as the migration version, and several historical files share a date-only version (two `20260401_*`, seven `20260402_*`, …), so the PR "Supabase Preview" check errors with a duplicate `schema_migrations` key. Production schema is managed with idempotent migrations applied directly. Fix path: a dedicated PR renaming historical migrations to unique full timestamps and reconciling `supabase_migrations.schema_migrations`, or disable branching for this repo. New migrations use full `YYYYMMDDHHMMSS` prefixes.
 - **CMS image uploads deploy via git commits** to `main`, so an uploaded image becomes visible only after the auto-deployment finishes (~1 minute).
 - **Supabase dashboard settings** (leaked-password protection, Auth SMTP, redirect URLs) cannot be managed from this repo and must be maintained in the dashboard.
 
