@@ -24,6 +24,8 @@ export default function Navbar() {
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -33,6 +35,8 @@ export default function Navbar() {
   }, []);
   useEffect(() => {
     setIsOpen(false);
+    setMoreOpen(false);
+    setAccountOpen(false);
   }, [pathname]);
   useEffect(() => {
     const loadClubSettings = async () => {
@@ -58,7 +62,9 @@ export default function Navbar() {
             id: link.id,
             label: link.title,
             href: link.href,
-            openInNewTab: link.is_external || /^https?:\/\//i.test(link.href),
+            // Local routes (e.g. /fantasy) must never open in a new tab, even if a CMS
+            // row is mis-flagged is_external — only real http(s) URLs qualify.
+            openInNewTab: /^https?:\/\//i.test(link.href),
           })));
         }
       } catch {
@@ -168,12 +174,25 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* More dropdown */}
-            <div className="relative group">
-              <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800">
-                More <ChevronDown className="h-3.5 w-3.5" />
+            {/* More dropdown — hover for mouse, click/focus for keyboard */}
+            <div
+              className="relative group"
+              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setMoreOpen(false); }}
+              onKeyDown={(e) => { if (e.key === 'Escape') setMoreOpen(false); }}
+            >
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                onClick={() => setMoreOpen((open) => !open)}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800"
+              >
+                More <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
-              <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+              <div className={cn(
+                'absolute right-0 top-full pt-1 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0',
+                moreOpen ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
+              )}>
                 <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px] dark:bg-slate-800 dark:border-slate-700">
                   {moreLinks.map((link) => (
                     <Link
@@ -196,11 +215,24 @@ export default function Navbar() {
             </div>
 
             {sessionUser && (
-              <div className="relative group ml-2">
-                <button className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800">
-                  {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" />
+              <div
+                className="relative group ml-2"
+                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setAccountOpen(false); }}
+                onKeyDown={(e) => { if (e.key === 'Escape') setAccountOpen(false); }}
+              >
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={accountOpen}
+                  onClick={() => setAccountOpen((open) => !open)}
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-800"
+                >
+                  {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
-                <div className="absolute right-0 top-full pt-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+                <div className={cn(
+                  'absolute right-0 top-full pt-1 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0',
+                  accountOpen ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
+                )}>
                   <div className="bg-white rounded-xl shadow-md border border-gray-200 py-2 min-w-[180px] dark:bg-slate-800 dark:border-slate-700">
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-700">Account</Link>
                     <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-slate-700">Admin Panel</Link>

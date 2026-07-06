@@ -94,21 +94,53 @@ export async function getActivePlayersWithLatestPrices(): Promise<FantasyPlayerW
   }));
 }
 
-export async function getCurrentRoundId() {
+export type FantasyRoundInfo = {
+  id: string;
+  name: string;
+  status: string;
+  deadline_at: string | null;
+};
+
+export type RoundLockState = {
+  roundId: string | null;
+  roundName: string | null;
+  locked: boolean;
+  reason: string | null;
+};
+
+export async function getCurrentRound(): Promise<FantasyRoundInfo | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_rounds')
-    .select('id')
+    .select('id, name, status, deadline_at')
     .in('status', ['open', 'locked', 'scored'])
     .order('round_number', { ascending: true })
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (data?.id) return data.id as string;
+  if (data?.id) return data as FantasyRoundInfo;
 
-  const fallback = await supabase.from('fantasy_rounds').select('id').order('round_number', { ascending: true }).limit(1).maybeSingle();
+  const fallback = await supabase.from('fantasy_rounds').select('id, name, status, deadline_at').order('round_number', { ascending: true }).limit(1).maybeSingle();
   if (fallback.error) throw new Error(fallback.error.message);
-  return (fallback.data?.id as string | undefined) ?? null;
+  return (fallback.data as FantasyRoundInfo | null) ?? null;
+}
+
+export async function getCurrentRoundId() {
+  const round = await getCurrentRound();
+  return round?.id ?? null;
+}
+
+export async function getRoundLockState(): Promise<RoundLockState> {
+  const round = await getCurrentRound();
+  if (!round) return { roundId: null, roundName: null, locked: false, reason: null };
+
+  if (round.status !== 'open') {
+    return { roundId: round.id, roundName: round.name, locked: true, reason: `${round.name} is not open for team changes.` };
+  }
+  if (round.deadline_at && new Date(round.deadline_at).getTime() <= Date.now()) {
+    return { roundId: round.id, roundName: round.name, locked: true, reason: `The deadline for ${round.name} has passed, so team changes are locked.` };
+  }
+  return { roundId: round.id, roundName: round.name, locked: false, reason: null };
 }
 
 export function validateSquadSelection(selection: SquadSelection[], players: FantasyPlayerWithPrice[], settings: FantasySettings): SquadValidationResult {

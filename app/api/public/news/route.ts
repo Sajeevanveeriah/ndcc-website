@@ -41,8 +41,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
     }
 
+    // A successful empty result is live truth — do not substitute seed content.
     const data = await getPublishedNews({ limit });
-    const posts = Array.isArray(data) && data.length > 0 ? data : getSeedNews(undefined, limit);
+    const posts = Array.isArray(data) ? data : [];
     return NextResponse.json({ success: true, data: posts }, { headers: noStoreHeaders });
   } catch {
     return NextResponse.json({ success: true, data: getSeedNews(undefined, limit) }, { headers: noStoreHeaders });

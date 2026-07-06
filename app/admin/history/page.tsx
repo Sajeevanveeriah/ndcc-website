@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-import Input, { Select } from '@/components/ui/Input';
+import Input, { Select, Textarea } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { parseApiResponse } from '@/lib/admin-client';
 import { Trash2 } from 'lucide-react';
@@ -37,9 +37,14 @@ type CommitteeMember = {
   id: string;
   name: string;
   role: string;
+  email?: string | null;
+  phone?: string | null;
+  bio?: string | null;
   sort_order: number;
   is_active: boolean;
 };
+
+const emptyCommitteeForm = { id: '', name: '', role: '', email: '', phone: '', bio: '', sort_order: '1', is_active: true };
 
 export default function AdminHistoryPage() {
   const [lineage, setLineage] = useState<Lineage[]>([]);
@@ -52,7 +57,7 @@ export default function AdminHistoryPage() {
   const [lineageForm, setLineageForm] = useState({ id: '', club_name: '', start_season: '', end_season: '', association_abbr: '', sort_order: '1', is_active: true });
   const [premForm, setPremForm] = useState({ id: '', team_label: '1st XI', season_label: '', competition_abbr: 'GCA', grade_label: '', sort_order: '1', is_active: true });
   const [competitionForm, setCompetitionForm] = useState({ id: '', abbreviation: '', name: '' });
-  const [committeeForm, setCommitteeForm] = useState({ id: '', name: '', role: '', sort_order: '1', is_active: true });
+  const [committeeForm, setCommitteeForm] = useState(emptyCommitteeForm);
   const [committeeDeleteConfirm, setCommitteeDeleteConfirm] = useState<string | null>(null);
 
   const loadAll = useCallback(async function loadAll() {
@@ -177,6 +182,9 @@ export default function AdminHistoryPage() {
       const payload = {
         name: committeeForm.name.trim(),
         role: committeeForm.role.trim(),
+        email: committeeForm.email.trim() || null,
+        phone: committeeForm.phone.trim() || null,
+        bio: committeeForm.bio.trim() || null,
         sort_order: Number(committeeForm.sort_order || 0),
         is_active: committeeForm.is_active,
       };
@@ -187,7 +195,7 @@ export default function AdminHistoryPage() {
       });
       await parseApiResponse(res);
       setStatus(committeeForm.id ? 'Committee member updated.' : 'Committee member saved.');
-      setCommitteeForm({ id: '', name: '', role: '', sort_order: '1', is_active: true });
+      setCommitteeForm(emptyCommitteeForm);
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to save committee member.');
@@ -202,7 +210,7 @@ export default function AdminHistoryPage() {
       await parseApiResponse(res);
       setCommitteeMembers((prev) => prev.filter((member) => member.id !== id));
       if (committeeForm.id === id) {
-        setCommitteeForm({ id: '', name: '', role: '', sort_order: '1', is_active: true });
+        setCommitteeForm(emptyCommitteeForm);
       }
       setStatus('Committee member deleted.');
       setCommitteeDeleteConfirm(null);
@@ -293,10 +301,15 @@ export default function AdminHistoryPage() {
           <Input id="committee_name" label="Name" required value={committeeForm.name} onChange={(e) => setCommitteeForm((v) => ({ ...v, name: e.target.value }))} />
           <Input id="committee_role" label="Role" required value={committeeForm.role} onChange={(e) => setCommitteeForm((v) => ({ ...v, role: e.target.value }))} />
           <Input id="committee_sort" label="Sort order" type="number" value={committeeForm.sort_order} onChange={(e) => setCommitteeForm((v) => ({ ...v, sort_order: e.target.value }))} />
+          <Input id="committee_email" label="Email (optional)" type="email" value={committeeForm.email} onChange={(e) => setCommitteeForm((v) => ({ ...v, email: e.target.value }))} />
+          <Input id="committee_phone" label="Phone (optional)" type="tel" value={committeeForm.phone} onChange={(e) => setCommitteeForm((v) => ({ ...v, phone: e.target.value }))} />
+          <div className="md:col-span-3">
+            <Textarea id="committee_bio" label="Bio (optional)" rows={3} value={committeeForm.bio} onChange={(e) => setCommitteeForm((v) => ({ ...v, bio: e.target.value }))} />
+          </div>
           <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={committeeForm.is_active} onChange={(e) => setCommitteeForm((v) => ({ ...v, is_active: e.target.checked }))} />Active</label>
           <div className="md:col-span-2 flex gap-2">
             <Button type="submit" isLoading={saving}>{committeeForm.id ? 'Update Member' : 'Save Member'}</Button>
-            {committeeForm.id && <Button type="button" variant="secondary" onClick={() => setCommitteeForm({ id: '', name: '', role: '', sort_order: '1', is_active: true })}>Cancel</Button>}
+            {committeeForm.id && <Button type="button" variant="secondary" onClick={() => setCommitteeForm(emptyCommitteeForm)}>Cancel</Button>}
           </div>
         </form>
         <ul className="space-y-2 text-sm text-gray-700">
@@ -304,7 +317,7 @@ export default function AdminHistoryPage() {
             <li key={member.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{member.name} · {member.role} · sort {member.sort_order}</span>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setCommitteeForm({ id: member.id, name: member.name, role: member.role, sort_order: String(member.sort_order), is_active: member.is_active })}>Edit</Button>
+                <Button size="sm" variant="ghost" onClick={() => setCommitteeForm({ id: member.id, name: member.name, role: member.role, email: member.email || '', phone: member.phone || '', bio: member.bio || '', sort_order: String(member.sort_order), is_active: member.is_active })}>Edit</Button>
                 <Button size="sm" variant="ghost" onClick={() => setCommitteeDeleteConfirm(member.id)} aria-label={`Delete ${member.name}`}>
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>

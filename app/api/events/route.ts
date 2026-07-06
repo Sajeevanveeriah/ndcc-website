@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
@@ -14,7 +15,19 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { event_id, name, email, phone, quantity } = body;
+    const { event_id, name, email, phone, quantity, hp_field, submitted_at } = body;
+
+    const ip = getClientIp(request);
+    if (!enforceRateLimit(`event:${ip}`, 8, 60_000)) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please wait a moment and try again.' },
+        { status: 429 }
+      );
+    }
+
+    if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
+      return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+    }
 
     if (!event_id || !name || !email) {
       return NextResponse.json(

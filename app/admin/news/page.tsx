@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -32,22 +33,25 @@ export default function AdminNewsPage() {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  const fetchNews = async () => {
+    try {
+      const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
+      const result = await parseApiResponse<{ data?: NewsPost[] }>(response);
+      const ordered = (result.data || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      setNews(ordered);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch news.' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
-        const result = await parseApiResponse<{ data?: NewsPost[] }>(response);
-        const ordered = (result.data || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-        setNews(ordered);
-      } catch (err) {
-        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch news.' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCreate = () => {
@@ -130,12 +134,49 @@ export default function AdminNewsPage() {
       const response = await fetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setNews((prev) => prev.filter((n) => n.id !== id));
+      setSelectedIds((prev) => prev.filter((v) => v !== id));
       setFeedback({ type: 'success', message: 'Article deleted.' });
       setDeleteConfirm(null);
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete article.' });
     }
   };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.length === news.length ? [] : news.map((n) => n.id)));
+  };
+
+  const runBatch = async (run: () => Promise<Response>, successMessage: string) => {
+    setBatchBusy(true);
+    try {
+      await parseApiResponse(await run());
+      await fetchNews();
+      setSelectedIds([]);
+      setFeedback({ type: 'success', message: successMessage });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Batch action failed.' });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  const batchSetPublished = (published: boolean) => runBatch(
+    () => adminFetch('/api/admin/resources/news', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, published }),
+    }),
+    published ? 'Selected articles published.' : 'Selected articles unpublished.'
+  );
+
+  const batchDelete = () => runBatch(
+    () => fetch(`/api/admin/resources/news?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    'Selected articles deleted.'
+  );
 
   return (
     <div>
@@ -158,6 +199,18 @@ export default function AdminNewsPage() {
         <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
       )}
 
+      <BatchActionsBar
+        selectedCount={selectedIds.length}
+        itemLabel="article"
+        busy={batchBusy}
+        onClearSelection={() => setSelectedIds([])}
+        actions={[
+          { key: 'publish', label: 'Batch Publish', onAction: () => batchSetPublished(true) },
+          { key: 'unpublish', label: 'Batch Unpublish', onAction: () => batchSetPublished(false) },
+          { key: 'delete', label: 'Batch Delete', variant: 'danger', confirm: true, confirmLabel: 'Delete the selected articles? This cannot be undone.', onAction: batchDelete },
+        ]}
+      />
+
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
@@ -173,6 +226,15 @@ export default function AdminNewsPage() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableHeader className="w-10">
+                <input
+                  type="checkbox"
+                  aria-label="Select all articles"
+                  checked={news.length > 0 && selectedIds.length === news.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                />
+              </TableHeader>
               <TableHeader>Title</TableHeader>
               <TableHeader>Author</TableHeader>
               <TableHeader>Content</TableHeader>
@@ -186,6 +248,15 @@ export default function AdminNewsPage() {
           <TableBody>
             {news.map((post) => (
               <TableRow key={post.id}>
+                <TableCell className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${post.title}`}
+                    checked={selectedIds.includes(post.id)}
+                    onChange={() => toggleSelected(post.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{post.title}</TableCell>
                 <TableCell>{post.author}</TableCell>
                 <TableCell>

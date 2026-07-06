@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -10,10 +10,30 @@ import type { GalleryPhoto } from '@/lib/public-data';
 
 export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; error?: string | null }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
   const activePhoto = useMemo(
     () => (activeIndex === null ? null : photos[activeIndex] ?? null),
     [activeIndex, photos]
   );
+
+  const closeLightbox = () => {
+    setActiveIndex(null);
+    // Return focus to the tile that opened the lightbox.
+    triggerRef.current?.focus();
+    triggerRef.current = null;
+  };
+
+  useEffect(() => {
+    if (activeIndex === null) return;
+    dialogRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeLightbox();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex]);
 
   return (
     <>
@@ -31,7 +51,10 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
               <button
                 key={photo.id}
                 type="button"
-                onClick={() => setActiveIndex(index)}
+                onClick={(event) => {
+                  triggerRef.current = event.currentTarget;
+                  setActiveIndex(index);
+                }}
                 className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-gray-200 shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700"
               >
                 <SafeImage
@@ -77,8 +100,20 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
       </section>
 
       {activePhoto && (
-        <div className="fixed inset-0 z-50 bg-black/85 p-4 sm:p-8 flex items-center justify-center">
-          <div className="w-full max-w-5xl bg-black rounded-xl overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 bg-black/85 p-4 sm:p-8 flex items-center justify-center"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeLightbox();
+          }}
+        >
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activePhoto.caption || activePhoto.title || 'Gallery image'}
+            tabIndex={-1}
+            className="w-full max-w-5xl bg-black rounded-xl overflow-hidden outline-none"
+          >
             <div className="relative aspect-video">
               <SafeImage
                 src={activePhoto.image_url}
@@ -104,7 +139,7 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
                     <Button variant="secondary" size="sm">Download</Button>
                   </a>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => setActiveIndex(null)}>
+                <Button variant="ghost" size="sm" onClick={closeLightbox}>
                   Close
                 </Button>
               </div>

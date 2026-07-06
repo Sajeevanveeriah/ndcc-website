@@ -22,7 +22,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   volunteers: { table: 'volunteers', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'email', 'phone', 'availability', 'notes'], defaultOrder: { column: 'created_at', ascending: false } },
   orders: { table: 'orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['processed', 'payment_status', 'confirmed_by', 'confirmed_at', 'bank_reference_used', 'needs_review_reason'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['confirmed_at'] },
   enquiries: { table: 'contacts', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['name', 'email', 'phone', 'enquiry_type', 'message', 'responded'], defaultOrder: { column: 'created_at', ascending: false } },
-  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'stripe_link', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
+  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'stripe_link', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
   eventRegistrations: { table: 'event_registrations', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   news: { table: 'news', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'content', 'author', 'image_url', 'published', 'published_at', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   seasonAppointments: { table: 'season_appointments', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'image_url', 'announcement_date', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -37,13 +37,13 @@ const resourceMap: Record<string, ResourceConfig> = {
   volunteerPositions: { table: 'volunteer_positions', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['title', 'description', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   volunteerExpressions: { table: 'volunteer_expressions', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['status', 'contacted_at'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['contacted_at'] },
   galleryImages: { table: 'gallery_images', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'caption', 'image_url', 'alt_text', 'sort_order', 'allow_download', 'published'], defaultOrder: { column: 'sort_order', ascending: true } },
-  apparelProducts: { table: 'apparel_products', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['slug', 'name', 'description', 'price', 'sizes', 'image_url', 'customisable', 'category', 'display_order', 'order_guidance', 'size_guidance', 'active'], defaultOrder: { column: 'display_order', ascending: true } },
+  apparelProducts: { table: 'apparel_products', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['slug', 'name', 'description', 'price', 'sizes', 'image_url', 'customisable', 'category', 'display_order', 'order_guidance', 'size_guidance', 'active', 'payment_mode', 'payment_link_url', 'stripe_price_id', 'checkout_enabled', 'fulfilment_notes', 'order_email'], defaultOrder: { column: 'display_order', ascending: true } },
   pageLinkCards: { table: 'page_link_cards', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['page_slug', 'section_key', 'title', 'description', 'href', 'icon', 'badge', 'is_external', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   facilityFeatures: { table: 'facility_features', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['title', 'description', 'icon_key', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   historyLineage: { table: 'history_lineage_entries', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['club_name', 'start_season', 'end_season', 'association_abbr', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   historyPremierships: { table: 'history_premierships', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['team_label', 'season_label', 'competition_abbr', 'grade_label', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   historyCompetitions: { table: 'history_competitions', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['abbreviation', 'name'], defaultOrder: { column: 'abbreviation', ascending: true } },
-  committeeMembers: { table: 'committee_members', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
+  committeeMembers: { table: 'committee_members', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'email', 'phone', 'bio', 'image_url', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   merchWindows: { table: 'merch_order_windows', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['label', 'open_date', 'close_date', 'active', 'allow_queue_after_close'], defaultOrder: { column: 'open_date', ascending: false }, datetimeFields: ['open_date', 'close_date'] },
   kitchenMenus: { table: 'kitchen_menus', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['name', 'is_active'], defaultOrder: { column: 'created_at', ascending: false } },
   kitchenItems: { table: 'kitchen_items', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['menu_id', 'name', 'description', 'image_url', 'price', 'is_available', 'is_hidden', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -103,6 +103,24 @@ function affectsSiteChrome(resource: string, record?: Record<string, unknown> | 
   if (!record) return true; // deletes only return the id, so assume the chrome may be affected
   const key = record.block_key ?? record.section_key;
   return typeof key === 'string' && key.startsWith('footer');
+}
+
+const MAX_BATCH_IDS = 100;
+
+function parseBatchIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_BATCH_IDS) return null;
+  const ids = value.map((entry) => (typeof entry === 'string' ? entry.trim() : ''));
+  return ids.every((entry) => entry.length > 0) ? ids : null;
+}
+
+// News is the only resource with id-specific revalidation paths (/news/${id}),
+// so batch writes revalidate per id there and once at resource level elsewhere.
+function revalidateForResourceBatch(resource: string, ids: string[]) {
+  if (resource === 'news') {
+    for (const id of ids) revalidateForResource(resource, id);
+    return;
+  }
+  revalidateForResource(resource);
 }
 
 function revalidateForResource(resource: string, id?: string, record?: Record<string, unknown> | null) {
@@ -298,8 +316,15 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
 
-  const { id, ...rawPayload } = await request.json();
-  if (!id) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
+  const { id, ids, ...rawPayload } = await request.json();
+  if (!id && ids === undefined) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
+  let batchIds: string[] | null = null;
+  if (!id) {
+    batchIds = parseBatchIds(ids);
+    if (!batchIds) {
+      return NextResponse.json({ success: false, error: `ids must be a non-empty array of up to ${MAX_BATCH_IDS} id strings.` }, { status: 400 });
+    }
+  }
   const payload = sanitizePayload(config, rawPayload);
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
@@ -309,6 +334,19 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   }
 
   const supabase = createServerClient();
+
+  if (batchIds) {
+    const { data: batchData, error: batchError } = await supabase.from(config.table).update(payload).in('id', batchIds).select('id');
+    if (batchError) {
+      if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
+        return seasonAppointmentsTableErrorResponse();
+      }
+      return NextResponse.json({ success: false, error: batchError.message }, { status: 500 });
+    }
+    revalidateForResourceBatch(params.resource, batchIds);
+    return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
+  }
+
   let { data, error } = await supabase.from(config.table).update(payload).eq('id', id).select().single();
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
     const retryPayload = { ...payload };
@@ -353,9 +391,27 @@ export async function DELETE(request: Request, { params }: { params: { resource:
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
-  if (!id) return NextResponse.json({ success: false, error: 'id query param is required.' }, { status: 400 });
+  const idsParam = searchParams.get('ids');
+  if (!id && idsParam === null) return NextResponse.json({ success: false, error: 'id query param is required.' }, { status: 400 });
 
   const supabase = createServerClient();
+
+  if (!id) {
+    const batchIds = parseBatchIds((idsParam ?? '').split(','));
+    if (!batchIds) {
+      return NextResponse.json({ success: false, error: `ids must be a comma-separated list of up to ${MAX_BATCH_IDS} non-empty ids.` }, { status: 400 });
+    }
+    const { data: batchData, error: batchError } = await supabase.from(config.table).delete().in('id', batchIds).select('id');
+    if (batchError) {
+      if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
+        return seasonAppointmentsTableErrorResponse();
+      }
+      return safeDeleteErrorResponse(batchError.message);
+    }
+    revalidateForResourceBatch(params.resource, batchIds);
+    return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
+  }
+
   const { data, error } = await supabase.from(config.table).delete().eq('id', id).select('id');
 
   if (error) {

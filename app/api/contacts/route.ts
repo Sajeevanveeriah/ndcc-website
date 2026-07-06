@@ -141,7 +141,7 @@ export async function POST(request: Request) {
           dbStatus,
           emailStatus: 'failed',
           acknowledgementStatus: acknowledgementResult.status,
-          message: 'Your enquiry was saved, but the email notification could not be sent. Please email ndsc.cricket@gmail.com if urgent.',
+          message: 'Your enquiry was saved, but the email notification could not be sent. Please email ndcc.secretary1@gmail.com if urgent.',
         }, { status: 202 });
       }
 
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         dbStatus,
         emailStatus: 'failed',
         acknowledgementStatus: acknowledgementResult.status,
-        error: 'We could not send your enquiry right now. Please email ndsc.cricket@gmail.com directly.',
+        error: 'We could not send your enquiry right now. Please email ndcc.secretary1@gmail.com directly.',
       }, { status: 503 });
     }
 
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error('Contact route error:', err);
     return NextResponse.json(
-      { success: false, dbStatus: 'failed', emailStatus: 'failed', error: 'We could not process your enquiry right now. Please try again or email ndsc.cricket@gmail.com directly.' },
+      { success: false, dbStatus: 'failed', emailStatus: 'failed', error: 'We could not process your enquiry right now. Please try again or email ndcc.secretary1@gmail.com directly.' },
       { status: 500 }
     );
   }

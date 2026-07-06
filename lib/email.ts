@@ -9,6 +9,7 @@ type EmailAddress = string | string[];
 
 export type EmailSendResult =
   | { status: 'sent'; id?: string }
+  | { status: 'simulated'; reason: string }
   | { status: 'skipped'; reason: string }
   | { status: 'failed'; reason: string };
 
@@ -57,6 +58,10 @@ function maskEmail(value: string): string {
   const [local = '', domain = ''] = value.split('@');
   if (!local || !domain) return '[invalid email]';
   return `${local.slice(0, 2)}***@${domain}`;
+}
+
+function maskRecipients(to: EmailAddress): string | string[] {
+  return Array.isArray(to) ? to.map(maskEmail) : maskEmail(to);
 }
 
 function maskSenderPreview(value: string): string {
@@ -143,6 +148,7 @@ export function getEmailConfigStatus() {
     contactBccPresent: contact.contactBccPresent,
     effectiveContactRecipientPreview: contact.effectiveContactRecipientPreview,
     contactFallbackUsed: contact.fallbackUsed,
+    testMode: process.env.EMAIL_TEST_MODE === 'true',
     ready: Boolean(process.env.RESEND_API_KEY && sender.address),
     contactReady: Boolean(process.env.RESEND_API_KEY && sender.address && contact.effectiveContactRecipient),
   };
@@ -177,6 +183,15 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     const reason = sender.reason || 'RESEND_FROM_EMAIL/RESEND_FROM not set.';
     console.warn(`[email] ${reason} Skipping send.`);
     return { status: 'skipped', reason };
+  }
+
+  if (process.env.EMAIL_TEST_MODE === 'true') {
+    console.log('[email] TEST MODE — send simulated:', {
+      to: maskRecipients(payload.to),
+      subject: payload.subject,
+      tags: payload.tags ?? [],
+    });
+    return { status: 'simulated', reason: 'EMAIL_TEST_MODE is enabled; send simulated.' };
   }
 
   const email: CreateEmailOptions = {

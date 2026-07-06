@@ -11,6 +11,11 @@ type EmailStatus = {
   resendFromSource: string;
   resendFromValid: boolean;
   resendFromPreview: string | null;
+  contactToPresent?: boolean;
+  effectiveContactRecipientPreview?: string | null;
+  contactFallbackUsed?: boolean;
+  contactReady?: boolean;
+  testMode?: boolean;
   ready: boolean;
 };
 
@@ -67,6 +72,9 @@ export default function AdminEmailDiagnosticsPage() {
           <div><dt className="text-gray-500">Sender format valid</dt><dd className="font-semibold">{status?.resendFromValid ? 'Yes' : 'No'}</dd></div>
           <div><dt className="text-gray-500">Sender preview</dt><dd className="font-semibold">{status?.resendFromPreview ?? 'Not available'}</dd></div>
           <div><dt className="text-gray-500">App email ready</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — sends will be skipped safely'}</dd></div>
+          <div><dt className="text-gray-500">Contact recipient</dt><dd className="font-semibold">{status?.effectiveContactRecipientPreview ?? 'Not available'}{status?.contactFallbackUsed ? ' (fallback)' : ''}</dd></div>
+          <div><dt className="text-gray-500">Contact notifications ready</dt><dd className="font-semibold">{status?.contactReady ? 'Yes' : 'No'}</dd></div>
+          <div><dt className="text-gray-500">EMAIL_TEST_MODE</dt><dd className="font-semibold">{status?.testMode ? 'On — sends are simulated' : 'Off'}</dd></div>
         </dl>
         <p className="text-sm text-gray-600">Supabase Auth confirmation emails are separate. Verify those in Supabase Authentication SMTP settings and Resend SMTP logs.</p>
       </section>

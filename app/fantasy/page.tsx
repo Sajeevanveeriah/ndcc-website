@@ -5,6 +5,10 @@ import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { CLUB_NICKNAME, CLUB_SHORT } from '@/lib/constants';
 import { FANTASY_MODULES } from '@/lib/fantasy';
+import { getFantasySettings } from '@/lib/fantasy-game';
+import { isServerSupabaseConfigured } from '@/lib/supabase-server';
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket',
@@ -17,12 +21,23 @@ const gameHighlights = [
   'Use transfers and chips to respond as the season unfolds.',
 ];
 
-export default function FantasyPage() {
+async function getSeasonName(): Promise<string | null> {
+  if (!isServerSupabaseConfigured()) return null;
+  try {
+    const settings = await getFantasySettings();
+    return settings.season_name?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function FantasyPage() {
+  const seasonName = await getSeasonName();
   return (
     <>
       <section className="page-hero">
         <div className="container-width">
-          <span className="eyebrow-gold">{CLUB_SHORT} Dinos</span>
+          <span className="eyebrow-gold">{seasonName || `${CLUB_SHORT} Dinos`}</span>
           <ScrollReveal onMount delay={0}><h1 className="page-hero-title">Fantasy Cricket</h1></ScrollReveal>
           <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">Pick your NDCC fantasy squad, follow published player scores, make transfers, and compete in classic private leagues.</p></ScrollReveal>
         </div>

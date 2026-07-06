@@ -18,6 +18,7 @@ export type PlayHQLadderRow = { gradeId: string; gradeName: string; teamName: st
 export type PlayHQPublicData = {
   configured: boolean;
   message?: string;
+  fetchedAt: string;
   seasons: PlayHQSeason[];
   selectedSeasonId: string | null;
   teams: PlayHQTeam[];

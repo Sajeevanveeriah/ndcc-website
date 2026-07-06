@@ -60,6 +60,8 @@ export default function SponsorsPage() {
     phone: '',
     tier_interest: '',
     message: '',
+    hp_field: '',
+    submitted_at: Date.now(),
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -144,6 +146,8 @@ export default function SponsorsPage() {
           email: formData.email,
           enquiry_type: 'sponsorship',
           message: `Tier Interest: ${formData.tier_interest}\nPhone: ${formData.phone || 'Not provided'}\n\n${formData.message}`,
+          hp_field: formData.hp_field,
+          submitted_at: formData.submitted_at,
         }),
       });
 
@@ -153,7 +157,7 @@ export default function SponsorsPage() {
       }
 
       setSubmitStatus('success');
-      setFormData({ company_name: '', contact_name: '', email: '', phone: '', tier_interest: '', message: '' });
+      setFormData({ company_name: '', contact_name: '', email: '', phone: '', tier_interest: '', message: '', hp_field: '', submitted_at: Date.now() });
       setFormErrors({});
     } catch (err) {
       setSubmitStatus('error');
@@ -408,6 +412,15 @@ export default function SponsorsPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            <input
+              type="text"
+              name="website"
+              value={formData.hp_field}
+              onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
+              className="hidden"
+              tabIndex={-1}
+              autoComplete="off"
+            />
             <Input
               id="company_name"
               label="Company Name"

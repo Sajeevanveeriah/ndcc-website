@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
@@ -46,6 +47,10 @@ export default function AdminGalleryPage() {
 
   // Delete confirm modal
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   async function loadItems() {
     setLoading(true);
@@ -131,6 +136,7 @@ export default function AdminGalleryPage() {
     try {
       const response = await fetch(`/api/admin/resources/galleryImages?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
+      setSelectedIds((prev) => prev.filter((v) => v !== id));
       setSuccess('Image deleted.');
       setDeleteConfirm(null);
       await loadItems();
@@ -138,6 +144,44 @@ export default function AdminGalleryPage() {
       setError(err instanceof Error ? err.message : 'Failed to delete image.');
     }
   }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => (prev.length === items.length ? [] : items.map((item) => item.id)));
+  }
+
+  async function runBatch(run: () => Promise<Response>, successMessage: string) {
+    setBatchBusy(true);
+    setError('');
+    setSuccess('');
+    try {
+      await parseApiResponse(await run());
+      await loadItems();
+      setSelectedIds([]);
+      setSuccess(successMessage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Batch action failed.');
+    } finally {
+      setBatchBusy(false);
+    }
+  }
+
+  const batchSetPublished = (published: boolean) => runBatch(
+    () => fetch('/api/admin/resources/galleryImages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, published }),
+    }),
+    published ? 'Selected images published.' : 'Selected images unpublished.'
+  );
+
+  const batchDelete = () => runBatch(
+    () => fetch(`/api/admin/resources/galleryImages?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    'Selected images deleted.'
+  );
 
   async function togglePublished(item: GalleryImage) {
     try {
@@ -193,6 +237,18 @@ export default function AdminGalleryPage() {
         <Button type="submit" isLoading={saving}>Add Image</Button>
       </form>
 
+      <BatchActionsBar
+        selectedCount={selectedIds.length}
+        itemLabel="image"
+        busy={batchBusy}
+        onClearSelection={() => setSelectedIds([])}
+        actions={[
+          { key: 'publish', label: 'Batch Publish', onAction: () => batchSetPublished(true) },
+          { key: 'unpublish', label: 'Batch Unpublish', onAction: () => batchSetPublished(false) },
+          { key: 'delete', label: 'Batch Delete', variant: 'danger', confirm: true, confirmLabel: 'Delete the selected images? This cannot be undone.', onAction: batchDelete },
+        ]}
+      />
+
       {/* Images Table */}
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {loading ? (
@@ -203,6 +259,15 @@ export default function AdminGalleryPage() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableHeader className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all images"
+                    checked={items.length > 0 && selectedIds.length === items.length}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  />
+                </TableHeader>
                 <TableHeader>Title</TableHeader>
                 <TableHeader>Image URL</TableHeader>
                 <TableHeader>Sort</TableHeader>
@@ -214,6 +279,15 @@ export default function AdminGalleryPage() {
             <TableBody>
               {items.map((item) => (
                 <TableRow key={item.id}>
+                  <TableCell className="w-10">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${item.title}`}
+                      checked={selectedIds.includes(item.id)}
+                      onChange={() => toggleSelected(item.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    />
+                  </TableCell>
                   <TableCell>{item.title}</TableCell>
                   <TableCell className="max-w-xs truncate">{item.image_url}</TableCell>
                   <TableCell>{item.sort_order}</TableCell>
