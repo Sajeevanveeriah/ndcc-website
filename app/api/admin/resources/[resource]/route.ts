@@ -105,6 +105,24 @@ function affectsSiteChrome(resource: string, record?: Record<string, unknown> | 
   return typeof key === 'string' && key.startsWith('footer');
 }
 
+const MAX_BATCH_IDS = 100;
+
+function parseBatchIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_BATCH_IDS) return null;
+  const ids = value.map((entry) => (typeof entry === 'string' ? entry.trim() : ''));
+  return ids.every((entry) => entry.length > 0) ? ids : null;
+}
+
+// News is the only resource with id-specific revalidation paths (/news/${id}),
+// so batch writes revalidate per id there and once at resource level elsewhere.
+function revalidateForResourceBatch(resource: string, ids: string[]) {
+  if (resource === 'news') {
+    for (const id of ids) revalidateForResource(resource, id);
+    return;
+  }
+  revalidateForResource(resource);
+}
+
 function revalidateForResource(resource: string, id?: string, record?: Record<string, unknown> | null) {
   const paths = revalidationPaths[resource] ? [...revalidationPaths[resource]] : [];
   if (resource === 'news' && id) paths.push(`/news/${id}`);
@@ -298,8 +316,15 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
 
-  const { id, ...rawPayload } = await request.json();
-  if (!id) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
+  const { id, ids, ...rawPayload } = await request.json();
+  if (!id && ids === undefined) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
+  let batchIds: string[] | null = null;
+  if (!id) {
+    batchIds = parseBatchIds(ids);
+    if (!batchIds) {
+      return NextResponse.json({ success: false, error: `ids must be a non-empty array of up to ${MAX_BATCH_IDS} id strings.` }, { status: 400 });
+    }
+  }
   const payload = sanitizePayload(config, rawPayload);
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
@@ -309,6 +334,19 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   }
 
   const supabase = createServerClient();
+
+  if (batchIds) {
+    const { data: batchData, error: batchError } = await supabase.from(config.table).update(payload).in('id', batchIds).select('id');
+    if (batchError) {
+      if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
+        return seasonAppointmentsTableErrorResponse();
+      }
+      return NextResponse.json({ success: false, error: batchError.message }, { status: 500 });
+    }
+    revalidateForResourceBatch(params.resource, batchIds);
+    return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
+  }
+
   let { data, error } = await supabase.from(config.table).update(payload).eq('id', id).select().single();
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
     const retryPayload = { ...payload };
@@ -353,9 +391,27 @@ export async function DELETE(request: Request, { params }: { params: { resource:
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
-  if (!id) return NextResponse.json({ success: false, error: 'id query param is required.' }, { status: 400 });
+  const idsParam = searchParams.get('ids');
+  if (!id && idsParam === null) return NextResponse.json({ success: false, error: 'id query param is required.' }, { status: 400 });
 
   const supabase = createServerClient();
+
+  if (!id) {
+    const batchIds = parseBatchIds((idsParam ?? '').split(','));
+    if (!batchIds) {
+      return NextResponse.json({ success: false, error: `ids must be a comma-separated list of up to ${MAX_BATCH_IDS} non-empty ids.` }, { status: 400 });
+    }
+    const { data: batchData, error: batchError } = await supabase.from(config.table).delete().in('id', batchIds).select('id');
+    if (batchError) {
+      if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
+        return seasonAppointmentsTableErrorResponse();
+      }
+      return safeDeleteErrorResponse(batchError.message);
+    }
+    revalidateForResourceBatch(params.resource, batchIds);
+    return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
+  }
+
   const { data, error } = await supabase.from(config.table).delete().eq('id', id).select('id');
 
   if (error) {

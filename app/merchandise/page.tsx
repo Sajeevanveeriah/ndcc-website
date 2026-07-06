@@ -2,8 +2,9 @@
 
 import { Suspense, useState, useEffect, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, ExternalLink } from 'lucide-react';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
+import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
@@ -33,6 +34,8 @@ type DisplayProduct = {
   image: string;
   customisable?: boolean;
   category?: string;
+  payment_mode?: string | null;
+  payment_link_url?: string | null;
 };
 
 type ApiProduct = {
@@ -47,6 +50,13 @@ type ApiProduct = {
   display_order?: number;
   order_guidance?: string | null;
   size_guidance?: string | null;
+  // Payment-readiness fields (may be absent until the migration is applied).
+  payment_mode?: string | null;
+  payment_link_url?: string | null;
+  stripe_price_id?: string | null;
+  checkout_enabled?: boolean | null;
+  fulfilment_notes?: string | null;
+  order_email?: string | null;
 };
 
 const PRODUCT_GRADIENTS: Record<string, string> = {
@@ -132,7 +142,11 @@ function MerchandiseContent() {
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [products, setProducts] = useState<DisplayProduct[]>(PRODUCTS.map((product) => ({ ...product, category: 'General' })));
+  // Start empty with a loading skeleton so the static seed list never
+  // flashes before the live catalogue arrives. The static PRODUCTS constant
+  // is used only when the live fetch fails (liveProductsFailed banner).
+  const [products, setProducts] = useState<DisplayProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [heroContent, setHeroContent] = useState<{ title: string; body: string; orderTitle: string; orderBody: string }>({
     title: 'Club Merchandise',
     body: `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
@@ -167,6 +181,8 @@ function MerchandiseContent() {
     // mount or an older Try again click) can't clobber newer state.
     let stale = false;
 
+    setProductsLoading(true);
+
     // Each loader catches and logs its own failure so one unreachable
     // endpoint can't silently discard what the other two returned.
     const loadProducts = async () => {
@@ -177,24 +193,31 @@ function MerchandiseContent() {
           throw new Error(`Products request failed with status ${res.status}`);
         }
         if (stale) return;
-        if (payload.data.length > 0) {
-          setProducts(payload.data
-            .sort((a: ApiProduct, b: ApiProduct) => (a.display_order ?? 9999) - (b.display_order ?? 9999))
-            .map((p: ApiProduct) => ({
-              id: p.slug,
-              name: p.name,
-              price: Number(p.price || 0),
-              description: [p.description, p.order_guidance, p.size_guidance].filter(Boolean).join('\n\n'),
-              sizes: Array.isArray(p.sizes) ? p.sizes : [],
-              image: p.image_url || '',
-              customisable: Boolean(p.customisable),
-              category: p.category || 'General',
-            })));
-        }
+        // A successful response is authoritative, including an empty
+        // catalogue: render the clean empty state, not the static seed list.
+        setProducts((payload.data as ApiProduct[])
+          .sort((a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999))
+          .map((p) => ({
+            id: p.slug,
+            name: p.name,
+            price: Number(p.price || 0),
+            description: [p.description, p.order_guidance, p.size_guidance].filter(Boolean).join('\n\n'),
+            sizes: Array.isArray(p.sizes) ? p.sizes : [],
+            image: p.image_url || '',
+            customisable: Boolean(p.customisable),
+            category: p.category || 'General',
+            payment_mode: p.payment_mode || null,
+            payment_link_url: p.payment_link_url || null,
+          })));
         setLiveProductsFailed(false);
       } catch (err) {
         console.error('[merchandise] Failed to load live products; showing static fallback list:', err);
-        if (!stale) setLiveProductsFailed(true);
+        if (!stale) {
+          setProducts(PRODUCTS.map((product) => ({ ...product, category: 'General' })));
+          setLiveProductsFailed(true);
+        }
+      } finally {
+        if (!stale) setProductsLoading(false);
       }
     };
 
@@ -342,7 +365,8 @@ function MerchandiseContent() {
           customer_email: formData.email,
           customer_phone: formData.phone,
           notes: formData.notes,
-          items: cart.map(({ name, size, quantity, price, custom_name, custom_number }) => ({
+          items: cart.map(({ id, name, size, quantity, price, custom_name, custom_number }) => ({
+            slug: id,
             name,
             size,
             quantity,
@@ -422,6 +446,30 @@ function MerchandiseContent() {
               </button>
             </div>
           )}
+          {productsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" aria-hidden="true">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i}>
+                  <div className="h-36 bg-gray-200 animate-pulse" />
+                  <CardContent className="space-y-3">
+                    <div className="h-5 w-3/4 rounded bg-gray-200 animate-pulse" />
+                    <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
+                    <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse" />
+                    <div className="h-9 w-full rounded bg-gray-200 animate-pulse" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="font-body font-semibold text-gray-700">No products currently available</p>
+                <p className="font-body text-sm text-gray-500 mt-1">
+                  Check back soon — new club merchandise will appear here when it goes on sale.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {!windowState.processing_open && (
               <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
@@ -439,11 +487,16 @@ function MerchandiseContent() {
                   return (
                     <Card key={product.id} className="hover-lift">
                   {product.image ? (
-                    <div
-                      className="h-36 bg-cover bg-center"
-                      style={{ backgroundImage: `url(${product.image})` }}
-                      aria-label={`${product.name} image`}
-                    />
+                    <div className="relative h-36 bg-gray-50">
+                      <SafeImage
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                        fallback={<div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} aria-hidden="true" />}
+                      />
+                    </div>
                   ) : (
                     <div
                       className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}
@@ -568,7 +621,7 @@ function MerchandiseContent() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="space-y-2">
                     <Button
                       variant="primary"
                       size="sm"
@@ -577,6 +630,18 @@ function MerchandiseContent() {
                     >
                       Add to Order
                     </Button>
+                    {product.payment_mode === 'stripe_payment_link' && product.payment_link_url && (
+                      <a
+                        href={product.payment_link_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="focus-ring inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-maroon-300 px-3 py-2 font-body text-sm font-semibold text-maroon-700 transition-colors hover:bg-maroon-50"
+                        aria-label={`Pay online for ${product.name} (opens in a new tab)`}
+                      >
+                        Pay online
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                    )}
                   </CardFooter>
                     </Card>
                   );
@@ -585,6 +650,7 @@ function MerchandiseContent() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </section>
 

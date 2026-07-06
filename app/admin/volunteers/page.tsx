@@ -6,9 +6,9 @@ import { parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Badge from '@/components/ui/Badge';
-import { Select } from '@/components/ui/Input';
+import Input, { Select, Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
-import { Users, CheckCircle } from 'lucide-react';
+import { Users, CheckCircle, ClipboardList } from 'lucide-react';
 
 type VolunteerExpression = {
   id: string;
@@ -20,11 +20,37 @@ type VolunteerExpression = {
   created_at: string;
 };
 
+type VolunteerPosition = {
+  id: string;
+  title: string;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+const emptyPositionForm = { id: '', title: '', description: '', sort_order: '1', is_active: true };
+
 export default function AdminVolunteersPage() {
   const [volunteers, setVolunteers] = useState<VolunteerExpression[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
   const [message, setMessage] = useState('');
+  const [positions, setPositions] = useState<VolunteerPosition[]>([]);
+  const [positionsLoading, setPositionsLoading] = useState(true);
+  const [positionForm, setPositionForm] = useState(emptyPositionForm);
+  const [positionSaving, setPositionSaving] = useState(false);
+
+  const fetchPositions = async () => {
+    try {
+      const response = await fetch('/api/admin/resources/volunteerPositions', { cache: 'no-store' });
+      const result = await parseApiResponse<{ data?: VolunteerPosition[] }>(response);
+      setPositions(result.data || []);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to fetch volunteer positions.');
+    } finally {
+      setPositionsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchVolunteers = async () => {
@@ -40,7 +66,50 @@ export default function AdminVolunteersPage() {
     };
 
     fetchVolunteers();
+    fetchPositions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const savePosition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPositionSaving(true);
+    try {
+      const payload = {
+        title: positionForm.title.trim(),
+        description: positionForm.description.trim() || null,
+        sort_order: Number(positionForm.sort_order || 0),
+        is_active: positionForm.is_active,
+      };
+      const response = await fetch('/api/admin/resources/volunteerPositions', {
+        method: positionForm.id ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(positionForm.id ? { id: positionForm.id, ...payload } : payload),
+      });
+      await parseApiResponse(response);
+      setMessage(positionForm.id ? 'Volunteer position updated.' : 'Volunteer position created.');
+      setPositionForm(emptyPositionForm);
+      await fetchPositions();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to save volunteer position.');
+    } finally {
+      setPositionSaving(false);
+    }
+  };
+
+  const togglePositionActive = async (position: VolunteerPosition) => {
+    try {
+      const response = await fetch('/api/admin/resources/volunteerPositions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: position.id, is_active: !position.is_active }),
+      });
+      await parseApiResponse(response);
+      setMessage(position.is_active ? 'Volunteer position deactivated.' : 'Volunteer position activated.');
+      await fetchPositions();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to update volunteer position.');
+    }
+  };
 
   const handleMarkContacted = async (id: string) => {
     try {
@@ -151,6 +220,62 @@ export default function AdminVolunteersPage() {
           </TableBody>
         </Table>
       )}
+
+      <div className="mt-10 space-y-4">
+        <h2 className="text-xl font-display font-bold text-gray-900 flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-maroon-700" />
+          Volunteer Positions
+        </h2>
+        <form onSubmit={savePosition} className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Input id="position_title" label="Title" required value={positionForm.title} onChange={(e) => setPositionForm((v) => ({ ...v, title: e.target.value }))} />
+            <Input id="position_sort" label="Sort order" type="number" value={positionForm.sort_order} onChange={(e) => setPositionForm((v) => ({ ...v, sort_order: e.target.value }))} />
+            <label className="inline-flex items-center gap-2 text-sm self-end pb-3">
+              <input type="checkbox" checked={positionForm.is_active} onChange={(e) => setPositionForm((v) => ({ ...v, is_active: e.target.checked }))} />
+              Active
+            </label>
+          </div>
+          <Textarea id="position_description" label="Description" rows={3} value={positionForm.description} onChange={(e) => setPositionForm((v) => ({ ...v, description: e.target.value }))} />
+          <div className="flex gap-2">
+            <Button type="submit" isLoading={positionSaving}>{positionForm.id ? 'Update Position' : 'Add Position'}</Button>
+            {positionForm.id && <Button type="button" variant="secondary" onClick={() => setPositionForm(emptyPositionForm)}>Cancel</Button>}
+          </div>
+        </form>
+
+        {positionsLoading ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">Loading volunteer positions...</div>
+        ) : positions.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">No volunteer positions yet. Add one above.</div>
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeader>Title</TableHeader>
+                <TableHeader>Description</TableHeader>
+                <TableHeader>Sort</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Actions</TableHeader>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {positions.map((position) => (
+                <TableRow key={position.id}>
+                  <TableCell className="font-medium">{position.title}</TableCell>
+                  <TableCell><p className="max-w-xs truncate">{position.description || '-'}</p></TableCell>
+                  <TableCell>{position.sort_order}</TableCell>
+                  <TableCell>{position.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="danger">Inactive</Badge>}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => setPositionForm({ id: position.id, title: position.title, description: position.description || '', sort_order: String(position.sort_order), is_active: position.is_active })}>Edit</Button>
+                      <Button size="sm" variant="ghost" onClick={() => togglePositionActive(position)}>{position.is_active ? 'Deactivate' : 'Activate'}</Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
   );
 }

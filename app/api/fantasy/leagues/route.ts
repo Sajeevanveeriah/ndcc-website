@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
+import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -32,8 +32,8 @@ async function leagueLeaderboard(leagueId: string) {
 }
 
 export async function GET(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const supabase = createServerClient();
   const { data: memberships, error } = await supabase
     .from('fantasy_league_members')
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || 'create');
   const supabase = createServerClient();

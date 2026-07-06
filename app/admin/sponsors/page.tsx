@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -39,21 +40,24 @@ export default function AdminSponsorsPage() {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  const fetchSponsors = async () => {
+    try {
+      const response = await fetch('/api/admin/resources/sponsors', { cache: 'no-store' });
+      const result = await parseApiResponse<{ data?: Sponsor[] }>(response);
+      setSponsors(result.data || []);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch sponsors.' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSponsors = async () => {
-      try {
-        const response = await fetch('/api/admin/resources/sponsors', { cache: 'no-store' });
-        const result = await parseApiResponse<{ data?: Sponsor[] }>(response);
-        setSponsors(result.data || []);
-      } catch (err) {
-        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch sponsors.' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSponsors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getTierLabel = (value: string) => {
@@ -163,12 +167,49 @@ export default function AdminSponsorsPage() {
       const response = await fetch(`/api/admin/resources/sponsors?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setSponsors((prev) => prev.filter((s) => s.id !== id));
+      setSelectedIds((prev) => prev.filter((v) => v !== id));
       setFeedback({ type: 'success', message: 'Sponsor deleted.' });
       setDeleteConfirm(null);
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete sponsor.' });
     }
   };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.length === sponsors.length ? [] : sponsors.map((s) => s.id)));
+  };
+
+  const runBatch = async (run: () => Promise<Response>, successMessage: string) => {
+    setBatchBusy(true);
+    try {
+      await parseApiResponse(await run());
+      await fetchSponsors();
+      setSelectedIds([]);
+      setFeedback({ type: 'success', message: successMessage });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Batch action failed.' });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  const batchSetActive = (active: boolean) => runBatch(
+    () => adminFetch('/api/admin/resources/sponsors', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, active }),
+    }),
+    active ? 'Selected sponsors activated.' : 'Selected sponsors deactivated.'
+  );
+
+  const batchDelete = () => runBatch(
+    () => fetch(`/api/admin/resources/sponsors?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    'Selected sponsors deleted.'
+  );
 
   const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
   const placementOptions = [
@@ -199,6 +240,18 @@ export default function AdminSponsorsPage() {
         <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
       )}
 
+      <BatchActionsBar
+        selectedCount={selectedIds.length}
+        itemLabel="sponsor"
+        busy={batchBusy}
+        onClearSelection={() => setSelectedIds([])}
+        actions={[
+          { key: 'activate', label: 'Batch Activate', onAction: () => batchSetActive(true) },
+          { key: 'deactivate', label: 'Batch Deactivate', onAction: () => batchSetActive(false) },
+          { key: 'delete', label: 'Batch Delete', variant: 'danger', confirm: true, confirmLabel: 'Delete the selected sponsors? This cannot be undone.', onAction: batchDelete },
+        ]}
+      />
+
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
@@ -214,6 +267,15 @@ export default function AdminSponsorsPage() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableHeader className="w-10">
+                <input
+                  type="checkbox"
+                  aria-label="Select all sponsors"
+                  checked={sponsors.length > 0 && selectedIds.length === sponsors.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                />
+              </TableHeader>
               <TableHeader>Name</TableHeader>
               <TableHeader>Tier</TableHeader>
               <TableHeader>Placement</TableHeader>
@@ -226,6 +288,15 @@ export default function AdminSponsorsPage() {
           <TableBody>
             {sponsors.map((sponsor) => (
               <TableRow key={sponsor.id}>
+                <TableCell className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${sponsor.name}`}
+                    checked={selectedIds.includes(sponsor.id)}
+                    onChange={() => toggleSelected(sponsor.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{sponsor.name}</TableCell>
                 <TableCell>
                   <Badge variant={getTierBadgeVariant(sponsor.tier)}>

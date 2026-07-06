@@ -1,21 +1,23 @@
 import { NextResponse } from 'next/server';
-import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
-import { CHIP_TYPES, getCurrentRoundId, type ChipType } from '@/lib/fantasy-game';
+import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
+import { CHIP_TYPES, getFantasySettings, getRoundLockState, type ChipType } from '@/lib/fantasy-game';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const body = await request.json().catch(() => ({}));
   const chipType = String(body.chipType || '') as ChipType;
   if (!CHIP_TYPES.includes(chipType)) return NextResponse.json({ success: false, error: 'Unknown chip type.' }, { status: 400 });
-  const roundId = await getCurrentRoundId();
+  const [settings, roundLock] = await Promise.all([getFantasySettings(), getRoundLockState()]);
+  if (!settings.is_team_selection_open) return NextResponse.json({ success: false, error: 'Team selection is currently closed, so chips cannot be used.' }, { status: 403 });
+  if (roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked, so chips cannot be used.' }, { status: 403 });
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_chips')
-    .insert({ manager_id: auth.manager.id, round_id: roundId, chip_type: chipType })
+    .insert({ manager_id: auth.manager.id, round_id: roundLock.roundId, chip_type: chipType })
     .select('id, round_id, chip_type, used_at')
     .single();
   if (error) return NextResponse.json({ success: false, error: error.code === '23505' ? 'That chip has already been used this season.' : error.message }, { status: 400 });

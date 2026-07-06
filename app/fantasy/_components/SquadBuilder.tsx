@@ -54,6 +54,7 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
 
   if (loading) return <Card><CardContent className="p-6">Loading fantasy squad tools…</CardContent></Card>;
   if (error && error.includes('sign in')) return <Card><CardContent className="p-6"><p className="font-body text-gray-700 mb-4">Sign in to manage your squad.</p><Link href="/fantasy/login" className="btn-primary">Sign in</Link></CardContent></Card>;
+  if (error && error.includes('manager profile')) return <Card><CardContent className="p-6"><p className="font-body text-gray-700 mb-4">You are signed in, but you need a fantasy manager profile before building a squad.</p><Link href="/fantasy/account" className="btn-primary">Create your fantasy manager profile</Link></CardContent></Card>;
 
   if (readonlyMode && selection.length === 0) return <Card><CardContent className="p-6"><p className="font-body text-gray-700 mb-4">No squad submitted yet. Build and save your 15-player squad to see it here.</p><Link href="/fantasy/squad" className="btn-primary">Build my squad</Link></CardContent></Card>;
 

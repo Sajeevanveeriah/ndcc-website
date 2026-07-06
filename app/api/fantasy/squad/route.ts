@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
+import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
-import { getActivePlayersWithLatestPrices, getCurrentRoundId, getFantasySettings, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
+import { getActivePlayersWithLatestPrices, getFantasySettings, getRoundLockState, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,8 +31,8 @@ async function loadSquad(managerId: string) {
 }
 
 export async function GET(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   try {
     const [settings, players, squad] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), loadSquad(auth.manager.id)]);
     return NextResponse.json({ success: true, settings, players, squad });
@@ -42,24 +42,48 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
 
   const body = await request.json().catch(() => ({}));
   const selection = parseSelection(body.selection);
-  const [settings, players, roundId] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getCurrentRoundId()]);
+  const [settings, players, roundLock] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getRoundLockState()]);
   if (!settings.is_team_selection_open) return NextResponse.json({ success: false, error: 'Team selection is currently closed.' }, { status: 403 });
+  if (roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked, so squads cannot be changed.' }, { status: 403 });
+  const roundId = roundLock.roundId;
 
   const validation = validateSquadSelection(selection, players, settings);
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
 
   const supabase = createServerClient();
-  const { data: squad, error: squadError } = await supabase
-    .from('fantasy_squads')
-    .upsert({ manager_id: auth.manager.id, round_id: roundId, status: 'submitted', budget_used: validation.budgetUsed }, { onConflict: 'manager_id,round_id' })
-    .select('id, manager_id, round_id, status, budget_used')
-    .single();
-  if (squadError) return NextResponse.json({ success: false, error: squadError.message }, { status: 500 });
+  const squadValues = { manager_id: auth.manager.id, round_id: roundId, status: 'submitted', budget_used: validation.budgetUsed };
+  const squadColumns = 'id, manager_id, round_id, status, budget_used';
+  let squadResult;
+  if (roundId) {
+    squadResult = await supabase
+      .from('fantasy_squads')
+      .upsert(squadValues, { onConflict: 'manager_id,round_id' })
+      .select(squadColumns)
+      .single();
+  } else {
+    // UNIQUE(manager_id, round_id) does not constrain NULL round_id rows, so the
+    // upsert above would insert a fresh squad on every save. Update the existing
+    // pre-season squad when one exists instead.
+    const existing = await supabase
+      .from('fantasy_squads')
+      .select('id')
+      .eq('manager_id', auth.manager.id)
+      .is('round_id', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing.error) return NextResponse.json({ success: false, error: existing.error.message }, { status: 500 });
+    squadResult = existing.data
+      ? await supabase.from('fantasy_squads').update(squadValues).eq('id', existing.data.id).select(squadColumns).single()
+      : await supabase.from('fantasy_squads').insert(squadValues).select(squadColumns).single();
+  }
+  const { data: squad, error: squadError } = squadResult;
+  if (squadError || !squad) return NextResponse.json({ success: false, error: squadError?.message || 'Could not save squad.' }, { status: 500 });
 
   const deleteResult = await supabase.from('fantasy_squad_players').delete().eq('squad_id', squad.id);
   if (deleteResult.error) return NextResponse.json({ success: false, error: deleteResult.error.message }, { status: 500 });

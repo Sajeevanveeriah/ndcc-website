@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireFantasyManager } from '@/lib/fantasy-manager-auth';
+import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
-import { getActivePlayersWithLatestPrices, getCurrentRoundId, getFantasySettings, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
+import { getActivePlayersWithLatestPrices, getCurrentRoundId, getFantasySettings, getRoundLockState, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const supabase = createServerClient();
   const [settings, players, roundId] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getCurrentRoundId()]);
   const [{ data: squad, error: squadError }, { data: transfers, error: transferError }, { data: chips, error: chipError }] = await Promise.all([
@@ -21,15 +21,17 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireFantasyManager(request);
-  if (!auth) return NextResponse.json({ success: false, error: 'Fantasy manager sign in is required.' }, { status: 401 });
+  const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
+  if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const body = await request.json().catch(() => ({}));
   const playerOutId = String(body.playerOutId || '');
   const playerInId = String(body.playerInId || '');
   if (!playerOutId || !playerInId || playerOutId === playerInId) return NextResponse.json({ success: false, error: 'Choose different player out and player in values.' }, { status: 400 });
 
-  const [settings, players, roundId] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getCurrentRoundId()]);
+  const [settings, players, roundLock] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getRoundLockState()]);
   if (!settings.is_team_selection_open) return NextResponse.json({ success: false, error: 'Transfers are currently closed.' }, { status: 403 });
+  if (roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked, so transfers cannot be made.' }, { status: 403 });
+  const roundId = roundLock.roundId;
   const playerIds = new Set(players.map((player) => player.id));
   if (!playerIds.has(playerInId)) return NextResponse.json({ success: false, error: 'Player in must be an active fantasy player.' }, { status: 400 });
 

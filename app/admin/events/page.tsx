@@ -8,6 +8,8 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
+import ImageUploadField from '@/components/admin/ImageUploadField';
+import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -20,6 +22,7 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   capacity: null,
   ticket_price: 0,
   stripe_link: '',
+  image_url: '',
   published: false,
 };
 
@@ -39,20 +42,22 @@ export default function AdminEventsPage() {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('/api/admin/resources/events', { cache: 'no-store' });
+      const result = await parseApiResponse<{ data?: Event[] }>(response);
+      setEvents(result.data || []);
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch events.' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch('/api/admin/resources/events', { cache: 'no-store' });
-        const result = await parseApiResponse<{ data?: Event[] }>(response);
-        setEvents(result.data || []);
-      } catch (err) {
-        setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch events.' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const fetchRegistrations = async () => {
       try {
         const response = await fetch('/api/admin/resources/eventRegistrations', { cache: 'no-store' });
@@ -67,6 +72,7 @@ export default function AdminEventsPage() {
 
     fetchEvents();
     fetchRegistrations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCreate = () => {
@@ -87,6 +93,7 @@ export default function AdminEventsPage() {
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
       stripe_link: asSafeString(event.stripe_link),
+      image_url: asSafeString(event.image_url),
       published: !!event.published,
     });
     setFormErrors({});
@@ -118,6 +125,7 @@ export default function AdminEventsPage() {
         capacity: form.capacity,
         ticket_price: form.ticket_price,
         stripe_link: asSafeString(form.stripe_link).trim(),
+        image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
       };
 
@@ -152,12 +160,49 @@ export default function AdminEventsPage() {
       const response = await fetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setEvents((prev) => prev.filter((e) => e.id !== id));
+      setSelectedIds((prev) => prev.filter((v) => v !== id));
       setFeedback({ type: 'success', message: 'Event deleted.' });
       setDeleteConfirm(null);
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete event.' });
     }
   };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.length === events.length ? [] : events.map((e) => e.id)));
+  };
+
+  const runBatch = async (run: () => Promise<Response>, successMessage: string) => {
+    setBatchBusy(true);
+    try {
+      await parseApiResponse(await run());
+      await fetchEvents();
+      setSelectedIds([]);
+      setFeedback({ type: 'success', message: successMessage });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Batch action failed.' });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  const batchSetPublished = (published: boolean) => runBatch(
+    () => adminFetch('/api/admin/resources/events', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, published }),
+    }),
+    published ? 'Selected events published.' : 'Selected events unpublished.'
+  );
+
+  const batchDelete = () => runBatch(
+    () => fetch(`/api/admin/resources/events?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    'Selected events deleted.'
+  );
 
   const handleRegistrationUpdate = async (id: string, patch: Partial<EventRegistration>) => {
     try {
@@ -197,6 +242,18 @@ export default function AdminEventsPage() {
         <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
       )}
 
+      <BatchActionsBar
+        selectedCount={selectedIds.length}
+        itemLabel="event"
+        busy={batchBusy}
+        onClearSelection={() => setSelectedIds([])}
+        actions={[
+          { key: 'publish', label: 'Batch Publish', onAction: () => batchSetPublished(true) },
+          { key: 'unpublish', label: 'Batch Unpublish', onAction: () => batchSetPublished(false) },
+          { key: 'delete', label: 'Batch Delete', variant: 'danger', confirm: true, confirmLabel: 'Delete the selected events? This cannot be undone.', onAction: batchDelete },
+        ]}
+      />
+
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
@@ -212,6 +269,15 @@ export default function AdminEventsPage() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableHeader className="w-10">
+                <input
+                  type="checkbox"
+                  aria-label="Select all events"
+                  checked={events.length > 0 && selectedIds.length === events.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                />
+              </TableHeader>
               <TableHeader>Title</TableHeader>
               <TableHeader>Date</TableHeader>
               <TableHeader>Location</TableHeader>
@@ -224,6 +290,15 @@ export default function AdminEventsPage() {
           <TableBody>
             {events.map((event) => (
               <TableRow key={event.id}>
+                <TableCell className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${event.title}`}
+                    checked={selectedIds.includes(event.id)}
+                    onChange={() => toggleSelected(event.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{event.title}</TableCell>
                 <TableCell>{formatDate(event.date)}</TableCell>
                 <TableCell>{event.location}</TableCell>
@@ -399,6 +474,13 @@ export default function AdminEventsPage() {
             value={form.stripe_link}
             onChange={(e) => setForm({ ...form, stripe_link: e.target.value })}
             placeholder="https://buy.stripe.com/..."
+          />
+          <ImageUploadField
+            id="event-image-url"
+            label="Image URL (optional)"
+            value={asSafeString(form.image_url)}
+            onChange={(value) => setForm({ ...form, image_url: value })}
+            placeholder="https://example.com/event-image.jpg"
           />
           <label className="flex items-center gap-2 cursor-pointer">
             <input

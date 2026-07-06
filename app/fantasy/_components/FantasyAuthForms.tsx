@@ -30,6 +30,26 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const [resending, setResending] = useState(false);
   const [autoCreating, setAutoCreating] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
+  const [sendingReset, setSendingReset] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    if (mode !== 'register') return;
+    let cancelled = false;
+    fantasyJsonFetch<any>('/api/fantasy/players')
+      .then((result) => {
+        if (!cancelled) setRegistrationOpen(result?.settings?.is_registration_open !== false);
+      })
+      .catch(() => {
+        // If the settings lookup fails, leave registration available; the
+        // manager API still enforces the registration toggle server-side.
+        if (!cancelled) setRegistrationOpen(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   useEffect(() => {
     if (mode !== 'account') return;
@@ -107,7 +127,49 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       setResending(false);
     }
   };
+  const handleForgotPassword = async () => {
+    setFeedback(null);
+    const targetEmail = email.trim();
+    if (!targetEmail) {
+      setFeedback({ type: 'error', message: 'Enter your email above, then choose Forgot password.' });
+      return;
+    }
+    setSendingReset(true);
+    try {
+      const { error } = await getFantasyBrowserClient().auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: `${window.location.origin}/fantasy/reset-password`,
+      });
+      if (error) throw error;
+      setFeedback({ type: 'success', message: `Password reset email sent to ${targetEmail}. Follow the link in that email to set a new password.` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not send the password reset email.' });
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    setFeedback(null);
+    try {
+      const { error } = await getFantasyBrowserClient().auth.signOut();
+      if (error) throw error;
+      setSessionEmail(null);
+      setManager(null);
+      setDisplayName('');
+      setTeamName('');
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not sign out.' });
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
   const submit = async () => {
+    if (mode === 'register' && registrationOpen === false) {
+      setFeedback({ type: 'error', message: 'Fantasy registration is currently closed.' });
+      return;
+    }
     setLoading(true);
     setFeedback(null);
     try {
@@ -151,9 +213,19 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     );
   }
 
+  const registrationClosed = mode === 'register' && registrationOpen === false;
+
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
+        {registrationClosed && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm font-body text-amber-900">
+              <strong>Fantasy registration is currently closed.</strong> New manager sign-ups are paused by the club. Already have an account?{' '}
+              <Link href="/fantasy/login" className="font-semibold text-maroon-700 hover:underline">Sign in instead</Link>.
+            </p>
+          </div>
+        )}
         {mode !== 'login' && <Input id="displayName" label="Display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />}
         {mode !== 'login' && <Input id="teamName" label="Fantasy team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
         {mode !== 'account' && <Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
@@ -162,7 +234,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {feedback && <p className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
           {!awaitingConfirm && (
-            <Button onClick={submit} isLoading={loading}>
+            <Button onClick={submit} isLoading={loading} disabled={registrationClosed}>
               {mode === 'login' ? 'Sign in' : mode === 'register' ? 'Register' : 'Save profile'}
             </Button>
           )}
@@ -179,7 +251,22 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               ? <Link href="/fantasy/register" className="btn-secondary">Register</Link>
               : <Link href="/fantasy/login" className="btn-secondary">Sign in</Link>
           )}
+          {mode === 'account' && sessionEmail && (
+            <Button onClick={handleSignOut} isLoading={signingOut} variant="secondary">
+              Sign out
+            </Button>
+          )}
         </div>
+        {mode === 'login' && !awaitingConfirm && (
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={sendingReset}
+            className="text-sm font-body font-semibold text-maroon-700 hover:underline disabled:opacity-60"
+          >
+            {sendingReset ? 'Sending reset email…' : 'Forgot password?'}
+          </button>
+        )}
       </CardContent>
     </Card>
   );

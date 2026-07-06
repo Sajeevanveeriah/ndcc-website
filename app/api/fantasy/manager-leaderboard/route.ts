@@ -10,7 +10,10 @@ export async function GET() {
   const { data: scores, error } = await supabase
     .from('fantasy_manager_round_scores')
     .select('manager_id, net_points, total_points, transfer_penalty, fantasy_managers(display_name, team_name)');
-  if (error) return NextResponse.json({ success: true, rows: [] });
+  if (error) {
+    console.error('[fantasy/manager-leaderboard] Failed to load manager round scores:', error.message);
+    return NextResponse.json({ success: false, error: 'Failed to load leaderboard.' }, { status: 500 });
+  }
   const grouped = new Map<string, any>();
   for (const row of scores ?? []) {
     const current = grouped.get(row.manager_id) ?? {

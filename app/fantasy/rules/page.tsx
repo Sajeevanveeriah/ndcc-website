@@ -3,14 +3,24 @@ import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_SHORT } from '@/lib/constants';
 import { FANTASY_RULE_SECTIONS } from '@/lib/fantasy';
+import { getContentBlocks } from '@/lib/content-blocks';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket Rules',
   description: 'Rules foundation for NDCC Fantasy Cricket.',
 };
 
-export default function FantasyRulesPage() {
+export default async function FantasyRulesPage() {
+  const blocks = await getContentBlocks(['fantasy.rules']);
+  const rulesBlock = blocks['fantasy.rules'];
+  const rulesBody = rulesBlock?.body?.trim() || null;
+  const rulesParagraphs = rulesBody
+    ? rulesBody.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    : [];
+
   return (
     <>
       <section className="page-hero">
@@ -29,18 +39,31 @@ export default function FantasyRulesPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              {FANTASY_RULE_SECTIONS.map((section) => (
-                <Card key={section.title}>
+              {rulesParagraphs.length > 0 ? (
+                <Card>
                   <CardContent className="p-6 md:p-8">
-                    <h2 className="text-2xl font-display font-bold text-maroon-800 mb-4">{section.title}</h2>
-                    <ul className="space-y-3 text-gray-700 font-body leading-relaxed list-disc pl-5">
-                      {section.items.map((item) => (
-                        <li key={item}>{item}</li>
+                    <h2 className="text-2xl font-display font-bold text-maroon-800 mb-4">{rulesBlock?.title || 'Fantasy Cricket Rules'}</h2>
+                    <div className="space-y-3 text-gray-700 font-body leading-relaxed">
+                      {rulesParagraphs.map((paragraph, index) => (
+                        <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
                       ))}
-                    </ul>
+                    </div>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                FANTASY_RULE_SECTIONS.map((section) => (
+                  <Card key={section.title}>
+                    <CardContent className="p-6 md:p-8">
+                      <h2 className="text-2xl font-display font-bold text-maroon-800 mb-4">{section.title}</h2>
+                      <ul className="space-y-3 text-gray-700 font-body leading-relaxed list-disc pl-5">
+                        {section.items.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
 
             <aside className="lg:sticky lg:top-24 h-fit">
