@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase-server';
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, AuthRole, SESSION_TTL_DAYS } from './config';
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, AuthRole, SESSION_TTL_DAYS, SESSION_IDLE_TIMEOUT_MINUTES } from './config';
 
 export interface CommitteeSessionUser {
   id: string;
@@ -92,11 +92,34 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
   const tokenHash = hashSessionToken(token);
 
   try {
-    const { data, error } = await supabase
+    // last_seen_at may not exist until the 20260706_admin_session_activity
+    // migration is applied, so fall back to the legacy column set on a
+    // missing-column error instead of locking every admin out.
+    let hasLastSeenColumn = true;
+    let query = await supabase
       .from('committee_sessions')
-      .select('expires_at, committee_users(id, email, full_name, role, is_active)')
+      .select('expires_at, last_seen_at, committee_users(id, email, full_name, role, is_active)')
       .eq('session_token_hash', tokenHash)
       .maybeSingle();
+
+    if (query.error?.message?.includes('last_seen_at')) {
+      hasLastSeenColumn = false;
+      query = await supabase
+        .from('committee_sessions')
+        .select('expires_at, committee_users(id, email, full_name, role, is_active)')
+        .eq('session_token_hash', tokenHash)
+        .maybeSingle();
+    }
+
+    type SessionUserRow = { id: string; email: string; full_name: string; role: string; is_active: boolean };
+    const { data, error } = query as unknown as {
+      data: {
+        expires_at: string;
+        last_seen_at?: string | null;
+        committee_users: SessionUserRow | SessionUserRow[] | null;
+      } | null;
+      error: { message: string } | null;
+    };
 
     if (error) return { status: 'unavailable', reason: 'database_error' };
     if (!data) return { status: 'unauthenticated', reason: 'session_not_found' };
@@ -106,9 +129,30 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
       return { status: 'unauthenticated', reason: 'expired' };
     }
 
+    if (hasLastSeenColumn && data.last_seen_at) {
+      const lastSeenAt = new Date(data.last_seen_at);
+      const idleLimitMs = SESSION_IDLE_TIMEOUT_MINUTES * 60 * 1000;
+      if (!Number.isNaN(lastSeenAt.getTime()) && Date.now() - lastSeenAt.getTime() > idleLimitMs) {
+        return { status: 'unauthenticated', reason: 'expired' };
+      }
+    }
+
     const rawUser = Array.isArray(data.committee_users) ? data.committee_users[0] : data.committee_users;
 
     if (!rawUser || !rawUser.is_active) return { status: 'unauthenticated', reason: 'inactive_user' };
+
+    if (hasLastSeenColumn) {
+      // Sliding-window refresh; throttled to once per 60s so busy admin screens
+      // don't write on every request. Failures are non-fatal.
+      const lastSeenMs = data.last_seen_at ? new Date(data.last_seen_at).getTime() : 0;
+      if (!lastSeenMs || Date.now() - lastSeenMs > 60_000) {
+        await supabase
+          .from('committee_sessions')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('session_token_hash', tokenHash)
+          .then(() => undefined, () => undefined);
+      }
+    }
 
     return {
       status: 'authenticated',

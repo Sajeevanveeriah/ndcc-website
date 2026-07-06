@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { AlertCircle } from 'lucide-react';
-import { forwardRef } from 'react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { forwardRef, useState } from 'react';
 
 /* Shared inline field-error caption: icon + red text, one recipe site-wide. */
 function FieldError({ error }: { error: string }) {
@@ -47,6 +47,50 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
 Input.displayName = 'Input';
 export default Input;
+
+/* Password field with an accessible show/hide toggle. The toggle is a real button
+   (type="button" so it never submits the form), keyboard reachable, and announces
+   its state via aria-label + aria-pressed. */
+export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, 'type'>>(
+  ({ label, error, className, id, ...props }, ref) => {
+    const [visible, setVisible] = useState(false);
+    return (
+      <div className="w-full">
+        {label && (
+          <label htmlFor={id} className="form-label">
+            {label}
+          </label>
+        )}
+        <div className="relative">
+          <input
+            ref={ref}
+            id={id}
+            type={visible ? 'text' : 'password'}
+            aria-invalid={error ? true : undefined}
+            className={cn(
+              'form-input pr-11',
+              error && 'border-red-500 focus:ring-red-500',
+              className
+            )}
+            {...props}
+          />
+          <button
+            type="button"
+            onClick={() => setVisible((current) => !current)}
+            aria-label={visible ? 'Hide password' : 'Show password'}
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-maroon-700 transition-colors focus-ring rounded-r-lg dark:text-slate-400 dark:hover:text-maroon-200"
+          >
+            {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          </button>
+        </div>
+        {error && <FieldError error={error} />}
+      </div>
+    );
+  }
+);
+
+PasswordInput.displayName = 'PasswordInput';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;

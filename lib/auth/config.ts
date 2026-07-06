@@ -1,5 +1,10 @@
 export const AUTH_COOKIE_NAME = 'ndcc_committee_session';
 export const SESSION_TTL_DAYS = 14;
+// Server-side inactivity window. The admin UI warns at 9 minutes and signs out at
+// 10; the server allows a small grace on top so an in-flight request near the
+// boundary isn't rejected, while a bypassed client timer still cannot keep an
+// idle session alive.
+export const SESSION_IDLE_TIMEOUT_MINUTES = 15;
 function sanitizeCookieDomain(raw?: string): string | undefined {
   const value = (raw || '').trim();
   if (!value) return undefined;

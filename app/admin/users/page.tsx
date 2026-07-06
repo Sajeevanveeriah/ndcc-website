@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import Input, { PasswordInput } from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
 
 type User = { id: string; email: string; full_name: string; role: string; is_active: boolean };
@@ -109,7 +109,7 @@ export default function AdminUsersPage() {
       <form onSubmit={create} className="bg-white p-4 rounded-xl border grid md:grid-cols-2 gap-3">
         <Input id="full-name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         <Input id="email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <Input id="password" type="password" label="Temporary password (minimum 10 characters)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={10} required />
+        <PasswordInput id="password" label="Temporary password (minimum 10 characters)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={10} required />
         <label className="text-sm font-medium text-gray-700">Role
           <select className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="admin">admin</option><option value="president">president</option><option value="secretary">secretary</option><option value="committee">committee</option>

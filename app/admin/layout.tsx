@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
+import InactivityGuard from '@/components/admin/InactivityGuard';
 
 const SESSION_CHECK_TIMEOUT_MS = 8_000;
 const SESSION_RETRY_DELAYS_MS = [10_000, 30_000, 60_000] as const;
@@ -156,6 +157,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-sky-50 flex">
+      <InactivityGuard onLogout={handleSignOut} />
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-24 lg:bottom-0 bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href="/admin" className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>

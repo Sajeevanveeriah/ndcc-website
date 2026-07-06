@@ -52,6 +52,7 @@ const getActiveSponsorsFromSupabase = unstable_cache(async () => {
     .from('sponsors')
     .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order')
     .eq('active', true)
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   return { data: data ?? [], error: error?.message ?? null };
 }, ['public-sponsors-data'], { revalidate: 300, tags: ['sponsors'] });
@@ -70,7 +71,8 @@ export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
   try {
     const { data, error } = await getPublishedEventsFromSupabase();
     if (error) return fallbackResult(fallback, error);
-    if (data.length === 0) return fallbackResult(fallback);
+    // A successful empty result is live truth (e.g. every event unpublished) — the
+    // page renders its empty state rather than resurrecting stale seed content.
     return {
       data: (data as Event[]).map((event) => ({
         ...event,
@@ -92,7 +94,6 @@ export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[
   try {
     const { data, error } = await getPublishedGalleryFromSupabase();
     if (error) return fallbackResult(fallback, error);
-    if (data.length === 0) return fallbackResult(fallback);
     return { data: data.map((item) => normalizeGalleryImage(item)) as GalleryPhoto[], error: null, source: 'supabase', degraded: false };
   } catch (err) {
     return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load gallery');
@@ -106,7 +107,7 @@ export async function getPublicSponsors(): Promise<PublicDataResult<Sponsor[]>> 
   try {
     const { data, error } = await getActiveSponsorsFromSupabase();
     if (error) return fallbackResult(fallback, error);
-    if (data.length === 0) return fallbackResult(fallback);
+    if (data.length === 0) return { data: [], error: null, source: 'supabase' as const, degraded: false };
     return { data: mergeSponsorsWithFallback(data as Sponsor[]), error: null, source: 'supabase', degraded: false };
   } catch (err) {
     return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load sponsors');

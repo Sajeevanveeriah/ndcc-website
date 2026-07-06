@@ -6,11 +6,16 @@ import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
-import {
-  COMMITTEE,
-  ENQUIRY_TYPES,
-} from '@/lib/constants';
+import { ENQUIRY_TYPES } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
+
+type CommitteeMember = {
+  id: string;
+  name: string;
+  role: string;
+  email?: string | null;
+  phone?: string | null;
+};
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -29,6 +34,10 @@ export default function ContactPage() {
   const [formIntro, setFormIntro] = useState('Fill out the form below and we’ll get back to you as soon as possible.');
   const [detailsTitle, setDetailsTitle] = useState('Club Details');
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
+  // null = still loading (skeleton). The committee list comes from the CMS
+  // committee_members table — never from a hardcoded constant — so admin edits
+  // are always reflected here.
+  const [committee, setCommittee] = useState<CommitteeMember[] | null>(null);
 
   useEffect(() => {
     document.title = 'Contact Us | NDCC Dinos';
@@ -64,6 +73,22 @@ export default function ContactPage() {
     }
 
     fetchClubSettings();
+
+    async function fetchCommittee() {
+      try {
+        const res = await fetch('/api/public/committee', { cache: 'no-store' });
+        const json = await res.json();
+        if (res.ok && Array.isArray(json.data)) {
+          setCommittee(json.data as CommitteeMember[]);
+        } else {
+          setCommittee([]);
+        }
+      } catch {
+        setCommittee([]);
+      }
+    }
+
+    fetchCommittee();
   }, []);
 
   const clubPhoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
@@ -298,22 +323,45 @@ export default function ContactPage() {
                 </CardContent>
               </Card>
 
-              {/* Committee */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Committee</h3>
-                  <ul className="space-y-3">
-                    {COMMITTEE.map((member) => (
-                      <li key={member.name} className="flex items-center justify-between">
-                        <span className="font-body text-gray-900">{member.name}</span>
-                        <span className="font-body text-sm text-maroon-600 font-semibold">
-                          {member.role}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+              {/* Committee — CMS-managed via /api/public/committee */}
+              {(committee === null || committee.length > 0) && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Committee</h3>
+                    {committee === null ? (
+                      <ul className="space-y-3" aria-hidden="true">
+                        {[0, 1, 2, 3].map((i) => (
+                          <li key={i} className="flex items-center justify-between">
+                            <span className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                            <span className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <ul className="space-y-3">
+                        {committee.map((member) => (
+                          <li key={member.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                            <span className="font-body text-gray-900">
+                              {member.name}
+                              {member.email && (
+                                <a
+                                  href={`mailto:${member.email}`}
+                                  className="ml-2 font-body text-sm text-maroon-700 hover:text-maroon-500 transition-colors"
+                                >
+                                  {member.email}
+                                </a>
+                              )}
+                            </span>
+                            <span className="font-body text-sm text-maroon-600 font-semibold">
+                              {member.role}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Google Maps */}
               <Card>

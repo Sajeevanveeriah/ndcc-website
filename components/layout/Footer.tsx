@@ -8,19 +8,25 @@ import { fallbackLinksFor } from '@/lib/fallback-content';
 import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
 
 function isExternalLink(link: PageLinkCard) {
-  return link.is_external || /^https?:\/\//i.test(link.href);
+  // Only real http(s) URLs open in a new tab — a local route mis-flagged
+  // is_external in the CMS must still navigate in the same tab.
+  return /^https?:\/\//i.test(link.href);
 }
 
 // Prefer live CMS links; fall back to sensible defaults on a Supabase cold start so the
 // footer is never blank and never shows a diagnostic. An empty section is hidden entirely.
-// Links are deduped by href (first occurrence wins, order preserved) so a duplicate
-// re-seed or import can never make the footer visibly repeat a link.
+// Links are deduped by href AND by normalised title (first occurrence wins, order
+// preserved) so a duplicate re-seed or import can never make the footer visibly repeat
+// a link — even when two rows share a label but point at different destinations.
 function resolveLinks(live: PageLinkCard[], pageSlug: string, sectionKey: string) {
   const links = live.length > 0 ? live : fallbackLinksFor(pageSlug, sectionKey);
-  const seen = new Set<string>();
+  const seenHrefs = new Set<string>();
+  const seenTitles = new Set<string>();
   return links.filter((link) => {
-    if (seen.has(link.href)) return false;
-    seen.add(link.href);
+    const titleKey = link.title.trim().toLowerCase();
+    if (seenHrefs.has(link.href) || seenTitles.has(titleKey)) return false;
+    seenHrefs.add(link.href);
+    seenTitles.add(titleKey);
     return true;
   });
 }
@@ -30,7 +36,12 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
   const content = (
     <>
       {link.title}
-      {external && <ExternalLink className="h-3 w-3" />}
+      {external && (
+        <>
+          <ExternalLink className="h-3 w-3" aria-hidden="true" />
+          <span className="sr-only">(opens in new tab)</span>
+        </>
+      )}
     </>
   );
 
@@ -123,7 +134,7 @@ export default async function Footer() {
                   <Facebook className="h-4 w-4" />
                 </a>
                 <a
-                  href={INSTAGRAM_URL}
+                  href={settings.instagram_url || INSTAGRAM_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Newcomb & District Cricket Club on Instagram"

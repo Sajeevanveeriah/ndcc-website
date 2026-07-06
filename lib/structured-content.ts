@@ -28,15 +28,21 @@ export type FacilityFeature = { id: string; title: string; description: string; 
 export type HistoryLineageEntry = { id: string; club_name: string; start_season: string; end_season: string; association_abbr: string; sort_order: number; is_active: boolean };
 export type HistoryPremiership = { id: string; team_label: string; season_label: string; competition_abbr: string; grade_label: string; sort_order: number; is_active: boolean };
 export type HistoryCompetition = { id: string; abbreviation: string; name: string };
-export type CommitteeMemberContent = { id: string; name: string; role: string; sort_order: number; is_active: boolean };
+export type CommitteeMemberContent = {
+  id: string;
+  name: string;
+  role: string;
+  email?: string | null;
+  phone?: string | null;
+  bio?: string | null;
+  image_url?: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
 
 function hasSupabaseEnv() { return isServerSupabaseConfigured(); }
 function fallbackPageLinks(pageSlug: string, sectionKey: string) { return fallbackLinksFor(pageSlug, sectionKey) as PageLinkCard[]; }
 function warnFallback(message: string, metadata?: Record<string, unknown>) { console.warn(message, metadata); }
-
-function pageLinkStableKey(link: Pick<PageLinkCard, 'title' | 'href'>) {
-  return `${link.title.trim().toLowerCase()}::${link.href.trim().toLowerCase()}`;
-}
 
 function sortPageLinks(links: PageLinkCard[]) {
   return [...links].sort((a, b) => {
@@ -46,14 +52,13 @@ function sortPageLinks(links: PageLinkCard[]) {
   });
 }
 
+// Live CMS rows are the single source of truth for a populated section. Unioning
+// fallback + live rows re-surfaced retired/re-linked fallback entries alongside their
+// CMS replacements (e.g. two "Geelong Cricket Association" footer links with different
+// hrefs), so fallback now only serves the cold-start/empty path.
 function mergePageLinksWithFallback(rows: PageLinkCard[], fallback: PageLinkCard[]) {
   if (rows.length === 0) return fallback;
-
-  const merged = new Map<string, PageLinkCard>();
-  for (const link of fallback) merged.set(pageLinkStableKey(link), link);
-  for (const link of rows) merged.set(pageLinkStableKey(link), link);
-
-  return sortPageLinks(Array.from(merged.values()));
+  return sortPageLinks(rows);
 }
 
 async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {

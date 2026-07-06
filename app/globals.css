@@ -326,6 +326,11 @@
     width: 100%;
     justify-content: center;
   }
+  /* The second sequence exists only to make the scroll loop seamless; in the
+     static reduced-motion layout it would show every item twice. */
+  .homepage-marquee-track > [aria-hidden='true'] {
+    display: none;
+  }
 }
 
 @keyframes homepage-marquee {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CLUB_NAME, CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import Input, { PasswordInput } from '@/components/ui/Input';
 import { validateEmail } from '@/lib/utils';
 
 const LOGIN_TIMEOUT_MS = 12_000;
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
             {error && <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body">{error}</div>}
 
             <Input id="email" label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input id="password" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <PasswordInput id="password" label="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
             <Button type="submit" variant="primary" className="w-full" isLoading={loading}>Sign In</Button>
           </form>

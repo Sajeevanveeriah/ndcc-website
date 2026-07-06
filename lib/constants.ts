@@ -180,7 +180,7 @@ export const NAV_LINKS: readonly NavLink[] = [
   { label: 'Teams', href: '/teams' },
   { label: 'Facilities', href: '/facilities' },
   { label: 'Fixtures', href: '/fixtures' },
-  { label: 'Fantasy Cricket', href: '/fantasy', openInNewTab: true },
+  { label: 'Fantasy Cricket', href: '/fantasy' },
   { label: 'Events', href: '/events' },
   { label: 'Join', href: '/join' },
   { label: 'News', href: '/news' },

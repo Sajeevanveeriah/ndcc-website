@@ -25,7 +25,7 @@ import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import LogoChip from '@/components/common/LogoChip';
-import { getPublicSponsors } from '@/lib/public-data';
+import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -371,6 +371,102 @@ async function NewsSection() {
   );
 }
 
+async function EventsSection() {
+  const { data: events } = await getPublicEvents();
+  const now = Date.now();
+  const upcoming = events
+    .filter((event) => {
+      const time = Date.parse(String(event.date || ''));
+      return Number.isFinite(time) && time >= now - 24 * 60 * 60 * 1000;
+    })
+    .slice(0, 3);
+  if (upcoming.length === 0) return null;
+
+  return (
+    <section className="section-padding bg-white">
+      <div className="container-width">
+        <ScrollReveal className="text-center mb-10">
+          <span className="section-eyebrow">What&apos;s On</span>
+          <h2 className="section-title">Upcoming Events</h2>
+        </ScrollReveal>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {upcoming.map((event) => (
+            <ScrollReveal key={event.id}>
+              <Card hover className="h-full flex flex-col">
+                {event.image_url && (
+                  <div className="relative aspect-[4/3] w-full bg-gray-50">
+                    <SafeImage
+                      src={event.image_url}
+                      alt={`${event.title} event artwork`}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      fallback={<div className="absolute inset-0 bg-gray-50" aria-hidden="true" />}
+                    />
+                  </div>
+                )}
+                <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-6 py-4">
+                  <p className="text-gold-200 font-body text-xs font-semibold uppercase tracking-[0.08em]">{formatDate(event.date)}</p>
+                  <h3 className="text-white font-display font-bold text-xl mt-1">{event.title}</h3>
+                </div>
+                <CardContent className="flex-1">
+                  <p className="font-body text-sm text-gray-600 mb-2">{event.location}</p>
+                  <p className="font-body text-gray-700 text-sm leading-relaxed mb-4">{truncateText(event.description, 130)}</p>
+                  <Link
+                    href={`/events/${event.id}`}
+                    className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold text-sm transition-colors"
+                  >
+                    View Details
+                  </Link>
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+          ))}
+        </div>
+        <div className="text-center mt-8">
+          <Link href="/events" className="btn-secondary">View All Events</Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+async function GalleryPreviewSection() {
+  const { data: photos } = await getPublicGallery();
+  const preview = photos.slice(0, 4);
+  if (preview.length === 0) return null;
+
+  return (
+    <section className="section-padding bg-white">
+      <div className="container-width">
+        <ScrollReveal className="text-center mb-10">
+          <span className="section-eyebrow">Around the Club</span>
+          <h2 className="section-title">Gallery</h2>
+        </ScrollReveal>
+        <ScrollReveal stagger className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {preview.map((photo) => (
+            <ScrollRevealItem key={photo.id}>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-50 ring-1 ring-maroon-100/60">
+                <SafeImage
+                  src={photo.image_url}
+                  alt={photo.alt_text || photo.caption || photo.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 50vw, 25vw"
+                  fallback={<div className="absolute inset-0 bg-gray-100" aria-hidden="true" />}
+                />
+              </div>
+            </ScrollRevealItem>
+          ))}
+        </ScrollReveal>
+        <div className="text-center mt-8">
+          <Link href="/gallery" className="btn-secondary">View Full Gallery</Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SeasonAppointmentsSkeleton() {
   return (
     <section className="section-padding bg-white">
@@ -463,7 +559,13 @@ async function SponsorsSection() {
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
           <div className="homepage-marquee-track gap-4 py-2">
-            {[...sponsors, ...sponsors].map((sponsor, index) => {
+            {[false, true].map((isDuplicateSequence) => (
+            <div
+              key={isDuplicateSequence ? 'duplicate' : 'primary'}
+              className="contents"
+              aria-hidden={isDuplicateSequence || undefined}
+            >
+            {sponsors.map((sponsor, index) => {
               const brandedFallback = (
                 <div className="flex h-full w-full items-center justify-center rounded-xl bg-maroon-800 px-3 text-center">
                   <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-gold-200">
@@ -489,7 +591,7 @@ async function SponsorsSection() {
 
               if (!sponsor.website) {
                 return (
-                  <div key={`${sponsor.id}-${index}`} className="group flex-none" aria-label={sponsor.name}>
+                  <div key={`${sponsor.id}-${index}`} className="group flex-none" aria-label={isDuplicateSequence ? undefined : sponsor.name}>
                     {chip}
                   </div>
                 );
@@ -501,13 +603,16 @@ async function SponsorsSection() {
                   href={sponsor.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Visit ${sponsor.name} website`}
+                  aria-label={isDuplicateSequence ? undefined : `Visit ${sponsor.name} website`}
+                  tabIndex={isDuplicateSequence ? -1 : undefined}
                   className="group block flex-none rounded-2xl focus-ring"
                 >
                   {chip}
                 </a>
               );
             })}
+            </div>
+            ))}
           </div>
         </ScrollReveal>
         <div className="text-center mt-8">
@@ -579,6 +684,14 @@ export default function HomePage() {
         <QuickLinksSection />
       </Suspense>
 
+      <Suspense fallback={<NewsSkeleton />}>
+        <NewsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <EventsSection />
+      </Suspense>
+
       <Suspense
         fallback={
           <SeasonStatusView
@@ -592,16 +705,16 @@ export default function HomePage() {
         <SeasonStatusSection />
       </Suspense>
 
-      <Suspense fallback={<NewsSkeleton />}>
-        <NewsSection />
-      </Suspense>
-
       <Suspense fallback={<SeasonAppointmentsSkeleton />}>
         <SeasonAppointmentsSection />
       </Suspense>
 
       <Suspense fallback={<SponsorsSkeleton />}>
         <SponsorsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <GalleryPreviewSection />
       </Suspense>
 
       <Suspense

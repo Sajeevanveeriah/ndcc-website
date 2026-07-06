@@ -84,7 +84,7 @@ export const fallbackPageLinkCards: Record<string, PageLinkCard[]> = {
     card('fallback-footer-committee-login', 'site', 'footer_get_involved', 'Committee Login', '', '/admin/login', 99),
   ],
   'site:footer_affiliations': [
-    card('fallback-footer-gca', 'site', 'footer_affiliations', 'Geelong Cricket Association', '', playHqOrg, 1, null, null, true),
+    card('fallback-footer-gca', 'site', 'footer_affiliations', 'Geelong Cricket Association', '', 'https://cricketgeelong.com.au/', 1, null, null, true),
     card('fallback-footer-cv', 'site', 'footer_affiliations', 'Cricket Victoria', '', 'https://www.cricketvictoria.com.au', 2, null, null, true),
     card('fallback-footer-playhq', 'site', 'footer_affiliations', 'PlayHQ', '', 'https://www.playhq.com', 3, null, null, true),
   ],
@@ -190,13 +190,10 @@ export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: s
       description: sponsor.description?.trim() ? sponsor.description : fallback?.description,
     });
   }
-  if (byCanonical.size > 0) {
-    for (const sponsor of fallbackSponsors) {
-      const key = canonicalSponsorKey(sponsor.name);
-      if (!byCanonical.has(key)) byCanonical.set(key, { ...sponsor, name: canonicalSponsorName(sponsor.name) } as T & Sponsor);
-    }
-    return Array.from(byCanonical.values());
-  }
+  // A non-empty live list is authoritative: fallback rows only backfill missing
+  // logo/website/description fields above, never re-add sponsors an admin removed
+  // or deactivated. The full fallback list serves only the cold-start/empty path.
+  if (byCanonical.size > 0) return Array.from(byCanonical.values());
   return fallbackSponsors.map((sponsor) => ({ ...sponsor, name: canonicalSponsorName(sponsor.name) })) as Array<T & Sponsor>;
 }
 

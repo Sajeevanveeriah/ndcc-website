@@ -103,12 +103,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen flex flex-col">
         <ThemeProvider>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-maroon-700 focus:px-4 focus:py-2 focus:text-white focus:shadow-lg"
+          >
+            Skip to content
+          </a>
           {/* useSearchParams requires a Suspense boundary during prerender. */}
           <Suspense fallback={null}>
             <RouteProgress />
           </Suspense>
           <Navbar />
-          <main className="flex-1 pt-24 lg:pt-28">{children}</main>
+          <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
