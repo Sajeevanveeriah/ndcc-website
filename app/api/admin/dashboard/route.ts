@@ -50,6 +50,25 @@ export async function GET() {
 
     recentItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // CMS health indicators. Each is a cheap head-count; failures degrade to
+    // null so a single slow table cannot take down the dashboard.
+    const countOrNull = async (query: PromiseLike<{ count: number | null; error: unknown }>) => {
+      try {
+        const { count, error } = await query;
+        return error ? null : count ?? 0;
+      } catch {
+        return null;
+      }
+    };
+    const [draftNews, unpublishedEvents, unpublishedGallery, missingAltText, draftFantasyImports] = await Promise.all([
+      countOrNull(supabase.from('news').select('id', { count: 'exact', head: true }).eq('published', false)),
+      countOrNull(supabase.from('events').select('id', { count: 'exact', head: true }).eq('published', false)),
+      countOrNull(supabase.from('gallery_images').select('id', { count: 'exact', head: true }).eq('published', false)),
+      countOrNull(supabase.from('gallery_images').select('id', { count: 'exact', head: true }).eq('published', true).or('alt_text.is.null,alt_text.eq.')),
+      countOrNull(supabase.from('fantasy_import_batches').select('id', { count: 'exact', head: true }).in('status', ['draft', 'reviewed'])),
+    ]);
+    const playhqConfigured = Boolean(process.env.PLAYHQ_API_KEY && process.env.PLAYHQ_ORGANISATION_ID);
+
     return adminJson({
       success: true,
       stats: {
@@ -59,6 +78,14 @@ export async function GET() {
         publishedEvents: publishedEvents || 0,
         totalNews: totalNews || 0,
         activeSponsors: activeSponsors || 0,
+      },
+      health: {
+        draftNews,
+        unpublishedEvents,
+        unpublishedGallery,
+        missingAltText,
+        draftFantasyImports,
+        playhqConfigured,
       },
       activity: recentItems.slice(0, 5),
     });

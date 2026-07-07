@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
-import { getActivePlayersWithLatestPrices, getFantasySettings, getRoundLockState, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
+import { getActivePlayersWithLatestPrices, getFantasySettings, getRoundLockState, validateDraftSquadSelection, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,16 +47,21 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const selection = parseSelection(body.selection);
+  // mode 'draft' saves work-in-progress squads with relaxed validation;
+  // anything else keeps the original submit behaviour for existing clients.
+  const isDraft = body.mode === 'draft';
   const [settings, players, roundLock] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getRoundLockState()]);
   if (!settings.is_team_selection_open) return NextResponse.json({ success: false, error: 'Team selection is currently closed.' }, { status: 403 });
   if (roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked, so squads cannot be changed.' }, { status: 403 });
   const roundId = roundLock.roundId;
 
-  const validation = validateSquadSelection(selection, players, settings);
+  const validation = isDraft
+    ? validateDraftSquadSelection(selection, players, settings)
+    : validateSquadSelection(selection, players, settings);
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
 
   const supabase = createServerClient();
-  const squadValues = { manager_id: auth.manager.id, round_id: roundId, status: 'submitted', budget_used: validation.budgetUsed };
+  const squadValues = { manager_id: auth.manager.id, round_id: roundId, status: isDraft ? 'draft' : 'submitted', budget_used: validation.budgetUsed };
   const squadColumns = 'id, manager_id, round_id, status, budget_used';
   let squadResult;
   if (roundId) {

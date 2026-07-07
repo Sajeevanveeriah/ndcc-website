@@ -100,6 +100,15 @@ export default function AdminFantasyImportDetailPage() {
           <div>
             <h1 className="text-2xl font-display font-bold text-gray-900">{batch.filename || 'Untitled CSV import'}</h1>
             <p className="text-gray-500 font-body mt-1">Created {formatDate(batch.created_at)} from {batch.source}</p>
+            {batch.source_url && (
+              <p className="text-gray-500 font-body mt-1 text-sm">
+                Source:{' '}
+                <a href={batch.source_url} target="_blank" rel="noopener noreferrer" className="text-maroon-700 underline break-all">
+                  {batch.source_url}
+                </a>
+                {batch.fetched_at ? ` (fetched ${formatDate(batch.fetched_at)})` : ''}
+              </p>
+            )}
           </div>
           <Badge variant={statusVariant(batch.status)}>{batch.status}</Badge>
         </div>

@@ -10,7 +10,19 @@ const MAX_CSV_BYTES = 250_000;
 type SaveDraftRequest = {
   csvText?: string;
   filename?: string;
+  sourceUrl?: string;
 };
+
+function parseSourceUrl(value: unknown): { ok: true; url: string | null } | { ok: false } {
+  if (typeof value !== 'string' || !value.trim()) return { ok: true, url: null };
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return { ok: false };
+    return { ok: true, url: parsed.toString().slice(0, 500) };
+  } catch {
+    return { ok: false };
+  }
+}
 
 export async function POST(request: Request) {
   const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
@@ -57,11 +69,18 @@ export async function POST(request: Request) {
     ? payload.filename.trim().slice(0, 255)
     : null;
 
+  const sourceUrl = parseSourceUrl(payload.sourceUrl);
+  if (!sourceUrl.ok) {
+    return NextResponse.json({ success: false, error: 'Source URL must be a valid http(s) address.' }, { status: 400 });
+  }
+
   const batchResult = await supabase
     .from('fantasy_import_batches')
     .insert({
       filename,
       source: 'manual_csv',
+      source_url: sourceUrl.url,
+      fetched_at: new Date().toISOString(),
       status: 'draft',
       uploaded_by: user.id,
       notes: `Draft CSV import with ${preview.summary.validRows} validated row${preview.summary.validRows === 1 ? '' : 's'}.`,

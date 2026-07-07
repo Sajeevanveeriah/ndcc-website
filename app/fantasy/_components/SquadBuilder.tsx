@@ -16,15 +16,18 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
   const [players, setPlayers] = useState<Player[]>([]);
   const [selection, setSelection] = useState<Selection[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [squadStatus, setSquadStatus] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fantasyJsonFetch<any>('/api/fantasy/squad')
       .then((result) => {
         setPlayers(result.players ?? []);
         setSettings(result.settings);
+        setSquadStatus(result.squad?.status ?? null);
         const saved = result.squad?.fantasy_squad_players?.map((item: any) => ({ playerId: item.player_id, positionType: item.position_type, benchOrder: item.bench_order, isCaptain: item.is_captain, isViceCaptain: item.is_vice_captain })) ?? [];
         setSelection(saved);
       })
@@ -44,12 +47,14 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
 
   const updateSelection = (playerId: string, patch: Partial<Selection>) => setSelection((prev) => prev.map((item) => item.playerId === playerId ? { ...item, ...patch } : item));
 
-  const save = async () => {
-    setFeedback(null); setError(null);
+  const save = async (mode: 'draft' | 'submit') => {
+    setFeedback(null); setError(null); setSaving(true);
     try {
-      await fantasyJsonFetch('/api/fantasy/squad', { method: 'POST', body: JSON.stringify({ selection }) });
-      setFeedback('Squad saved and submitted.');
+      await fantasyJsonFetch('/api/fantasy/squad', { method: 'POST', body: JSON.stringify({ selection, mode }) });
+      setSquadStatus(mode === 'draft' ? 'draft' : 'submitted');
+      setFeedback(mode === 'draft' ? 'Draft saved. Submit your final squad before the round deadline.' : 'Squad saved and submitted.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save squad.'); }
+    finally { setSaving(false); }
   };
 
   if (loading) return <Card><CardContent className="p-6">Loading fantasy squad tools…</CardContent></Card>;
@@ -66,7 +71,17 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
         const item = selection.find((entry) => entry.playerId === player.id);
         return <TableRow key={player.id}><TableCell><input type="checkbox" checked={Boolean(item)} disabled={readonlyMode} onChange={() => togglePlayer(player)} aria-label={`Select ${player.display_name}`} /></TableCell><TableCell className="font-medium">{player.display_name}<div className="text-xs text-gray-500">{player.team_label || 'NDCC'}</div></TableCell><TableCell><Badge>{player.role}</Badge></TableCell><TableCell>{player.price_million.toFixed(1)}</TableCell><TableCell>{item ? <select className="form-input min-w-28" disabled={readonlyMode} value={item.positionType} onChange={(event) => updateSelection(player.id, { positionType: event.target.value as any, benchOrder: event.target.value === 'starter' ? null : item.benchOrder })}><option value="starter">Starter</option><option value="bench">Bench</option></select> : '—'}</TableCell><TableCell>{item ? <input type="radio" name="captain" disabled={readonlyMode} checked={item.isCaptain} onChange={() => setSelection((prev) => prev.map((entry) => ({ ...entry, isCaptain: entry.playerId === player.id })))} /> : '—'}</TableCell><TableCell>{item ? <input type="radio" name="vice" disabled={readonlyMode} checked={item.isViceCaptain} onChange={() => setSelection((prev) => prev.map((entry) => ({ ...entry, isViceCaptain: entry.playerId === player.id })))} /> : '—'}</TableCell><TableCell>{item?.positionType === 'bench' ? <input className="form-input w-20" type="number" min="1" max="4" disabled={readonlyMode} value={item.benchOrder ?? ''} onChange={(event) => updateSelection(player.id, { benchOrder: Number(event.target.value) })} /> : '—'}</TableCell></TableRow>;
       })}</TableBody></Table>
-      {!readonlyMode && <Button onClick={save}>Save squad</Button>}
+      {!readonlyMode && (
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <Button onClick={() => save('submit')} disabled={saving}>Submit squad</Button>
+          <Button variant="secondary" onClick={() => save('draft')} disabled={saving}>Save draft</Button>
+          {squadStatus && (
+            <span className="font-body text-sm text-gray-600">
+              Current status: <strong className={squadStatus === 'submitted' ? 'text-green-700' : 'text-amber-700'}>{squadStatus}</strong>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

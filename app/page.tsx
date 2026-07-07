@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -50,6 +51,10 @@ async function getLatestNews(): Promise<NewsItem[]> {
     return fallbackNews.slice(0, 3) as NewsItem[];
   }
 }
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 const HERO_DEFAULT_BODY = `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`;
 
@@ -641,6 +646,59 @@ async function SponsorsSection() {
   );
 }
 
+function FantasyTeaserSection() {
+  // Static teaser: copy describes the game itself, so nothing here can go
+  // stale or invent scores. Live numbers stay on the fantasy pages.
+  const highlights = [
+    { label: 'Pick your squad', detail: 'Build an XI under the salary cap' },
+    { label: 'Score real points', detail: 'Runs, wickets, catches and more' },
+    { label: 'Climb the ladder', detail: 'Round and season leaderboards' },
+  ];
+  return (
+    <section className="section-padding bg-white">
+      <div className="container-width">
+        <ScrollReveal>
+          <div className="surface-panel p-8 sm:p-10 lg:p-12 overflow-hidden relative">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8 items-center">
+              <div>
+                <span className="section-eyebrow">Dinos Fantasy</span>
+                <h2 className="section-title">Fantasy Cricket League</h2>
+                <p className="section-subtitle mb-6">
+                  Back your judgement against the rest of the club. Pick a squad of real NDCC
+                  players, captain your stars, and score points from actual match performances
+                  across the season.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link href="/fantasy" className="btn-primary">
+                    Play Fantasy Cricket
+                  </Link>
+                  <Link href="/fantasy/leaderboard" className="btn-secondary">
+                    View Leaderboard
+                  </Link>
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {highlights.map((item) => (
+                  <li
+                    key={item.label}
+                    className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white/70 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70"
+                  >
+                    <Trophy className="h-5 w-5 mt-0.5 shrink-0 text-gold-500" aria-hidden="true" />
+                    <div>
+                      <p className="font-display font-bold text-maroon-800 text-sm uppercase tracking-wide">{item.label}</p>
+                      <p className="font-body text-sm text-gray-600">{item.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </ScrollReveal>
+      </div>
+    </section>
+  );
+}
+
 function JuniorsCtaView({ title, body }: { title: string; body: string }) {
   return (
     <section className="band-maroon section-padding">
@@ -724,6 +782,8 @@ export default function HomePage() {
       <Suspense fallback={<SeasonAppointmentsSkeleton />}>
         <SeasonAppointmentsSection />
       </Suspense>
+
+      <FantasyTeaserSection />
 
       <Suspense fallback={<SponsorsSkeleton />}>
         <SponsorsSection />
