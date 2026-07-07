@@ -23,6 +23,12 @@ const fantasySections = [
     icon: Users,
   },
   {
+    href: '/admin/fantasy/managers',
+    title: 'Manager Review',
+    description: 'Inspect registered managers and their latest squad status, budget, and captaincy picks.',
+    icon: Users,
+  },
+  {
     href: '/admin/fantasy/scoring',
     title: 'Scoring',
     description: 'Review and update the point values used by future Fantasy Cricket scoring calculations.',

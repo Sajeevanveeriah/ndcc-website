@@ -34,6 +34,15 @@ interface RecentActivity {
   date: string;
 }
 
+interface DashboardHealth {
+  draftNews: number | null;
+  unpublishedEvents: number | null;
+  unpublishedGallery: number | null;
+  missingAltText: number | null;
+  draftFantasyImports: number | null;
+  playhqConfigured: boolean;
+}
+
 const emptyStats: DashboardStats = {
   volunteers: 0,
   pendingOrders: 0,
@@ -45,6 +54,7 @@ const emptyStats: DashboardStats = {
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(emptyStats);
+  const [health, setHealth] = useState<DashboardHealth | null>(null);
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -53,9 +63,10 @@ export default function AdminDashboardPage() {
     const fetchStats = async () => {
       try {
         const response = await fetch('/api/admin/dashboard', { cache: 'no-store' });
-        const data = await parseApiResponse<{ stats?: DashboardStats; activity?: RecentActivity[] }>(response);
+        const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[] }>(response);
 
         setStats(data.stats || emptyStats);
+        setHealth(data.health ?? null);
         if (Array.isArray(data.activity) && data.activity.length > 0) {
           setActivity(data.activity);
         }
@@ -116,6 +127,33 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
+          {/* CMS health strip */}
+          {health && (
+            <div className="mb-8 rounded-xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+              <h2 className="text-sm font-display font-bold uppercase tracking-wide text-gray-700 mb-3">CMS health</h2>
+              <div className="flex flex-wrap gap-2 text-sm font-body">
+                <Link href="/admin/news" className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 hover:border-maroon-300">
+                  Draft news: <strong>{health.draftNews ?? '?'}</strong>
+                </Link>
+                <Link href="/admin/events" className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 hover:border-maroon-300">
+                  Unpublished events: <strong>{health.unpublishedEvents ?? '?'}</strong>
+                </Link>
+                <Link href="/admin/gallery" className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 hover:border-maroon-300">
+                  Unpublished gallery: <strong>{health.unpublishedGallery ?? '?'}</strong>
+                </Link>
+                <Link href="/admin/gallery" className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 hover:border-maroon-300 ${(health.missingAltText ?? 0) > 0 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-gray-200'}`}>
+                  Gallery images missing alt text: <strong>{health.missingAltText ?? '?'}</strong>
+                </Link>
+                <Link href="/admin/fantasy/imports" className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 hover:border-maroon-300 ${(health.draftFantasyImports ?? 0) > 0 ? 'border-sky-300 bg-sky-50 text-sky-900' : 'border-gray-200'}`}>
+                  Fantasy imports awaiting publish: <strong>{health.draftFantasyImports ?? '?'}</strong>
+                </Link>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 ${health.playhqConfigured ? 'border-green-300 bg-green-50 text-green-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                  PlayHQ API: <strong>{health.playhqConfigured ? 'configured' : 'not configured (link cards shown)'}</strong>
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {statCards.map((card) => (

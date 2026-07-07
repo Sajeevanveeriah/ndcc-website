@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Badge from '@/components/ui/Badge';
 import Card, { CardContent } from '@/components/ui/Card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { getActivePlayersWithLatestPrices, type FantasyPlayerWithPrice } from '@/lib/fantasy-game';
+import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
+import PlayerListExplorer, { type PlayerListEntry } from '@/app/fantasy/_components/PlayerListExplorer';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,19 +15,37 @@ export const metadata: Metadata = {
 };
 
 
-async function getPlayers() {
-  if (!isServerSupabaseConfigured()) return { players: [] as FantasyPlayerWithPrice[], loadFailed: false };
+async function getPlayers(): Promise<{ players: PlayerListEntry[]; hasPublishedPoints: boolean; loadFailed: boolean }> {
+  if (!isServerSupabaseConfigured()) return { players: [], hasPublishedPoints: false, loadFailed: false };
 
   try {
-    return { players: await getActivePlayersWithLatestPrices(), loadFailed: false };
+    const roster: FantasyPlayerWithPrice[] = await getActivePlayersWithLatestPrices();
+    // Published leaderboard totals give the list its points/form sorting; a
+    // failure here degrades to the plain roster rather than failing the page.
+    let pointsByPlayer = new Map<string, { total: number; matches: number }>();
+    try {
+      const leaderboard = await getPublishedFantasyLeaderboard();
+      pointsByPlayer = new Map(leaderboard.rows.map((row) => [row.playerId, { total: row.totalFantasyPoints, matches: row.matchesCounted }]));
+    } catch (err) {
+      console.error('[fantasy/players] Failed to load published points; listing roster without points:', err);
+    }
+    return {
+      players: roster.map((player) => ({
+        ...player,
+        total_points: pointsByPlayer.get(player.id)?.total ?? 0,
+        matches_counted: pointsByPlayer.get(player.id)?.matches ?? 0,
+      })),
+      hasPublishedPoints: pointsByPlayer.size > 0,
+      loadFailed: false,
+    };
   } catch (err) {
     console.error('[fantasy/players] Failed to load active players with latest prices; showing failure state:', err);
-    return { players: [] as FantasyPlayerWithPrice[], loadFailed: true };
+    return { players: [], hasPublishedPoints: false, loadFailed: true };
   }
 }
 
 export default async function FantasyPlayersPage() {
-  const { players, loadFailed } = await getPlayers();
+  const { players, hasPublishedPoints, loadFailed } = await getPlayers();
 
   return (
     <section className="section-padding">
@@ -57,26 +75,7 @@ export default async function FantasyPlayersPage() {
             </CardContent>
           </Card>
         ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeader>Player</TableHeader>
-                <TableHeader>Role</TableHeader>
-                <TableHeader>Team / grade</TableHeader>
-                <TableHeader>Price</TableHeader>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {players.map((player) => (
-                <TableRow key={player.id}>
-                  <TableCell className="font-medium">{player.display_name}</TableCell>
-                  <TableCell><Badge>{player.role}</Badge></TableCell>
-                  <TableCell>{player.team_label || 'NDCC'}</TableCell>
-                  <TableCell>{player.price_million.toFixed(1)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <PlayerListExplorer players={players} hasPublishedPoints={hasPublishedPoints} />
         )}
       </div>
     </section>

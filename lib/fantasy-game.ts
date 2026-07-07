@@ -130,17 +130,23 @@ export async function getCurrentRoundId() {
   return round?.id ?? null;
 }
 
-export async function getRoundLockState(): Promise<RoundLockState> {
-  const round = await getCurrentRound();
+// Pure deadline/lock evaluation so the rule is deterministic and unit-testable
+// (scripts/test-fantasy-logic.mjs) independent of the Supabase read.
+export function evaluateRoundLock(round: FantasyRoundInfo | null, nowMs: number = Date.now()): RoundLockState {
   if (!round) return { roundId: null, roundName: null, locked: false, reason: null };
 
   if (round.status !== 'open') {
     return { roundId: round.id, roundName: round.name, locked: true, reason: `${round.name} is not open for team changes.` };
   }
-  if (round.deadline_at && new Date(round.deadline_at).getTime() <= Date.now()) {
+  if (round.deadline_at && new Date(round.deadline_at).getTime() <= nowMs) {
     return { roundId: round.id, roundName: round.name, locked: true, reason: `The deadline for ${round.name} has passed, so team changes are locked.` };
   }
   return { roundId: round.id, roundName: round.name, locked: false, reason: null };
+}
+
+export async function getRoundLockState(): Promise<RoundLockState> {
+  const round = await getCurrentRound();
+  return evaluateRoundLock(round);
 }
 
 export function validateSquadSelection(selection: SquadSelection[], players: FantasyPlayerWithPrice[], settings: FantasySettings): SquadValidationResult {
@@ -183,6 +189,35 @@ export function validateSquadSelection(selection: SquadSelection[], players: Fan
   const benchOrders = bench.map((item) => item.benchOrder);
   if (benchOrders.some((order) => !Number.isInteger(order) || (order ?? 0) < 1 || (order ?? 0) > settings.bench_players_required)) errors.push('Bench order 1 to 4 is required for all bench players.');
   if (new Set(benchOrders).size !== benchOrders.length) errors.push('Bench order cannot contain duplicates.');
+
+  return { valid: errors.length === 0, errors, budgetUsed: Number(budgetUsed.toFixed(1)) };
+}
+
+// Draft saves accept an in-progress squad: players must be real/active and
+// within budget and role caps, but the squad may be incomplete and captaincy,
+// bench order, and starter minimums are not yet required. Full rules apply at
+// submit time via validateSquadSelection.
+export function validateDraftSquadSelection(selection: SquadSelection[], players: FantasyPlayerWithPrice[], settings: FantasySettings): SquadValidationResult {
+  const errors: string[] = [];
+  const playerById = new Map(players.map((player) => [player.id, player]));
+  const ids = selection.map((item) => item.playerId).filter(Boolean);
+  const uniqueIds = new Set(ids);
+  const maxSquadSize = settings.starting_players_required + settings.bench_players_required;
+
+  if (selection.length === 0) errors.push('Select at least one player before saving a draft.');
+  if (selection.length > maxSquadSize) errors.push(`Squad cannot contain more than ${maxSquadSize} players.`);
+  if (uniqueIds.size !== ids.length) errors.push('Squad cannot contain duplicate players.');
+
+  const selectedPlayers = selection.map((item) => playerById.get(item.playerId));
+  if (selectedPlayers.some((player) => !player)) errors.push('Squad can only include active fantasy players.');
+
+  const budgetUsed = selectedPlayers.reduce((total, player) => total + (player?.price_million ?? 0), 0);
+  if (budgetUsed > settings.squad_budget) errors.push(`Budget used ${budgetUsed.toFixed(1)} exceeds ${settings.squad_budget.toFixed(1)}.`);
+
+  for (const role of Object.keys(settings.max_players_per_role) as FantasyRole[]) {
+    const count = selectedPlayers.filter((player) => player?.role === role).length;
+    if (count > settings.max_players_per_role[role]) errors.push(`Squad cannot include more than ${settings.max_players_per_role[role]} ${role} player${settings.max_players_per_role[role] === 1 ? '' : 's'}.`);
+  }
 
   return { valid: errors.length === 0, errors, budgetUsed: Number(budgetUsed.toFixed(1)) };
 }

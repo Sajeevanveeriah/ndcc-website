@@ -254,8 +254,16 @@ scripts/                    # Smoke tests & operational scripts (see package.jso
 
 - **Public routes:** `/fantasy` (hub), `/fantasy/register`, `/fantasy/login`, `/fantasy/account`, `/fantasy/squad`, `/fantasy/team`, `/fantasy/transfers`, `/fantasy/leagues`, `/fantasy/players`, `/fantasy/leaderboard`, `/fantasy/manager-leaderboard`, `/fantasy/rules`.
 - **Flow:** Supabase Auth signup → email confirmation (requires Supabase SMTP configured) → fantasy manager profile auto-created/upserted on first authenticated visit (no duplicates) → squad building within budget/role limits → transfers and chips → leaderboards.
-- **Admin controls** (`/admin/fantasy/*`): registration open/closed, team selection open/closed, season label, budget/role limits, rounds with lock deadlines (enforced server-side), scoring rules, player imports, round score calculation. Rules text is editable via the `fantasy.rules` content block in `/admin/content`.
-- **Smoke tests:** `npm run smoke:fantasy` and `npm run test:fantasy`; full live acceptance steps are in the operator checklist below.
+- **Squads:** managers can **save a draft** (incomplete squad allowed; players/budget/role caps still validated) or **submit** (full validation: 11 starters + 4 bench, exact role counts, captain/vice-captain, bench order). Both are blocked once the round deadline passes.
+- **Leagues:** create a private league, join by code, and **leave a league** (confirm-first) from `/fantasy/leagues`.
+- **Player list:** `/fantasy/players` has search, role/team filters, and sorting by name, price, total points, and points-per-match (points appear once stat batches are published).
+- **Admin controls** (`/admin/fantasy/*`): registration open/closed, team selection open/closed, season label, budget/role limits, rounds with lock deadlines (enforced server-side), scoring rules, player imports, round score calculation, and a read-only **Manager Review** page (`/admin/fantasy/managers`) showing each manager's latest squad status, budget, and captaincy. Rules text is editable via the `fantasy.rules` content block in `/admin/content`.
+- **Import provenance:** CSV import batches record an optional **source URL** (e.g. the public PlayHQ scorecard the stats were read from) and a **fetched-at** timestamp (`fantasy_import_batches.source_url` / `fetched_at`), shown on the batch review page. Stats only affect public scores after an admin publishes the batch. There is no automated PlayHQ scraping — manual CSV plus admin review is the supported import path.
+- **Tests:** `npm run test:fantasy-logic` (deterministic unit tests for scoring, CSV normalisation, duplicate detection, squad/draft validation, deadline locks, leaderboard aggregation), plus `npm run smoke:fantasy` and `npm run test:fantasy`; full live acceptance steps are in the operator checklist below.
+
+## Sponsor Logos
+
+Sponsor cards render whatever `sponsors.logo_url` points at, with a branded name-text fallback card (never a fake logo) when the file is missing or fails to load. All current logo URLs are repo-local paths under `public/`, so **a logo can be replaced with no database change by committing a new file at the exact same path/filename**. The staging folder for final recreated logos is `public/images/sponsors/recreated/` — see the README inside it for the current live paths (including the two known-missing files for MBR Cricket and Leopold Sportsmans Club) and the naming convention for new assets. Logos are letterboxed with `object-contain` inside a fixed plate, so any aspect ratio is safe.
 
 ## Verification Checklist
 
@@ -269,8 +277,9 @@ Run before claiming any change is release-ready:
 6. Admin CRUD smoke: login (incl. show-password), create/edit/unpublish/delete a draft news item, edit a committee member and confirm `/contact` updates, batch publish/unpublish on safe records, product edit.
 7. Email: with `EMAIL_TEST_MODE=true`, submit contact/volunteer forms and confirm simulated sends in logs and `/admin/email-diagnostics`.
 8. PlayHQ: `/fixtures` renders live data or the PlayHQ CTA card; `npm run test:playhq-config`.
-9. Payments: manual order flow issues a payment reference; no checkout path is live unless `PAYMENT_PROVIDER=stripe_checkout` is deliberately set.
-10. Admin inactivity: idle 9 minutes → warning; extend works; 10 minutes → signed out.
+9. Fantasy logic: `npm run test:fantasy-logic` passes.
+10. Payments: manual order flow issues a payment reference; no checkout path is live unless `PAYMENT_PROVIDER=stripe_checkout` is deliberately set.
+11. Admin inactivity: idle 9 minutes → warning; extend works; 10 minutes → signed out.
 
 ## Known Limitations
 
@@ -279,6 +288,8 @@ Run before claiming any change is release-ready:
 - **Migration bookkeeping drift:** some early tables exist in production but their base `CREATE TABLE` statements predate the migrations folder; a brand-new environment needs `supabase/schema.sql` as a starting reference plus the migrations. Production is unaffected.
 - **Supabase preview branching fails on historical migration filenames.** The Supabase CLI treats the filename prefix before the first underscore as the migration version, and several historical files share a date-only version (two `20260401_*`, seven `20260402_*`, …), so the PR "Supabase Preview" check errors with a duplicate `schema_migrations` key. Production schema is managed with idempotent migrations applied directly. Fix path: a dedicated PR renaming historical migrations to unique full timestamps and reconciling `supabase_migrations.schema_migrations`, or disable branching for this repo. New migrations use full `YYYYMMDDHHMMSS` prefixes.
 - **CMS image uploads deploy via git commits** to `main`, so an uploaded image becomes visible only after the auto-deployment finishes (~1 minute).
+- **PlayHQ-to-fantasy automated import is not wired.** The admin `sync`/`import-public-page` endpoints are guarded placeholders; player stats enter via validated CSV import with admin review and publish. Source URL + fetched-at provenance is recorded per batch.
+- **Manager leaderboard has no per-round filter** (the player leaderboard does).
 - **Supabase dashboard settings** (leaked-password protection, Auth SMTP, redirect URLs) cannot be managed from this repo and must be maintained in the dashboard.
 
 ## Club Details

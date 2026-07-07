@@ -7,6 +7,8 @@ export type FantasyImportBatchSummary = {
   id: string;
   filename: string | null;
   source: string;
+  source_url: string | null;
+  fetched_at: string | null;
   status: FantasyImportStatus;
   created_at: string | null;
   rowCount: number;
@@ -70,6 +72,8 @@ type BatchRecord = {
   id: string;
   filename: string | null;
   source: string;
+  source_url?: string | null;
+  fetched_at?: string | null;
   status: FantasyImportStatus;
   created_at: string | null;
   notes?: string | null;
@@ -174,7 +178,7 @@ export async function getFantasyImportBatches(): Promise<FantasyImportBatchSumma
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_import_batches')
-    .select('id, filename, source, status, created_at')
+    .select('id, filename, source, source_url, fetched_at, status, created_at')
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -198,6 +202,8 @@ export async function getFantasyImportBatches(): Promise<FantasyImportBatchSumma
       id: batch.id,
       filename: batch.filename,
       source: batch.source,
+      source_url: batch.source_url ?? null,
+      fetched_at: batch.fetched_at ?? null,
       status: batch.status,
       created_at: batch.created_at,
       rowCount: rows.length,
@@ -210,7 +216,7 @@ export async function getFantasyImportBatchDetail(id: string): Promise<FantasyIm
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_import_batches')
-    .select('id, filename, source, status, created_at, notes')
+    .select('id, filename, source, source_url, fetched_at, status, created_at, notes')
     .eq('id', id)
     .single();
 
@@ -230,6 +236,8 @@ export async function getFantasyImportBatchDetail(id: string): Promise<FantasyIm
     id: batch.id,
     filename: batch.filename,
     source: batch.source,
+    source_url: batch.source_url ?? null,
+    fetched_at: batch.fetched_at ?? null,
     status: batch.status,
     created_at: batch.created_at,
     notes: batch.notes ?? null,
@@ -271,8 +279,18 @@ export async function getPublishedFantasyLeaderboard(roundId?: string | null): P
   const selectedRoundId = roundId && roundsById.has(roundId) ? roundId : null;
   const filteredStats = selectedRoundId ? allStats.filter((row) => row.round_id === selectedRoundId) : allStats;
 
+  return {
+    rows: aggregateLeaderboardRows(filteredStats, scoringRules),
+    rounds,
+    selectedRoundId,
+  };
+}
+
+// Pure aggregation + ranking so the calculation is deterministic and
+// unit-testable (scripts/test-fantasy-logic.mjs) independent of the DB reads.
+export function aggregateLeaderboardRows(stats: StatRecord[], scoringRules: FantasyScoringRule[]): FantasyLeaderboardRow[] {
   const scoresByPlayer = new Map<string, PlayerScore>();
-  for (const row of filteredStats) {
+  for (const row of stats) {
     if (!row.player_id) continue;
     const existing = scoresByPlayer.get(row.player_id) ?? {
       playerId: row.player_id,
@@ -306,9 +324,5 @@ export async function getPublishedFantasyLeaderboard(roundId?: string | null): P
     return a.playerName.localeCompare(b.playerName);
   });
 
-  return {
-    rows: sortedScores.map((row, index) => ({ ...row, rank: index + 1 })),
-    rounds,
-    selectedRoundId,
-  };
+  return sortedScores.map((row, index) => ({ ...row, rank: index + 1 }));
 }

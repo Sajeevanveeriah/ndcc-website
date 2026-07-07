@@ -1,9 +1,39 @@
 import { MetadataRoute } from 'next';
+import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute.Sitemap> {
+  // Detail pages only exist for published CMS rows; skip silently when
+  // Supabase is unconfigured or unreachable so the static sitemap still serves.
+  if (!isServerSupabaseConfigured()) return [];
+  try {
+    const supabase = createServerClient({ fetchTimeoutMs: 5_000 });
+    const [news, events] = await Promise.all([
+      supabase.from('news').select('id,published_at,created_at').eq('published', true),
+      supabase.from('events').select('id,date').eq('published', true),
+    ]);
+    const newsEntries: MetadataRoute.Sitemap = (news.data ?? []).map((row) => ({
+      url: `${baseUrl}/news/${row.id}`,
+      lastModified: new Date(row.published_at || row.created_at || Date.now()),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }));
+    const eventEntries: MetadataRoute.Sitemap = (events.data ?? []).map((row) => ({
+      url: `${baseUrl}/events/${row.id}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    }));
+    return [...newsEntries, ...eventEntries];
+  } catch (err) {
+    console.error('[sitemap] Failed to load published detail routes:', err);
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
 
-  return [
+  const staticEntries: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
     { url: `${baseUrl}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/teams`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
@@ -21,5 +51,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/gallery`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/volunteer`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/contact`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/committee/minutes`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.4 },
   ];
+
+  const detailEntries = await getPublishedDetailEntries(baseUrl);
+  return [...staticEntries, ...detailEntries];
 }

@@ -62,6 +62,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === 'leave') {
+    const leagueId = String(body.leagueId || '').trim();
+    if (!leagueId) return NextResponse.json({ success: false, error: 'A league is required to leave.' }, { status: 400 });
+    const { error } = await supabase
+      .from('fantasy_league_members')
+      .delete()
+      .eq('league_id', leagueId)
+      .eq('manager_id', auth.manager.id);
+    if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  }
+
   const name = String(body.name || '').trim().replace(/\s+/g, ' ');
   if (!name || name.length > 80) return NextResponse.json({ success: false, error: 'League name is required and must be 80 characters or fewer.' }, { status: 400 });
   let league = null as any;

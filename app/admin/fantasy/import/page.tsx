@@ -19,6 +19,7 @@ type Feedback = {
 export default function AdminFantasyImportPage() {
   const [csvText, setCsvText] = useState('');
   const [filename, setFilename] = useState<string | null>(null);
+  const [sourceUrl, setSourceUrl] = useState('');
   const [preview, setPreview] = useState<FantasyImportPreview | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [validating, setValidating] = useState(false);
@@ -76,7 +77,7 @@ export default function AdminFantasyImportPage() {
       const response = await adminFetch('/api/admin/fantasy/import/save-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvText, filename }),
+        body: JSON.stringify({ csvText, filename, sourceUrl }),
       });
       const result = await parseApiResponse<{ batch: { id: string; status: string }; rowsSaved: number }>(response);
       setFeedback({ type: 'success', message: `Draft import ${result.batch.id} saved with ${result.rowsSaved} row${result.rowsSaved === 1 ? '' : 's'}. Status remains ${result.batch.status}.` });
@@ -146,6 +147,21 @@ export default function AdminFantasyImportPage() {
                   className="min-h-64 w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
                   placeholder={csvColumns.join(',')}
                 />
+              </div>
+
+              <div>
+                <label htmlFor="fantasy-source-url" className="block text-sm font-semibold text-gray-700 font-body mb-2">
+                  Source URL (optional)
+                </label>
+                <input
+                  id="fantasy-source-url"
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(event) => setSourceUrl(event.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                  placeholder="https://www.playhq.com/... (public scorecard these stats were read from)"
+                />
+                <p className="mt-1 text-xs text-gray-500 font-body">Recorded on the batch with a fetched-at timestamp so published scores stay traceable to their official source.</p>
               </div>
 
               <div className="flex flex-wrap gap-3">
