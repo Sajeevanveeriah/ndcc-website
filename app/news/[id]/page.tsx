@@ -4,7 +4,10 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { truncateText } from '@/lib/utils';
 import NewsDetailClient from './NewsDetailClient';
 
-export const revalidate = 300;
+// Request-time rendering: news articles are mutable CMS content.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 async function getPost(id: string): Promise<PublicNewsRecord | null> {
   try {

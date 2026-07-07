@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   title: 'Gallery',
 };
 
-export const revalidate = 300;
+// Request-time rendering: the gallery is mutable CMS content, so it must never
+// be served from a build-time prerender or the ISR cache.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export default async function GalleryPage() {
   const { data: photos } = await getPublicGallery();

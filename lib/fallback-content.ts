@@ -19,8 +19,6 @@ import type { CommitteeMemberContent, FacilityFeature, HistoryCompetition, Histo
 import { normalizeEventImage, normalizeGalleryImage, normalizeNewsImage } from '@/lib/public-content-normalizers';
 import { canonicalSponsorKey, canonicalSponsorName } from '@/lib/sponsor-canonical';
 
-export const isProductionStaticBuild = process.env.NEXT_PHASE === 'phase-production-build';
-
 const playHqOrg = PLAYHQ_ORG_URL;
 
 export const fallbackContentBlocks: Record<string, ContentBlock> = {

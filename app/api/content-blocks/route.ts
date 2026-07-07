@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { getContentBlocks } from '@/lib/content-blocks';
-import { fallbackContentBlocks, isProductionStaticBuild } from '@/lib/fallback-content';
+import { fallbackContentBlocks } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
-const getActiveContentBlocks = unstable_cache(async (page: string | null, keys: string | null) => {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) {
+const noStoreHeaders = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+};
+
+// Uncached live read: content blocks are edited through admin, so the response
+// is assembled from Supabase on every request. Fallback blocks are reserved for
+// unconfigured/failed-query states — never for a successful live result.
+async function getActiveContentBlocks(page: string | null, keys: string | null) {
+  if (!isServerSupabaseConfigured()) {
     const requested = keys?.split(',').map((k) => k.trim()).filter(Boolean);
     const values = Object.values(fallbackContentBlocks).filter((block) => {
       if (requested?.length) return requested.includes(block.block_key);
@@ -25,7 +35,7 @@ const getActiveContentBlocks = unstable_cache(async (page: string | null, keys: 
   const { data, error } = await query;
   if (error) return { data: [], error: error.message, source: 'supabase' as const, degraded: false };
   return { data: data ?? [], error: null, source: 'supabase' as const, degraded: false };
-}, ['public-content-blocks'], { revalidate: 300, tags: ['content-blocks'] });
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -34,10 +44,14 @@ export async function GET(request: Request) {
 
   if (keys) {
     const blocks = await getContentBlocks(keys.split(',').map((key) => key.trim()).filter(Boolean));
-    return NextResponse.json({ success: true, data: Object.values(blocks), source: 'fallback', degraded: isProductionStaticBuild || !isServerSupabaseConfigured(), error: null });
+    const degraded = !isServerSupabaseConfigured();
+    return NextResponse.json(
+      { success: true, data: Object.values(blocks), source: degraded ? 'fallback' : 'supabase', degraded, error: null },
+      { headers: noStoreHeaders },
+    );
   }
 
   const { data, error, source, degraded } = await getActiveContentBlocks(page, keys);
-  if (error) return NextResponse.json({ success: true, data: [], source, degraded: true, error });
-  return NextResponse.json({ success: true, data, source, degraded, error: null });
+  if (error) return NextResponse.json({ success: true, data: [], source, degraded: true, error }, { headers: noStoreHeaders });
+  return NextResponse.json({ success: true, data, source, degraded, error: null }, { headers: noStoreHeaders });
 }

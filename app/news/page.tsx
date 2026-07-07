@@ -3,19 +3,22 @@ import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import { getPublishedNews } from '@/lib/public-news';
-import { fallbackNews, isProductionStaticBuild } from '@/lib/fallback-content';
+import { fallbackNews } from '@/lib/fallback-content';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
 
-export const revalidate = 300;
+// Request-time rendering: news is mutable CMS content, so it must never be
+// served from a build-time prerender or the ISR cache.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
-// Server-rendered from the tagged 'news' cache (admin saves call revalidateTag) so the
-// page never paints seed content and swaps to live records after hydration. Fallback is
-// reserved for build phase / unconfigured / query-failure paths only — a successful
-// empty result renders the empty state.
+// Server-rendered live on every request. Fallback is reserved for
+// unconfigured / query-failure paths only — a successful empty result renders
+// the empty state.
 async function loadPosts(): Promise<NewsPost[]> {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackNews;
+  if (!isServerSupabaseConfigured()) return fallbackNews;
   try {
     const data = await getPublishedNews({});
     return (Array.isArray(data) ? data : []) as NewsPost[];

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -13,13 +12,17 @@ const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
 };
 
-export const revalidate = 300;
+// Request-time rendering: teams are mutable CMS content (and the shared footer
+// chrome must reflect admin edits), so this page is never served from the ISR cache.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export const metadata: Metadata = {
   title: 'Teams',
 };
 
-const getTeams = unstable_cache(async (): Promise<TeamInfo[]> => {
+async function getTeams(): Promise<TeamInfo[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return TEAMS;
   }
@@ -42,7 +45,7 @@ const getTeams = unstable_cache(async (): Promise<TeamInfo[]> => {
     console.error('[teams] Failed to load teams from Supabase; serving static fallback:', err);
     return TEAMS;
   }
-}, ['teams'], { revalidate: 300, tags: ['teams'] });
+}
 
 export default async function TeamsPage() {
   const teams = await getTeams();

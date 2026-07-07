@@ -4,7 +4,7 @@ import { fallbackNews } from '@/lib/fallback-content';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
+export const fetchCache = 'force-no-store';
 
 function getSeedNews(id?: string, limit?: number) {
   if (id) return fallbackNews.find((post) => post.id === id) ?? null;
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     if (id && !data) {
       return NextResponse.json({ success: false, error: 'Article not found.' }, { status: 404, headers: noStoreHeaders });
     }
-    return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+    return NextResponse.json({ success: true, data, source: 'fallback', degraded: true }, { headers: noStoreHeaders });
   }
 
   try {
@@ -46,6 +46,11 @@ export async function GET(request: Request) {
     const posts = Array.isArray(data) ? data : [];
     return NextResponse.json({ success: true, data: posts }, { headers: noStoreHeaders });
   } catch {
-    return NextResponse.json({ success: true, data: getSeedNews(undefined, limit) }, { headers: noStoreHeaders });
+    // Query failure: seed content stands in, flagged so consumers can tell it
+    // apart from live records.
+    return NextResponse.json(
+      { success: true, data: getSeedNews(undefined, limit), source: 'fallback', degraded: true },
+      { headers: noStoreHeaders },
+    );
   }
 }

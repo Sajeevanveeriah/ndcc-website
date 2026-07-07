@@ -52,13 +52,10 @@ const resourceMap: Record<string, ResourceConfig> = {
   clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url'] },
 };
 
-// Tag names must match the `tags` arrays on the public unstable_cache wrappers
-// (lib/public-data.ts, lib/public-news.ts, lib/content-blocks.ts, lib/club-settings.ts,
-// lib/structured-content.ts, lib/site-chrome.ts, app/teams/page.tsx, app/events/[id]/page.tsx,
-// app/api/content-blocks/route.ts). revalidatePath alone does not purge unstable_cache
-// entries, so without these tags a CMS save stays invisible until the 300s window or a
-// redeploy. The site-chrome cache is tagged with club-settings/content-blocks/page-link-cards,
-// so those writes invalidate the navbar/footer data automatically.
+// Public CMS helpers now read Supabase uncached at request time, so these tag/path
+// invalidations are belt-and-braces rather than the freshness mechanism: they purge
+// any residual ISR/Data Cache entries (e.g. the remaining revalidate-based fantasy
+// pages) so a CMS save can never sit behind a cached render until a redeploy.
 const revalidationTags: Record<string, string[]> = {
   events: ['events'],
   news: ['news'],

@@ -1,4 +1,9 @@
-export const revalidate = 300;
+// Request-time rendering: this page is CMS-driven (news, events, gallery,
+// sponsors, content blocks), so it must never be served from a build-time
+// prerender or the ISR cache where stale seed content can linger.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -19,11 +24,11 @@ import {
 import { formatDate, truncateText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
-import { getFallbackSeasonAppointments } from '@/lib/public-season-appointments';
+import { getFallbackSeasonAppointments, getPublicSeasonAppointments } from '@/lib/public-season-appointments';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
-import { fallbackNews, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { fallbackNews } from '@/lib/fallback-content';
 import LogoChip from '@/components/common/LogoChip';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 
@@ -32,7 +37,7 @@ type NewsItem = PublicNewsRecord & {
 };
 
 async function getLatestNews(): Promise<NewsItem[]> {
-  if (isProductionStaticBuild || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return fallbackNews.slice(0, 3) as NewsItem[];
   }
 
@@ -496,8 +501,17 @@ function SeasonAppointmentsSkeleton() {
   );
 }
 
-function SeasonAppointmentsSection() {
-  return <SeasonAppointmentsMarquee initialAppointments={getFallbackSeasonAppointments()} />;
+async function SeasonAppointmentsSection() {
+  // Server-render the live appointments so seed data never paints first; the
+  // static list only stands in when Supabase is unconfigured or the query fails.
+  let initialAppointments;
+  try {
+    initialAppointments = await getPublicSeasonAppointments();
+  } catch (err) {
+    console.error('[home] Failed to load season appointments; serving static fallback:', err);
+    initialAppointments = getFallbackSeasonAppointments();
+  }
+  return <SeasonAppointmentsMarquee initialAppointments={initialAppointments} />;
 }
 
 
@@ -537,9 +551,11 @@ async function SponsorsSection() {
     getPublicSponsors(),
   ]);
 
-  // On a Supabase cold start the query aborts; merge with the static fallback so the public
-  // always sees real sponsors (CMS rows win whenever Supabase is warm) instead of a diagnostic.
-  const sponsors = mergeSponsorsWithFallback(dbSponsors.error ? [] : dbSponsors.data);
+  // getPublicSponsors already backfills missing logo/website fields on live rows
+  // and only serves the static list when the query itself fails. A successful
+  // empty result is live truth, so the section is simply hidden.
+  const sponsors = dbSponsors.data;
+  if (sponsors.length === 0) return null;
 
   const sponsorBlock = blocks['home.sponsor_intro'] || blocks['home.sponsorship'];
   const sponsorshipTitle = sponsorBlock?.title || 'Our Sponsors';

@@ -4,7 +4,6 @@ import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-r
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { type PageLinkCard } from '@/lib/structured-content';
 import { getSiteChromeData } from '@/lib/site-chrome';
-import { fallbackLinksFor } from '@/lib/fallback-content';
 import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
 
 function isExternalLink(link: PageLinkCard) {
@@ -13,13 +12,13 @@ function isExternalLink(link: PageLinkCard) {
   return /^https?:\/\//i.test(link.href);
 }
 
-// Prefer live CMS links; fall back to sensible defaults on a Supabase cold start so the
-// footer is never blank and never shows a diagnostic. An empty section is hidden entirely.
-// Links are deduped by href AND by normalised title (first occurrence wins, order
-// preserved) so a duplicate re-seed or import can never make the footer visibly repeat
-// a link — even when two rows share a label but point at different destinations.
-function resolveLinks(live: PageLinkCard[], pageSlug: string, sectionKey: string) {
-  const links = live.length > 0 ? live : fallbackLinksFor(pageSlug, sectionKey);
+// getSiteChromeData already reserves fallback links for unconfigured/failed-query
+// paths, so a successful empty section stays hidden rather than resurrecting seed
+// links. Links are deduped by href AND by normalised title (first occurrence wins,
+// order preserved) so a duplicate re-seed or import can never make the footer
+// visibly repeat a link — even when two rows share a label but point at different
+// destinations.
+function resolveLinks(links: PageLinkCard[]) {
   const seenHrefs = new Set<string>();
   const seenTitles = new Set<string>();
   return links.filter((link) => {
@@ -64,9 +63,9 @@ export default async function Footer() {
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const quickLinks = resolveLinks(cmsQuickLinks, 'site', 'footer_quick_links');
-  const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks, 'site', 'footer_get_involved');
-  const affiliationLinks = resolveLinks(cmsAffiliationLinks, 'site', 'footer_affiliations');
+  const quickLinks = resolveLinks(cmsQuickLinks);
+  const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks);
+  const affiliationLinks = resolveLinks(cmsAffiliationLinks);
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">

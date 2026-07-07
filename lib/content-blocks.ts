@@ -1,7 +1,6 @@
-import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 import { normalisePublicText } from './utils';
-import { fallbackBlocksForKeys, isProductionStaticBuild } from '@/lib/fallback-content';
+import { fallbackBlocksForKeys } from '@/lib/fallback-content';
 
 export interface ContentBlock {
   block_key: string;
@@ -40,7 +39,7 @@ function mapContentBlocksForKeys(keys: string[], rows: Partial<ContentBlock>[] |
 }
 
 async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackBlocksForKeys(keys);
+  if (!isServerSupabaseConfigured()) return fallbackBlocksForKeys(keys);
 
   try {
     const supabase = createServerClient();
@@ -62,7 +61,6 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
   }
 }
 
-export const getContentBlocks = unstable_cache(getContentBlocksUncached, ['content-blocks'], {
-  revalidate: 300,
-  tags: ['content-blocks'],
-});
+// Uncached live read: content blocks are edited through admin, so they must be
+// queried at request time rather than served from the build/Data Cache.
+export const getContentBlocks = getContentBlocksUncached;

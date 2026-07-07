@@ -14,11 +14,16 @@ import {
 import { getInitials, normalisePublicText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships, getPageLinkCards } from '@/lib/structured-content';
-import { fallbackCommitteeMembers, fallbackHistoryCompetitions, fallbackHistoryLineage, fallbackHistoryPremierships } from '@/lib/fallback-content';
 
 export const metadata: Metadata = {
   title: 'About',
 };
+
+// Request-time rendering: committee, history, and content blocks are mutable
+// CMS content, so this page must never be served from a build-time prerender.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 const premiershipTeams = ['1st XI', '2nd XI', '3rd XI', '4th XI', '5th XI'];
 
@@ -32,13 +37,13 @@ export default async function AboutPage() {
     getPageLinkCards('about', 'articles'),
   ]);
 
-  // An empty result means the Supabase query aborted on a cold start (these tables are always
-  // populated in production), so render the static fallback — real club history — instead of a
-  // blank section. CMS rows win whenever Supabase is warm.
-  const lineageEntries = cmsLineage.length > 0 ? cmsLineage : fallbackHistoryLineage;
-  const premierships = cmsPremierships.length > 0 ? cmsPremierships : fallbackHistoryPremierships;
-  const competitions = cmsCompetitions.length > 0 ? cmsCompetitions : fallbackHistoryCompetitions;
-  const committeeMembers = cmsCommittee.length > 0 ? cmsCommittee : fallbackCommitteeMembers;
+  // The helpers already reserve static fallback for unconfigured/failed-query
+  // paths; a successful (even empty) live result is rendered as-is so seed
+  // rows can never masquerade as live CMS content.
+  const lineageEntries = cmsLineage;
+  const premierships = cmsPremierships;
+  const competitions = cmsCompetitions;
+  const committeeMembers = cmsCommittee;
 
   const historyTitle = blocks['about.history']?.title || 'Our History';
   const historyBody = blocks['about.history']?.body;

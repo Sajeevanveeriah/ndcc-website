@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { unstable_cache } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
@@ -7,9 +6,12 @@ import { formatDateTime, truncateText } from '@/lib/utils';
 import type { Event } from '@/lib/types';
 import EventDetailClient from './EventDetailClient';
 
-export const revalidate = 300;
+// Request-time rendering: events are mutable CMS content.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
-const getEvent = unstable_cache(async (id: string): Promise<Event | null> => {
+async function getEvent(id: string): Promise<Event | null> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
@@ -26,7 +28,7 @@ const getEvent = unstable_cache(async (id: string): Promise<Event | null> => {
   } catch {
     return null;
   }
-}, ['event-detail'], { revalidate: 300, tags: ['events'] });
+}
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const event = await getEvent(params.id);
