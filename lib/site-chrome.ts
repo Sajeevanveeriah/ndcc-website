@@ -1,4 +1,3 @@
-import { unstable_cache } from 'next/cache';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks, type ContentBlock } from '@/lib/content-blocks';
 import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
@@ -29,7 +28,7 @@ async function getSiteChromeDataUncached(): Promise<SiteChromeData> {
   };
 }
 
-export const getSiteChromeData = unstable_cache(getSiteChromeDataUncached, ['site-chrome-data'], {
-  revalidate: 300,
-  tags: ['site-chrome', 'club-settings', 'content-blocks', 'page-link-cards'],
-});
+// Uncached live read: the footer/navbar chrome must reflect admin edits at
+// request time. Caching this snapshot let a build-phase fallback render stick
+// in the Data Cache and alternate with live content in production.
+export const getSiteChromeData = getSiteChromeDataUncached;

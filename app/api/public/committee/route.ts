@@ -3,6 +3,7 @@ import { getCommitteeMembers } from '@/lib/structured-content';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 const noStoreHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -11,8 +12,8 @@ const noStoreHeaders = {
 };
 
 // Active committee members for the public contact page. Data comes from the CMS
-// committee_members table via the tagged 'committee-members' cache, so admin edits
-// propagate immediately after revalidateTag without a redeploy.
+// committee_members table via an uncached live read, so admin edits are always
+// reflected immediately without a redeploy.
 export async function GET() {
   try {
     const data = await getCommitteeMembers();

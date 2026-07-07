@@ -83,9 +83,11 @@ export default function SponsorsPage() {
         const json = await res.json();
 
         if (!res.ok || json.success === false) throw new Error(json.error || 'Failed to load sponsors');
-        // Merge live CMS sponsors with the static fallback so every sponsor (all nine) renders
-        // with a visible name, even if the API returns a partial list. CMS rows win when present.
-        setSponsors(mergeSponsorsWithFallback(Array.isArray(json.data) ? (json.data as Sponsor[]) : []));
+        // A successful response is live truth, including an empty list — never
+        // substitute the static seed sponsors for real CMS data. The merge only
+        // backfills missing logo/website fields on live rows.
+        const rows = Array.isArray(json.data) ? (json.data as Sponsor[]) : [];
+        setSponsors(rows.length > 0 ? mergeSponsorsWithFallback(rows) : []);
       } catch {
         // On a Supabase cold start the API aborts; show the static fallback (real sponsors)
         // instead of a diagnostic so the grid is never empty or broken.

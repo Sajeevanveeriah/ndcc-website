@@ -1,4 +1,3 @@
-import { unstable_cache } from 'next/cache';
 import {
   fallbackCommitteeMembers,
   fallbackFacilityFeatures,
@@ -6,7 +5,6 @@ import {
   fallbackHistoryLineage,
   fallbackHistoryPremierships,
   fallbackLinksFor,
-  isProductionStaticBuild,
 } from '@/lib/fallback-content';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 
@@ -52,18 +50,13 @@ function sortPageLinks(links: PageLinkCard[]) {
   });
 }
 
-// Live CMS rows are the single source of truth for a populated section. Unioning
-// fallback + live rows re-surfaced retired/re-linked fallback entries alongside their
-// CMS replacements (e.g. two "Geelong Cricket Association" footer links with different
-// hrefs), so fallback now only serves the cold-start/empty path.
-function mergePageLinksWithFallback(rows: PageLinkCard[], fallback: PageLinkCard[]) {
-  if (rows.length === 0) return fallback;
-  return sortPageLinks(rows);
-}
-
-async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
+// All helpers below are uncached live reads: this is mutable CMS content edited
+// through admin, so it must be queried at request time. Fallback content is
+// reserved for missing Supabase env or a failed query — a successful empty
+// result is live truth and is returned as-is, never replaced with seed rows.
+export async function getPageLinkCards(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
   const fallback = fallbackPageLinks(pageSlug, sectionKey);
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallback;
+  if (!hasSupabaseEnv()) return fallback;
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase
@@ -74,72 +67,59 @@ async function getPageLinkCardsUncached(pageSlug: string, sectionKey: string): P
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     if (error) { warnFallback('Public page link cards query failed; using controlled fallbacks.', { pageSlug, sectionKey, error: error.message }); return fallback; }
-    const rows = (data as PageLinkCard[]) || [];
-    return mergePageLinksWithFallback(rows, fallback);
+    return sortPageLinks((data as PageLinkCard[]) || []);
   } catch (error) {
     warnFallback('Public page link cards query failed; using controlled fallbacks.', { pageSlug, sectionKey, error: error instanceof Error ? error.message : 'unknown' });
     return fallback;
   }
 }
 
-export const getPageLinkCards = unstable_cache(getPageLinkCardsUncached, ['page-link-cards'], { revalidate: 300, tags: ['page-link-cards'] });
-
-async function getFacilityFeaturesUncached(): Promise<FacilityFeature[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackFacilityFeatures;
+export async function getFacilityFeatures(): Promise<FacilityFeature[]> {
+  if (!hasSupabaseEnv()) return fallbackFacilityFeatures;
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase.from('facility_features').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public facility features query failed; using controlled fallbacks.', { error: error.message }); return fallbackFacilityFeatures; }
-    const rows = (data as FacilityFeature[]) || [];
-    return rows.length > 0 ? rows : fallbackFacilityFeatures;
+    return (data as FacilityFeature[]) || [];
   } catch (error) { warnFallback('Public facility features query failed; using controlled fallbacks.', { error: error instanceof Error ? error.message : 'unknown' }); return fallbackFacilityFeatures; }
 }
-export const getFacilityFeatures = unstable_cache(getFacilityFeaturesUncached, ['facility-features'], { revalidate: 300, tags: ['facility-features'] });
 
-async function getHistoryLineageUncached(): Promise<HistoryLineageEntry[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryLineage;
+export async function getHistoryLineage(): Promise<HistoryLineageEntry[]> {
+  if (!hasSupabaseEnv()) return fallbackHistoryLineage;
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase.from('history_lineage_entries').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public history lineage query failed; using controlled fallbacks.', { error: error.message }); return fallbackHistoryLineage; }
-    const rows = (data as HistoryLineageEntry[]) || [];
-    return rows.length > 0 ? rows : fallbackHistoryLineage;
+    return (data as HistoryLineageEntry[]) || [];
   } catch (error) { warnFallback('Public history lineage query failed; using controlled fallbacks.', { error: error instanceof Error ? error.message : 'unknown' }); return fallbackHistoryLineage; }
 }
-export const getHistoryLineage = unstable_cache(getHistoryLineageUncached, ['history-lineage'], { revalidate: 300, tags: ['history'] });
 
-async function getHistoryPremiershipsUncached(): Promise<HistoryPremiership[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryPremierships;
+export async function getHistoryPremierships(): Promise<HistoryPremiership[]> {
+  if (!hasSupabaseEnv()) return fallbackHistoryPremierships;
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase.from('history_premierships').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public history premierships query failed; using controlled fallbacks.', { error: error.message }); return fallbackHistoryPremierships; }
-    const rows = (data as HistoryPremiership[]) || [];
-    return rows.length > 0 ? rows : fallbackHistoryPremierships;
+    return (data as HistoryPremiership[]) || [];
   } catch (error) { warnFallback('Public history premierships query failed; using controlled fallbacks.', { error: error instanceof Error ? error.message : 'unknown' }); return fallbackHistoryPremierships; }
 }
-export const getHistoryPremierships = unstable_cache(getHistoryPremiershipsUncached, ['history-premierships'], { revalidate: 300, tags: ['history'] });
 
-async function getHistoryCompetitionsUncached(): Promise<HistoryCompetition[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackHistoryCompetitions;
+export async function getHistoryCompetitions(): Promise<HistoryCompetition[]> {
+  if (!hasSupabaseEnv()) return fallbackHistoryCompetitions;
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase.from('history_competitions').select('*').order('abbreviation', { ascending: true });
     if (error) { warnFallback('Public history competitions query failed; using controlled fallbacks.', { error: error.message }); return fallbackHistoryCompetitions; }
-    const rows = (data as HistoryCompetition[]) || [];
-    return rows.length > 0 ? rows : fallbackHistoryCompetitions;
+    return (data as HistoryCompetition[]) || [];
   } catch (error) { warnFallback('Public history competitions query failed; using controlled fallbacks.', { error: error instanceof Error ? error.message : 'unknown' }); return fallbackHistoryCompetitions; }
 }
-export const getHistoryCompetitions = unstable_cache(getHistoryCompetitionsUncached, ['history-competitions'], { revalidate: 300, tags: ['history'] });
 
-async function getCommitteeMembersUncached(): Promise<CommitteeMemberContent[]> {
-  if (isProductionStaticBuild || !hasSupabaseEnv()) return fallbackCommitteeMembers;
+export async function getCommitteeMembers(): Promise<CommitteeMemberContent[]> {
+  if (!hasSupabaseEnv()) return fallbackCommitteeMembers;
   try {
     const supabase = createServerClient();
     const { data, error } = await supabase.from('committee_members').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public committee members query failed; using controlled fallbacks.', { error: error.message }); return fallbackCommitteeMembers; }
-    const rows = (data as CommitteeMemberContent[]) || [];
-    return rows.length > 0 ? rows : fallbackCommitteeMembers;
+    return (data as CommitteeMemberContent[]) || [];
   } catch (error) { warnFallback('Public committee members query failed; using controlled fallbacks.', { error: error instanceof Error ? error.message : 'unknown' }); return fallbackCommitteeMembers; }
 }
-export const getCommitteeMembers = unstable_cache(getCommitteeMembersUncached, ['committee-members'], { revalidate: 300, tags: ['committee-members'] });

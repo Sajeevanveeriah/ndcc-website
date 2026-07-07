@@ -6,12 +6,17 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getClubSettings } from '@/lib/club-settings';
 import { normalisePublicText } from '@/lib/utils';
 import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content';
-import { fallbackFacilityFeatures } from '@/lib/fallback-content';
 import { CLUB_ADDRESS, CLUB_ESTABLISHED } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Facilities',
 };
+
+// Request-time rendering: facility features and content blocks are mutable
+// CMS content, so this page must never be served from a build-time prerender.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 const iconByKey: Record<string, string> = {
   feature: 'M12 6v12m6-6H6',
@@ -31,9 +36,9 @@ export default async function FacilitiesPage() {
     getClubSettings(),
   ]);
 
-  // On a Supabase cold start the query aborts; show the static fallback (real facility
-  // features) instead of a blank grid. Live CMS features are used whenever Supabase is warm.
-  const featureCards = features.length > 0 ? features : fallbackFacilityFeatures;
+  // getFacilityFeatures reserves static fallback for unconfigured/failed-query
+  // paths; a successful (even empty) live result is rendered as-is.
+  const featureCards = features;
   const featureStats = featureCards.slice(0, 3).map((feature) => feature.title);
   const statItems = [...featureStats, `Est. ${CLUB_ESTABLISHED}`];
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(settings.address || CLUB_ADDRESS)}`;

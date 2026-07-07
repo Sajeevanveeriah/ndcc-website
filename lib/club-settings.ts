@@ -1,7 +1,5 @@
-import { unstable_cache } from 'next/cache';
 import { createPublicServerClient, isPublicSupabaseConfigured } from '@/lib/supabase-server';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
-import { isProductionStaticBuild } from '@/lib/fallback-content';
 
 function textOrFallback(value: unknown, fallback: string | null) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
@@ -42,7 +40,7 @@ export function normalizeClubSettings(row: Partial<ClubSettings> | null | undefi
 }
 
 async function getClubSettingsUncached(): Promise<ClubSettings> {
-  if (isProductionStaticBuild || !isPublicSupabaseConfigured()) {
+  if (!isPublicSupabaseConfigured()) {
     return fallbackClubSettings;
   }
 
@@ -65,7 +63,6 @@ async function getClubSettingsUncached(): Promise<ClubSettings> {
   }
 }
 
-export const getClubSettings = unstable_cache(getClubSettingsUncached, ['club-settings'], {
-  revalidate: 300,
-  tags: ['club-settings'],
-});
+// Uncached live read: club settings are edited through admin, so they must be
+// queried at request time rather than served from the build/Data Cache.
+export const getClubSettings = getClubSettingsUncached;

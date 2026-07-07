@@ -1,6 +1,5 @@
-import { unstable_cache } from 'next/cache';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
-import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, isProductionStaticBuild, mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { normalizeEventImage, normalizeGalleryImage } from '@/lib/public-content-normalizers';
 import type { Event, Sponsor } from '@/lib/types';
 
@@ -25,7 +24,11 @@ export type GalleryPhoto = {
 
 const PUBLIC_QUERY_TIMEOUT_MS = 5_000;
 
-const getPublishedEventsFromSupabase = unstable_cache(async () => {
+// Uncached live reads. These helpers back mutable public CMS content, so they
+// must hit Supabase on every request — wrapping them in unstable_cache let
+// build-time fallback output persist in the Data Cache and alternate with live
+// rows in production.
+async function getPublishedEventsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('events')
@@ -33,9 +36,9 @@ const getPublishedEventsFromSupabase = unstable_cache(async () => {
     .eq('published', true)
     .order('date', { ascending: true });
   return { data: data ?? [], error: error?.message ?? null };
-}, ['public-events-data'], { revalidate: 300, tags: ['events'] });
+}
 
-const getPublishedGalleryFromSupabase = unstable_cache(async () => {
+async function getPublishedGalleryFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('gallery_images')
@@ -44,9 +47,9 @@ const getPublishedGalleryFromSupabase = unstable_cache(async () => {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
   return { data: data ?? [], error: error?.message ?? null };
-}, ['public-gallery-data'], { revalidate: 300, tags: ['gallery'] });
+}
 
-const getActiveSponsorsFromSupabase = unstable_cache(async () => {
+async function getActiveSponsorsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('sponsors')
@@ -55,7 +58,7 @@ const getActiveSponsorsFromSupabase = unstable_cache(async () => {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   return { data: data ?? [], error: error?.message ?? null };
-}, ['public-sponsors-data'], { revalidate: 300, tags: ['sponsors'] });
+}
 
 function fallbackResult<T>(data: T, error: string | null = null): PublicDataResult<T> {
   // A non-null error means the live query failed (not a genuine empty
@@ -66,7 +69,7 @@ function fallbackResult<T>(data: T, error: string | null = null): PublicDataResu
 
 export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
   const fallback = fallbackEvents as Event[];
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackResult(fallback);
+  if (!isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getPublishedEventsFromSupabase();
@@ -89,7 +92,7 @@ export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
 
 export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[]>> {
   const fallback = fallbackGalleryImages as GalleryPhoto[];
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackResult(fallback);
+  if (!isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getPublishedGalleryFromSupabase();
@@ -102,7 +105,7 @@ export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[
 
 export async function getPublicSponsors(): Promise<PublicDataResult<Sponsor[]>> {
   const fallback = fallbackSponsors as Sponsor[];
-  if (isProductionStaticBuild || !isServerSupabaseConfigured()) return fallbackResult(fallback);
+  if (!isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getActiveSponsorsFromSupabase();

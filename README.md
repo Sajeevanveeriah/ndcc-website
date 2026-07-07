@@ -70,7 +70,7 @@ Sessions are cookie-based (hashed tokens in `committee_sessions`) with a 14-day 
 
 CMS-backed modules (public route ← table): news (`news`), events (`events`), gallery (`gallery_images`), merchandise (`apparel_products` + `merch_order_windows`), sponsors (`sponsors`), committee (`committee_members`, rendered on `/about` and `/contact`), teams (`teams`), facilities (`facility_features`), history, season appointments, kitchen menus, volunteer positions, content blocks and page link cards (footer/nav/page copy) via `/admin/site-pages` and `/admin/content`.
 
-Freshness model: public server pages use ISR (`revalidate = 300`) over tagged `unstable_cache` reads; every admin create/edit/delete through `/api/admin/resources/*` calls `revalidateTag`/`revalidatePath`, so CMS changes appear on the public site immediately — no redeploy needed. Public JSON APIs (`/api/public/*`, `/api/apparel/*`) are `force-dynamic` with `no-store` headers. Live CMS rows are the single source of truth: static fallback content renders only during the production build phase, when Supabase env is missing, or when a live query fails — never on top of a successful (even empty) live result.
+Freshness model: mutable CMS content is read at request time with no store — public CMS pages export `dynamic = 'force-dynamic'` / `revalidate = 0` / `fetchCache = 'force-no-store'`, and the public data helpers (`lib/public-data.ts`, `lib/public-news.ts`, `lib/content-blocks.ts`, `lib/club-settings.ts`, `lib/structured-content.ts`, `lib/site-chrome.ts`) query Supabase uncached on every request. There is no ISR or `unstable_cache` layer underneath public CMS pages or APIs, so build-time output can never resurface as stale seed content. Public JSON APIs (`/api/public/*`, `/api/gallery`, `/api/content-blocks`, `/api/club-settings`, `/api/apparel/*`) are `force-dynamic` with `no-store` headers. Live CMS rows are the single source of truth: static fallback content renders only when Supabase env is missing (local/unconfigured) or when a live query fails — never during the production build, never on top of a successful (even empty) live result, and never merged into live rows. The admin `/api/admin/resources/*` `revalidateTag`/`revalidatePath` calls remain as belt-and-braces for the few remaining cached routes (e.g. fantasy pages). After changing the cache strategy, a production redeploy **without build cache** may be required so previously prerendered/ISR payloads are dropped. Note: Supabase preview branches can report `MIGRATIONS_FAILED` because of historical duplicate migration prefixes — that is a preview-branch artefact and must not be used as evidence that the production CMS is broken.
 
 ### PlayHQ (Fixtures)
 
@@ -239,8 +239,8 @@ lib/
   ├── auth/                 # Committee session auth (config, session, guard)
   ├── playhq/               # PlayHQ config, client, normalisers
   ├── payments/             # Payment config & reconciliation matching
-  ├── public-data.ts / public-news.ts / structured-content.ts / content-blocks.ts  # tagged public reads
-  ├── fallback-content.ts   # cold-start/build-phase fallbacks (never override live data)
+  ├── public-data.ts / public-news.ts / structured-content.ts / content-blocks.ts  # uncached request-time public reads
+  ├── fallback-content.ts   # fallbacks for unconfigured/error states only (never replace live data)
   ├── email.ts              # Resend app email (server-only, non-blocking, test mode)
   └── constants.ts / types.ts / utils.ts
 middleware.ts               # Redirects cookie-less /admin visits to /admin/login
