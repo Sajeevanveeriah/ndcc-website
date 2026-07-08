@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { ENQUIRY_TYPES } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
+import ContactUpcomingEvents from '@/components/calendar/ContactUpcomingEvents';
 
 type CommitteeMember = {
   id: string;
@@ -362,6 +363,9 @@ export default function ContactPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Upcoming calendar events flagged for the contact page */}
+              <ContactUpcomingEvents />
 
               {/* Google Maps */}
               <Card>

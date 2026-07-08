@@ -9,6 +9,7 @@ const checks = [
   { route: '/sponsors', file: 'app/sponsors/page.tsx', label: 'sponsor cards', all: ['Sponsors'] },
   { route: '/news', file: 'app/news/page.tsx', label: 'news fallback', all: ['News'] },
   { route: '/events', file: 'app/events/page.tsx', label: 'events fallback', all: ['Events'] },
+  { route: '/calendar', file: 'app/calendar/page.tsx', label: 'calendar content', all: ['Club Calendar'] },
   { route: '/gallery', file: 'app/gallery/page.tsx', label: 'gallery fallback achievements', all: ['Gallery'] },
   { route: '/join', file: 'app/join/page.tsx', label: 'social membership', all: ['Membership'] },
   { route: '/contact', file: 'app/contact/page.tsx', label: 'contact form', all: ['Send Us a Message'] },
