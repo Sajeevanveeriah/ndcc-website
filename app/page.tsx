@@ -32,6 +32,9 @@ import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews } from '@/lib/fallback-content';
 import LogoChip from '@/components/common/LogoChip';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
+import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
+import { toCalendarFeedEvent } from '@/lib/calendar/format';
+import UpcomingEventsStrip from '@/components/calendar/UpcomingEventsStrip';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -441,6 +444,31 @@ async function EventsSection() {
   );
 }
 
+async function CalendarPreviewSection() {
+  // Hidden entirely when nothing is published or the live query degrades —
+  // never stale fallback calendar content.
+  const result = await getUpcomingCalendarEvents({ limit: 4, home: true });
+  if (result.degraded || result.data.length === 0) return null;
+  const events = result.data.map(toCalendarFeedEvent);
+
+  return (
+    <section className="section-padding surface-sky">
+      <div className="container-width">
+        <ScrollReveal className="text-center mb-10">
+          <span className="section-eyebrow">Club Calendar</span>
+          <h2 className="section-title">What&apos;s On at the Club</h2>
+        </ScrollReveal>
+        <div className="max-w-3xl mx-auto">
+          <UpcomingEventsStrip events={events} showViewAll={false} />
+        </div>
+        <div className="text-center mt-8">
+          <Link href="/calendar" className="btn-secondary">View Full Calendar</Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 async function GalleryPreviewSection() {
   const { data: photos } = await getPublicGallery();
   const preview = photos.slice(0, 4);
@@ -764,6 +792,10 @@ export default function HomePage() {
 
       <Suspense fallback={null}>
         <EventsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <CalendarPreviewSection />
       </Suspense>
 
       <Suspense

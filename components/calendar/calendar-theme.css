@@ -1,0 +1,130 @@
+/* NDCC FullCalendar theme — maroon/blue primary, gold reserved for today + featured. */
+
+.ndcc-calendar {
+  --fc-border-color: #e5e7eb;
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: #f8fafc;
+  --fc-today-bg-color: rgba(212, 160, 23, 0.12);
+  --fc-button-bg-color: #800000;
+  --fc-button-border-color: #800000;
+  --fc-button-hover-bg-color: #600000;
+  --fc-button-hover-border-color: #600000;
+  --fc-button-active-bg-color: #4a0000;
+  --fc-button-active-border-color: #4a0000;
+  --fc-event-border-color: transparent;
+  --fc-list-event-hover-bg-color: #fbf7f0;
+  --fc-highlight-color: rgba(128, 0, 0, 0.08);
+}
+
+.ndcc-calendar .fc {
+  font-family: var(--font-body, Inter, sans-serif);
+}
+
+.ndcc-calendar .fc .fc-toolbar-title {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #4a0000;
+  font-size: 1.35rem;
+}
+
+.ndcc-calendar .fc .fc-button {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.5rem;
+}
+
+.ndcc-calendar .fc .fc-button:focus-visible {
+  outline: 2px solid #d4a017;
+  outline-offset: 2px;
+}
+
+.ndcc-calendar .fc .fc-button:disabled {
+  background-color: #b08f8f;
+  border-color: #b08f8f;
+}
+
+.ndcc-calendar .fc .fc-col-header-cell {
+  background: #1e3a5f;
+}
+
+.ndcc-calendar .fc .fc-col-header-cell-cushion {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.25rem;
+}
+
+.ndcc-calendar .fc .fc-daygrid-day-number,
+.ndcc-calendar .fc .fc-list-day-text,
+.ndcc-calendar .fc .fc-list-day-side-text {
+  color: #374151;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ndcc-calendar .fc .fc-day-today .fc-daygrid-day-number {
+  color: #4a0000;
+  background: #d4a017;
+  border-radius: 9999px;
+  min-width: 1.7rem;
+  text-align: center;
+  margin: 0.15rem;
+}
+
+.ndcc-calendar .fc .fc-event {
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+
+.ndcc-calendar .fc .fc-event:focus-visible {
+  outline: 2px solid #d4a017;
+  outline-offset: 1px;
+}
+
+.ndcc-calendar .fc .fc-event.ndcc-event-cancelled .fc-event-title,
+.ndcc-calendar .fc .fc-list-event.ndcc-event-cancelled .fc-list-event-title {
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.ndcc-calendar .fc .fc-event.ndcc-event-featured {
+  box-shadow: 0 0 0 2px #d4a017;
+}
+
+.ndcc-calendar .fc .fc-list-event-title a {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.ndcc-calendar .fc .fc-list-empty {
+  background: #f8fafc;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .ndcc-calendar .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .ndcc-calendar .fc .fc-toolbar-title {
+    font-size: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ndcc-calendar .fc * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

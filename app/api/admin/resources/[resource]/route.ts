@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
+import { validateCalendarEventPayload } from '@/lib/calendar/format';
 import type { AuthRole } from '@/lib/auth/config';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,10 @@ type ResourceConfig = {
   datetimeFields?: string[];
   allowDelete?: boolean;
   deleteRoles?: AuthRole[];
+  // Optional server-side payload validation run after sanitizePayload (so
+  // datetime-local values are already club-timezone ISO strings). Returns an
+  // error message or null.
+  validate?: (payload: Record<string, unknown>, isCreate: boolean) => string | null;
 };
 
 const resourceMap: Record<string, ResourceConfig> = {
@@ -23,6 +28,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   orders: { table: 'orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['processed', 'payment_status', 'confirmed_by', 'confirmed_at', 'bank_reference_used', 'needs_review_reason'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['confirmed_at'] },
   enquiries: { table: 'contacts', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['name', 'email', 'phone', 'enquiry_type', 'message', 'responded'], defaultOrder: { column: 'created_at', ascending: false } },
   events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'stripe_link', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
+  calendarEvents: { table: 'calendar_events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'slug', 'description', 'start_at', 'end_at', 'all_day', 'location', 'venue_address', 'event_type', 'category', 'visibility', 'status', 'is_featured', 'show_on_home', 'show_on_contact', 'show_on_calendar', 'image_url', 'external_url', 'cta_label', 'cta_url', 'registration_required', 'ticket_price', 'capacity', 'colour', 'sort_order', 'recurrence_rule', 'recurrence_until'], defaultOrder: { column: 'start_at', ascending: true }, datetimeFields: ['start_at', 'end_at', 'recurrence_until'], validate: validateCalendarEventPayload },
   eventRegistrations: { table: 'event_registrations', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   news: { table: 'news', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'content', 'author', 'image_url', 'published', 'published_at', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   seasonAppointments: { table: 'season_appointments', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'image_url', 'announcement_date', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -58,6 +64,7 @@ const resourceMap: Record<string, ResourceConfig> = {
 // pages) so a CMS save can never sit behind a cached render until a redeploy.
 const revalidationTags: Record<string, string[]> = {
   events: ['events'],
+  calendarEvents: ['calendar'],
   news: ['news'],
   sponsors: ['sponsors'],
   galleryImages: ['gallery'],
@@ -75,6 +82,7 @@ const revalidationTags: Record<string, string[]> = {
 
 const revalidationPaths: Record<string, string[]> = {
   events: ['/', '/events'],
+  calendarEvents: ['/', '/calendar', '/contact'],
   news: ['/', '/news'],
   sponsors: ['/', '/sponsors'],
   galleryImages: ['/', '/gallery'],
@@ -273,6 +281,10 @@ export async function POST(request: Request, { params }: { params: { resource: s
   if (config.table === 'club_settings' && !hasRequiredClubSettingsFields(payload)) {
     return NextResponse.json({ success: false, error: 'Club name, short name, and nickname are required.' }, { status: 400 });
   }
+  const validationError = config.validate?.(payload, true) ?? null;
+  if (validationError) {
+    return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+  }
   const supabase = createServerClient();
   let { data, error } = await supabase.from(config.table).insert(payload).select().single();
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
@@ -328,6 +340,10 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   }
   if (config.table === 'club_settings' && !hasRequiredClubSettingsFields(payload)) {
     return NextResponse.json({ success: false, error: 'Club name, short name, and nickname are required.' }, { status: 400 });
+  }
+  const validationError = config.validate?.(payload, false) ?? null;
+  if (validationError) {
+    return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
 
   const supabase = createServerClient();

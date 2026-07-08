@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -26,6 +26,7 @@ const baseLinks = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/enquiries', label: 'Enquiries', icon: Mail },
   { href: '/admin/events', label: 'Events', icon: Calendar },
+  { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/admin/news', label: 'News', icon: Newspaper },
   { href: '/admin/teams', label: 'Teams', icon: Users },
   { href: '/admin/fantasy', label: 'Fantasy Cricket', icon: Trophy },
