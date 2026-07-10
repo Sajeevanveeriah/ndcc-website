@@ -205,10 +205,11 @@ export default async function Footer() {
             &copy; {currentYear} {settings.club_name}. All rights reserved.
           </p>
           <a
-            href="https://github.com/Sajeevanveeriah"
+            href="https://sajeevanveeriah.github.io/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-maroon-400 hover:text-maroon-200 transition-colors font-body"
+            aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
+            className="text-xs text-maroon-400 hover:text-maroon-200 transition-colors font-body focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-200"
           >
             Built by Sajeevan Veeriah
           </a>

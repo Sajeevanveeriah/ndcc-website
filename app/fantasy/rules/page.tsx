@@ -5,15 +5,18 @@ import { CLUB_SHORT } from '@/lib/constants';
 import { FANTASY_RULE_SECTIONS } from '@/lib/fantasy';
 import { getContentBlocks } from '@/lib/content-blocks';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
+import SeasonSelector from '@/components/fantasy/SeasonSelector';
+import { getSeasonPageContext } from '@/lib/fantasy-seasons';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket Rules',
   description: 'Rules foundation for NDCC Fantasy Cricket.',
 };
 
-export default async function FantasyRulesPage() {
+export default async function FantasyRulesPage({ searchParams }: { searchParams?: { season?: string } }) {
+  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   const blocks = await getContentBlocks(['fantasy.rules']);
   const rulesBlock = blocks['fantasy.rules'];
   const rulesBody = rulesBlock?.body?.trim() || null;
@@ -36,6 +39,7 @@ export default async function FantasyRulesPage() {
       <section className="section-padding">
         <div className="container-width">
           <FantasyBackLink />
+          <div className="mb-6"><SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} /></div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">

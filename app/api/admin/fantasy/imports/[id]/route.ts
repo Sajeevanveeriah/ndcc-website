@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireSession } from '@/lib/auth/guard';
+import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 import { createServerClient } from '@/lib/supabase-server';
 import { getFantasyImportBatchDetail, type FantasyImportStatus } from '@/lib/fantasy-leaderboard';
 
@@ -16,7 +17,7 @@ function canMoveStatus(currentStatus: FantasyImportStatus, nextStatus: FantasyIm
 }
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
   }
@@ -40,7 +41,7 @@ type PatchRequest = {
 };
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
   }

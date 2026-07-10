@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
+import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices, getFantasySettings, getRoundLockState, validateDraftSquadSelection, validateSquadSelection, type SquadSelection } from '@/lib/fantasy-game';
 
 export const dynamic = 'force-dynamic';
@@ -17,12 +18,13 @@ function parseSelection(value: unknown): SquadSelection[] {
   }));
 }
 
-async function loadSquad(managerId: string) {
+async function loadSquad(managerId: string, seasonId: string) {
   const supabase = createServerClient();
   const { data: squad, error } = await supabase
     .from('fantasy_squads')
-    .select('id, manager_id, round_id, status, budget_used, fantasy_squad_players(player_id, position_type, bench_order, is_captain, is_vice_captain, fantasy_players(display_name, role))')
+    .select('id, manager_id, season_id, round_id, status, budget_used, carried_from_squad_id, fantasy_squad_players(player_id, position_type, bench_order, is_captain, is_vice_captain, fantasy_players(display_name, role))')
     .eq('manager_id', managerId)
+    .eq('season_id', seasonId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -34,8 +36,14 @@ export async function GET(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   try {
-    const [settings, players, squad] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), loadSquad(auth.manager.id)]);
-    return NextResponse.json({ success: true, settings, players, squad });
+    const season = await resolveRequestSeason(request);
+    if (!season) return NextResponse.json({ success: false, error: 'No fantasy season is available.' }, { status: 404 });
+    const [settings, players, squad] = await Promise.all([
+      getFantasySettings(season.id),
+      getActivePlayersWithLatestPrices(season.id),
+      loadSquad(auth.manager.id, season.id),
+    ]);
+    return NextResponse.json({ success: true, season, settings, players, squad });
   } catch (err) {
     return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Could not load squad.' }, { status: 500 });
   }
@@ -46,14 +54,21 @@ export async function POST(request: Request) {
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
 
   const body = await request.json().catch(() => ({}));
+  const season = await resolveRequestSeason(request, body);
+  if (!season) return NextResponse.json({ success: false, error: 'No fantasy season is available.' }, { status: 404 });
   const selection = parseSelection(body.selection);
   // mode 'draft' saves work-in-progress squads with relaxed validation;
   // anything else keeps the original submit behaviour for existing clients.
   const isDraft = body.mode === 'draft';
-  const [settings, players, roundLock] = await Promise.all([getFantasySettings(), getActivePlayersWithLatestPrices(), getRoundLockState()]);
+  const [settings, players, roundLock] = await Promise.all([
+    getFantasySettings(season.id),
+    getActivePlayersWithLatestPrices(season.id),
+    getRoundLockState(season.id),
+  ]);
+  if (!seasonAllowsTeamChanges(season)) return NextResponse.json({ success: false, error: 'Team building is not open for this season.' }, { status: 403 });
   if (!settings.is_team_selection_open) return NextResponse.json({ success: false, error: 'Team selection is currently closed.' }, { status: 403 });
-  if (roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked, so squads cannot be changed.' }, { status: 403 });
-  const roundId = roundLock.roundId;
+  if (season.is_current && roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked, so squads cannot be changed.' }, { status: 403 });
+  const roundId = season.is_current ? roundLock.roundId : null;
 
   const validation = isDraft
     ? validateDraftSquadSelection(selection, players, settings)
@@ -61,23 +76,23 @@ export async function POST(request: Request) {
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
 
   const supabase = createServerClient();
-  const squadValues = { manager_id: auth.manager.id, round_id: roundId, status: isDraft ? 'draft' : 'submitted', budget_used: validation.budgetUsed };
-  const squadColumns = 'id, manager_id, round_id, status, budget_used';
+  const squadValues = { manager_id: auth.manager.id, season_id: season.id, round_id: roundId, status: isDraft ? 'draft' : 'submitted', budget_used: validation.budgetUsed };
+  const squadColumns = 'id, manager_id, season_id, round_id, status, budget_used';
   let squadResult;
   if (roundId) {
     squadResult = await supabase
       .from('fantasy_squads')
-      .upsert(squadValues, { onConflict: 'manager_id,round_id' })
+      .upsert(squadValues, { onConflict: 'manager_id,season_id,round_id' })
       .select(squadColumns)
       .single();
   } else {
-    // UNIQUE(manager_id, round_id) does not constrain NULL round_id rows, so the
-    // upsert above would insert a fresh squad on every save. Update the existing
-    // pre-season squad when one exists instead.
+    // Unique NULL-round squads are enforced per (manager, season) by a partial
+    // index; update the existing pre-season squad when one exists.
     const existing = await supabase
       .from('fantasy_squads')
       .select('id')
       .eq('manager_id', auth.manager.id)
+      .eq('season_id', season.id)
       .is('round_id', null)
       .order('updated_at', { ascending: false })
       .limit(1)

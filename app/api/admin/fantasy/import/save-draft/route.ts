@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
+import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 import { createServerClient } from '@/lib/supabase-server';
 import { buildFantasyImportPreview } from '@/lib/fantasy-scoring';
 
@@ -25,7 +26,7 @@ function parseSourceUrl(value: unknown): { ok: true; url: string | null } | { ok
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
   }
@@ -43,10 +44,11 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServerClient();
-  const [playersResult, roundsResult, scoringRulesResult] = await Promise.all([
+  const [playersResult, roundsResult, scoringRulesResult, seasonResult] = await Promise.all([
     supabase.from('fantasy_players').select('id, display_name'),
-    supabase.from('fantasy_rounds').select('id, round_number, name'),
+    supabase.from('fantasy_rounds').select('id, round_number, name, season_id'),
     supabase.from('fantasy_scoring_rules').select('key, points, enabled'),
+    supabase.from('fantasy_seasons').select('id').eq('is_current', true).limit(1).maybeSingle(),
   ]);
 
   const dataError = playersResult.error || roundsResult.error || scoringRulesResult.error;
@@ -74,10 +76,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Source URL must be a valid http(s) address.' }, { status: 400 });
   }
 
+  // Stats are season-scoped: each row follows its round's season, defaulting
+  // to the current season. CSV imports cannot span multiple seasons.
+  const seasonByRound = new Map((roundsResult.data ?? []).map((round) => [round.id, round.season_id]));
+  const currentSeasonId = seasonResult.data?.id ?? null;
+  const rowSeasons = new Set(preview.rows.map((row) => seasonByRound.get(row.roundId as string) ?? currentSeasonId));
+  if (rowSeasons.size > 1) {
+    return NextResponse.json({ success: false, error: 'CSV rows span multiple fantasy seasons. Import one season at a time.' }, { status: 400 });
+  }
+  const batchSeasonId = rowSeasons.values().next().value ?? currentSeasonId;
+  if (!batchSeasonId) {
+    return NextResponse.json({ success: false, error: 'No current fantasy season is configured.' }, { status: 400 });
+  }
+
   const batchResult = await supabase
     .from('fantasy_import_batches')
     .insert({
       filename,
+      season_id: batchSeasonId,
       source: 'manual_csv',
       source_url: sourceUrl.url,
       fetched_at: new Date().toISOString(),
@@ -94,6 +110,7 @@ export async function POST(request: Request) {
 
   const insertRows = preview.rows.map((row) => ({
     import_batch_id: batchResult.data.id,
+    season_id: seasonByRound.get(row.roundId as string) ?? batchSeasonId,
     round_id: row.roundId,
     player_id: row.playerId,
     match_date: row.parsed?.match_date,

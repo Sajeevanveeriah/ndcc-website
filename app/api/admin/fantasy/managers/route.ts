@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
+import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // Read-only manager/squad review feed for admins: every registered fantasy
 // manager with their latest squad's status, budget, and captaincy picks.
 export async function GET() {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
   }

@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
+import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 
 export const dynamic = 'force-dynamic';
 
-type FantasyRole = 'WK' | 'BAT' | 'AR' | 'BOWL';
+type FantasyRole = 'WK' | 'BAT' | 'AR' | 'BOWL' | 'UNASSIGNED';
 
 type PlayerPayload = {
   id?: string;
@@ -17,7 +18,9 @@ type PlayerPayload = {
   price_million?: number | string | null;
 };
 
-const roles = new Set(['WK', 'BAT', 'AR', 'BOWL']);
+// UNASSIGNED is the safe parking role for imported players pending review;
+// UNASSIGNED players are never selectable in squads.
+const roles = new Set(['WK', 'BAT', 'AR', 'BOWL', 'UNASSIGNED']);
 
 function revalidateFantasy() {
   for (const path of ['/fantasy', '/fantasy/squad', '/fantasy/team', '/fantasy/transfers']) {
@@ -32,7 +35,7 @@ function normalisePayload(raw: PlayerPayload) {
   const errors: string[] = [];
 
   if (!displayName) errors.push('Player name is required.');
-  if (!role || !roles.has(role)) errors.push('Role must be WK, BAT, AR, or BOWL.');
+  if (!role || !roles.has(role)) errors.push('Role must be WK, BAT, AR, BOWL or UNASSIGNED.');
   if (price !== null && (!Number.isFinite(price) || price < 0 || price > 99.9)) errors.push('Price must be between 0.0 and 99.9.');
 
   return {
@@ -65,7 +68,7 @@ async function playersWithPrices(supabase: ReturnType<typeof createServerClient>
 }
 
 async function requireFantasyAdmin() {
-  return requireSession(['admin', 'president', 'secretary', 'committee']);
+  return requireSession(FANTASY_ADMIN_ROLES);
 }
 
 export async function GET() {
@@ -81,10 +84,33 @@ export async function GET() {
   }
 }
 
-async function upsertPrice(supabase: ReturnType<typeof createServerClient>, playerId: string, price: number | null) {
-  if (price === null) return;
-  const { error } = await supabase.from('fantasy_player_prices').insert({ player_id: playerId, price_million: price });
-  if (error) throw new Error(error.message);
+async function currentSeasonId(supabase: ReturnType<typeof createServerClient>) {
+  const { data } = await supabase.from('fantasy_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
+  return data?.id ?? null;
+}
+
+// One base price per player per season: update in place when a base price row
+// already exists, otherwise insert one for the current season.
+async function upsertPrice(supabase: ReturnType<typeof createServerClient>, playerId: string, price: number | null, seasonId: string | null) {
+  if (price === null || !seasonId) return;
+  const { data: existing } = await supabase.from('fantasy_player_prices').select('id').eq('season_id', seasonId).eq('player_id', playerId).is('effective_round_id', null).limit(1).maybeSingle();
+  const result = existing
+    ? await supabase.from('fantasy_player_prices').update({ price_million: price }).eq('id', existing.id)
+    : await supabase.from('fantasy_player_prices').insert({ player_id: playerId, price_million: price, season_id: seasonId });
+  if (result.error) throw new Error(result.error.message);
+}
+
+// Keep the current season's membership aligned with the reviewed global player
+// so role review makes players selectable (or hides them) immediately.
+async function syncSeasonMembership(supabase: ReturnType<typeof createServerClient>, playerId: string, player: { role?: FantasyRole; team_label?: string | null; active: boolean; playhq_player_id?: string | null }, seasonId: string | null) {
+  if (!seasonId) return;
+  const selectable = player.active && player.role !== undefined && player.role !== 'UNASSIGNED';
+  const values = { role: player.role, team_label: player.team_label ?? null, active: player.active, selectable, playhq_player_id: player.playhq_player_id ?? null };
+  const { data: existing } = await supabase.from('fantasy_season_players').select('id').eq('season_id', seasonId).eq('player_id', playerId).limit(1).maybeSingle();
+  const result = existing
+    ? await supabase.from('fantasy_season_players').update(values).eq('id', existing.id)
+    : await supabase.from('fantasy_season_players').insert({ ...values, season_id: seasonId, player_id: playerId, source: 'admin' });
+  if (result.error) throw new Error(result.error.message);
 }
 
 export async function POST(request: Request) {
@@ -97,13 +123,15 @@ export async function POST(request: Request) {
     if (rows.length === 0 || rows.length > 100) return NextResponse.json({ success: false, error: 'Import between 1 and 100 players at a time.' }, { status: 400 });
 
     const supabase = createServerClient();
+    const seasonId = await currentSeasonId(supabase);
     const saved = [];
     for (const row of rows) {
       const parsed = normalisePayload(row);
       if (parsed.errors.length > 0) return NextResponse.json({ success: false, error: `${row.display_name || 'Player'}: ${parsed.errors.join(' ')}` }, { status: 400 });
       const { data, error } = await supabase.from('fantasy_players').insert(parsed.player).select().single();
       if (error) throw new Error(error.message);
-      await upsertPrice(supabase, data.id, parsed.price);
+      await upsertPrice(supabase, data.id, parsed.price, seasonId);
+      await syncSeasonMembership(supabase, data.id, parsed.player, seasonId);
       saved.push(data);
     }
     revalidateFantasy();
@@ -124,9 +152,11 @@ export async function PATCH(request: Request) {
     if (parsed.errors.length > 0) return NextResponse.json({ success: false, error: parsed.errors.join(' ') }, { status: 400 });
 
     const supabase = createServerClient();
+    const seasonId = await currentSeasonId(supabase);
     const { data, error } = await supabase.from('fantasy_players').update(parsed.player).eq('id', body.id).select().single();
     if (error) throw new Error(error.message);
-    await upsertPrice(supabase, body.id, parsed.price);
+    await upsertPrice(supabase, body.id, parsed.price, seasonId);
+    await syncSeasonMembership(supabase, body.id, parsed.player, seasonId);
     revalidateFantasy();
     return NextResponse.json({ success: true, data: { ...data, price_million: parsed.price ?? 0 } });
   } catch (err) {

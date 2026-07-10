@@ -32,7 +32,9 @@
     "test:playhq-config": "node scripts/test-playhq-config.mjs",
     "test:playhq-normalise": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-playhq-normalise.mjs",
     "test:fantasy-logic": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-fantasy-logic.mjs",
-    "test:calendar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-calendar-logic.mjs"
+    "test:calendar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-calendar-logic.mjs",
+    "test:footer-link": "node scripts/test-footer-link.mjs",
+    "test:fantasy-seasons": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-fantasy-seasons.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

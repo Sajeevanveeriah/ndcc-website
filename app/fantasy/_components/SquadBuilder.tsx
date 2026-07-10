@@ -8,11 +8,14 @@ import Badge from '@/components/ui/Badge';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { fantasyJsonFetch } from '@/lib/fantasy-browser';
+import { useSeasonParam } from './useSeasonParam';
+import CarryoverPanel from './CarryoverPanel';
 
 type Player = { id: string; display_name: string; role: 'WK' | 'BAT' | 'AR' | 'BOWL'; team_label: string | null; price_million: number };
 type Selection = { playerId: string; positionType: 'starter' | 'bench'; benchOrder: number | null; isCaptain: boolean; isViceCaptain: boolean };
 
 export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: boolean }) {
+  const { season, query } = useSeasonParam();
   const [players, setPlayers] = useState<Player[]>([]);
   const [selection, setSelection] = useState<Selection[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -21,9 +24,11 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fantasyJsonFetch<any>('/api/fantasy/squad')
+    setLoading(true);
+    fantasyJsonFetch<any>(`/api/fantasy/squad${query}`)
       .then((result) => {
         setPlayers(result.players ?? []);
         setSettings(result.settings);
@@ -33,7 +38,7 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [query, reloadKey]);
 
   const selectedIds = useMemo(() => new Set(selection.map((item) => item.playerId)), [selection]);
   const selectedPlayers = selection.map((item) => players.find((player) => player.id === item.playerId)).filter(Boolean) as Player[];
@@ -50,7 +55,7 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
   const save = async (mode: 'draft' | 'submit') => {
     setFeedback(null); setError(null); setSaving(true);
     try {
-      await fantasyJsonFetch('/api/fantasy/squad', { method: 'POST', body: JSON.stringify({ selection, mode }) });
+      await fantasyJsonFetch('/api/fantasy/squad', { method: 'POST', body: JSON.stringify({ selection, mode, season: season || undefined }) });
       setSquadStatus(mode === 'draft' ? 'draft' : 'submitted');
       setFeedback(mode === 'draft' ? 'Draft saved. Submit your final squad before the round deadline.' : 'Squad saved and submitted.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save squad.'); }
@@ -65,6 +70,7 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
 
   return (
     <div className="space-y-6">
+      {!readonlyMode && <CarryoverPanel onApplied={() => setReloadKey((value) => value + 1)} />}
       <Card><CardContent className="p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-body"><div><strong>Squad</strong><br />{selection.length}/15</div><div><strong>Starters</strong><br />{selection.filter((item) => item.positionType === 'starter').length}/11</div><div><strong>Bench</strong><br />{selection.filter((item) => item.positionType === 'bench').length}/4</div><div><strong>Budget</strong><br />{budgetUsed.toFixed(1)} / {Number(settings?.squad_budget ?? 100).toFixed(1)}</div></div><p className="mt-4 text-sm text-gray-600 font-body">Select exactly 2 WK, 5 BAT, 3 AR and 5 BOWL. Captain and vice-captain must be starters. Bench players need order 1–4.</p></CardContent></Card>
       {feedback && <p className="text-green-700 font-body">{feedback}</p>}{error && <p className="text-red-600 font-body">{error}</p>}
       <Table><TableHead><TableRow><TableHeader>Pick</TableHeader><TableHeader>Player</TableHeader><TableHeader>Role</TableHeader><TableHeader>Price</TableHeader><TableHeader>Position</TableHeader><TableHeader>Captain</TableHeader><TableHeader>Vice</TableHeader><TableHeader>Bench order</TableHeader></TableRow></TableHead><TableBody>{players.map((player) => {

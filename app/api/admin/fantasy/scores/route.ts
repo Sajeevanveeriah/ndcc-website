@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
+import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 import { createServerClient } from '@/lib/supabase-server';
 import { calculatePlayerStatPoints, getEnabledScoringRules } from '@/lib/fantasy-game';
 
@@ -9,6 +10,10 @@ export const dynamic = 'force-dynamic';
 async function calculateRound(roundId: string) {
   const supabase = createServerClient();
   const rules = await getEnabledScoringRules();
+  const { data: round, error: roundError } = await supabase.from('fantasy_rounds').select('id, season_id').eq('id', roundId).maybeSingle();
+  if (roundError) throw new Error(roundError.message);
+  if (!round) throw new Error('Round not found.');
+  const seasonId = round.season_id as string;
   const { data: stats, error: statsError } = await supabase
     .from('fantasy_match_stats')
     .select('round_id, player_id, match_date, opponent, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_rounds(round_number), fantasy_players(display_name), fantasy_import_batches!inner(status)')
@@ -24,7 +29,8 @@ async function calculateRound(roundId: string) {
 
   const { data: squads, error: squadError } = await supabase
     .from('fantasy_squads')
-    .select('id, manager_id, round_id, fantasy_managers(display_name, team_name), fantasy_squad_players(player_id, position_type, is_captain, fantasy_players(display_name))')
+    .select('id, manager_id, round_id, season_id, fantasy_managers(display_name, team_name), fantasy_squad_players(player_id, position_type, is_captain, fantasy_players(display_name))')
+    .eq('season_id', seasonId)
     .or(`round_id.eq.${roundId},round_id.is.null`)
     .in('status', ['submitted', 'locked']);
   if (squadError) throw new Error(squadError.message);
@@ -43,7 +49,7 @@ async function calculateRound(roundId: string) {
     chipsByManager.set(chip.manager_id, set);
   }
 
-  return (squads ?? []).map((squad: any) => {
+  const result = (squads ?? []).map((squad: any) => {
     const chipsForManager = chipsByManager.get(squad.manager_id) ?? new Set<string>();
     let total = 0;
     for (const squadPlayer of squad.fantasy_squad_players ?? []) {
@@ -65,32 +71,33 @@ async function calculateRound(roundId: string) {
       chips: Array.from(chipsForManager),
     };
   }).sort((a, b) => b.netPoints - a.netPoints);
+  return { seasonId, rows: result };
 }
 
 export async function GET(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
   const supabase = createServerClient();
   const { searchParams } = new URL(request.url);
   const roundId = searchParams.get('roundId');
-  const { data: rounds, error } = await supabase.from('fantasy_rounds').select('id, round_number, name').order('round_number');
+  const { data: rounds, error } = await supabase.from('fantasy_rounds').select('id, round_number, name, season_id').order('round_number');
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  const preview = roundId ? await calculateRound(roundId) : [];
+  const preview = roundId ? (await calculateRound(roundId)).rows : [];
   return NextResponse.json({ success: true, rounds, preview, warning: 'Scores are calculated using the currently enabled fantasy scoring rules and published import batches only.' });
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const roundId = String(body.roundId || '');
   if (!roundId) return NextResponse.json({ success: false, error: 'Round is required.' }, { status: 400 });
   const preview = await calculateRound(roundId);
   const supabase = createServerClient();
-  const rows = preview.map((row) => ({ manager_id: row.managerId, round_id: roundId, squad_id: row.squadId, total_points: row.totalPoints, transfer_penalty: row.transferPenalty, net_points: row.netPoints, calculated_at: new Date().toISOString() }));
+  const rows = preview.rows.map((row) => ({ manager_id: row.managerId, season_id: preview.seasonId, round_id: roundId, squad_id: row.squadId, total_points: row.totalPoints, transfer_penalty: row.transferPenalty, net_points: row.netPoints, calculated_at: new Date().toISOString() }));
   if (rows.length > 0) {
-    const { error } = await supabase.from('fantasy_manager_round_scores').upsert(rows, { onConflict: 'manager_id,round_id' });
+    const { error } = await supabase.from('fantasy_manager_round_scores').upsert(rows, { onConflict: 'manager_id,season_id,round_id' });
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ success: true, saved: rows.length, preview });
+  return NextResponse.json({ success: true, saved: rows.length, preview: preview.rows });
 }
