@@ -7,8 +7,10 @@ import { CLUB_NICKNAME, CLUB_SHORT } from '@/lib/constants';
 import { FANTASY_MODULES } from '@/lib/fantasy';
 import { getFantasySettings } from '@/lib/fantasy-game';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
+import SeasonSelector from '@/components/fantasy/SeasonSelector';
+import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket',
@@ -21,18 +23,20 @@ const gameHighlights = [
   'Use transfers and chips to respond as the season unfolds.',
 ];
 
-async function getSeasonName(): Promise<string | null> {
+async function getSeasonName(seasonId?: string | null): Promise<string | null> {
   if (!isServerSupabaseConfigured()) return null;
   try {
-    const settings = await getFantasySettings();
+    const settings = await getFantasySettings(seasonId);
     return settings.season_name?.trim() || null;
   } catch {
     return null;
   }
 }
 
-export default async function FantasyPage() {
-  const seasonName = await getSeasonName();
+export default async function FantasyPage({ searchParams }: { searchParams?: { season?: string } }) {
+  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const seasonQuery = searchParams?.season ? `?season=${encodeURIComponent(searchParams.season)}` : '';
+  const seasonName = await getSeasonName(seasonContext.selected?.id);
   return (
     <>
       <section className="page-hero">
@@ -40,6 +44,12 @@ export default async function FantasyPage() {
           <span className="eyebrow-gold">{seasonName || `${CLUB_SHORT} Dinos`}</span>
           <ScrollReveal onMount delay={0}><h1 className="page-hero-title">Fantasy Cricket</h1></ScrollReveal>
           <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">Pick your NDCC fantasy squad, follow published player scores, make transfers, and compete in classic private leagues.</p></ScrollReveal>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} />
+            {seasonContext.selected && (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-body text-white">{seasonStatusLabel(seasonContext.selected)} season</span>
+            )}
+          </div>
         </div>
       </section>
 
@@ -107,7 +117,7 @@ export default async function FantasyPage() {
           <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FANTASY_MODULES.map((module) => (
               <ScrollRevealItem key={module.href}>
-                <Link href={module.href} className="block h-full">
+                <Link href={`${module.href}${seasonQuery}`} className="block h-full">
                   <Card hover className="h-full">
                     <CardContent className="p-6">
                       <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{module.title}</h3>

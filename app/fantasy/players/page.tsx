@@ -6,6 +6,8 @@ import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 import PlayerListExplorer, { type PlayerListEntry } from '@/app/fantasy/_components/PlayerListExplorer';
+import SeasonSelector from '@/components/fantasy/SeasonSelector';
+import { getSeasonPageContext, seasonStatusLabel, type FantasySeason } from '@/lib/fantasy-seasons';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,16 +17,16 @@ export const metadata: Metadata = {
 };
 
 
-async function getPlayers(): Promise<{ players: PlayerListEntry[]; hasPublishedPoints: boolean; loadFailed: boolean }> {
-  if (!isServerSupabaseConfigured()) return { players: [], hasPublishedPoints: false, loadFailed: false };
+async function getPlayers(season: FantasySeason | null): Promise<{ players: PlayerListEntry[]; hasPublishedPoints: boolean; loadFailed: boolean }> {
+  if (!isServerSupabaseConfigured() || !season) return { players: [], hasPublishedPoints: false, loadFailed: false };
 
   try {
-    const roster: FantasyPlayerWithPrice[] = await getActivePlayersWithLatestPrices();
+    const roster: FantasyPlayerWithPrice[] = await getActivePlayersWithLatestPrices(season.id);
     // Published leaderboard totals give the list its points/form sorting; a
     // failure here degrades to the plain roster rather than failing the page.
     let pointsByPlayer = new Map<string, { total: number; matches: number }>();
     try {
-      const leaderboard = await getPublishedFantasyLeaderboard();
+      const leaderboard = await getPublishedFantasyLeaderboard(null, season.id);
       pointsByPlayer = new Map(leaderboard.rows.map((row) => [row.playerId, { total: row.totalFantasyPoints, matches: row.matchesCounted }]));
     } catch (err) {
       console.error('[fantasy/players] Failed to load published points; listing roster without points:', err);
@@ -44,8 +46,9 @@ async function getPlayers(): Promise<{ players: PlayerListEntry[]; hasPublishedP
   }
 }
 
-export default async function FantasyPlayersPage() {
-  const { players, hasPublishedPoints, loadFailed } = await getPlayers();
+export default async function FantasyPlayersPage({ searchParams }: { searchParams?: { season?: string } }) {
+  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const { players, hasPublishedPoints, loadFailed } = await getPlayers(seasonContext.selected);
 
   return (
     <section className="section-padding">
@@ -56,6 +59,12 @@ export default async function FantasyPlayersPage() {
           <p className="font-body text-gray-700 leading-relaxed">
             Browse active fantasy players published by the club, including role, team or grade label, and current fantasy price.
           </p>
+        </div>
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} />
+          {seasonContext.selected && (
+            <span className="rounded-full bg-maroon-50 px-3 py-1 text-xs font-body text-maroon-700">{seasonStatusLabel(seasonContext.selected)} season</span>
+          )}
         </div>
 
         {loadFailed ? (

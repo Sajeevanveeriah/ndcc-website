@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
+import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ function makeCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-async function leagueLeaderboard(leagueId: string) {
+async function leagueLeaderboard(leagueId: string, seasonId: string) {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_league_members')
@@ -18,7 +19,7 @@ async function leagueLeaderboard(leagueId: string) {
   if (error) throw new Error(error.message);
   const ids = (data ?? []).map((row: any) => row.manager_id);
   const { data: scores, error: scoreError } = ids.length
-    ? await supabase.from('fantasy_manager_round_scores').select('manager_id, net_points').in('manager_id', ids)
+    ? await supabase.from('fantasy_manager_round_scores').select('manager_id, net_points').eq('season_id', seasonId).in('manager_id', ids)
     : { data: [], error: null } as any;
   if (scoreError) throw new Error(scoreError.message);
   const totals = new Map<string, number>();
@@ -34,15 +35,18 @@ async function leagueLeaderboard(leagueId: string) {
 export async function GET(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
+  const season = await resolveRequestSeason(request);
+  if (!season) return NextResponse.json({ success: false, error: 'No fantasy season is available.' }, { status: 404 });
   const supabase = createServerClient();
   const { data: memberships, error } = await supabase
     .from('fantasy_league_members')
-    .select('league_id, fantasy_leagues(id, name, code, is_public, created_by_manager_id)')
+    .select('league_id, fantasy_leagues!inner(id, name, code, is_public, created_by_manager_id, season_id)')
     .eq('manager_id', auth.manager.id)
+    .eq('fantasy_leagues.season_id', season.id)
     .order('joined_at', { ascending: false });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues, leaderboard: await leagueLeaderboard(item.league_id) })));
-  return NextResponse.json({ success: true, leagues });
+  const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues, leaderboard: await leagueLeaderboard(item.league_id, season.id) })));
+  return NextResponse.json({ success: true, season, leagues });
 }
 
 export async function POST(request: Request) {
@@ -50,12 +54,14 @@ export async function POST(request: Request) {
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || 'create');
+  const season = await resolveRequestSeason(request, body);
+  if (!season) return NextResponse.json({ success: false, error: 'No fantasy season is available.' }, { status: 404 });
   const supabase = createServerClient();
 
   if (action === 'join') {
     const code = String(body.code || '').trim().toUpperCase();
     if (!/^[A-Z0-9]{4,12}$/.test(code)) return NextResponse.json({ success: false, error: 'Enter a valid league code.' }, { status: 400 });
-    const { data: league, error: leagueError } = await supabase.from('fantasy_leagues').select('id').eq('code', code).maybeSingle();
+    const { data: league, error: leagueError } = await supabase.from('fantasy_leagues').select('id').eq('code', code).eq('season_id', season.id).maybeSingle();
     if (leagueError || !league) return NextResponse.json({ success: false, error: leagueError?.message || 'League code was not found.' }, { status: 404 });
     const { error } = await supabase.from('fantasy_league_members').upsert({ league_id: league.id, manager_id: auth.manager.id }, { onConflict: 'league_id,manager_id' });
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -79,7 +85,7 @@ export async function POST(request: Request) {
   let league = null as any;
   let lastError = null as any;
   for (let attempt = 0; attempt < 5 && !league; attempt += 1) {
-    const { data, error } = await supabase.from('fantasy_leagues').insert({ name, code: makeCode(), created_by_manager_id: auth.manager.id, is_public: false }).select('id, name, code').single();
+    const { data, error } = await supabase.from('fantasy_leagues').insert({ name, code: makeCode(), season_id: season.id, created_by_manager_id: auth.manager.id, is_public: false }).select('id, name, code').single();
     if (!error) league = data;
     lastError = error;
   }

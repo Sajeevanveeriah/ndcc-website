@@ -17,8 +17,11 @@ type SessionUser = {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'president' | 'secretary' | 'committee';
+  role: 'admin' | 'president' | 'secretary' | 'committee' | 'fantasy_manager';
 };
+
+// fantasy_manager is a restricted CMS role: Fantasy modules and password only.
+const fantasyManagerHrefs = ['/admin/fantasy', '/admin/change-password'];
 
 const baseLinks = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -154,7 +157,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const sidebarLinks = user.role === 'admin'
     ? [...baseLinks, { href: '/admin/users', label: 'Users', icon: Users }]
-    : baseLinks;
+    : user.role === 'fantasy_manager'
+      ? baseLinks.filter((link) => fantasyManagerHrefs.includes(link.href))
+      : baseLinks;
 
   return (
     <div className="min-h-screen bg-sky-50 flex">

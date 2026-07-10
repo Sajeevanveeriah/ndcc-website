@@ -7,6 +7,8 @@ import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
 import { Trophy } from 'lucide-react';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
+import SeasonSelector from '@/components/fantasy/SeasonSelector';
+import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
 
 export const metadata: Metadata = {
   title: 'Fantasy Cricket Leaderboard',
@@ -19,18 +21,24 @@ export const revalidate = 0;
 type PageProps = {
   searchParams?: {
     round?: string;
+    season?: string;
   };
 };
 
-function roundHref(roundId: string | null) {
-  return roundId ? `/fantasy/leaderboard?round=${encodeURIComponent(roundId)}` : '/fantasy/leaderboard';
+function roundHref(roundId: string | null, seasonSlug?: string | null) {
+  const params = new URLSearchParams();
+  if (roundId) params.set('round', roundId);
+  if (seasonSlug) params.set('season', seasonSlug);
+  const query = params.toString();
+  return query ? `/fantasy/leaderboard?${query}` : '/fantasy/leaderboard';
 }
 
 export default async function FantasyLeaderboardPage({ searchParams }: PageProps) {
+  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   let leaderboard;
   let loadFailed = false;
   try {
-    leaderboard = await getPublishedFantasyLeaderboard(searchParams?.round || null);
+    leaderboard = await getPublishedFantasyLeaderboard(searchParams?.round || null, seasonContext.selected?.id || null);
   } catch (err) {
     console.error('[fantasy/leaderboard] Failed to load published leaderboard; showing failure state:', err);
     loadFailed = true;
@@ -55,6 +63,13 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
         <div className="container-width">
           <FantasyBackLink />
 
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} />
+            {seasonContext.selected && (
+              <span className="rounded-full bg-maroon-50 px-3 py-1 text-xs font-body text-maroon-700">{seasonContext.selected.name} · {seasonStatusLabel(seasonContext.selected)}</span>
+            )}
+          </div>
+
           <Card className="mb-6">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -66,11 +81,11 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
                   <p className="text-gray-600 font-body mt-1">Totals are recalculated from the current Fantasy Cricket scoring rules.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href={roundHref(null)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${!leaderboard.selectedRoundId ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 hover:bg-maroon-50'}`}>
+                  <Link href={roundHref(null, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${!leaderboard.selectedRoundId ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 hover:bg-maroon-50'}`}>
                     All rounds
                   </Link>
                   {leaderboard.rounds.map((round) => (
-                    <Link key={round.id} href={roundHref(round.id)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${leaderboard.selectedRoundId === round.id ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 hover:bg-maroon-50'}`}>
+                    <Link key={round.id} href={roundHref(round.id, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${leaderboard.selectedRoundId === round.id ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 hover:bg-maroon-50'}`}>
                       Round {round.roundNumber}
                     </Link>
                   ))}
@@ -82,7 +97,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
           {loadFailed ? (
             <DataLoadErrorCard
               title="We couldn&rsquo;t load the leaderboard"
-              retryHref={roundHref(searchParams?.round || null)}
+              retryHref={roundHref(searchParams?.round || null, searchParams?.season)}
               backHref="/fantasy"
               backLabel="Back to Fantasy Cricket"
             />

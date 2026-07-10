@@ -1,0 +1,327 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// PlayHQ -> Fantasy resumable sync orchestration.
+//
+// Flow: enabled season grades -> raw fixtures -> completed NDCC games queued on
+// a fantasy_sync_jobs row -> bounded batches of game summaries -> player
+// identity resolution (PlayHQ player id primary; name clashes go to review) ->
+// exact round mapping (ambiguous rounds go to review) -> idempotent stat
+// upserts into a draft import batch that admins review and publish.
+import 'server-only';
+import { createServerClient } from '@/lib/supabase-server';
+import { getPlayHQGameSummary, getPlayHQGradeFixtureRaw } from './client';
+import { normaliseFixtures } from './normalise';
+import {
+  computeSourceHash,
+  extractRoundInfo,
+  involvesClubTeam,
+  isCompletedFixture,
+  normaliseGameSummaryPlayers,
+  type PlayHQPlayerStatLine,
+} from './fantasy-import';
+
+export const DEFAULT_SYNC_BATCH_SIZE = 10;
+
+type QueueEntry = {
+  gameId: string;
+  gradeId: string;
+  gradeName: string;
+  roundNumber: number | null;
+  roundName: string | null;
+  matchDate: string | null;
+  homeTeam: string;
+  awayTeam: string;
+  processed?: boolean;
+};
+
+type ReviewItem = { type: string; gameId?: string; playerId?: string; detail: string };
+
+function firstArray(payload: unknown): unknown[] {
+  const root = (payload && typeof payload === 'object' ? payload : {}) as Record<string, unknown>;
+  for (const key of ['data', 'items', 'fixtures', 'games']) if (Array.isArray(root[key])) return root[key] as unknown[];
+  return Array.isArray(payload) ? payload : [];
+}
+
+async function withRetries<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : '';
+      const retryable = /HTTP (429|5\d\d)/.test(message) || /aborted|network|fetch failed/i.test(message);
+      if (!retryable || attempt === attempts - 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
+export async function startFantasySyncJob(options: { seasonId: string; createdBy?: string | null }) {
+  const supabase = createServerClient();
+  const { data: season, error: seasonError } = await supabase
+    .from('fantasy_seasons')
+    .select('id, name, slug, playhq_season_id')
+    .eq('id', options.seasonId)
+    .maybeSingle();
+  if (seasonError) throw new Error(seasonError.message);
+  if (!season) throw new Error('Fantasy season not found.');
+  if (!season.playhq_season_id) throw new Error('This fantasy season is not linked to a PlayHQ season yet.');
+
+  const { data: grades, error: gradeError } = await supabase
+    .from('fantasy_season_grade_sources')
+    .select('playhq_grade_id, grade_name, team_filter')
+    .eq('season_id', season.id)
+    .eq('enabled', true);
+  if (gradeError) throw new Error(gradeError.message);
+  if (!grades?.length) throw new Error('Enable at least one PlayHQ grade source for this season before importing.');
+
+  const queue: QueueEntry[] = [];
+  const reviewItems: ReviewItem[] = [];
+  for (const grade of grades) {
+    const raw = await withRetries(() => getPlayHQGradeFixtureRaw(grade.playhq_grade_id));
+    const rawFixtures = firstArray(raw);
+    const fixtures = normaliseFixtures(raw, { id: grade.playhq_grade_id, name: grade.grade_name });
+    const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
+    fixtures.forEach((fixture, index) => {
+      if (!isCompletedFixture(fixture) || !involvesClubTeam(fixture, clubPattern)) return;
+      const round = extractRoundInfo(rawFixtures[index]);
+      if (!round) {
+        reviewItems.push({ type: 'ambiguous_round', gameId: fixture.id, detail: `Game ${fixture.id} (${fixture.homeTeam} v ${fixture.awayTeam}) has no exact PlayHQ round metadata; map it manually before it can be imported.` });
+        return;
+      }
+      queue.push({
+        gameId: fixture.id,
+        gradeId: grade.playhq_grade_id,
+        gradeName: grade.grade_name,
+        roundNumber: round.number,
+        roundName: round.name,
+        matchDate: fixture.startsAt ? fixture.startsAt.slice(0, 10) : null,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+      });
+    });
+  }
+
+  // Deterministic ordering keeps re-created jobs stable and auditable.
+  queue.sort((a, b) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || a.gameId.localeCompare(b.gameId));
+
+  const { data: batch, error: batchError } = await supabase
+    .from('fantasy_import_batches')
+    .insert({
+      source: 'playhq-api',
+      status: 'draft',
+      season_id: season.id,
+      filename: null,
+      notes: `PlayHQ sync for ${season.name} (${queue.length} completed club games queued).`,
+      source_url: 'playhq://cricket/game-summaries',
+      fetched_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+  if (batchError || !batch) throw new Error(batchError?.message || 'Could not create import batch.');
+
+  const { data: job, error: jobError } = await supabase
+    .from('fantasy_sync_jobs')
+    .insert({
+      season_id: season.id,
+      import_batch_id: batch.id,
+      status: 'pending',
+      total_games: queue.length,
+      cursor: { next: 0 },
+      game_queue: queue,
+      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0 },
+      review_items: reviewItems,
+      created_by: options.createdBy ?? null,
+      started_at: new Date().toISOString(),
+    })
+    .select('id, status, total_games')
+    .single();
+  if (jobError || !job) throw new Error(jobError?.message || 'Could not create sync job.');
+  return { job, batchId: batch.id, queued: queue.length, reviewItems };
+}
+
+async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayerStatLine, gradeName: string, counts: Record<string, number>, reviewItems: ReviewItem[]) {
+  const { data: byId } = await supabase.from('fantasy_players').select('id').eq('playhq_player_id', line.playhq_player_id).limit(1).maybeSingle();
+  let playerId: string | null = byId?.id ?? null;
+
+  if (!playerId) {
+    const { data: byName } = await supabase.from('fantasy_players').select('id, playhq_player_id').ilike('display_name', line.display_name).limit(1).maybeSingle();
+    if (byName && byName.playhq_player_id && byName.playhq_player_id !== line.playhq_player_id) {
+      reviewItems.push({ type: 'duplicate_name', playerId: line.playhq_player_id, detail: `PlayHQ player ${line.display_name} (${line.playhq_player_id}) clashes with an existing player of the same name linked to a different PlayHQ id. Review before importing their stats.` });
+      return null;
+    }
+    if (byName) {
+      // Same display name, no PlayHQ id on file: review-only fallback, never auto-link.
+      reviewItems.push({ type: 'name_match_review', playerId: line.playhq_player_id, detail: `PlayHQ player ${line.display_name} (${line.playhq_player_id}) matches an existing unlinked player by name only. Confirm the link in player review, then re-run the sync.` });
+      return null;
+    }
+    const { data: created, error: createError } = await supabase
+      .from('fantasy_players')
+      .insert({ display_name: line.display_name, playhq_player_id: line.playhq_player_id, role: 'UNASSIGNED', team_label: line.team_name || null, active: true })
+      .select('id')
+      .single();
+    if (createError || !created) throw new Error(createError?.message || `Could not create player ${line.display_name}.`);
+    playerId = created.id;
+    counts.created += 1;
+  } else {
+    counts.matched += 1;
+  }
+
+  const membership = {
+    season_id: seasonId,
+    player_id: playerId,
+    playhq_player_id: line.playhq_player_id,
+    team_label: line.team_name || null,
+    grade_label: gradeName || null,
+    source: 'playhq-api',
+    last_seen_at: new Date().toISOString(),
+  };
+  const { data: existingMembership } = await supabase.from('fantasy_season_players').select('id').eq('season_id', seasonId).eq('player_id', playerId).limit(1).maybeSingle();
+  if (existingMembership) {
+    await supabase.from('fantasy_season_players').update({ playhq_player_id: line.playhq_player_id, team_label: membership.team_label, grade_label: membership.grade_label, last_seen_at: membership.last_seen_at }).eq('id', existingMembership.id);
+  } else {
+    // New season player: UNASSIGNED and not selectable until an admin reviews.
+    const { error: membershipError } = await supabase.from('fantasy_season_players').insert({ ...membership, role: 'UNASSIGNED', active: true, selectable: false, first_seen_at: membership.last_seen_at });
+    if (membershipError) throw new Error(membershipError.message);
+  }
+  return playerId;
+}
+
+async function ensureRound(supabase: any, seasonId: string, roundNumber: number, roundName: string) {
+  const { data: existing } = await supabase.from('fantasy_rounds').select('id').eq('season_id', seasonId).eq('round_number', roundNumber).limit(1).maybeSingle();
+  if (existing) return existing.id as string;
+  const { data: created, error } = await supabase
+    .from('fantasy_rounds')
+    .insert({ season_id: seasonId, round_number: roundNumber, name: roundName, status: 'draft' })
+    .select('id')
+    .single();
+  if (error || !created) throw new Error(error?.message || `Could not create round ${roundNumber}.`);
+  return created.id as string;
+}
+
+export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT_SYNC_BATCH_SIZE) {
+  const supabase = createServerClient();
+  const { data: job, error: jobError } = await supabase.from('fantasy_sync_jobs').select('*').eq('id', jobId).maybeSingle();
+  if (jobError) throw new Error(jobError.message);
+  if (!job) throw new Error('Sync job not found.');
+  if (['completed', 'cancelled', 'failed'].includes(job.status)) return { job, done: true, processed: 0 };
+
+  const queue: QueueEntry[] = Array.isArray(job.game_queue) ? job.game_queue : [];
+  const counts = { created: 0, matched: 0, updated: 0, skipped: 0, warnings: 0, failed: 0, ...(job.counts || {}) };
+  const reviewItems: ReviewItem[] = Array.isArray(job.review_items) ? job.review_items : [];
+  const errors: Array<{ gameId: string; message: string }> = Array.isArray(job.error_summary) ? job.error_summary : [];
+  let next = Number(job.cursor?.next ?? 0);
+  let processedNow = 0;
+  let successfulNow = 0;
+  let failedNow = 0;
+
+  await supabase.from('fantasy_sync_jobs').update({ status: 'running' }).eq('id', jobId);
+
+  const limit = Math.max(1, Math.min(batchSize, 50));
+  while (processedNow < limit && next < queue.length) {
+    const entry = queue[next];
+    next += 1;
+    processedNow += 1;
+    try {
+      const summary = await withRetries(() => getPlayHQGameSummary(entry.gameId));
+      const lines = normaliseGameSummaryPlayers(summary);
+      const clubLines = lines.filter((line) => !line.team_name || /newcomb/i.test(line.team_name));
+      const roundId = await ensureRound(supabase, job.season_id, entry.roundNumber as number, entry.roundName || `Round ${entry.roundNumber}`);
+      const opponent = /newcomb/i.test(entry.homeTeam) ? entry.awayTeam : entry.homeTeam;
+
+      for (const line of clubLines) {
+        const playerId = await resolvePlayer(supabase, job.season_id, line, entry.gradeName, counts, reviewItems);
+        if (!playerId) { counts.warnings += 1; continue; }
+        const sourceHash = computeSourceHash({ gameId: entry.gameId, line });
+        const statRow = {
+          season_id: job.season_id,
+          import_batch_id: job.import_batch_id,
+          round_id: roundId,
+          player_id: playerId,
+          match_date: entry.matchDate,
+          opponent,
+          runs: line.runs, wickets: line.wickets, maidens: line.maidens, catches: line.catches,
+          runouts: line.runouts, stumpings: line.stumpings, ducks: line.ducks,
+          not_out: line.not_out, player_of_match: line.player_of_match,
+          playhq_game_id: entry.gameId,
+          playhq_round_number: entry.roundNumber,
+          playhq_round_name: entry.roundName,
+          source_hash: sourceHash,
+          source_updated_at: new Date().toISOString(),
+        };
+        const { data: existing } = await supabase
+          .from('fantasy_match_stats')
+          .select('id, source_hash, import_batch_id, fantasy_import_batches(status)')
+          .eq('season_id', job.season_id)
+          .eq('playhq_game_id', entry.gameId)
+          .eq('player_id', playerId)
+          .limit(1)
+          .maybeSingle();
+        if (!existing) {
+          const { error: insertError } = await supabase.from('fantasy_match_stats').insert(statRow);
+          if (insertError) throw new Error(insertError.message);
+        } else if (existing.source_hash === sourceHash) {
+          counts.skipped += 1;
+        } else if ((existing as any).fantasy_import_batches?.status === 'published') {
+          // Published rows never change silently; reconcile through review.
+          counts.warnings += 1;
+          reviewItems.push({ type: 'reconciliation', gameId: entry.gameId, playerId, detail: `PlayHQ changed the published summary for game ${entry.gameId} / player ${line.display_name}. Approve the reconciliation to update the published stat.` });
+        } else {
+          const { error: updateError } = await supabase.from('fantasy_match_stats').update(statRow).eq('id', existing.id);
+          if (updateError) throw new Error(updateError.message);
+          counts.updated += 1;
+        }
+      }
+      successfulNow += 1;
+    } catch (error) {
+      failedNow += 1;
+      counts.failed += 1;
+      errors.push({ gameId: entry.gameId, message: error instanceof Error ? error.message : 'Unknown import error' });
+    }
+  }
+
+  const done = next >= queue.length;
+  const status = done ? (reviewItems.length || counts.failed ? 'needs_review' : 'completed') : 'paused';
+  const update = {
+    status,
+    processed_games: next,
+    successful_games: Number(job.successful_games || 0) + successfulNow,
+    failed_games: Number(job.failed_games || 0) + failedNow,
+    cursor: { next },
+    counts,
+    review_items: reviewItems,
+    error_summary: errors,
+    completed_at: done ? new Date().toISOString() : null,
+  };
+  const { data: updated, error: updateError } = await supabase.from('fantasy_sync_jobs').update(update).eq('id', jobId).select('id, status, total_games, processed_games, successful_games, failed_games, counts, review_items, error_summary').single();
+  if (updateError) throw new Error(updateError.message);
+  if (done) {
+    await supabase.from('fantasy_seasons').update({ last_playhq_sync_at: new Date().toISOString() }).eq('id', job.season_id);
+  }
+  return { job: updated, done, processed: processedNow };
+}
+
+// Retry only the failed games of a job by re-queueing them behind the cursor.
+export async function retryFailedGames(jobId: string) {
+  const supabase = createServerClient();
+  const { data: job, error } = await supabase.from('fantasy_sync_jobs').select('*').eq('id', jobId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!job) throw new Error('Sync job not found.');
+  const errors: Array<{ gameId: string }> = Array.isArray(job.error_summary) ? job.error_summary : [];
+  if (!errors.length) return { job, requeued: 0 };
+  const queue: QueueEntry[] = Array.isArray(job.game_queue) ? job.game_queue : [];
+  const failedIds = new Set(errors.map((item) => item.gameId));
+  const requeued = queue.filter((entry) => failedIds.has(entry.gameId));
+  const newQueue = [...queue.filter((entry) => !failedIds.has(entry.gameId)), ...requeued];
+  const counts = { ...(job.counts || {}) };
+  counts.failed = 0;
+  const { data: updated, error: updateError } = await supabase
+    .from('fantasy_sync_jobs')
+    .update({ status: 'paused', game_queue: newQueue, cursor: { next: Math.max(0, newQueue.length - requeued.length) }, error_summary: [], counts, failed_games: 0, completed_at: null })
+    .eq('id', jobId)
+    .select('id, status, total_games, processed_games')
+    .single();
+  if (updateError) throw new Error(updateError.message);
+  return { job: updated, requeued: requeued.length };
+}

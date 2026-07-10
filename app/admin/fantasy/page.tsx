@@ -3,7 +3,12 @@ import Card, { CardContent } from '@/components/ui/Card';
 import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch, Settings, Calculator } from 'lucide-react';
 
 const fantasySections = [
-
+  {
+    href: '/admin/fantasy/seasons',
+    title: 'Seasons & PlayHQ Sync',
+    description: 'Add fantasy seasons, map PlayHQ grades, run resumable stat imports and choose the current public season.',
+    icon: CalendarDays,
+  },
   {
     href: '/admin/fantasy/settings',
     title: 'Settings',

@@ -23,5 +23,10 @@ function sanitizeCookieDomain(raw?: string): string | undefined {
 
 export const AUTH_COOKIE_DOMAIN = sanitizeCookieDomain(process.env.AUTH_COOKIE_DOMAIN);
 
-export const AUTH_ROLES = ['admin', 'president', 'secretary', 'committee'] as const;
+export const AUTH_ROLES = ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'] as const;
 export type AuthRole = (typeof AUTH_ROLES)[number];
+
+// Roles allowed to manage Fantasy CMS modules (seasons, players, prices,
+// rounds, imports, scoring, rollover). fantasy_manager is restricted to these
+// modules only — every other admin route keeps its original role list.
+export const FANTASY_ADMIN_ROLES: AuthRole[] = ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'];

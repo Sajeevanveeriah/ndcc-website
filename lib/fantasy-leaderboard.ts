@@ -247,16 +247,18 @@ export async function getFantasyImportBatchDetail(id: string): Promise<FantasyIm
   };
 }
 
-export async function getPublishedFantasyLeaderboard(roundId?: string | null): Promise<FantasyLeaderboardData> {
+export async function getPublishedFantasyLeaderboard(roundId?: string | null, seasonId?: string | null): Promise<FantasyLeaderboardData> {
   if (!isServerSupabaseConfigured()) {
     return { rows: [], rounds: [], selectedRoundId: null };
   }
 
   const supabase = createServerClient();
-  const { data: batches, error: batchesError } = await supabase
+  let batchQuery = supabase
     .from('fantasy_import_batches')
     .select('id')
     .eq('status', 'published');
+  if (seasonId) batchQuery = batchQuery.eq('season_id', seasonId);
+  const { data: batches, error: batchesError } = await batchQuery;
 
   if (batchesError) throw new Error(batchesError.message);
 

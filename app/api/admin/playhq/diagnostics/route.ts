@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
+import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { getPlayHQConfig, redactedPlayHQConfig } from '@/lib/playhq/config';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' } });
 
   const config = getPlayHQConfig();

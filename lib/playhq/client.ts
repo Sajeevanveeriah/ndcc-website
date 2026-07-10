@@ -61,6 +61,12 @@ export async function getPlayHQGameSummary(gameId: string) {
   return playHQFetch(endpoints.cricketGameSummary(gameId));
 }
 
+// Raw fixture payload for a grade. The fantasy importer needs the untouched
+// round metadata that normaliseFixtures drops.
+export async function getPlayHQGradeFixtureRaw(gradeId: string) {
+  return playHQFetch(endpoints.cricketGradeFixture(gradeId));
+}
+
 // Prefer the season whose date range covers today, then the most recently started
 // season, before falling back to whatever PlayHQ returned first.
 function pickCurrentSeasonId(seasons: PlayHQSeason[]): string | null {

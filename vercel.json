@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/keep-alive",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/playhq-fantasy-sync",
+      "schedule": "30 16 * * *"
     }
   ]
 }

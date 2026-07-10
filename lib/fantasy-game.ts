@@ -44,11 +44,25 @@ export type SquadValidationResult = {
   budgetUsed: number;
 };
 
-export async function getFantasySettings(): Promise<FantasySettings> {
+const SETTINGS_COLUMNS = 'id, season_name, squad_budget, max_players_per_role, starting_players_required, bench_players_required, free_transfers_per_round, transfer_penalty_points, is_registration_open, is_team_selection_open';
+
+async function resolveDefaultSeasonId(): Promise<string | null> {
   const supabase = createServerClient();
+  const { data } = await supabase.from('fantasy_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
+  return data?.id ?? null;
+}
+
+export async function getFantasySettings(seasonId?: string | null): Promise<FantasySettings> {
+  const supabase = createServerClient();
+  const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
+  if (targetSeasonId) {
+    const scoped = await supabase.from('fantasy_settings').select(SETTINGS_COLUMNS).eq('season_id', targetSeasonId).limit(1).maybeSingle();
+    if (scoped.error) throw new Error(scoped.error.message);
+    if (scoped.data) return normaliseSettings(scoped.data);
+  }
   const { data, error } = await supabase
     .from('fantasy_settings')
-    .select('id, season_name, squad_budget, max_players_per_role, starting_players_required, bench_players_required, free_transfers_per_round, transfer_penalty_points, is_registration_open, is_team_selection_open')
+    .select(SETTINGS_COLUMNS)
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -71,7 +85,44 @@ function normaliseSettings(data: any): FantasySettings {
   };
 }
 
-export async function getActivePlayersWithLatestPrices(): Promise<FantasyPlayerWithPrice[]> {
+// Season-scoped player pool: membership, per-season role/availability and
+// selectability come from fantasy_season_players; prices from the same season.
+// Unassigned or non-selectable season players are excluded from squad building.
+export async function getActivePlayersWithLatestPrices(seasonId?: string | null): Promise<FantasyPlayerWithPrice[]> {
+  const supabase = createServerClient();
+  const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
+  if (!targetSeasonId) return getActivePlayersWithLatestPricesLegacy();
+
+  const [{ data: memberships, error: memberError }, { data: prices, error: priceError }] = await Promise.all([
+    supabase
+      .from('fantasy_season_players')
+      .select('player_id, role, team_label, active, selectable, fantasy_players(id, display_name)')
+      .eq('season_id', targetSeasonId)
+      .eq('active', true)
+      .eq('selectable', true),
+    supabase.from('fantasy_player_prices').select('player_id, price_million, created_at').eq('season_id', targetSeasonId).order('created_at', { ascending: false }),
+  ]);
+  if (memberError) throw new Error(memberError.message);
+  if (priceError) throw new Error(priceError.message);
+
+  const priceByPlayer = new Map<string, number>();
+  for (const row of prices ?? []) {
+    if (!priceByPlayer.has(row.player_id)) priceByPlayer.set(row.player_id, Number(row.price_million ?? 0));
+  }
+
+  return (memberships ?? [])
+    .filter((row: any) => row.role !== 'UNASSIGNED' && row.fantasy_players)
+    .map((row: any) => ({
+      id: row.player_id,
+      display_name: row.fantasy_players.display_name,
+      role: row.role,
+      team_label: row.team_label,
+      price_million: priceByPlayer.get(row.player_id) ?? 0,
+    }))
+    .sort((a: FantasyPlayerWithPrice, b: FantasyPlayerWithPrice) => a.display_name.localeCompare(b.display_name));
+}
+
+async function getActivePlayersWithLatestPricesLegacy(): Promise<FantasyPlayerWithPrice[]> {
   const supabase = createServerClient();
   const [{ data: players, error: playerError }, { data: prices, error: priceError }] = await Promise.all([
     supabase.from('fantasy_players').select('id, display_name, role, team_label').eq('active', true).order('display_name'),
@@ -85,13 +136,15 @@ export async function getActivePlayersWithLatestPrices(): Promise<FantasyPlayerW
     if (!priceByPlayer.has(row.player_id)) priceByPlayer.set(row.player_id, Number(row.price_million ?? 0));
   }
 
-  return (players ?? []).map((player: any) => ({
-    id: player.id,
-    display_name: player.display_name,
-    role: player.role,
-    team_label: player.team_label,
-    price_million: priceByPlayer.get(player.id) ?? 0,
-  }));
+  return (players ?? [])
+    .filter((player: any) => player.role !== 'UNASSIGNED')
+    .map((player: any) => ({
+      id: player.id,
+      display_name: player.display_name,
+      role: player.role,
+      team_label: player.team_label,
+      price_million: priceByPlayer.get(player.id) ?? 0,
+    }));
 }
 
 export type FantasyRoundInfo = {
@@ -108,25 +161,28 @@ export type RoundLockState = {
   reason: string | null;
 };
 
-export async function getCurrentRound(): Promise<FantasyRoundInfo | null> {
+export async function getCurrentRound(seasonId?: string | null): Promise<FantasyRoundInfo | null> {
   const supabase = createServerClient();
-  const { data, error } = await supabase
+  const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
+  let query = supabase
     .from('fantasy_rounds')
     .select('id, name, status, deadline_at')
     .in('status', ['open', 'locked', 'scored'])
-    .order('round_number', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('round_number', { ascending: true });
+  if (targetSeasonId) query = query.eq('season_id', targetSeasonId);
+  const { data, error } = await query.limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   if (data?.id) return data as FantasyRoundInfo;
 
-  const fallback = await supabase.from('fantasy_rounds').select('id, name, status, deadline_at').order('round_number', { ascending: true }).limit(1).maybeSingle();
+  let fallbackQuery = supabase.from('fantasy_rounds').select('id, name, status, deadline_at').order('round_number', { ascending: true });
+  if (targetSeasonId) fallbackQuery = fallbackQuery.eq('season_id', targetSeasonId);
+  const fallback = await fallbackQuery.limit(1).maybeSingle();
   if (fallback.error) throw new Error(fallback.error.message);
   return (fallback.data as FantasyRoundInfo | null) ?? null;
 }
 
-export async function getCurrentRoundId() {
-  const round = await getCurrentRound();
+export async function getCurrentRoundId(seasonId?: string | null) {
+  const round = await getCurrentRound(seasonId);
   return round?.id ?? null;
 }
 
@@ -144,8 +200,8 @@ export function evaluateRoundLock(round: FantasyRoundInfo | null, nowMs: number 
   return { roundId: round.id, roundName: round.name, locked: false, reason: null };
 }
 
-export async function getRoundLockState(): Promise<RoundLockState> {
-  const round = await getCurrentRound();
+export async function getRoundLockState(seasonId?: string | null): Promise<RoundLockState> {
+  const round = await getCurrentRound(seasonId);
   return evaluateRoundLock(round);
 }
 
