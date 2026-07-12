@@ -24,9 +24,12 @@ const readinessRoute = read('app/api/admin/auth/readiness/route.ts');
 
 if (!configSource.includes("import 'server-only'")) fail('PlayHQ config must be server-only.');
 if (!clientSource.includes("'x-api-key': config.apiKey")) fail('PlayHQ client must send x-api-key from server env.');
+if (!clientSource.includes("'x-phq-tenant': config.tenant")) fail('PlayHQ client must send x-phq-tenant from server env.');
 if (!clientSource.includes('AbortController')) fail('PlayHQ client must use AbortController timeout.');
+if (!clientSource.includes('metadata?.hasMore') || !clientSource.includes('cursor=')) fail('PlayHQ client must follow cursor pagination.');
 if (!fixturesRoute.includes('getPlayHQPublicData')) fail('Public PlayHQ fixtures route must use service layer.');
 if (!diagnosticsRoute.includes('redactedPlayHQConfig')) fail('Admin PlayHQ diagnostics must use redacted config.');
+if (!diagnosticsRoute.includes('PLAYHQ_FANTASY_SYNC_ENABLED')) fail('Admin PlayHQ diagnostics must report Fantasy sync enablement.');
 if (!authMigration.includes('extensions.crypt(p_password, u.password_hash)')) fail('Auth crypt repair migration must use extensions.crypt.');
 if (!authMigration.includes("NOTIFY pgrst, 'reload schema'")) fail('Auth crypt repair migration must notify PostgREST schema reload.');
 if (!ioMigration.includes('idx_page_link_cards_public_lookup') || !ioMigration.includes('idx_committee_members_active_sort_lookup')) fail('Public query IO migration missing required public indexes.');
@@ -46,6 +49,8 @@ for (const file of walk(root)) {
 }
 
 if (!configSource.includes('configured: missing.length === 0')) fail('PlayHQ config loader must derive configured:false from missing env.');
+if (!configSource.includes("DEFAULT_BASE_URL = 'https://api.playhq.com'")) fail('PlayHQ default base URL must match current AU/NZ guidance.');
+if (!configSource.includes('PLAYHQ_TENANT')) fail('PlayHQ config must include server-only tenant header configuration.');
 if (!configSource.includes('replace(/\\]+$/g') || !configSource.includes("replace(/\\/$/, '')")) fail('PlayHQ base URL cleaner must remove trailing bracket and slash.');
 if (!configSource.includes('redactedPlayHQConfig')) fail('PlayHQ config must export redacted diagnostics config.');
 

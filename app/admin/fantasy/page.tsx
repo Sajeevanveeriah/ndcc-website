@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
-import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch, Settings, Calculator } from 'lucide-react';
+import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch, Settings, Calculator, Activity, ShieldCheck } from 'lucide-react';
 
 const fantasySections = [
   {
@@ -8,6 +8,12 @@ const fantasySections = [
     title: 'Seasons & PlayHQ Sync',
     description: 'Add fantasy seasons, map PlayHQ grades, run resumable stat imports and choose the current public season.',
     icon: CalendarDays,
+  },
+  {
+    href: '/admin/playhq-diagnostics',
+    title: 'PlayHQ Diagnostics',
+    description: 'Check server-only PlayHQ credentials, tenant headers, discovery and sync health without exposing secrets.',
+    icon: Activity,
   },
   {
     href: '/admin/fantasy/settings',
@@ -56,6 +62,12 @@ const fantasySections = [
     title: 'Import Review',
     description: 'Review saved import batches, inspect stat rows, and publish or reject Fantasy Cricket scores.',
     icon: FileSearch,
+  },
+  {
+    href: '/admin/fantasy/reconciliation',
+    title: 'Historical Reconciliation',
+    description: 'Compare Legacy / Unverified stats with PlayHQ evidence, quarantine ambiguous rows and export reviewed proposals.',
+    icon: ShieldCheck,
   },
 ];
 

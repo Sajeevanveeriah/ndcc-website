@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Mail,
   Calendar,
+  CalendarDays,
   Newspaper,
   Handshake,
   TrendingUp,
@@ -32,6 +33,15 @@ interface RecentActivity {
   type: string;
   message: string;
   date: string;
+}
+
+interface ClubSeasonSummary {
+  id: string;
+  name: string;
+  status: string;
+  registration_status: string;
+  start_date: string;
+  end_date: string;
 }
 
 interface DashboardHealth {
@@ -56,20 +66,26 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(emptyStats);
   const [health, setHealth] = useState<DashboardHealth | null>(null);
   const [activity, setActivity] = useState<RecentActivity[]>([]);
+  const [currentSeason, setCurrentSeason] = useState<ClubSeasonSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/admin/dashboard', { cache: 'no-store' });
+        const [response, seasonsResponse] = await Promise.all([
+          fetch('/api/admin/dashboard', { cache: 'no-store' }),
+          fetch('/api/admin/club-seasons', { cache: 'no-store' }),
+        ]);
         const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[] }>(response);
+        const seasonData = await parseApiResponse<{ seasons?: ClubSeasonSummary[] }>(seasonsResponse).catch(() => ({ seasons: [] }));
 
         setStats(data.stats || emptyStats);
         setHealth(data.health ?? null);
         if (Array.isArray(data.activity) && data.activity.length > 0) {
           setActivity(data.activity);
         }
+        setCurrentSeason((seasonData.seasons || []).find((season) => (season as ClubSeasonSummary & { is_current?: boolean }).is_current) || null);
       } catch (err) {
         setMessage(err instanceof Error ? err.message : 'Failed to fetch dashboard stats.');
       } finally {
@@ -127,6 +143,32 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
+
+          <div className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="rounded-xl border border-maroon-100 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-display font-bold uppercase tracking-wide text-maroon-800">Current season</h2>
+              {currentSeason ? (
+                <div className="mt-3">
+                  <p className="text-2xl font-display font-bold text-gray-900">{currentSeason.name}</p>
+                  <p className="mt-1 text-sm text-gray-600">{currentSeason.start_date} to {currentSeason.end_date} · {currentSeason.status} · registration {currentSeason.registration_status.replace(/_/g, ' ')}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href="/admin/season/new"><Button size="sm">Start new season</Button></Link>
+                    <Link href="/admin/teams"><Button size="sm" variant="secondary">Review teams</Button></Link>
+                    <Link href="/admin/playhq-diagnostics"><Button size="sm" variant="secondary">Check PlayHQ</Button></Link>
+                  </div>
+                </div>
+              ) : <p className="mt-3 text-sm text-gray-600">No current club season has been loaded. Use Season setup to prepare one.</p>}
+            </div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50 p-5">
+              <h2 className="text-sm font-display font-bold uppercase tracking-wide text-sky-900">Attention items</h2>
+              <ul className="mt-3 space-y-2 text-sm text-sky-950">
+                <li>Drafts: {(health?.draftNews ?? 0) + (health?.unpublishedEvents ?? 0)}</li>
+                <li>Fantasy imports awaiting publish: {health?.draftFantasyImports ?? '?'}</li>
+                <li>PlayHQ: {health?.playhqConfigured ? 'configured' : 'needs configuration'}</li>
+              </ul>
+            </div>
+          </div>
+
           {/* CMS health strip */}
           {health && (
             <div className="mb-8 rounded-xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
@@ -206,8 +248,14 @@ export default function AdminDashboardPage() {
               </div>
               <CardContent>
                 <div className="space-y-3">
-                  <Link href="/admin/events">
+                  <Link href="/admin/season/new">
                     <Button variant="primary" className="w-full justify-center">
+                      <CalendarDays className="h-4 w-4 mr-2" />
+                      Start New Season
+                    </Button>
+                  </Link>
+                  <Link href="/admin/events">
+                    <Button variant="secondary" className="w-full justify-center">
                       <Calendar className="h-4 w-4 mr-2" />
                       Create New Event
                     </Button>

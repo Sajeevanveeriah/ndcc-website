@@ -510,8 +510,8 @@ function SeasonAppointmentsSkeleton() {
     <section className="section-padding bg-white">
       <div className="container-width">
         <div className="text-center mb-12">
-          <span className="section-eyebrow">2026/27 Season</span>
-          <h2 className="section-title">2026/27 Season Appointments</h2>
+          <span className="section-eyebrow">Season appointments</span>
+          <h2 className="section-title">Featured appointments</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {[0, 1, 2].map((index) => (

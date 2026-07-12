@@ -15,7 +15,28 @@ const endpoints = {
   cricketGameSummary: (gameId: string) => `/v2/cricket/games/${encodeURIComponent(gameId)}/summary`,
 };
 
-async function playHQFetch(path: string, init: RequestInit = {}) {
+type PlayHQPage = Record<string, unknown> & { metadata?: { hasMore?: boolean; nextCursor?: string | null } };
+
+function appendCursor(path: string, cursor: string) {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}cursor=${encodeURIComponent(cursor)}`;
+}
+
+function mergePlayHQPages(pages: unknown[]) {
+  if (pages.length <= 1) return pages[0];
+  const first = (pages[0] && typeof pages[0] === 'object' ? pages[0] : {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...first };
+  for (const key of ['data', 'items', 'seasons', 'teams', 'grades', 'fixtures', 'games', 'ladder', 'ladders']) {
+    const values = pages.flatMap((page) => {
+      const record = (page && typeof page === 'object' ? page : {}) as Record<string, unknown>;
+      return Array.isArray(record[key]) ? record[key] as unknown[] : [];
+    });
+    if (values.length) merged[key] = values;
+  }
+  return merged;
+}
+
+async function playHQFetchPage(path: string, init: RequestInit = {}) {
   const config = getPlayHQConfig();
   if (!config.configured || !config.apiKey) throw new Error(`PlayHQ is not configured: ${config.missing.join(', ')}`);
 
@@ -24,7 +45,7 @@ async function playHQFetch(path: string, init: RequestInit = {}) {
   try {
     const response = await fetch(`${config.baseUrl}${path}`, {
       ...init,
-      headers: { Accept: 'application/json', 'x-api-key': config.apiKey, ...(init.headers || {}) },
+      headers: { Accept: 'application/json', 'x-api-key': config.apiKey, 'x-phq-tenant': config.tenant || '', ...(init.headers || {}) },
       signal: controller.signal,
       next: { revalidate: config.revalidateSeconds },
     });
@@ -33,6 +54,19 @@ async function playHQFetch(path: string, init: RequestInit = {}) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function playHQFetch(path: string, init: RequestInit = {}) {
+  const pages: unknown[] = [];
+  let nextPath = path;
+  for (let page = 0; page < 100; page += 1) {
+    const payload = await playHQFetchPage(nextPath, init) as PlayHQPage;
+    pages.push(payload);
+    const cursor = payload.metadata?.hasMore ? payload.metadata.nextCursor : null;
+    if (!cursor) return mergePlayHQPages(pages);
+    nextPath = appendCursor(path, cursor);
+  }
+  throw new Error('PlayHQ pagination exceeded 100 pages.');
 }
 
 export async function getPlayHQSeasons() {
