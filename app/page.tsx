@@ -511,7 +511,7 @@ function SeasonAppointmentsSkeleton() {
       <div className="container-width">
         <div className="text-center mb-12">
           <span className="section-eyebrow">Season appointments</span>
-          <h2 className="section-title">Featured appointments</h2>
+          <h2 className="section-title">Season appointments</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {[0, 1, 2].map((index) => (
@@ -523,7 +523,7 @@ function SeasonAppointmentsSkeleton() {
           ))}
         </div>
         <p className="text-center text-gray-500 font-body text-sm mt-8">
-          More appointments to be announced. Follow us on{' '}
+          Season appointments are managed in the CMS. Follow us on{' '}
           <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
             Facebook
           </Link>{' '}

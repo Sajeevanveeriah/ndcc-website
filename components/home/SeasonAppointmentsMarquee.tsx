@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Pause, Play } from 'lucide-react';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { FACEBOOK_URL } from '@/lib/constants';
-import { normalizeSeasonAppointmentImage } from '@/lib/public-content-normalizers';
+import { planSeasonAppointmentsMarquee } from '@/lib/season-appointments-marquee';
 import type { PublicSeasonAppointment } from '@/lib/public-season-appointments';
 
 type ApiResponse = {
@@ -14,12 +15,15 @@ type ApiResponse = {
   error?: string;
 };
 
+const MARQUEE_TRACK_ID = 'season-appointments-marquee-track';
+
 function initials(name: string) {
   return name.split(' ').map((word) => word[0]).join('');
 }
 
 export default function SeasonAppointmentsMarquee({ initialAppointments }: { initialAppointments: PublicSeasonAppointment[] }) {
   const [appointments, setAppointments] = useState(initialAppointments);
+  const [isManuallyPaused, setIsManuallyPaused] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -40,29 +44,46 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
     return () => { isMounted = false; };
   }, []);
 
-  const seasonAppointments = useMemo(() => appointments.slice(0, 4).map((item) => ({
-    ...item,
-    image_url: normalizeSeasonAppointmentImage(item.name, item.image_url),
-  })), [appointments]);
+  const marquee = useMemo(() => planSeasonAppointmentsMarquee(appointments), [appointments]);
+
+  // An empty collection is live CMS truth: skip the section rather than
+  // animating an empty track. The runtime refresh above can still repopulate it.
+  if (marquee.appointments.length === 0) return null;
 
   return (
     <section className="section-padding bg-white">
       <div className="container-width">
         <ScrollReveal className="text-center mb-12">
           <span className="section-eyebrow">Season appointments</span>
-          <h2 className="section-title">Featured appointments</h2>
+          <h2 className="section-title">Season appointments</h2>
         </ScrollReveal>
-        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Featured season appointments">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-white to-transparent dark:from-slate-800" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white to-transparent dark:from-slate-800" />
-          <div className="homepage-marquee-track gap-5 py-2">
-            {[false, true].map((isDuplicateSequence) => (
+        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Season appointments">
+          {marquee.animate && (
+            <>
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-white to-transparent dark:from-slate-800" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white to-transparent dark:from-slate-800" />
+            </>
+          )}
+          <div
+            id={MARQUEE_TRACK_ID}
+            className={marquee.animate
+              ? 'homepage-marquee-track season-appointments-marquee-track gap-5 py-2'
+              : 'flex flex-wrap justify-center gap-5 py-2'}
+            style={marquee.animate
+              ? {
+                  // Constant per-card pace however many appointments the CMS holds.
+                  animationDuration: `${marquee.durationSeconds}s`,
+                  ...(isManuallyPaused ? { animationPlayState: 'paused' as const } : {}),
+                }
+              : undefined}
+          >
+            {marquee.sequences.map((sequence) => (
               <div
-                key={isDuplicateSequence ? 'duplicate' : 'primary'}
+                key={sequence.key}
                 className="contents"
-                aria-hidden={isDuplicateSequence || undefined}
+                aria-hidden={sequence.isDuplicate || undefined}
               >
-                {seasonAppointments.map((appointment) => {
+                {marquee.appointments.map((appointment) => {
                   const role = appointment.role.trim();
                   const imageAlt = role
                     ? `${appointment.name} appointed as ${role}`
@@ -70,7 +91,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
 
                   return (
                     <div
-                      key={`${appointment.id}-${isDuplicateSequence ? 'duplicate' : 'primary'}`}
+                      key={`${appointment.id}-${sequence.key}`}
                       className="group relative h-[360px] w-[270px] flex-none rounded-2xl overflow-hidden bg-maroon-900 shadow-md hover:shadow-xl transition-shadow duration-300"
                     >
                       {appointment.image_url ? (
@@ -114,10 +135,26 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
             ))}
           </div>
         </ScrollReveal>
+        {marquee.animate && (
+          <div className="season-appointments-marquee-toggle mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setIsManuallyPaused((paused) => !paused)}
+              aria-controls={MARQUEE_TRACK_ID}
+              aria-label={isManuallyPaused ? 'Play the season appointments marquee' : 'Pause the season appointments marquee'}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-4 py-1.5 font-body text-sm font-semibold text-gray-600 transition-colors hover:border-maroon-300 hover:text-maroon-700 focus-ring dark:border-slate-600 dark:text-slate-300 dark:hover:border-maroon-400 dark:hover:text-maroon-200"
+            >
+              {isManuallyPaused
+                ? <Play className="h-4 w-4" aria-hidden="true" />
+                : <Pause className="h-4 w-4" aria-hidden="true" />}
+              {isManuallyPaused ? 'Play' : 'Pause'}
+            </button>
+          </div>
+        )}
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <Link href="/about#committee" className="btn-secondary">View all appointments</Link>
           <p className="text-gray-500 font-body text-sm">
-            More appointments are managed in the CMS. Follow us on{' '}
+            Season appointments are managed in the CMS. Follow us on{' '}
             <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
               Facebook
             </Link>{' '}
