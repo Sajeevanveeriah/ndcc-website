@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const nav = readFileSync('components/layout/Navbar.tsx', 'utf8');
+for (const group of ['Cricket','Club','Get Involved','Community','Shop']) assert.match(nav, new RegExp(`label: '${group}'`));
+for (const route of ['/teams','/fixtures','/fantasy','/join','/volunteer','/events','/news','/gallery','/sponsors','/merchandise','/kitchen','/contact']) assert.ok(nav.includes(route), `${route} preserved`);
+assert.match(nav, /Mobile grouped admin navigation|section key=\{group.label\}/);
+const appointments = readFileSync('components/home/SeasonAppointmentsMarquee.tsx', 'utf8');
+assert.match(appointments, /appointments\.slice\(0, 4\)/);
+assert.match(appointments, /Featured appointments/);
+assert.match(appointments, /View all appointments/);
+assert.ok(!appointments.includes('2026/27 Season Appointments'));
+console.log('Public visual/navigation checks passed.');

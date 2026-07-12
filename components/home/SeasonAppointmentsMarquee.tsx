@@ -40,7 +40,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
     return () => { isMounted = false; };
   }, []);
 
-  const seasonAppointments = useMemo(() => appointments.map((item) => ({
+  const seasonAppointments = useMemo(() => appointments.slice(0, 4).map((item) => ({
     ...item,
     image_url: normalizeSeasonAppointmentImage(item.name, item.image_url),
   })), [appointments]);
@@ -49,10 +49,10 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
     <section className="section-padding bg-white">
       <div className="container-width">
         <ScrollReveal className="text-center mb-12">
-          <span className="section-eyebrow">2026/27 Season</span>
-          <h2 className="section-title">2026/27 Season Appointments</h2>
+          <span className="section-eyebrow">Season appointments</span>
+          <h2 className="section-title">Featured appointments</h2>
         </ScrollReveal>
-        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="2026/27 season appointments carousel">
+        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Featured season appointments">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-white to-transparent dark:from-slate-800" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white to-transparent dark:from-slate-800" />
           <div className="homepage-marquee-track gap-5 py-2">
@@ -114,13 +114,16 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
             ))}
           </div>
         </ScrollReveal>
-        <p className="text-center text-gray-500 font-body text-sm mt-8">
-          More appointments to be announced. Follow us on{' '}
-          <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
-            Facebook
-          </Link>{' '}
-          for updates.
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-3 text-center">
+          <Link href="/about#committee" className="btn-secondary">View all appointments</Link>
+          <p className="text-gray-500 font-body text-sm">
+            More appointments are managed in the CMS. Follow us on{' '}
+            <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+              Facebook
+            </Link>{' '}
+            for updates.
+          </p>
+        </div>
       </div>
     </section>
   );

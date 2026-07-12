@@ -15,8 +15,8 @@ import {
 } from '@/lib/constants';
 import type { Event, NewsPost, Sponsor } from '@/lib/types';
 import type { ContentBlock } from '@/lib/content-blocks';
-import type { CommitteeMemberContent, FacilityFeature, HistoryCompetition, HistoryLineageEntry, HistoryPremiership, PageLinkCard } from '@/lib/structured-content';
-import { normalizeEventImage, normalizeGalleryImage, normalizeNewsImage } from '@/lib/public-content-normalizers';
+import type { FacilityFeature, HistoryCompetition, HistoryLineageEntry, HistoryPremiership, PageLinkCard } from '@/lib/structured-content';
+import { normalizeEventImage, normalizeNewsImage } from '@/lib/public-content-normalizers';
 import { canonicalSponsorKey, canonicalSponsorName } from '@/lib/sponsor-canonical';
 
 const playHqOrg = PLAYHQ_ORG_URL;
@@ -24,7 +24,7 @@ const playHqOrg = PLAYHQ_ORG_URL;
 export const fallbackContentBlocks: Record<string, ContentBlock> = {
   'home.hero': { block_key: 'home.hero', title: CLUB_NAME, body: `Home of the ${CLUB_NICKNAME} cricket community.`, image_url: null, cta_label: 'Join the Club', cta_url: '/join' },
   'home.quicklinks': { block_key: 'home.quicklinks', title: 'Explore the Club', body: `Everything you need to know about the ${CLUB_NICKNAME}.`, image_url: null, cta_label: null, cta_url: null },
-  'home.season_status': { block_key: 'home.season_status', title: '2025/26 Season Complete', body: 'The 2025/26 season has concluded. The 2026/27 season begins October 2026. Pre-season training details will be announced on our Facebook page.', image_url: null, cta_label: 'View 2025/26 Results on PlayHQ', cta_url: playHqOrg },
+  'home.season_status': { block_key: 'home.season_status', title: 'Season information unavailable', body: 'Current season details are managed in the CMS and are temporarily unavailable. Please check back soon or contact the club.', image_url: null, cta_label: 'Contact the club', cta_url: '/contact' },
   'home.sponsor_intro': { block_key: 'home.sponsor_intro', title: 'Our Sponsors', body: 'Thanks to all local businesses and partners supporting NDCC.', image_url: null, cta_label: null, cta_url: null },
   'home.sponsorship': { block_key: 'home.sponsorship', title: 'Our Sponsors', body: 'Thanks to all local businesses and partners supporting NDCC.', image_url: null, cta_label: null, cta_url: null },
   'home.juniors': { block_key: 'home.juniors', title: `Ready to join the ${CLUB_NICKNAME}?`, body: 'Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.', image_url: null, cta_label: null, cta_url: null },
@@ -36,8 +36,8 @@ export const fallbackContentBlocks: Record<string, ContentBlock> = {
   'about.partnership': { block_key: 'about.partnership', title: 'Newcomb Power Football Club', body: `${CLUB_NICKNAME} shares facilities at ${CLUB_GROUND} and works collaboratively to support sport in the Newcomb and Moolap community.`, image_url: null, cta_label: null, cta_url: null },
   'about.committee': { block_key: 'about.committee', title: 'Committee & Office Bearers', body: `The people who keep the ${CLUB_NICKNAME} running behind the scenes.`, image_url: null, cta_label: null, cta_url: null },
   'fixtures.hero': { block_key: 'fixtures.hero', title: 'Fixtures & Results', body: `Follow the ${CLUB_NICKNAME} throughout the season across all grades.`, image_url: null, cta_label: null, cta_url: null },
-  'fixtures.status': { block_key: 'fixtures.status', title: '2025/26 Season Complete', body: 'The 2025/26 GCA season has concluded. You can view full results, ladders, and match details from the completed season on PlayHQ. The 2026/27 season begins in October 2026. Pre-season training details will be announced on our Facebook page.', image_url: null, cta_label: 'View 2025/26 Results on PlayHQ', cta_url: playHqOrg },
-  'fixtures.team_links': { block_key: 'fixtures.team_links', title: 'Team Fixtures on PlayHQ', body: 'View fixtures, results, and ladders for each NDCC team on PlayHQ. Updated links for 2026/27 can be published from admin when the new season draw is released.', image_url: null, cta_label: 'View on PlayHQ', cta_url: null },
+  'fixtures.status': { block_key: 'fixtures.status', title: 'Fixtures unavailable', body: 'Fixtures, results and ladders are managed through PlayHQ and the CMS. They are temporarily unavailable here.', image_url: null, cta_label: 'View PlayHQ', cta_url: playHqOrg },
+  'fixtures.team_links': { block_key: 'fixtures.team_links', title: 'Team fixtures', body: 'Team-specific PlayHQ links are managed in the CMS and are temporarily unavailable.', image_url: null, cta_label: 'View on PlayHQ', cta_url: null },
   'join.hero': { block_key: 'join.hero', title: 'Join the Club', body: 'Choose player registration via PlayHQ or apply for social membership below.', image_url: null, cta_label: null, cta_url: null },
   'join.social_membership': { block_key: 'join.social_membership', title: 'Social Membership', body: 'Apply online and pay by bank transfer reference generated at checkout.', image_url: null, cta_label: null, cta_url: null },
   'gallery.hero': { block_key: 'gallery.hero', title: 'Gallery', body: 'Match day photos, team shots, and club memories.', image_url: null, cta_label: null, cta_url: null },
@@ -87,11 +87,7 @@ export const fallbackPageLinkCards: Record<string, PageLinkCard[]> = {
     card('fallback-footer-playhq', 'site', 'footer_affiliations', 'PlayHQ', '', 'https://www.playhq.com', 3, null, null, true),
   ],
   'fixtures:team_links': [
-    card('fallback-fixtures-firsts', 'fixtures', 'team_links', '1st XI', 'GCA Grade 4', 'https://www.playhq.com/cricket-australia/org/newcomb-and-district-cricket-club/2c2bff9c/geelong-cricket-association-mens-competition-summer-202526/teams/newcomb-and-district-1sts/0f74d5e7', 1, null, 'GCA Grade 4', true),
-    card('fallback-fixtures-seconds', 'fixtures', 'team_links', '2nd XI', 'GCA Grade 4', playHqOrg, 2, null, 'GCA Grade 4', true),
-    card('fallback-fixtures-thirds', 'fixtures', 'team_links', '3rd XI', 'GCA Hard Wicket', playHqOrg, 3, null, 'GCA Hard Wicket', true),
-    card('fallback-fixtures-women', 'fixtures', 'team_links', 'Senior Women', 'GCA E Grade East', playHqOrg, 4, null, 'GCA E Grade East', true),
-    card('fallback-fixtures-juniors', 'fixtures', 'team_links', 'Juniors', 'GCA Junior Competition', playHqOrg, 5, null, 'GCA Junior Competition', true),
+
   ],
 };
 
@@ -195,53 +191,9 @@ export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: s
   return fallbackSponsors.map((sponsor) => ({ ...sponsor, name: canonicalSponsorName(sponsor.name) })) as Array<T & Sponsor>;
 }
 
-export const fallbackSeasonAppointments = [
-  { id: 'fallback-craig-hillgrove', name: 'Craig Hillgrove', role: 'Head Coach', image_url: '/images/season-appointments/2026-27/craig-hillgrove-head-coach-2026-27.webp', announcement_date: '2026-03-01', sort_order: 1, is_active: true },
-  { id: 'fallback-jason-robertson', name: 'Jason Robertson', role: 'Assistant Coach', image_url: null, announcement_date: '2026-03-02', sort_order: 2, is_active: true },
-  { id: 'fallback-daniel-harrison', name: 'Daniel Harrison', role: 'Assistant Coach', image_url: null, announcement_date: '2026-03-03', sort_order: 3, is_active: true },
-  { id: 'fallback-kelsey-allan', name: 'Kelsey Allan', role: "Women's Coach", image_url: '/images/season-appointments/2026-27/kelsey-allan-womens-coach-2026-27.webp', announcement_date: '2026-03-15', sort_order: 4, is_active: true },
-  { id: 'fallback-aaron-morgan', name: 'Aaron Morgan', role: 'Player', image_url: '/images/season-appointments/2026-27/aaron-morgan-re-signed-2026-27.webp', announcement_date: '2026-05-01', sort_order: 5, is_active: true },
-  { id: 'fallback-anthony-quarrell', name: 'Anthony Quarrell', role: 'Player', image_url: '/images/season-appointments/2026-27/anthony-quarrell-re-signed-2026-27.webp', announcement_date: '2026-05-02', sort_order: 6, is_active: true },
-  { id: 'fallback-blake-ritchie', name: 'Blake Ritchie', role: 'Player', image_url: '/images/season-appointments/2026-27/blake-ritchie-re-signed-2026-27.webp', announcement_date: '2026-05-03', sort_order: 7, is_active: true },
-  { id: 'fallback-nathan-keevil', name: 'Nathan Keevil', role: 'Player', image_url: '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp', announcement_date: '2026-05-04', sort_order: 8, is_active: true },
-  { id: 'fallback-tyler-oneil', name: "Tyler O'Neil", role: 'Player', image_url: null, announcement_date: '2026-05-05', sort_order: 9, is_active: true },
-  { id: 'fallback-rhys-bath', name: 'Rhys Bath', role: 'Player', image_url: null, announcement_date: '2026-05-06', sort_order: 10, is_active: true },
-  { id: 'fallback-huey-neild', name: 'Huey Neild', role: 'Player', image_url: '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp', announcement_date: '2026-05-07', sort_order: 11, is_active: true },
-  { id: 'fallback-gautham-ranjith', name: 'Gautham Ranjith', role: 'Returning Player', image_url: null, announcement_date: '2026-05-08', sort_order: 12, is_active: true },
-  { id: 'fallback-freddie-norridge', name: 'Freddie Norridge', role: 'Player', image_url: '/images/season-appointments/2026-27/freddie-norridge-signed-2026-27.webp', announcement_date: '2026-05-09', sort_order: 13, is_active: true },
-  { id: 'fallback-caitlin-rose-neil', name: 'Caitlin-Rose Neil', role: 'Player', image_url: null, announcement_date: '2026-05-10', sort_order: 14, is_active: true },
-  { id: 'fallback-skye-green', name: 'Skye Green', role: 'Player', image_url: null, announcement_date: '2026-05-11', sort_order: 15, is_active: true },
-  { id: 'fallback-jodie-clark', name: 'Jodie Clark', role: 'Player', image_url: null, announcement_date: '2026-05-12', sort_order: 16, is_active: true },
-  { id: 'fallback-elliot-ridway', name: 'Elliot Ridway', role: 'Player', image_url: null, announcement_date: '2026-05-13', sort_order: 17, is_active: true },
-  { id: 'fallback-harvey-cliff', name: 'Harvey Cliff', role: 'Player', image_url: null, announcement_date: '2026-05-14', sort_order: 18, is_active: true },
-  { id: 'fallback-scott-kirby', name: 'Scott Kirby', role: 'Player', image_url: '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp', announcement_date: '2026-05-15', sort_order: 19, is_active: true },
-];
+export const fallbackSeasonAppointments = [];
+export const fallbackCommitteeMembers = [];
 
-// Committee & office bearers shown on /about. Mirrors the live committee_members table so a
-// Supabase cold start renders the real committee instead of a blank section or a diagnostic.
-export const fallbackCommitteeMembers: CommitteeMemberContent[] = [
-  { id: 'fallback-committee-president', name: 'John Elliott', role: 'President', sort_order: 1, is_active: true },
-  { id: 'fallback-committee-vice-president', name: 'Troy Whitworth', role: 'Vice President', sort_order: 2, is_active: true },
-  { id: 'fallback-committee-treasurer', name: 'Laura Hudson', role: 'Treasurer', sort_order: 3, is_active: true },
-  { id: 'fallback-committee-head-coach', name: 'Craig Hillgrove', role: 'Head Coach', sort_order: 4, is_active: true },
-  { id: 'fallback-committee-junior-coordinator', name: 'Marcus Pearson', role: 'Junior Coordinator', sort_order: 5, is_active: true },
-];
-
-export function mergeSeasonAppointmentsWithFallback<T extends { name: string; announcement_date?: string | null; sort_order?: number | null }>(appointments: T[] | null | undefined) {
-  const filtered = [...((appointments || []).filter((appointment) => appointment.name?.trim()))];
-  const merged = filtered.length > 0 ? filtered : fallbackSeasonAppointments as unknown as T[];
-  return merged.sort((a, b) => {
-    const sortOrderA = a.sort_order ?? 999;
-    const sortOrderB = b.sort_order ?? 999;
-    if (sortOrderA !== sortOrderB) return sortOrderA - sortOrderB;
-
-    const announcementDateA = Date.parse(a.announcement_date || '') || 0;
-    const announcementDateB = Date.parse(b.announcement_date || '') || 0;
-    if (announcementDateA !== announcementDateB) return announcementDateB - announcementDateA;
-
-    return a.name.localeCompare(b.name);
-  });
-}
 
 export const fallbackNews = SEED_NEWS.filter((post) => post.published).map((post) => ({
   ...post,
@@ -287,11 +239,8 @@ export function mergeEventsWithFallback<T extends Partial<Event> & { id: string;
   }) as Array<T & Event>;
 }
 
-export const fallbackGalleryImages = [
-  normalizeGalleryImage({ id: 'fallback-gallery-u13-premiers', title: 'Under 13 Juniors Premiers 2025/26', caption: 'Under 13 Juniors premiership celebration.', image_url: '/images/achievements/2025-26/u13-juniors-premiers-2025-26.webp', alt_text: 'Under 13 Juniors premiers celebration image', allow_download: false, sort_order: 1 }),
-  normalizeGalleryImage({ id: 'fallback-gallery-club-championship', title: 'Division 4 Club Championship Winners 2025/26', caption: 'Club championship winners for the 2025/26 season.', image_url: '/images/achievements/2025-26/club-championship-winners-2025-26.webp', alt_text: 'Division 4 club championship winners image', allow_download: false, sort_order: 2 }),
-  normalizeGalleryImage({ id: 'fallback-gallery-first-xi-premiers', title: 'Division 4 First XI Premiers 2025/26', caption: 'Division 4 First XI premiership celebration.', image_url: '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp', alt_text: 'Division 4 First XI premiers celebration image', allow_download: false, sort_order: 3 }),
-];
+export const fallbackGalleryImages = [];
+
 
 export const fallbackMembershipPlans = [
   { id: 'fallback-social-membership', name: 'Social Membership', description: 'Annual social membership', price: 50, is_active: true, sort_order: 1 },
