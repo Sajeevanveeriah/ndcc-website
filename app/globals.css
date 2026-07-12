@@ -319,6 +319,12 @@
   animation-play-state: paused;
 }
 
+/* Keyboard parity with the hover pause, scoped to the appointments marquee so
+   the sponsors track keeps its existing behaviour. */
+.season-appointments-marquee-track:focus-within {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .homepage-marquee-track {
     animation: none;
@@ -329,6 +335,11 @@
   /* The second sequence exists only to make the scroll loop seamless; in the
      static reduced-motion layout it would show every item twice. */
   .homepage-marquee-track > [aria-hidden='true'] {
+    display: none;
+  }
+  /* Reduced motion replaces the scroll with a static wrapped grid, so the
+     pause/play control has nothing to act on. */
+  .season-appointments-marquee-toggle {
     display: none;
   }
 }
