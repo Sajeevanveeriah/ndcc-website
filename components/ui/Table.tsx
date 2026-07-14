@@ -7,33 +7,30 @@ interface TableProps {
 
 export function Table({ className, children }: TableProps) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
-      <table className={cn('min-w-full divide-y divide-gray-200', className)}>{children}</table>
+    <div className="overflow-x-auto rounded-lg border border-edge-subtle">
+      <table className={cn('min-w-full divide-y divide-edge-subtle', className)}>{children}</table>
     </div>
   );
 }
 
 export function TableHead({ className, children }: TableProps) {
   // Maroon-tinted "scorebook ledger" header rather than a generic grey grid.
-  return <thead className={cn('bg-maroon-50/60 dark:bg-slate-800/80', className)}>{children}</thead>;
+  return <thead className={cn('bg-maroon-50/60 dark:bg-surface-muted', className)}>{children}</thead>;
 }
 
 export function TableBody({ className, children }: TableProps) {
-  return <tbody className={cn('divide-y divide-gray-200 bg-white', className)}>{children}</tbody>;
+  return <tbody className={cn('divide-y divide-edge-subtle bg-surface-card', className)}>{children}</tbody>;
 }
 
 export function TableRow({ className, children }: TableProps) {
-  // Explicit dark variant: the dark compatibility layer in globals.css only
-  // remaps `bg-*` classes, so a bare hover:bg-* would flash light rows on
-  // dark surfaces.
-  return <tr className={cn('hover:bg-sky-50/70 dark:hover:bg-slate-700/60 transition-colors', className)}>{children}</tr>;
+  return <tr className={cn('hover:bg-sky-50/70 dark:hover:bg-surface-elevated transition-colors', className)}>{children}</tr>;
 }
 
 export function TableHeader({ className, children }: TableProps) {
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-semibold text-maroon-800 uppercase tracking-wider font-body dark:text-slate-300',
+        'px-4 py-3 text-left text-xs font-semibold text-maroon-800 uppercase tracking-wider font-body dark:text-maroon-200',
         className
       )}
     >
@@ -43,5 +40,5 @@ export function TableHeader({ className, children }: TableProps) {
 }
 
 export function TableCell({ className, children }: TableProps) {
-  return <td className={cn('px-4 py-3 text-sm text-gray-700 font-body', className)}>{children}</td>;
+  return <td className={cn('px-4 py-3 text-sm text-content-secondary font-body', className)}>{children}</td>;
 }
