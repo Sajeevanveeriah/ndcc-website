@@ -4,6 +4,7 @@ import { requireSession } from '@/lib/auth/guard';
 import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
 import { createServerClient } from '@/lib/supabase-server';
 import { DEFAULT_SYNC_BATCH_SIZE, processFantasySyncBatch, retryFailedGames, startFantasySyncJob } from '@/lib/playhq/fantasy-sync';
+import { getFantasySyncHealth, runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -16,6 +17,14 @@ export async function GET(request: Request) {
   const user = await requireSession(FANTASY_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const url = new URL(request.url);
+  if (url.searchParams.get('health') === '1') {
+    try {
+      const health = await getFantasySyncHealth();
+      return NextResponse.json({ success: true, health }, { headers: noStore });
+    } catch (err) {
+      return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Health check failed.' }, { status: 500, headers: noStore });
+    }
+  }
   const seasonId = url.searchParams.get('seasonId');
   const supabase = createServerClient();
   let query = supabase.from('fantasy_sync_jobs').select(JOB_COLUMNS).order('created_at', { ascending: false }).limit(20);
@@ -46,13 +55,19 @@ export async function POST(request: Request) {
       const progress = await processFantasySyncBatch(jobId, Number(body.batchSize) || DEFAULT_SYNC_BATCH_SIZE);
       return NextResponse.json({ success: true, jobId, ...progress }, { headers: noStore });
     }
+    if (action === 'orchestrate') {
+      // Manual "Run automatic sync now": same code path as the cron, so an
+      // admin can drive the pipeline to completion without waiting a day.
+      const result = await runFantasyOrchestrator({ invokedBy: `admin:${user.email}` });
+      return NextResponse.json({ success: true, ...result }, { headers: noStore });
+    }
     if (action === 'retry_failed') {
       const jobId = String(body.jobId || '').trim();
       if (!jobId) return NextResponse.json({ success: false, error: 'jobId is required.' }, { status: 400, headers: noStore });
       const result = await retryFailedGames(jobId);
       return NextResponse.json({ success: true, jobId, requeued: result.requeued }, { headers: noStore });
     }
-    return NextResponse.json({ success: false, error: 'Unsupported action. Use start, continue or retry_failed.' }, { status: 400, headers: noStore });
+    return NextResponse.json({ success: false, error: 'Unsupported action. Use start, continue, orchestrate or retry_failed.' }, { status: 400, headers: noStore });
   } catch (err) {
     return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Sync action failed.' }, { status: 500, headers: noStore });
   }

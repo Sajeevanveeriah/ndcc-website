@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Scheduled PlayHQ fantasy sync: resumes one bounded batch of the newest
-// unfinished sync job for the current season. Guarded by CRON_SECRET and the
-// PLAYHQ_FANTASY_SYNC_ENABLED flag; manual "Sync now" in the CMS is unaffected.
+// Scheduled PlayHQ fantasy sync. The orchestrator advances every eligible
+// season end-to-end each run: discover + link the PlayHQ season, discover and
+// map NDCC grades, create or resume the bounded sync job, drain batches
+// within the function's time budget, validate and auto-publish clean batches,
+// record health and alert admins after repeated failures. Guarded by
+// CRON_SECRET and the PLAYHQ_FANTASY_SYNC_ENABLED flag; the run is protected
+// against concurrent invocations by a database-backed lease.
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
-import { DEFAULT_SYNC_BATCH_SIZE, processFantasySyncBatch } from '@/lib/playhq/fantasy-sync';
+import { runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
 import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
@@ -19,25 +21,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const supabase = createServerClient();
-    const { data: season, error: seasonError } = await supabase.from('fantasy_seasons').select('id, slug').eq('is_current', true).limit(1).maybeSingle();
-    if (seasonError) throw new Error(seasonError.message);
-    if (!season) return NextResponse.json({ success: true, skipped: true, reason: 'No current fantasy season.' });
-
-    const { data: job, error: jobError } = await supabase
-      .from('fantasy_sync_jobs')
-      .select('id, status')
-      .eq('season_id', season.id)
-      .in('status', ['pending', 'running', 'paused'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (jobError) throw new Error(jobError.message);
-    if (!job) return NextResponse.json({ success: true, skipped: true, reason: 'No resumable sync job for the current season.' });
-
-    const batchSize = Number(process.env.PLAYHQ_FANTASY_SYNC_BATCH_SIZE) || DEFAULT_SYNC_BATCH_SIZE;
-    const progress = await processFantasySyncBatch(job.id, batchSize);
-    return NextResponse.json({ success: true, season: season.slug, jobId: job.id, done: progress.done, processed: progress.processed });
+    const result = await runFantasyOrchestrator({ invokedBy: 'cron' });
+    return NextResponse.json({ success: true, ran: result.ran, reason: result.reason ?? null, logs: result.logs });
   } catch (err) {
     return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Cron sync failed.' }, { status: 500 });
   }
