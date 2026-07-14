@@ -80,6 +80,10 @@ export interface Sponsor {
   sort_order?: number;
   source_url?: string | null;
   logo_source_url?: string | null;
+  /** Logo plate mode: auto | light | dark | neutral | transparent. */
+  logo_surface_mode?: string | null;
+  logo_padding?: string | null;
+  logo_object_position?: string | null;
   created_at: string;
 }
 

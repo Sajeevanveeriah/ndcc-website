@@ -53,7 +53,7 @@ async function getActiveSponsorsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('sponsors')
-    .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order')
+    .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order,logo_surface_mode,logo_padding,logo_object_position')
     .eq('active', true)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });

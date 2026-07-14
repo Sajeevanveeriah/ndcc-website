@@ -261,6 +261,9 @@ export default function SponsorsPage() {
                           <LogoChip
                             name={sponsor.name}
                             src={sponsor.logo_url}
+                            surfaceMode={sponsor.logo_surface_mode}
+                            paddingClassName={sponsor.logo_padding}
+                            objectPosition={sponsor.logo_object_position}
                             width={220}
                             height={96}
                             sizes="220px"
