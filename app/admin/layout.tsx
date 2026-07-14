@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -39,6 +39,7 @@ const adminGroups: AdminGroup[] = [
   ] },
   { title: 'Publish', icon: Megaphone, links: [
     { href: '/admin/news', label: 'News', icon: Newspaper },
+    { href: '/admin/publications', label: 'Publications', icon: BookOpen },
     { href: '/admin/events', label: 'Events', icon: Calendar },
     { href: '/admin/site-pages', label: 'Pages & Links', plainLabel: 'Pages, buttons and links', icon: FileText },
     { href: '/admin/content', label: 'Page Sections', plainLabel: 'Page sections', icon: FileText },

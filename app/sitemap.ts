@@ -7,9 +7,10 @@ async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute
   if (!isServerSupabaseConfigured()) return [];
   try {
     const supabase = createServerClient({ fetchTimeoutMs: 5_000 });
-    const [news, events] = await Promise.all([
+    const [news, events, publications] = await Promise.all([
       supabase.from('news').select('id,published_at,created_at').eq('published', true),
       supabase.from('events').select('id,date').eq('published', true),
+      supabase.from('publications').select('slug,published_at,updated_at,created_at').eq('published', true),
     ]);
     const newsEntries: MetadataRoute.Sitemap = (news.data ?? []).map((row) => ({
       url: `${baseUrl}/news/${row.id}`,
@@ -23,7 +24,13 @@ async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute
       changeFrequency: 'weekly',
       priority: 0.6,
     }));
-    return [...newsEntries, ...eventEntries];
+    const publicationEntries: MetadataRoute.Sitemap = (publications.data ?? []).map((row) => ({
+      url: `${baseUrl}/publications/${row.slug}`,
+      lastModified: new Date(row.updated_at || row.published_at || row.created_at || Date.now()),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }));
+    return [...newsEntries, ...eventEntries, ...publicationEntries];
   } catch (err) {
     console.error('[sitemap] Failed to load published detail routes:', err);
     return [];
@@ -45,6 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/events`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/calendar`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/news`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/publications`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.7 },
     { url: `${baseUrl}/join`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/kitchen`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/merchandise`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },

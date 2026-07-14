@@ -31,6 +31,8 @@ import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews } from '@/lib/fallback-content';
 import LogoChip from '@/components/common/LogoChip';
+import PublicationCard from '@/components/publications/PublicationCard';
+import { getPublishedPublications } from '@/lib/public-publications';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
 import { toCalendarFeedEvent } from '@/lib/calendar/format';
@@ -377,6 +379,36 @@ async function NewsSection() {
         <div className="text-center mt-8">
           <Link href="/news" className="btn-secondary">
             Read More News
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+async function LatestPublicationsSection() {
+  // Live CMS data; the whole section is hidden when nothing is published.
+  const publications = await getPublishedPublications({ limit: 3 });
+  if (publications.length === 0) return null;
+
+  return (
+    <section className="section-padding">
+      <div className="container-width">
+        <ScrollReveal className="text-center mb-12">
+          <span className="section-eyebrow">Publications</span>
+          <h2 className="section-title">Newsletters &amp; Match Reports</h2>
+          <p className="section-subtitle mx-auto">
+            The latest from the club in writing — newsletters and weekly match reports.
+          </p>
+        </ScrollReveal>
+        <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {publications.map((publication) => (
+            <PublicationCard key={publication.id} publication={publication} />
+          ))}
+        </ScrollReveal>
+        <div className="text-center mt-10">
+          <Link href="/publications" className="btn-secondary">
+            View All Publications
           </Link>
         </div>
       </div>
@@ -791,6 +823,10 @@ export default function HomePage() {
 
       <Suspense fallback={<NewsSkeleton />}>
         <NewsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LatestPublicationsSection />
       </Suspense>
 
       <Suspense fallback={null}>
