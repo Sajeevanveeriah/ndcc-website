@@ -1,34 +1,33 @@
-# NDCC production update — theme, sponsors, publications, modernisation, PlayHQ automation
+# NDCC production repair — PlayHQ activation, sponsor plates, semantic theme, modernisation
 
-Branch: `claude/ndcc-website-production-hz3guo`
+Branch: `saj/wizardly-feynman-4sq2ew` (based on `main` @ `77b9cf5`)
 
-## Baseline findings (recorded before any change)
+## Re-confirmed baseline (2026-07-15, before any change)
 
-- Working tree clean at `07a0c3a` (merge of PR #133).
-- Supabase project `alduwuipmmnzorcgkcli` (NDCC Website, ACTIVE_HEALTHY) verified read-only:
-  - `fantasy_seasons` — `legacy-unverified` (archived, non-public): 134 season players, 134 match stats, 0 grade sources, 0 sync jobs.
-  - `2025-26` (public, completed): `playhq_season_id` NULL, 0 players / 0 stats / 0 grades / 0 jobs.
-  - `2026-27` (public, upcoming, current): `playhq_season_id` NULL, 134 players, 0 stats / 0 grades / 0 jobs.
-- Dark mode = `next-themes` class strategy + broad compatibility layer in `app/globals.css` (`:where(.dark) .bg-white { … }` etc.).
-- Crons: `/api/cron/keep-alive` daily 05:00 UTC, `/api/cron/playhq-fantasy-sync` daily 16:30 UTC.
-- Sponsors table has no presentation metadata columns yet.
-- `news` table exists; no publications table.
+- `main` HEAD = `77b9cf5`; production deployment `dpl_5gXUGAm9oUjuLctF6ykEzuAMmjva` builds exactly that SHA — repository and production were in sync (no missing-deploy problem).
+- PR #134 merged; theme/sponsors/publications/fantasy-automation migrations present in production Supabase.
+- `publications`: one published monthly newsletter (`ndcc-june-newsletter`, has PDF). The live homepage **does** render the publications section and `/publications`, `/newsletters`, `/match-reports` respond 200 — the earlier "module not visible" finding was stale.
+- Live `/fixtures` says "No fixture data is shown until the server-only PlayHQ environment variables are set" — root cause found in code: `lib/playhq/config.ts` required `PLAYHQ_TENANT`, which no revision of the setup docs ever told the operator to set, so a valid key+org still reported unconfigured.
+- Supabase (read-only):
+  - `2025-26`: playhq_season_id NULL, 0 players / 0 stats / 0 grade sources / 0 jobs / 0 runs, auto_sync_enabled=true
+  - `2026-27`: playhq_season_id NULL, 134 players (rollover), 0 stats/grades/jobs/runs, auto_sync_enabled=true
+  - `legacy-unverified`: archived, non-public, auto_sync_enabled=false
+- All 10 active sponsors had `logo_surface_mode='auto'`.
+- Broad `:where(.dark)` compatibility layer and alpha-wash `.surface-sky` present in `app/globals.css`.
 
-## Status
+## Environment constraints of this session (recorded honestly)
 
-All plan items implemented; migrations applied to production (additive); full static test suite green; screenshots captured for both themes at 375/768/1440. Live PlayHQ import awaits `PLAYHQ_FANTASY_SYNC_ENABLED=true` in Vercel (credentials are server-side only and not readable from this environment).
+- No Vercel env-var read/write path exists here: the Vercel MCP has no env tools, no CLI token is present, and the sandbox network policy blocks `api.vercel.com`, `www.ndcc.com.au` and `api.playhq.com` directly. Env-variable verification/repair therefore happens through the deployed diagnostics route after merge, and the code was repaired so the documented variable set (key + org id) is sufficient.
+- Direct PlayHQ API smoke-testing from this sandbox is impossible; the deployed server (which holds the key) verifies the contract via `/api/admin/playhq/diagnostics`, and the client now self-heals between the two documented hosts.
 
-## Plan
+## Delivered in this branch
 
-1. **Theme (Phase 2)** — add semantic CSS-variable tokens (surface/text/border/action ramps) to `globals.css` + Tailwind mapping; retune the dark compatibility layer to a coherent charcoal/deep-navy/maroon palette; fix component classes (`.card`, `.btn-*`, `.form-input`, heroes, bands) in both themes; keep toggle + system default.
-2. **Sponsors (Phase 3)** — additive migration `sponsors.logo_surface_mode/logo_padding/logo_object_position` (default `auto`); rework shared LogoChip into a themed outer card + deterministic inner logo plate; preserve Bennett Racing / MBR handling; regression tests.
-3. **Publications (Phase 4)** — additive migration `public.publications` (monthly_newsletter | weekly_newsletter | weekly_match_report) with RLS (public read published only); admin CRUD at `/admin/publications` following news/admin conventions; public `/publications`, `/publications/[slug]`, `/newsletters`, `/match-reports`; homepage latest-publications section (hidden when empty, force-dynamic); sitemap + smoke tests; PDF attachment via GitHub-backed upload with MIME/size/path validation.
-4. **Modernisation (Phase 5)** — refine shared primitives only (nav, hero, cards, buttons, footer, reveal), restrained and accessible, no new stock imagery.
-5. **PlayHQ automation (Phase 6)** — server-only orchestrator: season discovery (org seasons endpoint, normalised name + date validation) → persist `playhq_season_id` → grade discovery via NDCC team matching → persist `fantasy_season_grade_sources` → create/resume bounded sync jobs under an advisory lock → validate → auto-publish safe batches → recalc totals → heartbeat/health; 2025/26 historical bootstrap on first run; admin sync-health panel + safe retry; alert email on repeated failure.
-6. **Tests (Phase 9)** — run full existing suite; add tests for tokens, sponsor surface modes, publications schema/permissions/routes, orchestrator states (discovery, matching, locking, idempotency, empty-fetch protection, auto-publish gates).
-7. **Release (Phase 10)** — small commits, PR with verification evidence and rollback SQL.
+1. **PlayHQ contract repair** — tenant defaults to `ca`; only key+org required; dual-host fallback with active-host reporting; fantasy sync enabled unless explicitly `false`; docs/tests unified.
+2. **Sponsor plates** — pixel audit + four-surface contact sheet (`docs/audit/20260715-sponsor-logo-contact-sheet.png`); verified per-sponsor modes persisted in production; improved neutral/dark plate keylines; pixel-based mode suggestion for future uploads (pure classifier + admin wiring + tests). MBR Cricket and Leopold logo files are missing from the repo (text fallback) — flagged for asset upload.
+3. **Semantic theme** — blue surface tokens both themes; `.surface-blue-band`/`.panel-blue*` replace `.surface-sky`; every sky utility call site reviewed; 101 files migrated off the dark compatibility layer; layer removed.
+4. **Modernisation** — cinematic hero, transparent→translucent nav, full-screen mobile menu (scroll lock/focus trap/Escape), reordered homepage with alternating publications feature, masked sponsor marquee with visibility pause, accessible accordion on /join, footer CTA band.
 
 ## Rollback
 
-- Code: revert the PR (all changes are in one branch; no destructive migration).
-- DB: each migration documents rollback SQL (drop new table/columns only — no existing data touched).
+- Code: revert the PR (single branch; no destructive migration in this branch).
+- Sponsor modes: `UPDATE sponsors SET logo_surface_mode='auto' WHERE active;` restores the pre-repair state.
