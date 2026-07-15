@@ -156,10 +156,34 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
 
   try {
     const seasons = await getPlayHQSeasons();
-    const selectedSeasonId = config.defaultSeasonId || pickCurrentSeasonId(seasons);
-    if (!selectedSeasonId) return { configured: true, message: 'No PlayHQ seasons were returned for this organisation.', fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
+    const preferredSeasonId = config.defaultSeasonId || pickCurrentSeasonId(seasons);
+    if (!preferredSeasonId) return { configured: true, message: 'No PlayHQ seasons were returned for this organisation.', fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
 
-    const [teams, allGrades] = await Promise.all([getPlayHQTeams(selectedSeasonId), getPlayHQGrades(selectedSeasonId)]);
+    // Organisations are often registered in several identically-named seasons
+    // (one per competition), and only some carry grades. Probe the preferred
+    // season first, then the remaining candidates newest-first, and settle on
+    // the first season that actually yields grades.
+    const candidateIds = [preferredSeasonId, ...[...seasons]
+      .sort((a, b) => (Date.parse(b.startDate || '') || 0) - (Date.parse(a.startDate || '') || 0))
+      .map((season) => season.id)
+      .filter((id) => id !== preferredSeasonId)].slice(0, 5);
+
+    let selectedSeasonId = preferredSeasonId;
+    let teams: Awaited<ReturnType<typeof getPlayHQTeams>> = [];
+    let allGrades: Awaited<ReturnType<typeof getPlayHQGrades>> = [];
+    for (const candidateId of candidateIds) {
+      const [candidateTeams, candidateGrades] = await Promise.all([
+        getPlayHQTeams(candidateId).catch(() => []),
+        getPlayHQGrades(candidateId).catch(() => []),
+      ]);
+      if (candidateGrades.length || candidateId === candidateIds[candidateIds.length - 1]) {
+        selectedSeasonId = candidateId;
+        teams = candidateTeams;
+        allGrades = candidateGrades;
+        if (candidateGrades.length) break;
+      }
+    }
+
     const grades = config.defaultGradeIds.length ? allGrades.filter((grade) => config.defaultGradeIds.includes(grade.id)) : allGrades;
     const [fixturesByGrade, laddersByGrade] = await Promise.all([
       Promise.all(grades.map((grade) => getPlayHQGradeFixtures(grade).catch(() => []))),

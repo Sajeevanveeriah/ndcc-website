@@ -1,4 +1,4 @@
-export type PlayHQSeason = { id: string; name: string; startDate?: string | null; endDate?: string | null };
+export type PlayHQSeason = { id: string; name: string; startDate?: string | null; endDate?: string | null; competitionName?: string | null };
 export type PlayHQTeam = { id: string; name: string; gradeId?: string | null; gradeName?: string | null };
 export type PlayHQGrade = { id: string; name: string; seasonId?: string | null };
 export type PlayHQFixture = {
