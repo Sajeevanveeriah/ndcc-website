@@ -102,11 +102,19 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // every grade stops the sync.
   const skippedGrades: Array<{ gradeId: string; gradeName: string; error: string }> = [];
   const seenGameIds = new Set<string>();
+  // When a grade contributes zero queued games, capture what the API actually
+  // returned (source path, entry count, truncated first entry) so the run log
+  // itself is the diagnostic — no server access needed to see the payloads.
+  const gradeDebug: Array<{ gradeId: string; gradeName: string; source: string; raw_entries: number; sample: string | null }> = [];
   for (const grade of grades) {
     let rawFixtures: unknown[];
+    let fixtureSource = 'grade-endpoint';
     try {
       const raw = await withRetries(() => getPlayHQGradeFixtureRaw(grade.playhq_grade_id));
       rawFixtures = firstArray(raw);
+      if (!rawFixtures.length && raw && typeof raw === 'object') {
+        gradeDebug.push({ gradeId: grade.playhq_grade_id, gradeName: grade.grade_name, source: fixtureSource, raw_entries: 0, sample: JSON.stringify(raw).slice(0, 400) });
+      }
     } catch (gradeError) {
       // Grade-level fixture paths 404 for this organisation; fall back to the
       // per-team fixture feed for the NDCC teams in this grade.
@@ -127,8 +135,10 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
         continue;
       }
       rawFixtures = merged;
+      fixtureSource = `team-feeds(${clubTeams.length})`;
     }
     const fixtures = normaliseFixtures({ data: rawFixtures }, { id: grade.playhq_grade_id, name: grade.grade_name });
+    const queuedBefore = queue.length;
     const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
     fixtures.forEach((fixture, index) => {
       if (!isCompletedFixture(fixture) || !involvesClubTeam(fixture, clubPattern)) return;
@@ -152,6 +162,15 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
         awayTeam: fixture.awayTeam,
       });
     });
+    if (queue.length === queuedBefore && rawFixtures.length) {
+      gradeDebug.push({
+        gradeId: grade.playhq_grade_id,
+        gradeName: grade.grade_name,
+        source: fixtureSource,
+        raw_entries: rawFixtures.length,
+        sample: JSON.stringify(rawFixtures[0]).slice(0, 400),
+      });
+    }
   }
 
   if (skippedGrades.length === grades.length) {
@@ -193,7 +212,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     .select('id, status, total_games')
     .single();
   if (jobError || !job) throw new Error(jobError?.message || 'Could not create sync job.');
-  return { job, batchId: batch.id, queued: queue.length, reviewItems, skippedGrades };
+  return { job, batchId: batch.id, queued: queue.length, reviewItems, skippedGrades, gradeDebug };
 }
 
 async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayerStatLine, gradeName: string, counts: Record<string, number>, reviewItems: ReviewItem[]) {
