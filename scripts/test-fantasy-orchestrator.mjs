@@ -97,6 +97,18 @@ try {
 
   const cron = readFileSync(join(repoRoot, 'app/api/cron/playhq-fantasy-sync/route.ts'), 'utf8');
   check('cron drives the orchestrator', cron.includes('runFantasyOrchestrator'));
+
+  // Ambiguous identically-named seasons must be resolved with real API
+  // evidence (team probe), never guessed — and stay blocked when more than
+  // one candidate contains NDCC teams.
+  const orchestratorSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-orchestrator.ts'), 'utf8');
+  check('orchestrator probes ambiguous seasons by club teams', orchestratorSource.includes('disambiguateByClubTeams'));
+  check('orchestrator links only a single surviving candidate', orchestratorSource.includes('survivors.length === 1'));
+  check('orchestrator blocks multi-survivor ambiguity with probe evidence', orchestratorSource.includes('cannot be distinguished safely'));
+  const clientSource = readFileSync(join(repoRoot, 'lib/playhq/client.ts'), 'utf8');
+  check('public fixtures probe skips seasons without grades', clientSource.includes('candidateGrades.length'));
+  const normaliseSource = readFileSync(join(repoRoot, 'lib/playhq/normalise.ts'), 'utf8');
+  check('season normaliser keeps competition name evidence', normaliseSource.includes('competitionName'));
   check('cron keeps CRON_SECRET auth', cron.includes('isAuthorizedCronRequest'));
   check('cron keeps enable flag gate', cron.includes('PLAYHQ_FANTASY_SYNC_ENABLED'));
 

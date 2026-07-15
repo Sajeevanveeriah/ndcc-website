@@ -77,6 +77,26 @@ async function setSeasonException(supabase: any, seasonId: string, message: stri
   await supabase.from('fantasy_seasons').update({ sync_exception: message }).eq('id', seasonId);
 }
 
+/** When several identically-named seasons match the year pair (organisations
+ *  are registered once per competition), probe each candidate's team list and
+ *  keep only seasons that actually contain NDCC teams. Deterministic evidence
+ *  from the official API — never a guess. */
+async function disambiguateByClubTeams(candidates: Array<{ id: string; name: string; competitionName?: string | null }>) {
+  const probed: Array<{ id: string; name: string; competitionName: string | null; clubTeams: string[]; teamsSeen: number }> = [];
+  for (const candidate of candidates.slice(0, 8)) {
+    let teams: Array<{ name: string }> = [];
+    try {
+      teams = await getPlayHQTeams(candidate.id);
+    } catch {
+      // A candidate whose teams endpoint fails cannot be verified; keep it
+      // out of the survivor set but record the probe.
+    }
+    const clubTeams = teams.filter((team) => isClubTeamName(team.name)).map((team) => team.name);
+    probed.push({ id: candidate.id, name: candidate.name, competitionName: candidate.competitionName ?? null, clubTeams, teamsSeen: teams.length });
+  }
+  return { probed, survivors: probed.filter((candidate) => candidate.clubTeams.length > 0) };
+}
+
 /** Link a fantasy season to its PlayHQ season by normalised years + dates.
  *  Never overwrites a different existing id — that becomes a blocking
  *  exception for an admin to resolve. */
@@ -85,14 +105,34 @@ async function discoverAndLinkSeason(supabase: any, season: SeasonRow): Promise<
   if (!playhqSeasons.length) {
     return { seasonSlug: season.slug, stage: 'discover_season', status: 'error', error: 'PlayHQ returned no seasons for the organisation (kept previous state).' };
   }
-  const match = matchPlayHQSeason(playhqSeasons, { slug: season.slug, name: season.name });
+  let match = matchPlayHQSeason(playhqSeasons, { slug: season.slug, name: season.name });
+  if (match.status === 'ambiguous') {
+    const { probed, survivors } = await disambiguateByClubTeams(match.candidates);
+    if (survivors.length === 1) {
+      match = {
+        status: 'matched',
+        season: match.candidates.find((candidate) => candidate.id === survivors[0].id)!,
+        evidence: `${match.evidence} Resolved by team probe: only "${survivors[0].name}"${survivors[0].competitionName ? ` (${survivors[0].competitionName})` : ''} (${survivors[0].id}) contains NDCC teams (${survivors[0].clubTeams.join(', ')}).`,
+      };
+    } else {
+      const probeEvidence = probed
+        .map((candidate) => `${candidate.name}${candidate.competitionName ? ` / ${candidate.competitionName}` : ''} (${candidate.id}): ${candidate.clubTeams.length} NDCC team(s) of ${candidate.teamsSeen}${candidate.clubTeams.length ? ` — ${candidate.clubTeams.join(', ')}` : ''}`)
+        .join('; ');
+      return {
+        seasonSlug: season.slug,
+        stage: 'discover_season',
+        status: 'blocked',
+        detail: { evidence: match.evidence, probe: probeEvidence },
+        error: `${survivors.length} candidate seasons contain NDCC teams and cannot be distinguished safely. Probe: ${probeEvidence}. Set the correct PlayHQ season id in /admin/fantasy/seasons.`,
+      };
+    }
+  }
   if (match.status !== 'matched') {
     return {
       seasonSlug: season.slug,
       stage: 'discover_season',
-      status: match.status === 'ambiguous' ? 'blocked' : 'skipped',
+      status: 'skipped',
       detail: { evidence: match.evidence },
-      error: match.status === 'ambiguous' ? match.evidence : undefined,
     };
   }
   if (season.playhq_season_id && season.playhq_season_id !== match.season.id) {

@@ -17,7 +17,18 @@ export function normaliseSeasons(payload: unknown): PlayHQSeason[] {
   return firstArray(payload).map((item) => {
     const r = asRecord(item);
     const id = text(r.id, r.seasonId, r.uuid) || '';
-    return { id, name: text(r.name, r.seasonName, r.displayName) || id, startDate: text(r.startDate, r.startsAt) || null, endDate: text(r.endDate, r.endsAt) || null };
+    const competition = asRecord(r.competition);
+    const association = asRecord(r.association);
+    return {
+      id,
+      name: text(r.name, r.seasonName, r.displayName) || id,
+      startDate: text(r.startDate, r.startsAt) || null,
+      endDate: text(r.endDate, r.endsAt) || null,
+      // Organisations are often registered in several identically-named
+      // seasons (one per competition); keep the competition/association name
+      // as disambiguation evidence.
+      competitionName: text(competition.name, association.name, r.competitionName, r.associationName) || null,
+    };
   }).filter((season) => season.id);
 }
 
