@@ -109,6 +109,9 @@ try {
   check('grade names fall back to team records when grades endpoint is empty', orchestratorSource.includes('team.gradeName ?? team.gradeId'));
   const clientSource = readFileSync(join(repoRoot, 'lib/playhq/client.ts'), 'utf8');
   check('public fixtures probe skips seasons without grades', clientSource.includes('candidateGrades.length'));
+  const syncSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-sync.ts'), 'utf8');
+  check('a dead grade fixture endpoint is skipped, not fatal', syncSource.includes('skippedGrades.push'));
+  check('sync only fails when every grade fixture endpoint fails', syncSource.includes('skippedGrades.length === grades.length'));
   check('public fixtures derive grades from team records when the grades endpoint is empty', clientSource.includes('derived.set(team.gradeId'));
   const normaliseSource = readFileSync(join(repoRoot, 'lib/playhq/normalise.ts'), 'utf8');
   check('season normaliser keeps competition name evidence', normaliseSource.includes('competitionName'));

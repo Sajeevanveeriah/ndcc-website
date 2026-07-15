@@ -496,7 +496,7 @@ async function advanceSeason(
         seasonSlug: season.slug,
         stage: 'create_job',
         status: 'ok',
-        detail: { job_id: jobId, queued_games: started.queued, pre_queue_review_items: started.reviewItems.length },
+        detail: { job_id: jobId, queued_games: started.queued, pre_queue_review_items: started.reviewItems.length, skipped_grades: started.skippedGrades },
       });
     }
 
