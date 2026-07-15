@@ -49,6 +49,20 @@ for (const file of walk(root)) {
 }
 
 if (!configSource.includes('configured: missing.length === 0')) fail('PlayHQ config loader must derive configured:false from missing env.');
+
+// Production repair regressions (2026-07): the contract must never again
+// require an undocumented variable, and automation must not default to off.
+if (!configSource.includes("DEFAULT_TENANT = 'ca'")) fail('PlayHQ tenant must default to the Cricket Australia short-name so a missing PLAYHQ_TENANT cannot disable the integration.');
+if (/\[\s*'PLAYHQ_TENANT'/.test(configSource)) fail('PLAYHQ_TENANT must not be in the required-variable list; it has a safe default.');
+if (!configSource.includes("LEGACY_BASE_URL = 'https://api.caprod.playhq.com'")) fail('PlayHQ config must document the legacy caprod host for fallback.');
+if (!configSource.includes('export function isFantasySyncEnabled')) fail('PlayHQ config must export the shared fantasy sync enablement rule.');
+if (!configSource.includes("!== 'false'")) fail('Fantasy sync must be enabled unless PLAYHQ_FANTASY_SYNC_ENABLED is explicitly false.');
+if (!clientSource.includes('alternatePlayHQBaseUrl')) fail('PlayHQ client must fall back between the documented hosts.');
+if (!clientSource.includes('getActivePlayHQBaseUrl')) fail('PlayHQ client must expose the active base URL for diagnostics.');
+
+const cronSource = read('app/api/cron/playhq-fantasy-sync/route.ts');
+if (!cronSource.includes('isFantasySyncEnabled')) fail('Cron route must use the shared sync enablement rule.');
+if (!cronSource.includes('isAuthorizedCronRequest')) fail('Cron route must keep CRON_SECRET bearer authentication.');
 if (!configSource.includes("DEFAULT_BASE_URL = 'https://api.playhq.com'")) fail('PlayHQ default base URL must match current AU/NZ guidance.');
 if (!configSource.includes('PLAYHQ_TENANT')) fail('PlayHQ config must include server-only tenant header configuration.');
 if (!configSource.includes('replace(/\\]+$/g') || !configSource.includes("replace(/\\/$/, '')")) fail('PlayHQ base URL cleaner must remove trailing bracket and slash.');

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
 import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
-import { getPlayHQPublicData } from '@/lib/playhq/client';
-import { getPlayHQConfig, redactedPlayHQConfig } from '@/lib/playhq/config';
+import { getActivePlayHQBaseUrl, getPlayHQPublicData } from '@/lib/playhq/client';
+import { getPlayHQConfig, isFantasySyncEnabled, redactedPlayHQConfig } from '@/lib/playhq/config';
 import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
@@ -38,33 +38,34 @@ export async function GET() {
 
   const config = getPlayHQConfig();
   const safeConfig = redactedPlayHQConfig(config);
-  const tenantConfigured = Boolean(config.tenant);
+  const syncEnabled = isFantasySyncEnabled();
   const checks = [
-    envCheck('PLAYHQ_API_BASE_URL', Boolean(config.baseUrl), `Configured base URL: ${config.baseUrl}. Current PlayHQ support guidance for Australia and New Zealand is https://api.playhq.com.`),
+    envCheck('PLAYHQ_API_BASE_URL', Boolean(config.baseUrl), `Configured base URL: ${config.baseUrl}. Current PlayHQ support guidance for Australia and New Zealand is https://api.playhq.com; the legacy https://api.caprod.playhq.com host is honoured with automatic fallback between the two.`),
     envCheck('PLAYHQ_API_KEY', Boolean(config.apiKey), config.apiKey ? 'Present. Value hidden.' : 'Missing. Add the server-only API key in Vercel.'),
-    envCheck('PlayHQ tenant header', tenantConfigured, tenantConfigured ? 'Present. Value hidden; Cricket Australia should use the ca tenant short-name.' : 'Missing. Set PLAYHQ_TENANT or PLAYHQ_TENANT_SHORT_NAME to the sport tenant short-name, for example ca.'),
+    envCheck('PlayHQ tenant header', true, config.tenantSource === 'env' ? 'Present from PLAYHQ_TENANT. Value hidden.' : 'Using the built-in Cricket Australia default (ca). Set PLAYHQ_TENANT only if PlayHQ issues a different tenant short-name.', config.tenantSource !== 'env'),
     envCheck('PLAYHQ_ORGANISATION_ID', Boolean(config.organisationId), config.organisationId ? `Present. Last 4 characters: ${safeConfig.organisationIdLast4}.` : 'Missing. Required to discover seasons.'),
     envCheck('PLAYHQ_DEFAULT_SEASON_ID', Boolean(config.defaultSeasonId), config.defaultSeasonId ? 'Present. Value hidden.' : 'Not set. The app will auto-select a season from PlayHQ.', true),
     envCheck('PLAYHQ_DEFAULT_GRADE_IDS', config.defaultGradeIds.length > 0, `${config.defaultGradeIds.length} grade id(s) configured.`, true),
-    envCheck('PLAYHQ_FANTASY_SYNC_ENABLED', process.env.PLAYHQ_FANTASY_SYNC_ENABLED === 'true', process.env.PLAYHQ_FANTASY_SYNC_ENABLED === 'true' ? 'Cron sync is enabled.' : 'Cron sync is disabled or unset.', true),
+    envCheck('PLAYHQ_FANTASY_SYNC_ENABLED', syncEnabled, syncEnabled ? 'Fantasy sync is enabled (default unless explicitly set to false).' : 'Fantasy sync is explicitly disabled via PLAYHQ_FANTASY_SYNC_ENABLED=false.', true),
     envCheck('PLAYHQ_FANTASY_SYNC_BATCH_SIZE', Boolean(process.env.PLAYHQ_FANTASY_SYNC_BATCH_SIZE), process.env.PLAYHQ_FANTASY_SYNC_BATCH_SIZE ? `Present. Parsed batch size ${Number(process.env.PLAYHQ_FANTASY_SYNC_BATCH_SIZE) || 'invalid'}.` : 'Unset. Code default applies.', true),
-    envCheck('CRON_SECRET', Boolean(process.env.CRON_SECRET), process.env.CRON_SECRET ? 'Present. Value hidden.' : 'Missing. Scheduled sync endpoint rejects unauthorised calls.'),
+    envCheck('CRON_SECRET', Boolean(process.env.CRON_SECRET), process.env.CRON_SECRET ? 'Present. Value hidden.' : 'Missing. The scheduled cron cannot authenticate; use the admin "Run automatic sync now" action until CRON_SECRET is set in Vercel.', true),
   ];
 
   let data = null as Awaited<ReturnType<typeof getPlayHQPublicData>> | null;
   if (config.configured) data = await getPlayHQPublicData();
   const sync = await syncMetadata();
   const remediation = [] as string[];
-  if (config.baseUrl !== 'https://api.playhq.com') remediation.push('Update PLAYHQ_API_BASE_URL to https://api.playhq.com for Australia and New Zealand unless PlayHQ has explicitly issued a different environment for this credential.');
-  if (!tenantConfigured) remediation.push('Add the PlayHQ tenant short-name header configuration. For Cricket Australia this is expected to be ca according to PlayHQ support examples.');
+  const activeBaseUrl = getActivePlayHQBaseUrl();
+  if (activeBaseUrl && activeBaseUrl !== config.baseUrl) remediation.push(`Requests are succeeding via ${activeBaseUrl} after falling back from the configured ${config.baseUrl}. Update PLAYHQ_API_BASE_URL to the working host.`);
   if (!config.configured) remediation.push(`Add missing required variables: ${config.missing.join(', ')}.`);
-  if (data?.error) remediation.push(`Fix the PlayHQ API response error before enabling Fantasy sync: ${data.error}.`);
-  if (process.env.PLAYHQ_FANTASY_SYNC_ENABLED !== 'true') remediation.push('Keep scheduled Fantasy sync disabled until season and grade mappings are reviewed, then set PLAYHQ_FANTASY_SYNC_ENABLED=true.');
-  if (!remediation.length) remediation.push('Configuration and discovery look ready for a dry-run sync in a preview or safe environment.');
+  if (data?.error) remediation.push(`Fix the PlayHQ API response error: ${data.error}.`);
+  if (!syncEnabled) remediation.push('Fantasy sync is explicitly disabled. Remove PLAYHQ_FANTASY_SYNC_ENABLED=false (or set it to true) once mappings are reviewed.');
+  if (!process.env.CRON_SECRET) remediation.push('Generate a CRON_SECRET (32+ random characters) in Vercel so the daily scheduled sync can authenticate. Until then use the admin "Run automatic sync now" action.');
+  if (!remediation.length) remediation.push('Configuration and discovery look healthy.');
 
   return NextResponse.json({
     success: !data?.error,
-    config: safeConfig,
+    config: { ...safeConfig, activeBaseUrl },
     checks,
     connection: { status: data?.error ? 'fail' : config.configured ? 'ok' : 'fail', detail: !config.configured ? 'Not tested because required configuration is missing.' : data?.error || 'PlayHQ request completed without an API error.' },
     discovery: {

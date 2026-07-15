@@ -1,6 +1,6 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
-import { getPlayHQConfig } from './config';
+import { getPlayHQConfig, LEGACY_BASE_URL } from './config';
 import { normaliseFixtures, normaliseGrades, normaliseLadder, normaliseSeasons, normaliseTeams } from './normalise';
 import type { PlayHQGrade, PlayHQPublicData, PlayHQSeason } from './types';
 
@@ -36,16 +36,28 @@ function mergePlayHQPages(pages: unknown[]) {
   return merged;
 }
 
-async function playHQFetchPage(path: string, init: RequestInit = {}) {
-  const config = getPlayHQConfig();
-  if (!config.configured || !config.apiKey) throw new Error(`PlayHQ is not configured: ${config.missing.join(', ')}`);
+// The two documented PlayHQ hosts: the current unified host (tenant selected
+// via the x-phq-tenant header) and the legacy Cricket Australia host from the
+// original setup guide. Whichever host first answers successfully is cached
+// for the lifetime of the server process so every later request uses it.
+let activePlayHQBaseUrl: string | null = null;
 
+export function getActivePlayHQBaseUrl(): string | null {
+  return activePlayHQBaseUrl;
+}
+
+function alternatePlayHQBaseUrl(baseUrl: string): string | null {
+  const candidates = ['https://api.playhq.com', LEGACY_BASE_URL];
+  return candidates.find((candidate) => candidate !== baseUrl) ?? null;
+}
+
+async function playHQFetchFromHost(baseUrl: string, path: string, init: RequestInit, config: ReturnType<typeof getPlayHQConfig>) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PLAYHQ_TIMEOUT_MS);
   try {
-    const response = await fetch(`${config.baseUrl}${path}`, {
+    const response = await fetch(`${baseUrl}${path}`, {
       ...init,
-      headers: { Accept: 'application/json', 'x-api-key': config.apiKey, 'x-phq-tenant': config.tenant || '', ...(init.headers || {}) },
+      headers: { Accept: 'application/json', 'x-api-key': config.apiKey as string, 'x-phq-tenant': config.tenant, ...(init.headers || {}) },
       signal: controller.signal,
       next: { revalidate: config.revalidateSeconds },
     });
@@ -53,6 +65,28 @@ async function playHQFetchPage(path: string, init: RequestInit = {}) {
     return response.json() as Promise<unknown>;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function playHQFetchPage(path: string, init: RequestInit = {}) {
+  const config = getPlayHQConfig();
+  if (!config.configured || !config.apiKey) throw new Error(`PlayHQ is not configured: ${config.missing.join(', ')}`);
+
+  const primary = activePlayHQBaseUrl ?? config.baseUrl;
+  try {
+    const payload = await playHQFetchFromHost(primary, path, init, config);
+    activePlayHQBaseUrl = primary;
+    return payload;
+  } catch (error) {
+    // Contract self-healing: an auth/routing failure (401/403/404) on one
+    // documented host is retried once against the other. A success flips the
+    // cached active host; any other failure propagates unchanged.
+    const message = error instanceof Error ? error.message : '';
+    const alternate = alternatePlayHQBaseUrl(primary);
+    if (!alternate || !/HTTP (401|403|404)/.test(message)) throw error;
+    const payload = await playHQFetchFromHost(alternate, path, init, config);
+    activePlayHQBaseUrl = alternate;
+    return payload;
   }
 }
 
