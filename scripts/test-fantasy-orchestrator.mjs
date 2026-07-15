@@ -103,10 +103,13 @@ try {
   // one candidate contains NDCC teams.
   const orchestratorSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-orchestrator.ts'), 'utf8');
   check('orchestrator probes ambiguous seasons by club teams', orchestratorSource.includes('disambiguateByClubTeams'));
-  check('orchestrator links only a single surviving candidate', orchestratorSource.includes('survivors.length === 1'));
-  check('orchestrator blocks multi-survivor ambiguity with probe evidence', orchestratorSource.includes('cannot be distinguished safely'));
+  check('orchestrator ingests every NDCC-containing competition (owner decision)', orchestratorSource.includes('sources: sources.map'));
+  check('orchestrator blocks when no candidate contains NDCC teams', orchestratorSource.includes('None of the ') && orchestratorSource.includes('contain NDCC teams'));
+  check('grade sources record their PlayHQ source season', orchestratorSource.includes('playhq_season_id: meta.playhqSeasonId'));
+  check('grade names fall back to team records when grades endpoint is empty', orchestratorSource.includes('team.gradeName ?? team.gradeId'));
   const clientSource = readFileSync(join(repoRoot, 'lib/playhq/client.ts'), 'utf8');
   check('public fixtures probe skips seasons without grades', clientSource.includes('candidateGrades.length'));
+  check('public fixtures derive grades from team records when the grades endpoint is empty', clientSource.includes('derived.set(team.gradeId'));
   const normaliseSource = readFileSync(join(repoRoot, 'lib/playhq/normalise.ts'), 'utf8');
   check('season normaliser keeps competition name evidence', normaliseSource.includes('competitionName'));
   check('cron keeps CRON_SECRET auth', cron.includes('isAuthorizedCronRequest'));
