@@ -37,6 +37,36 @@ const config: Config = {
           500: '#b8870f',
           600: '#946a0c',
         },
+        // Semantic theme tokens backed by CSS variables declared in app/globals.css.
+        // These flip automatically with the `.dark` class — no dark: variant needed.
+        surface: {
+          page: 'rgb(var(--surface-page) / <alpha-value>)',
+          elevated: 'rgb(var(--surface-elevated) / <alpha-value>)',
+          card: 'rgb(var(--surface-card) / <alpha-value>)',
+          muted: 'rgb(var(--surface-muted) / <alpha-value>)',
+          nav: 'rgb(var(--surface-nav) / <alpha-value>)',
+          footer: 'rgb(var(--surface-footer) / <alpha-value>)',
+        },
+        content: {
+          primary: 'rgb(var(--text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--text-muted) / <alpha-value>)',
+          inverse: 'rgb(var(--text-inverse) / <alpha-value>)',
+        },
+        edge: {
+          subtle: 'rgb(var(--border-subtle) / <alpha-value>)',
+          strong: 'rgb(var(--border-strong) / <alpha-value>)',
+        },
+        status: {
+          success: 'rgb(var(--status-success) / <alpha-value>)',
+          warning: 'rgb(var(--status-warning) / <alpha-value>)',
+          error: 'rgb(var(--status-error) / <alpha-value>)',
+        },
+        brand: {
+          maroon: 'rgb(var(--brand-maroon-surface) / <alpha-value>)',
+          blue: 'rgb(var(--brand-blue-surface) / <alpha-value>)',
+          gold: 'rgb(var(--brand-gold) / <alpha-value>)',
+        },
       },
       boxShadow: {
         soft: '0 1px 2px rgba(45,0,0,0.04), 0 4px 16px rgba(45,0,0,0.06)',

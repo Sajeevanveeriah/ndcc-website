@@ -10,6 +10,8 @@ interface ImageUploadFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   helpText?: string;
+  /** 'image' (default) or 'pdf' — switches accepted types, size limit and preview. */
+  variant?: 'image' | 'pdf';
 }
 
 type UploadMetadata = {
@@ -30,7 +32,8 @@ function isValidBrowserImagePath(value: string) {
   return /^https?:\/\//i.test(trimmed) || trimmed.startsWith('/images/');
 }
 
-export default function ImageUploadField({ id, label, value, onChange, placeholder, helpText }: ImageUploadFieldProps) {
+export default function ImageUploadField({ id, label, value, onChange, placeholder, helpText, variant = 'image' }: ImageUploadFieldProps) {
+  const isPdf = variant === 'pdf';
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progressText, setProgressText] = useState('');
@@ -49,15 +52,15 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
     setWarning(null);
     setMetadata(null);
     setDeployResult(null);
-    const MAX_CLIENT_BYTES = 4 * 1024 * 1024; // 4 MB — matches server limit
+    const MAX_CLIENT_BYTES = (isPdf ? 10 : 4) * 1024 * 1024; // matches server limits
     if (file.size > MAX_CLIENT_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(1);
-      setError(`File is too large (${sizeMb} MB). Maximum is 4 MB. Compress the image or export at a lower resolution and try again.`);
+      setError(`File is too large (${sizeMb} MB). Maximum is ${isPdf ? 10 : 4} MB. ${isPdf ? 'Compress the PDF and try again.' : 'Compress the image or export at a lower resolution and try again.'}`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     setUploading(true);
-    setProgressText('Uploading image to GitHub...');
+    setProgressText(isPdf ? 'Uploading document to GitHub...' : 'Uploading image to GitHub...');
 
     try {
       const formData = new FormData();
@@ -141,14 +144,14 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading ? 'Uploading...' : 'Upload image'}
+          {uploading ? 'Uploading...' : isPdf ? 'Upload PDF' : 'Upload image'}
         </button>
-        <p className="text-xs text-gray-500">JPEG, PNG, WebP, GIF · max 4 MB</p>
+        <p className="text-xs text-gray-500">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP, GIF · max 4 MB'}</p>
       </div>
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept={isPdf ? 'application/pdf' : 'image/jpeg,image/png,image/webp,image/gif'}
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -176,7 +179,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       {invalidPathWarning && <p className="text-xs text-amber-700">{invalidPathWarning}</p>}
       {displayWarning && <p className="text-xs text-amber-700">{displayWarning}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
-      {value && (
+      {value && !isPdf && (
         <div className="space-y-1">
           <div className="relative h-20 w-20 rounded border border-gray-200 overflow-hidden bg-gray-50">
             {!previewFailed && isValidBrowserImagePath(trimmedValue) ? (

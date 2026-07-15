@@ -20,6 +20,7 @@ export default function AdminFantasySeasonsPage() {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [health, setHealth] = useState<any | null>(null);
 
   const load = useCallback(async (discover = false) => {
     try {
@@ -75,12 +76,78 @@ export default function AdminFantasySeasonsPage() {
 
   const sourcesFor = (seasonId: string) => gradeSources.filter((source) => source.season_id === seasonId);
 
+  const loadHealth = useCallback(async () => {
+    try {
+      const result = await parseApiResponse<any>(await adminFetch('/api/admin/fantasy/sync?health=1'));
+      setHealth(result.health || null);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not load sync health.'); }
+  }, []);
+  useEffect(() => { loadHealth(); }, [loadHealth]);
+
+  const runOrchestrator = () => run(async () => {
+    await parseApiResponse(await adminFetch('/api/admin/fantasy/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'orchestrate' }) }));
+    await Promise.all([load(), loadHealth()]);
+  }, 'Automatic sync run finished. Review the health panel below.');
+
   return (
     <div>
       <h1 className="text-2xl font-display font-bold text-gray-900 mb-2">Fantasy Seasons &amp; PlayHQ Sync</h1>
       <p className="text-gray-500 font-body mb-6">Manage fantasy seasons, map PlayHQ grades, run resumable stat imports and control public visibility.</p>
       {feedback && <p className="mb-4 text-green-700 font-body">{feedback}</p>}
       {error && <p className="mb-4 text-red-600 font-body" role="alert">{error}</p>}
+
+      {/* Automatic sync health */}
+      <Card className="mb-6">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-display font-bold text-gray-900">Automatic PlayHQ sync</h2>
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => loadHealth()}>Refresh health</Button>
+              <Button size="sm" disabled={busy} onClick={runOrchestrator}>Run automatic sync now</Button>
+            </div>
+          </div>
+          {!health ? (
+            <p className="text-sm text-gray-500 font-body">Loading sync health…</p>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs font-body text-gray-500">
+                Scheduled sync {health.syncEnabled ? 'enabled' : <span className="font-semibold text-amber-700">disabled (set PLAYHQ_FANTASY_SYNC_ENABLED=true in Vercel)</span>} · PlayHQ credentials {health.playhqConfigured ? 'configured' : <span className="font-semibold text-amber-700">missing</span>}
+              </p>
+              {(health.seasons || []).filter((s: any) => s.auto_sync_enabled).map((s: any) => {
+                const seasonJobs = (health.jobs || []).filter((j: any) => j.season_id === s.id);
+                const job = seasonJobs[0];
+                const grades = (health.gradeSources || []).filter((g: any) => g.season_id === s.id);
+                const pct = job && job.total_games ? Math.round((job.processed_games / job.total_games) * 100) : null;
+                return (
+                  <div key={s.id} className="rounded-lg border border-gray-200 p-3 text-xs font-body text-gray-600 space-y-1">
+                    <p className="text-sm font-semibold text-gray-800">{s.slug}
+                      {s.is_current ? ' · current' : ''} · {s.playhq_season_id ? `PlayHQ ${s.playhq_season_id}` : 'not linked yet'}
+                      {s.last_playhq_sync_at ? ` · last sync ${new Date(s.last_playhq_sync_at).toLocaleString()}` : ' · never synced'}
+                    </p>
+                    <p>Grade mappings: {grades.filter((g: any) => g.enabled).map((g: any) => g.grade_name).join(', ') || 'none'}{grades.some((g: any) => !g.enabled) ? ` (+${grades.filter((g: any) => !g.enabled).length} disabled)` : ''}</p>
+                    {job && (
+                      <p>Latest job: <span className="font-semibold">{job.status}</span> · {job.processed_games}/{job.total_games} games{pct !== null ? ` (${pct}%)` : ''} · created {job.counts?.created ?? 0} · matched {job.counts?.matched ?? 0} · updated {job.counts?.updated ?? 0} · skipped {job.counts?.skipped ?? 0} · failed {job.failed_games ?? 0} · review items {(job.review_items || []).length}</p>
+                    )}
+                    {s.sync_exception && <p className="text-red-600">Blocking exception: {s.sync_exception}</p>}
+                  </div>
+                );
+              })}
+              {(health.recentRuns || []).length > 0 && (
+                <details className="text-xs font-body text-gray-600">
+                  <summary className="cursor-pointer font-semibold text-gray-800">Recent automation activity ({health.recentRuns.length})</summary>
+                  <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
+                    {health.recentRuns.map((r: any) => (
+                      <p key={r.id} className={r.status === 'error' || r.status === 'blocked' ? 'text-red-600' : ''}>
+                        {new Date(r.created_at).toLocaleString()} · {r.invoked_by} · {r.stage} · {r.status}{r.error ? ` — ${r.error}` : ''}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="space-y-4">
         {seasons.map((season) => {

@@ -10,6 +10,12 @@ type LogoChipProps = {
   width?: number;
   height?: number;
   sizes?: string;
+  /** CMS-selected plate mode: auto | light | dark | neutral | transparent. */
+  surfaceMode?: string | null;
+  /** Optional CMS override for plate padding (Tailwind class, e.g. 'p-3'). */
+  paddingClassName?: string | null;
+  /** Optional CMS override for object-position (CSS value). */
+  objectPosition?: string | null;
   /** Geometry and extras for the chip surface (height, width, radius, ring). */
   className?: string;
   imageClassName?: string;
@@ -18,10 +24,11 @@ type LogoChipProps = {
 };
 
 /**
- * Neutral plate behind sponsor/partner logos. The surface is chosen per
- * sponsor (dark plate for light-text artwork like Bennett Racing, white
- * plate otherwise) and stays the same in both themes, so a transparent
- * logo can never land on a background that matches its own text colour.
+ * Logo plate behind sponsor/partner logos. The plate is chosen per sponsor
+ * (dark plate for light-text artwork like Bennett Racing, light plate
+ * otherwise, or an explicit CMS mode) and does not follow the page theme, so
+ * a transparent logo can never land on a background that matches its own text
+ * colour. Artwork is never cropped, stretched, or colour-inverted.
  */
 export default function LogoChip({
   name,
@@ -30,6 +37,9 @@ export default function LogoChip({
   width = 190,
   height = 70,
   sizes,
+  surfaceMode,
+  paddingClassName,
+  objectPosition,
   className,
   imageClassName,
   fallback,
@@ -42,11 +52,14 @@ export default function LogoChip({
     </div>
   );
 
+  const safePadding = paddingClassName && /^p-(\d|\d\.5)$/.test(paddingClassName) ? paddingClassName : null;
+
   return (
     <div
       className={cn(
         'flex items-center justify-center overflow-hidden border',
-        sponsorLogoSurfaceClass(name),
+        sponsorLogoSurfaceClass(name, surfaceMode),
+        safePadding,
         className
       )}
     >
@@ -57,7 +70,8 @@ export default function LogoChip({
           width={width}
           height={height}
           sizes={sizes}
-          className={cn('object-contain', imageClassName)}
+          className={cn('max-h-full max-w-full object-contain', imageClassName)}
+          style={objectPosition ? { objectPosition } : undefined}
           fallback={brandedFallback}
         />
       ) : (

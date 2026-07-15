@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+// Deterministic tests for the fantasy PlayHQ automation layer:
+// season-year normalisation, automatic season matching (incl. ambiguity and
+// date contradiction), NDCC club-team detection for grade discovery, and
+// structural checks on the orchestrator, cron driver and lock migration.
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const scriptsDir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(scriptsDir, '..');
+const tmpDir = join(scriptsDir, '.fantasy-orchestrator-tmp');
+
+let failures = 0;
+function check(label, condition) {
+  if (condition) console.log(`PASS ${label}`);
+  else { failures += 1; console.error(`FAIL ${label}`); }
+}
+
+rmSync(tmpDir, { recursive: true, force: true });
+mkdirSync(tmpDir, { recursive: true });
+
+try {
+  for (const [rel, out] of [
+    ['playhq/types.ts', 'types.ts'],
+    ['playhq/season-match.ts', 'season-match.ts'],
+  ]) {
+    const source = readFileSync(join(repoRoot, 'lib', rel), 'utf8')
+      .replace(/from '\.\/types'/g, "from './types.ts'")
+      .replace("import 'server-only';", '');
+    writeFileSync(join(tmpDir, out), source);
+  }
+  const mod = await import(pathToFileURL(join(tmpDir, 'season-match.ts')).href);
+  const { extractSeasonYears, matchPlayHQSeason, isClubTeamName } = mod;
+
+  // ---- Season year normalisation ----
+  check('years: 2025/26', String(extractSeasonYears('2025/26')) === '2025,2026');
+  check('years: 2025-26 slug', String(extractSeasonYears('2025-26')) === '2025,2026');
+  check('years: 2025 2026', String(extractSeasonYears('2025 2026')) === '2025,2026');
+  check('years: Season 2025/2026', String(extractSeasonYears('Season 2025/2026')) === '2025,2026');
+  check('years: Summer 2026/27', String(extractSeasonYears('Summer 2026/27')) === '2026,2027');
+  check('years: bare 2025 spans new year', String(extractSeasonYears('2025')) === '2025,2026');
+  check('years: no year -> null', extractSeasonYears('Legacy / Unverified') === null);
+
+  // ---- Automatic season matching ----
+  const playhqSeasons = [
+    { id: 'phq-2024', name: 'Season 2024/25', startDate: '2024-10-01', endDate: '2025-03-30' },
+    { id: 'phq-2025', name: 'Season 2025/26', startDate: '2025-10-01', endDate: '2026-03-30' },
+    { id: 'phq-2026', name: 'Season 2026/27', startDate: '2026-10-01', endDate: '2027-03-30' },
+  ];
+  const match2025 = matchPlayHQSeason(playhqSeasons, { slug: '2025-26', name: 'NDCC Fantasy 2025/2026' });
+  check('match: 2025-26 -> phq-2025', match2025.status === 'matched' && match2025.season.id === 'phq-2025');
+  check('match: evidence recorded', match2025.status === 'matched' && /phq-2025/.test(match2025.evidence));
+  const match2026 = matchPlayHQSeason(playhqSeasons, { slug: '2026-27', name: 'NDCC Fantasy 2026/2027' });
+  check('match: 2026-27 -> phq-2026', match2026.status === 'matched' && match2026.season.id === 'phq-2026');
+
+  // Ambiguity is a blocking condition, never a guess.
+  const ambiguous = matchPlayHQSeason(
+    [...playhqSeasons, { id: 'phq-2025-b', name: 'Twenty20 2025/26', startDate: '2025-11-01', endDate: '2026-02-20' }],
+    { slug: '2025-26' }
+  );
+  check('match: two candidates -> ambiguous', ambiguous.status === 'ambiguous' && ambiguous.candidates.length === 2);
+
+  // Dates act as secondary validation: contradicting dates exclude a candidate.
+  const dateFiltered = matchPlayHQSeason(
+    [
+      { id: 'phq-wrong', name: 'Season 2025/26', startDate: '2019-10-01', endDate: '2020-03-30' },
+      { id: 'phq-right', name: 'Season 2025/26', startDate: '2025-09-15', endDate: '2026-04-01' },
+    ],
+    { slug: '2025-26' }
+  );
+  check('match: contradictory dates excluded', dateFiltered.status === 'matched' && dateFiltered.season.id === 'phq-right');
+
+  const noMatch = matchPlayHQSeason(playhqSeasons, { slug: '2030-31' });
+  check('match: missing season -> none', noMatch.status === 'none');
+
+  // ---- Club team detection (grade discovery) ----
+  check('club: Newcomb & District CC', isClubTeamName('Newcomb & District CC'));
+  check('club: Newcomb and District 2nd XI', isClubTeamName('Newcomb and District 2nd XI'));
+  check('club: NDCC Gold', isClubTeamName('NDCC Gold'));
+  check('club: plain Newcomb', isClubTeamName('Newcomb'));
+  check('club: rejects other club', !isClubTeamName('East Belmont Saints'));
+  check('club: rejects Newtown (prefix trap)', !isClubTeamName('Newtown & Chilwell'));
+  check('club: rejects empty', !isClubTeamName(''));
+
+  // ---- Structural checks ----
+  const orchestrator = readFileSync(join(repoRoot, 'lib/playhq/fantasy-orchestrator.ts'), 'utf8');
+  check('orchestrator acquires DB lock before running', orchestrator.includes("rpc('acquire_fantasy_sync_lock'"));
+  check('orchestrator releases lock in finally', /finally\s*{\s*await supabase\.rpc\('release_fantasy_sync_lock'/.test(orchestrator));
+  check('orchestrator never overwrites a conflicting season id', orchestrator.includes('conflicts with stored'));
+  check('orchestrator preserves admin-disabled grade sources', orchestrator.includes('automation will not re-enable'));
+  check('orchestrator guards empty-fetch publication', orchestrator.includes('possible empty API response'));
+  check('orchestrator blocks publish on review items', orchestrator.includes('review item(s) require admin resolution'));
+  check('orchestrator recovers abandoned running jobs', orchestrator.includes('Recovered abandoned running job'));
+  check('orchestrator alerts admins after repeated failures', orchestrator.includes('maybeAlertAdmins'));
+  check('orchestrator is server-only', orchestrator.includes("import 'server-only';"));
+
+  const cron = readFileSync(join(repoRoot, 'app/api/cron/playhq-fantasy-sync/route.ts'), 'utf8');
+  check('cron drives the orchestrator', cron.includes('runFantasyOrchestrator'));
+  check('cron keeps CRON_SECRET auth', cron.includes('isAuthorizedCronRequest'));
+  check('cron keeps enable flag gate', cron.includes('PLAYHQ_FANTASY_SYNC_ENABLED'));
+
+  const vercel = JSON.parse(readFileSync(join(repoRoot, 'vercel.json'), 'utf8'));
+  check('vercel cron path present', vercel.crons.some((c) => c.path === '/api/cron/playhq-fantasy-sync'));
+
+  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260714104000_fantasy_sync_automation.sql'), 'utf8');
+  check('migration: lock function is atomic upsert', migration.includes('ON CONFLICT (name) DO UPDATE'));
+  check('migration: lock fn revoked from anon', /REVOKE EXECUTE ON FUNCTION acquire_fantasy_sync_lock[^;]*anon/.test(migration));
+  check('migration: sync runs RLS enabled', migration.includes('ALTER TABLE fantasy_sync_runs ENABLE ROW LEVEL SECURITY'));
+  check('migration: legacy season excluded from automation', migration.includes("auto_sync_enabled = FALSE WHERE slug = 'legacy-unverified'"));
+  check('migration: additive only (no drops of existing objects)', !/DROP TABLE (?!IF EXISTS fantasy_sync)/.test(migration));
+
+  const adminSync = readFileSync(join(repoRoot, 'app/api/admin/fantasy/sync/route.ts'), 'utf8');
+  check('admin sync exposes health endpoint', adminSync.includes("searchParams.get('health')"));
+  check('admin sync exposes manual orchestrate action', adminSync.includes("action === 'orchestrate'"));
+} finally {
+  rmSync(tmpDir, { recursive: true, force: true });
+}
+
+if (failures) { console.error(`${failures} fantasy orchestrator test(s) failed.`); process.exit(1); }
+console.log('Fantasy orchestrator tests passed.');

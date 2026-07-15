@@ -3,6 +3,65 @@
 @tailwind utilities;
 
 @layer base {
+  /* ---- Semantic theme tokens ----
+     Space-separated RGB channels so Tailwind's <alpha-value> composition works
+     (bg-surface-card/80 etc). Light values intentionally equal the historical
+     utility ramp outputs so migrating a call site from `bg-white` to
+     `bg-surface-card` is visually a no-op in light mode. Dark values form a
+     purpose-designed near-black / charcoal / deep-navy system instead of the
+     old flat slate substitutions. */
+  :root {
+    --surface-page: 248 250 252;        /* page background (slate-50)        */
+    --surface-elevated: 255 255 255;    /* raised chrome: nav, menus, modals */
+    --surface-card: 255 255 255;        /* cards and panels                  */
+    --surface-muted: 243 244 246;       /* subdued wells, table heads        */
+    --surface-nav: 255 255 255;         /* sticky navigation                 */
+    --surface-footer: 45 0 0;           /* footer (maroon-950)               */
+    --text-primary: 31 41 55;           /* gray-800                          */
+    --text-secondary: 55 65 81;         /* gray-700                          */
+    --text-muted: 75 85 99;             /* gray-600                          */
+    --text-inverse: 255 255 255;
+    --border-subtle: 229 231 235;       /* gray-200                          */
+    --border-strong: 209 213 219;       /* gray-300                          */
+    --focus-ring: 128 0 0;              /* maroon-600                        */
+    --action-primary: 128 0 0;          /* maroon-700                        */
+    --action-primary-hover: 96 0 0;     /* maroon-800                        */
+    --action-secondary: 128 0 0;        /* outline buttons                   */
+    --action-accent: 173 216 230;       /* sky_accent                        */
+    --status-success: 21 128 61;        /* green-700                         */
+    --status-warning: 180 83 9;         /* amber-700                         */
+    --status-error: 185 28 28;          /* red-700                           */
+    --brand-maroon-surface: 128 0 0;    /* maroon bands / heroes             */
+    --brand-blue-surface: 22 40 69;     /* deep club navy                    */
+    --brand-gold: 212 160 23;           /* gold-400                          */
+  }
+
+  .dark {
+    --surface-page: 11 17 28;           /* near-black deep navy              */
+    --surface-elevated: 26 34 51;       /* charcoal-navy chrome              */
+    --surface-card: 21 29 45;           /* card: one clear step above page   */
+    --surface-muted: 15 22 35;          /* wells sit slightly below cards    */
+    --surface-nav: 15 21 34;
+    --surface-footer: 7 11 19;
+    --text-primary: 237 242 249;
+    --text-secondary: 200 209 224;
+    --text-muted: 145 158 180;
+    --text-inverse: 17 24 39;
+    --border-subtle: 45 56 78;
+    --border-strong: 66 80 107;
+    --focus-ring: 244 163 163;          /* maroon-300                        */
+    --action-primary: 128 0 0;
+    --action-primary-hover: 154 22 22;
+    --action-secondary: 244 163 163;
+    --action-accent: 173 216 230;
+    --status-success: 74 222 128;       /* green-400                         */
+    --status-warning: 251 191 36;       /* amber-400                         */
+    --status-error: 248 113 113;        /* red-400                           */
+    --brand-maroon-surface: 74 0 0;     /* restrained maroon-900             */
+    --brand-blue-surface: 16 28 49;
+    --brand-gold: 224 189 85;           /* gold-300 reads better on dark     */
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -47,7 +106,7 @@
   }
 
   body {
-    @apply font-body text-gray-800 antialiased bg-slate-50 dark:bg-slate-900 dark:text-slate-100;
+    @apply font-body antialiased bg-surface-page text-content-primary;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -61,11 +120,11 @@
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:border-maroon-300 dark:text-maroon-200 dark:hover:bg-maroon-700 dark:hover:border-maroon-700 dark:hover:text-white dark:focus:ring-offset-slate-900;
+    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:border-maroon-300/70 dark:text-maroon-100 dark:bg-maroon-950/30 dark:hover:bg-maroon-700 dark:hover:border-maroon-600 dark:hover:text-white dark:focus:ring-offset-slate-900;
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-800 font-body font-semibold rounded-lg shadow-sm hover:bg-sky-300 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
+    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-900 font-body font-semibold rounded-lg shadow-sm border border-sky-300/60 hover:bg-sky-300 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 dark:border-sky-200/40 dark:focus:ring-offset-slate-900;
   }
 
   .btn-outline-white {
@@ -81,7 +140,7 @@
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700;
+    @apply bg-surface-card rounded-xl shadow-sm border border-edge-subtle/80 overflow-hidden;
   }
 
   .card-hover {
@@ -89,11 +148,11 @@
   }
 
   .form-input {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg font-body text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-500;
+    @apply w-full px-4 py-3 border border-edge-strong rounded-lg font-body bg-surface-card text-content-primary placeholder-content-muted/70 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
   }
 
   .form-label {
-    @apply block text-sm font-semibold text-gray-700 mb-1.5 font-body dark:text-slate-300;
+    @apply block text-sm font-semibold text-content-secondary mb-1.5 font-body;
   }
 
   .page-hero {
@@ -134,7 +193,7 @@
   }
 
   .section-subtitle {
-    @apply text-lg text-gray-600 font-body max-w-2xl dark:text-slate-400;
+    @apply text-lg text-content-muted font-body max-w-2xl;
   }
 
   /* Updated: was bg-sky-50 (barely visible). Now a genuine sky_accent tint. */
@@ -200,7 +259,7 @@
 
   /* Layered light surface: soft vertical gradient, hairline border, soft shadow. */
   .surface-panel {
-    @apply rounded-2xl border border-gray-200/70 bg-gradient-to-b from-white to-cream shadow-card dark:border-slate-700 dark:from-slate-800 dark:to-slate-900;
+    @apply rounded-2xl border border-edge-subtle/70 bg-gradient-to-b from-white to-cream shadow-card dark:from-surface-card dark:to-surface-muted;
   }
 
   /* Dark maroon band to break up the page and create vertical rhythm.
@@ -245,7 +304,7 @@
 
   /* Sponsor marquee caption beneath each logo chip. */
   .sponsor-caption {
-    @apply mt-2 block w-56 truncate text-center font-body text-xs font-semibold text-gray-500 dark:text-slate-400;
+    @apply mt-2 block w-56 truncate text-center font-body text-xs font-semibold text-content-muted;
   }
 }
 
@@ -260,27 +319,27 @@
    sites, remap those ramps when dark mode is active. :where() keeps each
    selector at one class of specificity, so any explicit dark:* utility on an
    element still beats this layer. */
-:where(.dark) .bg-white { background-color: theme('colors.slate.800'); }
+:where(.dark) .bg-white { background-color: rgb(var(--surface-card)); }
 :where(.dark) .bg-gray-50,
 :where(.dark) .bg-slate-50,
-:where(.dark) .bg-cream { background-color: theme('colors.slate.900'); }
-:where(.dark) .bg-gray-100 { background-color: theme('colors.slate.800'); }
+:where(.dark) .bg-cream { background-color: rgb(var(--surface-page)); }
+:where(.dark) .bg-gray-100 { background-color: rgb(var(--surface-muted)); }
 :where(.dark) .bg-maroon-50,
 :where(.dark) .bg-maroon-100 { background-color: theme('colors.maroon.950'); }
 :where(.dark) .text-gray-900,
-:where(.dark) .text-gray-800 { color: theme('colors.slate.100'); }
-:where(.dark) .text-gray-700 { color: theme('colors.slate.300'); }
+:where(.dark) .text-gray-800 { color: rgb(var(--text-primary)); }
+:where(.dark) .text-gray-700 { color: rgb(var(--text-secondary)); }
 :where(.dark) .text-gray-600,
-:where(.dark) .text-gray-500 { color: theme('colors.slate.400'); }
+:where(.dark) .text-gray-500 { color: rgb(var(--text-muted)); }
 :where(.dark) .text-maroon-900,
 :where(.dark) .text-maroon-800,
 :where(.dark) .text-maroon-700 { color: theme('colors.maroon.200'); }
 :where(.dark) .text-maroon-600 { color: theme('colors.maroon.300'); }
 :where(.dark) .border-gray-100,
-:where(.dark) .border-gray-200 { border-color: theme('colors.slate.700'); }
-:where(.dark) .border-gray-300 { border-color: theme('colors.slate.600'); }
+:where(.dark) .border-gray-200 { border-color: rgb(var(--border-subtle)); }
+:where(.dark) .border-gray-300 { border-color: rgb(var(--border-strong)); }
 :where(.dark) .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-:where(.dark) .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: theme('colors.slate.700'); }
+:where(.dark) .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: rgb(var(--border-subtle)); }
 
 /* Animation keyframes */
 @keyframes kenBurns {

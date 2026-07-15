@@ -68,6 +68,28 @@ export interface EventRegistration {
   created_at: string;
 }
 
+export interface Publication {
+  id: string;
+  publication_type: 'monthly_newsletter' | 'weekly_newsletter' | 'weekly_match_report';
+  title: string;
+  slug: string;
+  summary?: string | null;
+  content: string;
+  issue_date: string;
+  season_label?: string | null;
+  round_label?: string | null;
+  cover_image_url?: string | null;
+  document_url?: string | null;
+  external_url?: string | null;
+  author?: string | null;
+  published: boolean;
+  published_at?: string | null;
+  featured: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Sponsor {
   id: string;
   name: string;
@@ -80,6 +102,10 @@ export interface Sponsor {
   sort_order?: number;
   source_url?: string | null;
   logo_source_url?: string | null;
+  /** Logo plate mode: auto | light | dark | neutral | transparent. */
+  logo_surface_mode?: string | null;
+  logo_padding?: string | null;
+  logo_object_position?: string | null;
   created_at: string;
 }
 

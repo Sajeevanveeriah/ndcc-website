@@ -26,6 +26,7 @@ const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
   sort_order: 0,
   source_url: '',
   logo_source_url: '',
+  logo_surface_mode: 'auto',
 };
 
 const asString = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -103,6 +104,7 @@ export default function AdminSponsorsPage() {
       sort_order: sponsor.sort_order || 0,
       source_url: asString(sponsor.source_url),
       logo_source_url: asString(sponsor.logo_source_url),
+      logo_surface_mode: asString(sponsor.logo_surface_mode) || 'auto',
     });
     setFormErrors({});
     setFeedback(null);
@@ -133,6 +135,7 @@ export default function AdminSponsorsPage() {
       sort_order: Number(form.sort_order) || 0,
       source_url: asString(form.source_url).trim(),
       logo_source_url: asString(form.logo_source_url).trim(),
+      logo_surface_mode: asString(form.logo_surface_mode) || 'auto',
     };
 
     try {
@@ -386,6 +389,19 @@ export default function AdminSponsorsPage() {
             onChange={(value) => setForm({ ...form, logo_url: value })}
             placeholder="/images/sponsors/logo.png"
             helpText="Paste an external logo URL or upload a file to store under /images/cms."
+          />
+          <Select
+            id="sponsor-logo-surface"
+            label="Logo plate"
+            options={[
+              { value: 'auto', label: 'Auto (recommended)' },
+              { value: 'light', label: 'Light plate (dark artwork)' },
+              { value: 'dark', label: 'Dark plate (white artwork)' },
+              { value: 'neutral', label: 'Neutral (logo has its own background)' },
+              { value: 'transparent', label: 'Transparent (no plate)' },
+            ]}
+            value={asString(form.logo_surface_mode) || 'auto'}
+            onChange={(e) => setForm({ ...form, logo_surface_mode: e.target.value })}
           />
           <Textarea
             id="sponsor-description"

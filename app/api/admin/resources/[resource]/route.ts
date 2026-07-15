@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
 import { validateCalendarEventPayload } from '@/lib/calendar/format';
+import { PUBLICATION_TYPES } from '@/lib/public-publications';
 import type { AuthRole } from '@/lib/auth/config';
 
 export const dynamic = 'force-dynamic';
@@ -30,13 +31,14 @@ const resourceMap: Record<string, ResourceConfig> = {
   events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'stripe_link', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
   calendarEvents: { table: 'calendar_events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'slug', 'description', 'start_at', 'end_at', 'all_day', 'location', 'venue_address', 'event_type', 'category', 'visibility', 'status', 'is_featured', 'show_on_home', 'show_on_contact', 'show_on_calendar', 'image_url', 'external_url', 'cta_label', 'cta_url', 'registration_required', 'ticket_price', 'capacity', 'colour', 'sort_order', 'recurrence_rule', 'recurrence_until'], defaultOrder: { column: 'start_at', ascending: true }, datetimeFields: ['start_at', 'end_at', 'recurrence_until'], validate: validateCalendarEventPayload },
   eventRegistrations: { table: 'event_registrations', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
+  publications: { table: 'publications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['publication_type', 'title', 'slug', 'summary', 'content', 'issue_date', 'season_label', 'round_label', 'cover_image_url', 'document_url', 'external_url', 'author', 'published', 'published_at', 'featured', 'display_order'], defaultOrder: { column: 'issue_date', ascending: false }, datetimeFields: ['published_at'], validate: validatePublicationPayload },
   news: { table: 'news', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'content', 'author', 'image_url', 'published', 'published_at', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   seasonAppointments: { table: 'season_appointments', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'image_url', 'announcement_date', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   teams: { table: 'teams', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'grade', 'description', 'captain', 'playhq_url', 'image_url', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   fantasyPlayers: { table: 'fantasy_players', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], allowedFields: ['display_name', 'playhq_player_id', 'role', 'team_label', 'active'], defaultOrder: { column: 'display_name', ascending: true }, allowDelete: false },
   fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], allowedFields: ['round_number', 'name', 'deadline_at', 'status', 'season_id'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
   fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
-  sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url'], defaultOrder: { column: 'sort_order', ascending: true } },
+  sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipApplications: { table: 'member_applications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['full_name', 'email', 'status'], defaultOrder: { column: 'created_at', ascending: false } },
@@ -66,6 +68,7 @@ const revalidationTags: Record<string, string[]> = {
   events: ['events'],
   calendarEvents: ['calendar'],
   news: ['news'],
+  publications: ['publications'],
   sponsors: ['sponsors'],
   galleryImages: ['gallery'],
   seasonAppointments: ['season-appointments'],
@@ -84,6 +87,7 @@ const revalidationPaths: Record<string, string[]> = {
   events: ['/', '/events'],
   calendarEvents: ['/', '/calendar', '/contact'],
   news: ['/', '/news'],
+  publications: ['/', '/publications', '/newsletters', '/match-reports'],
   sponsors: ['/', '/sponsors'],
   galleryImages: ['/', '/gallery'],
   kitchenMenus: ['/kitchen'],
@@ -120,8 +124,37 @@ function parseBatchIds(value: unknown): string[] | null {
 
 // News is the only resource with id-specific revalidation paths (/news/${id}),
 // so batch writes revalidate per id there and once at resource level elsewhere.
+const PUBLICATION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function validatePublicationPayload(payload: Record<string, unknown>, isCreate: boolean): string | null {
+  if (isCreate || 'title' in payload) {
+    if (typeof payload.title !== 'string' || !payload.title.trim()) return 'Title is required.';
+  }
+  if (isCreate || 'slug' in payload) {
+    const slug = typeof payload.slug === 'string' ? payload.slug : '';
+    if (!PUBLICATION_SLUG_PATTERN.test(slug) || slug.length > 120) {
+      return 'Slug must be lowercase letters, numbers and hyphens (max 120 characters).';
+    }
+  }
+  if (isCreate || 'publication_type' in payload) {
+    if (!(PUBLICATION_TYPES as readonly string[]).includes(String(payload.publication_type ?? ''))) {
+      return 'Publication type must be monthly_newsletter, weekly_newsletter or weekly_match_report.';
+    }
+  }
+  if ('issue_date' in payload && payload.issue_date != null && payload.issue_date !== '') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.issue_date))) return 'Issue date must be YYYY-MM-DD.';
+  }
+  for (const field of ['document_url', 'external_url', 'cover_image_url'] as const) {
+    const value = payload[field];
+    if (value != null && value !== '' && typeof value === 'string') {
+      if (!/^(https:\/\/|\/)/.test(value)) return `${field} must be an https URL or a local path.`;
+    }
+  }
+  return null;
+}
+
 function revalidateForResourceBatch(resource: string, ids: string[]) {
-  if (resource === 'news') {
+  if (resource === 'news' || resource === 'publications') {
     for (const id of ids) revalidateForResource(resource, id);
     return;
   }
@@ -131,6 +164,9 @@ function revalidateForResourceBatch(resource: string, ids: string[]) {
 function revalidateForResource(resource: string, id?: string, record?: Record<string, unknown> | null) {
   const paths = revalidationPaths[resource] ? [...revalidationPaths[resource]] : [];
   if (resource === 'news' && id) paths.push(`/news/${id}`);
+  if (resource === 'publications' && record && typeof record.slug === 'string' && record.slug) {
+    paths.push(`/publications/${record.slug}`);
+  }
   for (const p of paths) {
     try { revalidatePath(p); } catch { /* best-effort */ }
   }
