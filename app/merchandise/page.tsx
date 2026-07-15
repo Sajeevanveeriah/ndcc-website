@@ -73,11 +73,11 @@ const PRODUCT_GRADIENTS: Record<string, string> = {
 const PRODUCT_ICONS: Record<string, { path: string; textColor: string }> = {
   'playing-shirt': {
     path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-maroon-800',
+    textColor: 'text-maroon-800 dark:text-maroon-200',
   },
   'playing-trousers': {
     path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-maroon-800',
+    textColor: 'text-maroon-800 dark:text-maroon-200',
   },
   'club-hoodie': {
     path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
@@ -423,24 +423,24 @@ function MerchandiseContent() {
       </section>
 
       {/* Products Grid */}
-      <section className="section-padding surface-sky">
+      <section className="section-padding surface-blue-band">
         <div className="container-width">
           <h2 className="section-title mb-2">Products</h2>
           {heroContent.orderBody && (
-            <div className="mb-6 rounded-xl border border-sky-200 bg-white p-4">
-              <h3 className="font-display font-bold text-maroon-800">{heroContent.orderTitle}</h3>
-              <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{heroContent.orderBody}</p>
+            <div className="mb-6 panel-blue-subtle p-4">
+              <h3 className="font-display font-bold text-maroon-800 dark:text-maroon-200">{heroContent.orderTitle}</h3>
+              <p className="mt-2 text-sm text-content-secondary whitespace-pre-line">{heroContent.orderBody}</p>
             </div>
           )}
           {liveProductsFailed && (
-            <div className="mb-6 rounded-xl border border-sky-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3" role="status">
-              <p className="font-body text-sm text-gray-700">
+            <div className="mb-6 panel-blue-subtle p-4 flex flex-wrap items-center justify-between gap-3" role="status">
+              <p className="font-body text-sm text-content-secondary">
                 Showing a shortened product list while we reconnect. The full range will appear automatically once available.
               </p>
               <button
                 type="button"
                 onClick={() => setProductsReloadKey((key) => key + 1)}
-                className="focus-ring inline-flex items-center rounded-lg border border-maroon-300 px-3 py-1.5 font-body text-sm font-semibold text-maroon-700 transition-colors hover:bg-maroon-50 dark:hover:bg-maroon-900/40"
+                className="focus-ring inline-flex items-center rounded-lg border border-maroon-300 px-3 py-1.5 font-body text-sm font-semibold text-maroon-700 dark:text-maroon-200 transition-colors hover:bg-maroon-50 dark:hover:bg-maroon-900/40"
               >
                 Try again
               </button>
@@ -463,8 +463,8 @@ function MerchandiseContent() {
           ) : products.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="font-body font-semibold text-gray-700">No products currently available</p>
-                <p className="font-body text-sm text-gray-500 mt-1">
+                <p className="font-body font-semibold text-content-secondary">No products currently available</p>
+                <p className="font-body text-sm text-content-muted mt-1">
                   Check back soon — new club merchandise will appear here when it goes on sale.
                 </p>
               </CardContent>
@@ -479,7 +479,7 @@ function MerchandiseContent() {
             )}
             {Object.entries(groupedProducts).map(([category, productsInCategory]) => (
               <div key={category} className="md:col-span-2 lg:col-span-3 xl:col-span-4">
-                <h3 className="text-xl font-display font-bold text-maroon-800 mb-3">{category}</h3>
+                <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-3">{category}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {productsInCategory.map((product) => {
                   const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
@@ -487,7 +487,7 @@ function MerchandiseContent() {
                   return (
                     <Card key={product.id} className="hover-lift">
                   {product.image ? (
-                    <div className="relative h-36 bg-gray-50">
+                    <div className="relative h-36 bg-surface-page">
                       <SafeImage
                         src={product.image}
                         alt={product.name}
@@ -511,12 +511,12 @@ function MerchandiseContent() {
                   )}
                   <CardContent className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display font-bold text-gray-900 text-sm leading-tight">
+                      <h3 className="font-display font-bold text-content-primary text-sm leading-tight">
                         {product.name}
                       </h3>
                       <Badge variant="default" className="flex-shrink-0">{formatCurrency(product.price)}</Badge>
                     </div>
-                    <p className="font-body text-gray-600 text-xs">{product.description}</p>
+                    <p className="font-body text-content-muted text-xs">{product.description}</p>
 
                     {product.customisable && (
                       <Badge variant="info" className="text-xs">Customisable</Badge>
@@ -526,7 +526,7 @@ function MerchandiseContent() {
                     <div>
                       <p className="form-label text-xs">Size</p>
                       {product.sizes.length === 0 ? (
-                        <p className="text-xs text-gray-500">No size selection required.</p>
+                        <p className="text-xs text-content-muted">No size selection required.</p>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {product.sizes.map((size) => (
@@ -537,7 +537,7 @@ function MerchandiseContent() {
                                 'px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
                                 selectedSizes[product.id] === size
                                   ? 'border-maroon-700 bg-maroon-700 text-white'
-                                  : 'border-gray-300 text-gray-700 hover:border-maroon-400'
+                                  : 'border-edge-strong text-content-secondary hover:border-maroon-400'
                               )}
                               onClick={() => {
                                 setSelectedSizes((prev) => ({ ...prev, [product.id]: size }));
@@ -563,7 +563,7 @@ function MerchandiseContent() {
                           <input
                             id={`custom-name-${product.id}`}
                             type="text"
-                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
                             placeholder="e.g. SMITH"
                             value={customNames[product.id] || ''}
                             onChange={(e) => setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }))}
@@ -576,7 +576,7 @@ function MerchandiseContent() {
                             type="number"
                             min={0}
                             max={99}
-                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
                             placeholder="0-99"
                             value={customNumbers[product.id] || ''}
                             onChange={(e) => setCustomNumbers((prev) => ({ ...prev, [product.id]: e.target.value }))}
@@ -591,7 +591,7 @@ function MerchandiseContent() {
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          className="h-11 w-11 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-base focus-ring"
+                          className="h-11 w-11 rounded-lg border border-edge-strong flex items-center justify-center text-content-secondary hover:bg-surface-muted transition-colors text-base focus-ring"
                           onClick={() =>
                             setQuantities((prev) => ({
                               ...prev,
@@ -602,12 +602,12 @@ function MerchandiseContent() {
                         >
                           -
                         </button>
-                        <span className="font-body font-semibold text-gray-900 w-6 text-center text-sm">
+                        <span className="font-body font-semibold text-content-primary w-6 text-center text-sm">
                           {quantities[product.id] || 1}
                         </span>
                         <button
                           type="button"
-                          className="h-11 w-11 rounded-lg border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors text-base focus-ring"
+                          className="h-11 w-11 rounded-lg border border-edge-strong flex items-center justify-center text-content-secondary hover:bg-surface-muted transition-colors text-base focus-ring"
                           onClick={() =>
                             setQuantities((prev) => ({
                               ...prev,
@@ -635,7 +635,7 @@ function MerchandiseContent() {
                         href={product.payment_link_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="focus-ring inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-maroon-300 px-3 py-2 font-body text-sm font-semibold text-maroon-700 transition-colors hover:bg-maroon-50"
+                        className="focus-ring inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-maroon-300 px-3 py-2 font-body text-sm font-semibold text-maroon-700 dark:text-maroon-200 transition-colors hover:bg-maroon-50"
                         aria-label={`Pay online for ${product.name} (opens in a new tab)`}
                       >
                         Pay online
@@ -655,7 +655,7 @@ function MerchandiseContent() {
       </section>
 
       {/* Order Summary & Form */}
-      <section className="section-padding bg-gray-50" aria-label="Order summary and checkout">
+      <section className="section-padding bg-surface-page" aria-label="Order summary and checkout">
         <div className="container-width max-w-3xl mx-auto">
           <h2 className="section-title">Your Order</h2>
 
@@ -666,14 +666,14 @@ function MerchandiseContent() {
                 Order confirmed!
               </p>
               {orderConfirmation?.payment_reference && (
-                <div className="bg-white border border-green-300 rounded-lg p-3">
+                <div className="bg-surface-card border border-green-300 rounded-lg p-3">
                   <p className="text-green-900 font-body text-sm font-semibold">Your Payment Reference:</p>
                   <p className="text-green-900 font-mono text-lg font-bold mt-1">{orderConfirmation.payment_reference}</p>
                   <p className="text-green-700 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
                 </div>
               )}
               {orderConfirmation?.bank_details?.bsb && (
-                <div className="bg-white border border-green-300 rounded-lg p-3">
+                <div className="bg-surface-card border border-green-300 rounded-lg p-3">
                   <p className="text-green-900 font-body text-sm font-semibold">Bank Transfer Details:</p>
                   <div className="mt-1 text-sm font-body text-green-800 space-y-0.5">
                     <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>
@@ -719,7 +719,7 @@ function MerchandiseContent() {
           {cart.length === 0 && submitStatus !== 'success' ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-gray-500 font-body">Your order is empty.</p>
+                <p className="text-content-muted font-body">Your order is empty.</p>
                 <p className="text-gray-400 font-body text-sm mt-1">
                   Add items from above to get started.
                 </p>
@@ -729,26 +729,26 @@ function MerchandiseContent() {
             <>
               {/* Cart Items */}
               <Card className="mb-8">
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-edge-subtle">
                   {cart.map((item, idx) => (
                     <div key={`${item.id}-${item.size}-${item.custom_name || ''}-${idx}`} className="px-6 py-4 flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-body font-semibold text-gray-900">{item.name}</p>
-                        <p className="font-body text-sm text-gray-500">
+                        <p className="font-body font-semibold text-content-primary">{item.name}</p>
+                        <p className="font-body text-sm text-content-muted">
                           Size: {item.size} · {formatCurrency(item.price)} each
                         </p>
                         {item.custom_name && (
-                          <p className="font-body text-xs text-maroon-700">Name: {item.custom_name}</p>
+                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Name: {item.custom_name}</p>
                         )}
                         {item.custom_number !== undefined && (
-                          <p className="font-body text-xs text-maroon-700">Number: {item.custom_number}</p>
+                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Number: {item.custom_number}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-sm transition-colors"
+                            className="w-7 h-7 rounded border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
                             onClick={() => updateCartQuantity(idx, -1)}
                             aria-label={`Decrease ${item.name} quantity`}
                           >
@@ -759,14 +759,14 @@ function MerchandiseContent() {
                           </span>
                           <button
                             type="button"
-                            className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-sm transition-colors"
+                            className="w-7 h-7 rounded border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
                             onClick={() => updateCartQuantity(idx, 1)}
                             aria-label={`Increase ${item.name} quantity`}
                           >
                             +
                           </button>
                         </div>
-                        <span className="font-body font-semibold text-gray-900 w-20 text-right">
+                        <span className="font-body font-semibold text-content-primary w-20 text-right">
                           {formatCurrency(item.price * item.quantity)}
                         </span>
                         <button
@@ -783,9 +783,9 @@ function MerchandiseContent() {
                     </div>
                   ))}
                 </div>
-                <div className="px-6 py-4 bg-maroon-50 border-t border-maroon-100 flex items-center justify-between">
-                  <span className="font-display font-bold text-maroon-800 text-lg">Total</span>
-                  <span className="font-display font-bold text-maroon-800 text-xl">
+                <div className="px-6 py-4 bg-maroon-50 dark:bg-maroon-950 border-t border-maroon-100 flex items-center justify-between">
+                  <span className="font-display font-bold text-maroon-800 dark:text-maroon-200 text-lg">Total</span>
+                  <span className="font-display font-bold text-maroon-800 dark:text-maroon-200 text-xl">
                     {formatCurrency(cartTotal)}
                   </span>
                 </div>
@@ -794,7 +794,7 @@ function MerchandiseContent() {
               {/* Customer Details Form */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-display font-bold text-gray-900 text-lg mb-4">
+                  <h3 className="font-display font-bold text-content-primary text-lg mb-4">
                     Your Details
                   </h3>
                   <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -875,10 +875,10 @@ function MerchandiseContent() {
                             : 'Place Order (Bank Transfer)'}
                     </Button>
 
-                    <p className="text-gray-500 font-body text-xs text-center">
+                    <p className="text-content-muted font-body text-xs text-center">
                       After submission you will receive a payment reference for bank transfer.
                     </p>
-                    <p className="text-gray-500 font-body text-xs text-center">
+                    <p className="text-content-muted font-body text-xs text-center">
                       Example reference format: NDCC-YYYYMMDD-1234
                     </p>
                   </form>

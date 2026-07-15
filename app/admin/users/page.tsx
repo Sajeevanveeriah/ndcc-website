@@ -93,9 +93,9 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Committee Users</h1>
-      {message && <p className="text-sm text-gray-600">{message}</p>}
-      <div className="bg-sky-50 border border-sky-100 rounded-xl p-4">
-        <p className="text-sm font-semibold text-gray-800 mb-2">Provisioning shortcuts</p>
+      {message && <p className="text-sm text-content-muted">{message}</p>}
+      <div className="panel-blue-subtle p-4">
+        <p className="text-sm font-semibold text-content-primary mb-2">Provisioning shortcuts</p>
         <div className="flex flex-wrap gap-2">
           {USER_PROVISIONING_PRESETS.map((preset) => (
             <Button key={preset.fullName} type="button" variant="secondary" onClick={() => { setFullName(preset.fullName); setEmail(preset.email); setRole(preset.role); }}>
@@ -103,25 +103,25 @@ export default function AdminUsersPage() {
             </Button>
           ))}
         </div>
-        <p className="text-xs text-gray-600 mt-2">The verified email address is filled for the selected office bearer. Enter a unique temporary password manually and require the user to change it at first sign-in; passwords are never preset or committed.</p>
+        <p className="text-xs text-content-muted mt-2">The verified email address is filled for the selected office bearer. Enter a unique temporary password manually and require the user to change it at first sign-in; passwords are never preset or committed.</p>
       </div>
 
-      <form onSubmit={create} className="bg-white p-4 rounded-xl border grid md:grid-cols-2 gap-3">
+      <form onSubmit={create} className="bg-surface-card p-4 rounded-xl border grid md:grid-cols-2 gap-3">
         <Input id="full-name" label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         <Input id="email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <PasswordInput id="password" label="Temporary password (minimum 10 characters)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={10} required />
-        <label className="text-sm font-medium text-gray-700">Role
-          <select className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" value={role} onChange={(e) => setRole(e.target.value)}>
+        <label className="text-sm font-medium text-content-secondary">Role
+          <select className="mt-1 w-full border border-edge-strong rounded-lg px-3 py-2" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="admin">admin</option><option value="president">president</option><option value="secretary">secretary</option><option value="committee">committee</option>
           </select>
         </label>
         <div className="md:col-span-2"><Button type="submit" isLoading={saving}>Create User</Button></div>
       </form>
 
-      <div className="bg-white rounded-xl border divide-y">
+      <div className="bg-surface-card rounded-xl border divide-y">
         {users.map((u) => (
           <div key={u.id} className="p-4 flex items-center justify-between">
-            <div><p className="font-semibold">{u.full_name}</p><p className="text-sm text-gray-500">{u.email} · {u.role}</p></div>
+            <div><p className="font-semibold">{u.full_name}</p><p className="text-sm text-content-muted">{u.email} · {u.role}</p></div>
             <Button variant="secondary" onClick={() => toggle(u)}>{u.is_active ? 'Deactivate' : 'Activate'}</Button>
           </div>
         ))}

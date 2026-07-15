@@ -162,10 +162,10 @@ export default function AdminSitePagesPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Site Pages</h1>
-      <p className="text-sm text-gray-500">Manage repeatable links used by the header navigation, footer, Home, Fixtures, About, and Facilities pages.</p>
-      {status && <p className="text-sm text-gray-600">{status}</p>}
+      <p className="text-sm text-content-muted">Manage repeatable links used by the header navigation, footer, Home, Fixtures, About, and Facilities pages.</p>
+      {status && <p className="text-sm text-content-muted">{status}</p>}
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Page Link Cards</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveCard}>
           <Select id="page_section" label="Page section" options={sectionOptions} value={cardForm.page_section} onChange={(e) => setCardForm((v) => ({ ...v, page_section: e.target.value }))} />
@@ -185,7 +185,7 @@ export default function AdminSitePagesPage() {
           </div>
         </form>
 
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {cards.map((card) => (
             <li key={card.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{card.page_slug}/{card.section_key} · {card.title} · {card.href}</span>
@@ -206,7 +206,7 @@ export default function AdminSitePagesPage() {
         </ul>
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Facility Features</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveFeature}>
           <Input id="feature_title" label="Feature title" required value={featureForm.title} onChange={(e) => setFeatureForm((v) => ({ ...v, title: e.target.value }))} />
@@ -220,7 +220,7 @@ export default function AdminSitePagesPage() {
           </div>
         </form>
 
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {features.map((feature) => (
             <li key={feature.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{feature.title} · {feature.icon_key} · sort {feature.sort_order}</span>

@@ -37,8 +37,8 @@ export default async function EventsPage() {
           {events.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
-                <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">No published events</h2>
-                <p className="text-gray-600 font-body">Published club events, including Dino Lotto when marked published, will appear here as soon as they are available.</p>
+                <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No published events</h2>
+                <p className="text-content-muted font-body">Published club events, including Dino Lotto when marked published, will appear here as soon as they are available.</p>
               </CardContent>
             </Card>
           ) : (
@@ -49,14 +49,14 @@ export default async function EventsPage() {
                   <ScrollReveal key={event.id}>
                     <Card hover className="h-full flex flex-col">
                       {imageUrl && (
-                        <div className="relative aspect-[4/3] w-full bg-gray-50">
+                        <div className="relative aspect-[4/3] w-full bg-surface-page">
                           <SafeImage
                             src={imageUrl}
                             alt={`${event.title} event artwork`}
                             fill
                             className="object-contain"
                             sizes="(max-width: 1024px) 100vw, 33vw"
-                            fallback={<div className="absolute inset-0 bg-gray-50" aria-hidden="true" />}
+                            fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
                           />
                         </div>
                       )}
@@ -66,13 +66,13 @@ export default async function EventsPage() {
                       </div>
                       <CardContent>
                         <div className="flex items-center gap-2 mb-3">
-                          <svg className="w-4 h-4 text-maroon-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                          <svg className="w-4 h-4 text-maroon-600 dark:text-maroon-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                           </svg>
-                          <span className="font-body text-sm text-gray-600">{event.location}</span>
+                          <span className="font-body text-sm text-content-muted">{event.location}</span>
                         </div>
-                        <p className="font-body text-gray-700 text-sm leading-relaxed mb-4">
+                        <p className="font-body text-content-secondary text-sm leading-relaxed mb-4">
                           {event.description.length > 150
                             ? `${event.description.slice(0, 150).trim()}...`
                             : event.description}

@@ -84,7 +84,7 @@ export default async function AboutPage() {
               <div>
                 <span className="section-eyebrow">Est. <AnimatedCounter to={1972} duration={1.8} /></span>
                 <h2 className="section-title">{historyTitle}</h2>
-                <div className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+                <div className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
                   <p>{normalisePublicText(historyBody) || `${CLUB_NICKNAME} has proudly represented Newcomb since ${CLUB_ESTABLISHED}, built on generations of community involvement and cricket tradition.`}</p>
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default async function AboutPage() {
         </div>
       </div>
 
-      <section className="section-padding surface-sky">
+      <section className="section-padding surface-blue-band">
         <div className="container-width">
           <h2 className="section-title">Club Lineage</h2>
           <p className="section-subtitle mb-6">Historical competition progression and club naming periods.</p>
@@ -148,8 +148,8 @@ export default async function AboutPage() {
                 <Card>
                   <CardContent className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                      <h3 className="font-display font-bold text-gray-900">{entry.club_name}</h3>
-                      <p className="text-sm text-gray-600">{entry.start_season} to {entry.end_season}</p>
+                      <h3 className="font-display font-bold text-content-primary">{entry.club_name}</h3>
+                      <p className="text-sm text-content-muted">{entry.start_season} to {entry.end_season}</p>
                     </div>
                     <Badge variant="default">{entry.association_abbr}</Badge>
                   </CardContent>
@@ -191,21 +191,21 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section-padding surface-sky">
+      <section className="section-padding surface-blue-band">
         <div className="container-width">
           <ScrollReveal className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="section-title">{blocks['about.affiliation']?.title || `${CLUB_ASSOCIATION_SHORT} Affiliation`}</h2>
-              <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+              <p className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
                 {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
               </p>
             </div>
             <div className="surface-panel p-8 text-center">
-              <div className="w-20 h-20 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-maroon-700 font-display font-bold text-2xl">{CLUB_ASSOCIATION_SHORT}</span>
+              <div className="w-20 h-20 bg-maroon-100 dark:bg-maroon-950 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-maroon-700 dark:text-maroon-200 font-display font-bold text-2xl">{CLUB_ASSOCIATION_SHORT}</span>
               </div>
-              <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{CLUB_ASSOCIATION}</h3>
-              <p className="text-gray-600 font-body text-sm">Affiliated since {CLUB_ESTABLISHED}</p>
+              <h3 className="text-xl font-display font-bold text-content-primary mb-2">{CLUB_ASSOCIATION}</h3>
+              <p className="text-content-muted font-body text-sm">Affiliated since {CLUB_ESTABLISHED}</p>
             </div>
           </ScrollReveal>
         </div>
@@ -216,7 +216,7 @@ export default async function AboutPage() {
           <ScrollReveal className="max-w-3xl">
             <span className="section-eyebrow">Accreditation</span>
             <h2 className="section-title">{blocks['about.goodsports']?.title || 'Good Sports Level 3'}</h2>
-            <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+            <p className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
               {normalisePublicText(blocks['about.goodsports']?.body)}
             </p>
             <Badge variant="success" className="mt-4 text-sm px-4 py-1">
@@ -226,11 +226,11 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section-padding surface-sky">
+      <section className="section-padding surface-blue-band">
         <div className="container-width">
           <div className="max-w-3xl">
             <h2 className="section-title">{normalisePublicText(blocks['about.partnership']?.title) || 'Newcomb Power Football & Netball Club'}</h2>
-            <p className="space-y-4 text-gray-700 font-body leading-relaxed whitespace-pre-line">
+            <p className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
               {normalisePublicText(blocks['about.partnership']?.body) || `NDCC shares facilities at ${CLUB_GROUND}.`}
             </p>
           </div>
@@ -245,8 +245,8 @@ export default async function AboutPage() {
               {aboutArticles.map((article) => (
                 <Card key={article.id}>
                   <CardContent className="p-6">
-                    <h3 className="font-display font-bold text-gray-900 text-xl">{article.title}</h3>
-                    <p className="text-gray-600 mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
+                    <h3 className="font-display font-bold text-content-primary text-xl">{article.title}</h3>
+                    <p className="text-content-muted mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
                     <a href={article.href} className="btn-secondary mt-4 inline-flex">
                       Read More
                     </a>
@@ -277,8 +277,8 @@ export default async function AboutPage() {
                         {getInitials(member.name)}
                       </span>
                     </div>
-                    <h3 className="text-lg font-display font-bold text-gray-900">{member.name}</h3>
-                    <p className="text-maroon-600 font-body text-sm font-semibold">{member.role}</p>
+                    <h3 className="text-lg font-display font-bold text-content-primary">{member.name}</h3>
+                    <p className="text-maroon-600 dark:text-maroon-300 font-body text-sm font-semibold">{member.role}</p>
                   </CardContent>
                 </Card>
               </ScrollRevealItem>

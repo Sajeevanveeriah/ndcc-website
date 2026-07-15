@@ -186,8 +186,8 @@ export default function Navbar() {
                 className={cn(
                   'px-3 py-2 text-sm font-body font-medium transition-colors rounded-lg focus-ring',
                   pathname === group.href
-                    ? "relative text-maroon-700 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:text-maroon-200 dark:after:bg-maroon-300"
-                    : 'nav-underline text-gray-600 hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
+                    ? "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:text-maroon-200 dark:after:bg-maroon-300"
+                    : 'nav-underline text-content-muted hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
                 )}
               >
                 {group.label}
@@ -204,7 +204,7 @@ export default function Navbar() {
                   aria-haspopup="menu"
                   aria-expanded={moreOpen}
                   onClick={() => setMoreOpen((open) => !open)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-content-muted hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
                 >
                   {group.label} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
@@ -214,7 +214,7 @@ export default function Navbar() {
                 )}>
                   <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[190px]" role="menu">
                     {group.links?.map((link) => (
-                      <Link key={`${group.label}-${link.href}`} href={link.href} className={cn('block px-4 py-2 text-sm font-body transition-colors focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60')}>
+                      <Link key={`${group.label}-${link.href}`} href={link.href} className={cn('block px-4 py-2 text-sm font-body transition-colors focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60')}>
                         {link.label}
                       </Link>
                     ))}
@@ -234,7 +234,7 @@ export default function Navbar() {
                   aria-haspopup="menu"
                   aria-expanded={accountOpen}
                   onClick={() => setAccountOpen((open) => !open)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-content-muted hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
                 >
                   {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
@@ -243,9 +243,9 @@ export default function Navbar() {
                   accountOpen ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
                 )}>
                   <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[180px]">
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Account</Link>
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
-                    <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
+                    <Link href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Account</Link>
+                    <Link href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
+                    <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
                       Logout
                     </button>
                   </div>
@@ -267,11 +267,11 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors focus-ring dark:border-slate-700 dark:hover:bg-maroon-950/50"
+            className="lg:hidden p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring dark:border-slate-700 dark:hover:bg-maroon-950/50"
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
           >
-            {isOpen ? <X className="h-6 w-6 text-gray-700 dark:text-slate-200" /> : <Menu className="h-6 w-6 text-gray-700 dark:text-slate-200" />}
+            {isOpen ? <X className="h-6 w-6 text-content-secondary dark:text-slate-200" /> : <Menu className="h-6 w-6 text-content-secondary dark:text-slate-200" />}
           </button>
         </div>
       </div>
@@ -290,13 +290,13 @@ export default function Navbar() {
             >
               <div className="bg-surface-nav px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto shadow-[inset_0_10px_14px_-12px_rgba(45,0,0,0.20)] dark:shadow-[inset_0_10px_14px_-12px_rgba(0,0,0,0.55)]">
           {navGroups.map((group) => group.href ? (
-            <Link key={`${group.href}-${group.label}`} href={group.href} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
+            <Link key={`${group.href}-${group.label}`} href={group.href} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
               {group.label}
             </Link>
           ) : (
             <section key={group.label} className="rounded-xl border border-edge-subtle/60 p-2">
               <h2 className="px-2 py-1 text-xs font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.label}</h2>
-              {group.links?.map((link) => <Link key={`${group.label}-${link.href}`} href={link.href} className="block rounded-lg px-3 py-2.5 text-base font-body text-gray-600 hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
+              {group.links?.map((link) => <Link key={`${group.label}-${link.href}`} href={link.href} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
             </section>
           ))}
           <Link
@@ -307,16 +307,16 @@ export default function Navbar() {
           </Link>
           {sessionUser && (
             <>
-              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
+              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
                 {sessionUser.full_name} ({sessionUser.role})
               </Link>
-              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-gray-600 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
+              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
                 Logout
               </button>
             </>
           )}
           <div className="flex items-center justify-between px-4 pt-3 mt-2 border-t border-edge-subtle">
-            <span className="text-sm font-body font-medium text-gray-600 dark:text-slate-300">Theme</span>
+            <span className="text-sm font-body font-medium text-content-muted dark:text-slate-300">Theme</span>
             <ThemeToggle />
           </div>
               </div>

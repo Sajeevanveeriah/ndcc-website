@@ -51,7 +51,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
   if (marquee.appointments.length === 0) return null;
 
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <ScrollReveal className="text-center mb-12">
           <span className="section-eyebrow">Season appointments</span>
@@ -142,7 +142,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
               onClick={() => setIsManuallyPaused((paused) => !paused)}
               aria-controls={MARQUEE_TRACK_ID}
               aria-label={isManuallyPaused ? 'Play the season appointments marquee' : 'Pause the season appointments marquee'}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-4 py-1.5 font-body text-sm font-semibold text-gray-600 transition-colors hover:border-maroon-300 hover:text-maroon-700 focus-ring dark:border-slate-600 dark:text-slate-300 dark:hover:border-maroon-400 dark:hover:text-maroon-200"
+              className="inline-flex items-center gap-2 rounded-full border border-edge-strong px-4 py-1.5 font-body text-sm font-semibold text-content-muted transition-colors hover:border-maroon-300 hover:text-maroon-700 focus-ring dark:border-slate-600 dark:text-slate-300 dark:hover:border-maroon-400 dark:hover:text-maroon-200"
             >
               {isManuallyPaused
                 ? <Play className="h-4 w-4" aria-hidden="true" />
@@ -153,9 +153,9 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
         )}
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <Link href="/about#committee" className="btn-secondary">View all appointments</Link>
-          <p className="text-gray-500 font-body text-sm">
+          <p className="text-content-muted font-body text-sm">
             Season appointments are managed in the CMS. Follow us on{' '}
-            <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+            <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
               Facebook
             </Link>{' '}
             for updates.

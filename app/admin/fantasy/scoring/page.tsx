@@ -88,11 +88,11 @@ export default function AdminFantasyScoringPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <SlidersHorizontal className="h-6 w-6 text-maroon-700" />
+        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+          <SlidersHorizontal className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
           Fantasy Scoring
         </h1>
-        <p className="text-gray-500 font-body mt-1">Manage scoring rule points and enabled status.</p>
+        <p className="text-content-muted font-body mt-1">Manage scoring rule points and enabled status.</p>
       </div>
 
       <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
@@ -101,7 +101,7 @@ export default function AdminFantasyScoringPage() {
       {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>

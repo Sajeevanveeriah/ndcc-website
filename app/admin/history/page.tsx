@@ -222,10 +222,10 @@ export default function AdminHistoryPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">History & Committee</h1>
-      <p className="text-sm text-gray-500">Manage lineage, competitions, premiership records, and the About page committee list.</p>
-      {status && <p className="text-sm text-gray-600">{status}</p>}
+      <p className="text-sm text-content-muted">Manage lineage, competitions, premiership records, and the About page committee list.</p>
+      {status && <p className="text-sm text-content-muted">{status}</p>}
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">History Competitions</h2>
         <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveCompetition}>
           <Input id="competition_abbr" label="Abbreviation" required value={competitionForm.abbreviation} onChange={(e) => setCompetitionForm((v) => ({ ...v, abbreviation: e.target.value }))} />
@@ -235,7 +235,7 @@ export default function AdminHistoryPage() {
             {competitionForm.id && <Button type="button" variant="secondary" onClick={() => setCompetitionForm({ id: '', abbreviation: '', name: '' })}>Cancel</Button>}
           </div>
         </form>
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {competitions.map((entry) => (
             <li key={entry.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{entry.abbreviation} · {entry.name}</span>
@@ -245,7 +245,7 @@ export default function AdminHistoryPage() {
         </ul>
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Club Lineage</h2>
         <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveLineage}>
           <Input id="club_name" label="Club name" required value={lineageForm.club_name} onChange={(e) => setLineageForm((v) => ({ ...v, club_name: e.target.value }))} />
@@ -260,7 +260,7 @@ export default function AdminHistoryPage() {
           </div>
         </form>
 
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {lineage.map((entry) => (
             <li key={entry.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{entry.club_name} · {entry.start_season} to {entry.end_season} · {entry.association_abbr}</span>
@@ -270,7 +270,7 @@ export default function AdminHistoryPage() {
         </ul>
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Premiership Records</h2>
         <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={savePremiership}>
           <Input id="team_label" label="Team" required value={premForm.team_label} onChange={(e) => setPremForm((v) => ({ ...v, team_label: e.target.value }))} />
@@ -285,7 +285,7 @@ export default function AdminHistoryPage() {
           </div>
         </form>
 
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {premierships.map((entry) => (
             <li key={entry.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{entry.team_label} · {entry.season_label} · {entry.competition_abbr} · {entry.grade_label}</span>
@@ -295,7 +295,7 @@ export default function AdminHistoryPage() {
         </ul>
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Committee Members (About page)</h2>
         <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveCommittee}>
           <Input id="committee_name" label="Name" required value={committeeForm.name} onChange={(e) => setCommitteeForm((v) => ({ ...v, name: e.target.value }))} />
@@ -312,7 +312,7 @@ export default function AdminHistoryPage() {
             {committeeForm.id && <Button type="button" variant="secondary" onClick={() => setCommitteeForm(emptyCommitteeForm)}>Cancel</Button>}
           </div>
         </form>
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {committeeMembers.map((member) => (
             <li key={member.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{member.name} · {member.role} · sort {member.sort_order}</span>
@@ -333,7 +333,7 @@ export default function AdminHistoryPage() {
         title="Delete Committee Member"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">Are you sure you want to delete this committee member? They will be removed from the About page.</p>
+          <p className="text-sm text-content-muted">Are you sure you want to delete this committee member? They will be removed from the About page.</p>
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setCommitteeDeleteConfirm(null)}>Cancel</Button>
             <Button variant="danger" onClick={() => committeeDeleteConfirm && deleteCommittee(committeeDeleteConfirm)}>Delete</Button>

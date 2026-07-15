@@ -38,7 +38,7 @@ export default function ContactUpcomingEvents({ limit = 3 }: { limit?: number })
   return (
     <Card>
       <CardContent className="p-6">
-        <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Upcoming at the Club</h3>
+        <h3 className="text-xl font-display font-bold text-content-primary mb-4">Upcoming at the Club</h3>
         <UpcomingEventsStrip events={events} compact />
       </CardContent>
     </Card>

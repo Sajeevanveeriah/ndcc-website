@@ -41,7 +41,7 @@ export default function CommitteeMinuteDetailPage() {
       <div className="container-width py-10 space-y-4 animate-pulse">
         <div className="h-8 bg-gray-200 rounded w-1/2" />
         <div className="h-4 bg-gray-200 rounded w-1/4" />
-        <div className="h-64 bg-gray-100 rounded-xl" />
+        <div className="h-64 bg-surface-muted rounded-xl" />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export default function CommitteeMinuteDetailPage() {
   if (notFound || !minute) {
     return (
       <div className="container-width py-10 space-y-4">
-        <p className="text-gray-600 font-body">Minute not found.</p>
+        <p className="text-content-muted font-body">Minute not found.</p>
         <Button variant="secondary" onClick={() => router.back()}>Go back</Button>
       </div>
     );
@@ -61,17 +61,17 @@ export default function CommitteeMinuteDetailPage() {
         ← Back
       </Button>
       <h1 className="text-3xl font-display font-bold">{minute.title}</h1>
-      <p className="text-sm text-gray-500 font-body">
+      <p className="text-sm text-content-muted font-body">
         {minute.meeting_date} · <span className="capitalize">{minute.status}</span>
       </p>
-      <article className="card p-6 whitespace-pre-wrap font-body text-gray-800 leading-relaxed">
+      <article className="card p-6 whitespace-pre-wrap font-body text-content-primary leading-relaxed">
         {minute.content}
       </article>
       <div className="flex gap-3 flex-wrap">
         <Button onClick={() => act('accepted')}>Accept Minutes</Button>
         <Button variant="secondary" onClick={() => act('seconded')}>Second Minutes</Button>
       </div>
-      {message && <p className="text-sm text-gray-600 font-body">{message}</p>}
+      {message && <p className="text-sm text-content-muted font-body">{message}</p>}
     </div>
   );
 }

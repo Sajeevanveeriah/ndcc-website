@@ -39,8 +39,8 @@ export default function BatchActionsBar({
   const confirmingAction = actions.find((action) => action.key === confirmingKey) || null;
 
   return (
-    <div className="mb-4 bg-white border border-gray-100 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
-      <span className="text-sm font-body font-semibold text-gray-700">
+    <div className="mb-4 bg-surface-card border border-edge-subtle rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+      <span className="text-sm font-body font-semibold text-content-secondary">
         {selectedCount} {itemLabel}{selectedCount !== 1 ? 's' : ''} selected
       </span>
       {confirmingAction ? (

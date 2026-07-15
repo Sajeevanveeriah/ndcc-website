@@ -156,11 +156,11 @@ export default function AdminFantasyRoundsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Fantasy Rounds
           </h1>
-          <p className="text-gray-500 font-body mt-1">{rounds.length} round{rounds.length !== 1 ? 's' : ''}</p>
+          <p className="text-content-muted font-body mt-1">{rounds.length} round{rounds.length !== 1 ? 's' : ''}</p>
         </div>
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Round</Button>
       </div>
@@ -168,14 +168,14 @@ export default function AdminFantasyRoundsPage() {
       {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : rounds.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No fantasy rounds yet. Add rounds when the season structure is ready.</p>
+          <p className="text-content-muted font-body">No fantasy rounds yet. Add rounds when the season structure is ready.</p>
         </div>
       ) : (
         <Table>

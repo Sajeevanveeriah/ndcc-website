@@ -46,8 +46,8 @@ export default function PlayHQDiagnosticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900">PlayHQ diagnostics</h1>
-          <p className="mt-1 max-w-3xl text-sm text-gray-600 font-body">Read-only checks for server-only PlayHQ configuration, discovery and Fantasy sync health. Secret values are never shown.</p>
+          <h1 className="text-2xl font-display font-bold text-content-primary">PlayHQ diagnostics</h1>
+          <p className="mt-1 max-w-3xl text-sm text-content-muted font-body">Read-only checks for server-only PlayHQ configuration, discovery and Fantasy sync health. Secret values are never shown.</p>
         </div>
         <Button type="button" onClick={load} disabled={loading}>{loading ? 'Checking...' : 'Run checks again'}</Button>
       </div>
@@ -57,7 +57,7 @@ export default function PlayHQDiagnosticsPage() {
       {data && (
         <>
           <Card><CardContent>
-            <h2 className="text-lg font-display font-bold text-gray-900">Configuration presence</h2>
+            <h2 className="text-lg font-display font-bold text-content-primary">Configuration presence</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {data.checks.map((check) => (
                 <div key={check.label} className={`rounded-lg border p-3 text-sm ${statusClass(check.status)}`}>
@@ -70,28 +70,28 @@ export default function PlayHQDiagnosticsPage() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card><CardContent>
-              <h2 className="text-lg font-display font-bold text-gray-900">Connection and discovery</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary">Connection and discovery</h2>
               <dl className="mt-4 space-y-3 text-sm font-body">
-                <div><dt className="font-semibold text-gray-800">Connection test</dt><dd className={data.connection.status === 'ok' ? 'text-green-700' : 'text-red-700'}>{data.connection.detail}</dd></div>
-                <div><dt className="font-semibold text-gray-800">Organisation discovery</dt><dd className="text-gray-700">{data.discovery.organisation}</dd></div>
-                <div><dt className="font-semibold text-gray-800">Season discovery</dt><dd className="text-gray-700">{data.discovery.season}</dd></div>
-                <div><dt className="font-semibold text-gray-800">Grade discovery</dt><dd className="text-gray-700">{data.discovery.grades}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Connection test</dt><dd className={data.connection.status === 'ok' ? 'text-green-700' : 'text-red-700'}>{data.connection.detail}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Organisation discovery</dt><dd className="text-content-secondary">{data.discovery.organisation}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Season discovery</dt><dd className="text-content-secondary">{data.discovery.season}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Grade discovery</dt><dd className="text-content-secondary">{data.discovery.grades}</dd></div>
               </dl>
             </CardContent></Card>
 
             <Card><CardContent>
-              <h2 className="text-lg font-display font-bold text-gray-900">Fantasy sync health</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary">Fantasy sync health</h2>
               <dl className="mt-4 space-y-3 text-sm font-body">
-                <div><dt className="font-semibold text-gray-800">Last successful sync</dt><dd className="text-gray-700">{data.sync.lastSuccess || 'No successful sync recorded.'}</dd></div>
-                <div><dt className="font-semibold text-gray-800">Last failure</dt><dd className="text-gray-700">{data.sync.lastFailure || 'No failed sync recorded.'}</dd></div>
-                <div><dt className="font-semibold text-gray-800">Next scheduled run</dt><dd className="text-gray-700">{data.sync.nextScheduledRun}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Last successful sync</dt><dd className="text-content-secondary">{data.sync.lastSuccess || 'No successful sync recorded.'}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Last failure</dt><dd className="text-content-secondary">{data.sync.lastFailure || 'No failed sync recorded.'}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Next scheduled run</dt><dd className="text-content-secondary">{data.sync.nextScheduledRun}</dd></div>
               </dl>
             </CardContent></Card>
           </div>
 
           <Card><CardContent>
-            <h2 className="text-lg font-display font-bold text-gray-900">Plain-English remediation</h2>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-700 font-body">
+            <h2 className="text-lg font-display font-bold text-content-primary">Plain-English remediation</h2>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-content-secondary font-body">
               {data.remediation.map((item) => <li key={item}>{item}</li>)}
             </ul>
           </CardContent></Card>

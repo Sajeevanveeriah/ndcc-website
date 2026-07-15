@@ -12,11 +12,11 @@ export default function NotFound() {
           height={120}
           className="mx-auto mb-6 rounded-full"
         />
-        <h1 className="text-6xl font-display font-bold text-maroon-700 mb-4">404</h1>
-        <h2 className="text-2xl font-display font-bold text-gray-800 mb-4">
+        <h1 className="text-6xl font-display font-bold text-maroon-700 dark:text-maroon-200 mb-4">404</h1>
+        <h2 className="text-2xl font-display font-bold text-content-primary mb-4">
           Bowled Out!
         </h2>
-        <p className="text-gray-600 font-body mb-8">
+        <p className="text-content-muted font-body mb-8">
           Looks like this page has been caught behind. The page you&apos;re looking for
           doesn&apos;t exist or has been moved.
         </p>

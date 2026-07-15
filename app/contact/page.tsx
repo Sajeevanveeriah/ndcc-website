@@ -142,7 +142,7 @@ export default function ContactPage() {
             {/* Form Column */}
             <div>
               <h2 className="section-title">Send Us a Message</h2>
-              <p className="text-gray-600 font-body mb-8">{formIntro}</p>
+              <p className="text-content-muted font-body mb-8">{formIntro}</p>
 
               {submitStatus === 'success' && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
@@ -240,41 +240,41 @@ export default function ContactPage() {
               {/* Address */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-display font-bold text-gray-900 mb-4">{detailsTitle}</h3>
+                  <h3 className="text-xl font-display font-bold text-content-primary mb-4">{detailsTitle}</h3>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                       </svg>
                       <div>
-                        <p className="font-body font-semibold text-gray-900">{settings.ground_name}</p>
-                        <p className="font-body text-gray-600 text-sm">{settings.address}</p>
+                        <p className="font-body font-semibold text-content-primary">{settings.ground_name}</p>
+                        <p className="font-body text-content-muted text-sm">{settings.address}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0-1.243 1.007-2.25 2.25-2.25h2.268c1.141 0 2.116.816 2.317 1.939l.734 4.117a2.25 2.25 0 0 1-.96 2.281l-1.53 1.02a11.042 11.042 0 0 0 5.523 5.523l1.02-1.53a2.25 2.25 0 0 1 2.281-.96l4.117.734a2.25 2.25 0 0 1 1.939 2.317V19.5a2.25 2.25 0 0 1-2.25 2.25h-.75C10.3 21.75 2.25 13.7 2.25 3.75v3Z" />
                       </svg>
                       <div>
-                        <p className="font-body font-semibold text-gray-900">Contact</p>
+                        <p className="font-body font-semibold text-content-primary">Contact</p>
                         <a
                           href={clubPhoneHref}
-                          className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                          className="font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
                         >
                           {settings.phone}
                         </a>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                       </svg>
                       <div>
-                        <p className="font-body font-semibold text-gray-900">Email</p>
+                        <p className="font-body font-semibold text-content-primary">Email</p>
                         <a
                           href={settings.email ? `mailto:${settings.email}` : undefined}
-                          className="font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                          className="font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
                         >
                           {settings.email}
                         </a>
@@ -288,14 +288,14 @@ export default function ContactPage() {
               {/* Social Links */}
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Social Links</h3>
+                  <h3 className="text-xl font-display font-bold text-content-primary mb-4">Social Links</h3>
                   <div className="space-y-2">
                     {settings.facebook_url && (
                       <a
                         href={settings.facebook_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                        className="block font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
                       >
                         Facebook
                       </a>
@@ -305,7 +305,7 @@ export default function ContactPage() {
                         href={settings.instagram_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                        className="block font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
                       >
                         Instagram{settings.instagram_handle ? ` (${settings.instagram_handle})` : ''}
                       </a>
@@ -315,7 +315,7 @@ export default function ContactPage() {
                         href={settings.playhq_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block font-body text-maroon-700 hover:text-maroon-500 text-sm transition-colors"
+                        className="block font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
                       >
                         PlayHQ
                       </a>
@@ -328,7 +328,7 @@ export default function ContactPage() {
               {(committee === null || committee.length > 0) && (
                 <Card>
                   <CardContent className="p-6">
-                    <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Committee</h3>
+                    <h3 className="text-xl font-display font-bold text-content-primary mb-4">Committee</h3>
                     {committee === null ? (
                       <ul className="space-y-3" aria-hidden="true">
                         {[0, 1, 2, 3].map((i) => (
@@ -342,18 +342,18 @@ export default function ContactPage() {
                       <ul className="space-y-3">
                         {committee.map((member) => (
                           <li key={member.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                            <span className="font-body text-gray-900">
+                            <span className="font-body text-content-primary">
                               {member.name}
                               {member.email && (
                                 <a
                                   href={`mailto:${member.email}`}
-                                  className="ml-2 font-body text-sm text-maroon-700 hover:text-maroon-500 transition-colors"
+                                  className="ml-2 font-body text-sm text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors"
                                 >
                                   {member.email}
                                 </a>
                               )}
                             </span>
-                            <span className="font-body text-sm text-maroon-600 font-semibold">
+                            <span className="font-body text-sm text-maroon-600 dark:text-maroon-300 font-semibold">
                               {member.role}
                             </span>
                           </li>

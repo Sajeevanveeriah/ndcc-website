@@ -116,7 +116,7 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
                 </>
               )}
               <article className="prose max-w-none">
-                <p className="font-body text-gray-700 text-lg leading-relaxed whitespace-pre-line">
+                <p className="font-body text-content-secondary text-lg leading-relaxed whitespace-pre-line">
                   {post.content}
                 </p>
               </article>
@@ -125,10 +125,10 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
 
           {/* Share */}
           <div className="mt-8 flex items-center gap-4">
-            <span className="font-body text-gray-500 text-sm">Share this article:</span>
+            <span className="font-body text-content-muted text-sm">Share this article:</span>
             <button
               onClick={handleCopyLink}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-body text-sm transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-edge-strong text-content-secondary hover:bg-surface-page font-body text-sm transition-colors"
               aria-label="Copy link to clipboard"
             >
               {linkCopied ? (
@@ -153,7 +153,7 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
           <div className="mt-8">
             <Link
               href="/news"
-              className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold transition-colors"
+              className="inline-flex items-center text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 font-body font-semibold transition-colors"
             >
               <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />

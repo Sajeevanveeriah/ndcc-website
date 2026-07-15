@@ -61,18 +61,18 @@ function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; resu
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
-          <span className="text-xs text-gray-500 font-body">{fixtureTime(fixture.startsAt)}</span>
+          <span className="text-xs text-content-muted font-body">{fixtureTime(fixture.startsAt)}</span>
         </div>
         <div>
-          <p className="font-display font-bold text-gray-900">{fixture.homeTeam}</p>
-          <p className="text-sm text-gray-500">v</p>
-          <p className="font-display font-bold text-gray-900">{fixture.awayTeam}</p>
+          <p className="font-display font-bold text-content-primary">{fixture.homeTeam}</p>
+          <p className="text-sm text-content-muted">v</p>
+          <p className="font-display font-bold text-content-primary">{fixture.awayTeam}</p>
         </div>
         {(fixture.homeScore || fixture.awayScore) && (
-          <p className="text-sm font-semibold text-maroon-700">{fixture.homeScore || 'TBC'} · {fixture.awayScore || 'TBC'}</p>
+          <p className="text-sm font-semibold text-maroon-700 dark:text-maroon-200">{fixture.homeScore || 'TBC'} · {fixture.awayScore || 'TBC'}</p>
         )}
-        {fixture.venue && <p className="text-sm text-gray-600 font-body">{fixture.venue}</p>}
-        {fixture.playHQUrl && <Link href={fixture.playHQUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-maroon-700 hover:underline">View on PlayHQ</Link>}
+        {fixture.venue && <p className="text-sm text-content-muted font-body">{fixture.venue}</p>}
+        {fixture.playHQUrl && <Link href={fixture.playHQUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-maroon-700 dark:text-maroon-200 hover:underline">View on PlayHQ</Link>}
       </CardContent>
     </Card>
   );
@@ -81,19 +81,19 @@ function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; resu
 function LadderTable({ rows }: { rows: PlayHQLadderRow[] }) {
   // Scorebook-ledger styling: maroon-tinted header, centred numeric columns.
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-slate-700">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
+    <div className="overflow-x-auto rounded-xl border border-edge-subtle bg-surface-card dark:border-slate-700">
+      <table className="min-w-full divide-y divide-edge-subtle text-sm">
         <thead className="bg-maroon-50/60 text-left dark:bg-slate-800/80">
           <tr>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">Pos</th>
-            <th className="px-4 py-3 font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">Team</th>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">P</th>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">Pts</th>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-slate-300">%</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">Pos</th>
+            <th className="px-4 py-3 font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">Team</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">P</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">Pts</th>
+            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">%</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
-          {rows.map((row, index) => <tr key={`${row.gradeId}-${row.teamName}-${index}`} className="hover:bg-sky-50/70 dark:hover:bg-slate-700/60 transition-colors"><td className="px-4 py-3 text-center font-display font-bold text-maroon-700">{row.position ?? '-'}</td><td className="px-4 py-3 font-medium text-gray-900">{row.teamName}</td><td className="px-4 py-3 text-center">{row.played ?? '-'}</td><td className="px-4 py-3 text-center font-semibold">{row.points ?? '-'}</td><td className="px-4 py-3 text-center">{row.percentage ?? '-'}</td></tr>)}
+        <tbody className="divide-y divide-edge-subtle">
+          {rows.map((row, index) => <tr key={`${row.gradeId}-${row.teamName}-${index}`} className="hover:bg-surface-blue-subtle/60 transition-colors"><td className="px-4 py-3 text-center font-display font-bold text-maroon-700 dark:text-maroon-200">{row.position ?? '-'}</td><td className="px-4 py-3 font-medium text-content-primary">{row.teamName}</td><td className="px-4 py-3 text-center">{row.played ?? '-'}</td><td className="px-4 py-3 text-center font-semibold">{row.points ?? '-'}</td><td className="px-4 py-3 text-center">{row.percentage ?? '-'}</td></tr>)}
         </tbody>
       </table>
     </div>
@@ -149,43 +149,43 @@ export default async function FixturesPage() {
           </div>
 
           {!playhq.configured ? (
-            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900">Fixtures will appear once PlayHQ is configured</h2><p className="mt-2 text-gray-600 font-body">The site is ready for the PlayHQ Public API. No fixture data is shown until the server-only PlayHQ environment variables are set.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures will appear once PlayHQ is configured</h2><p className="mt-2 text-content-muted font-body">The site is ready for the PlayHQ Public API. No fixture data is shown until the server-only PlayHQ environment variables are set.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : playhq.fixtures.length === 0 ? (
-            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-gray-900">No fixtures returned by PlayHQ</h2><p className="mt-2 text-gray-600 font-body">Check the selected season and grade configuration in Vercel if fixtures are expected.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">No fixtures returned by PlayHQ</h2><p className="mt-2 text-content-muted font-body">Check the selected season and grade configuration in Vercel if fixtures are expected.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : (
             <>
               <section>
                 <h2 className="section-title mb-6">Upcoming Fixtures</h2>
-                {Object.values(upcomingByGrade).length === 0 ? <p className="text-gray-600 font-body">No upcoming fixtures are currently listed.</p> : Object.values(upcomingByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-gray-900">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}</div></div>)}
+                {Object.values(upcomingByGrade).length === 0 ? <p className="text-content-muted font-body">No upcoming fixtures are currently listed.</p> : Object.values(upcomingByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}</div></div>)}
               </section>
 
               <section>
                 <h2 className="section-title mb-6">Recent Results</h2>
-                {Object.values(resultsByGrade).length === 0 ? <p className="text-gray-600 font-body">No recent results are currently listed.</p> : Object.values(resultsByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-gray-900">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} result />)}</div></div>)}
+                {Object.values(resultsByGrade).length === 0 ? <p className="text-content-muted font-body">No recent results are currently listed.</p> : Object.values(resultsByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} result />)}</div></div>)}
               </section>
             </>
           )}
         </div>
       </section>
 
-      {playhq.ladders.length > 0 && <section className="section-padding surface-sky"><div className="container-width"><h2 className="section-title mb-8">Ladders</h2>{Object.values(laddersByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-gray-900">{group.gradeName}</h3><LadderTable rows={group.rows} /></div>)}</div></section>}
+      {playhq.ladders.length > 0 && <section className="section-padding surface-blue-band"><div className="container-width"><h2 className="section-title mb-8">Ladders</h2>{Object.values(laddersByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><LadderTable rows={group.rows} /></div>)}</div></section>}
 
       {teamLinks.length > 0 && (
         <section className="section-padding">
           <div className="container-width">
             <h2 className="section-title mb-4">{blocks['fixtures.team_links']?.title || 'Follow your team on PlayHQ'}</h2>
-            {blocks['fixtures.team_links']?.body && <p className="text-gray-600 font-body max-w-3xl mb-6">{blocks['fixtures.team_links'].body}</p>}
+            {blocks['fixtures.team_links']?.body && <p className="text-content-muted font-body max-w-3xl mb-6">{blocks['fixtures.team_links'].body}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {teamLinks.map((link) => (
                 <a key={link.id} href={link.href} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
                   <Card className="h-full hover-lift">
                     <CardContent className="p-5 space-y-2">
                       <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-display font-bold text-gray-900">{link.title}</h3>
+                        <h3 className="font-display font-bold text-content-primary">{link.title}</h3>
                         {link.badge && <Badge variant="default">{link.badge}</Badge>}
                       </div>
-                      {link.description && <p className="text-sm text-gray-600 font-body">{link.description}</p>}
-                      <span className="inline-flex items-center text-sm font-semibold text-maroon-700">
+                      {link.description && <p className="text-sm text-content-muted font-body">{link.description}</p>}
+                      <span className="inline-flex items-center text-sm font-semibold text-maroon-700 dark:text-maroon-200">
                         {link.is_external ? 'View on PlayHQ' : 'View'}
                         {link.is_external && (
                           <svg className="ml-1.5 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">

@@ -140,13 +140,13 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className="text-xs px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+          className="text-xs px-3 py-1.5 rounded border border-edge-strong hover:bg-surface-page disabled:opacity-60"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
           {uploading ? 'Uploading...' : isPdf ? 'Upload PDF' : 'Upload image'}
         </button>
-        <p className="text-xs text-gray-500">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP, GIF · max 4 MB'}</p>
+        <p className="text-xs text-content-muted">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP, GIF · max 4 MB'}</p>
       </div>
       <input
         ref={fileInputRef}
@@ -160,10 +160,10 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
           }
         }}
       />
-      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
+      {helpText && <p className="text-xs text-content-muted">{helpText}</p>}
       {progressText && <p className="text-xs text-green-700">{progressText}</p>}
       {metadata?.publicPath && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-content-muted">
           Saved as {metadata.publicPath}
           {metadata.commitUrl ? (
             <>
@@ -181,7 +181,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       {error && <p className="text-xs text-red-600">{error}</p>}
       {value && !isPdf && (
         <div className="space-y-1">
-          <div className="relative h-20 w-20 rounded border border-gray-200 overflow-hidden bg-gray-50">
+          <div className="relative h-20 w-20 rounded border border-edge-subtle overflow-hidden bg-surface-page">
             {!previewFailed && isValidBrowserImagePath(trimmedValue) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -191,7 +191,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
                 onError={() => setPreviewFailed(true)}
               />
             ) : (
-              <div className="h-full w-full flex items-center justify-center px-2 text-center text-[10px] text-gray-500">
+              <div className="h-full w-full flex items-center justify-center px-2 text-center text-[10px] text-content-muted">
                 Preview unavailable
               </div>
             )}

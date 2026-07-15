@@ -225,11 +225,11 @@ export default function AdminEventsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Calendar className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Events
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {events.length} event{events.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -255,15 +255,15 @@ export default function AdminEventsPage() {
       />
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : events.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No events yet. Create your first event.</p>
+          <p className="text-content-muted font-body">No events yet. Create your first event.</p>
         </div>
       ) : (
         <Table>
@@ -275,7 +275,7 @@ export default function AdminEventsPage() {
                   aria-label="Select all events"
                   checked={events.length > 0 && selectedIds.length === events.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -296,7 +296,7 @@ export default function AdminEventsPage() {
                     aria-label={`Select ${event.title}`}
                     checked={selectedIds.includes(event.id)}
                     onChange={() => toggleSelected(event.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{event.title}</TableCell>
@@ -332,11 +332,11 @@ export default function AdminEventsPage() {
       )}
 
       <div className="mt-10">
-        <h2 className="text-xl font-display font-bold text-gray-900 mb-3">Event Registrations</h2>
+        <h2 className="text-xl font-display font-bold text-content-primary mb-3">Event Registrations</h2>
         {registrationsLoading ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">Loading registrations...</div>
+          <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">Loading registrations...</div>
         ) : registrations.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">No registrations yet.</div>
+          <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">No registrations yet.</div>
         ) : (
           <Table>
             <TableHead>
@@ -487,12 +487,12 @@ export default function AdminEventsPage() {
               type="checkbox"
               checked={form.published}
               onChange={(e) => setForm({ ...form, published: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+              className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
-            <span className="text-sm font-body text-gray-700">Published</span>
+            <span className="text-sm font-body text-content-secondary">Published</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
@@ -510,7 +510,7 @@ export default function AdminEventsPage() {
         title="Delete Event"
         size="sm"
       >
-        <p className="text-sm text-gray-600 font-body">
+        <p className="text-sm text-content-muted font-body">
           Are you sure you want to delete this event? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3 mt-6">

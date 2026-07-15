@@ -46,16 +46,20 @@ const config: Config = {
           muted: 'rgb(var(--surface-muted) / <alpha-value>)',
           nav: 'rgb(var(--surface-nav) / <alpha-value>)',
           footer: 'rgb(var(--surface-footer) / <alpha-value>)',
+          'blue-subtle': 'rgb(var(--surface-blue-subtle) / <alpha-value>)',
+          'blue-card': 'rgb(var(--surface-blue-card) / <alpha-value>)',
         },
         content: {
           primary: 'rgb(var(--text-primary) / <alpha-value>)',
           secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
           inverse: 'rgb(var(--text-inverse) / <alpha-value>)',
+          blue: 'rgb(var(--text-blue) / <alpha-value>)',
         },
         edge: {
           subtle: 'rgb(var(--border-subtle) / <alpha-value>)',
           strong: 'rgb(var(--border-strong) / <alpha-value>)',
+          blue: 'rgb(var(--border-blue) / <alpha-value>)',
         },
         status: {
           success: 'rgb(var(--status-success) / <alpha-value>)',

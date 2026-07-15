@@ -7,13 +7,13 @@ import { cn } from '@/lib/utils';
 
 export default function CalendarLegend({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-xl border border-gray-100 bg-white p-4', className)}>
-      <h3 className="text-xs font-body font-semibold uppercase tracking-[0.08em] text-maroon-800 mb-3">
+    <div className={cn('rounded-xl border border-edge-subtle bg-surface-card p-4', className)}>
+      <h3 className="text-xs font-body font-semibold uppercase tracking-[0.08em] text-maroon-800 dark:text-maroon-200 mb-3">
         Event categories
       </h3>
       <ul className="flex flex-wrap gap-x-5 gap-y-2">
         {CALENDAR_EVENT_TYPES.map((type) => (
-          <li key={type} className="inline-flex items-center gap-2 text-sm font-body text-gray-600">
+          <li key={type} className="inline-flex items-center gap-2 text-sm font-body text-content-muted">
             <span
               className="h-3 w-3 rounded-sm"
               style={{ backgroundColor: CALENDAR_EVENT_TYPE_COLOURS[type] }}
@@ -22,11 +22,11 @@ export default function CalendarLegend({ className }: { className?: string }) {
             {CALENDAR_EVENT_TYPE_LABELS[type]}
           </li>
         ))}
-        <li className="inline-flex items-center gap-2 text-sm font-body text-gray-600">
-          <span className="h-3 w-3 rounded-sm ring-2 ring-gold-400 bg-white" aria-hidden="true" />
+        <li className="inline-flex items-center gap-2 text-sm font-body text-content-muted">
+          <span className="h-3 w-3 rounded-sm ring-2 ring-gold-400 bg-surface-card" aria-hidden="true" />
           Featured
         </li>
-        <li className="inline-flex items-center gap-2 text-sm font-body text-gray-600">
+        <li className="inline-flex items-center gap-2 text-sm font-body text-content-muted">
           <span className="h-3 w-3 rounded-sm bg-gray-400" aria-hidden="true" />
           Cancelled / postponed
         </li>

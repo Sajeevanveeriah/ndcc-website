@@ -32,7 +32,7 @@ export default function CalendarFilters({ activeTypes, onTypesChange, search, on
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search events by title, location or details"
           aria-label="Search calendar events"
-          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm font-body text-gray-800 placeholder:text-gray-400 focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-500/30"
+          className="w-full rounded-lg border border-edge-subtle bg-surface-card py-2 pl-9 pr-3 text-sm font-body text-content-primary placeholder:text-gray-400 focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-500/30"
         />
       </div>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by event type">
@@ -43,7 +43,7 @@ export default function CalendarFilters({ activeTypes, onTypesChange, search, on
             'rounded-full px-3 py-1 text-xs font-body font-semibold transition-colors border',
             activeTypes.length === 0
               ? 'bg-maroon-800 text-white border-maroon-800'
-              : 'bg-white text-gray-600 border-gray-200 hover:border-maroon-300'
+              : 'bg-surface-card text-content-muted border-edge-subtle hover:border-maroon-300'
           )}
           aria-pressed={activeTypes.length === 0}
         >
@@ -61,7 +61,7 @@ export default function CalendarFilters({ activeTypes, onTypesChange, search, on
                 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-body font-semibold transition-colors border',
                 active
                   ? 'text-white border-transparent'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-maroon-300'
+                  : 'bg-surface-card text-content-muted border-edge-subtle hover:border-maroon-300'
               )}
               style={active ? { backgroundColor: CALENDAR_EVENT_TYPE_COLOURS[type] } : undefined}
             >

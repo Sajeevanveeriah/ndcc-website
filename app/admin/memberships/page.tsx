@@ -159,34 +159,34 @@ export default function AdminMembershipsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-display font-bold">Social Memberships</h1>
-        <p className="text-sm text-gray-600 mt-1">Edit public membership plans and add-ons without changing signup, payment, or email behaviour.</p>
+        <p className="text-sm text-content-muted mt-1">Edit public membership plans and add-ons without changing signup, payment, or email behaviour.</p>
       </div>
-      {message && <p className="rounded-lg border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-gray-700">{message}</p>}
+      {message && <p className="rounded-lg border border-edge-blue/70 bg-surface-blue-subtle px-4 py-3 text-sm text-content-secondary">{message}</p>}
 
-      <form onSubmit={addPlan} className="bg-white border rounded-xl p-4 grid md:grid-cols-4 gap-3 items-end">
+      <form onSubmit={addPlan} className="bg-surface-card border rounded-xl p-4 grid md:grid-cols-4 gap-3 items-end">
         <Input id="plan-name" label="New plan name" value={newPlan.name} onChange={(e) => setNewPlan((prev) => ({ ...prev, name: e.target.value }))} required />
         <Input id="plan-description" label="Description" value={newPlan.description} onChange={(e) => setNewPlan((prev) => ({ ...prev, description: e.target.value }))} />
         <Input id="plan-price" label="Price" type="number" min="0" step="0.01" value={newPlan.price} onChange={(e) => setNewPlan((prev) => ({ ...prev, price: e.target.value }))} required />
         <Button type="submit" isLoading={savingKey === 'new-plan'}>Add Plan</Button>
       </form>
 
-      <div className="bg-white border rounded-xl p-4 overflow-x-auto">
+      <div className="bg-surface-card border rounded-xl p-4 overflow-x-auto">
         <h2 className="font-display font-bold mb-3">Plans</h2>
         <div className="space-y-3 min-w-[760px]">
           {plans.map((plan, index) => (
-            <div key={plan.id} className="grid grid-cols-[1.3fr_1.5fr_0.55fr_0.45fr_0.5fr_auto] gap-3 items-end rounded-lg border border-gray-100 p-3">
+            <div key={plan.id} className="grid grid-cols-[1.3fr_1.5fr_0.55fr_0.45fr_0.5fr_auto] gap-3 items-end rounded-lg border border-edge-subtle p-3">
               <Input id={`plan-name-${plan.id}`} label="Name" value={plan.name} onChange={(e) => setPlans((prev) => prev.map((item, i) => i === index ? { ...item, name: e.target.value } : item))} />
               <Input id={`plan-description-${plan.id}`} label="Description" value={plan.description || ''} onChange={(e) => setPlans((prev) => prev.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} />
               <Input id={`plan-price-${plan.id}`} label="Price" type="number" min="0" step="0.01" value={plan.price} onChange={(e) => setPlans((prev) => prev.map((item, i) => i === index ? { ...item, price: e.target.value } : item))} />
               <Input id={`plan-order-${plan.id}`} label="Order" type="number" value={plan.sort_order} onChange={(e) => setPlans((prev) => prev.map((item, i) => i === index ? { ...item, sort_order: e.target.value } : item))} />
-              <label className="flex items-center gap-2 pb-2 text-sm text-gray-700"><input type="checkbox" checked={plan.is_active} onChange={(e) => setPlans((prev) => prev.map((item, i) => i === index ? { ...item, is_active: e.target.checked } : item))} /> Active</label>
+              <label className="flex items-center gap-2 pb-2 text-sm text-content-secondary"><input type="checkbox" checked={plan.is_active} onChange={(e) => setPlans((prev) => prev.map((item, i) => i === index ? { ...item, is_active: e.target.checked } : item))} /> Active</label>
               <Button size="sm" onClick={() => savePlan(plan)} isLoading={savingKey === `plan-${plan.id}`}>Save</Button>
             </div>
           ))}
         </div>
       </div>
 
-      <form onSubmit={addAddon} className="bg-white border rounded-xl p-4 grid md:grid-cols-5 gap-3 items-end">
+      <form onSubmit={addAddon} className="bg-surface-card border rounded-xl p-4 grid md:grid-cols-5 gap-3 items-end">
         <Input id="addon-name" label="New add-on name" value={newAddon.name} onChange={(e) => setNewAddon((prev) => ({ ...prev, name: e.target.value }))} required />
         <Input id="addon-description" label="Description" value={newAddon.description} onChange={(e) => setNewAddon((prev) => ({ ...prev, description: e.target.value }))} />
         <Input id="addon-price" label="Price" type="number" min="0" step="0.01" value={newAddon.price} onChange={(e) => setNewAddon((prev) => ({ ...prev, price: e.target.value }))} required />
@@ -194,29 +194,29 @@ export default function AdminMembershipsPage() {
         <Button type="submit" isLoading={savingKey === 'new-addon'}>Add Add-on</Button>
       </form>
 
-      <div className="bg-white border rounded-xl p-4 overflow-x-auto">
+      <div className="bg-surface-card border rounded-xl p-4 overflow-x-auto">
         <h2 className="font-display font-bold mb-3">Add-ons</h2>
         <div className="space-y-3 min-w-[860px]">
           {addons.map((addon, index) => (
-            <div key={addon.id} className="grid grid-cols-[1.2fr_1.5fr_0.45fr_0.45fr_0.4fr_0.5fr_auto] gap-3 items-end rounded-lg border border-gray-100 p-3">
+            <div key={addon.id} className="grid grid-cols-[1.2fr_1.5fr_0.45fr_0.45fr_0.4fr_0.5fr_auto] gap-3 items-end rounded-lg border border-edge-subtle p-3">
               <Input id={`addon-name-${addon.id}`} label="Name" value={addon.name} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, name: e.target.value } : item))} />
               <Input id={`addon-description-${addon.id}`} label="Description" value={addon.description || ''} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} />
               <Input id={`addon-price-${addon.id}`} label="Price" type="number" min="0" step="0.01" value={addon.price} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, price: e.target.value } : item))} />
               <Input id={`addon-limit-${addon.id}`} label="Limit" type="number" min="0" value={addon.usage_limit} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, usage_limit: e.target.value } : item))} />
               <Input id={`addon-order-${addon.id}`} label="Order" type="number" value={addon.sort_order} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, sort_order: e.target.value } : item))} />
-              <label className="flex items-center gap-2 pb-2 text-sm text-gray-700"><input type="checkbox" checked={addon.is_active} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, is_active: e.target.checked } : item))} /> Active</label>
+              <label className="flex items-center gap-2 pb-2 text-sm text-content-secondary"><input type="checkbox" checked={addon.is_active} onChange={(e) => setAddons((prev) => prev.map((item, i) => i === index ? { ...item, is_active: e.target.checked } : item))} /> Active</label>
               <Button size="sm" onClick={() => saveAddon(addon)} isLoading={savingKey === `addon-${addon.id}`}>Save</Button>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white border rounded-xl p-4">
+      <div className="bg-surface-card border rounded-xl p-4">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="font-display font-bold">Recent Applications</h2>
           <Button size="sm" variant="secondary" onClick={loadApplications} isLoading={loadingApplications}>Refresh</Button>
         </div>
-        <ul className="space-y-2 text-sm text-gray-700">
+        <ul className="space-y-2 text-sm text-content-secondary">
           {applications.map((app) => (
             <li key={app.id} className="flex items-center justify-between gap-3">
               <span>{app.full_name} · {app.email} · {app.status}</span>

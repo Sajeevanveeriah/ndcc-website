@@ -236,9 +236,9 @@ export default function AdminApparelPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Apparel & Merch Windows</h1>
-      {status && <p className="text-sm text-gray-600">{status}</p>}
+      {status && <p className="text-sm text-content-muted">{status}</p>}
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">{editingProductId ? 'Edit Apparel Product' : 'Add Apparel Product'}</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={createProduct}>
           <Input id="slug" label="Slug" required value={productForm.slug} onChange={(e) => setProductForm((v) => ({ ...v, slug: e.target.value }))} />
@@ -255,7 +255,7 @@ export default function AdminApparelPage() {
             <label htmlFor="payment_mode" className="form-label">Payment mode</label>
             <select
               id="payment_mode"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none bg-white"
+              className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none bg-surface-card"
               value={productForm.payment_mode}
               onChange={(e) => setProductForm((v) => ({ ...v, payment_mode: e.target.value }))}
             >
@@ -286,12 +286,12 @@ export default function AdminApparelPage() {
             )}
           </div>
         </form>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-content-secondary space-y-1">
           {products.map((p) => (
             <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
               <span className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${p.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${p.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-content-muted'}`}
                 >
                   {p.active ? 'Active' : 'Archived'}
                 </span>
@@ -311,7 +311,7 @@ export default function AdminApparelPage() {
         </ul>
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">{editingWindowId ? 'Edit Merch Window' : 'Add Merch Window'}</h2>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={createWindow}>
           <Input id="label" label="Label" required value={windowForm.label} onChange={(e) => setWindowForm((v) => ({ ...v, label: e.target.value }))} />
@@ -335,7 +335,7 @@ export default function AdminApparelPage() {
           </div>
         </form>
 
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-content-secondary space-y-1">
           {windows.map((w) => (
             <li key={w.id} className="flex items-center justify-between gap-2">
               <span>{w.label} · {new Date(w.open_date).toLocaleDateString()} - {new Date(w.close_date).toLocaleDateString()} · {w.active ? 'Active' : 'Inactive'} · {w.allow_queue_after_close ? 'Queue enabled' : 'Queue disabled'}</span>
@@ -360,7 +360,7 @@ export default function AdminApparelPage() {
         </ul>
       </section>
 
-      <section className="bg-white border rounded-xl p-5">
+      <section className="bg-surface-card border rounded-xl p-5">
         <a href="/api/admin/merch/export">
           <Button variant="secondary">Export supplier CSV</Button>
         </a>

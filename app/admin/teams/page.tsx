@@ -157,11 +157,11 @@ export default function AdminTeamsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Users className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Teams
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             Manage the team cards shown on the public Teams page.
           </p>
         </div>
@@ -175,15 +175,15 @@ export default function AdminTeamsPage() {
       )}
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : teams.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No teams yet. Add your first team.</p>
+          <p className="text-content-muted font-body">No teams yet. Add your first team.</p>
         </div>
       ) : (
         <Table>
@@ -250,7 +250,7 @@ export default function AdminTeamsPage() {
             required
           />
           <div>
-            <label htmlFor="team-description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="team-description" className="block text-sm font-medium text-content-secondary mb-1">
               Description <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -258,7 +258,7 @@ export default function AdminTeamsPage() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={5}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent"
+              className="w-full rounded-lg border border-edge-strong px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent"
             />
             {formErrors.description && <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>}
           </div>
@@ -310,7 +310,7 @@ export default function AdminTeamsPage() {
         title="Delete Team"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">Are you sure you want to delete this team? Hiding it is safer if it may be needed again later.</p>
+          <p className="text-sm text-content-muted">Are you sure you want to delete this team? Hiding it is safer if it may be needed again later.</p>
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
             <Button variant="danger" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Delete</Button>

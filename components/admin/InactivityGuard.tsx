@@ -86,12 +86,12 @@ export default function InactivityGuard({ onLogout }: { onLogout: () => void }) 
         aria-modal="true"
         aria-labelledby="inactivity-warning-title"
         aria-describedby="inactivity-warning-body"
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-slate-800"
+        className="w-full max-w-sm rounded-xl bg-surface-card p-6 shadow-xl dark:bg-slate-800"
       >
-        <h2 id="inactivity-warning-title" className="text-lg font-display font-bold text-gray-900 dark:text-slate-100">
+        <h2 id="inactivity-warning-title" className="text-lg font-display font-bold text-content-primary dark:text-slate-100">
           Still there?
         </h2>
-        <p id="inactivity-warning-body" className="mt-2 text-sm font-body text-gray-600 dark:text-slate-300">
+        <p id="inactivity-warning-body" className="mt-2 text-sm font-body text-content-muted dark:text-slate-300">
           For security you will be signed out in{' '}
           <span className="font-semibold text-maroon-700 dark:text-maroon-200">{secondsLeft} seconds</span> due to
           inactivity.
@@ -112,7 +112,7 @@ export default function InactivityGuard({ onLogout }: { onLogout: () => void }) 
               setShowWarning(false);
               onLogout();
             }}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 focus-ring dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-semibold text-content-secondary transition-colors hover:bg-surface-muted focus-ring dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             Sign out now
           </button>

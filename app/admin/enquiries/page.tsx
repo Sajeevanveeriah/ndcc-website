@@ -82,16 +82,16 @@ export default function AdminEnquiriesPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Mail className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Mail className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Enquiries
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {filteredContacts.length} enquir{filteredContacts.length !== 1 ? 'ies' : 'y'}
           </p>
         </div>
       </div>
-      {message && <p className="mb-4 text-sm text-gray-600">{message}</p>}
+      {message && <p className="mb-4 text-sm text-content-muted">{message}</p>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -130,15 +130,15 @@ export default function AdminEnquiriesPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : filteredContacts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <Mail className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No enquiries found.</p>
+          <p className="text-content-muted font-body">No enquiries found.</p>
         </div>
       ) : (
         <Table>
@@ -158,7 +158,7 @@ export default function AdminEnquiriesPage() {
               <TableRow key={c.id}>
                 <TableCell>{c.name}</TableCell>
                 <TableCell>
-                  <a href={`mailto:${c.email}`} className="text-maroon-700 hover:underline">
+                  <a href={`mailto:${c.email}`} className="text-maroon-700 dark:text-maroon-200 hover:underline">
                     {c.email}
                   </a>
                 </TableCell>
@@ -227,33 +227,33 @@ export default function AdminEnquiriesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 font-body uppercase tracking-wider">Name</p>
-                <p className="text-sm text-gray-900 font-body mt-1">{selectedContact.name}</p>
+                <p className="text-xs text-content-muted font-body uppercase tracking-wider">Name</p>
+                <p className="text-sm text-content-primary font-body mt-1">{selectedContact.name}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-body uppercase tracking-wider">Email</p>
-                <a href={`mailto:${selectedContact.email}`} className="text-sm text-maroon-700 hover:underline font-body mt-1 block">
+                <p className="text-xs text-content-muted font-body uppercase tracking-wider">Email</p>
+                <a href={`mailto:${selectedContact.email}`} className="text-sm text-maroon-700 dark:text-maroon-200 hover:underline font-body mt-1 block">
                   {selectedContact.email}
                 </a>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-body uppercase tracking-wider">Type</p>
-                <p className="text-sm text-gray-900 font-body mt-1">{getEnquiryLabel(selectedContact.enquiry_type)}</p>
+                <p className="text-xs text-content-muted font-body uppercase tracking-wider">Type</p>
+                <p className="text-sm text-content-primary font-body mt-1">{getEnquiryLabel(selectedContact.enquiry_type)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-body uppercase tracking-wider">Date</p>
-                <p className="text-sm text-gray-900 font-body mt-1">{formatDate(selectedContact.created_at)}</p>
+                <p className="text-xs text-content-muted font-body uppercase tracking-wider">Date</p>
+                <p className="text-sm text-content-primary font-body mt-1">{formatDate(selectedContact.created_at)}</p>
               </div>
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 font-body uppercase tracking-wider mb-2">Message</p>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-700 font-body whitespace-pre-wrap">{selectedContact.message}</p>
+              <p className="text-xs text-content-muted font-body uppercase tracking-wider mb-2">Message</p>
+              <div className="bg-surface-page rounded-lg p-4">
+                <p className="text-sm text-content-secondary font-body whitespace-pre-wrap">{selectedContact.message}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-4 border-t border-edge-subtle">
               <div>
                 {selectedContact.responded ? (
                   <Badge variant="success">Responded</Badge>

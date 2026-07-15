@@ -43,8 +43,8 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
             {photos.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">No published gallery images</h2>
-                  <p className="text-gray-600 font-body">Published gallery images will appear here after they are added in the CMS.</p>
+                  <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No published gallery images</h2>
+                  <p className="text-content-muted font-body">Published gallery images will appear here after they are added in the CMS.</p>
                 </CardContent>
               </Card>
             ) : photos.map((photo, index) => (
@@ -55,7 +55,7 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
                   triggerRef.current = event.currentTarget;
                   setActiveIndex(index);
                 }}
-                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-gray-200 shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700"
+                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-edge-subtle shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700"
               >
                 <SafeImage
                   src={photo.image_url}
@@ -77,8 +77,8 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
             <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="group">
               <Card hover className="h-full">
                 <CardContent className="p-8 text-center">
-                  <h3 className="text-xl font-display font-bold text-gray-900 mb-2">Facebook</h3>
-                  <p className="text-gray-600 font-body text-sm">
+                  <h3 className="text-xl font-display font-bold text-content-primary mb-2">Facebook</h3>
+                  <p className="text-content-muted font-body text-sm">
                     Match reports, event photos, and club news shared regularly on our Facebook page.
                   </p>
                 </CardContent>
@@ -88,8 +88,8 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
             <Link href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="group">
               <Card hover className="h-full">
                 <CardContent className="p-8 text-center">
-                  <h3 className="text-xl font-display font-bold text-gray-900 mb-2">Instagram</h3>
-                  <p className="text-gray-600 font-body text-sm">
+                  <h3 className="text-xl font-display font-bold text-content-primary mb-2">Instagram</h3>
+                  <p className="text-content-muted font-body text-sm">
                     Follow {INSTAGRAM_HANDLE} for behind-the-scenes content, training shots, and match day highlights.
                   </p>
                 </CardContent>

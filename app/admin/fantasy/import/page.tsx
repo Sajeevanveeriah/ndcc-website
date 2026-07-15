@@ -93,11 +93,11 @@ export default function AdminFantasyImportPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <Upload className="h-6 w-6 text-maroon-700" />
+        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+          <Upload className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
           Fantasy CSV Import
         </h1>
-        <p className="text-gray-500 font-body mt-1">
+        <p className="text-content-muted font-body mt-1">
           Validate manual match-stat CSV files and save admin-only draft imports for future Fantasy Cricket scoring.
         </p>
       </div>
@@ -114,12 +114,12 @@ export default function AdminFantasyImportPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-display font-bold text-gray-900">CSV upload or paste</h2>
+            <h2 className="text-lg font-display font-bold text-content-primary">CSV upload or paste</h2>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label htmlFor="fantasy-csv-file" className="block text-sm font-semibold text-gray-700 font-body mb-2">
+                <label htmlFor="fantasy-csv-file" className="block text-sm font-semibold text-content-secondary font-body mb-2">
                   Upload CSV file
                 </label>
                 <input
@@ -127,13 +127,13 @@ export default function AdminFantasyImportPage() {
                   type="file"
                   accept=".csv,text/csv"
                   onChange={handleFileChange}
-                  className="block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-maroon-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-maroon-800"
+                  className="block w-full text-sm text-content-secondary file:mr-4 file:rounded-md file:border-0 file:bg-maroon-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-maroon-800"
                 />
-                {filename && <p className="mt-2 text-xs text-gray-500">Selected file: {filename}</p>}
+                {filename && <p className="mt-2 text-xs text-content-muted">Selected file: {filename}</p>}
               </div>
 
               <div>
-                <label htmlFor="fantasy-csv-text" className="block text-sm font-semibold text-gray-700 font-body mb-2">
+                <label htmlFor="fantasy-csv-text" className="block text-sm font-semibold text-content-secondary font-body mb-2">
                   Or paste CSV text
                 </label>
                 <textarea
@@ -144,13 +144,13 @@ export default function AdminFantasyImportPage() {
                     setFilename(null);
                     setPreview(null);
                   }}
-                  className="min-h-64 w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                  className="min-h-64 w-full rounded-md border border-edge-strong px-3 py-2 font-mono text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
                   placeholder={csvColumns.join(',')}
                 />
               </div>
 
               <div>
-                <label htmlFor="fantasy-source-url" className="block text-sm font-semibold text-gray-700 font-body mb-2">
+                <label htmlFor="fantasy-source-url" className="block text-sm font-semibold text-content-secondary font-body mb-2">
                   Source URL (optional)
                 </label>
                 <input
@@ -158,10 +158,10 @@ export default function AdminFantasyImportPage() {
                   type="url"
                   value={sourceUrl}
                   onChange={(event) => setSourceUrl(event.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                  className="w-full rounded-md border border-edge-strong px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
                   placeholder="https://www.playhq.com/... (public scorecard these stats were read from)"
                 />
-                <p className="mt-1 text-xs text-gray-500 font-body">Recorded on the batch with a fetched-at timestamp so published scores stay traceable to their official source.</p>
+                <p className="mt-1 text-xs text-content-muted font-body">Recorded on the batch with a fetched-at timestamp so published scores stay traceable to their official source.</p>
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -180,16 +180,16 @@ export default function AdminFantasyImportPage() {
 
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-display font-bold text-gray-900">Expected CSV columns</h2>
+            <h2 className="text-lg font-display font-bold text-content-primary">Expected CSV columns</h2>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-sm text-gray-600 font-body">
+            <p className="mb-4 text-sm text-content-muted font-body">
               Prepare one row per player match stat line. Keep player names consistent with the Fantasy Players registry.
             </p>
-            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <code className="whitespace-nowrap text-sm text-gray-800">{csvColumns.join(',')}</code>
+            <div className="overflow-x-auto rounded-lg border border-edge-subtle bg-surface-page p-4">
+              <code className="whitespace-nowrap text-sm text-content-primary">{csvColumns.join(',')}</code>
             </div>
-            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-gray-600 font-body">
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-content-muted font-body">
               <li><strong>match_date</strong> should use an ISO-style date such as YYYY-MM-DD.</li>
               <li><strong>not_out</strong> and <strong>player_of_match</strong> should be true or false values.</li>
               <li><strong>ducks</strong> should be numeric so deductions can be calculated consistently.</li>
@@ -203,7 +203,7 @@ export default function AdminFantasyImportPage() {
         <div className="mt-6 space-y-6">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-display font-bold text-gray-900">Preview summary</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary">Preview summary</h2>
             </CardHeader>
             <CardContent>
               {preview.errors.length > 0 && (
@@ -226,7 +226,7 @@ export default function AdminFantasyImportPage() {
 
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-display font-bold text-gray-900">Row preview</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary">Row preview</h2>
             </CardHeader>
             <CardContent>
               <Table>
@@ -273,9 +273,9 @@ export default function AdminFantasyImportPage() {
 
 function SummaryItem({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className="mt-1 text-xl font-display font-bold text-gray-900">{value}</dd>
+    <div className="rounded-lg border border-edge-subtle bg-surface-page px-4 py-3">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-content-muted">{label}</dt>
+      <dd className="mt-1 text-xl font-display font-bold text-content-primary">{value}</dd>
     </div>
   );
 }

@@ -34,6 +34,12 @@
     --brand-maroon-surface: 128 0 0;    /* maroon bands / heroes             */
     --brand-blue-surface: 22 40 69;     /* deep club navy                    */
     --brand-gold: 212 160 23;           /* gold-400                          */
+    /* Semantic blue surfaces: informational bands, callouts, fixture and
+       status boxes. Solid colours in both themes — never opacity washes. */
+    --surface-blue-subtle: 232 243 250; /* #E8F3FA section band              */
+    --surface-blue-card: 219 236 248;   /* bounded blue callout/card         */
+    --text-blue: 15 58 95;              /* dark navy copy/headings on blue   */
+    --border-blue: 158 190 214;         /* defined blue-grey keyline         */
   }
 
   .dark {
@@ -60,6 +66,12 @@
     --brand-maroon-surface: 74 0 0;     /* restrained maroon-900             */
     --brand-blue-surface: 16 28 49;
     --brand-gold: 224 189 85;           /* gold-300 reads better on dark     */
+    /* Dark blue surfaces stay visibly blue — a clear step off the page and
+       cards, with solid fills and visible borders (no alpha-only washes). */
+    --surface-blue-subtle: 16 42 68;    /* #102A44                           */
+    --surface-blue-card: 21 52 81;      /* #153451                           */
+    --text-blue: 191 219 243;           /* readable ice-blue copy            */
+    --border-blue: 58 96 133;
   }
 
   html {
@@ -196,17 +208,18 @@
     @apply text-lg text-content-muted font-body max-w-2xl;
   }
 
-  /* Updated: was bg-sky-50 (barely visible). Now a genuine sky_accent tint. */
-  .surface-sky {
-    background-color: rgba(173, 216, 230, 0.18);
-    /* Very light maroon diagonal stripe to add subtle texture over the flat tint. */
-    background-image: repeating-linear-gradient(
-      -45deg,
-      rgba(128, 0, 0, 0.022) 0px,
-      rgba(128, 0, 0, 0.022) 1px,
-      transparent 1px,
-      transparent 16px
-    );
+  /* Semantic blue surfaces (replaced the alpha-wash .surface-sky). Solid
+     token-backed fills that stay visibly blue and bordered in both themes. */
+  .surface-blue-band {
+    @apply bg-surface-blue-subtle border-y border-edge-blue/60;
+  }
+
+  .panel-blue {
+    @apply bg-surface-blue-card border border-edge-blue rounded-xl;
+  }
+
+  .panel-blue-subtle {
+    @apply bg-surface-blue-subtle border border-edge-blue/70 rounded-xl;
   }
 
   /* Image zoom on card hover: apply to the <img>, with `group` + overflow-hidden on the container */
@@ -308,38 +321,10 @@
   }
 }
 
-/* Tone the sky tint down on dark surfaces; the light-mode alpha reads as a grey wash. */
-.dark .surface-sky {
-  background-color: rgba(173, 216, 230, 0.06);
-}
-
-/* ---- Dark-mode compatibility layer ----
-   Public pages were written against the light utility ramps (bg-white sections,
-   text-gray-* copy, maroon-700 headings). Rather than touch hundreds of call
-   sites, remap those ramps when dark mode is active. :where() keeps each
-   selector at one class of specificity, so any explicit dark:* utility on an
-   element still beats this layer. */
-:where(.dark) .bg-white { background-color: rgb(var(--surface-card)); }
-:where(.dark) .bg-gray-50,
-:where(.dark) .bg-slate-50,
-:where(.dark) .bg-cream { background-color: rgb(var(--surface-page)); }
-:where(.dark) .bg-gray-100 { background-color: rgb(var(--surface-muted)); }
-:where(.dark) .bg-maroon-50,
-:where(.dark) .bg-maroon-100 { background-color: theme('colors.maroon.950'); }
-:where(.dark) .text-gray-900,
-:where(.dark) .text-gray-800 { color: rgb(var(--text-primary)); }
-:where(.dark) .text-gray-700 { color: rgb(var(--text-secondary)); }
-:where(.dark) .text-gray-600,
-:where(.dark) .text-gray-500 { color: rgb(var(--text-muted)); }
-:where(.dark) .text-maroon-900,
-:where(.dark) .text-maroon-800,
-:where(.dark) .text-maroon-700 { color: theme('colors.maroon.200'); }
-:where(.dark) .text-maroon-600 { color: theme('colors.maroon.300'); }
-:where(.dark) .border-gray-100,
-:where(.dark) .border-gray-200 { border-color: rgb(var(--border-subtle)); }
-:where(.dark) .border-gray-300 { border-color: rgb(var(--border-strong)); }
-:where(.dark) .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-:where(.dark) .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: rgb(var(--border-subtle)); }
+/* The broad dark-mode compatibility layer (":where(.dark) .bg-white { … }"
+   utility remapping) has been removed: every call site now uses the semantic
+   token utilities (bg-surface-*, text-content-*, border-edge-*) or carries an
+   explicit dark: variant, so no plain utility changes meaning under .dark. */
 
 /* Animation keyframes */
 @keyframes kenBurns {

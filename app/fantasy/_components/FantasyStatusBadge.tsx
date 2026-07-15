@@ -12,8 +12,8 @@ export default function FantasyStatusBadge({ status }: { status: FantasyModuleSt
       className={cn(
         'inline-flex items-center rounded-full px-3 py-1 text-xs font-body font-semibold uppercase tracking-wide',
         status === 'available'
-          ? 'bg-maroon-100 text-maroon-800'
-          : 'bg-sky-100 text-sky-900'
+          ? 'bg-maroon-100 dark:bg-maroon-950 text-maroon-800 dark:text-maroon-200'
+          : 'bg-surface-blue-card text-content-blue'
       )}
     >
       {statusLabels[status]}

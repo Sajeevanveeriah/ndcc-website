@@ -56,14 +56,14 @@ export default async function FantasyPlayersPage({ searchParams }: { searchParam
         <FantasyBackLink />
         <div className="mb-8 max-w-3xl">
           <h1 className="section-title">Fantasy Player List</h1>
-          <p className="font-body text-gray-700 leading-relaxed">
+          <p className="font-body text-content-secondary leading-relaxed">
             Browse active fantasy players published by the club, including role, team or grade label, and current fantasy price.
           </p>
         </div>
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} />
           {seasonContext.selected && (
-            <span className="rounded-full bg-maroon-50 px-3 py-1 text-xs font-body text-maroon-700">{seasonStatusLabel(seasonContext.selected)} season</span>
+            <span className="rounded-full bg-maroon-50 dark:bg-maroon-950 px-3 py-1 text-xs font-body text-maroon-700 dark:text-maroon-200">{seasonStatusLabel(seasonContext.selected)} season</span>
           )}
         </div>
 
@@ -77,8 +77,8 @@ export default async function FantasyPlayersPage({ searchParams }: { searchParam
         ) : players.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <h2 className="text-xl font-display font-bold text-gray-900 mb-2">No active fantasy players published yet</h2>
-              <p className="font-body text-gray-700">
+              <h2 className="text-xl font-display font-bold text-content-primary mb-2">No active fantasy players published yet</h2>
+              <p className="font-body text-content-secondary">
                 The player list appears after club admins publish active fantasy players and prices.
               </p>
             </CardContent>

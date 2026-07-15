@@ -48,9 +48,9 @@ export default async function CalendarPage() {
       <section className="section-padding">
         <div className="container-width">
           {calendarResult.degraded ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-              <h2 className="text-xl font-display font-bold text-maroon-800 mb-2">Calendar temporarily unavailable</h2>
-              <p className="text-gray-600 font-body text-sm">
+            <div className="rounded-xl border border-edge-subtle bg-surface-card p-10 text-center">
+              <h2 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">Calendar temporarily unavailable</h2>
+              <p className="text-content-muted font-body text-sm">
                 We couldn&apos;t load the club calendar just now. Please refresh the page or try again shortly.
               </p>
             </div>
@@ -60,7 +60,7 @@ export default async function CalendarPage() {
                 <NdccCalendar events={feedEvents} />
               </div>
               <aside className="space-y-6">
-                <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-soft">
+                <div className="rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-soft">
                   <UpcomingEventsStrip
                     events={upcomingEvents}
                     heading="Coming up"
@@ -69,22 +69,22 @@ export default async function CalendarPage() {
                     emptyMessage="No upcoming events are published right now — check back soon."
                   />
                 </div>
-                <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-soft space-y-3">
-                  <h3 className="font-display font-bold uppercase tracking-wide text-maroon-800 text-lg">
+                <div className="rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-soft space-y-3">
+                  <h3 className="font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200 text-lg">
                     Take the calendar with you
                   </h3>
-                  <p className="text-sm font-body text-gray-600">
+                  <p className="text-sm font-body text-content-muted">
                     Import published club events into Google, Apple or Outlook calendars.
                   </p>
                   <AddToCalendarButton />
                 </div>
-                <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-soft">
-                  <h3 className="font-display font-bold uppercase tracking-wide text-maroon-800 text-lg mb-2">
+                <div className="rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-soft">
+                  <h3 className="font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200 text-lg mb-2">
                     Spotted a problem?
                   </h3>
-                  <p className="text-sm font-body text-gray-600">
+                  <p className="text-sm font-body text-content-muted">
                     If an event time or detail looks wrong,{' '}
-                    <Link href="/contact" className="text-maroon-700 font-semibold hover:text-maroon-500">
+                    <Link href="/contact" className="text-maroon-700 dark:text-maroon-200 font-semibold hover:text-maroon-500">
                       let the club know
                     </Link>{' '}
                     and we&apos;ll fix it.

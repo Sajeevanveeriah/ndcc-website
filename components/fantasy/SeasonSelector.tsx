@@ -35,12 +35,12 @@ export default function SeasonSelector({ seasons, selectedSlug, label = 'Season'
   if (seasons.length <= 1) return null;
 
   return (
-    <label className="inline-flex items-center gap-2 font-body text-sm text-gray-700">
+    <label className="inline-flex items-center gap-2 font-body text-sm text-content-secondary">
       <span className="font-semibold">{label}</span>
       <select
         value={selectedSlug}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-maroon-300 bg-white px-3 py-2 text-sm font-body text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-maroon-600"
+        className="rounded-md border border-maroon-300 bg-surface-card px-3 py-2 text-sm font-body text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-maroon-600"
         aria-label="Choose fantasy season"
       >
         {seasons.map((season) => (

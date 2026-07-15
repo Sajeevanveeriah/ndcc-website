@@ -190,11 +190,11 @@ export default function SponsorsPage() {
       </section>
 
       {/* Intro */}
-      <section className="section-padding bg-gray-50">
+      <section className="section-padding bg-surface-page">
         <div className="container-width">
           <ScrollReveal className="max-w-3xl mx-auto text-center">
             <h2 className="section-title">{introTitle}</h2>
-            <p className="text-gray-600 font-body text-lg leading-relaxed">
+            <p className="text-content-muted font-body text-lg leading-relaxed">
               {introBody}
             </p>
           </ScrollReveal>
@@ -207,7 +207,7 @@ export default function SponsorsPage() {
           <div className="container-width">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-100 p-6 animate-pulse">
+                <div key={i} className="bg-surface-card rounded-xl border border-edge-subtle p-6 animate-pulse">
                   <div className="h-20 bg-gray-200 rounded mb-4" />
                   <div className="h-4 bg-gray-200 rounded w-2/3" />
                 </div>
@@ -221,8 +221,8 @@ export default function SponsorsPage() {
             <div className="container-width">
               <Card>
                 <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-display font-bold text-maroon-800 mb-2">No active sponsors published</h2>
-                  <p className="text-gray-600 font-body">Active sponsor records will appear here after they are published in the CMS.</p>
+                  <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No active sponsors published</h2>
+                  <p className="text-content-muted font-body">Active sponsor records will appear here after they are published in the CMS.</p>
                 </CardContent>
               </Card>
             </div>
@@ -230,7 +230,7 @@ export default function SponsorsPage() {
         ) : tiersWithSponsors.map((tier, idx) => (
           <section
             key={tier.value}
-            className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-gray-50'}
+            className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-surface-page'}
           >
             <div className="container-width">
               {/* Honour-board tier divider: short maroon rule + gold-tinted tier badge. */}
@@ -273,14 +273,14 @@ export default function SponsorsPage() {
                           />
                           {/* Name caption beneath the logo so a low-contrast or missing logo still
                               shows an identifiable, non-empty card. */}
-                          <h3 className="font-display font-bold text-gray-900 text-lg group-hover:text-maroon-700 transition-colors mb-2">
+                          <h3 className="font-display font-bold text-content-primary text-lg group-hover:text-maroon-700 transition-colors mb-2">
                             {sponsor.name}
                           </h3>
                           {description && (
-                            <p className="text-gray-600 font-body text-sm mb-3">{description}</p>
+                            <p className="text-content-muted font-body text-sm mb-3">{description}</p>
                           )}
                           {sponsor.website && (
-                            <p className="text-maroon-600 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
+                            <p className="text-maroon-600 dark:text-maroon-300 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
                               Visit website
                               <svg className="ml-1 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -298,9 +298,9 @@ export default function SponsorsPage() {
                     <Link href="#enquiry-form" className="group block h-full">
                       <Card hover className="h-full border-2 border-dashed border-maroon-200">
                         <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
-                          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 text-2xl font-bold text-maroon-700 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
-                          <h3 className="font-display text-lg font-bold text-maroon-800">Become a Sponsor</h3>
-                          <p className="mt-1 font-body text-sm text-gray-600">Partner with the Dinos — enquire below.</p>
+                          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 dark:bg-maroon-950 text-2xl font-bold text-maroon-700 dark:text-maroon-200 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
+                          <h3 className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200">Become a Sponsor</h3>
+                          <p className="mt-1 font-body text-sm text-content-muted">Partner with the Dinos — enquire below.</p>
                         </CardContent>
                       </Card>
                     </Link>
@@ -328,11 +328,11 @@ export default function SponsorsPage() {
         </div>
       </section>
 
-      <section className="section-padding bg-gray-50">
+      <section className="section-padding bg-surface-page">
         <div className="container-width max-w-4xl mx-auto space-y-8">
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">2026/27 Sponsorship Packages</h2>
+              <h2 className="text-2xl font-display font-bold text-content-primary mb-3">2026/27 Sponsorship Packages</h2>
               {/* Same 8 real packages/prices, presented as a scannable ledger table. */}
               <div className="mb-4" aria-label="Sponsorship package summary">
                 <Table>
@@ -354,8 +354,8 @@ export default function SponsorsPage() {
                       ['Platinum Sponsorship', 'AUD 2,100'],
                     ].map(([tier, price]) => (
                       <TableRow key={tier}>
-                        <TableCell className="font-semibold text-gray-900">{tier}</TableCell>
-                        <TableCell className="text-right font-display font-bold text-maroon-700">{price}</TableCell>
+                        <TableCell className="font-semibold text-content-primary">{tier}</TableCell>
+                        <TableCell className="text-right font-display font-bold text-maroon-700 dark:text-maroon-200">{price}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -363,7 +363,7 @@ export default function SponsorsPage() {
               </div>
               <div className="space-y-2">
                 {sponsorshipDownloads2026_27.map((download) => (
-                  <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 hover:text-maroon-500 hover:underline font-body">
+                  <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 hover:underline font-body">
                     {download.title}
                   </a>
                 ))}
@@ -373,12 +373,12 @@ export default function SponsorsPage() {
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-2xl font-display font-bold text-gray-900 mb-3">Apparel Sponsorship</h2>
-              <p className="text-gray-700 font-body mb-4">
+              <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Apparel Sponsorship</h2>
+              <p className="text-content-secondary font-body mb-4">
                 Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season.
               </p>
-              <p className="text-gray-700 font-body">
-                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 hover:text-maroon-500 transition-colors">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 hover:text-maroon-500 transition-colors">{clubEmail}</a>.
+              <p className="text-content-secondary font-body">
+                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors">{clubEmail}</a>.
               </p>
             </CardContent>
           </Card>

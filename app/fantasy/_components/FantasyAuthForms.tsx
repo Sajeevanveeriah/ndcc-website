@@ -209,7 +209,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   if (mode === 'account' && !sessionEmail) {
     return (
-      <Card><CardContent className="p-6"><p className="font-body text-gray-700 mb-4">Sign in to manage your fantasy account.</p><Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>
+      <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">Sign in to manage your fantasy account.</p><Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>
     );
   }
 
@@ -222,7 +222,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <p className="text-sm font-body text-amber-900">
               <strong>Fantasy registration is currently closed.</strong> New manager sign-ups are paused by the club. Already have an account?{' '}
-              <Link href="/fantasy/login" className="font-semibold text-maroon-700 hover:underline">Sign in instead</Link>.
+              <Link href="/fantasy/login" className="font-semibold text-maroon-700 dark:text-maroon-200 hover:underline">Sign in instead</Link>.
             </p>
           </div>
         )}
@@ -230,7 +230,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode !== 'login' && <Input id="teamName" label="Fantasy team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
         {mode !== 'account' && <Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
         {mode !== 'account' && <Input id="password" label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />}
-        {mode === 'account' && <p className="text-sm text-gray-600 font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
+        {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
         {feedback && <p className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
           {!awaitingConfirm && (
@@ -262,7 +262,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
             type="button"
             onClick={handleForgotPassword}
             disabled={sendingReset}
-            className="text-sm font-body font-semibold text-maroon-700 hover:underline disabled:opacity-60"
+            className="text-sm font-body font-semibold text-maroon-700 dark:text-maroon-200 hover:underline disabled:opacity-60"
           >
             {sendingReset ? 'Sending reset email…' : 'Forgot password?'}
           </button>
