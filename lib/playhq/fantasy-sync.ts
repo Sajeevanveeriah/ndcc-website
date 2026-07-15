@@ -78,8 +78,19 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
 
   const queue: QueueEntry[] = [];
   const reviewItems: ReviewItem[] = [];
+  // Grades whose fixture endpoint is unavailable (e.g. HTTP 404 — PlayHQ does
+  // not serve fixture data for every discovered grade id). These are recorded
+  // and skipped rather than aborting the whole job; only a total failure of
+  // every grade stops the sync.
+  const skippedGrades: Array<{ gradeId: string; gradeName: string; error: string }> = [];
   for (const grade of grades) {
-    const raw = await withRetries(() => getPlayHQGradeFixtureRaw(grade.playhq_grade_id));
+    let raw: unknown;
+    try {
+      raw = await withRetries(() => getPlayHQGradeFixtureRaw(grade.playhq_grade_id));
+    } catch (error) {
+      skippedGrades.push({ gradeId: grade.playhq_grade_id, gradeName: grade.grade_name, error: error instanceof Error ? error.message : 'fixture fetch failed' });
+      continue;
+    }
     const rawFixtures = firstArray(raw);
     const fixtures = normaliseFixtures(raw, { id: grade.playhq_grade_id, name: grade.grade_name });
     const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
@@ -103,6 +114,10 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     });
   }
 
+  if (skippedGrades.length === grades.length) {
+    throw new Error(`Every enabled grade's fixture endpoint failed: ${skippedGrades.map((grade) => `${grade.gradeName} (${grade.error})`).join('; ')}`);
+  }
+
   // Deterministic ordering keeps re-created jobs stable and auditable.
   queue.sort((a, b) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || a.gameId.localeCompare(b.gameId));
 
@@ -113,7 +128,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       status: 'draft',
       season_id: season.id,
       filename: null,
-      notes: `PlayHQ sync for ${season.name} (${queue.length} completed club games queued).`,
+      notes: `PlayHQ sync for ${season.name} (${queue.length} completed club games queued${skippedGrades.length ? `; ${skippedGrades.length} grade(s) skipped: ${skippedGrades.map((grade) => grade.gradeName).join(', ')}` : ''}).`,
       source_url: 'playhq://cricket/game-summaries',
       fetched_at: new Date().toISOString(),
     })
@@ -130,7 +145,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       total_games: queue.length,
       cursor: { next: 0 },
       game_queue: queue,
-      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0 },
+      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0, skipped_grades: skippedGrades },
       review_items: reviewItems,
       created_by: options.createdBy ?? null,
       started_at: new Date().toISOString(),
@@ -138,7 +153,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     .select('id, status, total_games')
     .single();
   if (jobError || !job) throw new Error(jobError?.message || 'Could not create sync job.');
-  return { job, batchId: batch.id, queued: queue.length, reviewItems };
+  return { job, batchId: batch.id, queued: queue.length, reviewItems, skippedGrades };
 }
 
 async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayerStatLine, gradeName: string, counts: Record<string, number>, reviewItems: ReviewItem[]) {
