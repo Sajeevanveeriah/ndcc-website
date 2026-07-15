@@ -8,7 +8,8 @@
 // upserts into a draft import batch that admins review and publish.
 import 'server-only';
 import { createServerClient } from '@/lib/supabase-server';
-import { getPlayHQGameSummary, getPlayHQGradeFixtureRaw } from './client';
+import { getPlayHQGameSummary, getPlayHQGradeFixtureRaw, getPlayHQTeamFixtureRaw, getPlayHQTeams } from './client';
+import { isClubTeamName } from './season-match';
 import { normaliseFixtures } from './normalise';
 import {
   computeSourceHash,
@@ -70,11 +71,28 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
 
   const { data: grades, error: gradeError } = await supabase
     .from('fantasy_season_grade_sources')
-    .select('playhq_grade_id, grade_name, team_filter')
+    .select('playhq_grade_id, grade_name, team_filter, playhq_season_id')
     .eq('season_id', season.id)
     .eq('enabled', true);
   if (gradeError) throw new Error(gradeError.message);
   if (!grades?.length) throw new Error('Enable at least one PlayHQ grade source for this season before importing.');
+
+  // Club team ids per grade, for the per-team fixture fallback: the season
+  // teams endpoint is the one feed PlayHQ reliably serves for club
+  // organisations, and it carries each team's grade id.
+  const sourceSeasonIds = Array.from(new Set(
+    grades.map((grade: { playhq_season_id: string | null }) => grade.playhq_season_id || season.playhq_season_id).filter(Boolean)
+  )) as string[];
+  const clubTeamsByGrade = new Map<string, Array<{ id: string; name: string }>>();
+  for (const sourceSeasonId of sourceSeasonIds.slice(0, 8)) {
+    const teams = await getPlayHQTeams(sourceSeasonId).catch(() => []);
+    for (const team of teams) {
+      if (!team.gradeId || !isClubTeamName(team.name)) continue;
+      const entry = clubTeamsByGrade.get(team.gradeId) ?? [];
+      entry.push({ id: team.id, name: team.name });
+      clubTeamsByGrade.set(team.gradeId, entry);
+    }
+  }
 
   const queue: QueueEntry[] = [];
   const reviewItems: ReviewItem[] = [];
@@ -83,19 +101,41 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // and skipped rather than aborting the whole job; only a total failure of
   // every grade stops the sync.
   const skippedGrades: Array<{ gradeId: string; gradeName: string; error: string }> = [];
+  const seenGameIds = new Set<string>();
   for (const grade of grades) {
-    let raw: unknown;
+    let rawFixtures: unknown[];
     try {
-      raw = await withRetries(() => getPlayHQGradeFixtureRaw(grade.playhq_grade_id));
-    } catch (error) {
-      skippedGrades.push({ gradeId: grade.playhq_grade_id, gradeName: grade.grade_name, error: error instanceof Error ? error.message : 'fixture fetch failed' });
-      continue;
+      const raw = await withRetries(() => getPlayHQGradeFixtureRaw(grade.playhq_grade_id));
+      rawFixtures = firstArray(raw);
+    } catch (gradeError) {
+      // Grade-level fixture paths 404 for this organisation; fall back to the
+      // per-team fixture feed for the NDCC teams in this grade.
+      const clubTeams = clubTeamsByGrade.get(grade.playhq_grade_id) ?? [];
+      const merged: unknown[] = [];
+      let teamError: unknown = null;
+      for (const team of clubTeams) {
+        try {
+          const teamRaw = await withRetries(() => getPlayHQTeamFixtureRaw(team.id));
+          merged.push(...firstArray(teamRaw));
+        } catch (error) {
+          teamError = error;
+        }
+      }
+      if (!merged.length) {
+        const message = (teamError ?? gradeError) instanceof Error ? ((teamError ?? gradeError) as Error).message : 'fixture fetch failed';
+        skippedGrades.push({ gradeId: grade.playhq_grade_id, gradeName: grade.grade_name, error: `${message}${clubTeams.length ? ` (grade + ${clubTeams.length} team feed(s))` : ' (no club teams found for team-feed fallback)'}` });
+        continue;
+      }
+      rawFixtures = merged;
     }
-    const rawFixtures = firstArray(raw);
-    const fixtures = normaliseFixtures(raw, { id: grade.playhq_grade_id, name: grade.grade_name });
+    const fixtures = normaliseFixtures({ data: rawFixtures }, { id: grade.playhq_grade_id, name: grade.grade_name });
     const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
     fixtures.forEach((fixture, index) => {
       if (!isCompletedFixture(fixture) || !involvesClubTeam(fixture, clubPattern)) return;
+      // Team-feed fallback can surface the same game twice (both NDCC sides
+      // of a local derby); queue every game exactly once.
+      if (seenGameIds.has(fixture.id)) return;
+      seenGameIds.add(fixture.id);
       const round = extractRoundInfo(rawFixtures[index]);
       if (!round) {
         reviewItems.push({ type: 'ambiguous_round', gameId: fixture.id, detail: `Game ${fixture.id} (${fixture.homeTeam} v ${fixture.awayTeam}) has no exact PlayHQ round metadata; map it manually before it can be imported.` });

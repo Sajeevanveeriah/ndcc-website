@@ -11,9 +11,31 @@ const endpoints = {
   seasonTeams: (seasonId: string) => `/v1/seasons/${encodeURIComponent(seasonId)}/teams`,
   seasonGrades: (seasonId: string) => `/v1/seasons/${encodeURIComponent(seasonId)}/grades`,
   cricketGradeFixture: (gradeId: string) => `/v2/cricket/grades/${encodeURIComponent(gradeId)}/fixture`,
+  gradeFixture: (gradeId: string) => `/v1/grades/${encodeURIComponent(gradeId)}/fixture`,
+  teamFixture: (teamId: string) => `/v1/teams/${encodeURIComponent(teamId)}/fixture`,
   cricketGradeLadder: (gradeId: string) => `/v2/cricket/grades/${encodeURIComponent(gradeId)}/ladder`,
+  gradeLadder: (gradeId: string) => `/v1/grades/${encodeURIComponent(gradeId)}/ladder`,
   cricketGameSummary: (gameId: string) => `/v2/cricket/games/${encodeURIComponent(gameId)}/summary`,
+  gameSummary: (gameId: string) => `/v1/games/${encodeURIComponent(gameId)}/summary`,
 };
+
+// The v2 cricket paths recorded in earlier revisions have never returned data
+// in production (every grade answers HTTP 404), so each fixture/ladder/summary
+// read walks a candidate list and settles on whichever documented path the
+// API actually serves. Only a 404 advances to the next candidate — any other
+// failure propagates immediately.
+async function playHQFetchFirst(paths: string[]) {
+  let lastError: unknown;
+  for (const path of paths) {
+    try {
+      return await playHQFetch(path);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof Error) || !/HTTP 404/.test(error.message)) throw error;
+    }
+  }
+  throw lastError;
+}
 
 type PlayHQPage = Record<string, unknown> & { metadata?: { hasMore?: boolean; nextCursor?: string | null } };
 
@@ -118,21 +140,27 @@ export async function getPlayHQGrades(seasonId: string) {
 }
 
 export async function getPlayHQGradeFixtures(grade: PlayHQGrade) {
-  return normaliseFixtures(await playHQFetch(endpoints.cricketGradeFixture(grade.id)), grade);
+  return normaliseFixtures(await playHQFetchFirst([endpoints.cricketGradeFixture(grade.id), endpoints.gradeFixture(grade.id)]), grade);
 }
 
 export async function getPlayHQGradeLadder(grade: PlayHQGrade) {
-  return normaliseLadder(await playHQFetch(endpoints.cricketGradeLadder(grade.id)), grade);
+  return normaliseLadder(await playHQFetchFirst([endpoints.cricketGradeLadder(grade.id), endpoints.gradeLadder(grade.id)]), grade);
 }
 
 export async function getPlayHQGameSummary(gameId: string) {
-  return playHQFetch(endpoints.cricketGameSummary(gameId));
+  return playHQFetchFirst([endpoints.cricketGameSummary(gameId), endpoints.gameSummary(gameId)]);
 }
 
 // Raw fixture payload for a grade. The fantasy importer needs the untouched
 // round metadata that normaliseFixtures drops.
 export async function getPlayHQGradeFixtureRaw(gradeId: string) {
-  return playHQFetch(endpoints.cricketGradeFixture(gradeId));
+  return playHQFetchFirst([endpoints.cricketGradeFixture(gradeId), endpoints.gradeFixture(gradeId)]);
+}
+
+// Raw fixture payload for a single team — the per-team feed is the reliable
+// path for club organisations when grade-level fixture endpoints 404.
+export async function getPlayHQTeamFixtureRaw(teamId: string) {
+  return playHQFetch(endpoints.teamFixture(teamId));
 }
 
 // Prefer the season whose date range covers today, then the most recently started
