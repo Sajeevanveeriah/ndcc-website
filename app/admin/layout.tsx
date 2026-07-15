@@ -206,7 +206,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-surface-page flex">
       <InactivityGuard onLogout={handleSignOut} />
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-24 lg:bottom-0 bg-maroon-800 border-r border-maroon-900/60">
+      {/* Sticky (not fixed) so the sidebar scrolls in-flow and never floats
+          over the site footer at the bottom of long admin pages. */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-28 lg:self-start lg:h-[calc(100vh-7rem)] bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href="/admin" className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
           <p className="text-[10.5px] uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>
@@ -248,7 +250,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <div className="flex-1 lg:pl-64">
+      <div className="flex-1 min-w-0">
         <header className="lg:hidden bg-surface-card border-b border-edge-subtle sticky top-0 z-30">
           <div className="px-4 py-3 flex items-center justify-between">
             <button
