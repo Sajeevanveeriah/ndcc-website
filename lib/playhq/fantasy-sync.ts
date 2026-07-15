@@ -105,7 +105,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // When a grade contributes zero queued games, capture what the API actually
   // returned (source path, entry count, truncated first entry) so the run log
   // itself is the diagnostic — no server access needed to see the payloads.
-  const gradeDebug: Array<{ gradeId: string; gradeName: string; source: string; raw_entries: number; sample: string | null }> = [];
+  const gradeDebug: Array<{ gradeId: string; gradeName: string; source: string; raw_entries: number; entry_keys?: string[]; sample: string | null }> = [];
   for (const grade of grades) {
     let rawFixtures: unknown[];
     let fixtureSource = 'grade-endpoint';
@@ -163,11 +163,13 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       });
     });
     if (queue.length === queuedBefore && rawFixtures.length) {
+      const first = rawFixtures.find((entry) => entry && typeof entry === 'object') as Record<string, unknown> | undefined;
       gradeDebug.push({
         gradeId: grade.playhq_grade_id,
         gradeName: grade.grade_name,
         source: fixtureSource,
         raw_entries: rawFixtures.length,
+        entry_keys: first ? Object.keys(first) : [],
         sample: JSON.stringify(rawFixtures[0]).slice(0, 400),
       });
     }

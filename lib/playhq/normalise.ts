@@ -52,9 +52,17 @@ export function normaliseGrades(payload: unknown): PlayHQGrade[] {
 export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQFixture[] {
   return firstArray(payload).map((item) => {
     const r = asRecord(item);
-    const home = asRecord(r.homeTeam || r.home || r.homeTeamDetails);
-    const away = asRecord(r.awayTeam || r.away || r.awayTeamDetails);
+    // PlayHQ v1 game entries carry teams as a competitors array (with an
+    // isHome/homeAway marker) and scheduling under a schedule object; older
+    // shapes used home/away objects. Support both.
+    const competitors = Array.isArray(r.competitors) ? (r.competitors as unknown[]).map(asRecord) : [];
+    const isHomeCompetitor = (c: Record<string, unknown>) => c.isHome === true || String(c.homeAway ?? c.side ?? '').toLowerCase() === 'home';
+    const homeCompetitor = competitors.find((c) => isHomeCompetitor(c));
+    const awayCompetitor = competitors.find((c) => !isHomeCompetitor(c));
+    const home = asRecord(r.homeTeam || r.home || r.homeTeamDetails || homeCompetitor);
+    const away = asRecord(r.awayTeam || r.away || r.awayTeamDetails || awayCompetitor);
     const venue = asRecord(r.venue || r.ground);
+    const schedule = asRecord(r.schedule);
     const id = text(r.id, r.gameId, r.fixtureId, r.matchId) || '';
     return {
       id,
@@ -62,7 +70,7 @@ export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQF
       gradeName: grade.name,
       homeTeam: entityName(home) || text(r.homeTeamName) || 'TBC',
       awayTeam: entityName(away) || text(r.awayTeamName) || 'TBC',
-      startsAt: text(r.startTime, r.startsAt, r.date, r.scheduledStartTime) || null,
+      startsAt: text(r.startTime, r.startsAt, r.date, r.scheduledStartTime, schedule.date, schedule.startTime) || null,
       venue: text(venue.name, r.venueName, r.groundName) || null,
       status: text(r.status, r.gameStatus, r.resultStatus) || null,
       homeScore: text(r.homeScore, r.homeTeamScore) || null,
