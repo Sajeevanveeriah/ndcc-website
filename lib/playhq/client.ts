@@ -172,10 +172,23 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
     let teams: Awaited<ReturnType<typeof getPlayHQTeams>> = [];
     let allGrades: Awaited<ReturnType<typeof getPlayHQGrades>> = [];
     for (const candidateId of candidateIds) {
-      const [candidateTeams, candidateGrades] = await Promise.all([
+      const [candidateTeams, gradesFromEndpoint] = await Promise.all([
         getPlayHQTeams(candidateId).catch(() => []),
         getPlayHQGrades(candidateId).catch(() => []),
       ]);
+      // Some club-scoped seasons answer the teams endpoint but return an
+      // empty grades collection; the team records still carry grade id+name,
+      // so derive the grade list from them as a fallback.
+      let candidateGrades = gradesFromEndpoint;
+      if (!candidateGrades.length && candidateTeams.length) {
+        const derived = new Map<string, PlayHQGrade>();
+        for (const team of candidateTeams) {
+          if (team.gradeId && !derived.has(team.gradeId)) {
+            derived.set(team.gradeId, { id: team.gradeId, name: team.gradeName || team.gradeId, seasonId: candidateId });
+          }
+        }
+        candidateGrades = Array.from(derived.values());
+      }
       if (candidateGrades.length || candidateId === candidateIds[candidateIds.length - 1]) {
         selectedSeasonId = candidateId;
         teams = candidateTeams;
