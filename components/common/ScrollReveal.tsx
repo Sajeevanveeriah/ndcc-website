@@ -12,6 +12,8 @@ type ScrollRevealProps = {
   onMount?: boolean;
   /** Stagger direct children (use with <ScrollRevealItem> wrappers). */
   stagger?: boolean;
+  /** Reveal duration in seconds. Defaults to 0.55; hero sequences use ~0.8. */
+  duration?: number;
   /** Direction the content reveals from. Defaults to 'up'. */
   direction?: 'up' | 'left' | 'right';
   as?: 'div' | 'section' | 'span' | 'ul' | 'li' | 'header';
@@ -27,6 +29,7 @@ export default function ScrollReveal({
   delay = 0,
   onMount = false,
   stagger = false,
+  duration,
   direction = 'up',
   as = 'div',
   ...rest
@@ -51,8 +54,8 @@ export default function ScrollReveal({
     visible: {
       ...directionBase.visible,
       transition: stagger
-        ? { duration: 0.5, ease: EASE, delay, staggerChildren: 0.08, delayChildren: delay }
-        : { duration: 0.55, ease: EASE, delay },
+        ? { duration: duration ?? 0.5, ease: EASE, delay, staggerChildren: 0.08, delayChildren: delay }
+        : { duration: duration ?? 0.55, ease: EASE, delay },
     },
   };
 

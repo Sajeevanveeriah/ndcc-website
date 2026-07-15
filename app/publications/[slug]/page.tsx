@@ -151,7 +151,7 @@ export default async function PublicationDetailPage({ params }: { params: { slug
                   <span className="flex items-center gap-1 text-xs font-body font-semibold uppercase tracking-wide text-content-muted">
                     <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" /> Previous
                   </span>
-                  <span className="mt-1 block font-display font-bold text-gray-900 group-hover:text-maroon-700">{older.title}</span>
+                  <span className="mt-1 block font-display font-bold text-content-primary group-hover:text-maroon-700">{older.title}</span>
                 </Link>
               ) : <span aria-hidden="true" />}
               {newer && (
@@ -159,7 +159,7 @@ export default async function PublicationDetailPage({ params }: { params: { slug
                   <span className="flex items-center justify-end gap-1 text-xs font-body font-semibold uppercase tracking-wide text-content-muted">
                     Next <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </span>
-                  <span className="mt-1 block font-display font-bold text-gray-900 group-hover:text-maroon-700">{newer.title}</span>
+                  <span className="mt-1 block font-display font-bold text-content-primary group-hover:text-maroon-700">{newer.title}</span>
                 </Link>
               )}
             </nav>

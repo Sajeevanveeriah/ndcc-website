@@ -204,10 +204,10 @@ export default function AdminContentPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Website Content</h1>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-content-muted">
         Update page headings, text, images, and buttons shown on the public website. Choose a page below, then edit the matching section.
       </p>
-      <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+      <div className="rounded-lg border border-edge-blue bg-surface-blue-subtle p-3 text-xs text-content-blue">
         <p className="font-semibold">Tips for safe updates</p>
         <ul className="list-disc ml-5 mt-1 space-y-1">
           <li>Use Main heading and Intro text for wording visitors will see on the website.</li>
@@ -221,26 +221,26 @@ export default function AdminContentPage() {
         </p>
       )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white border rounded-xl p-4 lg:col-span-1">
+        <div className="bg-surface-card border rounded-xl p-4 lg:col-span-1">
           <div className="mb-3">
             <h2 className="font-semibold">Pages</h2>
-            <p className="text-xs text-gray-500">Pick the page and section you want to update.</p>
+            <p className="text-xs text-content-muted">Pick the page and section you want to update.</p>
           </div>
           <Input id="search_blocks" label="Search pages and sections" value={search} onChange={(e) => setSearch(e.target.value)} />
           {loading ? (
-            <p className="text-sm text-gray-500">Loading editable website content…</p>
+            <p className="text-sm text-content-muted">Loading editable website content…</p>
           ) : blocks.length === 0 ? (
-            <p className="text-sm text-gray-500">No editable website content was found.</p>
+            <p className="text-sm text-content-muted">No editable website content was found.</p>
           ) : visibleBlockCount === 0 ? (
-            <p className="text-sm text-gray-500">No page sections match your search.</p>
+            <p className="text-sm text-content-muted">No page sections match your search.</p>
           ) : (
             <div className="space-y-4">
               {groupedBlocks.map((group) => (
                 group.blocks.length > 0 && (
                   <section key={group.slug} className="space-y-2">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">{group.label}</h3>
-                      <p className="text-xs text-gray-500">{group.helper}</p>
+                      <h3 className="text-sm font-semibold text-content-primary">{group.label}</h3>
+                      <p className="text-xs text-content-muted">{group.helper}</p>
                     </div>
                     <div className="space-y-2">
                       {group.blocks.map((block) => (
@@ -248,10 +248,10 @@ export default function AdminContentPage() {
                           key={block.id}
                           type="button"
                           onClick={() => { setSelected(block); setFeedback(null); }}
-                          className={`w-full text-left px-3 py-2 rounded-lg border ${selected?.id === block.id ? 'border-maroon-600 bg-maroon-50' : 'border-gray-200 hover:border-gray-300'}`}
+                          className={`w-full text-left px-3 py-2 rounded-lg border ${selected?.id === block.id ? 'border-maroon-600 bg-maroon-50 dark:bg-maroon-950' : 'border-edge-subtle hover:border-edge-strong'}`}
                         >
                           <p className="font-medium text-sm">{getFriendlyBlockLabel(block)}</p>
-                          <p className="text-xs text-gray-500">{getBlockHelper(block)}</p>
+                          <p className="text-xs text-content-muted">{getBlockHelper(block)}</p>
                         </button>
                       ))}
                     </div>
@@ -262,7 +262,7 @@ export default function AdminContentPage() {
           )}
         </div>
 
-        <div className="bg-white border rounded-xl p-4 lg:col-span-2 space-y-3">
+        <div className="bg-surface-card border rounded-xl p-4 lg:col-span-2 space-y-3">
           {loading ? (
             <div className="text-center py-12">
               <p className="text-gray-400 text-sm">Loading editor…</p>
@@ -273,9 +273,9 @@ export default function AdminContentPage() {
             </div>
           ) : (
             <>
-              <div className="border-b border-gray-100 pb-3 mb-3">
-                <p className="text-sm font-semibold text-gray-900">{getPageLabel(selected.page_slug)} — {getFriendlyBlockLabel(selected)}</p>
-                <p className="text-xs text-gray-500 mt-1">{getBlockHelper(selected)}</p>
+              <div className="border-b border-edge-subtle pb-3 mb-3">
+                <p className="text-sm font-semibold text-content-primary">{getPageLabel(selected.page_slug)} — {getFriendlyBlockLabel(selected)}</p>
+                <p className="text-xs text-content-muted mt-1">{getBlockHelper(selected)}</p>
               </div>
               <Input id="block_title" label="Main heading" value={selected.title || ''} onChange={(e) => setSelected((value) => value ? ({ ...value, title: e.target.value }) : value)} />
               <Textarea id="block_body" label="Intro text" rows={5} value={selected.body || ''} onChange={(e) => setSelected((value) => value ? ({ ...value, body: e.target.value }) : value)} />
@@ -288,7 +288,7 @@ export default function AdminContentPage() {
                 <input type="checkbox" checked={selected.is_active} onChange={(e) => setSelected((value) => value ? ({ ...value, is_active: e.target.checked }) : value)} />
                 Show on website
               </label>
-              <div className="pt-3 border-t border-gray-100">
+              <div className="pt-3 border-t border-edge-subtle">
                 <Button onClick={saveBlock} isLoading={saving}>Save website content</Button>
               </div>
             </>

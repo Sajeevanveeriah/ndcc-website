@@ -58,11 +58,11 @@ export default function AdminFantasyManagersPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <Users className="h-6 w-6 text-maroon-700" aria-hidden="true" />
+        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+          <Users className="h-6 w-6 text-maroon-700 dark:text-maroon-200" aria-hidden="true" />
           Manager Review
         </h1>
-        <p className="text-gray-600 font-body mt-1">
+        <p className="text-content-muted font-body mt-1">
           Registered fantasy managers with their latest squad status, budget, and captaincy picks. Read-only.
         </p>
       </div>
@@ -77,15 +77,15 @@ export default function AdminFantasyManagersPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by manager or team name…"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
+          className="w-full rounded-md border border-edge-strong px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
         />
       </div>
 
       {loading ? (
-        <Card><CardContent className="p-6 font-body text-gray-600">Loading fantasy managers…</CardContent></Card>
+        <Card><CardContent className="p-6 font-body text-content-muted">Loading fantasy managers…</CardContent></Card>
       ) : visible.length === 0 ? (
         <Card>
-          <CardContent className="p-6 font-body text-gray-700">
+          <CardContent className="p-6 font-body text-content-secondary">
             {managers.length === 0 ? 'No fantasy managers are registered yet.' : 'No managers match the current search.'}
           </CardContent>
         </Card>
@@ -122,8 +122,8 @@ export default function AdminFantasyManagersPage() {
         </Table>
       )}
 
-      <p className="mt-6 font-body text-sm text-gray-600">
-        Manager round scores are calculated on the <Link href="/admin/fantasy/scores" className="text-maroon-700 underline">Manager Scores</Link> page.
+      <p className="mt-6 font-body text-sm text-content-muted">
+        Manager round scores are calculated on the <Link href="/admin/fantasy/scores" className="text-maroon-700 dark:text-maroon-200 underline">Manager Scores</Link> page.
       </p>
     </div>
   );

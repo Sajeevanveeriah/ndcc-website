@@ -107,9 +107,9 @@ function CheckboxField({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+        className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
       />
-      <span className="text-sm font-body text-gray-700">{label}</span>
+      <span className="text-sm font-body text-content-secondary">{label}</span>
     </label>
   );
 }
@@ -224,7 +224,7 @@ export default function CalendarEventFormModal({
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-lg border border-gray-100 bg-sky-50/60 p-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-lg border border-edge-subtle bg-surface-blue-subtle/60 p-3">
           <CheckboxField id="calendar-featured" label="Featured" checked={form.is_featured} onChange={(is_featured) => set({ is_featured })} />
           <CheckboxField id="calendar-show-home" label="Show on home" checked={form.show_on_home} onChange={(show_on_home) => set({ show_on_home })} />
           <CheckboxField id="calendar-show-contact" label="Show on contact" checked={form.show_on_contact} onChange={(show_on_contact) => set({ show_on_contact })} />
@@ -296,7 +296,7 @@ export default function CalendarEventFormModal({
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={onSave} isLoading={saving}>
             {editing ? 'Update Event' : 'Create Event'}

@@ -107,21 +107,21 @@ export default function KitchenPage() {
               <Card key={item.id}>
                 <CardContent className="p-4 space-y-2">
                   {item.image_url && (
-                    <div className="w-full h-36 rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center p-2">
+                    <div className="w-full h-36 rounded-lg bg-surface-page overflow-hidden flex items-center justify-center p-2">
                       <SafeImage
                         src={item.image_url}
                         alt={`${item.name} menu item`}
                         width={240}
                         height={144}
                         className="max-h-full max-w-full object-contain"
-                        fallback={<div className="h-full w-full bg-gray-50" aria-hidden="true" />}
+                        fallback={<div className="h-full w-full bg-surface-page" aria-hidden="true" />}
                       />
                     </div>
                   )}
                   <div className="flex justify-between gap-4">
                     <div>
                       <h3 className="font-semibold">{item.name}</h3>
-                      <p className="text-sm text-gray-600">{item.description}</p>
+                      <p className="text-sm text-content-muted">{item.description}</p>
                     </div>
                     <p className="font-semibold">{formatCurrency(item.price)}</p>
                   </div>
@@ -129,9 +129,9 @@ export default function KitchenPage() {
                     <p className="text-sm text-red-600">Sold out</p>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" className="h-11 w-11 p-0 border border-gray-200 dark:border-slate-600" aria-label={`Remove one ${item.name}`} onClick={() => setCart((c) => ({ ...c, [item.id]: Math.max(0, (c[item.id] || 0) - 1) }))}>-</Button>
+                      <Button size="sm" variant="ghost" className="h-11 w-11 p-0 border border-edge-subtle dark:border-slate-600" aria-label={`Remove one ${item.name}`} onClick={() => setCart((c) => ({ ...c, [item.id]: Math.max(0, (c[item.id] || 0) - 1) }))}>-</Button>
                       <span className="w-6 text-center font-semibold">{cart[item.id] || 0}</span>
-                      <Button size="sm" variant="ghost" className="h-11 w-11 p-0 border border-gray-200 dark:border-slate-600" aria-label={`Add one ${item.name}`} onClick={() => setCart((c) => ({ ...c, [item.id]: (c[item.id] || 0) + 1 }))}>+</Button>
+                      <Button size="sm" variant="ghost" className="h-11 w-11 p-0 border border-edge-subtle dark:border-slate-600" aria-label={`Add one ${item.name}`} onClick={() => setCart((c) => ({ ...c, [item.id]: (c[item.id] || 0) + 1 }))}>+</Button>
                     </div>
                   )}
                 </CardContent>
@@ -141,8 +141,8 @@ export default function KitchenPage() {
 
           <Card>
             <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-display font-bold uppercase tracking-wide text-maroon-800">Kitchen Order</h3>
-              <p className="font-display text-lg font-bold text-gray-900">Total: {formatCurrency(total)}</p>
+              <h3 className="text-lg font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Kitchen Order</h3>
+              <p className="font-display text-lg font-bold text-content-primary">Total: {formatCurrency(total)}</p>
               <form className="space-y-3" onSubmit={submitOrder}>
                 <input type="text" name="website" className="hidden" value={hpField} onChange={(e) => setHpField(e.target.value)} tabIndex={-1} autoComplete="off" />
                 <Input id="k_name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
@@ -151,7 +151,7 @@ export default function KitchenPage() {
                 {formError && <p className="text-sm text-red-600">{formError}</p>}
                 <Button type="submit" disabled={selectedItems.length === 0}>Submit Kitchen Order</Button>
               </form>
-              {status && <p className="text-sm text-gray-700">{status}</p>}
+              {status && <p className="text-sm text-content-secondary">{status}</p>}
             </CardContent>
           </Card>
         </div>

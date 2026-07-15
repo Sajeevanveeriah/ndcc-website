@@ -46,11 +46,11 @@ export default function AdminFantasyImportsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <FileSearch className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <FileSearch className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Fantasy Import Review
           </h1>
-          <p className="text-gray-500 font-body mt-1">Review saved CSV batches before publishing scores to the public leaderboard.</p>
+          <p className="text-content-muted font-body mt-1">Review saved CSV batches before publishing scores to the public leaderboard.</p>
         </div>
         <Link href="/admin/fantasy/import" className="btn-secondary">
           <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -65,14 +65,14 @@ export default function AdminFantasyImportsPage() {
       {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : batches.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">
-            <p className="text-gray-700 font-body mb-4">No fantasy import batches have been saved yet.</p>
+            <p className="text-content-secondary font-body mb-4">No fantasy import batches have been saved yet.</p>
             <Link href="/admin/fantasy/import" className="btn-primary">Create Draft Import</Link>
           </CardContent>
         </Card>
@@ -99,7 +99,7 @@ export default function AdminFantasyImportsPage() {
                 <TableCell>{batch.rowCount}</TableCell>
                 <TableCell>{batch.totalPreviewPoints}</TableCell>
                 <TableCell>
-                  <Link href={`/admin/fantasy/imports/${batch.id}`} className="text-maroon-700 hover:underline font-semibold">
+                  <Link href={`/admin/fantasy/imports/${batch.id}`} className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
                     Review
                   </Link>
                 </TableCell>

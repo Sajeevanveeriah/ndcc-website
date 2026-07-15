@@ -182,11 +182,11 @@ export default function AdminNewsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Newspaper className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Newspaper className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             News
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {news.length} article{news.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -212,15 +212,15 @@ export default function AdminNewsPage() {
       />
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : news.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <Newspaper className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No news articles yet. Write your first article.</p>
+          <p className="text-content-muted font-body">No news articles yet. Write your first article.</p>
         </div>
       ) : (
         <Table>
@@ -232,7 +232,7 @@ export default function AdminNewsPage() {
                   aria-label="Select all articles"
                   checked={news.length > 0 && selectedIds.length === news.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -254,7 +254,7 @@ export default function AdminNewsPage() {
                     aria-label={`Select ${post.title}`}
                     checked={selectedIds.includes(post.id)}
                     onChange={() => toggleSelected(post.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{post.title}</TableCell>
@@ -350,12 +350,12 @@ export default function AdminNewsPage() {
                   published_at: published && !form.published_at ? new Date().toISOString() : form.published_at,
                 });
               }}
-              className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+              className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
-            <span className="text-sm font-body text-gray-700">Publish this article</span>
+            <span className="text-sm font-body text-content-secondary">Publish this article</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
@@ -373,7 +373,7 @@ export default function AdminNewsPage() {
         title="Delete Article"
         size="sm"
       >
-        <p className="text-sm text-gray-600 font-body">
+        <p className="text-sm text-content-muted font-body">
           Are you sure you want to delete this article? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3 mt-6">

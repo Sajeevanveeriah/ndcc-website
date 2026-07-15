@@ -32,6 +32,7 @@ import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews } from '@/lib/fallback-content';
 import LogoChip from '@/components/common/LogoChip';
 import PublicationCard from '@/components/publications/PublicationCard';
+import MarqueeVisibilityPause from '@/components/home/MarqueeVisibilityPause';
 import { getPublishedPublications } from '@/lib/public-publications';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
@@ -75,7 +76,10 @@ function HeroView({
   ctaUrl: string;
 }) {
   return (
-    <section className="relative text-white overflow-hidden" style={{ minHeight: '520px', display: 'flex', flexDirection: 'column' }}>
+    // Cinematic full-height hero. The section pulls itself up under the fixed
+    // navigation (-mt cancels the layout's nav offset) so the homepage nav can
+    // sit transparent over the imagery at the top of the page.
+    <section className="relative -mt-24 lg:-mt-28 flex min-h-[88svh] flex-col overflow-hidden text-white">
       <Image
         src="/images/Turf_Ground.jpg"
         alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
@@ -83,30 +87,53 @@ function HeroView({
         className="object-cover animate-ken-burns"
         priority
       />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.90) 0%, rgba(45,0,0,0.62) 55%, rgba(45,0,0,0.34) 100%)' }} />
+      {/* Layered maroon -> navy -> near-black cinematic scrim. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(160deg, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.55) 42%, rgba(8,13,22,0.35) 72%, rgba(8,13,22,0.15) 100%)',
+        }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 h-2/5"
+        style={{ background: 'linear-gradient(to top, rgba(8,13,22,0.9) 0%, transparent 100%)' }}
+        aria-hidden="true"
+      />
+      {/* Static radial glow towards the copy for depth (no cursor tracking). */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(900px 480px at 22% 38%, rgba(212,160,23,0.10), transparent 65%)' }}
+        aria-hidden="true"
+      />
       {/* Mobile crops put more sky behind the title; deepen the scrim so copy always sits on a dark patch. */}
       <div className="absolute inset-0 sm:hidden bg-maroon-950/30" aria-hidden="true" />
-      <div className="container-width relative z-10 flex-1 flex items-center section-padding">
-        <div className="w-full">
-          <ScrollReveal onMount delay={0}>
+      <div className="container-width relative z-10 flex flex-1 items-center px-4 pb-16 pt-32 sm:px-6 sm:items-end sm:pb-24 lg:px-8 lg:pt-40">
+        <div className="w-full text-center sm:text-left">
+          <ScrollReveal onMount delay={0.1} duration={0.8}>
             <span className="eyebrow-gold">
               Est. {CLUB_ESTABLISHED} &middot; {CLUB_ASSOCIATION}
             </span>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
-              {title}
+          </ScrollReveal>
+          <ScrollReveal onMount delay={0.25} duration={0.8}>
+            <h1 className="font-display font-bold uppercase leading-[0.95] tracking-tight">
+              <span className="block text-4xl sm:text-6xl lg:text-7xl">{title}</span>
+              <span className="mt-2 block text-2xl italic text-gold-200/90 sm:text-4xl lg:text-5xl">
+                Home of the {CLUB_NICKNAME}
+              </span>
             </h1>
           </ScrollReveal>
-          <ScrollReveal onMount delay={0.15}>
-            <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl">
+          <ScrollReveal onMount delay={0.4} duration={0.8}>
+            <p className="mx-auto mb-8 mt-5 max-w-2xl font-body text-lg text-maroon-100 sm:mx-0 sm:text-2xl">
               {body}
             </p>
           </ScrollReveal>
-          <ScrollReveal onMount delay={0.3}>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href={ctaUrl} className="btn-primary text-lg px-8 py-4">
+          <ScrollReveal onMount delay={0.55} duration={0.8}>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <Link href={ctaUrl} className="btn-primary rounded-full px-8 py-4 text-lg">
                 {ctaLabel}
               </Link>
-              <Link href="/fixtures" className="btn-outline-white text-lg px-8 py-4">
+              <Link href="/fixtures" className="btn-outline-white rounded-full px-8 py-4 text-lg">
                 View Fixtures
               </Link>
             </div>
@@ -152,7 +179,7 @@ function QuickLinkIcon({ icon }: { icon: string }) {
 
 function QuickLinksSkeleton() {
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <div className="text-center mb-12">
           <span className="section-eyebrow">Quick Links</span>
@@ -161,7 +188,7 @@ function QuickLinksSkeleton() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[0, 1, 2].map((index) => (
-            <div key={index} className="h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6 shadow-sm">
+            <div key={index} className="h-full bg-surface-card border border-edge-subtle border-l-4 border-l-maroon-700 rounded-xl p-6 shadow-sm">
               <div className="h-8 w-8 rounded bg-gray-200 animate-pulse mb-3" />
               <div className="h-6 w-2/3 rounded bg-gray-200 animate-pulse mb-3" />
               <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
@@ -180,7 +207,7 @@ async function QuickLinksSection() {
   ]);
 
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <ScrollReveal className="text-center mb-12">
           <span className="section-eyebrow">Quick Links</span>
@@ -194,16 +221,16 @@ async function QuickLinksSection() {
             <ScrollRevealItem key={link.id}>
             <Link
               href={link.href}
-              className="group h-full bg-white border border-gray-200 border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700 dark:border-l-maroon-500"
+              className="group h-full bg-surface-card border border-edge-subtle border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700 dark:border-l-maroon-500"
             >
               {link.icon && <QuickLinkIcon icon={link.icon} />}
               <div className="flex items-start justify-between gap-2">
-                <h3 className="text-xl font-display font-bold text-maroon-800 mb-2 group-hover:text-maroon-700 transition-colors">
+                <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2 group-hover:text-maroon-700 transition-colors">
                   {link.title}
                 </h3>
                 <span className="text-gray-300 text-xl group-hover:text-maroon-500 group-hover:translate-x-1 transition-all duration-200 shrink-0">→</span>
               </div>
-              <p className="text-gray-600 font-body text-sm">{link.description}</p>
+              <p className="text-content-muted font-body text-sm">{link.description}</p>
             </Link>
             </ScrollRevealItem>
           ))}
@@ -275,7 +302,7 @@ async function SeasonStatusSection() {
 
 function NewsSkeleton() {
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding surface-blue-band">
       <div className="container-width">
         <div className="text-center mb-12">
           <span className="section-eyebrow">Club News</span>
@@ -312,7 +339,7 @@ async function NewsSection() {
   ]);
 
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding surface-blue-band">
       <div className="container-width">
         <ScrollReveal className="text-center mb-12">
           <span className="section-eyebrow">Club News</span>
@@ -326,7 +353,7 @@ async function NewsSection() {
             const inner = (
               <Card hover className="h-full overflow-hidden">
                 {(article.image_url || article.image) ? (
-                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-50">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-page">
                     <SafeImage
                       src={article.image_url || article.image || '/images/Womens_Team.jpg'}
                       alt={article.title}
@@ -353,14 +380,14 @@ async function NewsSection() {
                 )}
                 <CardContent className="p-6">
                   {article.published_at && (
-                    <p className="text-xs uppercase tracking-[0.08em] text-maroon-600 font-body font-semibold mb-2">
+                    <p className="text-xs uppercase tracking-[0.08em] text-maroon-600 dark:text-maroon-300 font-body font-semibold mb-2">
                       {formatDate(article.published_at)}
                     </p>
                   )}
-                  <h3 className="text-lg font-display font-bold text-gray-900 mb-2 group-hover:text-maroon-700 transition-colors">
+                  <h3 className="text-lg font-display font-bold text-content-primary mb-2 group-hover:text-maroon-700 transition-colors">
                     {article.title}
                   </h3>
-                  <p className="text-gray-600 font-body text-sm">
+                  <p className="text-content-muted font-body text-sm">
                     {truncateText(article.content, 120)}
                   </p>
                 </CardContent>
@@ -392,25 +419,25 @@ async function LatestPublicationsSection() {
   if (publications.length === 0) return null;
 
   return (
+    // Alternating feature layout: narrative on the left, live publication
+    // cards on the right (stacking on mobile).
     <section className="section-padding">
-      <div className="container-width">
-        <ScrollReveal className="text-center mb-12">
+      <div className="container-width grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-14">
+        <ScrollReveal direction="left" className="lg:sticky lg:top-32">
           <span className="section-eyebrow">Publications</span>
           <h2 className="section-title">Newsletters &amp; Match Reports</h2>
-          <p className="section-subtitle mx-auto">
+          <p className="section-subtitle mb-8">
             The latest from the club in writing — newsletters and weekly match reports.
           </p>
+          <Link href="/publications" className="btn-secondary">
+            View All Publications
+          </Link>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <ScrollReveal stagger direction="right" className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {publications.map((publication) => (
             <PublicationCard key={publication.id} publication={publication} />
           ))}
         </ScrollReveal>
-        <div className="text-center mt-10">
-          <Link href="/publications" className="btn-secondary">
-            View All Publications
-          </Link>
-        </div>
       </div>
     </section>
   );
@@ -428,7 +455,7 @@ async function EventsSection() {
   if (upcoming.length === 0) return null;
 
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <ScrollReveal className="text-center mb-10">
           <span className="section-eyebrow">What&apos;s On</span>
@@ -439,14 +466,14 @@ async function EventsSection() {
             <ScrollReveal key={event.id}>
               <Card hover className="h-full flex flex-col">
                 {event.image_url && (
-                  <div className="relative aspect-[4/3] w-full bg-gray-50">
+                  <div className="relative aspect-[4/3] w-full bg-surface-page">
                     <SafeImage
                       src={event.image_url}
                       alt={`${event.title} event artwork`}
                       fill
                       className="object-contain"
                       sizes="(max-width: 1024px) 100vw, 33vw"
-                      fallback={<div className="absolute inset-0 bg-gray-50" aria-hidden="true" />}
+                      fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
                     />
                   </div>
                 )}
@@ -455,11 +482,11 @@ async function EventsSection() {
                   <h3 className="text-white font-display font-bold text-xl mt-1">{event.title}</h3>
                 </div>
                 <CardContent className="flex-1">
-                  <p className="font-body text-sm text-gray-600 mb-2">{event.location}</p>
-                  <p className="font-body text-gray-700 text-sm leading-relaxed mb-4">{truncateText(event.description, 130)}</p>
+                  <p className="font-body text-sm text-content-muted mb-2">{event.location}</p>
+                  <p className="font-body text-content-secondary text-sm leading-relaxed mb-4">{truncateText(event.description, 130)}</p>
                   <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold text-sm transition-colors"
+                    className="inline-flex items-center text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 font-body font-semibold text-sm transition-colors"
                   >
                     View Details
                   </Link>
@@ -484,7 +511,7 @@ async function CalendarPreviewSection() {
   const events = result.data.map(toCalendarFeedEvent);
 
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding surface-blue-band">
       <div className="container-width">
         <ScrollReveal className="text-center mb-10">
           <span className="section-eyebrow">Club Calendar</span>
@@ -507,7 +534,7 @@ async function GalleryPreviewSection() {
   if (preview.length === 0) return null;
 
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <ScrollReveal className="text-center mb-10">
           <span className="section-eyebrow">Around the Club</span>
@@ -516,14 +543,14 @@ async function GalleryPreviewSection() {
         <ScrollReveal stagger className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {preview.map((photo) => (
             <ScrollRevealItem key={photo.id}>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-50 ring-1 ring-maroon-100/60">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-surface-page ring-1 ring-maroon-100/60">
                 <SafeImage
                   src={photo.image_url}
                   alt={photo.alt_text || photo.caption || photo.title}
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 50vw, 25vw"
-                  fallback={<div className="absolute inset-0 bg-gray-100" aria-hidden="true" />}
+                  fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                 />
               </div>
             </ScrollRevealItem>
@@ -539,7 +566,7 @@ async function GalleryPreviewSection() {
 
 function SeasonAppointmentsSkeleton() {
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <div className="text-center mb-12">
           <span className="section-eyebrow">Season appointments</span>
@@ -554,9 +581,9 @@ function SeasonAppointmentsSkeleton() {
             />
           ))}
         </div>
-        <p className="text-center text-gray-500 font-body text-sm mt-8">
+        <p className="text-center text-content-muted font-body text-sm mt-8">
           Season appointments are managed in the CMS. Follow us on{' '}
-          <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+          <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
             Facebook
           </Link>{' '}
           for updates.
@@ -582,7 +609,7 @@ async function SeasonAppointmentsSection() {
 
 function SponsorsSkeleton() {
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding surface-blue-band">
       <div className="container-width">
         <div className="text-center mb-10">
           <span className="section-eyebrow">Community Partners</span>
@@ -591,7 +618,7 @@ function SponsorsSkeleton() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[0, 1, 2].map((index) => (
-            <Card key={index} className="h-full border border-sky-100">
+            <Card key={index} className="h-full border border-edge-blue/60">
               <CardContent className="p-6 flex flex-col items-center text-center h-full">
                 <div className="w-full h-28 rounded-lg bg-gray-200 animate-pulse mb-4" />
                 <div className="h-5 w-40 rounded bg-gray-200 animate-pulse mb-3" />
@@ -627,7 +654,7 @@ async function SponsorsSection() {
   const sponsorshipBody = sponsorBlock?.body || 'Thanks to all local businesses and partners supporting NDCC.';
 
   return (
-    <section className="section-padding surface-sky">
+    <section className="section-padding surface-blue-band">
       <div className="container-width">
         <ScrollReveal className="text-center mb-10">
           <span className="section-eyebrow">Community Partners</span>
@@ -636,9 +663,8 @@ async function SponsorsSection() {
             {sponsorshipBody}
           </p>
         </ScrollReveal>
-        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
+        <ScrollReveal className="homepage-marquee-region relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
+          <MarqueeVisibilityPause />
           <div className="homepage-marquee-track gap-4 py-2">
             {[false, true].map((isDuplicateSequence) => (
             <div
@@ -718,7 +744,7 @@ function FantasyTeaserSection() {
     { label: 'Climb the ladder', detail: 'Round and season leaderboards' },
   ];
   return (
-    <section className="section-padding bg-white">
+    <section className="section-padding bg-surface-card">
       <div className="container-width">
         <ScrollReveal>
           <div className="surface-panel p-8 sm:p-10 lg:p-12 overflow-hidden relative">
@@ -744,12 +770,12 @@ function FantasyTeaserSection() {
                 {highlights.map((item) => (
                   <li
                     key={item.label}
-                    className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white/70 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70"
+                    className="flex items-start gap-3 rounded-xl border border-edge-subtle bg-white/70 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70"
                   >
                     <Trophy className="h-5 w-5 mt-0.5 shrink-0 text-gold-500" aria-hidden="true" />
                     <div>
-                      <p className="font-display font-bold text-maroon-800 text-sm uppercase tracking-wide">{item.label}</p>
-                      <p className="font-body text-sm text-gray-600">{item.detail}</p>
+                      <p className="font-display font-bold text-maroon-800 dark:text-maroon-200 text-sm uppercase tracking-wide">{item.label}</p>
+                      <p className="font-body text-sm text-content-muted">{item.detail}</p>
                     </div>
                   </li>
                 ))}
@@ -777,7 +803,7 @@ function JuniorsCtaView({ title, body }: { title: string; body: string }) {
           <Link href="/contact" className="btn-accent text-lg px-8 py-4">
             Get in Touch
           </Link>
-          <Link href="/volunteer" className="btn-secondary border-white text-white hover:bg-white hover:text-maroon-800 text-lg px-8 py-4">
+          <Link href="/volunteer" className="btn-secondary border-white text-white hover:bg-surface-card hover:text-maroon-800 text-lg px-8 py-4">
             Volunteer With Us
           </Link>
         </div>
@@ -815,28 +841,14 @@ export default function HomePage() {
         <HeroSection />
       </Suspense>
 
+      {/* Compact club-stat strip directly under the cinematic hero. */}
       <HomeStatsStrip />
 
       <Suspense fallback={<QuickLinksSkeleton />}>
         <QuickLinksSection />
       </Suspense>
 
-      <Suspense fallback={<NewsSkeleton />}>
-        <NewsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <LatestPublicationsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <EventsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <CalendarPreviewSection />
-      </Suspense>
-
+      {/* Live season status / fixtures feature. */}
       <Suspense
         fallback={
           <SeasonStatusView
@@ -850,11 +862,28 @@ export default function HomePage() {
         <SeasonStatusSection />
       </Suspense>
 
+      <FantasyTeaserSection />
+
+      <Suspense fallback={null}>
+        <LatestPublicationsSection />
+      </Suspense>
+
       <Suspense fallback={<SeasonAppointmentsSkeleton />}>
         <SeasonAppointmentsSection />
       </Suspense>
 
-      <FantasyTeaserSection />
+      <Suspense fallback={null}>
+        <EventsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <CalendarPreviewSection />
+      </Suspense>
+
+      {/* Community: club news ahead of the sponsor and gallery closers. */}
+      <Suspense fallback={<NewsSkeleton />}>
+        <NewsSection />
+      </Suspense>
 
       <Suspense fallback={<SponsorsSkeleton />}>
         <SponsorsSection />

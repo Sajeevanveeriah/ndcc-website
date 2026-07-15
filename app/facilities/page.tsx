@@ -69,8 +69,8 @@ export default async function FacilitiesPage() {
           <ScrollReveal className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="section-title">{blocks['facilities.intro']?.title || 'Grinter Reserve'}</h2>
-              <p className="text-gray-500 font-body text-sm mb-6">{settings.address}</p>
-              <div className="prose prose-sm max-w-none text-gray-700 font-body leading-relaxed whitespace-pre-line">
+              <p className="text-content-muted font-body text-sm mb-6">{settings.address}</p>
+              <div className="prose prose-sm max-w-none text-content-secondary font-body leading-relaxed whitespace-pre-line">
                 <p>{normalisePublicText(blocks['facilities.intro']?.body)}</p>
               </div>
               <a
@@ -99,7 +99,7 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
-      <section className="section-padding surface-sky">
+      <section className="section-padding surface-blue-band">
         <div className="container-width">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1 relative h-72 lg:h-96 rounded-xl overflow-hidden">
@@ -113,7 +113,7 @@ export default async function FacilitiesPage() {
             </div>
             <div className="order-1 lg:order-2">
               <h2 className="section-title">{blocks['facilities.training']?.title || 'Training Facility'}</h2>
-              <div className="prose prose-sm max-w-none text-gray-700 font-body leading-relaxed whitespace-pre-line">
+              <div className="prose prose-sm max-w-none text-content-secondary font-body leading-relaxed whitespace-pre-line">
                 <p>{normalisePublicText(blocks['facilities.training']?.body)}</p>
               </div>
             </div>
@@ -132,21 +132,21 @@ export default async function FacilitiesPage() {
               <ScrollRevealItem key={feature.id}>
               <Card hover className="h-full">
                 <CardContent className="p-6">
-                  <div className="w-14 h-14 bg-maroon-50 rounded-lg flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-maroon-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <div className="w-14 h-14 bg-maroon-50 dark:bg-maroon-950 rounded-lg flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-maroon-600 dark:text-maroon-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d={iconByKey[feature.icon_key] || iconByKey.feature} />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-display font-bold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-gray-600 font-body text-sm">{feature.description}</p>
+                  <h3 className="text-lg font-display font-bold text-content-primary mb-2">{feature.title}</h3>
+                  <p className="text-content-muted font-body text-sm">{feature.description}</p>
                 </CardContent>
               </Card>
               </ScrollRevealItem>
             ))}
           </ScrollReveal>
           <div className="text-center mt-10">
-            <h3 className="text-xl font-display font-bold text-maroon-800">{blocks['facilities.cta']?.title || 'Visit or Enquire'}</h3>
-            <p className="text-gray-600 font-body mt-2 mb-4">{blocks['facilities.cta']?.body || ''}</p>
+            <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200">{blocks['facilities.cta']?.title || 'Visit or Enquire'}</h3>
+            <p className="text-content-muted font-body mt-2 mb-4">{blocks['facilities.cta']?.body || ''}</p>
             <a href={blocks['facilities.cta']?.cta_url || '/contact'} className="btn-accent">
               {blocks['facilities.cta']?.cta_label || 'Contact Us'}
             </a>
@@ -155,15 +155,15 @@ export default async function FacilitiesPage() {
       </section>
 
       {articles.length > 0 && (
-        <section className="section-padding surface-sky">
+        <section className="section-padding surface-blue-band">
           <div className="container-width">
             <h2 className="section-title">Facilities Articles</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {articles.map((article) => (
                 <Card key={article.id} hover>
                   <CardContent className="p-6">
-                    <h3 className="font-display font-bold text-gray-900 text-xl">{article.title}</h3>
-                    <p className="text-gray-600 mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
+                    <h3 className="font-display font-bold text-content-primary text-xl">{article.title}</h3>
+                    <p className="text-content-muted mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
                     <a href={article.href} className="btn-secondary mt-4 inline-flex">Read More</a>
                   </CardContent>
                 </Card>

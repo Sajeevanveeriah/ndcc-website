@@ -77,7 +77,7 @@ export default function AdminFantasyImportDetailPage() {
   const canReject = batch?.status === 'draft' || batch?.status === 'reviewed';
 
   if (loading) {
-    return <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">Loading import batch...</div>;
+    return <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">Loading import batch...</div>;
   }
 
   if (!batch) {
@@ -92,18 +92,18 @@ export default function AdminFantasyImportDetailPage() {
   return (
     <div>
       <div className="mb-6">
-        <Link href="/admin/fantasy/imports" className="inline-flex items-center text-maroon-700 hover:underline font-body font-semibold mb-4">
+        <Link href="/admin/fantasy/imports" className="inline-flex items-center text-maroon-700 dark:text-maroon-200 hover:underline font-body font-semibold mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Back to import review
         </Link>
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-display font-bold text-gray-900">{batch.filename || 'Untitled CSV import'}</h1>
-            <p className="text-gray-500 font-body mt-1">Created {formatDate(batch.created_at)} from {batch.source}</p>
+            <h1 className="text-2xl font-display font-bold text-content-primary">{batch.filename || 'Untitled CSV import'}</h1>
+            <p className="text-content-muted font-body mt-1">Created {formatDate(batch.created_at)} from {batch.source}</p>
             {batch.source_url && (
-              <p className="text-gray-500 font-body mt-1 text-sm">
+              <p className="text-content-muted font-body mt-1 text-sm">
                 Source:{' '}
-                <a href={batch.source_url} target="_blank" rel="noopener noreferrer" className="text-maroon-700 underline break-all">
+                <a href={batch.source_url} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 underline break-all">
                   {batch.source_url}
                 </a>
                 {batch.fetched_at ? ` (fetched ${formatDate(batch.fetched_at)})` : ''}
@@ -117,13 +117,13 @@ export default function AdminFantasyImportDetailPage() {
       {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card><CardContent><p className="text-sm text-gray-500">Rows</p><p className="text-3xl font-display font-bold text-gray-900">{batch.rowCount}</p></CardContent></Card>
-        <Card><CardContent><p className="text-sm text-gray-500">Preview points</p><p className="text-3xl font-display font-bold text-gray-900">{batch.totalPreviewPoints}</p></CardContent></Card>
-        <Card><CardContent><p className="text-sm text-gray-500">Public visibility</p><p className="text-lg font-display font-bold text-gray-900">{batch.status === 'published' ? 'Published' : 'Admin only'}</p></CardContent></Card>
+        <Card><CardContent><p className="text-sm text-content-muted">Rows</p><p className="text-3xl font-display font-bold text-content-primary">{batch.rowCount}</p></CardContent></Card>
+        <Card><CardContent><p className="text-sm text-content-muted">Preview points</p><p className="text-3xl font-display font-bold text-content-primary">{batch.totalPreviewPoints}</p></CardContent></Card>
+        <Card><CardContent><p className="text-sm text-content-muted">Public visibility</p><p className="text-lg font-display font-bold text-content-primary">{batch.status === 'published' ? 'Published' : 'Admin only'}</p></CardContent></Card>
       </div>
 
       <Card className="mb-6">
-        <CardHeader><h2 className="text-lg font-display font-bold text-gray-900">Review actions</h2></CardHeader>
+        <CardHeader><h2 className="text-lg font-display font-bold text-content-primary">Review actions</h2></CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button onClick={() => updateStatus('reviewed')} disabled={!canReview || !!savingStatus} isLoading={savingStatus === 'reviewed'}>
@@ -136,7 +136,7 @@ export default function AdminFantasyImportDetailPage() {
               <XCircle className="h-4 w-4 mr-2" /> Reject
             </Button>
           </div>
-          <p className="text-sm text-gray-600 font-body mt-4">Publishing makes this batch eligible for the public player leaderboard. Rejected and reviewed batches stay private.</p>
+          <p className="text-sm text-content-muted font-body mt-4">Publishing makes this batch eligible for the public player leaderboard. Rejected and reviewed batches stay private.</p>
         </CardContent>
       </Card>
 

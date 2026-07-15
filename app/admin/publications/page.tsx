@@ -294,11 +294,11 @@ export default function AdminPublicationsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Publications
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             Newsletters and match reports · {publications.length} item{publications.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -362,7 +362,7 @@ export default function AdminPublicationsPage() {
       ) : visible.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">
+          <p className="text-content-muted font-body">
             {publications.length === 0 ? 'No publications yet. Create your first newsletter or match report.' : 'No publications match the current filter.'}
           </p>
         </div>
@@ -376,7 +376,7 @@ export default function AdminPublicationsPage() {
                   aria-label="Select all publications"
                   checked={visible.length > 0 && selectedIds.length === visible.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -396,7 +396,7 @@ export default function AdminPublicationsPage() {
                     aria-label={`Select ${p.title}`}
                     checked={selectedIds.includes(p.id)}
                     onChange={() => toggleSelected(p.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">
@@ -580,18 +580,18 @@ export default function AdminPublicationsPage() {
                     published_at: published && !form.published_at ? new Date().toISOString() : form.published_at,
                   });
                 }}
-                className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
               />
-              <span className="text-sm font-body text-gray-700">Publish (visible to the public)</span>
+              <span className="text-sm font-body text-content-secondary">Publish (visible to the public)</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.featured}
                 onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
               />
-              <span className="text-sm font-body text-gray-700">Feature on the publications page</span>
+              <span className="text-sm font-body text-content-secondary">Feature on the publications page</span>
             </label>
           </div>
 
@@ -618,10 +618,10 @@ export default function AdminPublicationsPage() {
             {form.round_label ? ` · ${form.round_label}` : ''}
             {form.season_label ? ` · ${form.season_label}` : ''}
           </p>
-          <h2 className="text-2xl font-display font-bold text-gray-900 mb-1">{form.title || 'Untitled publication'}</h2>
-          <p className="text-sm text-gray-500 mb-4">{form.issue_date ? formatDate(form.issue_date) : ''}{form.author ? ` · ${form.author}` : ''}</p>
-          {form.summary && <p className="text-gray-700 font-body font-medium mb-3">{form.summary}</p>}
-          <div className="text-gray-700 font-body whitespace-pre-wrap">{form.content || 'No body content yet.'}</div>
+          <h2 className="text-2xl font-display font-bold text-content-primary mb-1">{form.title || 'Untitled publication'}</h2>
+          <p className="text-sm text-content-muted mb-4">{form.issue_date ? formatDate(form.issue_date) : ''}{form.author ? ` · ${form.author}` : ''}</p>
+          {form.summary && <p className="text-content-secondary font-body font-medium mb-3">{form.summary}</p>}
+          <div className="text-content-secondary font-body whitespace-pre-wrap">{form.content || 'No body content yet.'}</div>
           {form.document_url && (
             <p className="mt-4 text-sm text-maroon-700 dark:text-maroon-200">PDF attached: {form.document_url}</p>
           )}
@@ -635,7 +635,7 @@ export default function AdminPublicationsPage() {
         title="Delete Publication"
         size="sm"
       >
-        <p className="text-sm text-gray-600 font-body">
+        <p className="text-sm text-content-muted font-body">
           Are you sure you want to delete this publication? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3 mt-6">

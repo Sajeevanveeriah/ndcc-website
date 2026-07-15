@@ -92,17 +92,17 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface-page flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+        <div className="bg-surface-card rounded-2xl shadow-card border border-edge-subtle overflow-hidden">
           <div className="band-maroon px-6 py-8 text-center">
             <h1 className="text-3xl font-display font-bold text-white uppercase tracking-wide">{CLUB_SHORT}</h1>
             <p className="text-gold-200 font-body text-xs font-semibold uppercase tracking-[0.14em] mt-1.5">Admin Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="p-6 space-y-4">
-            <h2 className="text-xl font-display font-bold text-gray-900 text-center">Sign In</h2>
-            <p className="text-sm text-gray-500 font-body text-center">Access the {CLUB_NAME} administration panel.</p>
+            <h2 className="text-xl font-display font-bold text-content-primary text-center">Sign In</h2>
+            <p className="text-sm text-content-muted font-body text-center">Access the {CLUB_NAME} administration panel.</p>
 
             {error && <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body">{error}</div>}
 

@@ -8,6 +8,7 @@ import Input, { Textarea } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
+import Accordion from '@/components/common/Accordion';
 
 interface Plan { id: string; name: string; description: string; price: number; }
 interface Addon { id: string; name: string; description: string; price: number; usage_limit: number | null; }
@@ -103,7 +104,7 @@ export default function JoinPage() {
           <Card>
             <CardContent className="p-6 space-y-3">
               <h2 className="text-2xl font-display font-bold">Player Registration</h2>
-              <p className="text-gray-600">Player registrations stay on PlayHQ as required.</p>
+              <p className="text-content-muted">Player registrations stay on PlayHQ as required.</p>
               <a href={PLAYHQ_ORG_URL} target="_blank" rel="noopener noreferrer">
                 <Button>Go to PlayHQ</Button>
               </a>
@@ -115,11 +116,44 @@ export default function JoinPage() {
           <Card>
             <CardContent className="p-6 space-y-3">
               <h2 className="text-2xl font-display font-bold">Social Membership</h2>
-              <p className="text-gray-600">Apply online and pay by bank transfer reference generated at checkout.</p>
+              <p className="text-content-muted">Apply online and pay by bank transfer reference generated at checkout.</p>
               <p className="font-semibold">From {plans.length ? formatCurrency(plans[0].price) : '...'}</p>
             </CardContent>
           </Card>
         </ScrollRevealItem>
+      </ScrollReveal>
+
+      {/* Disclosure summary of the two joining paths above; answers reuse the
+          verified copy already on this page — nothing invented. */}
+      <ScrollReveal>
+        <h2 className="section-title mb-4">How joining works</h2>
+        <Accordion
+          items={[
+            {
+              id: 'player',
+              question: 'How do I register as a player?',
+              answer: (
+                <p>
+                  Player registrations stay on PlayHQ as required.{' '}
+                  <a href={PLAYHQ_ORG_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-maroon-700 underline underline-offset-2 dark:text-maroon-200">
+                    Register on PlayHQ (opens in new tab)
+                  </a>
+                  .
+                </p>
+              ),
+            },
+            {
+              id: 'social',
+              question: 'How does social membership work?',
+              answer: (
+                <p>
+                  Apply online using the form below and pay by the bank transfer reference
+                  generated at checkout. Current plans and prices are shown in the form.
+                </p>
+              ),
+            },
+          ]}
+        />
       </ScrollReveal>
 
       <Card>
@@ -140,7 +174,7 @@ export default function JoinPage() {
             <div className="space-y-2">
               <p className="form-label">Optional Add-ons</p>
               {addons.map((addon) => (
-                <label key={addon.id} className="flex items-center justify-between gap-3 border border-gray-300 rounded-lg px-4 py-3 font-body text-gray-800 cursor-pointer transition-colors hover:border-maroon-300 has-[:checked]:border-maroon-500 has-[:checked]:bg-maroon-50/50 dark:border-slate-600 dark:text-slate-100">
+                <label key={addon.id} className="flex items-center justify-between gap-3 border border-edge-strong rounded-lg px-4 py-3 font-body text-content-primary cursor-pointer transition-colors hover:border-maroon-300 has-[:checked]:border-maroon-500 has-[:checked]:bg-maroon-50/50 dark:border-slate-600 dark:text-slate-100">
                   <span>{addon.name} {addon.usage_limit ? `(limit ${addon.usage_limit})` : ''}</span>
                   <span className="flex items-center gap-3">
                     <span className="font-semibold">{formatCurrency(addon.price)}</span>
@@ -151,9 +185,9 @@ export default function JoinPage() {
             </div>
 
             <Textarea id="notes" label="Notes" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
-            <p className="font-display text-lg font-bold text-maroon-800 border-t border-gray-200 pt-4">Estimated Total: {formatCurrency(total)}</p>
+            <p className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200 border-t border-edge-subtle pt-4">Estimated Total: {formatCurrency(total)}</p>
             <Button type="submit" isLoading={loading}>Submit Social Membership</Button>
-            {message && <p className="text-sm text-gray-600">{message}</p>}
+            {message && <p className="text-sm text-content-muted">{message}</p>}
           </form>
         </CardContent>
       </Card>

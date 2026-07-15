@@ -53,16 +53,16 @@ export default function AdminPaymentsPage() {
         <Button onClick={reconcile}>Run Auto Reconciliation</Button>
         <a href="/api/admin/payments/export"><Button variant="secondary">Export Xero CSV</Button></a>
       </div>
-      {message && <p className="text-sm text-gray-600">{message}</p>}
+      {message && <p className="text-sm text-content-muted">{message}</p>}
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-surface-card border rounded-xl divide-y">
         {transactions.length === 0 ? (
-          <p className="p-4 text-gray-500">No ambiguous transactions.</p>
+          <p className="p-4 text-content-muted">No ambiguous transactions.</p>
         ) : transactions.map((tx) => (
           <div key={tx.id} className="p-4 flex items-center justify-between gap-4">
             <div>
               <p className="font-medium">{tx.payer_name || 'Unknown payer'} · ${tx.amount}</p>
-              <p className="text-sm text-gray-500">{tx.transaction_reference || '(no reference)'} · {new Date(tx.transaction_date).toLocaleDateString()}</p>
+              <p className="text-sm text-content-muted">{tx.transaction_reference || '(no reference)'} · {new Date(tx.transaction_date).toLocaleDateString()}</p>
             </div>
             <div className="flex items-center gap-2">
               <input id={`order-${tx.id}`} className="border rounded px-2 py-1 text-sm" placeholder="Order ID" />

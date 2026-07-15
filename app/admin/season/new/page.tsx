@@ -64,12 +64,12 @@ export default function StartNewSeasonPage() {
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-display font-bold text-gray-900">Start new season</h1><p className="mt-1 max-w-4xl text-sm text-gray-600">A committee-friendly workflow for preparing the next season without code, SQL or environment changes. Copied content starts as draft and inherited values are clearly marked for review.</p></div>
+      <div><h1 className="text-2xl font-display font-bold text-content-primary">Start new season</h1><p className="mt-1 max-w-4xl text-sm text-content-muted">A committee-friendly workflow for preparing the next season without code, SQL or environment changes. Copied content starts as draft and inherited values are clearly marked for review.</p></div>
       {message && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status">{message}</div>}
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <Card><CardContent><h2 className="text-lg font-display font-bold text-gray-900">Steps</h2><ol className="mt-3 space-y-1">{WIZARD_STEPS.map((label, index) => <li key={label}><button type="button" onClick={() => setStep(index + 1)} className={`w-full rounded-lg px-3 py-2 text-left text-sm ${step === index + 1 ? 'bg-maroon-700 text-white' : 'hover:bg-gray-50'}`}>{index + 1}. {label}</button></li>)}</ol></CardContent></Card>
+        <Card><CardContent><h2 className="text-lg font-display font-bold text-content-primary">Steps</h2><ol className="mt-3 space-y-1">{WIZARD_STEPS.map((label, index) => <li key={label}><button type="button" onClick={() => setStep(index + 1)} className={`w-full rounded-lg px-3 py-2 text-left text-sm ${step === index + 1 ? 'bg-maroon-700 text-white' : 'hover:bg-surface-page'}`}>{index + 1}. {label}</button></li>)}</ol></CardContent></Card>
         <Card><CardContent>
-          <h2 className="text-lg font-display font-bold text-gray-900">{step}. {WIZARD_STEPS[step - 1]}</h2>
+          <h2 className="text-lg font-display font-bold text-content-primary">{step}. {WIZARD_STEPS[step - 1]}</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <label className="text-sm font-semibold">Season name<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.name} placeholder="2027/2028 Season" onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
             <label className="text-sm font-semibold">Slug<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.slug} placeholder="2027-28" onChange={(e) => setForm({ ...form, slug: e.target.value })} /></label>
@@ -86,7 +86,7 @@ export default function StartNewSeasonPage() {
           <div className="mt-5 flex flex-wrap gap-3"><Button type="button" variant="secondary" onClick={() => setStep(Math.max(1, step - 1))}>Back</Button><Button type="button" variant="secondary" onClick={() => setStep(Math.min(WIZARD_STEPS.length, step + 1))}>Next</Button><Button type="button" onClick={saveDraft} disabled={busy}>Save draft and preview</Button></div>
         </CardContent></Card>
       </div>
-      <Card><CardContent><h2 className="text-lg font-display font-bold text-gray-900">Resumable drafts</h2><div className="mt-3 space-y-3">{states.map((state) => <div key={state.id} className="rounded-lg border p-3"><p className="text-sm font-semibold">{state.preview?.summary || 'Season draft'} · {state.status}</p>{state.preview?.warnings?.map((warning) => <p key={warning} className="text-sm text-yellow-800">Warning: {warning}</p>)}<Button type="button" className="mt-3" onClick={() => activate(state.id)} disabled={busy || state.status === 'activated'}>Activate now</Button></div>)}</div></CardContent></Card>
+      <Card><CardContent><h2 className="text-lg font-display font-bold text-content-primary">Resumable drafts</h2><div className="mt-3 space-y-3">{states.map((state) => <div key={state.id} className="rounded-lg border p-3"><p className="text-sm font-semibold">{state.preview?.summary || 'Season draft'} · {state.status}</p>{state.preview?.warnings?.map((warning) => <p key={warning} className="text-sm text-yellow-800">Warning: {warning}</p>)}<Button type="button" className="mt-3" onClick={() => activate(state.id)} disabled={busy || state.status === 'activated'}>Activate now</Button></div>)}</div></CardContent></Card>
     </div>
   );
 }

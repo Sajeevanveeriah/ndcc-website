@@ -24,7 +24,7 @@ rmSync(tmpDir, { recursive: true, force: true });
 mkdirSync(tmpDir, { recursive: true });
 
 try {
-  for (const rel of ['sponsor-canonical.ts', 'sponsor-logo-surface.ts']) {
+  for (const rel of ['sponsor-canonical.ts', 'sponsor-logo-surface.ts', 'sponsor-logo-analysis.ts']) {
     const source = readFileSync(join(repoRoot, 'lib', rel), 'utf8')
       .replace(/@\/lib\/([\w-]+)/g, './$1.ts')
       .replace("@/data/sponsors/canonical-sponsor-aliases.json", './canonical-sponsor-aliases.json')
@@ -61,10 +61,25 @@ try {
   const dark = sponsorLogoSurfaceClass('Bennett Racing');
   check('dark plate uses maroon gradient', dark.includes('from-maroon-950'));
   const neutral = sponsorLogoSurfaceClass('X', 'neutral');
-  check('neutral plate follows the theme surface', neutral.includes('bg-surface-muted'));
+  check('neutral plate is pale in light and theme-following in dark', neutral.includes('bg-[#f3f1ec]') && neutral.includes('dark:bg-surface-muted'));
+  check('neutral plate keeps a visible dark-mode keyline', neutral.includes('dark:ring-white/15'));
   const transparent = sponsorLogoSurfaceClass('X', 'transparent');
   check('transparent plate has no fill', transparent.includes('bg-transparent'));
   check('every plate keeps optical padding', [light, dark, neutral, transparent].every((c) => c.includes('p-5')));
+  check('dark plate keeps a visible dark-mode border', dark.includes('dark:border-white/15'));
+
+  // Pixel classifier used by the admin plate suggestion.
+  const analysisModule = await import(pathToFileURL(join(tmpDir, 'sponsor-logo-analysis.ts')).href);
+  const { analyseSponsorLogoPixels } = analysisModule;
+  const solid = (r, g, b, a, count) => Array.from({ length: count * 4 }, (_, i) => [r, g, b, a][i % 4]);
+  const whiteTransparent = { width: 4, height: 4, data: [...solid(255, 255, 255, 255, 8), ...solid(0, 0, 0, 0, 8)] };
+  check('analysis: white-on-transparent -> dark plate', analyseSponsorLogoPixels(whiteTransparent).suggestedMode === 'dark');
+  const blackTransparent = { width: 4, height: 4, data: [...solid(10, 10, 10, 255, 8), ...solid(0, 0, 0, 0, 8)] };
+  check('analysis: black-on-transparent -> light plate', analyseSponsorLogoPixels(blackTransparent).suggestedMode === 'light');
+  const builtIn = { width: 4, height: 4, data: solid(239, 195, 53, 255, 16) };
+  const builtInResult = analyseSponsorLogoPixels(builtIn);
+  check('analysis: full built-in background -> neutral plate', builtInResult.suggestedMode === 'neutral' && builtInResult.hasBuiltInBackground);
+  check('analysis: empty sample falls back to light', analyseSponsorLogoPixels({ width: 0, height: 0, data: [] }).suggestedMode === 'light');
 } finally {
   rmSync(tmpDir, { recursive: true, force: true });
 }

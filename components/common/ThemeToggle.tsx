@@ -28,7 +28,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
       role="group"
       aria-label="Colour theme"
       className={cn(
-        'flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-800',
+        'flex items-center gap-0.5 rounded-lg border border-edge-subtle bg-surface-card p-0.5 dark:border-slate-700 dark:bg-slate-800',
         className
       )}
     >
@@ -44,7 +44,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
             'p-1.5 rounded-md transition-colors focus-ring',
             theme === value
               ? 'bg-maroon-700 text-white'
-              : 'text-gray-500 hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-400 dark:hover:text-maroon-200 dark:hover:bg-slate-700'
+              : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-400 dark:hover:text-maroon-200 dark:hover:bg-slate-700'
           )}
         >
           <Icon className="h-4 w-4" />

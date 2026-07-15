@@ -36,11 +36,11 @@ export default function ChangePasswordPage() {
   return (
     <div className="max-w-lg">
       <h1 className="text-2xl font-display font-bold mb-4">Change Password</h1>
-      <form onSubmit={onSubmit} className="space-y-4 bg-white p-6 rounded-xl border border-gray-200">
+      <form onSubmit={onSubmit} className="space-y-4 bg-surface-card p-6 rounded-xl border border-edge-subtle">
         <PasswordInput id="current" label="Current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
         <PasswordInput id="next" label="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
         <Button type="submit" isLoading={saving}>Update Password</Button>
-        {message && <p className="text-sm text-gray-600">{message}</p>}
+        {message && <p className="text-sm text-content-muted">{message}</p>}
       </form>
     </div>
   );

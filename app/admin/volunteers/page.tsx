@@ -146,16 +146,16 @@ export default function AdminVolunteersPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Users className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Volunteer EOIs
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {filteredVolunteers.length} expression{filteredVolunteers.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
-      {message && <p className="mb-4 text-sm text-gray-600">{message}</p>}
+      {message && <p className="mb-4 text-sm text-content-muted">{message}</p>}
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="w-full sm:w-48">
@@ -169,9 +169,9 @@ export default function AdminVolunteersPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse"><div className="h-4 bg-gray-200 rounded w-full mb-4" /></div>
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse"><div className="h-4 bg-gray-200 rounded w-full mb-4" /></div>
       ) : filteredVolunteers.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center"><p className="text-gray-500 font-body">No volunteer EOIs found.</p></div>
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center"><p className="text-content-muted font-body">No volunteer EOIs found.</p></div>
       ) : (
         <Table>
           <TableHead>
@@ -189,7 +189,7 @@ export default function AdminVolunteersPage() {
             {filteredVolunteers.map((v) => (
               <TableRow key={v.id}>
                 <TableCell>{v.full_name}</TableCell>
-                <TableCell><a href={`mailto:${v.email}`} className="text-maroon-700 hover:underline">{v.email}</a></TableCell>
+                <TableCell><a href={`mailto:${v.email}`} className="text-maroon-700 dark:text-maroon-200 hover:underline">{v.email}</a></TableCell>
                 <TableCell>{v.phone}</TableCell>
                 <TableCell>{v.availability}</TableCell>
                 <TableCell>{v.status === 'contacted' ? <Badge variant="success">Contacted</Badge> : <Badge variant="warning">Pending</Badge>}</TableCell>
@@ -222,11 +222,11 @@ export default function AdminVolunteersPage() {
       )}
 
       <div className="mt-10 space-y-4">
-        <h2 className="text-xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-maroon-700" />
+        <h2 className="text-xl font-display font-bold text-content-primary flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-maroon-700 dark:text-maroon-200" />
           Volunteer Positions
         </h2>
-        <form onSubmit={savePosition} className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+        <form onSubmit={savePosition} className="bg-surface-card rounded-xl border border-edge-subtle p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Input id="position_title" label="Title" required value={positionForm.title} onChange={(e) => setPositionForm((v) => ({ ...v, title: e.target.value }))} />
             <Input id="position_sort" label="Sort order" type="number" value={positionForm.sort_order} onChange={(e) => setPositionForm((v) => ({ ...v, sort_order: e.target.value }))} />
@@ -243,9 +243,9 @@ export default function AdminVolunteersPage() {
         </form>
 
         {positionsLoading ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">Loading volunteer positions...</div>
+          <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">Loading volunteer positions...</div>
         ) : positions.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-500">No volunteer positions yet. Add one above.</div>
+          <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">No volunteer positions yet. Add one above.</div>
         ) : (
           <Table>
             <TableHead>

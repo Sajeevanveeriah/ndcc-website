@@ -75,11 +75,11 @@ export default function AdminFantasyPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-maroon-700" />
+        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+          <Trophy className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
           Fantasy Cricket
         </h1>
-        <p className="text-gray-500 font-body mt-1">
+        <p className="text-content-muted font-body mt-1">
           Admin controls for NDCC Fantasy Cricket gameplay, imports, scoring and manager leaderboards.
         </p>
       </div>
@@ -94,12 +94,12 @@ export default function AdminFantasyPage() {
             <Card hover className="h-full">
               <CardContent>
                 <div className="flex items-start gap-4">
-                  <div className="rounded-lg bg-maroon-50 p-3 text-maroon-700">
+                  <div className="rounded-lg bg-maroon-50 dark:bg-maroon-950 p-3 text-maroon-700 dark:text-maroon-200">
                     <section.icon className="h-6 w-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-display font-bold text-gray-900">{section.title}</h2>
-                    <p className="mt-1 text-sm text-gray-600 font-body">{section.description}</p>
+                    <h2 className="text-lg font-display font-bold text-content-primary">{section.title}</h2>
+                    <p className="mt-1 text-sm text-content-muted font-body">{section.description}</p>
                   </div>
                 </div>
               </CardContent>

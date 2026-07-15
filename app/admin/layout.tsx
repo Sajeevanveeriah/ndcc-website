@@ -179,15 +179,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoginPage) return <>{children}</>;
 
   if (loading) {
-    return <div className="min-h-screen bg-sky-50 flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen bg-surface-page flex items-center justify-center">Loading...</div>;
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-sky-50 flex items-center justify-center p-6">
-        <div className="max-w-md rounded-xl border border-red-100 bg-white p-6 text-center shadow-sm">
-          <h1 className="text-xl font-display font-bold text-gray-900">Admin session unavailable</h1>
-          <p className="mt-2 text-sm text-gray-600">
+      <div className="min-h-screen bg-surface-page flex items-center justify-center p-6">
+        <div className="max-w-md rounded-xl border border-red-100 bg-surface-card p-6 text-center shadow-sm">
+          <h1 className="text-xl font-display font-bold text-content-primary">Admin session unavailable</h1>
+          <p className="mt-2 text-sm text-content-muted">
             {message || 'We could not confirm your admin session. Please wait for the automatic retry or sign in again.'}
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -204,7 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 
   return (
-    <div className="min-h-screen bg-sky-50 flex">
+    <div className="min-h-screen bg-surface-page flex">
       <InactivityGuard onLogout={handleSignOut} />
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:top-24 lg:bottom-0 bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
@@ -249,19 +249,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <div className="flex-1 lg:pl-64">
-        <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-30">
+        <header className="lg:hidden bg-surface-card border-b border-edge-subtle sticky top-0 z-30">
           <div className="px-4 py-3 flex items-center justify-between">
             <button
               onClick={() => setMobileOpen((v) => !v)}
-              className="p-2 -m-1 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors focus-ring"
+              className="p-2 -m-1 rounded-lg border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
               aria-label={mobileOpen ? 'Close admin menu' : 'Open admin menu'}
               aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X /> : <Menu />}
             </button>
-            <span className="font-display font-bold uppercase tracking-wide text-maroon-800">{CLUB_SHORT} Admin</span>
+            <span className="font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">{CLUB_SHORT} Admin</span>
           </div>
-          {mobileOpen && <nav className="px-4 pb-3 space-y-4 max-h-[70vh] overflow-y-auto" aria-label="Mobile grouped admin navigation">{groupedLinks.map((group) => <section key={group.title}><h2 className="text-xs font-bold uppercase tracking-wide text-maroon-700">{group.title}</h2>{group.links.map((link) => <Link className="block rounded-lg py-2 text-sm" key={`${group.title}-${link.href}-${link.label}`} href={link.href}>{link.label}</Link>)}</section>)}</nav>}
+          {mobileOpen && <nav className="px-4 pb-3 space-y-4 max-h-[70vh] overflow-y-auto" aria-label="Mobile grouped admin navigation">{groupedLinks.map((group) => <section key={group.title}><h2 className="text-xs font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.title}</h2>{group.links.map((link) => <Link className="block rounded-lg py-2 text-sm" key={`${group.title}-${link.href}-${link.label}`} href={link.href}>{link.label}</Link>)}</section>)}</nav>}
         </header>
         <main className="p-6 lg:p-8">{children}</main>
         {message && <p className="px-6 pb-6 text-sm text-red-600">{message}</p>}

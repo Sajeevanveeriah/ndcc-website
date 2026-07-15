@@ -48,12 +48,12 @@ export default function AdminMinutesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Meeting Minutes</h1>
-      {message && <p className="text-sm text-gray-600">{message}</p>}
-      <form onSubmit={save} className="bg-white border rounded-xl p-4 space-y-3">
+      {message && <p className="text-sm text-content-muted">{message}</p>}
+      <form onSubmit={save} className="bg-surface-card border rounded-xl p-4 space-y-3">
         <Input id="title" label="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
         <Input id="meeting_date" label="Meeting Date" type="date" value={form.meeting_date} onChange={(e) => setForm((p) => ({ ...p, meeting_date: e.target.value }))} required />
         <Textarea id="content" label="Content" value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} required />
-        <label className="text-sm font-medium text-gray-700">Status
+        <label className="text-sm font-medium text-content-secondary">Status
           <select className="mt-1 w-full border rounded px-3 py-2" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
             <option value="draft">draft</option>
             <option value="published">published</option>
@@ -64,11 +64,11 @@ export default function AdminMinutesPage() {
         <Button type="submit" isLoading={saving}>{editingId ? 'Update Minute' : 'Create Minute'}</Button>
       </form>
 
-      <div className="bg-white border rounded-xl divide-y">
+      <div className="bg-surface-card border rounded-xl divide-y">
         {minutes.map((m) => (
           <div key={m.id} className="p-4">
             <p className="font-semibold">{m.title}</p>
-            <p className="text-sm text-gray-500">{m.meeting_date} · {m.status}</p>
+            <p className="text-sm text-content-muted">{m.meeting_date} · {m.status}</p>
             <Button variant="ghost" size="sm" onClick={() => { setEditingId(m.id); setForm({ title: m.title, meeting_date: m.meeting_date, content: m.content, status: m.status }); }}>Edit</Button>
           </div>
         ))}

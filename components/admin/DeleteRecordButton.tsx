@@ -127,15 +127,15 @@ export default function DeleteRecordButton({
       </Button>
       <Modal isOpen={isOpen} onClose={closeModal} title={`Delete ${recordLabel}`} size="sm">
         <div className="space-y-4" aria-busy={deleting}>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-content-secondary">
             This will permanently delete <strong>{recordLabel}</strong>. This action cannot be undone.
           </p>
           {recordDetails.length > 0 && (
-            <dl className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+            <dl className="rounded-lg border border-edge-subtle bg-surface-page p-3 text-sm">
               {recordDetails.map((detail) => (
                 <div key={detail.label} className="grid grid-cols-[7rem_1fr] gap-2 py-1">
-                  <dt className="font-semibold text-gray-600">{detail.label}</dt>
-                  <dd className="text-gray-900 break-words">{detail.value ?? '-'}</dd>
+                  <dt className="font-semibold text-content-muted">{detail.label}</dt>
+                  <dd className="text-content-primary break-words">{detail.value ?? '-'}</dd>
                 </div>
               ))}
             </dl>
@@ -155,7 +155,7 @@ export default function DeleteRecordButton({
             />
           )}
           {status && (
-            <p className={status.startsWith('Deleting') ? 'text-sm text-gray-600' : 'text-sm text-red-600'} role="status" aria-live="polite">
+            <p className={status.startsWith('Deleting') ? 'text-sm text-content-muted' : 'text-sm text-red-600'} role="status" aria-live="polite">
               {status}
             </p>
           )}

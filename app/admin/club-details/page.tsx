@@ -131,11 +131,11 @@ export default function AdminClubDetailsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <Settings className="h-6 w-6 text-maroon-700" />
+        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+          <Settings className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
           Club Details
         </h1>
-        <p className="text-gray-500 font-body mt-1">
+        <p className="text-content-muted font-body mt-1">
           Manage site-wide club contact details, social links, ground details, and key club links.
         </p>
       </div>
@@ -145,7 +145,7 @@ export default function AdminClubDetailsPage() {
       )}
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
@@ -154,7 +154,7 @@ export default function AdminClubDetailsPage() {
         <Card>
           <CardContent className="p-6 space-y-8">
             <div>
-              <h2 className="text-lg font-display font-bold text-gray-900 mb-4">Club identity</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary mb-4">Club identity</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input id="club-name" label="Club name" value={form.club_name} onChange={(e) => updateField('club_name', e.target.value)} error={formErrors.club_name} required />
                 <Input id="club-short" label="Short name" value={form.club_short} onChange={(e) => updateField('club_short', e.target.value)} error={formErrors.club_short} required />
@@ -164,7 +164,7 @@ export default function AdminClubDetailsPage() {
             </div>
 
             <div>
-              <h2 className="text-lg font-display font-bold text-gray-900 mb-4">Contact and ground</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary mb-4">Contact and ground</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input id="club-email" label="Email" type="email" value={form.email || ''} onChange={(e) => updateField('email', e.target.value)} />
                 <Input id="club-phone" label="Phone" value={form.phone || ''} onChange={(e) => updateField('phone', e.target.value)} />
@@ -176,7 +176,7 @@ export default function AdminClubDetailsPage() {
             </div>
 
             <div>
-              <h2 className="text-lg font-display font-bold text-gray-900 mb-4">Links</h2>
+              <h2 className="text-lg font-display font-bold text-content-primary mb-4">Links</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input id="facebook-url" label="Facebook URL" type="url" value={form.facebook_url || ''} onChange={(e) => updateField('facebook_url', e.target.value)} />
                 <Input id="instagram-url" label="Instagram URL" type="url" value={form.instagram_url || ''} onChange={(e) => updateField('instagram_url', e.target.value)} />

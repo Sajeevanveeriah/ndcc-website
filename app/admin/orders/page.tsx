@@ -89,16 +89,16 @@ export default function AdminOrdersPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <ShoppingBag className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Orders
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
-      {message && <p className="mb-4 text-sm text-gray-600">{message}</p>}
+      {message && <p className="mb-4 text-sm text-content-muted">{message}</p>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -125,15 +125,15 @@ export default function AdminOrdersPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No orders found.</p>
+          <p className="text-content-muted font-body">No orders found.</p>
         </div>
       ) : (
         <Table>
@@ -154,12 +154,12 @@ export default function AdminOrdersPage() {
               <TableRow key={o.id}>
                 <TableCell>
                   <div>
-                    <p className="font-medium text-gray-900">{o.customer_name}</p>
+                    <p className="font-medium text-content-primary">{o.customer_name}</p>
                     <p className="text-xs text-gray-400">{o.customer_phone}</p>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <a href={`mailto:${o.customer_email}`} className="text-maroon-700 hover:underline">
+                  <a href={`mailto:${o.customer_email}`} className="text-maroon-700 dark:text-maroon-200 hover:underline">
                     {o.customer_email}
                   </a>
                 </TableCell>

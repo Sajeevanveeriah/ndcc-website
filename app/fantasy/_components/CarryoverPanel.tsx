@@ -59,12 +59,12 @@ export default function CarryoverPanel({ onApplied }: { onApplied?: () => void }
   return (
     <Card>
       <CardContent className="p-6 space-y-3">
-        <h2 className="text-lg font-display font-bold text-gray-900">Carry squad to a new season</h2>
-        <p className="text-sm font-body text-gray-600">Copy your latest squad from a previous season into this season as a draft. Unavailable players are dropped and role or price changes are flagged for review.</p>
+        <h2 className="text-lg font-display font-bold text-content-primary">Carry squad to a new season</h2>
+        <p className="text-sm font-body text-content-muted">Copy your latest squad from a previous season into this season as a draft. Unavailable players are dropped and role or price changes are flagged for review.</p>
         <div className="flex flex-wrap items-center gap-3">
           <label className="inline-flex items-center gap-2 text-sm font-body">
             <span className="font-semibold">Copy from</span>
-            <select value={sourceSlug} onChange={(event) => { setSourceSlug(event.target.value); setPreview(null); }} className="rounded-md border border-maroon-300 bg-white px-3 py-2 text-sm" aria-label="Season to copy squad from">
+            <select value={sourceSlug} onChange={(event) => { setSourceSlug(event.target.value); setPreview(null); }} className="rounded-md border border-maroon-300 bg-surface-card px-3 py-2 text-sm" aria-label="Season to copy squad from">
               <option value="">Choose season…</option>
               {sourceOptions.map((item) => <option key={item.id} value={item.slug}>{item.name} · {item.statusLabel}</option>)}
             </select>
@@ -74,7 +74,7 @@ export default function CarryoverPanel({ onApplied }: { onApplied?: () => void }
         {feedback && <p className="text-green-700 font-body text-sm">{feedback}</p>}
         {error && <p className="text-red-600 font-body text-sm" role="alert">{error}</p>}
         {preview && (
-          <div className="rounded-lg border border-gray-200 p-4 space-y-2 text-sm font-body">
+          <div className="rounded-lg border border-edge-subtle p-4 space-y-2 text-sm font-body">
             <p><strong>{preview.plan.carried.length}</strong> player{preview.plan.carried.length === 1 ? '' : 's'} carried · <strong>{preview.plan.unavailable.length}</strong> unavailable · <strong>{preview.plan.roleChanges.length}</strong> role change{preview.plan.roleChanges.length === 1 ? '' : 's'} · <strong>{preview.plan.priceChanges.length}</strong> price change{preview.plan.priceChanges.length === 1 ? '' : 's'}</p>
             <p>Budget used: <strong>{Number(preview.plan.budgetUsed).toFixed(1)}</strong> · remaining <strong>{Number(preview.plan.budgetRemaining).toFixed(1)}</strong></p>
             {preview.plan.warnings.length > 0 && (

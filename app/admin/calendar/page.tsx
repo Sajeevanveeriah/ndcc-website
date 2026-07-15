@@ -327,23 +327,23 @@ export default function AdminCalendarPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Club Calendar
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {events.length} entr{events.length !== 1 ? 'ies' : 'y'} · times in Australia/Melbourne ·{' '}
-            <Link href="/calendar" target="_blank" className="text-maroon-700 hover:text-maroon-500 inline-flex items-center gap-1">
+            <Link href="/calendar" target="_blank" className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 inline-flex items-center gap-1">
               Preview public calendar <ExternalLink className="h-3 w-3" />
             </Link>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="View">
+          <div className="inline-flex rounded-lg border border-edge-subtle overflow-hidden" role="group" aria-label="View">
             <button
               type="button"
               onClick={() => setView('list')}
-              className={`px-3 py-2 text-sm font-body font-semibold ${view === 'list' ? 'bg-maroon-800 text-white' : 'bg-white text-gray-600'}`}
+              className={`px-3 py-2 text-sm font-body font-semibold ${view === 'list' ? 'bg-maroon-800 text-white' : 'bg-surface-card text-content-muted'}`}
               aria-pressed={view === 'list'}
             >
               List
@@ -351,7 +351,7 @@ export default function AdminCalendarPage() {
             <button
               type="button"
               onClick={() => setView('month')}
-              className={`px-3 py-2 text-sm font-body font-semibold ${view === 'month' ? 'bg-maroon-800 text-white' : 'bg-white text-gray-600'}`}
+              className={`px-3 py-2 text-sm font-body font-semibold ${view === 'month' ? 'bg-maroon-800 text-white' : 'bg-surface-card text-content-muted'}`}
               aria-pressed={view === 'month'}
             >
               Month
@@ -415,14 +415,14 @@ export default function AdminCalendarPage() {
       />
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : view === 'month' ? (
-        <div className="ndcc-calendar bg-white rounded-xl border border-gray-100 p-3 sm:p-5">
-          <p className="text-xs text-gray-500 font-body mb-2">Click a day to add an event, or click an event to edit. Grey entries are not published.</p>
+        <div className="ndcc-calendar bg-surface-card rounded-xl border border-edge-subtle p-3 sm:p-5">
+          <p className="text-xs text-content-muted font-body mb-2">Click a day to add an event, or click an event to edit. Grey entries are not published.</p>
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
@@ -437,9 +437,9 @@ export default function AdminCalendarPage() {
           />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">
+          <p className="text-content-muted font-body">
             {events.length === 0 ? 'No calendar events yet. Create your first entry.' : 'No events match the current filters.'}
           </p>
         </div>
@@ -453,7 +453,7 @@ export default function AdminCalendarPage() {
                   aria-label="Select all calendar events"
                   checked={filtered.length > 0 && selectedIds.length === filtered.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -474,7 +474,7 @@ export default function AdminCalendarPage() {
                     aria-label={`Select ${event.title}`}
                     checked={selectedIds.includes(event.id)}
                     onChange={() => toggleSelected(event.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">
@@ -492,7 +492,7 @@ export default function AdminCalendarPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm capitalize">{event.visibility}</TableCell>
-                <TableCell className="text-xs text-gray-500">
+                <TableCell className="text-xs text-content-muted">
                   {[
                     event.show_on_calendar ? 'Calendar' : null,
                     event.show_on_home ? 'Home' : null,
@@ -539,7 +539,7 @@ export default function AdminCalendarPage() {
       />
 
       <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Calendar Event" size="sm">
-        <p className="text-sm text-gray-600 font-body">
+        <p className="text-sm text-content-muted font-body">
           Are you sure you want to delete this calendar event? This cannot be undone — archiving keeps it hidden but recoverable.
         </p>
         <div className="flex justify-end gap-3 mt-6">

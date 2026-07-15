@@ -23,7 +23,7 @@ export function TableBody({ className, children }: TableProps) {
 }
 
 export function TableRow({ className, children }: TableProps) {
-  return <tr className={cn('hover:bg-sky-50/70 dark:hover:bg-surface-elevated transition-colors', className)}>{children}</tr>;
+  return <tr className={cn('hover:bg-surface-blue-subtle/60 transition-colors', className)}>{children}</tr>;
 }
 
 export function TableHeader({ className, children }: TableProps) {

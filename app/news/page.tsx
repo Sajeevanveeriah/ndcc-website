@@ -50,7 +50,7 @@ export default async function NewsPage() {
           <div className="space-y-6">
             {posts.length === 0 ? (
               <Card>
-                <CardContent className="p-6 text-center text-gray-500 font-body">
+                <CardContent className="p-6 text-center text-content-muted font-body">
                   No published news articles yet.
                 </CardContent>
               </Card>
@@ -60,7 +60,7 @@ export default async function NewsPage() {
                 <Card hover className="overflow-hidden">
                   <div className={post.image_url || post.image ? 'md:flex' : ''}>
                     {(post.image_url || post.image) && (
-                      <div className="w-full md:w-64 flex-shrink-0 bg-gray-50 p-2">
+                      <div className="w-full md:w-64 flex-shrink-0 bg-surface-page p-2">
                         <SafeImage
                           src={post.image_url || post.image || '/images/Womens_Team.jpg'}
                           alt={post.title}
@@ -68,18 +68,18 @@ export default async function NewsPage() {
                           height={200}
                           className="w-full h-48 md:h-full object-contain"
                           sizes="(max-width: 768px) 100vw, 256px"
-                          fallback={<div className="w-full h-48 md:h-full rounded bg-gray-100" aria-hidden="true" />}
+                          fallback={<div className="w-full h-48 md:h-full rounded bg-surface-muted" aria-hidden="true" />}
                         />
                       </div>
                     )}
                     <CardContent className="p-6 flex-1">
                       <div className="flex flex-wrap items-center gap-3 mb-3">
                         {post.published_at && (
-                          <span className="font-body text-xs font-semibold uppercase tracking-[0.08em] text-maroon-600">{formatDate(post.published_at)}</span>
+                          <span className="font-body text-xs font-semibold uppercase tracking-[0.08em] text-maroon-600 dark:text-maroon-300">{formatDate(post.published_at)}</span>
                         )}
-                        <span className="font-body text-sm text-gray-500">by {post.author}</span>
+                        <span className="font-body text-sm text-content-muted">by {post.author}</span>
                       </div>
-                      <h2 className="font-display font-bold text-gray-900 text-xl mb-3">
+                      <h2 className="font-display font-bold text-content-primary text-xl mb-3">
                         <Link
                           href={`/news/${post.id}`}
                           className="hover:text-maroon-700 transition-colors"
@@ -87,12 +87,12 @@ export default async function NewsPage() {
                           {post.title}
                         </Link>
                       </h2>
-                      <p className="font-body text-gray-600 leading-relaxed">
+                      <p className="font-body text-content-muted leading-relaxed">
                         {truncateText(post.content, 200)}
                       </p>
                       <Link
                         href={`/news/${post.id}`}
-                        className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold text-sm mt-4 transition-colors"
+                        className="inline-flex items-center text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 font-body font-semibold text-sm mt-4 transition-colors"
                       >
                         Read More
                         <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">

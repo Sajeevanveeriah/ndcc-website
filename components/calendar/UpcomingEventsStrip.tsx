@@ -28,10 +28,10 @@ export default function UpcomingEventsStrip({
   return (
     <div>
       {heading && (
-        <h3 className="font-display font-bold uppercase tracking-wide text-maroon-800 text-lg mb-3">{heading}</h3>
+        <h3 className="font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200 text-lg mb-3">{heading}</h3>
       )}
       {events.length === 0 ? (
-        <p className="text-sm font-body text-gray-500">{emptyMessage}</p>
+        <p className="text-sm font-body text-content-muted">{emptyMessage}</p>
       ) : (
         <ul className="space-y-3">
           {events.map((event) => (
@@ -45,7 +45,7 @@ export default function UpcomingEventsStrip({
         <div className="mt-4">
           <Link
             href="/calendar"
-            className="inline-flex items-center text-maroon-700 hover:text-maroon-500 font-body font-semibold text-sm transition-colors"
+            className="inline-flex items-center text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 font-body font-semibold text-sm transition-colors"
           >
             View full calendar →
           </Link>

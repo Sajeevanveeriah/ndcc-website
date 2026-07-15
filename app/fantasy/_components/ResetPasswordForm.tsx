@@ -79,7 +79,7 @@ export default function ResetPasswordForm() {
 
   if (status === 'checking') {
     return (
-      <Card><CardContent className="p-6"><p className="font-body text-gray-700">Checking your password reset link…</p></CardContent></Card>
+      <Card><CardContent className="p-6"><p className="font-body text-content-secondary">Checking your password reset link…</p></CardContent></Card>
     );
   }
 
@@ -87,7 +87,7 @@ export default function ResetPasswordForm() {
     return (
       <Card>
         <CardContent className="p-6 space-y-4">
-          <p className="font-body text-gray-700">
+          <p className="font-body text-content-secondary">
             This page needs a valid password reset link. Open the most recent reset email on this device, or request a new link from the sign-in page.
           </p>
           {error && <p className="text-sm font-body text-red-600">{error}</p>}

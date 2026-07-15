@@ -19,8 +19,8 @@ export default function DataLoadErrorCard({ title, retryHref, backHref, backLabe
   return (
     <Card className="border-l-4 border-l-maroon-700">
       <CardContent className="p-8">
-        <h2 className="text-xl font-display font-bold text-gray-900 mb-2">{title}</h2>
-        <p className="font-body text-gray-700 mb-4">
+        <h2 className="text-xl font-display font-bold text-content-primary mb-2">{title}</h2>
+        <p className="font-body text-content-secondary mb-4">
           We couldn&apos;t load this just now. This is usually temporary - try refreshing in a minute.
         </p>
         <div className="flex flex-wrap gap-3">

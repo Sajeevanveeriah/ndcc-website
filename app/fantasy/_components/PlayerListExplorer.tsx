@@ -100,13 +100,13 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
         </label>
       </div>
 
-      <p className="font-body text-sm text-gray-600" role="status">
+      <p className="font-body text-sm text-content-muted" role="status">
         Showing {visible.length} of {players.length} players
       </p>
 
       {visible.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="font-body text-gray-700">No players match the current search and filters.</p>
+          <p className="font-body text-content-secondary">No players match the current search and filters.</p>
         </div>
       ) : (
         <Table>

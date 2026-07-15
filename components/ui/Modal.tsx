@@ -64,7 +64,7 @@ export default function Modal({ isOpen, onClose, title, children, className, siz
               className="p-1.5 rounded-lg hover:bg-surface-muted transition-colors focus-ring"
               aria-label="Close"
             >
-              <X className="h-5 w-5 text-gray-500 dark:text-slate-400" />
+              <X className="h-5 w-5 text-content-muted dark:text-slate-400" />
             </button>
           </div>
         )}

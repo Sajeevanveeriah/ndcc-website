@@ -14,6 +14,35 @@ import Input, { Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Handshake, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { analyseSponsorLogoPixels, type SponsorLogoAnalysis } from '@/lib/sponsor-logo-analysis';
+
+// Draw the (same-origin or CORS-permitted) logo into an offscreen canvas and
+// classify its pixels so the plate select can suggest a verified mode for new
+// uploads. Fails silently — analysis is a hint, never a gate.
+async function analyseLogoUrl(url: string): Promise<SponsorLogoAnalysis | null> {
+  try {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('logo load failed'));
+      image.src = url;
+    });
+    const scale = Math.min(1, 160 / Math.max(image.naturalWidth, image.naturalHeight, 1));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+    context.drawImage(image, 0, 0, width, height);
+    const pixels = context.getImageData(0, 0, width, height);
+    return analyseSponsorLogoPixels({ width, height, data: pixels.data });
+  } catch {
+    return null;
+  }
+}
 
 const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
   name: '',
@@ -38,6 +67,27 @@ export default function AdminSponsorsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptySponsor);
+  const [logoAnalysis, setLogoAnalysis] = useState<SponsorLogoAnalysis | null>(null);
+
+  // Suggest a plate mode from the actual artwork pixels whenever the logo URL
+  // changes. When the stored mode is still 'auto' the suggestion is applied
+  // as an explicit resolved mode; an admin can always override the select.
+  useEffect(() => {
+    let cancelled = false;
+    const url = asString(form.logo_url).trim();
+    if (!url) { setLogoAnalysis(null); return; }
+    analyseLogoUrl(url).then((analysis) => {
+      if (cancelled || !analysis) return;
+      setLogoAnalysis(analysis);
+      setForm((prev) => (
+        (asString(prev.logo_surface_mode) || 'auto') === 'auto' && asString(prev.logo_url).trim() === url
+          ? { ...prev, logo_surface_mode: analysis.suggestedMode }
+          : prev
+      ));
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.logo_url]);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
@@ -226,11 +276,11 @@ export default function AdminSponsorsPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Handshake className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Handshake className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Sponsors
           </h1>
-          <p className="text-gray-500 font-body mt-1">
+          <p className="text-content-muted font-body mt-1">
             {sponsors.length} sponsor{sponsors.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -256,15 +306,15 @@ export default function AdminSponsorsPage() {
       />
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : sponsors.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <Handshake className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No sponsors yet. Add your first sponsor.</p>
+          <p className="text-content-muted font-body">No sponsors yet. Add your first sponsor.</p>
         </div>
       ) : (
         <Table>
@@ -276,7 +326,7 @@ export default function AdminSponsorsPage() {
                   aria-label="Select all sponsors"
                   checked={sponsors.length > 0 && selectedIds.length === sponsors.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Name</TableHeader>
@@ -297,7 +347,7 @@ export default function AdminSponsorsPage() {
                     aria-label={`Select ${sponsor.name}`}
                     checked={selectedIds.includes(sponsor.id)}
                     onChange={() => toggleSelected(sponsor.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{sponsor.name}</TableCell>
@@ -313,7 +363,7 @@ export default function AdminSponsorsPage() {
                       href={sponsor.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-maroon-700 hover:underline inline-flex items-center gap-1"
+                      className="text-maroon-700 dark:text-maroon-200 hover:underline inline-flex items-center gap-1"
                     >
                       Visit <ExternalLink className="h-3 w-3" />
                     </a>
@@ -403,6 +453,11 @@ export default function AdminSponsorsPage() {
             value={asString(form.logo_surface_mode) || 'auto'}
             onChange={(e) => setForm({ ...form, logo_surface_mode: e.target.value })}
           />
+          {logoAnalysis && (
+            <p className="text-xs font-body text-content-muted -mt-2">
+              Artwork analysis suggests the <span className="font-semibold">{logoAnalysis.suggestedMode}</span> plate — {logoAnalysis.reason}
+            </p>
+          )}
           <Textarea
             id="sponsor-description"
             label="Description (optional)"
@@ -446,12 +501,12 @@ export default function AdminSponsorsPage() {
               type="checkbox"
               checked={form.active}
               onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+              className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
-            <span className="text-sm font-body text-gray-700">Active sponsor</span>
+            <span className="text-sm font-body text-content-secondary">Active sponsor</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
@@ -469,7 +524,7 @@ export default function AdminSponsorsPage() {
         title="Delete Sponsor"
         size="sm"
       >
-        <p className="text-sm text-gray-600 font-body">
+        <p className="text-sm text-content-muted font-body">
           Are you sure you want to delete this sponsor? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3 mt-6">

@@ -1,16 +1,26 @@
 # PlayHQ setup Rev00
 
 ## Vercel environment variables
-Add these as server-side Vercel environment variables only:
+Add these as server-side Vercel environment variables only. Only
+`PLAYHQ_API_KEY` and `PLAYHQ_ORGANISATION_ID` are required — everything else
+has a working default:
 
 ```text
-PLAYHQ_API_BASE_URL=https://api.caprod.playhq.com
 PLAYHQ_API_KEY=replace_with_playhq_public_api_key
 PLAYHQ_ORGANISATION_ID=replace_with_playhq_organisation_id
+PLAYHQ_API_BASE_URL=https://api.playhq.com
+PLAYHQ_TENANT=ca
 PLAYHQ_DEFAULT_SEASON_ID=
 PLAYHQ_DEFAULT_GRADE_IDS=
 PLAYHQ_CACHE_REVALIDATE_SECONDS=3600
 ```
+
+`PLAYHQ_API_BASE_URL` defaults to `https://api.playhq.com`; the legacy
+`https://api.caprod.playhq.com` host from earlier revisions of this guide is
+still honoured and the client falls back between the two hosts automatically
+on auth/routing failures. `PLAYHQ_TENANT` defaults to the Cricket Australia
+tenant short-name `ca` (sent as the `x-phq-tenant` header) and only needs
+setting if PlayHQ issues a different tenant.
 
 Do not use `NEXT_PUBLIC_` for the PlayHQ key. Do not paste the key into source, logs, PRs, issues or screenshots.
 

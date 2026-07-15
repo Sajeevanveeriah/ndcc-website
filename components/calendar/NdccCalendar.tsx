@@ -93,7 +93,7 @@ export default function NdccCalendar({ events, showFilters = true, showLegend = 
         />
       )}
 
-      <div className="ndcc-calendar bg-white rounded-xl border border-gray-100 shadow-card p-3 sm:p-5">
+      <div className="ndcc-calendar bg-surface-card rounded-xl border border-edge-subtle shadow-card p-3 sm:p-5">
         {!mounted ? (
           <div className="animate-pulse py-24 text-center text-sm text-gray-400 font-body" role="status">
             Loading calendar…
@@ -120,7 +120,7 @@ export default function NdccCalendar({ events, showFilters = true, showLegend = 
         )}
       </div>
 
-      <p className="mt-2 text-xs text-gray-500 font-body">All times shown in Melbourne time (AEST/AEDT).</p>
+      <p className="mt-2 text-xs text-content-muted font-body">All times shown in Melbourne time (AEST/AEDT).</p>
 
       {showLegend && <CalendarLegend className="mt-4" />}
 

@@ -259,10 +259,10 @@ export default function AdminKitchenPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Kitchen Management</h1>
-      {message && <p className="text-sm text-gray-700 bg-gray-50 border rounded px-3 py-2">{message}</p>}
+      {message && <p className="text-sm text-content-secondary bg-surface-page border rounded px-3 py-2">{message}</p>}
 
       {/* Menus */}
-      <section className="bg-white rounded-xl border p-5 space-y-4">
+      <section className="bg-surface-card rounded-xl border p-5 space-y-4">
         <h2 className="text-lg font-semibold">Menus</h2>
 
         {editingMenu ? (
@@ -300,12 +300,12 @@ export default function AdminKitchenPage() {
               </div>
             </div>
           ))}
-          {menus.length === 0 && <p className="text-sm text-gray-500">No menus yet.</p>}
+          {menus.length === 0 && <p className="text-sm text-content-muted">No menus yet.</p>}
         </div>
       </section>
 
       {/* Menu Items */}
-      <section className="bg-white rounded-xl border p-5 space-y-4">
+      <section className="bg-surface-card rounded-xl border p-5 space-y-4">
         <h2 className="text-lg font-semibold">Menu Items</h2>
 
         {editingItem ? (
@@ -368,7 +368,7 @@ export default function AdminKitchenPage() {
             <div key={item.id} className="flex items-center justify-between border rounded-lg px-3 py-2 text-sm">
               <div>
                 <span className="font-medium">{item.name}</span>
-                <span className="text-gray-500 ml-2">${item.price}</span>
+                <span className="text-content-muted ml-2">${item.price}</span>
                 {!item.is_available && <span className="ml-2 text-red-500 text-xs">Sold out</span>}
                 {item.is_hidden && <span className="ml-2 text-gray-400 text-xs">Hidden</span>}
               </div>
@@ -386,15 +386,15 @@ export default function AdminKitchenPage() {
               </div>
             </div>
           ))}
-          {items.length === 0 && <p className="text-sm text-gray-500">No items yet.</p>}
+          {items.length === 0 && <p className="text-sm text-content-muted">No items yet.</p>}
         </div>
       </section>
 
       {/* Kitchen Orders */}
-      <section className="bg-white rounded-xl border p-5 space-y-3">
+      <section className="bg-surface-card rounded-xl border p-5 space-y-3">
         <h2 className="text-lg font-semibold">Kitchen Orders</h2>
         {orders.length === 0 ? (
-          <p className="text-sm text-gray-500">No kitchen orders yet.</p>
+          <p className="text-sm text-content-muted">No kitchen orders yet.</p>
         ) : (
           orders.map((o) => (
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex items-center justify-between">

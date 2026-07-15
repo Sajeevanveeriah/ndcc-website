@@ -66,7 +66,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
           <div className="mb-6 flex flex-wrap items-center gap-3">
             <SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} />
             {seasonContext.selected && (
-              <span className="rounded-full bg-maroon-50 px-3 py-1 text-xs font-body text-maroon-700">{seasonContext.selected.name} · {seasonStatusLabel(seasonContext.selected)}</span>
+              <span className="rounded-full bg-maroon-50 dark:bg-maroon-950 px-3 py-1 text-xs font-body text-maroon-700 dark:text-maroon-200">{seasonContext.selected.name} · {seasonStatusLabel(seasonContext.selected)}</span>
             )}
           </div>
 
@@ -74,18 +74,18 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-                    <Trophy className="h-6 w-6 text-maroon-700" aria-hidden="true" />
+                  <h2 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+                    <Trophy className="h-6 w-6 text-maroon-700 dark:text-maroon-200" aria-hidden="true" />
                     {selectedRound ? `Round ${selectedRound.roundNumber}: ${selectedRound.name}` : 'All rounds'}
                   </h2>
-                  <p className="text-gray-600 font-body mt-1">Totals are recalculated from the current Fantasy Cricket scoring rules.</p>
+                  <p className="text-content-muted font-body mt-1">Totals are recalculated from the current Fantasy Cricket scoring rules.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href={roundHref(null, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${!leaderboard.selectedRoundId ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 hover:bg-maroon-50'}`}>
+                  <Link href={roundHref(null, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${!leaderboard.selectedRoundId ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 dark:text-maroon-200 hover:bg-maroon-50'}`}>
                     All rounds
                   </Link>
                   {leaderboard.rounds.map((round) => (
-                    <Link key={round.id} href={roundHref(round.id, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${leaderboard.selectedRoundId === round.id ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 hover:bg-maroon-50'}`}>
+                    <Link key={round.id} href={roundHref(round.id, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${leaderboard.selectedRoundId === round.id ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 dark:text-maroon-200 hover:bg-maroon-50'}`}>
                       Round {round.roundNumber}
                     </Link>
                   ))}
@@ -104,8 +104,8 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
           ) : leaderboard.rows.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
-                <h2 className="text-xl font-display font-bold text-gray-900 mb-2">No published scores yet</h2>
-                <p className="text-gray-700 font-body">The leaderboard will appear after NDCC publishes an approved fantasy import batch.</p>
+                <h2 className="text-xl font-display font-bold text-content-primary mb-2">No published scores yet</h2>
+                <p className="text-content-secondary font-body">The leaderboard will appear after NDCC publishes an approved fantasy import batch.</p>
               </CardContent>
             </Card>
           ) : (
@@ -140,7 +140,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
                     <TableCell>{row.runouts}</TableCell>
                     <TableCell>{row.stumpings}</TableCell>
                     <TableCell>{row.ducks}</TableCell>
-                    <TableCell className="font-bold text-maroon-800">{row.totalFantasyPoints}</TableCell>
+                    <TableCell className="font-bold text-maroon-800 dark:text-maroon-200">{row.totalFantasyPoints}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -17,7 +17,7 @@ import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { sendEmail, getContactEmailRecipients } from '@/lib/email';
 import { getPlayHQGrades, getPlayHQSeasons, getPlayHQTeams } from './client';
-import { getPlayHQConfig } from './config';
+import { getPlayHQConfig, isFantasySyncEnabled } from './config';
 import { isClubTeamName, matchPlayHQSeason } from './season-match';
 import {
   DEFAULT_SYNC_BATCH_SIZE,
@@ -557,7 +557,7 @@ export async function getFantasySyncHealth() {
 
   return {
     generatedAt: new Date().toISOString(),
-    syncEnabled: process.env.PLAYHQ_FANTASY_SYNC_ENABLED === 'true',
+    syncEnabled: isFantasySyncEnabled(),
     playhqConfigured: getPlayHQConfig().configured,
     seasons: seasons ?? [],
     jobs: jobs ?? [],

@@ -201,18 +201,18 @@ export default function AdminGalleryPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-          <ImageIcon className="h-6 w-6 text-maroon-700" />
+        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+          <ImageIcon className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
           Gallery Manager
         </h1>
-        <p className="text-gray-500 font-body mt-1">Manage public gallery tiles and per-image download permissions.</p>
+        <p className="text-content-muted font-body mt-1">Manage public gallery tiles and per-image download permissions.</p>
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
       {success && <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">{success}</p>}
 
       {/* Add New Image */}
-      <form onSubmit={handleCreate} className="bg-white border border-gray-100 rounded-xl p-5 space-y-4">
+      <form onSubmit={handleCreate} className="bg-surface-card border border-edge-subtle rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Gallery Image
@@ -225,11 +225,11 @@ export default function AdminGalleryPage() {
           <Input id="sort_order" label="Sort Order" type="number" value={String(form.sort_order)} onChange={(e) => setForm((prev) => ({ ...prev, sort_order: Number(e.target.value) || 0 }))} />
         </div>
         <div className="flex flex-wrap gap-4">
-          <label className="text-sm text-gray-700 inline-flex items-center gap-2">
+          <label className="text-sm text-content-secondary inline-flex items-center gap-2">
             <input type="checkbox" checked={form.allow_download} onChange={(e) => setForm((prev) => ({ ...prev, allow_download: e.target.checked }))} />
             Allow download
           </label>
-          <label className="text-sm text-gray-700 inline-flex items-center gap-2">
+          <label className="text-sm text-content-secondary inline-flex items-center gap-2">
             <input type="checkbox" checked={form.published} onChange={(e) => setForm((prev) => ({ ...prev, published: e.target.checked }))} />
             Published
           </label>
@@ -250,11 +250,11 @@ export default function AdminGalleryPage() {
       />
 
       {/* Images Table */}
-      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+      <div className="bg-surface-card border border-edge-subtle rounded-xl overflow-hidden">
         {loading ? (
-          <p className="p-6 text-gray-500">Loading gallery images...</p>
+          <p className="p-6 text-content-muted">Loading gallery images...</p>
         ) : items.length === 0 ? (
-          <p className="p-6 text-gray-500">No images yet. Add one above.</p>
+          <p className="p-6 text-content-muted">No images yet. Add one above.</p>
         ) : (
           <Table>
             <TableHead>
@@ -265,7 +265,7 @@ export default function AdminGalleryPage() {
                     aria-label="Select all images"
                     checked={items.length > 0 && selectedIds.length === items.length}
                     onChange={toggleSelectAll}
-                    className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableHeader>
                 <TableHeader>Title</TableHeader>
@@ -285,7 +285,7 @@ export default function AdminGalleryPage() {
                       aria-label={`Select ${item.title}`}
                       checked={selectedIds.includes(item.id)}
                       onChange={() => toggleSelected(item.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-maroon-700 focus:ring-maroon-500"
+                      className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                     />
                   </TableCell>
                   <TableCell>{item.title}</TableCell>
@@ -329,17 +329,17 @@ export default function AdminGalleryPage() {
             <Input id="edit_sort_order" label="Sort Order" type="number" value={String(editForm.sort_order)} onChange={(e) => setEditForm((prev) => ({ ...prev, sort_order: Number(e.target.value) || 0 }))} />
           </div>
           <div className="flex flex-wrap gap-4">
-            <label className="text-sm text-gray-700 inline-flex items-center gap-2">
+            <label className="text-sm text-content-secondary inline-flex items-center gap-2">
               <input type="checkbox" checked={editForm.allow_download} onChange={(e) => setEditForm((prev) => ({ ...prev, allow_download: e.target.checked }))} />
               Allow download
             </label>
-            <label className="text-sm text-gray-700 inline-flex items-center gap-2">
+            <label className="text-sm text-content-secondary inline-flex items-center gap-2">
               <input type="checkbox" checked={editForm.published} onChange={(e) => setEditForm((prev) => ({ ...prev, published: e.target.checked }))} />
               Published
             </label>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button type="button" variant="secondary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
             <Button type="submit" isLoading={editSaving}>Save Changes</Button>
           </div>
@@ -353,7 +353,7 @@ export default function AdminGalleryPage() {
         title="Delete Image"
         size="sm"
       >
-        <p className="text-sm text-gray-600 font-body">
+        <p className="text-sm text-content-muted font-body">
           Are you sure you want to delete this image? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3 mt-6">

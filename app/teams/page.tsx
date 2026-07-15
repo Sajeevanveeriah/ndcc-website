@@ -67,18 +67,18 @@ export default async function TeamsPage() {
       </section>
 
       {/* Head Coach */}
-      <section className="section-padding surface-sky">
+      <section className="section-padding surface-blue-band">
         <div className="container-width">
           <div className="surface-panel border-l-4 border-l-maroon-700 p-8">
-            <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-display font-bold text-content-primary mb-2">
               Head Coach: Craig Hillgrove
             </h2>
-            <p className="text-gray-700 font-body leading-relaxed max-w-3xl">
+            <p className="text-content-secondary font-body leading-relaxed max-w-3xl">
               Craig oversees coaching across all senior and junior teams at NDCC, working with
               team captains and assistant coaches to develop players at every level. If you are
               interested in joining the club or have questions about training, get in touch via
               the{' '}
-              <Link href="/contact" className="text-maroon-700 hover:underline font-semibold">
+              <Link href="/contact" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
                 contact page
               </Link>.
             </p>
@@ -103,9 +103,9 @@ export default async function TeamsPage() {
                           src={teamImage}
                           alt={`${team.name} team photo`}
                           fill
-                          className="object-contain bg-gray-100"
+                          className="object-contain bg-surface-muted"
                           sizes="(max-width: 768px) 100vw, 33vw"
-                          fallback={<div className="absolute inset-0 bg-gray-100" aria-hidden="true" />}
+                          fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                         />
                         <div className="absolute inset-0 bg-maroon-900/40 flex items-end p-6">
                           <div className="text-white">
@@ -137,11 +137,11 @@ export default async function TeamsPage() {
                       <div className="flex items-start gap-3 mb-4">
                         <Badge>{team.grade}</Badge>
                       </div>
-                      <p className="text-gray-700 font-body leading-relaxed mb-4">
+                      <p className="text-content-secondary font-body leading-relaxed mb-4">
                         {team.description}
                       </p>
                       {team.captain && (
-                        <p className="text-sm text-gray-500 font-body mb-4">
+                        <p className="text-sm text-content-muted font-body mb-4">
                           <span className="font-semibold">Captain:</span> {team.captain}
                         </p>
                       )}

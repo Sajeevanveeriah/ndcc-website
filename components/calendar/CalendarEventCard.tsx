@@ -19,8 +19,8 @@ export default function CalendarEventCard({ event, compact = false }: CalendarEv
 
   const body = (
     <article
-      className={`flex gap-3 rounded-xl border bg-white p-4 shadow-soft transition-shadow hover:shadow-card ${
-        props.isFeatured && !cancelled ? 'border-gold-400' : 'border-gray-100'
+      className={`flex gap-3 rounded-xl border bg-surface-card p-4 shadow-soft transition-shadow hover:shadow-card ${
+        props.isFeatured && !cancelled ? 'border-gold-400' : 'border-edge-subtle'
       }`}
     >
       <span
@@ -29,15 +29,15 @@ export default function CalendarEventCard({ event, compact = false }: CalendarEv
         aria-hidden="true"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-body font-semibold uppercase tracking-[0.08em] text-maroon-700">{dateLabel}</p>
+        <p className="text-xs font-body font-semibold uppercase tracking-[0.08em] text-maroon-700 dark:text-maroon-200">{dateLabel}</p>
         <h3
-          className={`mt-0.5 font-display font-bold text-gray-900 ${compact ? 'text-base' : 'text-lg'} ${
-            cancelled ? 'line-through text-gray-500' : ''
+          className={`mt-0.5 font-display font-bold text-content-primary ${compact ? 'text-base' : 'text-lg'} ${
+            cancelled ? 'line-through text-content-muted' : ''
           }`}
         >
           {event.title}
         </h3>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-body text-gray-500">
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-body text-content-muted">
           <Badge className="!text-[10px]">{CALENDAR_EVENT_TYPE_LABELS[props.eventType] ?? props.eventType}</Badge>
           {cancelled && <Badge variant="danger">Cancelled</Badge>}
           {postponed && <Badge variant="warning">Postponed</Badge>}
@@ -49,7 +49,7 @@ export default function CalendarEventCard({ event, compact = false }: CalendarEv
           )}
         </div>
         {!compact && props.description && (
-          <p className="mt-2 text-sm font-body text-gray-600 leading-relaxed">{truncateText(props.description, 120)}</p>
+          <p className="mt-2 text-sm font-body text-content-muted leading-relaxed">{truncateText(props.description, 120)}</p>
         )}
       </div>
     </article>

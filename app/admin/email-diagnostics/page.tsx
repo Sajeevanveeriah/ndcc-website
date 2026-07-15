@@ -59,27 +59,27 @@ export default function AdminEmailDiagnosticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold text-gray-900">Email Diagnostics</h1>
-        <p className="text-gray-500 font-body mt-1">Check app transactional email configuration without exposing secret values.</p>
+        <h1 className="text-2xl font-display font-bold text-content-primary">Email Diagnostics</h1>
+        <p className="text-content-muted font-body mt-1">Check app transactional email configuration without exposing secret values.</p>
       </div>
 
-      <section className="bg-white border rounded-xl p-5 space-y-3">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-3">
         <h2 className="text-lg font-semibold">App email status</h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <div><dt className="text-gray-500">RESEND_API_KEY</dt><dd className="font-semibold">{status?.resendApiKeyPresent ? 'Present' : 'Missing'}</dd></div>
-          <div><dt className="text-gray-500">Sender address</dt><dd className="font-semibold">{status?.resendFromPresent ? 'Present' : 'Missing'}</dd></div>
-          <div><dt className="text-gray-500">Sender variable source</dt><dd className="font-semibold">{status?.resendFromSource ?? 'missing'}</dd></div>
-          <div><dt className="text-gray-500">Sender format valid</dt><dd className="font-semibold">{status?.resendFromValid ? 'Yes' : 'No'}</dd></div>
-          <div><dt className="text-gray-500">Sender preview</dt><dd className="font-semibold">{status?.resendFromPreview ?? 'Not available'}</dd></div>
-          <div><dt className="text-gray-500">App email ready</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — sends will be skipped safely'}</dd></div>
-          <div><dt className="text-gray-500">Contact recipient</dt><dd className="font-semibold">{status?.effectiveContactRecipientPreview ?? 'Not available'}{status?.contactFallbackUsed ? ' (fallback)' : ''}</dd></div>
-          <div><dt className="text-gray-500">Contact notifications ready</dt><dd className="font-semibold">{status?.contactReady ? 'Yes' : 'No'}</dd></div>
-          <div><dt className="text-gray-500">EMAIL_TEST_MODE</dt><dd className="font-semibold">{status?.testMode ? 'On — sends are simulated' : 'Off'}</dd></div>
+          <div><dt className="text-content-muted">RESEND_API_KEY</dt><dd className="font-semibold">{status?.resendApiKeyPresent ? 'Present' : 'Missing'}</dd></div>
+          <div><dt className="text-content-muted">Sender address</dt><dd className="font-semibold">{status?.resendFromPresent ? 'Present' : 'Missing'}</dd></div>
+          <div><dt className="text-content-muted">Sender variable source</dt><dd className="font-semibold">{status?.resendFromSource ?? 'missing'}</dd></div>
+          <div><dt className="text-content-muted">Sender format valid</dt><dd className="font-semibold">{status?.resendFromValid ? 'Yes' : 'No'}</dd></div>
+          <div><dt className="text-content-muted">Sender preview</dt><dd className="font-semibold">{status?.resendFromPreview ?? 'Not available'}</dd></div>
+          <div><dt className="text-content-muted">App email ready</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — sends will be skipped safely'}</dd></div>
+          <div><dt className="text-content-muted">Contact recipient</dt><dd className="font-semibold">{status?.effectiveContactRecipientPreview ?? 'Not available'}{status?.contactFallbackUsed ? ' (fallback)' : ''}</dd></div>
+          <div><dt className="text-content-muted">Contact notifications ready</dt><dd className="font-semibold">{status?.contactReady ? 'Yes' : 'No'}</dd></div>
+          <div><dt className="text-content-muted">EMAIL_TEST_MODE</dt><dd className="font-semibold">{status?.testMode ? 'On — sends are simulated' : 'Off'}</dd></div>
         </dl>
-        <p className="text-sm text-gray-600">Supabase Auth confirmation emails are separate. Verify those in Supabase Authentication SMTP settings and Resend SMTP logs.</p>
+        <p className="text-sm text-content-muted">Supabase Auth confirmation emails are separate. Verify those in Supabase Authentication SMTP settings and Resend SMTP logs.</p>
       </section>
 
-      <section className="bg-white border rounded-xl p-5 space-y-4">
+      <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Send test email</h2>
         <form onSubmit={sendTest} className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
           <Input id="test-recipient" label="Recipient email" type="email" value={recipient} onChange={(e) => setRecipient(e.target.value)} required />

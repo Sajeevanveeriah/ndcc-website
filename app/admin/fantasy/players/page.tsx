@@ -207,33 +207,33 @@ export default function AdminFantasyPlayersPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-6 w-6 text-maroon-700" />
+          <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
+            <Users className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
             Fantasy Players
           </h1>
-          <p className="text-gray-500 font-body mt-1">{players.length} player{players.length !== 1 ? 's' : ''}</p>
+          <p className="text-content-muted font-body mt-1">{players.length} player{players.length !== 1 ? 's' : ''}</p>
         </div>
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Player</Button>
       </div>
 
       {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
 
-      <div className="mb-6 rounded-xl border border-gray-100 bg-white p-4">
-        <h2 className="text-lg font-display font-bold text-gray-900 flex items-center gap-2"><Upload className="h-5 w-5 text-maroon-700" />Manual CSV player import</h2>
-        <p className="mt-1 text-sm text-gray-600 font-body">Use verified club records when PlayHQ public data is unavailable. Required columns: display_name, role, price_million. Optional: playhq_player_id, team_label, active.</p>
+      <div className="mb-6 rounded-xl border border-edge-subtle bg-surface-card p-4">
+        <h2 className="text-lg font-display font-bold text-content-primary flex items-center gap-2"><Upload className="h-5 w-5 text-maroon-700 dark:text-maroon-200" />Manual CSV player import</h2>
+        <p className="mt-1 text-sm text-content-muted font-body">Use verified club records when PlayHQ public data is unavailable. Required columns: display_name, role, price_million. Optional: playhq_player_id, team_label, active.</p>
         <textarea className="form-input mt-3 min-h-28 w-full font-mono text-xs" value={csvImport} onChange={(event) => setCsvImport(event.target.value)} placeholder="display_name,role,price_million,playhq_player_id,team_label,active" aria-label="Fantasy player CSV import" />
         <div className="mt-3 flex justify-end"><Button variant="secondary" onClick={handleCsvImport} isLoading={importing}>Import CSV players</Button></div>
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 animate-pulse">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
         </div>
       ) : players.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
           <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-body">No fantasy players yet. Add players when the club registry is ready.</p>
+          <p className="text-content-muted font-body">No fantasy players yet. Add players when the club registry is ready.</p>
         </div>
       ) : (
         <Table>

@@ -35,61 +35,61 @@ export default function EventDetailModal({ event, onClose }: EventDetailModalPro
         </div>
 
         {props.imageUrl && (
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-gray-50">
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-surface-page">
             <SafeImage
               src={props.imageUrl}
               alt={`${event.title} event artwork`}
               fill
               className="object-contain"
               sizes="(max-width: 768px) 100vw, 640px"
-              fallback={<div className="absolute inset-0 bg-gray-50" aria-hidden="true" />}
+              fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
             />
           </div>
         )}
 
-        <div className="space-y-2 text-sm font-body text-gray-700">
+        <div className="space-y-2 text-sm font-body text-content-secondary">
           <p className="flex items-start gap-2">
-            <Clock className="h-4 w-4 mt-0.5 text-maroon-700 shrink-0" aria-hidden="true" />
+            <Clock className="h-4 w-4 mt-0.5 text-maroon-700 dark:text-maroon-200 shrink-0" aria-hidden="true" />
             <span>
               {dateLabel}
-              <span className="block text-xs text-gray-500">Melbourne time (AEST/AEDT)</span>
+              <span className="block text-xs text-content-muted">Melbourne time (AEST/AEDT)</span>
             </span>
           </p>
           {(props.location || props.venueAddress) && (
             <p className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-0.5 text-maroon-700 shrink-0" aria-hidden="true" />
+              <MapPin className="h-4 w-4 mt-0.5 text-maroon-700 dark:text-maroon-200 shrink-0" aria-hidden="true" />
               <span>
                 {props.location}
-                {props.venueAddress && <span className="block text-xs text-gray-500">{props.venueAddress}</span>}
+                {props.venueAddress && <span className="block text-xs text-content-muted">{props.venueAddress}</span>}
               </span>
             </p>
           )}
           {props.ticketPrice !== null && props.ticketPrice !== undefined && (
             <p className="flex items-center gap-2">
-              <Ticket className="h-4 w-4 text-maroon-700 shrink-0" aria-hidden="true" />
+              <Ticket className="h-4 w-4 text-maroon-700 dark:text-maroon-200 shrink-0" aria-hidden="true" />
               {Number(props.ticketPrice) > 0 ? formatCurrency(Number(props.ticketPrice)) : 'Free'}
             </p>
           )}
           {props.capacity !== null && props.capacity !== undefined && (
             <p className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-maroon-700 shrink-0" aria-hidden="true" />
+              <Users className="h-4 w-4 text-maroon-700 dark:text-maroon-200 shrink-0" aria-hidden="true" />
               Capacity {props.capacity}
             </p>
           )}
         </div>
 
         {props.description && (
-          <p className="text-sm font-body text-gray-700 leading-relaxed whitespace-pre-line">{props.description}</p>
+          <p className="text-sm font-body text-content-secondary leading-relaxed whitespace-pre-line">{props.description}</p>
         )}
 
         {props.registrationRequired && (
-          <p className="text-xs font-body font-semibold uppercase tracking-wide text-maroon-800">
+          <p className="text-xs font-body font-semibold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">
             Registration required
           </p>
         )}
 
         {ctaUrl && props.status !== 'cancelled' && (
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2 border-t border-edge-subtle">
             {ctaExternal ? (
               <a href={ctaUrl} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex">
                 {props.ctaLabel || 'More details'}
