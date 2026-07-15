@@ -14,6 +14,10 @@ Branch: `claude/ndcc-website-production-hz3guo`
 - Sponsors table has no presentation metadata columns yet.
 - `news` table exists; no publications table.
 
+## Status
+
+All plan items implemented; migrations applied to production (additive); full static test suite green; screenshots captured for both themes at 375/768/1440. Live PlayHQ import awaits `PLAYHQ_FANTASY_SYNC_ENABLED=true` in Vercel (credentials are server-side only and not readable from this environment).
+
 ## Plan
 
 1. **Theme (Phase 2)** — add semantic CSS-variable tokens (surface/text/border/action ramps) to `globals.css` + Tailwind mapping; retune the dark compatibility layer to a coherent charcoal/deep-navy/maroon palette; fix component classes (`.card`, `.btn-*`, `.form-input`, heroes, bands) in both themes; keep toggle + system default.

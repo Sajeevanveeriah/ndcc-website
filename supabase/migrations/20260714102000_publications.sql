@@ -32,7 +32,9 @@ CREATE TABLE IF NOT EXISTS publications (
 );
 
 CREATE OR REPLACE FUNCTION set_publications_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
