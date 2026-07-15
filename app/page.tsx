@@ -32,6 +32,7 @@ import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews } from '@/lib/fallback-content';
 import LogoChip from '@/components/common/LogoChip';
 import PublicationCard from '@/components/publications/PublicationCard';
+import MarqueeVisibilityPause from '@/components/home/MarqueeVisibilityPause';
 import { getPublishedPublications } from '@/lib/public-publications';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
@@ -75,7 +76,10 @@ function HeroView({
   ctaUrl: string;
 }) {
   return (
-    <section className="relative text-white overflow-hidden" style={{ minHeight: '520px', display: 'flex', flexDirection: 'column' }}>
+    // Cinematic full-height hero. The section pulls itself up under the fixed
+    // navigation (-mt cancels the layout's nav offset) so the homepage nav can
+    // sit transparent over the imagery at the top of the page.
+    <section className="relative -mt-24 lg:-mt-28 flex min-h-[88svh] flex-col overflow-hidden text-white">
       <Image
         src="/images/Turf_Ground.jpg"
         alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
@@ -83,30 +87,53 @@ function HeroView({
         className="object-cover animate-ken-burns"
         priority
       />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(45,0,0,0.90) 0%, rgba(45,0,0,0.62) 55%, rgba(45,0,0,0.34) 100%)' }} />
+      {/* Layered maroon -> navy -> near-black cinematic scrim. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(160deg, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.55) 42%, rgba(8,13,22,0.35) 72%, rgba(8,13,22,0.15) 100%)',
+        }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 h-2/5"
+        style={{ background: 'linear-gradient(to top, rgba(8,13,22,0.9) 0%, transparent 100%)' }}
+        aria-hidden="true"
+      />
+      {/* Static radial glow towards the copy for depth (no cursor tracking). */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(900px 480px at 22% 38%, rgba(212,160,23,0.10), transparent 65%)' }}
+        aria-hidden="true"
+      />
       {/* Mobile crops put more sky behind the title; deepen the scrim so copy always sits on a dark patch. */}
       <div className="absolute inset-0 sm:hidden bg-maroon-950/30" aria-hidden="true" />
-      <div className="container-width relative z-10 flex-1 flex items-center section-padding">
-        <div className="w-full">
-          <ScrollReveal onMount delay={0}>
+      <div className="container-width relative z-10 flex flex-1 items-center px-4 pb-16 pt-32 sm:px-6 sm:items-end sm:pb-24 lg:px-8 lg:pt-40">
+        <div className="w-full text-center sm:text-left">
+          <ScrollReveal onMount delay={0.1} duration={0.8}>
             <span className="eyebrow-gold">
               Est. {CLUB_ESTABLISHED} &middot; {CLUB_ASSOCIATION}
             </span>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold mb-4">
-              {title}
+          </ScrollReveal>
+          <ScrollReveal onMount delay={0.25} duration={0.8}>
+            <h1 className="font-display font-bold uppercase leading-[0.95] tracking-tight">
+              <span className="block text-4xl sm:text-6xl lg:text-7xl">{title}</span>
+              <span className="mt-2 block text-2xl italic text-gold-200/90 sm:text-4xl lg:text-5xl">
+                Home of the {CLUB_NICKNAME}
+              </span>
             </h1>
           </ScrollReveal>
-          <ScrollReveal onMount delay={0.15}>
-            <p className="text-xl sm:text-2xl text-maroon-100 font-body mb-8 max-w-2xl">
+          <ScrollReveal onMount delay={0.4} duration={0.8}>
+            <p className="mx-auto mb-8 mt-5 max-w-2xl font-body text-lg text-maroon-100 sm:mx-0 sm:text-2xl">
               {body}
             </p>
           </ScrollReveal>
-          <ScrollReveal onMount delay={0.3}>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href={ctaUrl} className="btn-primary text-lg px-8 py-4">
+          <ScrollReveal onMount delay={0.55} duration={0.8}>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <Link href={ctaUrl} className="btn-primary rounded-full px-8 py-4 text-lg">
                 {ctaLabel}
               </Link>
-              <Link href="/fixtures" className="btn-outline-white text-lg px-8 py-4">
+              <Link href="/fixtures" className="btn-outline-white rounded-full px-8 py-4 text-lg">
                 View Fixtures
               </Link>
             </div>
@@ -392,25 +419,25 @@ async function LatestPublicationsSection() {
   if (publications.length === 0) return null;
 
   return (
+    // Alternating feature layout: narrative on the left, live publication
+    // cards on the right (stacking on mobile).
     <section className="section-padding">
-      <div className="container-width">
-        <ScrollReveal className="text-center mb-12">
+      <div className="container-width grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-14">
+        <ScrollReveal direction="left" className="lg:sticky lg:top-32">
           <span className="section-eyebrow">Publications</span>
           <h2 className="section-title">Newsletters &amp; Match Reports</h2>
-          <p className="section-subtitle mx-auto">
+          <p className="section-subtitle mb-8">
             The latest from the club in writing — newsletters and weekly match reports.
           </p>
+          <Link href="/publications" className="btn-secondary">
+            View All Publications
+          </Link>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <ScrollReveal stagger direction="right" className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {publications.map((publication) => (
             <PublicationCard key={publication.id} publication={publication} />
           ))}
         </ScrollReveal>
-        <div className="text-center mt-10">
-          <Link href="/publications" className="btn-secondary">
-            View All Publications
-          </Link>
-        </div>
       </div>
     </section>
   );
@@ -636,9 +663,8 @@ async function SponsorsSection() {
             {sponsorshipBody}
           </p>
         </ScrollReveal>
-        <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-sky-50 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-sky-50 to-transparent" />
+        <ScrollReveal className="homepage-marquee-region relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
+          <MarqueeVisibilityPause />
           <div className="homepage-marquee-track gap-4 py-2">
             {[false, true].map((isDuplicateSequence) => (
             <div
@@ -815,28 +841,14 @@ export default function HomePage() {
         <HeroSection />
       </Suspense>
 
+      {/* Compact club-stat strip directly under the cinematic hero. */}
       <HomeStatsStrip />
 
       <Suspense fallback={<QuickLinksSkeleton />}>
         <QuickLinksSection />
       </Suspense>
 
-      <Suspense fallback={<NewsSkeleton />}>
-        <NewsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <LatestPublicationsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <EventsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <CalendarPreviewSection />
-      </Suspense>
-
+      {/* Live season status / fixtures feature. */}
       <Suspense
         fallback={
           <SeasonStatusView
@@ -850,11 +862,28 @@ export default function HomePage() {
         <SeasonStatusSection />
       </Suspense>
 
+      <FantasyTeaserSection />
+
+      <Suspense fallback={null}>
+        <LatestPublicationsSection />
+      </Suspense>
+
       <Suspense fallback={<SeasonAppointmentsSkeleton />}>
         <SeasonAppointmentsSection />
       </Suspense>
 
-      <FantasyTeaserSection />
+      <Suspense fallback={null}>
+        <EventsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <CalendarPreviewSection />
+      </Suspense>
+
+      {/* Community: club news ahead of the sponsor and gallery closers. */}
+      <Suspense fallback={<NewsSkeleton />}>
+        <NewsSection />
+      </Suspense>
 
       <Suspense fallback={<SponsorsSkeleton />}>
         <SponsorsSection />

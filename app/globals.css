@@ -359,8 +359,24 @@
   animation: homepage-marquee 42s linear infinite;
 }
 
-.homepage-marquee-track:hover {
+.homepage-marquee-track:hover,
+.homepage-marquee-track:focus-within,
+body.marquee-page-hidden .homepage-marquee-track {
   animation-play-state: paused;
+}
+
+/* Seamless masked edges for the marquee loop (replaces gradient overlays that
+   assumed a fixed section background colour). */
+.homepage-marquee-region {
+  mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homepage-marquee-region {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
 }
 
 /* Keyboard parity with the hover pause, scoped to the appointments marquee so

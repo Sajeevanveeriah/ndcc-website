@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -49,11 +49,14 @@ export default function Navbar() {
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      setScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   useEffect(() => {
@@ -61,6 +64,43 @@ export default function Navbar() {
     setMoreOpen(false);
     setAccountOpen(false);
   }, [pathname]);
+  // Full-screen mobile menu: lock body scroll, trap focus inside the overlay,
+  // close on Escape, and hand focus back to the menu button on close.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const menuButton = menuButtonRef.current;
+    const container = menuRef.current;
+    const focusables = () => Array.from(
+      container?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []
+    ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    focusables()[0]?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+      menuButton?.focus();
+    };
+  }, [isOpen]);
   useEffect(() => {
     const loadClubSettings = async () => {
       try {
@@ -117,19 +157,26 @@ export default function Navbar() {
     setSessionUser(null);
   };
   const navGroups = resolveGroups(navLinks);
+  // Homepage nav starts transparent over the cinematic hero and settles onto
+  // a translucent blurred surface after ~20px of scroll. Inner pages are
+  // solid from the start.
+  const isHome = pathname === '/';
+  const transparent = isHome && !scrolled && !isOpen;
   return (
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b-2 border-maroon-700',
-        scrolled
-          ? 'bg-surface-nav/90 backdrop-blur-md shadow-md'
-          : 'bg-surface-nav'
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        transparent
+          ? 'border-b border-white/15 bg-transparent'
+          : scrolled
+            ? 'border-b-2 border-maroon-700 bg-surface-nav/90 backdrop-blur-md shadow-md'
+            : 'border-b-2 border-maroon-700 bg-surface-nav'
       )}
       role="navigation"
       aria-label="Main navigation"
     >
       {/* Maroon utility bar */}
-      <div className="bg-maroon-700 px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between">
+      <div className={cn('px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between transition-colors duration-300', transparent ? 'bg-maroon-950/35 backdrop-blur-sm' : 'bg-maroon-700')}>
         <span className="hidden sm:block text-[10.5px] text-maroon-100 font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
@@ -168,10 +215,10 @@ export default function Navbar() {
               priority
             />
             <div className="hidden sm:flex flex-col">
-              <span className="text-maroon-700 dark:text-maroon-200 font-display font-semibold uppercase tracking-wide text-lg leading-none block">
+              <span className={cn('font-display font-semibold uppercase tracking-wide text-lg leading-none block', transparent ? 'text-white' : 'text-maroon-700 dark:text-maroon-200')}>
                 {settings.club_short}
               </span>
-              <span className="text-gray-400 dark:text-slate-400 text-[10.5px] font-body tracking-[0.08em] uppercase mt-1">
+              <span className={cn('text-[10.5px] font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-400 dark:text-slate-400')}>
                 The Dinos · Est. {settings.established_year}
               </span>
             </div>
@@ -186,8 +233,12 @@ export default function Navbar() {
                 className={cn(
                   'px-3 py-2 text-sm font-body font-medium transition-colors rounded-lg focus-ring',
                   pathname === group.href
-                    ? "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:text-maroon-200 dark:after:bg-maroon-300"
-                    : 'nav-underline text-content-muted hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
+                    ? transparent
+                      ? "relative text-white font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-gold-300 after:content-['']"
+                      : "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:text-maroon-200 dark:after:bg-maroon-300"
+                    : transparent
+                      ? 'nav-underline text-white/85 hover:text-white'
+                      : 'nav-underline text-content-muted hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
                 )}
               >
                 {group.label}
@@ -204,7 +255,7 @@ export default function Navbar() {
                   aria-haspopup="menu"
                   aria-expanded={moreOpen}
                   onClick={() => setMoreOpen((open) => !open)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-content-muted hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
+                  className={cn('flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
                 >
                   {group.label} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
@@ -234,7 +285,7 @@ export default function Navbar() {
                   aria-haspopup="menu"
                   aria-expanded={accountOpen}
                   onClick={() => setAccountOpen((open) => !open)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-body font-medium text-content-muted hover:text-maroon-700 hover:bg-maroon-50 rounded-lg transition-colors focus-ring dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
+                  className={cn('flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
                 >
                   {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
@@ -267,28 +318,47 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring dark:border-slate-700 dark:hover:bg-maroon-950/50"
+            className={cn('lg:hidden p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
+            ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
           >
-            {isOpen ? <X className="h-6 w-6 text-content-secondary dark:text-slate-200" /> : <Menu className="h-6 w-6 text-content-secondary dark:text-slate-200" />}
+            {isOpen ? <X className={cn('h-6 w-6', transparent ? 'text-white' : 'text-content-secondary dark:text-slate-200')} /> : <Menu className={cn('h-6 w-6', transparent ? 'text-white' : 'text-content-secondary dark:text-slate-200')} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation: full-screen overlay with focus trap + scroll lock */}
       <LazyMotion features={domAnimation} strict>
         <AnimatePresence initial={false}>
           {isOpen && (
             <m.div
               key="mobile-menu"
-              className="lg:hidden overflow-hidden shadow-lg"
-              initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+              ref={menuRef}
+              className="lg:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
+              initial={reduceMotion ? false : { opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -16 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site menu"
             >
-              <div className="bg-surface-nav px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto shadow-[inset_0_10px_14px_-12px_rgba(45,0,0,0.20)] dark:shadow-[inset_0_10px_14px_-12px_rgba(0,0,0,0.55)]">
+              <div className="flex items-center justify-between border-b border-edge-subtle px-4 py-4">
+                <span className="flex items-center gap-3">
+                  <Image src="/images/logo.jpg" alt="NDCC Logo" width={40} height={40} className="rounded-full" />
+                  <span className="font-display text-lg font-semibold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{settings.club_short}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
+                  aria-label="Close menu"
+                >
+                  <X className="h-6 w-6 text-content-secondary" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-surface-nav px-4 py-4 space-y-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {navGroups.map((group) => group.href ? (
             <Link key={`${group.href}-${group.label}`} href={group.href} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
               {group.label}

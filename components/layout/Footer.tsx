@@ -69,6 +69,25 @@ export default async function Footer() {
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
+      {/* Strong club CTA ahead of the link grid. */}
+      <div className="band-maroon px-4 py-14 sm:px-6 lg:px-8">
+        <div className="container-width flex flex-col items-center gap-6 text-center lg:flex-row lg:justify-between lg:text-left">
+          <div>
+            <span className="eyebrow-gold">Play cricket with us</span>
+            <h2 className="font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
+              Pull on the {settings.club_short} colours
+            </h2>
+            <p className="mt-2 max-w-xl font-body text-maroon-100">
+              Players, volunteers and supporters are always welcome at Grinter Reserve.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/join" className="btn-accent rounded-full px-8 py-3.5">Join the Club</Link>
+            <Link href="/contact" className="btn-outline-white rounded-full px-8 py-3.5">Contact Us</Link>
+          </div>
+        </div>
+      </div>
+
       {/* Acknowledgement */}
       <div
         className="px-4 sm:px-6 lg:px-8 py-5 border-b border-white/10"

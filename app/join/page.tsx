@@ -8,6 +8,7 @@ import Input, { Textarea } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
+import Accordion from '@/components/common/Accordion';
 
 interface Plan { id: string; name: string; description: string; price: number; }
 interface Addon { id: string; name: string; description: string; price: number; usage_limit: number | null; }
@@ -120,6 +121,39 @@ export default function JoinPage() {
             </CardContent>
           </Card>
         </ScrollRevealItem>
+      </ScrollReveal>
+
+      {/* Disclosure summary of the two joining paths above; answers reuse the
+          verified copy already on this page — nothing invented. */}
+      <ScrollReveal>
+        <h2 className="section-title mb-4">How joining works</h2>
+        <Accordion
+          items={[
+            {
+              id: 'player',
+              question: 'How do I register as a player?',
+              answer: (
+                <p>
+                  Player registrations stay on PlayHQ as required.{' '}
+                  <a href={PLAYHQ_ORG_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-maroon-700 underline underline-offset-2 dark:text-maroon-200">
+                    Register on PlayHQ (opens in new tab)
+                  </a>
+                  .
+                </p>
+              ),
+            },
+            {
+              id: 'social',
+              question: 'How does social membership work?',
+              answer: (
+                <p>
+                  Apply online using the form below and pay by the bank transfer reference
+                  generated at checkout. Current plans and prices are shown in the form.
+                </p>
+              ),
+            },
+          ]}
+        />
       </ScrollReveal>
 
       <Card>
