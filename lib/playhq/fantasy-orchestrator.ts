@@ -22,6 +22,7 @@ import { isClubTeamName, matchPlayHQSeason } from './season-match';
 import {
   DEFAULT_SYNC_BATCH_SIZE,
   processFantasySyncBatch,
+  retryFailedGames,
   startFantasySyncJob,
 } from './fantasy-sync';
 
@@ -270,7 +271,10 @@ async function validateAndPublish(supabase: any, season: SeasonRow, job: any): P
   if (job.status !== 'completed') blockers.push(`Job finished as ${job.status}, not completed.`);
   if (Number(job.failed_games || 0) > 0) blockers.push(`${job.failed_games} game(s) failed to import.`);
   const reviewItems = Array.isArray(job.review_items) ? job.review_items : [];
-  if (reviewItems.length > 0) blockers.push(`${reviewItems.length} review item(s) require admin resolution.`);
+  // ambiguous_round items describe games excluded before the queue was built;
+  // they are surfaced to admins but do not block publishing the imported rows.
+  const blockingReviews = reviewItems.filter((item: { type?: string }) => item?.type !== 'ambiguous_round');
+  if (blockingReviews.length > 0) blockers.push(`${blockingReviews.length} review item(s) require admin resolution.`);
   if (Number(job.processed_games || 0) < Number(job.total_games || 0)) {
     blockers.push(`Only ${job.processed_games}/${job.total_games} discovered games were processed.`);
   }
@@ -521,8 +525,29 @@ async function advanceSeason(
       });
     }
 
-    // 5. Validate + auto-publish when the job just finished cleanly.
-    const { data: finalJob } = await supabase.from('fantasy_sync_jobs').select('*').eq('id', jobId).maybeSingle();
+    // 5. Transient failures are not a manual-review condition: when a job
+    //    lands in needs_review purely because games failed (no integrity
+    //    review items), requeue the failed games automatically — bounded to
+    //    three attempts per job — and keep draining within this run's budget.
+    let { data: finalJob } = await supabase.from('fantasy_sync_jobs').select('*').eq('id', jobId).maybeSingle();
+    if (finalJob && finalJob.status === 'needs_review' && Number(finalJob.failed_games || 0) > 0) {
+      const reviews = Array.isArray(finalJob.review_items) ? finalJob.review_items : [];
+      const blockingReviews = reviews.filter((item: { type?: string }) => item?.type !== 'ambiguous_round');
+      const autoRetries = Number(finalJob.counts?.auto_retries ?? 0);
+      if (blockingReviews.length === 0 && autoRetries < 3) {
+        const { requeued } = await retryFailedGames(finalJob.id);
+        await supabase
+          .from('fantasy_sync_jobs')
+          .update({ counts: { ...(finalJob.counts || {}), auto_retries: autoRetries + 1 } })
+          .eq('id', finalJob.id);
+        logs.push({ seasonSlug: season.slug, stage: 'auto_retry', status: 'ok', detail: { job_id: finalJob.id, requeued, attempt: autoRetries + 1 } });
+        while (timeLeft() > 15_000) {
+          const progress = await processFantasySyncBatch(jobId as string, batchSize);
+          if (progress.done) break;
+        }
+        ({ data: finalJob } = await supabase.from('fantasy_sync_jobs').select('*').eq('id', jobId).maybeSingle());
+      }
+    }
     if (finalJob && ['completed', 'needs_review'].includes(finalJob.status)) {
       const log = await validateAndPublish(supabase, season, finalJob);
       logs.push(log);

@@ -265,15 +265,29 @@ async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayer
 }
 
 async function ensureRound(supabase: any, seasonId: string, roundNumber: number, roundName: string) {
-  const { data: existing } = await supabase.from('fantasy_rounds').select('id').eq('season_id', seasonId).eq('round_number', roundNumber).limit(1).maybeSingle();
-  if (existing) return existing.id as string;
+  const findRound = async () => {
+    const { data, error } = await supabase.from('fantasy_rounds').select('id').eq('season_id', seasonId).eq('round_number', roundNumber).limit(1).maybeSingle();
+    // A failed read (e.g. fetch timeout) must never masquerade as "round
+    // missing" — that produced blind duplicate inserts in production.
+    if (error) throw new Error(`Round lookup failed: ${error.message}`);
+    return data as { id: string } | null;
+  };
+  const existing = await findRound();
+  if (existing) return existing.id;
   const { data: created, error } = await supabase
     .from('fantasy_rounds')
     .insert({ season_id: seasonId, round_number: roundNumber, name: roundName, status: 'draft' })
     .select('id')
     .single();
-  if (error || !created) throw new Error(error?.message || `Could not create round ${roundNumber}.`);
-  return created.id as string;
+  if (created) return created.id as string;
+  // Unique-constraint conflict means the round exists (created moments ago or
+  // by a concurrent invocation); reuse it instead of failing the game. This
+  // also preserves any admin-edited round name.
+  if (error && /duplicate key/i.test(error.message || '')) {
+    const raced = await findRound();
+    if (raced) return raced.id;
+  }
+  throw new Error(error?.message || `Could not create round ${roundNumber}.`);
 }
 
 export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT_SYNC_BATCH_SIZE) {
@@ -358,7 +372,13 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
   }
 
   const done = next >= queue.length;
-  const status = done ? (reviewItems.length || counts.failed ? 'needs_review' : 'completed') : 'paused';
+  // ambiguous_round items describe games that were excluded before the queue
+  // was built (no exact round metadata — typically byes/washouts). They are
+  // recorded for admins but must not hold the cleanly imported games hostage;
+  // only integrity reviews (identity clashes, reconciliations) and failures
+  // park the job for review.
+  const blockingReviews = reviewItems.filter((item) => item.type !== 'ambiguous_round');
+  const status = done ? (blockingReviews.length || counts.failed ? 'needs_review' : 'completed') : 'paused';
   const update = {
     status,
     processed_games: next,

@@ -113,6 +113,11 @@ try {
   check('a dead grade fixture endpoint is skipped, not fatal', syncSource.includes('skippedGrades.push'));
   check('sync only fails when every grade fixture endpoint fails', syncSource.includes('skippedGrades.length === grades.length'));
   check('grade 404 falls back to per-team fixture feeds', syncSource.includes('getPlayHQTeamFixtureRaw'));
+  check('round lookup errors are never treated as round-missing', syncSource.includes('Round lookup failed'));
+  check('duplicate round insert reuses the existing row', syncSource.includes('/duplicate key/i.test(error.message'));
+  check('ambiguous_round items do not park the job for review', syncSource.includes("item.type !== 'ambiguous_round'"));
+  check('orchestrator auto-retries transient game failures (bounded)', orchestratorSource.includes('auto_retries') && orchestratorSource.includes('retryFailedGames'));
+  check('ambiguous_round items do not block auto-publish', orchestratorSource.includes("item?.type !== 'ambiguous_round'"));
   check('team-feed fallback dedupes games by id', syncSource.includes('seenGameIds.has(fixture.id)'));
   check('fixture reads walk candidate endpoint paths', clientSource.includes('playHQFetchFirst'));
   check('public fixtures derive grades from team records when the grades endpoint is empty', clientSource.includes('derived.set(team.gradeId'));
