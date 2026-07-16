@@ -22,6 +22,7 @@
     "test:apparel-pricing": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-apparel-pricing.mjs",
     "test:apparel-catalogue": "node scripts/test-apparel-catalogue.mjs",
     "test:payments-partial": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payments-partial.mjs",
+    "test:merch-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-merch-export.mjs",
     "test:payments-ledger": "node scripts/test-payments-ledger.mjs",
     "test:admin-auth": "node scripts/test-admin-auth.mjs",
     "test:sponsors": "node scripts/test-sponsors.mjs && node scripts/test-sponsor-canonical.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-sponsor-logo-surface.mjs",

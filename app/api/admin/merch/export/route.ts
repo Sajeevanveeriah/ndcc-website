@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
+import { csvCell } from '@/lib/csv';
 
 export const dynamic = 'force-dynamic';
 
-function esc(value: string | number | null | undefined) {
-  return `"${String(value ?? '').replace(/"/g, '""')}"`;
-}
+// Shared CSV cell encoding: RFC 4180 quoting + formula-injection guard.
+const esc = csvCell;
 
 export async function GET() {
   const user = await requireSession(['admin']);
