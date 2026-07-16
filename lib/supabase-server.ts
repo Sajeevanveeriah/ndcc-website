@@ -17,7 +17,13 @@ function createTimeoutFetch(timeoutMs = SUPABASE_FETCH_TIMEOUT_MS): typeof fetch
     }
 
     try {
-      return await fetch(input, { ...init, signal: controller.signal });
+      // cache: 'no-store' is load-bearing: Next.js patches global fetch with
+      // its Data Cache, and repeated identical Supabase GETs within one
+      // invocation can otherwise return the FIRST response (observed in
+      // production on 2026-07-16: fantasy round existence checks and job
+      // state reads returned stale rows, failing 10 game imports on
+      // duplicate keys). Database API reads must never be cached.
+      return await fetch(input, { ...init, cache: 'no-store', signal: controller.signal });
     } finally {
       clearTimeout(timeout);
     }
