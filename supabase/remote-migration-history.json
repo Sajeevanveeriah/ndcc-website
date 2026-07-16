@@ -3,6 +3,7 @@
   "capturedAt": "2026-07-16T04:00:00Z",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
+    { "version": "20260331000000", "name": "prehistory_baseline", "preHistory": true },
     { "version": "20260401", "name": "custom_committee_auth" },
     { "version": "20260401000100", "name": "social_memberships", "preHistory": true },
     { "version": "20260402000100", "name": "content_blocks", "preHistory": true },

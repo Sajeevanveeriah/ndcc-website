@@ -74,6 +74,7 @@ jobs:
       - run: npm ci
       - run: npm run test:apparel-catalogue
       - run: npm run test:payments-ledger
+      - run: npm run test:migration-replay
 
   security-scans:
     runs-on: ubuntu-latest

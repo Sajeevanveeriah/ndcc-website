@@ -28,9 +28,34 @@
 --   drop function protect_order_payment_history();
 --   drop table order_payments;
 --   drop table merch_payment_settings;
---   alter table orders drop column balance_due, drop column amount_paid;
+--   drop the balance_due and amount_paid columns from public.orders;
 --   (orders.payment_status values written by the trigger remain but are
 --   plain text and harmless.)
+
+-- 0) Bootstrap guard (repo convention: any migration altering orders first
+--    ensures the base table exists, so replays never depend on file order).
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_name text not null default '',
+  customer_email text not null default '',
+  customer_phone text default '',
+  items jsonb not null default '[]'::jsonb,
+  total_amount numeric(10,2) not null default 0,
+  payment_status text default 'pending',
+  stripe_session_id text,
+  processed boolean default false,
+  notes text default '',
+  created_at timestamptz default now(),
+  order_status text default 'submitted',
+  payment_reference text,
+  bank_reference_used text,
+  confirmed_by uuid,
+  confirmed_at timestamptz,
+  needs_review_reason text default '',
+  order_category text default 'general',
+  merch_window_id uuid,
+  merch_window_label text
+);
 
 -- 1) Ledger ------------------------------------------------------------
 

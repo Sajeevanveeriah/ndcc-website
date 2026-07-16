@@ -47,7 +47,8 @@
     "test:club-season-wizard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-club-season-wizard.mjs",
     "test:cms-navigation": "node scripts/test-cms-navigation.mjs",
     "test:no-hardcoded-seasonal-content": "node scripts/test-no-hardcoded-seasonal-content.mjs",
-    "test:public-visuals": "node scripts/test-public-visuals.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-season-appointments-marquee.mjs"
+    "test:public-visuals": "node scripts/test-public-visuals.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-season-appointments-marquee.mjs",
+    "test:migration-replay": "node scripts/test-migration-replay.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
