@@ -22,5 +22,9 @@ for (const f of files) {
 console.log(`All ${applied} migrations applied cleanly.`);
 const counts = psql(DB, `select (select count(*) from apparel_products where active), (select count(*) from apparel_product_options), (select count(*) from merch_payment_settings), (select count(*) from fantasy_seasons)`);
 check('fresh replay end-state sane (15 active products, 18 options, settings row, 3 seasons)', counts === '15\t18\t1\t3', counts);
+// Production has RLS enabled on every public table; replays must match.
+const rlsOff = psql(DB, `select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`);
+check('RLS enabled on every public table (production parity)', rlsOff === '0', `${rlsOff} tables without RLS`);
 dropTestDatabase(DB);
 finish('full-replay');
