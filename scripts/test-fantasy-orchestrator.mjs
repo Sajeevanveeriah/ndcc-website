@@ -124,7 +124,7 @@ try {
   const vercel = JSON.parse(readFileSync(join(repoRoot, 'vercel.json'), 'utf8'));
   check('vercel cron path present', vercel.crons.some((c) => c.path === '/api/cron/playhq-fantasy-sync'));
 
-  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260714104000_fantasy_sync_automation.sql'), 'utf8');
+  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260715000755_fantasy_sync_automation.sql'), 'utf8');
   check('migration: lock function is atomic upsert', migration.includes('ON CONFLICT (name) DO UPDATE'));
   check('migration: lock fn revoked from anon', /REVOKE EXECUTE ON FUNCTION acquire_fantasy_sync_lock[^;]*anon/.test(migration));
   check('migration: sync runs RLS enabled', migration.includes('ALTER TABLE fantasy_sync_runs ENABLE ROW LEVEL SECURITY'));

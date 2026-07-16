@@ -36,7 +36,7 @@
 
 create table if not exists public.order_payments (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.orders(id) on delete restrict,
+  order_id uuid not null,
   amount numeric(10,2) not null check (amount > 0),
   currency text not null default 'AUD' check (currency = 'AUD'),
   method text not null check (method in ('bank_transfer', 'stripe', 'cash', 'other')),
@@ -55,6 +55,21 @@ create table if not exists public.order_payments (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Guarded FK (repo convention: orders(id) references are added as guarded
+-- constraints so bootstrap replays never depend on file ordering).
+-- ON DELETE RESTRICT: an order with payment history can never be
+-- hard-deleted.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'order_payments_order_id_fkey'
+  ) and to_regclass('public.orders') is not null then
+    alter table public.order_payments
+      add constraint order_payments_order_id_fkey
+      foreign key (order_id) references public.orders(id) on delete restrict;
+  end if;
+end $$;
 
 create index if not exists order_payments_order_idx on public.order_payments (order_id);
 create unique index if not exists order_payments_provider_event_unique

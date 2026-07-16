@@ -247,7 +247,7 @@ function isMissingSeasonAppointmentsTableError(errorMessage: string, table: stri
 function seasonAppointmentsTableErrorResponse() {
   return NextResponse.json({
     success: false,
-    error: "Season appointments table is unavailable. Apply migrations 20260406_safe_cms_images_and_merch.sql and 20260406_season_appointments.sql, then run NOTIFY pgrst, 'reload schema';",
+    error: "Season appointments table is unavailable. Apply migrations 20260406000100_safe_cms_images_and_merch.sql and 20260406000200_season_appointments.sql, then run NOTIFY pgrst, 'reload schema';",
   }, { status: 503 });
 }
 

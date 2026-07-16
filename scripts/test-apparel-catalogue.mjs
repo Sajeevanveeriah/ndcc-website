@@ -14,13 +14,13 @@ const DB = 'ndcc_test_apparel';
 
 const BASE = [
   '20260401_custom_committee_auth.sql',
-  '20260402_merch_windows.sql',
-  '20260402_payment_reconciliation.sql',
-  '20260402_kitchen_orders.sql',
-  '20260402_content_blocks.sql',
-  '20260406_safe_cms_images_and_merch.sql',
-  '20260408_admin_cms_expansion.sql',
-  '20260706100300_apparel_payment_readiness.sql',
+  '20260402000500_merch_windows.sql',
+  '20260402000600_payment_reconciliation.sql',
+  '20260402000300_kitchen_orders.sql',
+  '20260402000100_content_blocks.sql',
+  '20260406000100_safe_cms_images_and_merch.sql',
+  '20260408000100_admin_cms_expansion.sql',
+  '20260706205638_apparel_payment_readiness.sql',
 ];
 
 const NEW = [

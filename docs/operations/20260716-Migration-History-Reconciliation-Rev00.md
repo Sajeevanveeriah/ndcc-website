@@ -121,9 +121,52 @@ left as a documented manual step because it writes to production
 bookkeeping. The application deploy pipeline does not run `db push`, so
 nothing breaks while this step remains pending.
 
+## Rev01 addendum (2026-07-16, later the same day)
+
+The Supabase GitHub integration proved the drift live: creating the PR #142
+preview branch failed with `duplicate key value violates unique constraint
+"schema_migrations_pkey" — Key (version)=(20260401) already exists`. The
+day-prefixed Class 2/3 filenames can never coexist with the recorded remote
+history (several files share one day-level version, and versions collide
+with recorded ones), so the deferred repair step was completed:
+
+1. **Class 2 files renamed to their recorded remote versions** (17 files,
+   contents untouched) — e.g. `20260629_reduce_runtime_io_indexes.sql` →
+   `20260704102737_reduce_runtime_io_indexes.sql`. Filenames now equal the
+   history that was actually recorded when they were applied.
+2. **Class 3 files renamed to unique 14-digit versions** preserving their
+   original in-day ordering (e.g. `20260402_merch_windows.sql` →
+   `20260402000500_merch_windows.sql`), and those 34 versions were recorded
+   as applied with **bookkeeping rows only** (version + name, no SQL
+   executed, no schema or data change) in
+   `supabase_migrations.schema_migrations` on production and on the PR
+   preview branch.
+
+Result: every file in `supabase/migrations/` now maps 1:1 to a recorded
+version except genuinely new work, and preview branches apply only new
+migrations. `supabase/remote-migration-history.json` lists all 63 recorded
+versions (`preHistory: true` marks the bookkeeping-recorded ones).
+
+Rollback for the bookkeeping rows (production and preview branch):
+
+```sql
+delete from supabase_migrations.schema_migrations
+where version in (
+  '20260401000100','20260402000100','20260402000200','20260402000300',
+  '20260402000400','20260402000500','20260402000600','20260402000700',
+  '20260406000100','20260406000200','20260408000100','20260408000200',
+  '20260409000100','20260409000200','20260425000100','20260510000100',
+  '20260510000200','20260510000300','20260511000100','20260517120000',
+  '20260517143000','20260530090000','20260608090000','20260619090000',
+  '20260619121500','20260629000100','20260629000200','20260630000100',
+  '20260630000200','20260630000300','20260630000400','20260712090000',
+  '20260712100000','20260712110000'
+) and statements is null;
+```
+
 ## Rollback
 
-- Alignment files and the manifest are plain repo files: `git revert` the
-  reconciliation commit restores the previous state.
-- No database change was made by this reconciliation, so there is nothing to
-  roll back on the Supabase side.
+- File renames and the manifest are plain repo changes: `git revert` the
+  reconciliation commits restores the previous state.
+- The only database change made by this reconciliation is the 34
+  bookkeeping rows above (no DDL, no data); the DELETE above removes them.
