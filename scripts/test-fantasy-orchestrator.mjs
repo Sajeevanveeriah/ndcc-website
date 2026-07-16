@@ -160,6 +160,13 @@ try {
   }
   check('health migration enables RLS', /alter table .*fantasy_sync_health enable row level security/i.test(healthMigration));
 
+  // Stale-read hardening (production evidence 2026-07-16: cached Supabase
+  // GETs failed 10 game imports on duplicate round keys).
+  const supabaseServer = readFileSync(join(repoRoot, 'lib/supabase-server.ts'), 'utf8');
+  check('supabase server fetch is never cached', supabaseServer.includes("cache: 'no-store'"));
+  check('ensureRound adopts an existing round on duplicate-key conflict',
+    syncSource.includes("error.code === '23505'") && syncSource.includes('readRound'));
+
   const seasonsPage = readFileSync(join(repoRoot, 'app/admin/fantasy/seasons/page.tsx'), 'utf8');
   check('CMS shows sync health record', seasonsPage.includes('syncHealth'));
   check('CMS shows Awaiting PlayHQ state', seasonsPage.includes('Awaiting PlayHQ'));

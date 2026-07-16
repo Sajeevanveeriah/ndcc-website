@@ -315,14 +315,33 @@ async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayer
 }
 
 async function ensureRound(supabase: any, seasonId: string, roundNumber: number, roundName: string) {
-  const { data: existing } = await supabase.from('fantasy_rounds').select('id').eq('season_id', seasonId).eq('round_number', roundNumber).limit(1).maybeSingle();
+  const readRound = () => supabase
+    .from('fantasy_rounds')
+    .select('id')
+    .eq('season_id', seasonId)
+    .eq('round_number', roundNumber)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: existing } = await readRound();
   if (existing) return existing.id as string;
   const { data: created, error } = await supabase
     .from('fantasy_rounds')
     .insert({ season_id: seasonId, round_number: roundNumber, name: roundName, status: 'draft' })
     .select('id')
     .single();
-  if (error || !created) throw new Error(error?.message || `Could not create round ${roundNumber}.`);
+  if (error) {
+    // Idempotency under races or stale reads: if the round already exists
+    // (unique on season_id + round_number), adopt it instead of failing the
+    // game import. Production evidence 2026-07-16: stale cached reads made
+    // the pre-check miss rounds created seconds earlier, failing 10 games.
+    if (error.code === '23505' || /duplicate key/i.test(error.message || '')) {
+      const { data: after } = await readRound();
+      if (after) return after.id as string;
+    }
+    throw new Error(error.message || `Could not create round ${roundNumber}.`);
+  }
+  if (!created) throw new Error(`Could not create round ${roundNumber}.`);
   return created.id as string;
 }
 
