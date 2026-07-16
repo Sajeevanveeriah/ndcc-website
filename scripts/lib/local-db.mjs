@@ -27,11 +27,18 @@ const baseEnv = {
 
 export function psql(database, sql, { expectFailure = false } = {}) {
   try {
-    return execFileSync(
+    const raw = execFileSync(
       'psql',
       ['-X', '-v', 'ON_ERROR_STOP=1', '-d', database, '-t', '-A', '-F', '\t', '-c', sql],
       { env: baseEnv, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
-    ).trim();
+    );
+    // Drop command tags (INSERT 0 1, UPDATE 2, ...) that psql prints after
+    // RETURNING rows even in tuples-only mode.
+    return raw
+      .split('\n')
+      .filter((line) => !/^(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|NOTIFY)\b/.test(line.trim()))
+      .join('\n')
+      .trim();
   } catch (err) {
     if (expectFailure) return { failed: true, message: String(err.stderr || err.message) };
     throw new Error(`psql failed: ${String(err.stderr || err.message)}\nSQL: ${sql.slice(0, 400)}`);

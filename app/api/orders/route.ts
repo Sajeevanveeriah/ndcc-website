@@ -218,6 +218,7 @@ export async function POST(request: Request) {
       success: true,
       message: 'Order submitted successfully!',
       order_id: data.id,
+      total_amount: serverTotal,
       payment_reference: paymentReference,
       order_status: orderStatus,
       merch_window_label: merchWindowLabel,

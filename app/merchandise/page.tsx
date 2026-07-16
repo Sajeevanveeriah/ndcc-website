@@ -112,9 +112,22 @@ const PRODUCT_ICONS: Record<string, { path: string; textColor: string }> = {
   },
 };
 
-function isStripeConfigured(): boolean {
-  return false;
-}
+type PaymentCapabilities = {
+  bank_transfer: boolean;
+  card: boolean;
+  partial_payments: boolean;
+  minimum_partial_amount: number;
+};
+
+// Until the server says otherwise, only bank transfer is offered. Card
+// availability comes from /api/payments/capabilities (CMS switch + server
+// environment) — never from a hardcoded client flag.
+const DEFAULT_CAPABILITIES: PaymentCapabilities = {
+  bank_transfer: true,
+  card: false,
+  partial_payments: false,
+  minimum_partial_amount: 10,
+};
 
 export default function MerchandisePage() {
   return (
@@ -146,9 +159,15 @@ function MerchandiseContent() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<{
+    order_id: string;
+    total_amount: number;
     payment_reference: string;
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
+  const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
+  const [cardAmount, setCardAmount] = useState('');
+  const [cardPaying, setCardPaying] = useState(false);
+  const [cardError, setCardError] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   // Start empty with a loading skeleton. There is deliberately NO static
   // fallback catalogue: when the live fetch fails the page shows an explicit
@@ -171,8 +190,6 @@ function MerchandiseContent() {
   // unavailable banner with its retry control.
   const [liveProductsFailed, setLiveProductsFailed] = useState(false);
   const [productsReloadKey, setProductsReloadKey] = useState(0);
-
-  const stripeEnabled = isStripeConfigured();
 
   useEffect(() => {
     document.title = 'Club Merchandise | NDCC Dinos';
@@ -264,11 +281,47 @@ function MerchandiseContent() {
       }
     };
 
-    void Promise.all([loadProducts(), loadWindows(), loadContentBlocks()]);
+    const loadCapabilities = async () => {
+      try {
+        const res = await fetch('/api/payments/capabilities', { cache: 'no-store' });
+        const payload = await res.json();
+        if (!stale && res.ok && payload?.data) {
+          setCapabilities({ ...DEFAULT_CAPABILITIES, ...payload.data });
+        }
+      } catch (err) {
+        console.error('[merchandise] Failed to load payment capabilities; keeping bank-transfer-only defaults:', err);
+      }
+    };
+
+    void Promise.all([loadProducts(), loadWindows(), loadContentBlocks(), loadCapabilities()]);
     return () => {
       stale = true;
     };
   }, [productsReloadKey]);
+
+  async function startCardPayment(amount: number | null) {
+    if (!orderConfirmation) return;
+    setCardPaying(true);
+    setCardError('');
+    try {
+      const response = await fetch('/api/payments/checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderConfirmation.order_id,
+          ...(amount !== null ? { amount } : {}),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.checkout_url) {
+        throw new Error(data?.error || 'Card payment could not be started.');
+      }
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      setCardError(err instanceof Error ? err.message : 'Card payment could not be started.');
+      setCardPaying(false);
+    }
+  }
 
   // Display price for the currently-selected options; falls back to the base
   // price if the option data is somehow inconsistent. The server recomputes
@@ -397,7 +450,10 @@ function MerchandiseContent() {
     setErrorMessage('');
 
     try {
-      const endpoint = stripeEnabled ? '/api/checkout' : '/api/orders';
+      // Orders are always created through /api/orders so every order gets a
+      // bank-transfer payment reference; paying by card is an optional next
+      // step from the confirmation panel (server-validated, webhook-settled).
+      const endpoint = '/api/orders';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -431,13 +487,9 @@ function MerchandiseContent() {
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
 
-      if (stripeEnabled && data.checkout_url) {
-        window.location.href = data.checkout_url;
-        return;
-      }
-
-      // Non-Stripe fallback: surface payment reference and bank details
       setOrderConfirmation({
+        order_id: data.order_id || '',
+        total_amount: Number(data.total_amount || 0),
         payment_reference: data.payment_reference || '',
         bank_details: data.bank_details || { account_name: '', bsb: '', account_number: '' },
       });
@@ -770,6 +822,64 @@ function MerchandiseContent() {
                   </div>
                 </div>
               )}
+              {capabilities.card && orderConfirmation?.order_id && (
+                <div className="bg-surface-card border border-green-300 rounded-lg p-3 space-y-2">
+                  <p className="text-green-900 font-body text-sm font-semibold">Prefer to pay by card?</p>
+                  <p className="text-green-800 font-body text-xs">
+                    You can pay securely online now instead of a bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      isLoading={cardPaying}
+                      onClick={() => startCardPayment(null)}
+                    >
+                      Pay full amount by card
+                    </Button>
+                    {capabilities.partial_payments && (
+                      <div className="flex items-end gap-2">
+                        <div>
+                          <label htmlFor="card-part-amount" className="form-label text-xs">
+                            Part payment (min {formatCurrency(capabilities.minimum_partial_amount)})
+                          </label>
+                          <input
+                            id="card-part-amount"
+                            type="number"
+                            inputMode="decimal"
+                            min={capabilities.minimum_partial_amount}
+                            max={orderConfirmation.total_amount}
+                            step="0.01"
+                            className="w-32 px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            value={cardAmount}
+                            onChange={(e) => setCardAmount(e.target.value)}
+                            aria-describedby={cardError ? 'card-pay-error' : undefined}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          isLoading={cardPaying}
+                          onClick={() => {
+                            const amount = Number(cardAmount);
+                            if (!Number.isFinite(amount) || amount <= 0) {
+                              setCardError('Enter a valid part-payment amount.');
+                              return;
+                            }
+                            startCardPayment(amount);
+                          }}
+                        >
+                          Pay part by card
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {cardError && (
+                    <p id="card-pay-error" className="text-red-700 font-body text-xs" role="alert">{cardError}</p>
+                  )}
+                </div>
+              )}
               <p className="text-green-700 font-body text-sm">
                 Thank you for your purchase. Your order will be available for collection at the club once payment is confirmed.
               </p>
@@ -963,11 +1073,15 @@ function MerchandiseContent() {
                           ? 'Ordering Closed'
                           : !windowState.processing_open
                             ? 'Queue Order for Next Window'
-                            : 'Place Order (Bank Transfer)'}
+                            : capabilities.card
+                              ? 'Place Order'
+                              : 'Place Order (Bank Transfer)'}
                     </Button>
 
                     <p className="text-content-muted font-body text-xs text-center">
-                      After submission you will receive a payment reference for bank transfer.
+                      {capabilities.card
+                        ? 'After submission you will receive a bank-transfer reference, or you can pay online by card.'
+                        : 'After submission you will receive a payment reference for bank transfer.'}
                     </p>
                     <p className="text-content-muted font-body text-xs text-center">
                       Example reference format: NDCC-YYYYMMDD-1234

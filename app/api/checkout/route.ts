@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { isCheckoutEnabled } from '@/lib/payments/payment-config';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
+import { generateUniquePaymentReference } from '@/lib/payments/reference';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,7 +108,11 @@ export async function POST(request: Request) {
     const verifiedItems = priced.items;
     const serverTotal = priced.totalAmount;
 
-    // Save order to Supabase with pending status
+    // Save order with a payment reference so the bank-transfer path stays
+    // available if the customer abandons the card session. The webhook (not
+    // this route, and never the browser redirect) records the settled
+    // payment; the ledger trigger then derives payment_status.
+    const paymentReference = await generateUniquePaymentReference();
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -116,7 +121,8 @@ export async function POST(request: Request) {
         customer_phone: customer_phone ? sanitiseInput(customer_phone) : '',
         items: verifiedItems,
         total_amount: serverTotal,
-        payment_status: 'pending',
+        payment_status: 'unpaid',
+        payment_reference: paymentReference,
         processed: false,
         notes: notes ? sanitiseInput(notes) : '',
       })
@@ -159,6 +165,8 @@ export async function POST(request: Request) {
       customer_email: sanitiseInput(customer_email),
       metadata: {
         order_id: order.id,
+        payment_reference: paymentReference,
+        payment_kind: 'balance',
       },
     });
 
