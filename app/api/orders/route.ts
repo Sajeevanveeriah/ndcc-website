@@ -4,6 +4,7 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,17 +21,6 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-type PostedItem = {
-  slug?: string;
-  name?: string;
-  size?: string;
-  quantity?: number;
-  price?: number;
-  custom_name?: string;
-  custom_number?: number;
-};
-
-type CatalogueRow = { slug: string; name: string; price: number };
 
 export async function POST(request: Request) {
   try {
@@ -131,60 +121,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // Recompute per-item prices against the live catalogue (by slug, falling
-    // back to exact name). Unknown items are NOT rejected — the static
-    // fallback list may be in use when the products API is down — but any
-    // unknown item or price disagreement flags the order for manual review
-    // and the order is stored with the server-computed total.
-    const priceIssues: string[] = [];
-    let catalogueRows: CatalogueRow[] | null = null;
-    const { data: catalogue, error: catalogueError } = await supabase
-      .from('apparel_products')
-      .select('slug,name,price');
-    if (catalogueError || !catalogue) {
-      console.error('Orders catalogue lookup failed:', catalogueError);
-      priceIssues.push('product catalogue lookup failed; client prices unverified');
-    } else {
-      catalogueRows = catalogue as CatalogueRow[];
-    }
-
-    let serverTotal = 0;
-    const normalisedItems = (items as PostedItem[]).map((rawItem) => {
-      const itemLabel = String(rawItem.name || rawItem.slug || 'unnamed item');
-      const rawQuantity = Math.floor(Number(rawItem.quantity));
-      const quantity = Number.isFinite(rawQuantity) && rawQuantity > 0 ? Math.min(rawQuantity, 999) : 1;
-      const clientPrice = Number(rawItem.price);
-      const safeClientPrice = Number.isFinite(clientPrice) && clientPrice >= 0 ? clientPrice : 0;
-
-      let effectivePrice = safeClientPrice;
-      if (catalogueRows) {
-        const bySlug = rawItem.slug ? catalogueRows.find((p) => p.slug === rawItem.slug) : undefined;
-        const match = bySlug || catalogueRows.find((p) => p.name === rawItem.name);
-        if (!match) {
-          priceIssues.push(`unknown item "${itemLabel}" kept at client price $${safeClientPrice.toFixed(2)}`);
-        } else {
-          const serverPrice = Number(match.price);
-          if (Math.abs(serverPrice - safeClientPrice) > 0.005) {
-            priceIssues.push(`price mismatch for "${match.name}": client $${safeClientPrice.toFixed(2)}, server $${serverPrice.toFixed(2)}`);
-          }
-          effectivePrice = serverPrice;
-        }
-      }
-
-      serverTotal += effectivePrice * quantity;
-      return { ...rawItem, quantity, price: effectivePrice };
-    });
-    serverTotal = Math.round(serverTotal * 100) / 100;
-
-    if (serverTotal <= 0) {
+    // Never trust client prices or totals: resolve every posted item against
+    // the live catalogue (base price + selected option surcharges) and
+    // recompute everything server-side. Unknown products, invalid options or
+    // an unreachable catalogue reject the order — since the live catalogue
+    // page shows an explicit unavailable state, an order that references
+    // products the server cannot verify is never accepted at face value.
+    const catalogue = await loadPricedCatalogue(supabase);
+    if (!catalogue.ok) {
+      console.error('Orders catalogue lookup failed:', catalogue.error);
       return NextResponse.json(
-        { success: false, error: 'Order total must be greater than zero.' },
-        { status: 400 }
+        { success: false, error: 'Unable to verify product pricing. Please try again shortly.' },
+        { status: 503 }
       );
     }
 
-    const needsReviewReason = priceIssues.length > 0
-      ? `unverified prices: ${priceIssues.join('; ')}`.slice(0, 500)
+    const priced = priceOrderItems(catalogue.products, items as PostedItem[], { maxQuantity: 999 });
+    if (!priced.ok) {
+      return NextResponse.json({ success: false, error: priced.error }, { status: 400 });
+    }
+
+    const normalisedItems = priced.items;
+    const serverTotal = priced.totalAmount;
+    const needsReviewReason = priced.clientPriceMismatches.length > 0
+      ? `client price mismatch (server prices used): ${priced.clientPriceMismatches.join('; ')}`.slice(0, 500)
       : null;
 
     const paymentReference = await generateUniquePaymentReference();
@@ -258,6 +218,7 @@ export async function POST(request: Request) {
       success: true,
       message: 'Order submitted successfully!',
       order_id: data.id,
+      total_amount: serverTotal,
       payment_reference: paymentReference,
       order_status: orderStatus,
       merch_window_label: merchWindowLabel,

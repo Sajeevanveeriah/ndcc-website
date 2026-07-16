@@ -21,6 +21,7 @@ export default function AdminFantasySeasonsPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [health, setHealth] = useState<any | null>(null);
+  const [preview, setPreview] = useState<{ seasonId: string; data: any } | null>(null);
 
   const load = useCallback(async (discover = false) => {
     try {
@@ -84,6 +85,14 @@ export default function AdminFantasySeasonsPage() {
   }, []);
   useEffect(() => { loadHealth(); }, [loadHealth]);
 
+  const runPreview = (seasonId: string) => run(async () => {
+    const result = await parseApiResponse<any>(await adminFetch('/api/admin/fantasy/sync', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'preview', seasonId }),
+    }));
+    setPreview({ seasonId, data: result.preview || null });
+  }, 'Preview complete — nothing was written or published.');
+
   const runOrchestrator = () => run(async () => {
     await parseApiResponse(await adminFetch('/api/admin/fantasy/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'orchestrate' }) }));
     await Promise.all([load(), loadHealth()]);
@@ -118,13 +127,44 @@ export default function AdminFantasySeasonsPage() {
                 const job = seasonJobs[0];
                 const grades = (health.gradeSources || []).filter((g: any) => g.season_id === s.id);
                 const pct = job && job.total_games ? Math.round((job.processed_games / job.total_games) * 100) : null;
+                const seasonHealth = (health.syncHealth || []).find((h: any) => h.season_id === s.id);
+                const ready = (health.readiness || []).find((r: any) => r.season_id === s.id);
+                const awaitingPlayHQ = !s.playhq_season_id;
                 return (
                   <div key={s.id} className="rounded-lg border border-edge-subtle p-3 text-xs font-body text-content-muted space-y-1">
                     <p className="text-sm font-semibold text-content-primary">{s.slug}
-                      {s.is_current ? ' · current' : ''} · {s.playhq_season_id ? `PlayHQ ${s.playhq_season_id}` : 'not linked yet'}
+                      {s.is_current ? ' · current' : ''} · {s.playhq_season_id ? `PlayHQ ${s.playhq_season_id}` : ''}
+                      {awaitingPlayHQ && <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 font-semibold">Awaiting PlayHQ</span>}
                       {s.last_playhq_sync_at ? ` · last sync ${new Date(s.last_playhq_sync_at).toLocaleString()}` : ' · never synced'}
                     </p>
+                    {awaitingPlayHQ && (
+                      <p className="text-blue-800">
+                        PlayHQ has not published a matching season yet. Discovery keeps retrying on the daily schedule —
+                        this is not a successful sync, just a waiting state.
+                      </p>
+                    )}
                     <p>Grade mappings: {grades.filter((g: any) => g.enabled).map((g: any) => g.grade_name).join(', ') || 'none'}{grades.some((g: any) => !g.enabled) ? ` (+${grades.filter((g: any) => !g.enabled).length} disabled)` : ''}</p>
+                    {seasonHealth && (
+                      <p>
+                        Health: discovery {seasonHealth.last_successful_discovery ? new Date(seasonHealth.last_successful_discovery).toLocaleString() : 'never'}
+                        {' '}· game import {seasonHealth.last_successful_game_import ? new Date(seasonHealth.last_successful_game_import).toLocaleString() : 'never'}
+                        {' '}· raw entries {seasonHealth.raw_entries} · queued {seasonHealth.queued_games} · processed {seasonHealth.processed_games}
+                        {' '}· matched players {seasonHealth.matched_players} · ambiguous {seasonHealth.ambiguous_players} · failed games {seasonHealth.failed_games}
+                        {seasonHealth.next_retry_at ? ` · next retry ${new Date(seasonHealth.next_retry_at).toLocaleString()}` : ''}
+                        {seasonHealth.last_error ? <span className="text-red-600"> · last error: {seasonHealth.last_error}</span> : ''}
+                      </p>
+                    )}
+                    {ready && (
+                      <p>
+                        Season readiness:
+                        {' '}{ready.playhq_season_linked ? '✓' : '✗'} PlayHQ linked
+                        {' '}· {ready.grades_mapped > 0 ? `✓ ${ready.grades_mapped} grades` : '✗ grades'}
+                        {' '}· {ready.players_linked > 0 ? `✓ ${ready.players_linked}/${ready.players_total} players linked` : `✗ 0/${ready.players_total} players linked${ready.players_total > 0 ? ' (provisional carry-forward)' : ''}`}
+                        {' '}· {ready.fixtures_imported ? '✓' : '✗'} fixtures
+                        {' '}· {ready.completed_match_stats_imported ? `✓ ${ready.published_stat_rows} stats` : '✗ match stats'}
+                        {' '}· {ready.unresolved_reviews > 0 ? `⚠ ${ready.unresolved_reviews} unresolved reviews` : '✓ no unresolved reviews'}
+                      </p>
+                    )}
                     {job && (
                       <p>Latest job: <span className="font-semibold">{job.status}</span> · {job.processed_games}/{job.total_games} games{pct !== null ? ` (${pct}%)` : ''} · created {job.counts?.created ?? 0} · matched {job.counts?.matched ?? 0} · updated {job.counts?.updated ?? 0} · skipped {job.counts?.skipped ?? 0} · failed {job.failed_games ?? 0} · review items {(job.review_items || []).length}</p>
                     )}
@@ -182,6 +222,7 @@ export default function AdminFantasySeasonsPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" disabled={busy} onClick={() => openGrades(season.id)}>Map PlayHQ grades</Button>
                   <Button size="sm" variant="secondary" disabled={busy} onClick={() => loadJobs(season.id)}>View import jobs</Button>
+                  <Button size="sm" variant="secondary" disabled={busy} onClick={() => runPreview(season.id)}>Run Preview</Button>
                   <Button size="sm" disabled={busy || !season.playhq_season_id} onClick={() => syncAction(season.id, { action: 'start', seasonId: season.id }, 'Import started; continue batches until complete.')}>Start PlayHQ import</Button>
                   {latestJob && !['completed', 'cancelled'].includes(latestJob.status) && (
                     <Button size="sm" disabled={busy} onClick={() => syncAction(season.id, { action: 'continue', jobId: latestJob.id }, 'Processed the next batch.')}>Continue import</Button>
@@ -190,6 +231,41 @@ export default function AdminFantasySeasonsPage() {
                     <Button size="sm" variant="secondary" disabled={busy} onClick={() => syncAction(season.id, { action: 'retry_failed', jobId: latestJob.id }, 'Failed games requeued.')}>Retry failures</Button>
                   )}
                 </div>
+                {preview && preview.seasonId === season.id && preview.data && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/30 p-3 space-y-1 text-xs font-body text-content-muted">
+                    <p className="text-sm font-semibold text-content-primary">Sync preview (read-only — nothing was written)</p>
+                    {preview.data.awaiting_playhq && <p className="text-blue-800 font-semibold">Awaiting PlayHQ: no matching published season found yet.</p>}
+                    {preview.data.proposed_link && (
+                      <p>Proposed PlayHQ link: {preview.data.proposed_link.name} ({preview.data.proposed_link.playhq_season_id})</p>
+                    )}
+                    {preview.data.grades && (
+                      <p>
+                        Grades: {preview.data.grades.existing?.length ?? 0} existing
+                        {preview.data.grades.proposed_new?.length
+                          ? ` · ${preview.data.grades.proposed_new.length} new proposed: ${preview.data.grades.proposed_new.map((g: any) => g.grade_name).join(', ')}`
+                          : ' · no new grades proposed'}
+                      </p>
+                    )}
+                    {preview.data.queue && preview.data.queue.note && <p>{preview.data.queue.note}</p>}
+                    {preview.data.queue && preview.data.queue.note === undefined && (
+                      <>
+                        <p>
+                          Queue: {preview.data.queue.queued_games} game(s) would be imported from {preview.data.queue.raw_entries} raw entries
+                          {' '}· {preview.data.queue.review_items?.length ?? 0} pre-queue review item(s)
+                          {' '}· {preview.data.queue.skipped_grades?.length ?? 0} skipped grade(s)
+                        </p>
+                        {preview.data.queue.empty_queue_invariant_breached && (
+                          <p className="text-red-600 font-semibold">
+                            Invariant breach: raw entries exist but nothing would be queued — a real run would park as needs_review.
+                          </p>
+                        )}
+                        {(preview.data.queue.sample || []).slice(0, 8).map((entry: any) => (
+                          <p key={entry.gameId}>· {entry.matchDate || 'TBC'} — {entry.homeTeam} v {entry.awayTeam} ({entry.gradeName}, round {entry.roundNumber ?? '?'})</p>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
                 {gradePanel && gradePanel.seasonId === season.id && (
                   <div className="rounded-lg border border-edge-subtle p-3 space-y-2">
                     <p className="text-sm font-body font-semibold text-content-primary">PlayHQ grades for this season</p>
