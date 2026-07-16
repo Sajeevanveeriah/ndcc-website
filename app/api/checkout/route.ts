@@ -3,6 +3,7 @@ import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { isCheckoutEnabled } from '@/lib/payments/payment-config';
+import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,18 +14,6 @@ function sanitiseInput(str: string): string {
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
-
-type PostedItem = {
-  slug?: string;
-  name?: string;
-  size?: string;
-  quantity?: number;
-  price?: number;
-  custom_name?: string;
-  custom_number?: number;
-};
-
-type CatalogueRow = { slug: string; name: string; price: number };
 
 export async function POST(request: Request) {
   try {
@@ -92,62 +81,31 @@ export async function POST(request: Request) {
     const supabase = createServerClient();
 
     // Never trust client prices: resolve every posted item against the live
-    // catalogue (by slug, falling back to exact name) and recompute the total
-    // server-side. Unknown items or price disagreement reject the request.
-    const { data: catalogue, error: catalogueError } = await supabase
-      .from('apparel_products')
-      .select('slug,name,price')
-      .eq('active', true);
-
-    if (catalogueError || !catalogue) {
-      console.error('Checkout catalogue lookup failed:', catalogueError);
+    // catalogue (base price + selected option surcharges) and recompute the
+    // total server-side. Unknown items or invalid options reject the request;
+    // a client/server price disagreement asks the buyer to refresh.
+    const catalogue = await loadPricedCatalogue(supabase);
+    if (!catalogue.ok) {
+      console.error('Checkout catalogue lookup failed:', catalogue.error);
       return NextResponse.json(
         { success: false, error: 'Unable to verify product pricing. Please try again later.' },
         { status: 503 }
       );
     }
 
-    const catalogueRows = catalogue as CatalogueRow[];
-    const verifiedItems: Array<PostedItem & { name: string; price: number; quantity: number }> = [];
-    let serverTotal = 0;
-
-    for (const rawItem of items as PostedItem[]) {
-      const bySlug = rawItem.slug ? catalogueRows.find((p) => p.slug === rawItem.slug) : undefined;
-      const match = bySlug || catalogueRows.find((p) => p.name === rawItem.name);
-      if (!match) {
-        return NextResponse.json(
-          { success: false, error: `Unknown product in order: ${String(rawItem.name || rawItem.slug || 'unnamed item')}` },
-          { status: 400 }
-        );
-      }
-
-      const quantity = Number(rawItem.quantity);
-      if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 50) {
-        return NextResponse.json(
-          { success: false, error: `Invalid quantity for ${match.name}.` },
-          { status: 400 }
-        );
-      }
-
-      const serverPrice = Number(match.price);
-      if (typeof rawItem.price === 'number' && Math.abs(rawItem.price - serverPrice) > 0.005) {
-        return NextResponse.json(
-          { success: false, error: `Price for ${match.name} has changed. Please refresh the page and try again.` },
-          { status: 400 }
-        );
-      }
-
-      serverTotal += serverPrice * quantity;
-      verifiedItems.push({ ...rawItem, name: match.name, price: serverPrice, quantity });
+    const priced = priceOrderItems(catalogue.products, items as PostedItem[], { maxQuantity: 50 });
+    if (!priced.ok) {
+      return NextResponse.json({ success: false, error: priced.error }, { status: 400 });
     }
-
-    serverTotal = Math.round(serverTotal * 100) / 100;
-    if (serverTotal <= 0) {
+    if (priced.clientPriceMismatches.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'Order total must be greater than zero.' },
+        { success: false, error: 'Prices have changed. Please refresh the page and try again.' },
         { status: 400 }
       );
     }
+
+    const verifiedItems = priced.items;
+    const serverTotal = priced.totalAmount;
 
     // Save order to Supabase with pending status
     const { data: order, error: orderError } = await supabase
@@ -181,7 +139,10 @@ export async function POST(request: Request) {
         currency: 'aud',
         product_data: {
           name: item.name,
-          description: `Size: ${item.size || 'One Size'}`,
+          description: [
+            `Size: ${item.size || 'One Size'}`,
+            ...(item.applied_options || []).map((o) => `${o.group}: ${o.label}`),
+          ].join(', '),
         },
         unit_amount: Math.round(item.price * 100),
       },
