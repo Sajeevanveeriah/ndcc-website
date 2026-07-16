@@ -58,7 +58,9 @@ async function withRetries<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   throw lastError;
 }
 
-export async function startFantasySyncJob(options: { seasonId: string; createdBy?: string | null }) {
+// dryRun: perform discovery + queue building and report what WOULD be
+// imported, without creating any batch/job rows (the CMS "Run Preview").
+export async function startFantasySyncJob(options: { seasonId: string; createdBy?: string | null; dryRun?: boolean }) {
   const supabase = createServerClient();
   const { data: season, error: seasonError } = await supabase
     .from('fantasy_seasons')
@@ -106,6 +108,10 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // returned (source path, entry count, truncated first entry) so the run log
   // itself is the diagnostic — no server access needed to see the payloads.
   const gradeDebug: Array<{ gradeId: string; gradeName: string; source: string; raw_entries: number; entry_keys?: string[]; sample: string | null }> = [];
+  // Total raw source entries across all grades — the non-empty-sync
+  // invariant compares this with the queue length: raw entries with zero
+  // queued games is never a silent success.
+  let rawEntriesTotal = 0;
   for (const grade of grades) {
     let rawFixtures: unknown[];
     let fixtureSource = 'grade-endpoint';
@@ -137,6 +143,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       rawFixtures = merged;
       fixtureSource = `team-feeds(${clubTeams.length})`;
     }
+    rawEntriesTotal += rawFixtures.length;
     const fixtures = normaliseFixtures({ data: rawFixtures }, { id: grade.playhq_grade_id, name: grade.grade_name });
     const queuedBefore = queue.length;
     const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
@@ -182,6 +189,36 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // Deterministic ordering keeps re-created jobs stable and auditable.
   queue.sort((a, b) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || a.gameId.localeCompare(b.gameId));
 
+  // NON-EMPTY SYNC INVARIANT: raw source entries with nothing queued is a
+  // shape/filter mismatch, never a success. The job is created as
+  // needs_review with the per-grade diagnostics (source path, entry keys,
+  // truncated samples — no credentials) so an admin can see exactly what the
+  // API returned. Zero raw entries stays a legitimate empty state (e.g. a
+  // new season PlayHQ has not published yet).
+  const emptyQueueInvariantBreached = !options.dryRun && queue.length === 0 && rawEntriesTotal > 0;
+  if (emptyQueueInvariantBreached) {
+    reviewItems.push({
+      type: 'empty_queue',
+      detail: `PlayHQ returned ${rawEntriesTotal} raw fixture entr${rawEntriesTotal === 1 ? 'y' : 'ies'} across ${grades.length} grade(s) but zero games were queued. `
+        + 'Likely a payload-shape or club-filter mismatch — inspect the per-grade diagnostics on this job before trusting any "no games" result.',
+    });
+  }
+
+  if (options.dryRun) {
+    return {
+      job: null,
+      batchId: null,
+      queued: queue.length,
+      rawEntries: rawEntriesTotal,
+      reviewItems,
+      skippedGrades,
+      gradeDebug,
+      emptyQueueInvariantBreached: queue.length === 0 && rawEntriesTotal > 0,
+      queuePreview: queue.slice(0, 25),
+      dryRun: true as const,
+    };
+  }
+
   const { data: batch, error: batchError } = await supabase
     .from('fantasy_import_batches')
     .insert({
@@ -202,19 +239,32 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     .insert({
       season_id: season.id,
       import_batch_id: batch.id,
-      status: 'pending',
+      // Invariant breach parks the job in needs_review immediately: it must
+      // never drain an empty queue into a "completed" empty sync.
+      status: emptyQueueInvariantBreached ? 'needs_review' : 'pending',
       total_games: queue.length,
       cursor: { next: 0 },
       game_queue: queue,
-      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0, skipped_grades: skippedGrades },
+      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0, raw_entries: rawEntriesTotal, skipped_grades: skippedGrades, grade_debug: gradeDebug.slice(0, 12) },
       review_items: reviewItems,
       created_by: options.createdBy ?? null,
       started_at: new Date().toISOString(),
+      ...(emptyQueueInvariantBreached ? { completed_at: new Date().toISOString() } : {}),
     })
     .select('id, status, total_games')
     .single();
   if (jobError || !job) throw new Error(jobError?.message || 'Could not create sync job.');
-  return { job, batchId: batch.id, queued: queue.length, reviewItems, skippedGrades, gradeDebug };
+  return {
+    job,
+    batchId: batch.id,
+    queued: queue.length,
+    rawEntries: rawEntriesTotal,
+    reviewItems,
+    skippedGrades,
+    gradeDebug,
+    emptyQueueInvariantBreached,
+    dryRun: false as const,
+  };
 }
 
 async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayerStatLine, gradeName: string, counts: Record<string, number>, reviewItems: ReviewItem[]) {
