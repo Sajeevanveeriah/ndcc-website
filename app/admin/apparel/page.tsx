@@ -221,7 +221,9 @@ export default function AdminApparelPage() {
         body: JSON.stringify({ id: product.id, active: !product.active }),
       });
       await parseApiResponse(res);
-      setStatus(product.active ? `Archived "${product.name}".` : `Restored "${product.name}".`);
+      setStatus(product.active
+        ? `Hidden "${product.name}" from the public website. The product and its order history were not deleted.`
+        : `Showing "${product.name}" on the public website.`);
       loadAll();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to update product.');
@@ -231,7 +233,9 @@ export default function AdminApparelPage() {
   }
 
   async function deleteProduct(product: ApparelProduct) {
-    if (!window.confirm(`Delete "${product.name}" permanently? This cannot be undone.`)) return;
+    if (!window.confirm(
+      `Permanently delete "${product.name}"? This cannot be undone. To keep the product and its order history, cancel and use Hide from website instead.`
+    )) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/resources/apparelProducts?id=${encodeURIComponent(product.id)}`, {
@@ -333,7 +337,11 @@ export default function AdminApparelPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Apparel & Merch Windows</h1>
-      {status && <p className="text-sm text-content-muted">{status}</p>}
+      {status && (
+        <p className="rounded-lg border border-edge-subtle bg-surface-muted px-4 py-3 text-sm text-content-secondary" role="status" aria-live="polite">
+          {status}
+        </p>
+      )}
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">{editingProductId ? 'Edit Apparel Product' : 'Add Apparel Product'}</h2>
@@ -368,7 +376,7 @@ export default function AdminApparelPage() {
           <Input id="order_email" label="Order notification email" type="email" value={productForm.order_email} onChange={(e) => setProductForm((v) => ({ ...v, order_email: e.target.value }))} />
           <div className="flex items-end gap-4">
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.customisable} onChange={(e) => setProductForm((v) => ({ ...v, customisable: e.target.checked }))} />Customisable</label>
-            <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.active} onChange={(e) => setProductForm((v) => ({ ...v, active: e.target.checked }))} />Active</label>
+            <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.active} onChange={(e) => setProductForm((v) => ({ ...v, active: e.target.checked }))} />Visible on public website</label>
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={productForm.checkout_enabled} onChange={(e) => setProductForm((v) => ({ ...v, checkout_enabled: e.target.checked }))} />Checkout enabled</label>
           </div>
           <div className="md:col-span-2 flex gap-2">
@@ -384,24 +392,27 @@ export default function AdminApparelPage() {
             )}
           </div>
         </form>
-        <ul className="text-sm text-content-secondary space-y-1">
+        <p className="text-sm text-content-muted">
+          Visibility controls whether a product appears in the public merchandise catalogue and can be added to a new order. Hiding a product does not delete it or affect existing order history.
+        </p>
+        <ul className="text-sm text-content-secondary space-y-2">
           {products.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-edge-subtle px-3 py-2">
               <span className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${p.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-content-muted'}`}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${p.active ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200' : 'bg-gray-200 text-gray-800 dark:bg-slate-700 dark:text-slate-100'}`}
                 >
-                  {p.active ? 'Active' : 'Archived'}
+                  {p.active ? 'Visible' : 'Hidden'}
                 </span>
                 <span>{p.name} · ${p.price} · {p.category} · order {p.display_order} · {p.sizes.join('/')}</span>
               </span>
               <span className="flex items-center gap-1">
                 <Button type="button" size="sm" variant="ghost" onClick={() => editProduct(p)}>Edit</Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => toggleProductActive(p)}>
-                  {p.active ? 'Archive' : 'Restore'}
+                  {p.active ? 'Hide from website' : 'Show on website'}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" className="text-red-600 hover:text-red-700" onClick={() => deleteProduct(p)}>
-                  Delete
+                  Permanently delete
                 </Button>
               </span>
             </li>

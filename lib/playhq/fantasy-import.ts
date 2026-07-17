@@ -50,7 +50,7 @@ export function computeSourceHash(payload: unknown): string {
 }
 
 // Exact round mapping only. Returns null when PlayHQ metadata is missing or
-// ambiguous — callers must route those games to admin review, never guess.
+// ambiguous - callers must route those games to admin review, never guess.
 export function extractRoundInfo(rawFixture: unknown): PlayHQRoundInfo | null {
   const r = asRecord(rawFixture);
   const round = asRecord(r.round);
@@ -67,8 +67,8 @@ export function extractRoundInfo(rawFixture: unknown): PlayHQRoundInfo | null {
 }
 
 export function isCompletedFixture(fixture: Pick<PlayHQFixture, 'status'>): boolean {
-  const status = (fixture.status || '').toUpperCase();
-  return ['FINAL', 'FINALISED', 'COMPLETED', 'COMPLETE'].includes(status);
+  const status = (fixture.status || '').toUpperCase().replace(/[^A-Z]/g, '');
+  return ['FINAL', 'FINALISED', 'FINALIZED', 'COMPLETED', 'COMPLETE'].includes(status);
 }
 
 export function involvesClubTeam(fixture: Pick<PlayHQFixture, 'homeTeam' | 'awayTeam'>, clubNamePattern = /newcomb/i): boolean {

@@ -36,3 +36,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Deterministic build outputs generated from approved apparel sources.
+/assets/apparel-masters/2026-27/*-Rev01.png

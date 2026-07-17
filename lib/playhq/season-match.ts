@@ -1,6 +1,6 @@
 // Pure, deterministic matching helpers for the fantasy PlayHQ orchestrator:
 // season-name normalisation, season matching and NDCC club-team detection.
-// No I/O — unit tested in scripts/test-fantasy-orchestrator.mjs.
+// No I/O - unit tested in scripts/test-fantasy-orchestrator.mjs.
 import type { PlayHQSeason } from './types';
 
 /** Centralised, testable club identity aliases. Deliberately narrow: every
@@ -35,12 +35,12 @@ export function isClubTeamName(teamName: string | null | undefined): boolean {
 
 /** Extract the [startYear, endYear] pair from a season label.
  *  Supports "2025/26", "2025-26", "2025 2026", "Season 2025/2026",
- *  "Summer 2025/26" and a bare "2025" (treated as 2025/26 — southern-
+ *  "Summer 2025/26" and a bare "2025" (treated as 2025/26 - southern-
  *  hemisphere cricket seasons span the new year). Returns null when no
  *  4-digit year is present. */
 export function extractSeasonYears(label: string | null | undefined): [number, number] | null {
   const text = String(label ?? '');
-  const pair = text.match(/(\d{4})\s*(?:[/\-–—]|\s)\s*(\d{2,4})/);
+  const pair = text.match(/(\d{4})\s*(?:[/\-\u2013\u2014]|\s)\s*(\d{2,4})/);
   if (pair) {
     const start = Number(pair[1]);
     let end = Number(pair[2]);
@@ -74,7 +74,7 @@ export function matchPlayHQSeason(
   }
 
   const candidates = playhqSeasons.filter((season) => {
-    const years = extractSeasonYears(season.name);
+    const years = extractSeasonYears(season.name) ?? extractSeasonYears(season.competitionName);
     if (!years || years[0] !== localYears[0] || years[1] !== localYears[1]) return false;
     // Secondary date validation: the season must start in the first year
     // (± one calendar year of slack for pre-season fixtures) when dates exist.

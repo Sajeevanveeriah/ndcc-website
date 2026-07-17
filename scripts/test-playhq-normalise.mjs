@@ -16,6 +16,18 @@ const fixtures = normaliseFixtures({ games: [{ gameId: 'game-1', homeTeam: { nam
 if (fixtures[0]?.id !== 'game-1' || fixtures[0]?.homeTeam !== 'NDCC' || fixtures[0]?.awayTeam !== 'Opponent CC') fail('normaliseFixtures should defensively read common cricket fixture fields.');
 if (fixtures[0]?.playHQUrl !== 'https://example.test/game-1') fail('normaliseFixtures should preserve public PlayHQ links when supplied.');
 
+const nested = normaliseFixtures({ data: { items: [{
+  id: 'historical-game-1',
+  status: 'FINALIZED',
+  competitors: [
+    { homeAway: 'HOME', team: { name: 'Newcomb & District 1st XI' } },
+    { homeAway: 'AWAY', team: { name: 'Opponent CC' } },
+  ],
+  schedule: { date: '2026-03-14' },
+}] } }, grades[0]);
+if (nested[0]?.homeTeam !== 'Newcomb & District 1st XI' || nested[0]?.awayTeam !== 'Opponent CC') fail('normaliseFixtures should read nested PlayHQ competitor team names.');
+if (nested[0]?.id !== 'historical-game-1' || nested[0]?.status !== 'FINALIZED') fail('normaliseFixtures should read nested data.items fixture envelopes.');
+
 const ladder = normaliseLadder({ ladder: [{ team: { name: 'NDCC' }, rank: 2, gamesPlayed: 5, points: '18', percent: '126.5' }] }, grades[0]);
 if (ladder[0]?.teamName !== 'NDCC' || ladder[0]?.position !== 2 || ladder[0]?.played !== 5 || ladder[0]?.percentage !== 126.5) fail('normaliseLadder should parse common ladder fields.');
 

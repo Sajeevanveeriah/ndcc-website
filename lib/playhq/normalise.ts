@@ -6,12 +6,30 @@ function firstArray(payload: unknown): unknown[] {
   for (const key of ['data', 'items', 'seasons', 'teams', 'grades', 'fixtures', 'games', 'ladder', 'ladders']) {
     if (Array.isArray(root[key])) return root[key] as unknown[];
   }
+  // Some PlayHQ endpoints wrap their collection one level deeper as
+  // { data: { items: [...] } }. Treat that envelope exactly like the flat
+  // response instead of reporting a false empty season or fixture list.
+  const data = asRecord(root.data);
+  for (const key of ['items', 'seasons', 'teams', 'grades', 'fixtures', 'games', 'ladder', 'ladders']) {
+    if (Array.isArray(data[key])) return data[key] as unknown[];
+  }
   if (Array.isArray(payload)) return payload;
   return [];
 }
 function text(...values: unknown[]) { return values.find((v) => typeof v === 'string' && v.trim()) as string | undefined; }
 function num(value: unknown) { const n = Number(value); return Number.isFinite(n) ? n : null; }
-function entityName(value: unknown) { const r = asRecord(value); return text(r.name, r.displayName, r.fullName, r.teamName); }
+function entityName(value: unknown) {
+  const r = asRecord(value);
+  const team = asRecord(r.team);
+  const competitor = asRecord(r.competitor);
+  const organisation = asRecord(r.organisation);
+  return text(
+    r.name, r.displayName, r.fullName, r.teamName,
+    team.name, team.displayName, team.teamName,
+    competitor.name, competitor.displayName, competitor.teamName,
+    organisation.name, organisation.displayName
+  );
+}
 
 export function normaliseSeasons(payload: unknown): PlayHQSeason[] {
   return firstArray(payload).map((item) => {
