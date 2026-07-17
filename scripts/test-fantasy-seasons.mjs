@@ -73,7 +73,7 @@ try {
   check('round: zero round number rejected', importer.extractRoundInfo({ round: { number: 0 } }) === null);
 
   // ---- 3. Completed NDCC game selection ----
-  check('fixture: FINAL status is completed', importer.isCompletedFixture({ status: 'FINAL' }) && importer.isCompletedFixture({ status: 'completed' }));
+  check('fixture: final statuses are completed', importer.isCompletedFixture({ status: 'FINAL' }) && importer.isCompletedFixture({ status: 'completed' }) && importer.isCompletedFixture({ status: 'FINALIZED' }));
   check('fixture: UPCOMING is not completed', !importer.isCompletedFixture({ status: 'UPCOMING' }) && !importer.isCompletedFixture({ status: null }));
   check('fixture: club filter matches Newcomb either side', importer.involvesClubTeam({ homeTeam: 'Newcomb & District 2nd XI', awayTeam: 'Leopold' }) && importer.involvesClubTeam({ homeTeam: 'Leopold', awayTeam: 'NEWCOMB' }));
   check('fixture: non-club game excluded', !importer.involvesClubTeam({ homeTeam: 'Leopold', awayTeam: 'St Josephs' }));

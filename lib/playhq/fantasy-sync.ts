@@ -39,6 +39,8 @@ type ReviewItem = { type: string; gameId?: string; playerId?: string; detail: st
 function firstArray(payload: unknown): unknown[] {
   const root = (payload && typeof payload === 'object' ? payload : {}) as Record<string, unknown>;
   for (const key of ['data', 'items', 'fixtures', 'games']) if (Array.isArray(root[key])) return root[key] as unknown[];
+  const data = (root.data && typeof root.data === 'object' ? root.data : {}) as Record<string, unknown>;
+  for (const key of ['items', 'fixtures', 'games']) if (Array.isArray(data[key])) return data[key] as unknown[];
   return Array.isArray(payload) ? payload : [];
 }
 
@@ -98,7 +100,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
 
   const queue: QueueEntry[] = [];
   const reviewItems: ReviewItem[] = [];
-  // Grades whose fixture endpoint is unavailable (e.g. HTTP 404 — PlayHQ does
+  // Grades whose fixture endpoint is unavailable (e.g. HTTP 404 - PlayHQ does
   // not serve fixture data for every discovered grade id). These are recorded
   // and skipped rather than aborting the whole job; only a total failure of
   // every grade stops the sync.
@@ -106,9 +108,9 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   const seenGameIds = new Set<string>();
   // When a grade contributes zero queued games, capture what the API actually
   // returned (source path, entry count, truncated first entry) so the run log
-  // itself is the diagnostic — no server access needed to see the payloads.
+  // itself is the diagnostic - no server access needed to see the payloads.
   const gradeDebug: Array<{ gradeId: string; gradeName: string; source: string; raw_entries: number; entry_keys?: string[]; sample: string | null }> = [];
-  // Total raw source entries across all grades — the non-empty-sync
+  // Total raw source entries across all grades - the non-empty-sync
   // invariant compares this with the queue length: raw entries with zero
   // queued games is never a silent success.
   let rawEntriesTotal = 0;
@@ -192,7 +194,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // NON-EMPTY SYNC INVARIANT: raw source entries with nothing queued is a
   // shape/filter mismatch, never a success. The job is created as
   // needs_review with the per-grade diagnostics (source path, entry keys,
-  // truncated samples — no credentials) so an admin can see exactly what the
+  // truncated samples - no credentials) so an admin can see exactly what the
   // API returned. Zero raw entries stays a legitimate empty state (e.g. a
   // new season PlayHQ has not published yet).
   const emptyQueueInvariantBreached = !options.dryRun && queue.length === 0 && rawEntriesTotal > 0;
@@ -200,7 +202,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     reviewItems.push({
       type: 'empty_queue',
       detail: `PlayHQ returned ${rawEntriesTotal} raw fixture entr${rawEntriesTotal === 1 ? 'y' : 'ies'} across ${grades.length} grade(s) but zero games were queued. `
-        + 'Likely a payload-shape or club-filter mismatch — inspect the per-grade diagnostics on this job before trusting any "no games" result.',
+        + 'Likely a payload-shape or club-filter mismatch - inspect the per-grade diagnostics on this job before trusting any "no games" result.',
     });
   }
 

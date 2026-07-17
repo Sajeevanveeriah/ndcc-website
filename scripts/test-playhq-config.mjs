@@ -17,9 +17,9 @@ const configSource = read('lib/playhq/config.ts');
 const clientSource = read('lib/playhq/client.ts');
 const fixturesRoute = read('app/api/public/playhq/fixtures/route.ts');
 const diagnosticsRoute = read('app/api/admin/playhq/diagnostics/route.ts');
-const authMigration = read('supabase/migrations/20260630_repair_committee_auth_crypt_resolution.sql');
-const ioMigration = read('supabase/migrations/20260630_reduce_public_query_io.sql');
-const policyMigration = read('supabase/migrations/20260630_cleanup_duplicate_public_read_policies.sql');
+const authMigration = read('supabase/migrations/20260630000200_repair_committee_auth_crypt_resolution.sql');
+const ioMigration = read('supabase/migrations/20260704102811_reduce_public_query_io.sql');
+const policyMigration = read('supabase/migrations/20260630000100_cleanup_duplicate_public_read_policies.sql');
 const readinessRoute = read('app/api/admin/auth/readiness/route.ts');
 
 if (!configSource.includes("import 'server-only'")) fail('PlayHQ config must be server-only.');

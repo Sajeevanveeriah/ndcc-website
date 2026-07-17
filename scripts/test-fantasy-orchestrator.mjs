@@ -53,6 +53,11 @@ try {
   check('match: evidence recorded', match2025.status === 'matched' && /phq-2025/.test(match2025.evidence));
   const match2026 = matchPlayHQSeason(playhqSeasons, { slug: '2026-27', name: 'NDCC Fantasy 2026/2027' });
   check('match: 2026-27 -> phq-2026', match2026.status === 'matched' && match2026.season.id === 'phq-2026');
+  const competitionNameMatch = matchPlayHQSeason(
+    [{ id: 'phq-competition-2025', name: 'Summer', competitionName: 'GCA Mens Competition 2025/26', startDate: '2025-10-01' }],
+    { slug: '2025-26' }
+  );
+  check('match: years may come from PlayHQ competition name', competitionNameMatch.status === 'matched' && competitionNameMatch.season.id === 'phq-competition-2025');
 
   // Ambiguity is a blocking condition, never a guess.
   const ambiguous = matchPlayHQSeason(
@@ -99,7 +104,7 @@ try {
   check('cron drives the orchestrator', cron.includes('runFantasyOrchestrator'));
 
   // Ambiguous identically-named seasons must be resolved with real API
-  // evidence (team probe), never guessed — and stay blocked when more than
+  // evidence (team probe), never guessed - and stay blocked when more than
   // one candidate contains NDCC teams.
   const orchestratorSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-orchestrator.ts'), 'utf8');
   check('orchestrator probes ambiguous seasons by club teams', orchestratorSource.includes('disambiguateByClubTeams'));
@@ -141,6 +146,7 @@ try {
   // the job as needs_review with diagnostics, never complete as an empty
   // success.
   check('sync tracks total raw entries', syncSource.includes('rawEntriesTotal += rawFixtures.length'));
+  check('sync unwraps nested PlayHQ data.items fixture collections', syncSource.includes("['items', 'fixtures', 'games']") && syncSource.includes('root.data'));
   check('sync enforces the non-empty invariant (raw>0, queued=0 -> needs_review)',
     syncSource.includes('emptyQueueInvariantBreached') && syncSource.includes("'needs_review' : 'pending'"));
   check('sync stores raw_entries + grade diagnostics on the job counts',

@@ -48,7 +48,12 @@
     "test:cms-navigation": "node scripts/test-cms-navigation.mjs",
     "test:no-hardcoded-seasonal-content": "node scripts/test-no-hardcoded-seasonal-content.mjs",
     "test:public-visuals": "node scripts/test-public-visuals.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-season-appointments-marquee.mjs",
-    "test:migration-replay": "node scripts/test-migration-replay.mjs"
+    "test:migration-replay": "node scripts/test-migration-replay.mjs",
+    "test:apparel-visibility": "node scripts/test-apparel-visibility.mjs",
+    "test:apparel-images": "npm run prepare:apparel-assets && node scripts/test-apparel-images.mjs",
+    "prepare:apparel-assets": "node scripts/generate-apparel-assets.mjs",
+    "predev": "npm run prepare:apparel-assets",
+    "prebuild": "npm run prepare:apparel-assets"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
@@ -78,6 +83,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
+    "sharp": "^0.33.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },

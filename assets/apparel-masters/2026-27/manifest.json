@@ -7,9 +7,15 @@
     "base_price_aud": "31.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Singlet-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Singlet-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon training singlet."
+    "png_filename": "20260717-NDCC-Apparel-Singlet-Rev01.png",
+    "webp_filename": "singlet.webp",
+    "alt_text": "Front and back views of the NDCC maroon training singlet.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved singlet.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/singlet.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -19,9 +25,15 @@
     "base_price_aud": "44.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Track-Pants-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Track-Pants-Rev00.webp",
-    "alt_text": "Multiple views of the NDCC maroon track pants."
+    "png_filename": "20260717-NDCC-Apparel-Track-Pants-Rev01.png",
+    "webp_filename": "track-pants.webp",
+    "alt_text": "Multiple views of the NDCC maroon track pants.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved track-pants.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/track-pants.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -31,9 +43,15 @@
     "base_price_aud": "33.00",
     "options": "Long sleeve option: +$1.00",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Tee-Shirt-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Tee-Shirt-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon training tee shirt."
+    "png_filename": "20260717-NDCC-Apparel-Tee-Shirt-Rev01.png",
+    "webp_filename": "tee-shirt.webp",
+    "alt_text": "Front and back views of the NDCC maroon training tee shirt.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved tee-shirt.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/tee-shirt.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -43,9 +61,15 @@
     "base_price_aud": "35.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Shorts-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Shorts-Rev00.webp",
-    "alt_text": "Multiple views of the NDCC maroon training shorts."
+    "png_filename": "20260717-NDCC-Apparel-Shorts-Rev01.png",
+    "webp_filename": "shorts.webp",
+    "alt_text": "Multiple views of the NDCC maroon training shorts.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved shorts.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/shorts.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -55,9 +79,15 @@
     "base_price_aud": "36.00",
     "options": "Long sleeve option: +$1.00",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Playing-Shirt-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Playing-Shirt-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC playing shirt in maroon and crème."
+    "png_filename": "20260717-NDCC-Apparel-Playing-Shirt-Rev01.png",
+    "webp_filename": "playing-shirt.webp",
+    "alt_text": "Front and back views of the NDCC playing shirt in maroon and crème.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved playing-shirt.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/playing-shirt.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -67,9 +97,15 @@
     "base_price_aud": "37.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Playing-Pants-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Playing-Pants-Rev00.webp",
-    "alt_text": "Multiple views of the NDCC playing pants in maroon and crème."
+    "png_filename": "20260717-NDCC-Apparel-Playing-Pants-Rev01.png",
+    "webp_filename": "playing-pants.webp",
+    "alt_text": "Multiple views of the NDCC playing pants in maroon and crème.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved playing-pants.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/playing-pants.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -79,9 +115,15 @@
     "base_price_aud": "49.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Jumper-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Jumper-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon playing jumper."
+    "png_filename": "20260717-NDCC-Apparel-Jumper-Rev01.png",
+    "webp_filename": "jumper.webp",
+    "alt_text": "Front and back views of the NDCC maroon playing jumper.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved jumper.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/jumper.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -91,9 +133,15 @@
     "base_price_aud": "49.00",
     "options": "Maroon one side, crème the other",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Reversible-Vest-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Reversible-Vest-Rev00.webp",
-    "alt_text": "Front and back views of the reversible NDCC maroon and crème playing vest."
+    "png_filename": "20260717-NDCC-Apparel-Reversible-Vest-Rev01.png",
+    "webp_filename": "reversible-vest.webp",
+    "alt_text": "Front and back views of the reversible NDCC maroon and crème playing vest.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved reversible-vest.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/reversible-vest.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 1,
@@ -105,7 +153,10 @@
     "image_supplied": false,
     "png_filename": "20260716-NDCC-Apparel-Wide-Brim-Hat-Rev00.png",
     "webp_filename": "20260716-NDCC-Apparel-Wide-Brim-Hat-Rev00.webp",
-    "alt_text": "Product image not supplied for the maroon wide brim hat."
+    "alt_text": "Product image not supplied for the maroon wide brim hat.",
+    "embedded_pricing_absent": null,
+    "public_asset": null,
+    "source_relationship": "No supplier artwork supplied; product must remain hidden."
   },
   {
     "batch": 1,
@@ -117,7 +168,10 @@
     "image_supplied": false,
     "png_filename": "20260716-NDCC-Apparel-Baggy-Cap-Rev00.png",
     "webp_filename": "20260716-NDCC-Apparel-Baggy-Cap-Rev00.webp",
-    "alt_text": "Product image not supplied for the NDCC baggy cap."
+    "alt_text": "Product image not supplied for the NDCC baggy cap.",
+    "embedded_pricing_absent": null,
+    "public_asset": null,
+    "source_relationship": "No supplier artwork supplied; product must remain hidden."
   },
   {
     "batch": 1,
@@ -129,7 +183,10 @@
     "image_supplied": false,
     "png_filename": "20260716-NDCC-Apparel-Cap-Rev00.png",
     "webp_filename": "20260716-NDCC-Apparel-Cap-Rev00.webp",
-    "alt_text": "Product image not supplied for the NDCC cap."
+    "alt_text": "Product image not supplied for the NDCC cap.",
+    "embedded_pricing_absent": null,
+    "public_asset": null,
+    "source_relationship": "No supplier artwork supplied; product must remain hidden."
   },
   {
     "batch": 1,
@@ -141,7 +198,10 @@
     "image_supplied": false,
     "png_filename": "20260716-NDCC-Apparel-Bucket-Hat-Rev00.png",
     "webp_filename": "20260716-NDCC-Apparel-Bucket-Hat-Rev00.webp",
-    "alt_text": "Product image not supplied for the NDCC bucket hat."
+    "alt_text": "Product image not supplied for the NDCC bucket hat.",
+    "embedded_pricing_absent": null,
+    "public_asset": null,
+    "source_relationship": "No supplier artwork supplied; product must remain hidden."
   },
   {
     "batch": 2,
@@ -151,9 +211,15 @@
     "base_price_aud": "36.00",
     "options": "Long sleeve option: +$1.00",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Club-Polo-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Club-Polo-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon club polo."
+    "png_filename": "20260717-NDCC-Apparel-Club-Polo-Rev01.png",
+    "webp_filename": "club-polo.webp",
+    "alt_text": "Front and back views of the NDCC maroon club polo.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved club-polo.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/club-polo.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 2,
@@ -163,9 +229,15 @@
     "base_price_aud": "58.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Puffer-Vest-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Puffer-Vest-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon puffer vest."
+    "png_filename": "20260717-NDCC-Apparel-Puffer-Vest-Rev01.png",
+    "webp_filename": "puffer-vest.webp",
+    "alt_text": "Front and back views of the NDCC maroon puffer vest.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved puffer-vest.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/puffer-vest.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 2,
@@ -175,9 +247,15 @@
     "base_price_aud": "52.00",
     "options": "Zipped +$1.00, fleece +$1.00",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Hoody-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Hoody-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon hoody."
+    "png_filename": "20260717-NDCC-Apparel-Hoody-Rev01.png",
+    "webp_filename": "hoody.webp",
+    "alt_text": "Front and back views of the NDCC maroon hoody.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved hoody.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/hoody.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 2,
@@ -187,9 +265,15 @@
     "base_price_aud": "82.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Puffer-Jacket-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Puffer-Jacket-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon puffer jacket."
+    "png_filename": "20260717-NDCC-Apparel-Puffer-Jacket-Rev01.png",
+    "webp_filename": "puffer-jacket.webp",
+    "alt_text": "Front and back views of the NDCC maroon puffer jacket.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved puffer-jacket.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/puffer-jacket.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 2,
@@ -199,9 +283,15 @@
     "base_price_aud": "89.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Soft-Shell-Jacket-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Soft-Shell-Jacket-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon soft shell jacket."
+    "png_filename": "20260717-NDCC-Apparel-Soft-Shell-Jacket-Rev01.png",
+    "webp_filename": "soft-shell-jacket.webp",
+    "alt_text": "Front and back views of the NDCC maroon soft shell jacket.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved soft-shell-jacket.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/soft-shell-jacket.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 2,
@@ -211,9 +301,15 @@
     "base_price_aud": "60.00",
     "options": "Lined track top, also available with hood",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Sports-Jacket-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Sports-Jacket-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon sports jacket."
+    "png_filename": "20260717-NDCC-Apparel-Sports-Jacket-Rev01.png",
+    "webp_filename": "sports-jacket.webp",
+    "alt_text": "Front and back views of the NDCC maroon sports jacket.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved sports-jacket.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/sports-jacket.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   },
   {
     "batch": 2,
@@ -223,8 +319,14 @@
     "base_price_aud": "71.00",
     "options": "",
     "image_supplied": true,
-    "png_filename": "20260716-NDCC-Apparel-Bomber-Jacket-Rev00.png",
-    "webp_filename": "20260716-NDCC-Apparel-Bomber-Jacket-Rev00.webp",
-    "alt_text": "Front and back views of the NDCC maroon bomber jacket."
+    "png_filename": "20260717-NDCC-Apparel-Bomber-Jacket-Rev01.png",
+    "webp_filename": "bomber-jacket.webp",
+    "alt_text": "Front and back views of the NDCC maroon bomber jacket.",
+    "width": 800,
+    "height": 640,
+    "source_relationship": "Price-free Rev01 output generated from the approved bomber-jacket.png source by scripts/generate-apparel-assets.mjs, which clears only the supplier caption and pricing footer below the garment artwork.",
+    "public_asset": "/images/cms/apparel/2026-27/bomber-jacket.webp",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   }
 ]
