@@ -27,6 +27,12 @@ export interface OrderItem {
   size: string;
   quantity: number;
   price: number;
+  // Selected option values keyed by option group (e.g. { "Sleeve length": "long-sleeve" }).
+  options?: Record<string, string>;
+  // Server-applied option detail (label + surcharge) stored with the order.
+  applied_options?: Array<{ group: string; value: string; label: string; price_delta: number }>;
+  // Base price before option surcharges, as verified by the server.
+  base_price?: number;
   custom_name?: string;
   custom_number?: number;
 }

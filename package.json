@@ -18,6 +18,12 @@
     "smoke:fantasy": "node scripts/smoke-fantasy.mjs",
     "audit:public": "node scripts/audit-public-site.mjs",
     "check:assets": "node scripts/check-public-assets.mjs",
+    "check:migrations": "node scripts/check-migration-history.mjs",
+    "test:apparel-pricing": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-apparel-pricing.mjs",
+    "test:apparel-catalogue": "node scripts/test-apparel-catalogue.mjs",
+    "test:payments-partial": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payments-partial.mjs",
+    "test:merch-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-merch-export.mjs",
+    "test:payments-ledger": "node scripts/test-payments-ledger.mjs",
     "test:admin-auth": "node scripts/test-admin-auth.mjs",
     "test:sponsors": "node scripts/test-sponsors.mjs && node scripts/test-sponsor-canonical.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-sponsor-logo-surface.mjs",
     "test:fantasy": "node scripts/test-fantasy.mjs",
@@ -41,7 +47,8 @@
     "test:club-season-wizard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-club-season-wizard.mjs",
     "test:cms-navigation": "node scripts/test-cms-navigation.mjs",
     "test:no-hardcoded-seasonal-content": "node scripts/test-no-hardcoded-seasonal-content.mjs",
-    "test:public-visuals": "node scripts/test-public-visuals.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-season-appointments-marquee.mjs"
+    "test:public-visuals": "node scripts/test-public-visuals.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-season-appointments-marquee.mjs",
+    "test:migration-replay": "node scripts/test-migration-replay.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

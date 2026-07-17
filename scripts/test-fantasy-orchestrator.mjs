@@ -129,7 +129,7 @@ try {
   const vercel = JSON.parse(readFileSync(join(repoRoot, 'vercel.json'), 'utf8'));
   check('vercel cron path present', vercel.crons.some((c) => c.path === '/api/cron/playhq-fantasy-sync'));
 
-  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260714104000_fantasy_sync_automation.sql'), 'utf8');
+  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260715000755_fantasy_sync_automation.sql'), 'utf8');
   check('migration: lock function is atomic upsert', migration.includes('ON CONFLICT (name) DO UPDATE'));
   check('migration: lock fn revoked from anon', /REVOKE EXECUTE ON FUNCTION acquire_fantasy_sync_lock[^;]*anon/.test(migration));
   check('migration: sync runs RLS enabled', migration.includes('ALTER TABLE fantasy_sync_runs ENABLE ROW LEVEL SECURITY'));
@@ -139,6 +139,44 @@ try {
   const adminSync = readFileSync(join(repoRoot, 'app/api/admin/fantasy/sync/route.ts'), 'utf8');
   check('admin sync exposes health endpoint', adminSync.includes("searchParams.get('health')"));
   check('admin sync exposes manual orchestrate action', adminSync.includes("action === 'orchestrate'"));
+  check('admin sync exposes read-only preview action', adminSync.includes("action === 'preview'") && adminSync.includes('previewFantasySeasonSync'));
+
+  // ---- 2026/27 season-readiness controls ----
+  // Non-empty sync invariant: raw entries with zero queued games must park
+  // the job as needs_review with diagnostics, never complete as an empty
+  // success.
+  check('sync tracks total raw entries', syncSource.includes('rawEntriesTotal += rawFixtures.length'));
+  check('sync enforces the non-empty invariant (raw>0, queued=0 -> needs_review)',
+    syncSource.includes('emptyQueueInvariantBreached') && syncSource.includes("'needs_review' : 'pending'"));
+  check('sync stores raw_entries + grade diagnostics on the job counts',
+    syncSource.includes('raw_entries: rawEntriesTotal') && syncSource.includes('grade_debug: gradeDebug.slice'));
+  check('sync diagnostics are truncated (no unbounded payload storage)', syncSource.includes('.slice(0, 400)'));
+  check('sync supports read-only dry runs', syncSource.includes('options.dryRun'));
+  check('orchestrator blocks on the empty-queue invariant', orchestratorSource.includes('emptyQueueInvariantBreached') || orchestrator.includes('emptyQueueInvariantBreached'));
+  check('orchestrator records per-season sync health', orchestrator.includes("from('fantasy_sync_health')") || orchestratorSource.includes('updateSyncHealth'));
+  check('orchestrator computes season readiness rollup', orchestratorSource.includes('playhq_season_linked') && orchestratorSource.includes('unresolved_reviews'));
+  check('orchestrator surfaces Awaiting PlayHQ instead of empty success', orchestratorSource.includes('awaiting_playhq'));
+  check('player matching stays PlayHQ-id-first with review-only name matches',
+    syncSource.includes("eq('playhq_player_id', line.playhq_player_id)") && syncSource.includes('name_match_review'));
+
+  const healthMigration = readFileSync(join(repoRoot, 'supabase/migrations/20260716060000_fantasy_sync_health.sql'), 'utf8');
+  for (const column of ['last_successful_discovery', 'last_successful_game_import', 'raw_entries', 'queued_games', 'processed_games', 'matched_players', 'ambiguous_players', 'failed_games', 'last_error', 'next_retry_at']) {
+    check(`health migration has ${column}`, healthMigration.includes(column));
+  }
+  check('health migration enables RLS', /alter table .*fantasy_sync_health enable row level security/i.test(healthMigration));
+
+  // Stale-read hardening (production evidence 2026-07-16: cached Supabase
+  // GETs failed 10 game imports on duplicate round keys).
+  const supabaseServer = readFileSync(join(repoRoot, 'lib/supabase-server.ts'), 'utf8');
+  check('supabase server fetch is never cached', supabaseServer.includes("cache: 'no-store'"));
+  check('ensureRound adopts an existing round on duplicate-key conflict',
+    syncSource.includes("error.code === '23505'") && syncSource.includes('readRound'));
+
+  const seasonsPage = readFileSync(join(repoRoot, 'app/admin/fantasy/seasons/page.tsx'), 'utf8');
+  check('CMS shows sync health record', seasonsPage.includes('syncHealth'));
+  check('CMS shows Awaiting PlayHQ state', seasonsPage.includes('Awaiting PlayHQ'));
+  check('CMS has Run Preview action', seasonsPage.includes('Run Preview'));
+  check('CMS shows season readiness', seasonsPage.includes('Season readiness'));
 } finally {
   rmSync(tmpDir, { recursive: true, force: true });
 }

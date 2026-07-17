@@ -79,6 +79,26 @@ async function setSeasonException(supabase: any, seasonId: string, message: stri
   await supabase.from('fantasy_seasons').update({ sync_exception: message }).eq('id', seasonId);
 }
 
+/** Next scheduled cron firing (daily 16:30 UTC per vercel.json). */
+function nextScheduledRetry(): string {
+  const next = new Date();
+  next.setUTCHours(16, 30, 0, 0);
+  if (next.getTime() <= Date.now()) next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString();
+}
+
+/** Upsert the per-season sync health record. Best-effort: health must never
+ *  break the pipeline itself (e.g. before its migration is applied). */
+async function updateSyncHealth(supabase: any, seasonId: string, patch: Record<string, unknown>) {
+  try {
+    await supabase
+      .from('fantasy_sync_health')
+      .upsert({ season_id: seasonId, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'season_id' });
+  } catch {
+    /* table may not exist yet */
+  }
+}
+
 /** When several identically-named seasons match the year pair (organisations
  *  are registered once per competition), probe each candidate's team list and
  *  keep only seasons that actually contain NDCC teams. Deterministic evidence
@@ -403,13 +423,34 @@ async function advanceSeason(
 ): Promise<RunLog[]> {
   const logs: RunLog[] = [];
   const timeLeft = () => deadline - Date.now();
+  const health: Record<string, unknown> = {};
+  const finishWithHealth = async () => {
+    const failure = logs.find((log) => log.status === 'error' || log.status === 'blocked');
+    if (failure) {
+      health.last_error = failure.error || failure.stage;
+      health.next_retry_at = nextScheduledRetry();
+    } else {
+      health.last_error = null;
+      health.next_retry_at = nextScheduledRetry();
+    }
+    await updateSyncHealth(supabase, season.id, health);
+    return logs;
+  };
 
   try {
     // 1. Season discovery + linking.
     if (!season.playhq_season_id) {
       const log = await discoverAndLinkSeason(supabase, season);
       logs.push(log);
-      if (log.status !== 'ok') return logs;
+      if (log.status === 'ok') {
+        health.last_successful_discovery = new Date().toISOString();
+      }
+      // 'skipped' here means PlayHQ has not published a matching season yet
+      // (Awaiting PlayHQ); the CMS derives that state from the unlinked
+      // season plus this health row.
+      if (log.status !== 'ok') return finishWithHealth();
+    } else {
+      health.last_successful_discovery = new Date().toISOString();
     }
 
     // 2. Grade discovery + mapping (only when nothing is mapped yet; admin
@@ -422,11 +463,11 @@ async function advanceSeason(
     if (!(enabledGrades ?? []).some((grade: { enabled: boolean }) => grade.enabled)) {
       if ((enabledGrades ?? []).length > 0) {
         logs.push({ seasonSlug: season.slug, stage: 'map_grades', status: 'skipped', detail: { reason: 'Grade sources exist but all are disabled by an admin; automation will not re-enable them.' } });
-        return logs;
+        return finishWithHealth();
       }
       const log = await discoverAndMapGrades(supabase, season);
       logs.push(log);
-      if (log.status !== 'ok') return logs;
+      if (log.status !== 'ok') return finishWithHealth();
     }
 
     // 3. Find or create the active job.
@@ -445,7 +486,7 @@ async function advanceSeason(
       const lastTouched = new Date(openJob.updated_at || openJob.created_at).getTime();
       if (Date.now() - lastTouched < ABANDONED_RUNNING_MS) {
         logs.push({ seasonSlug: season.slug, stage: 'resume_job', status: 'skipped', detail: { reason: 'A job is actively running.', job_id: openJob.id } });
-        return logs;
+        return finishWithHealth();
       }
       logs.push({ seasonSlug: season.slug, stage: 'recover_job', status: 'ok', detail: { job_id: openJob.id, reason: 'Recovered abandoned running job.' } });
     }
@@ -467,7 +508,7 @@ async function advanceSeason(
 
       if (lastFinished?.status === 'needs_review') {
         logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'blocked', error: 'Latest sync finished with review items; resolve them in the CMS before automation continues for this season.' });
-        return logs;
+        return finishWithHealth();
       }
 
       if (!season.is_current && season.status !== 'active') {
@@ -479,28 +520,44 @@ async function advanceSeason(
           .eq('fantasy_import_batches.source', 'playhq-api');
         if ((publishedStats ?? 0) > 0) {
           logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'skipped', detail: { reason: 'Historical season already has published PlayHQ data.' } });
-          return logs;
+          return finishWithHealth();
         }
       } else if (lastFinished?.completed_at) {
         // Throttle current-season re-syncs to at most one full pass per 12h.
         const age = Date.now() - new Date(lastFinished.completed_at).getTime();
         if (age < 12 * 60 * 60 * 1000) {
           logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'skipped', detail: { reason: 'Last completed sync is under 12 hours old.' } });
-          return logs;
+          return finishWithHealth();
         }
       }
 
       if (timeLeft() < 20_000) {
         logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'skipped', detail: { reason: 'Time budget too low to start a new job this run.' } });
-        return logs;
+        return finishWithHealth();
       }
       const started = await startFantasySyncJob({ seasonId: season.id, createdBy: `orchestrator:${invokedBy}` });
-      jobId = started.job.id;
+      jobId = started.job!.id;
+      health.raw_entries = started.rawEntries;
+      health.queued_games = started.queued;
+      if (started.emptyQueueInvariantBreached) {
+        // Raw entries with zero queued games is never a success — the job is
+        // parked in needs_review with per-grade diagnostics attached.
+        const message = `Sync produced 0 queued games from ${started.rawEntries} raw PlayHQ entries; job ${jobId} parked as needs_review with diagnostics.`;
+        await setSeasonException(supabase, season.id, message);
+        logs.push({
+          seasonSlug: season.slug,
+          stage: 'create_job',
+          status: 'blocked',
+          error: message,
+          detail: { job_id: jobId, raw_entries: started.rawEntries, queued_games: 0, grade_debug: started.gradeDebug },
+        });
+        return finishWithHealth();
+      }
       logs.push({
         seasonSlug: season.slug,
         stage: 'create_job',
         status: 'ok',
-        detail: { job_id: jobId, queued_games: started.queued, pre_queue_review_items: started.reviewItems.length, skipped_grades: started.skippedGrades, grade_debug: started.gradeDebug },
+        detail: { job_id: jobId, queued_games: started.queued, raw_entries: started.rawEntries, pre_queue_review_items: started.reviewItems.length, skipped_grades: started.skippedGrades, grade_debug: started.gradeDebug },
       });
     }
 
@@ -548,6 +605,20 @@ async function advanceSeason(
         ({ data: finalJob } = await supabase.from('fantasy_sync_jobs').select('*').eq('id', jobId).maybeSingle());
       }
     }
+
+    // 6. Populate the per-season sync health record from the job's final state.
+    if (finalJob) {
+      const reviewList = Array.isArray(finalJob.review_items) ? finalJob.review_items : [];
+      health.raw_entries = Number(finalJob.counts?.raw_entries ?? health.raw_entries ?? 0);
+      health.queued_games = Number(finalJob.total_games ?? 0);
+      health.processed_games = Number(finalJob.processed_games ?? 0);
+      health.failed_games = Number(finalJob.failed_games ?? 0);
+      health.matched_players = Number(finalJob.counts?.matched ?? 0) + Number(finalJob.counts?.created ?? 0);
+      health.ambiguous_players = reviewList.filter((item: { type?: string }) => item.type === 'duplicate_name' || item.type === 'name_match_review').length;
+      if (finalJob.status === 'completed' && Number(finalJob.total_games ?? 0) > 0) {
+        health.last_successful_game_import = new Date().toISOString();
+      }
+    }
     if (finalJob && ['completed', 'needs_review'].includes(finalJob.status)) {
       const log = await validateAndPublish(supabase, season, finalJob);
       logs.push(log);
@@ -558,7 +629,7 @@ async function advanceSeason(
     const message = error instanceof Error ? error.message : 'Unknown orchestrator error';
     logs.push({ seasonSlug: season.slug, stage: 'season_error', status: 'error', error: message });
   }
-  return logs;
+  return finishWithHealth();
 }
 
 export async function runFantasyOrchestrator(options: {
@@ -637,6 +708,14 @@ export async function getFantasySyncHealth() {
   ]);
 
   const seasonIds = (seasons ?? []).map((season: { id: string }) => season.id);
+  // Health table may predate its migration; tolerate absence.
+  const healthRows = await Promise.resolve(
+    supabase
+      .from('fantasy_sync_health')
+      .select('season_id, last_successful_discovery, last_successful_game_import, raw_entries, queued_games, processed_games, matched_players, ambiguous_players, failed_games, last_error, next_retry_at, updated_at')
+  )
+    .then((res: { data: unknown[] | null }) => res.data ?? [])
+    .catch(() => []);
   const [{ data: jobs }, { data: grades }, { data: batches }] = await Promise.all([
     supabase
       .from('fantasy_sync_jobs')
@@ -656,6 +735,43 @@ export async function getFantasySyncHealth() {
       .limit(20),
   ]);
 
+  // Season-readiness rollup: is each season actually ready for play?
+  const readiness: Record<string, unknown>[] = [];
+  for (const season of (seasons ?? []) as Array<{ id: string; slug: string; playhq_season_id: string | null }>) {
+    const seasonJobs = (jobs ?? []).filter((job: { season_id: string }) => job.season_id === season.id);
+    const latestJob = seasonJobs[0] ?? null;
+    const enabledGrades = (grades ?? []).filter((grade: { season_id: string; enabled: boolean }) => grade.season_id === season.id && grade.enabled);
+
+    const [{ count: playerCount }, { count: linkedPlayerCount }, { count: publishedStatCount }] = await Promise.all([
+      supabase.from('fantasy_season_players').select('id', { count: 'exact', head: true }).eq('season_id', season.id),
+      supabase.from('fantasy_season_players').select('id', { count: 'exact', head: true }).eq('season_id', season.id).not('playhq_player_id', 'is', null),
+      supabase
+        .from('fantasy_match_stats')
+        .select('id, fantasy_import_batches!inner(status,source)', { count: 'exact', head: true })
+        .eq('season_id', season.id)
+        .eq('fantasy_import_batches.status', 'published')
+        .eq('fantasy_import_batches.source', 'playhq-api'),
+    ]);
+
+    const reviewCount = seasonJobs.reduce((sum: number, job: { status: string; review_items?: unknown[] }) => (
+      sum + (job.status === 'needs_review' && Array.isArray(job.review_items) ? job.review_items.length : 0)
+    ), 0);
+
+    readiness.push({
+      season_id: season.id,
+      slug: season.slug,
+      playhq_season_linked: Boolean(season.playhq_season_id),
+      awaiting_playhq: !season.playhq_season_id,
+      grades_mapped: enabledGrades.length,
+      players_total: playerCount ?? 0,
+      players_linked: linkedPlayerCount ?? 0,
+      fixtures_imported: Number(latestJob?.total_games ?? 0) > 0,
+      completed_match_stats_imported: (publishedStatCount ?? 0) > 0,
+      published_stat_rows: publishedStatCount ?? 0,
+      unresolved_reviews: reviewCount,
+    });
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     syncEnabled: isFantasySyncEnabled(),
@@ -665,5 +781,94 @@ export async function getFantasySyncHealth() {
     gradeSources: grades ?? [],
     batches: batches ?? [],
     recentRuns: runs ?? [],
+    syncHealth: healthRows,
+    readiness,
   };
+}
+
+/** Read-only preview for the CMS "Run Preview" action: performs discovery
+ *  and queue building and reports the proposed changes WITHOUT writing
+ *  anything — no season link, no grade rows, no batch, no job. */
+export async function previewFantasySeasonSync(seasonId: string) {
+  const supabase = createServerClient();
+  const { data: season, error } = await supabase
+    .from('fantasy_seasons')
+    .select('id, name, slug, playhq_season_id, playhq_discovery')
+    .eq('id', seasonId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!season) throw new Error('Fantasy season not found.');
+
+  const preview: Record<string, unknown> = {
+    season: season.slug,
+    linked: Boolean(season.playhq_season_id),
+    awaiting_playhq: false,
+    generatedAt: new Date().toISOString(),
+  };
+
+  if (!season.playhq_season_id) {
+    const playhqSeasons = await getPlayHQSeasons();
+    const match = matchPlayHQSeason(playhqSeasons, { slug: season.slug, name: season.name });
+    if (match.status === 'matched') {
+      preview.proposed_link = { playhq_season_id: match.season.id, name: match.season.name, evidence: match.evidence };
+    } else if (match.status === 'ambiguous') {
+      const { probed, survivors } = await disambiguateByClubTeams(match.candidates);
+      preview.proposed_link = survivors.length
+        ? { playhq_season_id: survivors[0].id, name: survivors[0].name, candidates: survivors, evidence: match.evidence }
+        : null;
+      preview.awaiting_playhq = survivors.length === 0;
+      preview.probe = probed;
+    } else {
+      preview.awaiting_playhq = true;
+      preview.evidence = match.evidence;
+    }
+    return preview;
+  }
+
+  // Linked season: propose missing grades (read-only) and dry-run the queue.
+  const sourceIds = Array.from(new Set([
+    season.playhq_season_id as string,
+    ...(((season.playhq_discovery as { sources?: Array<{ id: string }> } | null)?.sources) ?? []).map((source) => source.id),
+  ].filter(Boolean)));
+  const discovered = new Map<string, { name: string; teams: string[] }>();
+  for (const sourceId of sourceIds.slice(0, 8)) {
+    const [teams, gradeList] = await Promise.all([
+      getPlayHQTeams(sourceId).catch(() => []),
+      getPlayHQGrades(sourceId).catch(() => []),
+    ]);
+    const gradeNames = new Map(gradeList.map((grade: { id: string; name: string }) => [grade.id, grade.name]));
+    for (const team of teams as Array<{ name: string; gradeId?: string | null; gradeName?: string | null }>) {
+      if (!team.gradeId || !isClubTeamName(team.name)) continue;
+      const entry = discovered.get(team.gradeId) ?? { name: gradeNames.get(team.gradeId) ?? team.gradeName ?? team.gradeId, teams: [] };
+      entry.teams.push(team.name);
+      discovered.set(team.gradeId, entry);
+    }
+  }
+  const { data: existingGrades } = await supabase
+    .from('fantasy_season_grade_sources')
+    .select('playhq_grade_id, grade_name, enabled')
+    .eq('season_id', season.id);
+  const existingIds = new Set((existingGrades ?? []).map((row: { playhq_grade_id: string }) => row.playhq_grade_id));
+  preview.grades = {
+    existing: existingGrades ?? [],
+    proposed_new: Array.from(discovered.entries())
+      .filter(([gradeId]) => !existingIds.has(gradeId))
+      .map(([gradeId, meta]) => ({ grade_id: gradeId, grade_name: meta.name, matched_teams: meta.teams })),
+  };
+
+  if ((existingGrades ?? []).some((grade: { enabled: boolean }) => grade.enabled)) {
+    const dry = await startFantasySyncJob({ seasonId: season.id, dryRun: true });
+    preview.queue = {
+      queued_games: dry.queued,
+      raw_entries: dry.rawEntries,
+      review_items: dry.reviewItems,
+      skipped_grades: dry.skippedGrades,
+      grade_debug: dry.gradeDebug,
+      empty_queue_invariant_breached: dry.emptyQueueInvariantBreached,
+      sample: dry.queuePreview,
+    };
+  } else {
+    preview.queue = { note: 'No enabled grade sources yet; the queue preview runs once grades are mapped.' };
+  }
+  return preview;
 }

@@ -39,6 +39,10 @@ export function TableHeader({ className, children }: TableProps) {
   );
 }
 
-export function TableCell({ className, children }: TableProps) {
-  return <td className={cn('px-4 py-3 text-sm text-content-secondary font-body', className)}>{children}</td>;
+interface TableCellProps extends TableProps {
+  colSpan?: number;
+}
+
+export function TableCell({ className, children, colSpan }: TableCellProps) {
+  return <td colSpan={colSpan} className={cn('px-4 py-3 text-sm text-content-secondary font-body', className)}>{children}</td>;
 }

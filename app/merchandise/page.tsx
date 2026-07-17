@@ -9,12 +9,15 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
-import { PRODUCTS, CLUB_NAME } from '@/lib/constants';
+import { CLUB_NAME } from '@/lib/constants';
 import { formatCurrency, validateEmail, validatePhone, cn } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
+import { computeUnitPrice, type CatalogueOption } from '@/lib/apparel/pricing';
 
 interface CartItem extends OrderItem {
   id: string;
+  options?: Record<string, string>;
+  option_labels?: string[];
 }
 
 type MerchandiseWindow = {
@@ -32,10 +35,12 @@ type DisplayProduct = {
   description: string;
   sizes: string[];
   image: string;
+  imageAlt: string;
   customisable?: boolean;
   category?: string;
   payment_mode?: string | null;
   payment_link_url?: string | null;
+  options: CatalogueOption[];
 };
 
 type ApiProduct = {
@@ -57,6 +62,8 @@ type ApiProduct = {
   checkout_enabled?: boolean | null;
   fulfilment_notes?: string | null;
   order_email?: string | null;
+  image_alt?: string | null;
+  options?: CatalogueOption[] | null;
 };
 
 const PRODUCT_GRADIENTS: Record<string, string> = {
@@ -105,9 +112,22 @@ const PRODUCT_ICONS: Record<string, { path: string; textColor: string }> = {
   },
 };
 
-function isStripeConfigured(): boolean {
-  return false;
-}
+type PaymentCapabilities = {
+  bank_transfer: boolean;
+  card: boolean;
+  partial_payments: boolean;
+  minimum_partial_amount: number;
+};
+
+// Until the server says otherwise, only bank transfer is offered. Card
+// availability comes from /api/payments/capabilities (CMS switch + server
+// environment) — never from a hardcoded client flag.
+const DEFAULT_CAPABILITIES: PaymentCapabilities = {
+  bank_transfer: true,
+  card: false,
+  partial_payments: false,
+  minimum_partial_amount: 10,
+};
 
 export default function MerchandisePage() {
   return (
@@ -121,6 +141,7 @@ function MerchandiseContent() {
   const searchParams = useSearchParams();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, Record<string, string>>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [sizeErrors, setSizeErrors] = useState<Record<string, string>>({});
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
@@ -138,13 +159,19 @@ function MerchandiseContent() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<{
+    order_id: string;
+    total_amount: number;
     payment_reference: string;
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
+  const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
+  const [cardAmount, setCardAmount] = useState('');
+  const [cardPaying, setCardPaying] = useState(false);
+  const [cardError, setCardError] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  // Start empty with a loading skeleton so the static seed list never
-  // flashes before the live catalogue arrives. The static PRODUCTS constant
-  // is used only when the live fetch fails (liveProductsFailed banner).
+  // Start empty with a loading skeleton. There is deliberately NO static
+  // fallback catalogue: when the live fetch fails the page shows an explicit
+  // unavailable state with a retry control instead of stale products/prices.
   const [products, setProducts] = useState<DisplayProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [heroContent, setHeroContent] = useState<{ title: string; body: string; orderTitle: string; orderBody: string }>({
@@ -159,12 +186,10 @@ function MerchandiseContent() {
     current_window: null,
     next_window: null,
   });
-  // True when the live products fetch failed and the static PRODUCTS
-  // fallback is standing in for the real catalogue.
+  // True when the live products fetch failed; renders the catalogue
+  // unavailable banner with its retry control.
   const [liveProductsFailed, setLiveProductsFailed] = useState(false);
   const [productsReloadKey, setProductsReloadKey] = useState(0);
-
-  const stripeEnabled = isStripeConfigured();
 
   useEffect(() => {
     document.title = 'Club Merchandise | NDCC Dinos';
@@ -204,16 +229,21 @@ function MerchandiseContent() {
             description: [p.description, p.order_guidance, p.size_guidance].filter(Boolean).join('\n\n'),
             sizes: Array.isArray(p.sizes) ? p.sizes : [],
             image: p.image_url || '',
+            imageAlt: p.image_alt || p.name,
             customisable: Boolean(p.customisable),
             category: p.category || 'General',
             payment_mode: p.payment_mode || null,
             payment_link_url: p.payment_link_url || null,
+            options: Array.isArray(p.options) ? p.options : [],
           })));
         setLiveProductsFailed(false);
       } catch (err) {
-        console.error('[merchandise] Failed to load live products; showing static fallback list:', err);
+        // A live catalogue failure must never silently show stale products
+        // or prices: clear the grid and surface the unavailable state with
+        // its retry control instead.
+        console.error('[merchandise] Failed to load live products; showing unavailable state:', err);
         if (!stale) {
-          setProducts(PRODUCTS.map((product) => ({ ...product, category: 'General' })));
+          setProducts([]);
           setLiveProductsFailed(true);
         }
       } finally {
@@ -251,11 +281,58 @@ function MerchandiseContent() {
       }
     };
 
-    void Promise.all([loadProducts(), loadWindows(), loadContentBlocks()]);
+    const loadCapabilities = async () => {
+      try {
+        const res = await fetch('/api/payments/capabilities', { cache: 'no-store' });
+        const payload = await res.json();
+        if (!stale && res.ok && payload?.data) {
+          setCapabilities({ ...DEFAULT_CAPABILITIES, ...payload.data });
+        }
+      } catch (err) {
+        console.error('[merchandise] Failed to load payment capabilities; keeping bank-transfer-only defaults:', err);
+      }
+    };
+
+    void Promise.all([loadProducts(), loadWindows(), loadContentBlocks(), loadCapabilities()]);
     return () => {
       stale = true;
     };
   }, [productsReloadKey]);
+
+  async function startCardPayment(amount: number | null) {
+    if (!orderConfirmation) return;
+    setCardPaying(true);
+    setCardError('');
+    try {
+      const response = await fetch('/api/payments/checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderConfirmation.order_id,
+          ...(amount !== null ? { amount } : {}),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.checkout_url) {
+        throw new Error(data?.error || 'Card payment could not be started.');
+      }
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      setCardError(err instanceof Error ? err.message : 'Card payment could not be started.');
+      setCardPaying(false);
+    }
+  }
+
+  // Display price for the currently-selected options; falls back to the base
+  // price if the option data is somehow inconsistent. The server recomputes
+  // this independently — the client value is presentation only.
+  function displayUnitPrice(product: DisplayProduct): number {
+    const result = computeUnitPrice(
+      { slug: product.id, name: product.name, price: product.price, options: product.options },
+      selectedOptions[product.id]
+    );
+    return result.ok ? result.unitPrice : product.price;
+  }
 
   function handleAddToOrder(productId: string) {
     const product = products.find((p) => p.id === productId);
@@ -274,8 +351,24 @@ function MerchandiseContent() {
       ? parseInt(customNumbers[productId], 10)
       : undefined;
 
+    const priced = computeUnitPrice(
+      { slug: product.id, name: product.name, price: product.price, options: product.options },
+      selectedOptions[product.id]
+    );
+    const unitPrice = priced.ok ? priced.unitPrice : product.price;
+    const appliedOptions: Record<string, string> = {};
+    const optionLabels: string[] = [];
+    if (priced.ok) {
+      for (const applied of priced.applied) {
+        appliedOptions[applied.group] = applied.value;
+        optionLabels.push(`${applied.group}: ${applied.label}`);
+      }
+    }
+    const optionsKey = JSON.stringify(appliedOptions);
+
     const existingIdx = cart.findIndex(
-      (item) => item.id === productId && item.size === size && item.custom_name === custom_name && item.custom_number === custom_number
+      (item) => item.id === productId && item.size === size && item.custom_name === custom_name
+        && item.custom_number === custom_number && JSON.stringify(item.options || {}) === optionsKey
     );
 
     if (existingIdx >= 0) {
@@ -292,7 +385,9 @@ function MerchandiseContent() {
           name: product.name,
           size,
           quantity: qty,
-          price: product.price,
+          price: unitPrice,
+          options: Object.keys(appliedOptions).length > 0 ? appliedOptions : undefined,
+          option_labels: optionLabels.length > 0 ? optionLabels : undefined,
           custom_name,
           custom_number: custom_number !== undefined && !isNaN(custom_number) ? custom_number : undefined,
         },
@@ -355,7 +450,10 @@ function MerchandiseContent() {
     setErrorMessage('');
 
     try {
-      const endpoint = stripeEnabled ? '/api/checkout' : '/api/orders';
+      // Orders are always created through /api/orders so every order gets a
+      // bank-transfer payment reference; paying by card is an optional next
+      // step from the confirmation panel (server-validated, webhook-settled).
+      const endpoint = '/api/orders';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -365,12 +463,13 @@ function MerchandiseContent() {
           customer_email: formData.email,
           customer_phone: formData.phone,
           notes: formData.notes,
-          items: cart.map(({ id, name, size, quantity, price, custom_name, custom_number }) => ({
+          items: cart.map(({ id, name, size, quantity, price, options, custom_name, custom_number }) => ({
             slug: id,
             name,
             size,
             quantity,
             price,
+            ...(options ? { options } : {}),
             ...(custom_name ? { custom_name } : {}),
             ...(custom_number !== undefined ? { custom_number } : {}),
           })),
@@ -388,13 +487,9 @@ function MerchandiseContent() {
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
 
-      if (stripeEnabled && data.checkout_url) {
-        window.location.href = data.checkout_url;
-        return;
-      }
-
-      // Non-Stripe fallback: surface payment reference and bank details
       setOrderConfirmation({
+        order_id: data.order_id || '',
+        total_amount: Number(data.total_amount || 0),
         payment_reference: data.payment_reference || '',
         bank_details: data.bank_details || { account_name: '', bsb: '', account_number: '' },
       });
@@ -432,10 +527,11 @@ function MerchandiseContent() {
               <p className="mt-2 text-sm text-content-secondary whitespace-pre-line">{heroContent.orderBody}</p>
             </div>
           )}
-          {liveProductsFailed && (
-            <div className="mb-6 panel-blue-subtle p-4 flex flex-wrap items-center justify-between gap-3" role="status">
-              <p className="font-body text-sm text-content-secondary">
-                Showing a shortened product list while we reconnect. The full range will appear automatically once available.
+          {liveProductsFailed && !productsLoading && (
+            <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-4 flex flex-wrap items-center justify-between gap-3" role="alert">
+              <p className="font-body text-sm text-amber-900 dark:text-amber-100">
+                The live product catalogue is temporarily unavailable, so products and prices cannot be shown right now.
+                Please try again in a moment.
               </p>
               <button
                 type="button"
@@ -461,6 +557,7 @@ function MerchandiseContent() {
               ))}
             </div>
           ) : products.length === 0 ? (
+            liveProductsFailed ? null : (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="font-body font-semibold text-content-secondary">No products currently available</p>
@@ -469,6 +566,7 @@ function MerchandiseContent() {
                 </p>
               </CardContent>
             </Card>
+            )
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {!windowState.processing_open && (
@@ -490,7 +588,7 @@ function MerchandiseContent() {
                     <div className="relative h-36 bg-surface-page">
                       <SafeImage
                         src={product.image}
-                        alt={product.name}
+                        alt={product.imageAlt || product.name}
                         fill
                         className="object-contain"
                         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
@@ -514,13 +612,55 @@ function MerchandiseContent() {
                       <h3 className="font-display font-bold text-content-primary text-sm leading-tight">
                         {product.name}
                       </h3>
-                      <Badge variant="default" className="flex-shrink-0">{formatCurrency(product.price)}</Badge>
+                      <Badge variant="default" className="flex-shrink-0">{formatCurrency(displayUnitPrice(product))}</Badge>
                     </div>
                     <p className="font-body text-content-muted text-xs">{product.description}</p>
 
                     {product.customisable && (
                       <Badge variant="info" className="text-xs">Customisable</Badge>
                     )}
+
+                    {/* Option selectors (colour, sleeve length, style, ...) */}
+                    {Array.from(new Set(product.options.map((o) => o.option_group))).map((group) => {
+                      const values = product.options
+                        .filter((o) => o.option_group === group)
+                        .sort((a, b) => a.display_order - b.display_order);
+                      const current = selectedOptions[product.id]?.[group]
+                        ?? values.find((v) => v.is_default)?.option_value
+                        ?? values[0]?.option_value;
+                      return (
+                        <fieldset key={group}>
+                          <legend className="form-label text-xs">{group}</legend>
+                          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={`${product.name} ${group}`}>
+                            {values.map((value) => (
+                              <button
+                                key={value.option_value}
+                                type="button"
+                                role="radio"
+                                aria-checked={current === value.option_value}
+                                className={cn(
+                                  'focus-ring px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
+                                  current === value.option_value
+                                    ? 'border-maroon-700 bg-maroon-700 text-white'
+                                    : 'border-edge-strong text-content-secondary hover:border-maroon-400'
+                                )}
+                                onClick={() =>
+                                  setSelectedOptions((prev) => ({
+                                    ...prev,
+                                    [product.id]: { ...(prev[product.id] || {}), [group]: value.option_value },
+                                  }))
+                                }
+                              >
+                                {value.option_label}
+                                {Number(value.price_delta) > 0 && (
+                                  <span className="ml-1 opacity-80">+{formatCurrency(Number(value.price_delta))}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                      );
+                    })}
 
                     {/* Size Selector */}
                     <div>
@@ -682,6 +822,64 @@ function MerchandiseContent() {
                   </div>
                 </div>
               )}
+              {capabilities.card && orderConfirmation?.order_id && (
+                <div className="bg-surface-card border border-green-300 rounded-lg p-3 space-y-2">
+                  <p className="text-green-900 font-body text-sm font-semibold">Prefer to pay by card?</p>
+                  <p className="text-green-800 font-body text-xs">
+                    You can pay securely online now instead of a bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      isLoading={cardPaying}
+                      onClick={() => startCardPayment(null)}
+                    >
+                      Pay full amount by card
+                    </Button>
+                    {capabilities.partial_payments && (
+                      <div className="flex items-end gap-2">
+                        <div>
+                          <label htmlFor="card-part-amount" className="form-label text-xs">
+                            Part payment (min {formatCurrency(capabilities.minimum_partial_amount)})
+                          </label>
+                          <input
+                            id="card-part-amount"
+                            type="number"
+                            inputMode="decimal"
+                            min={capabilities.minimum_partial_amount}
+                            max={orderConfirmation.total_amount}
+                            step="0.01"
+                            className="w-32 px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            value={cardAmount}
+                            onChange={(e) => setCardAmount(e.target.value)}
+                            aria-describedby={cardError ? 'card-pay-error' : undefined}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          isLoading={cardPaying}
+                          onClick={() => {
+                            const amount = Number(cardAmount);
+                            if (!Number.isFinite(amount) || amount <= 0) {
+                              setCardError('Enter a valid part-payment amount.');
+                              return;
+                            }
+                            startCardPayment(amount);
+                          }}
+                        >
+                          Pay part by card
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {cardError && (
+                    <p id="card-pay-error" className="text-red-700 font-body text-xs" role="alert">{cardError}</p>
+                  )}
+                </div>
+              )}
               <p className="text-green-700 font-body text-sm">
                 Thank you for your purchase. Your order will be available for collection at the club once payment is confirmed.
               </p>
@@ -737,6 +935,9 @@ function MerchandiseContent() {
                         <p className="font-body text-sm text-content-muted">
                           Size: {item.size} · {formatCurrency(item.price)} each
                         </p>
+                        {item.option_labels?.map((label) => (
+                          <p key={label} className="font-body text-xs text-content-muted">{label}</p>
+                        ))}
                         {item.custom_name && (
                           <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Name: {item.custom_name}</p>
                         )}
@@ -872,11 +1073,15 @@ function MerchandiseContent() {
                           ? 'Ordering Closed'
                           : !windowState.processing_open
                             ? 'Queue Order for Next Window'
-                            : 'Place Order (Bank Transfer)'}
+                            : capabilities.card
+                              ? 'Place Order'
+                              : 'Place Order (Bank Transfer)'}
                     </Button>
 
                     <p className="text-content-muted font-body text-xs text-center">
-                      After submission you will receive a payment reference for bank transfer.
+                      {capabilities.card
+                        ? 'After submission you will receive a bank-transfer reference, or you can pay online by card.'
+                        : 'After submission you will receive a payment reference for bank transfer.'}
                     </p>
                     <p className="text-content-muted font-body text-xs text-center">
                       Example reference format: NDCC-YYYYMMDD-1234

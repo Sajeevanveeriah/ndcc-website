@@ -150,7 +150,7 @@ try {
   check('cron: unset/short secret rejected', cron.isAuthorizedCronRequest('Bearer x', undefined) === false && cron.isAuthorizedCronRequest('Bearer short', 'short') === false);
 
   // ---- 8. Migration structure (season schema and constraints) ----
-  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260710090000_fantasy_multi_season.sql'), 'utf8');
+  const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260710042257_fantasy_multi_season.sql'), 'utf8');
   check('migration: fantasy_seasons table', migration.includes('CREATE TABLE IF NOT EXISTS fantasy_seasons'));
   check('migration: single current season index', migration.includes('fantasy_seasons_single_current_idx'));
   check('migration: fantasy_season_players unique(season, player)', migration.includes('CREATE TABLE IF NOT EXISTS fantasy_season_players') && migration.includes('UNIQUE (season_id, player_id)'));

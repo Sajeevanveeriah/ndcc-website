@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const migrationsDir = path.join(root, 'supabase/migrations');
-const repairPath = path.join(migrationsDir, '20260630_repair_core_schema_dependencies.sql');
+const repairPath = path.join(migrationsDir, '20260630000400_repair_core_schema_dependencies.sql');
 
 function fail(message) {
   console.error(message);
