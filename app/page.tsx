@@ -11,6 +11,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
+import HeroParallax from '@/components/common/motion/HeroParallax';
+import MaskReveal from '@/components/common/motion/MaskReveal';
+import TiltCard from '@/components/common/motion/TiltCard';
 import Card, { CardContent } from '@/components/ui/Card';
 import type { LucideIcon } from 'lucide-react';
 import { Trophy, Users, Calendar, ShoppingCart, Handshake, Mail } from 'lucide-react';
@@ -80,13 +83,18 @@ function HeroView({
     // navigation (-mt cancels the layout's nav offset) so the homepage nav can
     // sit transparent over the imagery at the top of the page.
     <section className="relative -mt-24 lg:-mt-28 flex min-h-[88svh] flex-col overflow-hidden text-white">
-      <Image
-        src="/images/Turf_Ground.jpg"
-        alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
-        fill
-        className="object-cover animate-ken-burns"
-        priority
-      />
+      {/* Scroll-linked depth: the image settles on load and drifts ≤40px as the
+          hero leaves the viewport, while the scrims and ambient layers below
+          stay fixed — two planes moving at different rates. */}
+      <HeroParallax>
+        <Image
+          src="/images/Turf_Ground.jpg"
+          alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
+          fill
+          className="object-cover"
+          priority
+        />
+      </HeroParallax>
       {/* Layered maroon -> navy -> near-black cinematic scrim. */}
       <div
         className="absolute inset-0"
@@ -100,35 +108,53 @@ function HeroView({
         style={{ background: 'linear-gradient(to top, rgba(8,13,22,0.9) 0%, transparent 100%)' }}
         aria-hidden="true"
       />
-      {/* Static radial glow towards the copy for depth (no cursor tracking). */}
+      {/* Abstract cricket-seam geometry: two dashed stitch arcs, desktop only. */}
+      <svg
+        className="hero-ambient absolute -right-40 top-1/2 hidden h-[130%] w-auto -translate-y-1/2 lg:block"
+        viewBox="0 0 600 900"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle cx="520" cy="450" r="400" stroke="rgba(212,160,23,0.14)" strokeWidth="1.5" />
+        <circle cx="520" cy="450" r="368" stroke="rgba(212,160,23,0.20)" strokeWidth="2" strokeDasharray="2 14" strokeLinecap="round" />
+        <circle cx="520" cy="450" r="432" stroke="rgba(212,160,23,0.16)" strokeWidth="2" strokeDasharray="2 14" strokeLinecap="round" />
+      </svg>
+      {/* Ambient light layers become visible after the image settles. */}
       <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(900px 480px at 22% 38%, rgba(212,160,23,0.10), transparent 65%)' }}
+        className="hero-ambient absolute inset-0"
+        style={{ background: 'radial-gradient(900px 480px at 22% 38%, rgba(212,160,23,0.12), transparent 65%)' }}
+        aria-hidden="true"
+      />
+      <div
+        className="hero-ambient absolute inset-0"
+        style={{ background: 'radial-gradient(700px 420px at 85% 12%, rgba(22,40,69,0.35), transparent 70%)' }}
         aria-hidden="true"
       />
       {/* Mobile crops put more sky behind the title; deepen the scrim so copy always sits on a dark patch. */}
       <div className="absolute inset-0 sm:hidden bg-maroon-950/30" aria-hidden="true" />
       <div className="container-width relative z-10 flex flex-1 items-center px-4 pb-16 pt-32 sm:px-6 sm:items-end sm:pb-24 lg:px-8 lg:pt-40">
         <div className="w-full text-center sm:text-left">
-          <ScrollReveal onMount delay={0.1} duration={0.8}>
+          <ScrollReveal onMount delay={0.2} duration={0.8}>
             <span className="eyebrow-gold">
               Est. {CLUB_ESTABLISHED} &middot; {CLUB_ASSOCIATION}
             </span>
           </ScrollReveal>
-          <ScrollReveal onMount delay={0.25} duration={0.8}>
-            <h1 className="font-display font-bold uppercase leading-[0.95] tracking-tight">
+          <h1 className="font-display font-bold uppercase leading-[0.95] tracking-tight">
+            <MaskReveal delay={0.35}>
               <span className="block text-4xl sm:text-6xl lg:text-7xl">{title}</span>
+            </MaskReveal>
+            <MaskReveal delay={0.5}>
               <span className="mt-2 block text-2xl italic text-gold-200/90 sm:text-4xl lg:text-5xl">
                 Home of the {CLUB_NICKNAME}
               </span>
-            </h1>
-          </ScrollReveal>
-          <ScrollReveal onMount delay={0.4} duration={0.8}>
+            </MaskReveal>
+          </h1>
+          <ScrollReveal onMount delay={0.7} duration={0.8}>
             <p className="mx-auto mb-8 mt-5 max-w-2xl font-body text-lg text-maroon-100 sm:mx-0 sm:text-2xl">
               {body}
             </p>
           </ScrollReveal>
-          <ScrollReveal onMount delay={0.55} duration={0.8}>
+          <ScrollReveal onMount delay={0.85} duration={0.8}>
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
               <Link href={ctaUrl} className="btn-primary rounded-full px-8 py-4 text-lg">
                 {ctaLabel}
@@ -139,6 +165,16 @@ function HeroView({
             </div>
           </ScrollReveal>
         </div>
+      </div>
+      {/* Scroll indicator appears last in the sequence. Decorative, desktop only. */}
+      <div
+        className="hero-scroll-hint pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex"
+        aria-hidden="true"
+      >
+        <span className="font-body text-[10px] font-semibold uppercase tracking-[0.3em] text-white/60">Scroll</span>
+        <span className="flex h-9 w-5 items-start justify-center rounded-full border border-white/30 p-1.5">
+          <span className="hero-scroll-hint-wheel h-1.5 w-1.5 rounded-full bg-gold-300/80" />
+        </span>
       </div>
     </section>
   );
@@ -219,18 +255,25 @@ async function QuickLinksSection() {
         <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {quickLinks.map((link) => (
             <ScrollRevealItem key={link.id}>
+            {/* Hover lift lives on the Link; the tilt/spotlight surface is the
+                inner TiltCard so Framer's inline transform never fights the
+                Tailwind hover translate. The whole card stays one link. */}
             <Link
               href={link.href}
-              className="group h-full bg-surface-card border border-edge-subtle border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700 dark:border-l-maroon-500"
+              className="group block h-full rounded-xl focus-ring hover:-translate-y-1 transition-transform duration-300"
             >
-              {link.icon && <QuickLinkIcon icon={link.icon} />}
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2 group-hover:text-maroon-700 transition-colors">
-                  {link.title}
-                </h3>
-                <span className="text-gray-300 text-xl group-hover:text-maroon-500 group-hover:translate-x-1 transition-all duration-200 shrink-0">→</span>
-              </div>
-              <p className="text-content-muted font-body text-sm">{link.description}</p>
+              <TiltCard className="h-full rounded-xl">
+                <div className="h-full bg-surface-card border border-edge-subtle border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col shadow-sm group-hover:shadow-lift transition-shadow duration-300 dark:border-slate-700 dark:border-l-maroon-500">
+                  {link.icon && <QuickLinkIcon icon={link.icon} />}
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2 group-hover:text-maroon-700 transition-colors">
+                      {link.title}
+                    </h3>
+                    <span className="text-gray-300 text-xl group-hover:text-maroon-500 group-hover:translate-x-1 transition-all duration-200 shrink-0">→</span>
+                  </div>
+                  <p className="text-content-muted font-body text-sm">{link.description}</p>
+                </div>
+              </TiltCard>
             </Link>
             </ScrollRevealItem>
           ))}
@@ -396,8 +439,10 @@ async function NewsSection() {
 
             return (
               <ScrollRevealItem key={article.id}>
-                <Link href={`/news/${article.id}`} className="group block h-full">
-                  {inner}
+                <Link href={`/news/${article.id}`} className="group block h-full rounded-xl focus-ring">
+                  <TiltCard className="h-full rounded-xl">
+                    {inner}
+                  </TiltCard>
                 </Link>
               </ScrollRevealItem>
             );
@@ -540,18 +585,26 @@ async function GalleryPreviewSection() {
           <span className="section-eyebrow">Around the Club</span>
           <h2 className="section-title">Gallery</h2>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Cinematic gallery entrance: each frame settles from a gentle zoom on
+            a relaxed stagger; hovering re-engages the zoom. Image identity,
+            crops, alt text and order are untouched. */}
+        <ScrollReveal stagger staggerInterval={0.12} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {preview.map((photo) => (
             <ScrollRevealItem key={photo.id}>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-surface-page ring-1 ring-maroon-100/60">
-                <SafeImage
-                  src={photo.image_url}
-                  alt={photo.alt_text || photo.caption || photo.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 50vw, 25vw"
-                  fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
-                />
+              <div className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-surface-page ring-1 ring-maroon-100/60">
+                {/* The zoom plane sits inside the clipped frame, so the image
+                    settles from 108% behind the mask without ever crossing the
+                    grid gap. */}
+                <ScrollRevealItem effect="zoom" className="absolute inset-0">
+                  <SafeImage
+                    src={photo.image_url}
+                    alt={photo.alt_text || photo.caption || photo.title}
+                    fill
+                    className="object-cover img-zoom"
+                    sizes="(max-width: 1024px) 50vw, 25vw"
+                    fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
+                  />
+                </ScrollRevealItem>
               </div>
             </ScrollRevealItem>
           ))}
@@ -746,7 +799,7 @@ function FantasyTeaserSection() {
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <ScrollReveal>
+        <ScrollReveal effect="scale">
           <div className="surface-panel p-8 sm:p-10 lg:p-12 overflow-hidden relative">
             <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8 items-center">
               <div>
@@ -791,7 +844,7 @@ function FantasyTeaserSection() {
 function JuniorsCtaView({ title, body }: { title: string; body: string }) {
   return (
     <section className="band-maroon section-padding">
-      <ScrollReveal className="container-width text-center">
+      <ScrollReveal effect="scale" className="container-width text-center">
         <span className="eyebrow-gold">Get Involved</span>
         <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
           {title}

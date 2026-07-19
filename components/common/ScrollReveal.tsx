@@ -2,6 +2,9 @@
 
 import { LazyMotion, domAnimation, m, useReducedMotion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { DISTANCE, DURATION, EASE_OUT, STAGGER, VIEWPORT_MARGIN } from '@/lib/motion-tokens';
+
+type RevealEffect = 'rise' | 'fade' | 'scale' | 'blur';
 
 type ScrollRevealProps = {
   children: ReactNode;
@@ -16,12 +19,42 @@ type ScrollRevealProps = {
   duration?: number;
   /** Direction the content reveals from. Defaults to 'up'. */
   direction?: 'up' | 'left' | 'right';
+  /**
+   * Entrance treatment. 'rise' is the historical fade + travel; 'scale' adds a
+   * gentle settle from 96%; 'blur' adds a small defocus (small elements only —
+   * filter animation is not cheap); 'fade' is opacity alone.
+   */
+  effect?: RevealEffect;
+  /** Travel distance in px for rise/blur entrances. Defaults to the house 24px. */
+  distance?: number;
+  /** Seconds between staggered children. Defaults to the house 0.08s. */
+  staggerInterval?: number;
+  /** Viewport margin controlling how early the reveal fires. */
+  viewportMargin?: string;
   as?: 'div' | 'section' | 'span' | 'ul' | 'li' | 'header';
   role?: string;
   'aria-label'?: string;
 };
 
-const EASE = [0.21, 0.47, 0.32, 0.98] as const;
+const EASE = EASE_OUT;
+
+function buildVariants(effect: RevealEffect, direction: 'up' | 'left' | 'right', distance: number) {
+  if (direction === 'left') return { hidden: { opacity: 0, x: -(distance + 8) }, visible: { opacity: 1, x: 0 } };
+  if (direction === 'right') return { hidden: { opacity: 0, x: distance + 8 }, visible: { opacity: 1, x: 0 } };
+  switch (effect) {
+    case 'fade':
+      return { hidden: { opacity: 0 }, visible: { opacity: 1 } };
+    case 'scale':
+      return { hidden: { opacity: 0, y: distance / 2, scale: 0.96 }, visible: { opacity: 1, y: 0, scale: 1 } };
+    case 'blur':
+      return {
+        hidden: { opacity: 0, y: distance, filter: 'blur(6px)' },
+        visible: { opacity: 1, y: 0, filter: 'blur(0px)' },
+      };
+    default:
+      return { hidden: { opacity: 0, y: distance }, visible: { opacity: 1, y: 0 } };
+  }
+}
 
 export default function ScrollReveal({
   children,
@@ -31,6 +64,10 @@ export default function ScrollReveal({
   stagger = false,
   duration,
   direction = 'up',
+  effect = 'rise',
+  distance = DISTANCE.base,
+  staggerInterval = STAGGER.base,
+  viewportMargin = VIEWPORT_MARGIN,
   as = 'div',
   ...rest
 }: ScrollRevealProps) {
@@ -42,20 +79,15 @@ export default function ScrollReveal({
     return <Plain className={className} {...rest}>{children}</Plain>;
   }
 
-  const DIRECTION_MAP = {
-    up:    { hidden: { opacity: 0, y: 24 },  visible: { opacity: 1, y: 0 } },
-    left:  { hidden: { opacity: 0, x: -32 }, visible: { opacity: 1, x: 0 } },
-    right: { hidden: { opacity: 0, x: 32 },  visible: { opacity: 1, x: 0 } },
-  } as const;
-  const directionBase = DIRECTION_MAP[direction];
+  const base = buildVariants(effect, direction, distance);
 
   const variants = {
-    hidden: directionBase.hidden,
+    hidden: base.hidden,
     visible: {
-      ...directionBase.visible,
+      ...base.visible,
       transition: stagger
-        ? { duration: duration ?? 0.5, ease: EASE, delay, staggerChildren: 0.08, delayChildren: delay }
-        : { duration: duration ?? 0.55, ease: EASE, delay },
+        ? { duration: duration ?? 0.5, ease: EASE, delay, staggerChildren: staggerInterval, delayChildren: delay }
+        : { duration: duration ?? DURATION.base, ease: EASE, delay },
     },
   };
 
@@ -68,7 +100,7 @@ export default function ScrollReveal({
         initial="hidden"
         {...(onMount
           ? { animate: 'visible' }
-          : { whileInView: 'visible', viewport: { once: true, margin: '0px 0px -60px 0px' } })}
+          : { whileInView: 'visible', viewport: { once: true, margin: viewportMargin } })}
       >
         {children}
       </Tag>
@@ -80,10 +112,17 @@ export function ScrollRevealItem({
   children,
   className,
   as = 'div',
+  effect = 'rise',
 }: {
-  children: ReactNode;
+  /** Optional: a 'draw' rule is often an empty decorative element. */
+  children?: ReactNode;
   className?: string;
   as?: 'div' | 'li' | 'span';
+  /**
+   * 'zoom' is for imagery inside an overflow-hidden frame: settles from 108%.
+   * 'draw' sweeps a divider/rule in from the left (scaleX, origin-left).
+   */
+  effect?: 'rise' | 'zoom' | 'draw';
 }) {
   const reduceMotion = useReducedMotion();
   const Tag = m[as];
@@ -93,14 +132,32 @@ export function ScrollRevealItem({
     return <Plain className={className}>{children}</Plain>;
   }
 
+  const variants =
+    effect === 'zoom'
+      ? {
+          hidden: { opacity: 0, scale: 1.08 },
+          visible: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: EASE } },
+        }
+      : effect === 'draw'
+        ? {
+            hidden: { opacity: 0, scaleX: 0 },
+            visible: { opacity: 1, scaleX: 1, transition: { duration: 0.7, ease: EASE } },
+          }
+        : {
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+        };
+
+  if (effect === 'draw') {
+    return (
+      <Tag className={className} style={{ transformOrigin: 'left center' }} variants={variants}>
+        {children}
+      </Tag>
+    );
+  }
+
   return (
-    <Tag
-      className={className}
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
-      }}
-    >
+    <Tag className={className} variants={variants}>
       {children}
     </Tag>
   );
