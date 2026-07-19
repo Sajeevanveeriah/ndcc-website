@@ -319,6 +319,49 @@
   .sponsor-caption {
     @apply mt-2 block w-56 truncate text-center font-body text-xs font-semibold text-content-muted;
   }
+
+  /* ---- Cinematic layer (additive) ------------------------------------- */
+
+  /* Ambient hero light layers: fade in after the image settles. Decorative
+     only (aria-hidden at call sites); the global reduced-motion rule collapses
+     the animation so the layers simply appear. */
+  .hero-ambient {
+    opacity: 0;
+    animation: ambientIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  }
+
+  /* Scroll indicator: enters last in the hero sequence, then floats gently.
+     Pure CSS so it costs no JS; reduced motion leaves it static and visible. */
+  .hero-scroll-hint {
+    opacity: 0;
+    animation: fadeUpIn 0.8s cubic-bezier(0.21, 0.47, 0.32, 0.98) 1.7s forwards;
+  }
+
+  .hero-scroll-hint-wheel {
+    animation: scrollHintDrop 2.2s ease-in-out 2.5s infinite;
+  }
+
+  /* Inner public pages: one consistent, restrained page-hero entrance
+     (≈4/10 intensity). CSS-only so it works on every route that uses the
+     .page-hero classes with zero new client JS, degrades to instant content
+     when JavaScript or animation is unavailable, and is neutralised by the
+     global prefers-reduced-motion rule. */
+  .page-hero-title {
+    animation: fadeUpIn 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98) both;
+  }
+
+  .page-hero-subtitle {
+    animation: fadeUpIn 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98) 0.12s both;
+  }
+
+  /* Oversized editorial background typography (e.g. the club nickname behind
+     the stats band). Decorative watermark — always aria-hidden. */
+  .watermark-type {
+    @apply pointer-events-none select-none font-display font-bold uppercase leading-none;
+    letter-spacing: -0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(212, 160, 23, 0.14);
+  }
 }
 
 /* The broad dark-mode compatibility layer (":where(.dark) .bg-white { … }"
@@ -351,6 +394,14 @@
   0%   { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0.4); }
   70%  { box-shadow: 0 0 0 10px rgba(128, 0, 0, 0); }
   100% { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0); }
+}
+@keyframes ambientIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scrollHintDrop {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50%      { transform: translateY(6px); opacity: 0.55; }
 }
 
 .homepage-marquee-track {
