@@ -47,7 +47,10 @@ export default function Navbar() {
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
-  const [moreOpen, setMoreOpen] = useState(false);
+  // Which desktop dropdown group is click/keyboard-opened (hover opening is
+  // handled per-group in CSS). One label at a time so opening a group can
+  // never surface another group's panel.
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -61,7 +64,7 @@ export default function Navbar() {
   }, []);
   useEffect(() => {
     setIsOpen(false);
-    setMoreOpen(false);
+    setOpenGroup(null);
     setAccountOpen(false);
   }, [pathname]);
   // Full-screen mobile menu: lock body scroll, trap focus inside the overlay,
@@ -247,21 +250,33 @@ export default function Navbar() {
               <div
                 key={group.label}
                 className="relative group"
-                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setMoreOpen(false); }}
-                onKeyDown={(e) => { if (e.key === 'Escape') setMoreOpen(false); }}
+                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpenGroup(null); }}
+                onKeyDown={(e) => { if (e.key === 'Escape') setOpenGroup(null); }}
               >
                 <button
                   type="button"
                   aria-haspopup="menu"
-                  aria-expanded={moreOpen}
-                  onClick={() => setMoreOpen((open) => !open)}
-                  className={cn('flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
+                  aria-expanded={openGroup === group.label}
+                  onClick={() => setOpenGroup((open) => (open === group.label ? null : group.label))}
+                  className={cn(
+                    'flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring',
+                    // A group whose child route is active reads as active too,
+                    // matching the top-level link treatment (hash links share
+                    // their base pathname, e.g. /about#history).
+                    group.links?.some((link) => pathname === link.href.split('#')[0])
+                      ? transparent
+                        ? 'text-white font-semibold'
+                        : 'text-maroon-700 font-semibold dark:text-maroon-200'
+                      : transparent
+                        ? 'text-white/85 hover:text-white hover:bg-white/10'
+                        : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50'
+                  )}
                 >
-                  {group.label} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  {group.label} <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180', openGroup === group.label && 'rotate-180')} aria-hidden="true" />
                 </button>
                 <div className={cn(
                   'absolute left-0 top-full pt-1 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0',
-                  moreOpen ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
+                  openGroup === group.label ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
                 )}>
                   <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[190px]" role="menu">
                     {group.links?.map((link) => (
@@ -287,7 +302,7 @@ export default function Navbar() {
                   onClick={() => setAccountOpen((open) => !open)}
                   className={cn('flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
                 >
-                  {sessionUser.full_name} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  {sessionUser.full_name} <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180', accountOpen && 'rotate-180')} aria-hidden="true" />
                 </button>
                 <div className={cn(
                   'absolute right-0 top-full pt-1 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0',

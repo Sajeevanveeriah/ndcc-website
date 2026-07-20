@@ -5,6 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
+import RouteSettle from '@/components/common/RouteSettle';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -113,6 +114,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <RouteProgress />
           </Suspense>
+          {/* Renders nothing: applies the .route-settle page-enter class to
+              <main> after client-side navigations commit. */}
+          <RouteSettle />
           <Navbar />
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           <Footer />

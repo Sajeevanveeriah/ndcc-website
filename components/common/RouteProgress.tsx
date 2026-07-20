@@ -13,14 +13,24 @@ const SAFETY_TIMEOUT_MS = 8_000;
  * Slim brand-coloured progress bar at the top of the viewport during route
  * changes. Starts on same-origin link clicks and back/forward navigation,
  * completes when the pathname or search params actually change. Width is
- * animated with a plain CSS transition, so the global
- * prefers-reduced-motion rule in globals.css neutralises the motion.
+ * animated with a plain CSS transition; reduced-motion users get an explicit
+ * static indicator (no trickle, no width transition) on top of the global
+ * prefers-reduced-motion neutralisation in globals.css.
  */
 export default function RouteProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
   const trickleTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,12 +63,17 @@ export default function RouteProgress() {
     clearTimers();
     activeRef.current = true;
     setVisible(true);
-    setProgress(12);
-    trickleTimer.current = setInterval(() => {
-      setProgress((current) => (current >= 85 ? current : current + (85 - current) * 0.18));
-    }, TRICKLE_INTERVAL_MS);
+    if (reducedMotion) {
+      // A calm static indicator: no trickle updates, no width animation.
+      setProgress(80);
+    } else {
+      setProgress(12);
+      trickleTimer.current = setInterval(() => {
+        setProgress((current) => (current >= 85 ? current : current + (85 - current) * 0.18));
+      }, TRICKLE_INTERVAL_MS);
+    }
     safetyTimer.current = setTimeout(finish, SAFETY_TIMEOUT_MS);
-  }, [clearTimers, finish]);
+  }, [clearTimers, finish, reducedMotion]);
 
   // The route actually changed: complete the bar.
   useEffect(() => {
@@ -116,7 +131,11 @@ export default function RouteProgress() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-[60]">
       <div
-        className="h-[3px] rounded-r-full bg-gradient-to-r from-maroon-800 via-maroon-600 to-sky_accent shadow-[0_1px_6px_rgba(128,0,0,0.45)] transition-[width] duration-300 ease-out"
+        className={
+          reducedMotion
+            ? 'h-[3px] rounded-r-full bg-gradient-to-r from-maroon-800 via-maroon-600 to-sky_accent shadow-[0_1px_6px_rgba(128,0,0,0.45)]'
+            : 'h-[3px] rounded-r-full bg-gradient-to-r from-maroon-800 via-maroon-600 to-sky_accent shadow-[0_1px_6px_rgba(128,0,0,0.45)] transition-[width] duration-300 ease-out'
+        }
         style={{ width: `${progress}%` }}
       />
     </div>

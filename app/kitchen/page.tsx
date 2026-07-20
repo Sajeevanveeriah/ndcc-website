@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -22,8 +23,10 @@ export default function KitchenPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [status, setStatus] = useState('');
   const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [hpField, setHpField] = useState('');
   const [submittedAt, setSubmittedAt] = useState(Date.now());
 
@@ -62,33 +65,45 @@ export default function KitchenPage() {
       return;
     }
     setFormError('');
-    const res = await fetch('/api/kitchen/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customer_name: name,
-        customer_email: email,
-        customer_phone: phone,
-        items: selectedItems.map((i) => ({ item_id: i.id, quantity: i.quantity })),
-        hp_field: hpField,
-        submitted_at: submittedAt,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setStatus(data.error || 'Unable to submit kitchen order.');
-      return;
+    setSubmitStatus('idle');
+    setStatus('');
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/kitchen/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phone,
+          items: selectedItems.map((i) => ({ item_id: i.id, quantity: i.quantity })),
+          hp_field: hpField,
+          submitted_at: submittedAt,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitStatus('error');
+        setStatus(data.error || 'Unable to submit kitchen order.');
+        return;
+      }
+      const bankSummary = data?.bank_details?.bsb
+        ? ` Bank: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.`
+        : '';
+      setSubmitStatus('success');
+      setStatus(`Order submitted. Payment reference: ${data.payment_reference}.${bankSummary} Example reference format: NDCC-YYYYMMDD-1234`);
+      setCart({});
+      setName('');
+      setEmail('');
+      setPhone('');
+      setHpField('');
+      setSubmittedAt(Date.now());
+    } catch {
+      setSubmitStatus('error');
+      setStatus('Unable to submit kitchen order. Please check your connection and try again.');
+    } finally {
+      setSubmitting(false);
     }
-    const bankSummary = data?.bank_details?.bsb
-      ? ` Bank: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.`
-      : '';
-    setStatus(`Order submitted. Payment reference: ${data.payment_reference}.${bankSummary} Example reference format: NDCC-YYYYMMDD-1234`);
-    setCart({});
-    setName('');
-    setEmail('');
-    setPhone('');
-    setHpField('');
-    setSubmittedAt(Date.now());
   }
 
   return (
@@ -148,10 +163,29 @@ export default function KitchenPage() {
                 <Input id="k_name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
                 <Input id="k_email" label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 <Input id="k_phone" label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                {formError && <p className="text-sm text-red-600">{formError}</p>}
-                <Button type="submit" disabled={selectedItems.length === 0}>Submit Kitchen Order</Button>
+                {formError && <p className="text-sm text-red-600" role="alert">{formError}</p>}
+                <Button type="submit" disabled={selectedItems.length === 0} isLoading={submitting}>
+                  {submitting ? 'Submitting...' : 'Submit Kitchen Order'}
+                </Button>
               </form>
-              {status && <p className="text-sm text-content-secondary">{status}</p>}
+              {submitStatus === 'success' && status && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
+                  <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="text-green-800 font-body font-semibold">Order submitted!</p>
+                    <p className="text-green-700 font-body text-sm mt-1">{status}</p>
+                  </div>
+                </div>
+              )}
+              {submitStatus === 'error' && status && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
+                  <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="text-red-800 font-body font-semibold">Something went wrong</p>
+                    <p className="text-red-700 font-body text-sm mt-1">{status}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
