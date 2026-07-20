@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -19,6 +20,7 @@ export default function JoinPage() {
   const [selectedPlan, setSelectedPlan] = useState(fallbackMembershipPlans[0]?.id || '');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [heroTitle, setHeroTitle] = useState('Join the Club');
@@ -64,6 +66,7 @@ export default function JoinPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSubmitStatus('idle');
     setMessage('');
 
     const payload = {
@@ -72,22 +75,29 @@ export default function JoinPage() {
       addons: Object.keys(selectedAddons).filter((id) => selectedAddons[id]).map((addon_id) => ({ addon_id, quantity: 1 })),
     };
 
-    const res = await fetch('/api/memberships', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch('/api/memberships', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
 
-    if (res.ok) {
-      setMessage(`Application submitted. Order #${data.order_id} created with pending bank transfer.`);
-      setFormData({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
-      setSelectedAddons({});
-    } else {
-      setMessage(data.error || 'Unable to submit membership application.');
+      if (res.ok) {
+        setSubmitStatus('success');
+        setMessage(`Application submitted. Order #${data.order_id} created with pending bank transfer.`);
+        setFormData({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
+        setSelectedAddons({});
+      } else {
+        setSubmitStatus('error');
+        setMessage(data.error || 'Unable to submit membership application.');
+      }
+    } catch {
+      setSubmitStatus('error');
+      setMessage('Unable to submit membership application. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -186,8 +196,25 @@ export default function JoinPage() {
 
             <Textarea id="notes" label="Notes" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
             <p className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200 border-t border-edge-subtle pt-4">Estimated Total: {formatCurrency(total)}</p>
-            <Button type="submit" isLoading={loading}>Submit Social Membership</Button>
-            {message && <p className="text-sm text-content-muted">{message}</p>}
+            <Button type="submit" isLoading={loading}>{loading ? 'Submitting...' : 'Submit Social Membership'}</Button>
+            {submitStatus === 'success' && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
+                <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-green-800 font-body font-semibold">Application submitted!</p>
+                  <p className="text-green-700 font-body text-sm mt-1">{message}</p>
+                </div>
+              </div>
+            )}
+            {submitStatus === 'error' && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
+                <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-red-800 font-body font-semibold">Something went wrong</p>
+                  <p className="text-red-700 font-body text-sm mt-1">{message}</p>
+                </div>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
