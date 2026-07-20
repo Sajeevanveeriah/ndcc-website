@@ -198,6 +198,18 @@ When environment variables are added or changed in Vercel, trigger a new deploym
 4. Check that deployment succeeded; if not, redeploy `main` manually.
 5. Only if the saved URL itself is wrong (typo, old path), re-save the CMS item with the correct URL.
 
+### Gallery Albums and Bulk Photo Upload (Supabase Storage)
+
+Bulk event photography (e.g. finals day) uses a **separate direct-to-Storage path** — the GitHub uploader above stays in use for single CMS images and PDFs.
+
+- **Bucket:** `gallery-media` (public **read** only; JPEG/PNG/WebP; 20 MB per original; created by migration `20260720090000_gallery_albums_bulk_upload.sql`). No `storage.objects` write policies exist for anon or authenticated roles — uploads are authorised solely by short-lived signed upload tokens minted server-side after committee-session validation, and cleanup uses the server's service-role client.
+- **Workflow:** `/admin/gallery` → **Bulk Upload** tab → choose or create a draft album → drag-and-drop up to 100 photos → the browser requests signed upload slots from `/api/admin/gallery/uploads/prepare` (metadata only), uploads each file **directly to Supabase Storage** (concurrency 3, bounded retries), then `/api/admin/gallery/uploads/finalize` verifies each object exists inside the album's prefix and inserts `gallery_images` rows in one bounded batch. Image bytes never pass through a Vercel Function.
+- **Publication:** albums are always created as drafts. Publishing (Albums tab or the wizard's final step) requires ticking the consent acknowledgement ("the club has authority to publish these photographs…"), audited in `publish_confirmed_at`/`publish_confirmed_by`. A partially-failed batch never auto-publishes; failed files can be retried without re-uploading successful ones.
+- **Public pages:** `/gallery` shows published album cards plus legacy/ungrouped images; `/gallery/<slug>` renders the album grid with an accessible lightbox. Downloads (when allowed per album *and* per image) serve the **original** Storage object via its public URL with the `?download=<safe-filename>` parameter; legacy URL images keep plain anchor downloads. Display uses the original file with responsive `sizes` — no derivative pipeline is added, which trades some bandwidth for reliability (next/image optimises Storage URLs where configured).
+- **Deletion model:** deleting an album detaches its images (`album_id` set to NULL by FK) and never touches Storage. Permanent media deletion and orphaned-object cleanup are explicit, count-confirmed calls to `/api/admin/gallery/uploads/cleanup`; nothing deletes by prefix. Never delete the bucket while it holds unverified club media.
+- **Migration sequence:** apply `20260720090000_gallery_albums_bulk_upload.sql` (idempotent, replay-safe; the bucket block self-skips on plain Postgres) to a **preview branch first**, run the Supabase security/performance advisors there, exercise an end-to-end upload against the preview, then apply to production before deploying this code. Rollback: unpublish or delete new albums, then drop the `gallery_albums` table and the added `gallery_images` columns if required — Storage originals are preserved either way; the flat `/gallery` rendering returns automatically when no published albums exist.
+- **Tests:** `npm run test:gallery-albums` (DB replay + schema rules), `npm run test:gallery-bulk-upload` (validation/path logic), `npm run test:gallery-security` (structural security checks).
+
 ### CMS Content Workflow
 
 1. Sign in to `/admin`.

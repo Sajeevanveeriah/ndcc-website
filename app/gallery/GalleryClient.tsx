@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import { FACEBOOK_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE } from '@/lib/constants';
 import type { GalleryPhoto } from '@/lib/public-data';
 
-export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; error?: string | null }) {
+export default function GalleryClient({ photos, heading, showEmptyState = true }: { photos: GalleryPhoto[]; error?: string | null; heading?: string; showEmptyState?: boolean }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -39,8 +39,9 @@ export default function GalleryClient({ photos }: { photos: GalleryPhoto[]; erro
     <>
       <section className="section-padding">
         <div className="container-width max-w-6xl mx-auto">
+          {heading && photos.length > 0 && <h2 className="section-title text-center mb-8">{heading}</h2>}
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 mb-12">
-            {photos.length === 0 ? (
+            {photos.length === 0 && !showEmptyState ? null : photos.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No published gallery images</h2>

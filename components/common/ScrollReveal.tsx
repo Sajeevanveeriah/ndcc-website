@@ -74,20 +74,24 @@ export default function ScrollReveal({
   const reduceMotion = useReducedMotion();
   const Tag = m[as];
 
-  if (reduceMotion) {
-    const Plain = as;
-    return <Plain className={className} {...rest}>{children}</Plain>;
-  }
-
   const base = buildVariants(effect, direction, distance);
 
+  // Reduced motion must stay on the motion component rather than branching to
+  // a plain element: the server (which cannot read the media query) renders
+  // the hidden initial style inline, React hydration does not patch style
+  // attribute mismatches, and a plain element therefore stayed permanently
+  // invisible for reduced-motion users. Collapsing the variants to the
+  // visible values with a zero-duration transition lets framer correct the
+  // DOM imperatively on mount with no animation.
   const variants = {
-    hidden: base.hidden,
+    hidden: reduceMotion ? { ...base.visible } : base.hidden,
     visible: {
       ...base.visible,
-      transition: stagger
-        ? { duration: duration ?? 0.5, ease: EASE, delay, staggerChildren: staggerInterval, delayChildren: delay }
-        : { duration: duration ?? DURATION.base, ease: EASE, delay },
+      transition: reduceMotion
+        ? { duration: 0, delay: 0 }
+        : stagger
+          ? { duration: duration ?? 0.5, ease: EASE, delay, staggerChildren: staggerInterval, delayChildren: delay }
+          : { duration: duration ?? DURATION.base, ease: EASE, delay },
     },
   };
 
@@ -127,12 +131,10 @@ export function ScrollRevealItem({
   const reduceMotion = useReducedMotion();
   const Tag = m[as];
 
-  if (reduceMotion) {
-    const Plain = as;
-    return <Plain className={className}>{children}</Plain>;
-  }
-
-  const variants =
+  // Same reduced-motion strategy as ScrollReveal above: keep the motion
+  // component and collapse hidden to the visible values with zero duration so
+  // framer corrects any server-rendered hidden style on mount.
+  const fullVariants =
     effect === 'zoom'
       ? {
           hidden: { opacity: 0, scale: 1.08 },
@@ -147,6 +149,12 @@ export function ScrollRevealItem({
           hidden: { opacity: 0, y: 20 },
           visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
         };
+  const variants = reduceMotion
+    ? {
+        hidden: { ...fullVariants.visible, transition: { duration: 0 } },
+        visible: { ...fullVariants.visible, transition: { duration: 0 } },
+      }
+    : fullVariants;
 
   if (effect === 'draw') {
     return (
