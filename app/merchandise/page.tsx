@@ -194,9 +194,9 @@ function MerchandiseContent() {
   useEffect(() => {
     document.title = 'Club Merchandise | NDCC Dinos';
 
-    if (searchParams.get('success') === 'true') {
+    if (searchParams.get('payment') === 'submitted' || searchParams.get('success') === 'true') {
       setSubmitStatus('success');
-    } else if (searchParams.get('cancelled') === 'true') {
+    } else if (searchParams.get('payment') === 'cancelled' || searchParams.get('cancelled') === 'true') {
       setSubmitStatus('cancelled');
     }
   }, [searchParams]);
@@ -803,7 +803,7 @@ function MerchandiseContent() {
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-3" role="alert">
               <p className="text-green-800 font-body font-semibold flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
-                Order confirmed!
+                {orderConfirmation ? 'Order confirmed!' : 'Online payment submitted'}
               </p>
               {orderConfirmation?.payment_reference && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
@@ -824,9 +824,9 @@ function MerchandiseContent() {
               )}
               {capabilities.card && orderConfirmation?.order_id && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3 space-y-2">
-                  <p className="text-green-900 font-body text-sm font-semibold">Prefer to pay by card?</p>
+                  <p className="text-green-900 font-body text-sm font-semibold">Prefer to pay online?</p>
                   <p className="text-green-800 font-body text-xs">
-                    You can pay securely online now instead of a bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
+                    Continue to Stripe Checkout instead of using bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
                   </p>
                   <div className="flex flex-wrap items-end gap-3">
                     <Button
@@ -835,7 +835,7 @@ function MerchandiseContent() {
                       isLoading={cardPaying}
                       onClick={() => startCardPayment(null)}
                     >
-                      Pay full amount by card
+                      Pay full amount online
                     </Button>
                     {capabilities.partial_payments && (
                       <div className="flex items-end gap-2">
@@ -870,7 +870,7 @@ function MerchandiseContent() {
                             startCardPayment(amount);
                           }}
                         >
-                          Pay part by card
+                          Pay part online
                         </Button>
                       </div>
                     )}
@@ -881,7 +881,9 @@ function MerchandiseContent() {
                 </div>
               )}
               <p className="text-green-700 font-body text-sm">
-                Thank you for your purchase. Your order will be available for collection at the club once payment is confirmed.
+                {orderConfirmation
+                  ? 'Thank you for your order. It will be available for collection at the club once payment is confirmed.'
+                  : 'Stripe has returned you to the club website. Your signed payment notification is being matched to the order before collection is approved.'}
               </p>
             </div>
           )}
@@ -890,9 +892,10 @@ function MerchandiseContent() {
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3" role="alert">
               <AlertTriangle className="h-5 w-5 text-yellow-800 mt-0.5 shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-yellow-800 font-body font-semibold">Payment cancelled</p>
+                <p className="text-yellow-800 font-body font-semibold">Online payment cancelled</p>
                 <p className="text-yellow-700 font-body text-sm mt-1">
-                  Your payment was cancelled. Your order has not been placed. You can try again below.
+                  Your order is still placed, but no card payment was completed. Use the payment reference from your
+                  confirmation email for bank transfer, or contact the club if you want another online payment link.
                 </p>
               </div>
             </div>
@@ -1080,7 +1083,7 @@ function MerchandiseContent() {
 
                     <p className="text-content-muted font-body text-xs text-center">
                       {capabilities.card
-                        ? 'After submission you will receive a bank-transfer reference, or you can pay online by card.'
+                        ? 'After submission you will receive a bank-transfer reference, or you can continue to Stripe Checkout.'
                         : 'After submission you will receive a payment reference for bank transfer.'}
                     </p>
                     <p className="text-content-muted font-body text-xs text-center">

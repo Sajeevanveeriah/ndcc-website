@@ -24,6 +24,7 @@
     "test:payments-partial": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payments-partial.mjs",
     "test:merch-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-merch-export.mjs",
     "test:payments-ledger": "node scripts/test-payments-ledger.mjs",
+    "test:stripe": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-stripe-integration.mjs",
     "test:admin-auth": "node scripts/test-admin-auth.mjs",
     "test:sponsors": "node scripts/test-sponsors.mjs && node scripts/test-sponsor-canonical.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-sponsor-logo-surface.mjs",
     "test:fantasy": "node scripts/test-fantasy.mjs",
@@ -65,7 +66,6 @@
     "@fullcalendar/list": "^6.1.21",
     "@fullcalendar/react": "^6.1.21",
     "@fullcalendar/timegrid": "^6.1.21",
-    "@stripe/stripe-js": "^8.9.0",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.1",
     "framer-motion": "12.40.0",
@@ -76,7 +76,7 @@
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.12.3",
-    "stripe": "^20.4.1"
+    "stripe": "^22.4.0"
   },
   "devDependencies": {
     "@types/node": "^20",

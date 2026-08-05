@@ -9,12 +9,8 @@ export function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not configured');
     }
     _stripe = new Stripe(key, {
-      apiVersion: '2024-04-10' as Stripe.LatestApiVersion,
+      apiVersion: '2026-02-25.clover' as Stripe.LatestApiVersion,
     });
   }
   return _stripe;
-}
-
-export function getStripePublishableKey(): string {
-  return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
 }
