@@ -270,7 +270,7 @@ export default function AdminOrdersPage() {
                 checked={settings.card_checkout_enabled}
                 onChange={(e) => setSettings({ ...settings, card_checkout_enabled: e.target.checked })}
               />
-              Card checkout enabled (also requires server Stripe configuration)
+              Stripe Checkout enabled (also requires server configuration)
             </label>
             <label className="inline-flex items-center gap-2 text-sm">
               <input

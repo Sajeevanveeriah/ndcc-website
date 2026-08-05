@@ -37,10 +37,10 @@ cp .env.example .env.local
 
 Variables split by exposure (full annotated list in `.env.example`):
 
-- **Public (browser-safe, `NEXT_PUBLIC_*`)**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (only used if Stripe modes are enabled).
+- **Public (browser-safe, `NEXT_PUBLIC_*`)**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`.
 - **Server-only (never expose)**: `SUPABASE_SERVICE_ROLE_KEY`, `PLAYHQ_*`, `RESEND_*`, `CONTACT_*`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `EMAIL_TEST_MODE`, `NDCC_BANK_*`, `GITHUB_*` media upload vars, `AUTH_COOKIE_DOMAIN` (optional).
 - **Optional email vars**: `EMAIL_TEST_MODE` (simulate sends), `CONTACT_TO_EMAIL` / `CONTACT_CC_EMAILS` / `CONTACT_BCC_EMAILS`.
-- **Optional payment vars**: `PAYMENT_PROVIDER` (`manual` | `stripe_payment_link` | `stripe_checkout`, default `manual`), `PAYMENT_TEST_MODE` (default `true`), plus the three Stripe keys.
+- **Optional payment vars**: `PAYMENT_PROVIDER` (`manual` | `stripe_payment_link` | `stripe_checkout`, default `manual`), `PAYMENT_TEST_MODE` (default `true`), `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Hosted Checkout does not use a client publishable key.
 
 ### Database Setup
 
@@ -91,9 +91,20 @@ Three modes, selected by `PAYMENT_PROVIDER` (server-only) plus per-product field
 
 1. **`manual` (live today):** merchandise orders post to `/api/orders`, get an `NDCC-…` payment reference and bank-transfer details (from `NDCC_BANK_*` env), and are reconciled in `/admin/payments`. No card charging anywhere.
 2. **`stripe_payment_link` (one admin step):** create a Payment Link in the Stripe dashboard, paste it into a product's `payment_link_url` with `payment_mode = stripe_payment_link` in `/admin/apparel` — the product card shows a safe external "Pay online" button. Recommended first rollout path.
-3. **`stripe_checkout` (future):** set `PAYMENT_PROVIDER=stripe_checkout` plus the Stripe keys; `/api/checkout` creates Checkout Sessions with **server-side prices from `apparel_products`** (client prices are never trusted) and the webhook (`/api/stripe/webhook`, signature-verified) marks orders paid only when `payment_status === 'paid'` and amounts match.
+3. **`stripe_checkout`:** orders are created through `/api/orders`, then `/api/payments/checkout-session` creates a Stripe-hosted Checkout Session for the server-calculated outstanding balance. The signed webhook at `/api/stripe/webhook` is the only path that settles the pending ledger row. The compatibility route `/api/checkout` cannot create orders or payments.
 
-**Safety:** live charging is impossible until `PAYMENT_PROVIDER=stripe_checkout` *and* Stripe keys are deliberately configured; keep `PAYMENT_TEST_MODE=true` until go-live.
+**Safety:** checkout remains unavailable until `PAYMENT_PROVIDER=stripe_checkout`, a mode-matched Stripe server key, `STRIPE_WEBHOOK_SECRET`, and the CMS card switch are all configured. `PAYMENT_TEST_MODE=true` accepts only `sk_test_` or `rk_test_` keys. `PAYMENT_TEST_MODE=false` accepts only live equivalents.
+
+#### Stripe sandbox rollout
+
+1. Apply migrations through `20260806080000_stripe_checkout_integrity.sql`. The migration fails without deleting or rewriting anything if duplicate provider references need manual review.
+2. In a Stripe sandbox, create a webhook endpoint for `https://www.ndcc.com.au/api/stripe/webhook` and subscribe only to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.
+3. Store the sandbox server key and webhook signing secret in Vercel as sensitive server-only environment variables. Set `PAYMENT_PROVIDER=stripe_checkout` and keep `PAYMENT_TEST_MODE=true`.
+4. Redeploy, then enable `Stripe Checkout enabled` in `/admin/orders`. Leave partial payments disabled unless the committee wants that option.
+5. Place a sandbox merchandise order, complete Checkout with a Stripe test payment method, and verify exactly one settled Stripe row appears in the order payment history.
+6. Before live rollout, create a separate live webhook endpoint, replace both sandbox secrets with live values, complete Stripe's go-live checklist, set `PAYMENT_TEST_MODE=false`, redeploy, and run one controlled low-value acceptance payment. Never copy keys into Git, chat, email or logs.
+
+Checkout uses Dashboard-managed dynamic payment methods. A stable idempotency key makes identical retries return the same Session, and the ledger uniquely constrains each Stripe Session so webhook retries or delayed-payment events cannot double-credit an order.
 
 ### Email Setup
 
@@ -309,12 +320,12 @@ Run before claiming any change is release-ready:
 7. Email: with `EMAIL_TEST_MODE=true`, submit contact/volunteer forms and confirm simulated sends in logs and `/admin/email-diagnostics`.
 8. PlayHQ: `/fixtures` renders live data or the PlayHQ CTA card; `npm run test:playhq-config`.
 9. Fantasy logic: `npm run test:fantasy-logic` passes.
-10. Payments: manual order flow issues a payment reference; no checkout path is live unless `PAYMENT_PROVIDER=stripe_checkout` is deliberately set.
+10. Payments: `npm run test:stripe` passes; manual order flow issues a payment reference; sandbox Checkout creates one pending ledger row and a signed webhook settles it exactly once.
 11. Admin inactivity: idle 9 minutes → warning; extend works; 10 minutes → signed out.
 
 ## Known Limitations
 
-- **Stripe checkout is dormant by design** — the club has not finalised a payment provider. Payment Links per product are the recommended first step.
+- **Stripe checkout is disabled until operator setup is complete.** The code path is present, but the mode-matched key, webhook secret, provider switch and CMS switch must all be configured before it appears publicly.
 - **Supabase Auth emails depend on Supabase SMTP** being configured in the dashboard; until then fantasy signup confirmations do not send.
 - **Migration bookkeeping drift:** some early tables exist in production but their base `CREATE TABLE` statements predate the migrations folder; a brand-new environment needs `supabase/schema.sql` as a starting reference plus the migrations. Production is unaffected.
 - **Supabase preview branching fails on historical migration filenames.** The Supabase CLI treats the filename prefix before the first underscore as the migration version, and several historical files share a date-only version (two `20260401_*`, seven `20260402_*`, …), so the PR "Supabase Preview" check errors with a duplicate `schema_migrations` key. Production schema is managed with idempotent migrations applied directly. Fix path: a dedicated PR renaming historical migrations to unique full timestamps and reconciling `supabase_migrations.schema_migrations`, or disable branching for this repo. New migrations use full `YYYYMMDDHHMMSS` prefixes.
@@ -352,7 +363,7 @@ Configure production values and redeploy after every change:
 - `RESEND_FROM`
 - `RESEND_FROM_EMAIL`
 - GitHub media upload variables already used by this repo: `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` (`VERCEL_DEPLOY_HOOK_URL` is no longer used — uploads publish via Vercel's git auto-deploy)
-- Stripe variables already used by this repo: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (leave unset until a Stripe mode is enabled)
+- Stripe server variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (sensitive; leave unset until a Stripe mode is enabled). Hosted Checkout does not require `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
 - Payment mode switches: `PAYMENT_PROVIDER` (`manual` unless going live with Stripe), `PAYMENT_TEST_MODE`
 - PlayHQ (server-only): `PLAYHQ_API_BASE_URL`, `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_DEFAULT_SEASON_ID`, `PLAYHQ_DEFAULT_GRADE_IDS`, `PLAYHQ_CACHE_REVALIDATE_SECONDS`
 - Fantasy PlayHQ sync (server-only): `CRON_SECRET`, `PLAYHQ_FANTASY_SYNC_ENABLED`, `PLAYHQ_FANTASY_SYNC_BATCH_SIZE`
