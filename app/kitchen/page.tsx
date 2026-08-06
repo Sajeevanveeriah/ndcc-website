@@ -7,9 +7,17 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 
 type KitchenItem = { id: string; name: string; description: string; image_url?: string | null; price: number; is_available: boolean };
+
+type OrderConfirmation = {
+  order_id: string;
+  total_amount: number;
+  payment_reference: string;
+  bank_details: { account_name: string; bsb: string; account_number: string } | null;
+};
 
 const FALLBACK_KITCHEN_MENU = {
   menuName: 'Kitchen Menu',
@@ -27,6 +35,7 @@ export default function KitchenPage() {
   const [status, setStatus] = useState('');
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   const [hpField, setHpField] = useState('');
   const [submittedAt, setSubmittedAt] = useState(Date.now());
 
@@ -67,6 +76,7 @@ export default function KitchenPage() {
     setFormError('');
     setSubmitStatus('idle');
     setStatus('');
+    setOrderConfirmation(null);
     setSubmitting(true);
     try {
       const res = await fetch('/api/kitchen/orders', {
@@ -87,11 +97,14 @@ export default function KitchenPage() {
         setStatus(data.error || 'Unable to submit kitchen order.');
         return;
       }
-      const bankSummary = data?.bank_details?.bsb
-        ? ` Bank: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.`
-        : '';
       setSubmitStatus('success');
-      setStatus(`Order submitted. Payment reference: ${data.payment_reference}.${bankSummary} Example reference format: NDCC-YYYYMMDD-1234`);
+      setStatus('Your kitchen order has been submitted.');
+      setOrderConfirmation({
+        order_id: data.order_id || '',
+        total_amount: Number(data.total_amount || 0),
+        payment_reference: data.payment_reference || '',
+        bank_details: data.bank_details || null,
+      });
       setCart({});
       setName('');
       setEmail('');
@@ -169,12 +182,23 @@ export default function KitchenPage() {
                 </Button>
               </form>
               {submitStatus === 'success' && status && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
-                  <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
-                  <div>
-                    <p className="text-green-800 font-body font-semibold">Order submitted!</p>
-                    <p className="text-green-700 font-body text-sm mt-1">{status}</p>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3" role="alert">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="text-green-800 font-body font-semibold">Order submitted</p>
+                      <p className="text-green-700 font-body text-sm mt-1">{status}</p>
+                    </div>
                   </div>
+                  {orderConfirmation?.order_id && orderConfirmation.total_amount > 0 && (
+                    <OrderPaymentOptions
+                      orderId={orderConfirmation.order_id}
+                      totalAmount={orderConfirmation.total_amount}
+                      paymentReference={orderConfirmation.payment_reference}
+                      bankDetails={orderConfirmation.bank_details}
+                      returnPath="/kitchen"
+                    />
+                  )}
                 </div>
               )}
               {submitStatus === 'error' && status && (
