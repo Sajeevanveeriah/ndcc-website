@@ -101,8 +101,16 @@ const checkoutRoute = readFileSync(path.join(repoRoot, 'app/api/payments/checkou
 const webhookRoute = readFileSync(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8');
 const stripeCheckoutSource = readFileSync(path.join(repoRoot, 'lib/payments/stripe-checkout.ts'), 'utf8');
 const stripeClient = readFileSync(path.join(repoRoot, 'lib/stripe.ts'), 'utf8');
-const migration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260806080000_stripe_checkout_integrity.sql'), 'utf8');
+const integrityMigration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260806080000_stripe_checkout_integrity.sql'), 'utf8');
+const eventOrderMigration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260806190000_event_registration_order_payments.sql'), 'utf8');
 const legacyRoute = readFileSync(path.join(repoRoot, 'app/api/checkout/route.ts'), 'utf8');
+const sharedPaymentControl = readFileSync(path.join(repoRoot, 'components/payments/OrderPaymentOptions.tsx'), 'utf8');
+const membershipRoute = readFileSync(path.join(repoRoot, 'app/api/memberships/route.ts'), 'utf8');
+const eventRoute = readFileSync(path.join(repoRoot, 'app/api/events/route.ts'), 'utf8');
+const joinPage = readFileSync(path.join(repoRoot, 'app/join/page.tsx'), 'utf8');
+const kitchenPage = readFileSync(path.join(repoRoot, 'app/kitchen/page.tsx'), 'utf8');
+const eventPage = readFileSync(path.join(repoRoot, 'app/events/[id]/EventDetailClient.tsx'), 'utf8');
+const paymentResultPage = readFileSync(path.join(repoRoot, 'app/payment/page.tsx'), 'utf8');
 
 test('manual payment-method detector catches a known-defective Checkout snippet', () => {
   assert.equal(hasManualPaymentMethodList("stripe.checkout.sessions.create({ payment_method_types: ['card'] })"), true);
@@ -115,6 +123,15 @@ test('Checkout route uses dynamic methods, idempotency and a pending ledger row'
   assert.match(checkoutRoute, /client_reference_id/);
 });
 
+test('Checkout route has category-aware descriptions and safe return paths', () => {
+  assert.match(checkoutRoute, /order_category/);
+  assert.match(checkoutRoute, /getSafeReturnPath/);
+  assert.match(checkoutRoute, /encodeURIComponent\(returnPath\)/);
+  assert.match(checkoutRoute, /Newcomb & District Cricket Club \$\{categoryLabel\}/);
+  assert.match(paymentResultPage, /Payment submitted/);
+  assert.match(paymentResultPage, /safeReturnPath/);
+});
+
 test('webhook route covers signed delayed-payment lifecycle events', () => {
   assert.match(webhookRoute, /constructEvent/);
   assert.match(stripeCheckoutSource, /async_payment_succeeded/);
@@ -124,13 +141,45 @@ test('webhook route covers signed delayed-payment lifecycle events', () => {
 
 test('Stripe SDK and ledger integrity gates are current', () => {
   assert.match(stripeClient, /2026-02-25\.clover/);
-  assert.match(migration, /order_payments_provider_reference_unique/);
-  assert.match(migration, /new\.provider_reference is distinct from old\.provider_reference/);
+  assert.match(integrityMigration, /order_payments_provider_reference_unique/);
+  assert.match(integrityMigration, /new\.provider_reference is distinct from old\.provider_reference/);
 });
 
 test('legacy direct checkout cannot bypass the order-first flow', () => {
   assert.match(legacyRoute, /status:\s*410/);
   assert.doesNotMatch(legacyRoute, /checkout\.sessions\.create/);
+});
+
+test('shared payment control starts server-verified Checkout', () => {
+  assert.match(sharedPaymentControl, /\/api\/payments\/capabilities/);
+  assert.match(sharedPaymentControl, /\/api\/payments\/checkout-session/);
+  assert.match(sharedPaymentControl, /order_id:\s*orderId/);
+  assert.match(sharedPaymentControl, /return_path:\s*returnPath/);
+  assert.match(sharedPaymentControl, /Pay \{formatCurrency\(totalAmount\)\} securely online/);
+});
+
+test('membership, kitchen and paid event surfaces use the shared payment control', () => {
+  assert.match(joinPage, /OrderPaymentOptions/);
+  assert.match(kitchenPage, /OrderPaymentOptions/);
+  assert.match(eventPage, /OrderPaymentOptions/);
+  assert.match(joinPage, /returnPath="\/join"/);
+  assert.match(kitchenPage, /returnPath="\/kitchen"/);
+  assert.match(eventPage, /returnPath=\{`\/events\/\$\{eventId\}`\}/);
+});
+
+test('membership orders use the correct category and full server total', () => {
+  assert.match(membershipRoute, /order_category:\s*'membership'/);
+  assert.match(membershipRoute, /total_amount:\s*totalAmount/);
+  assert.match(membershipRoute, /bankDetailsHtml\(paymentReference, totalAmount\)/);
+});
+
+test('paid event registrations create and retain a linked order', () => {
+  assert.match(eventRoute, /order_category:\s*'event'/);
+  assert.match(eventRoute, /order_id:\s*linkedOrder\?\.id/);
+  assert.match(eventRoute, /total_amount:\s*totalCost/);
+  assert.match(eventOrderMigration, /add column if not exists order_id uuid/);
+  assert.match(eventOrderMigration, /event_registrations_order_id_fkey/);
+  assert.match(eventOrderMigration, /orders_sync_linked_payment_status/);
 });
 
 console.log(`\ntest-stripe-integration: ${passed} tests passed`);
