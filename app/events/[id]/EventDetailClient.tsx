@@ -7,9 +7,17 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
+
+type OrderConfirmation = {
+  order_id: string;
+  total_amount: number;
+  payment_reference: string;
+  bank_details: { account_name: string; bsb: string; account_number: string } | null;
+};
 
 export default function EventDetailClient({ event }: { event: Event }) {
   const eventId = event.id;
@@ -26,6 +34,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
@@ -53,6 +62,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
     setIsSubmitting(true);
     setSubmitStatus('idle');
     setErrorMessage('');
+    setOrderConfirmation(null);
 
     try {
       const response = await fetch('/api/events', {
@@ -75,10 +85,19 @@ export default function EventDetailClient({ event }: { event: Event }) {
       }
 
       const data = await response.json();
+      const totalAmount = Number(data.total_amount || 0);
       setSubmitStatus('success');
-      const paymentHelp = data?.payment_reference ? ` Payment reference: ${data.payment_reference}.` : '';
-      const bankHelp = data?.bank_details?.bsb ? ` Bank transfer: ${data.bank_details.account_name}, BSB ${data.bank_details.bsb}, Account ${data.bank_details.account_number}.` : '';
-      setErrorMessage(`Registration confirmed.${paymentHelp}${bankHelp} Example reference format: NDCC-YYYYMMDD-1234`);
+      setErrorMessage(totalAmount > 0
+        ? 'Registration confirmed. Choose secure card payment or bank transfer below.'
+        : 'Registration confirmed. No payment is required.');
+      if (data.order_id && totalAmount > 0) {
+        setOrderConfirmation({
+          order_id: data.order_id,
+          total_amount: totalAmount,
+          payment_reference: data.payment_reference || '',
+          bank_details: data.bank_details || null,
+        });
+      }
       setFormData({ name: '', email: '', phone: '', quantity: 1, hp_field: '', submitted_at: Date.now() });
       setFormErrors({});
     } catch (err) {
@@ -91,7 +110,6 @@ export default function EventDetailClient({ event }: { event: Event }) {
 
   return (
     <>
-      {/* Hero */}
       <section className="page-hero">
         <div className="container-width">
           <Link
@@ -108,11 +126,9 @@ export default function EventDetailClient({ event }: { event: Event }) {
         </div>
       </section>
 
-      {/* Event Details */}
       <section className="section-padding">
         <div className="container-width">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            {/* Main Content */}
             <div className="lg:col-span-2">
               {normalizeEventImage(event.title, event.image_url) && (
                 <div className="relative h-72 sm:h-96 w-full rounded-xl overflow-hidden mb-6">
@@ -133,9 +149,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
               </div>
             </div>
 
-            {/* Sidebar */}
             <div className="space-y-6">
-              {/* Event Info Card */}
               <Card>
                 <CardContent className="p-6 space-y-4">
                   <h3 className="font-display font-bold text-content-primary text-lg">Event Details</h3>
@@ -145,7 +159,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                     </svg>
                     <div>
-                      <p className="font-body font-semibold text-content-primary text-sm">Date & Time</p>
+                      <p className="font-body font-semibold text-content-primary text-sm">Date and Time</p>
                       <p className="font-body text-content-muted text-sm">{formatDateTime(event.date)}</p>
                     </div>
                   </div>
@@ -184,39 +198,33 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       </div>
                     </div>
                   )}
-
-                  {event.stripe_link && (
-                    <a
-                      href={event.stripe_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-primary w-full text-center mt-4"
-                    >
-                      Purchase Tickets
-                    </a>
-                  )}
                 </CardContent>
               </Card>
 
-              {/* Registration Form */}
               <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-display font-bold text-content-primary text-lg mb-4">Register</h3>
+                <CardContent className="p-6 space-y-4">
+                  <h3 className="font-display font-bold text-content-primary text-lg">Register</h3>
 
                   {submitStatus === 'success' && (
-                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg" role="alert">
-                      <p className="text-green-800 font-body font-semibold text-sm">
-                        Registration confirmed!
-                      </p>
-                      <p className="text-green-700 font-body text-xs mt-1">{errorMessage || 'You will receive a confirmation email shortly.'}</p>
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg" role="status">
+                      <p className="text-green-800 font-body font-semibold text-sm">Registration confirmed</p>
+                      <p className="text-green-700 font-body text-xs mt-1">{errorMessage}</p>
                     </div>
                   )}
 
+                  {submitStatus === 'success' && orderConfirmation && (
+                    <OrderPaymentOptions
+                      orderId={orderConfirmation.order_id}
+                      totalAmount={orderConfirmation.total_amount}
+                      paymentReference={orderConfirmation.payment_reference}
+                      bankDetails={orderConfirmation.bank_details}
+                      returnPath={`/events/${eventId}`}
+                    />
+                  )}
+
                   {submitStatus === 'error' && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg" role="alert">
-                      <p className="text-red-800 font-body font-semibold text-sm">
-                        Registration failed
-                      </p>
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg" role="alert">
+                      <p className="text-red-800 font-body font-semibold text-sm">Registration failed</p>
                       <p className="text-red-700 font-body text-xs mt-1">{errorMessage}</p>
                     </div>
                   )}
@@ -239,11 +247,8 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       placeholder="e.g. Jane Smith"
                       value={formData.name}
                       error={formErrors.name}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, name: e.target.value }))
-                      }
+                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     />
-
                     <Input
                       id="reg_email"
                       label="Email Address"
@@ -252,9 +257,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       placeholder="e.g. jane@example.com"
                       value={formData.email}
                       error={formErrors.email}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, email: e.target.value }))
-                      }
+                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                     />
                     <Input
                       id="reg_phone"
@@ -264,15 +267,11 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       placeholder="e.g. 0412 345 678"
                       value={formData.phone}
                       error={formErrors.phone}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                      }
+                      onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                     />
 
                     <div className="w-full">
-                      <label htmlFor="reg_quantity" className="form-label">
-                        Quantity
-                      </label>
+                      <label htmlFor="reg_quantity" className="form-label">Quantity</label>
                       <input
                         id="reg_quantity"
                         type="number"
@@ -281,24 +280,22 @@ export default function EventDetailClient({ event }: { event: Event }) {
                         required
                         className="form-input"
                         value={formData.quantity}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            quantity: Math.max(1, parseInt(e.target.value) || 1),
-                          }))
-                        }
+                        onChange={(e) => setFormData((prev) => ({
+                          ...prev,
+                          quantity: Math.max(1, parseInt(e.target.value) || 1),
+                        }))}
                       />
                       {formErrors.quantity && (
                         <p className="mt-1 text-sm text-red-600">{formErrors.quantity}</p>
                       )}
                     </div>
 
-                    <Button
-                      type="submit"
-                      isLoading={isSubmitting}
-                      className="w-full"
-                    >
-                      {isSubmitting ? 'Registering...' : 'Register Now'}
+                    <Button type="submit" isLoading={isSubmitting} className="w-full">
+                      {isSubmitting
+                        ? 'Registering...'
+                        : event.ticket_price > 0
+                          ? 'Register and choose payment'
+                          : 'Register Now'}
                     </Button>
                   </form>
                 </CardContent>
