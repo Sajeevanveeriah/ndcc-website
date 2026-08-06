@@ -4,7 +4,7 @@ name: PR validation
 # pass lint, the deterministic test suites, database-backed migration tests,
 # the migration-history consistency check, and a production build.
 #
-# Recommended branch protection for `main` (repository settings — cannot be
+# Recommended branch protection for `main` (repository settings - cannot be
 # set from a workflow file): require the "validate" and "database-tests"
 # checks to pass before merging.
 
@@ -41,6 +41,7 @@ jobs:
       - run: npm run smoke:content
       - run: npm run test:apparel-pricing
       - run: npm run test:payments-partial
+      - run: npm run test:stripe
       - run: npm run test:merch-export
       - run: npm run build
 
