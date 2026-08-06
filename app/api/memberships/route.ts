@@ -90,11 +90,23 @@ export async function POST(request: Request) {
     }))
     .filter((a) => a.addon);
 
-  const totalAmount = Number(plan.price) + validatedAddons.reduce((sum, item) => sum + Number(item.addon?.price || 0) * item.quantity, 0);
+  const totalAmount = Number(plan.price) + validatedAddons.reduce(
+    (sum, item) => sum + Number(item.addon?.price || 0) * item.quantity,
+    0
+  );
+
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+    return NextResponse.json({ success: false, error: 'Selected membership total is invalid.' }, { status: 400 });
+  }
 
   const orderItems = [
     { name: plan.name, size: 'membership', quantity: 1, price: Number(plan.price) },
-    ...validatedAddons.map((item) => ({ name: item.addon?.name, size: 'addon', quantity: item.quantity, price: Number(item.addon?.price || 0) })),
+    ...validatedAddons.map((item) => ({
+      name: item.addon?.name,
+      size: 'addon',
+      quantity: item.quantity,
+      price: Number(item.addon?.price || 0),
+    })),
   ];
 
   const paymentReference = await generateUniquePaymentReference();
@@ -109,6 +121,8 @@ export async function POST(request: Request) {
       total_amount: totalAmount,
       payment_status: 'pending_bank_transfer',
       payment_reference: paymentReference,
+      order_category: 'membership',
+      order_status: 'submitted',
       processed: false,
       notes: notes ? sanitiseInput(notes) : '',
     })
@@ -156,12 +170,12 @@ export async function POST(request: Request) {
 
   void sendEmail({
     to: sanitiseInput(email),
-    subject: `Membership signup confirmed — Ref ${paymentReference} | NDCC Dinos`,
+    subject: `Membership signup confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
       'Membership Signup Confirmed',
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(full_name)},</p>
       <p style="font-size:15px;color:#374151;line-height:1.6;">Your membership signup for <strong>${plan.name}</strong> has been received.</p>
-      ${bankDetailsHtml(paymentReference, Number(plan.price))}
+      ${bankDetailsHtml(paymentReference, totalAmount)}
       <p style="font-size:14px;color:#374151;line-height:1.6;">Your membership will be activated once we confirm your payment. If you have any questions, reach out at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
     ),
   });
@@ -169,6 +183,7 @@ export async function POST(request: Request) {
     success: true,
     application_id: application.id,
     order_id: order.id,
+    total_amount: totalAmount,
     payment_reference: paymentReference,
     bank_details: {
       account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
