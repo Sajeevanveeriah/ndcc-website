@@ -13,6 +13,7 @@ const checks = [
   { route: '/calendar', file: 'app/calendar/page.tsx', label: 'calendar content', all: ['Club Calendar'] },
   { route: '/gallery', file: 'app/gallery/page.tsx', label: 'gallery fallback achievements', all: ['Gallery'] },
   { route: '/join', file: 'app/join/page.tsx', label: 'social membership', all: ['Membership'] },
+  { route: '/player-registration', file: 'app/player-registration/page.tsx', label: 'seasonal registration', all: ['Choose your registration', 'registration.termsSections'] },
   { route: '/contact', file: 'app/contact/page.tsx', label: 'contact form', all: ['Send Us a Message'] },
 ];
 

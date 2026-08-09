@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
@@ -9,7 +10,6 @@ import Input, { Textarea } from '@/components/ui/Input';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency } from '@/lib/utils';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
-import { PLAYHQ_ORG_URL } from '@/lib/constants';
 import Accordion from '@/components/common/Accordion';
 
 interface Plan { id: string; name: string; description: string; price: number; }
@@ -130,10 +130,10 @@ export default function JoinPage() {
             <Card>
               <CardContent className="p-6 space-y-3">
                 <h2 className="text-2xl font-display font-bold">Player Registration</h2>
-                <p className="text-content-muted">Player registrations stay on PlayHQ as required.</p>
-                <a href={PLAYHQ_ORG_URL} target="_blank" rel="noopener noreferrer">
-                  <Button>Go to PlayHQ</Button>
-                </a>
+                <p className="text-content-muted">Choose the current seasonal PlayHQ registration option and review the club terms.</p>
+                <Link href="/player-registration" className="focus-ring inline-flex min-h-11 items-center justify-center rounded-[10px] bg-maroon-700 px-6 py-3 font-body font-semibold text-white transition-colors hover:bg-maroon-800">
+                  View Player Registration
+                </Link>
               </CardContent>
             </Card>
           </ScrollRevealItem>
@@ -158,10 +158,10 @@ export default function JoinPage() {
                 question: 'How do I register as a player?',
                 answer: (
                   <p>
-                    Player registrations stay on PlayHQ as required.{' '}
-                    <a href={PLAYHQ_ORG_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-maroon-700 underline underline-offset-2 dark:text-maroon-200">
-                      Register on PlayHQ (opens in new tab)
-                    </a>
+                    Select the appropriate seasonal option on the{' '}
+                    <Link href="/player-registration" className="font-semibold text-maroon-700 underline underline-offset-2 dark:text-maroon-200">
+                      Player Registration page
+                    </Link>
                     .
                   </p>
                 ),

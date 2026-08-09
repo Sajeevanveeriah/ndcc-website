@@ -39,7 +39,6 @@ interface ClubSeasonSummary {
   id: string;
   name: string;
   status: string;
-  registration_status: string;
   start_date: string;
   end_date: string;
 }
@@ -150,9 +149,10 @@ export default function AdminDashboardPage() {
               {currentSeason ? (
                 <div className="mt-3">
                   <p className="text-2xl font-display font-bold text-content-primary">{currentSeason.name}</p>
-                  <p className="mt-1 text-sm text-content-muted">{currentSeason.start_date} to {currentSeason.end_date} · {currentSeason.status} · registration {currentSeason.registration_status.replace(/_/g, ' ')}</p>
+                  <p className="mt-1 text-sm text-content-muted">{currentSeason.start_date} to {currentSeason.end_date} · {currentSeason.status}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link href="/admin/season/new"><Button size="sm">Start new season</Button></Link>
+                    <Link href="/admin/season/registration"><Button size="sm" variant="secondary">Manage registration</Button></Link>
                     <Link href="/admin/teams"><Button size="sm" variant="secondary">Review teams</Button></Link>
                     <Link href="/admin/playhq-diagnostics"><Button size="sm" variant="secondary">Check PlayHQ</Button></Link>
                   </div>

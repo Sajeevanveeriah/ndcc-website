@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -32,6 +32,7 @@ const adminGroups: AdminGroup[] = [
   ] },
   { title: 'Season', icon: ClipboardList, links: [
     { href: '/admin/season/new', label: 'Start New Season', plainLabel: 'Season setup wizard', icon: CalendarDays },
+    { href: '/admin/season/registration', label: 'Player Registration', plainLabel: 'Seasonal registration page and terms', icon: ClipboardCheck },
     { href: '/admin/club-details', label: 'Club Details', icon: Settings },
     { href: '/admin/teams', label: 'Teams', plainLabel: 'Teams and grades', icon: Users },
     { href: '/admin/season-appointments', label: 'Appointments', plainLabel: 'Coaches and appointments', icon: UserRoundCheck },
