@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { CLUB_ADMIN_ROLES } from '@/lib/auth/config';
 import { CLUB_SEASON_COLUMNS } from '@/lib/club-seasons';
 import { buildSeasonWizardPreview, validateSeasonWizardPayload } from '@/lib/club-season-wizard';
 import { createServerClient } from '@/lib/supabase-server';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
 
 export async function GET() {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requireSession(CLUB_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const supabase = createServerClient();
   const [{ data: seasons, error: seasonsError }, { data: states, error: statesError }] = await Promise.all([
@@ -21,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requireSession(CLUB_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const body = await request.json().catch(() => ({}));
   const idempotencyKey = String(body.idempotencyKey || '').trim();
@@ -37,8 +37,10 @@ export async function POST(request: Request) {
     start_date: payload.startDate,
     end_date: payload.endDate,
     status: payload.scheduledActivationAt ? 'upcoming' : 'draft',
-    registration_status: payload.registrationStatus || 'closed',
-    registration_url: payload.registrationUrl || null,
+    // Registration is initialised by the database trigger as closed, hidden
+    // and without URLs. It must be reviewed in the dedicated CMS before use.
+    registration_status: 'closed',
+    registration_url: null,
     playhq_season_id: payload.playhqSeasonId || null,
     source_season_id: payload.sourceSeasonId || null,
     scheduled_activation_at: payload.scheduledActivationAt || null,
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requireSession(CLUB_ADMIN_ROLES);
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const body = await request.json().catch(() => ({}));
   const stateId = String(body.stateId || '').trim();

@@ -42,6 +42,7 @@ jobs:
       - run: npm run test:apparel-pricing
       - run: npm run test:payments-partial
       - run: npm run test:stripe
+      - run: npm run test:player-registration
       - run: npm run test:merch-export
       - run: npm run build
 

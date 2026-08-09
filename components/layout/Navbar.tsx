@@ -16,6 +16,11 @@ type HeaderLink = {
   openInNewTab?: boolean;
 };
 
+type RegistrationNavigation = {
+  label: string;
+  href: '/player-registration';
+} | null;
+
 
 type PublicNavGroup = { label: string; href?: string; links?: Array<{ label: string; href: string }> };
 
@@ -47,6 +52,7 @@ export default function Navbar() {
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
+  const [registrationNavigation, setRegistrationNavigation] = useState<RegistrationNavigation>(null);
   // Which desktop dropdown group is click/keyboard-opened (hover opening is
   // handled per-group in CSS). One label at a time so opening a group can
   // never surface another group's panel.
@@ -140,6 +146,32 @@ export default function Navbar() {
     loadNavigation();
   }, []);
   useEffect(() => {
+    const loadRegistrationNavigation = async () => {
+      try {
+        const response = await fetch('/api/public/player-registration', { cache: 'no-store' });
+        if (!response.ok) {
+          setRegistrationNavigation(null);
+          return;
+        }
+        const result = await response.json();
+        const registration = result?.data;
+        const visible = Boolean(
+          registration
+          && registration.showInNavigation === true
+          && registration.availability !== 'closed'
+          && Array.isArray(registration.options)
+          && registration.options.length > 0,
+        );
+        setRegistrationNavigation(visible
+          ? { label: String(registration.navigationLabel || 'Player Registration'), href: '/player-registration' }
+          : null);
+      } catch {
+        setRegistrationNavigation(null);
+      }
+    };
+    loadRegistrationNavigation();
+  }, [pathname]);
+  useEffect(() => {
     const loadSession = async () => {
       try {
         const res = await fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' });
@@ -217,11 +249,11 @@ export default function Navbar() {
               className="rounded-full"
               priority
             />
-            <div className="hidden sm:flex flex-col">
+            <div className="hidden sm:flex lg:hidden xl:flex flex-col">
               <span className={cn('font-display font-semibold uppercase tracking-wide text-lg leading-none block', transparent ? 'text-white' : 'text-maroon-700 dark:text-maroon-200')}>
                 {settings.club_short}
               </span>
-              <span className={cn('text-[10.5px] font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-400 dark:text-slate-400')}>
+              <span className={cn('text-[10.5px] font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-600 dark:text-slate-400')}>
                 The Dinos · Est. {settings.established_year}
               </span>
             </div>
@@ -321,19 +353,23 @@ export default function Navbar() {
 
             <ThemeToggle className="ml-3" />
 
-            {/* Join CTA button */}
+            {/* Seasonal registration replaces the existing CTA slot when published. */}
             <Link
-              href="/join"
-              className="ml-3 px-4 py-2 bg-maroon-700 text-white text-sm font-semibold rounded-lg hover:bg-maroon-800 transition-colors focus-ring"
+              href={registrationNavigation?.href || '/join'}
+              className={cn(
+                'ml-2 inline-flex min-h-11 max-w-[180px] items-center justify-center rounded-lg bg-maroon-700 px-3 py-2 text-center text-xs font-semibold leading-tight text-white transition-colors hover:bg-maroon-800 focus-ring',
+                pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
+              )}
+              aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
             >
-              Join the Club
+              {registrationNavigation?.label || 'Join the Club'}
             </Link>
           </div>
 
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={cn('lg:hidden p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
+            className={cn('lg:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
@@ -367,7 +403,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
+                  className="min-h-11 min-w-11 p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
                   aria-label="Close menu"
                 >
                   <X className="h-6 w-6 text-content-secondary" />
@@ -384,12 +420,13 @@ export default function Navbar() {
               {group.links?.map((link) => <Link key={`${group.label}-${link.href}`} href={link.href} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
             </section>
           ))}
-          <Link
-            href="/join"
-            className="block px-4 py-3 mt-1 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-xl hover:bg-maroon-800 transition-colors focus-ring"
-          >
-            Join the Club
-          </Link>
+      <Link
+        href={registrationNavigation?.href || '/join'}
+        className="block px-4 py-3 mt-1 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-xl hover:bg-maroon-800 transition-colors focus-ring"
+        aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
+      >
+        {registrationNavigation?.label || 'Join the Club'}
+      </Link>
           {sessionUser && (
             <>
               <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">

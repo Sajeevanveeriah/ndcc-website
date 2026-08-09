@@ -15,7 +15,7 @@ export default function StartNewSeasonPage() {
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    name: '', slug: '', startDate: '', endDate: '', sourceSeasonId: '', registrationStatus: 'closed', registrationUrl: '', playhqSeasonId: '', scheduledActivationAt: '', activateNow: false,
+    name: '', slug: '', startDate: '', endDate: '', sourceSeasonId: '', playhqSeasonId: '', scheduledActivationAt: '', activateNow: false,
     copySections: Object.fromEntries(COPY_SECTIONS.map((section) => [section, ['teams','appointments','training','registration','notices','fantasy'].includes(section)])),
   });
   const preview = useMemo(() => {
@@ -23,7 +23,6 @@ export default function StartNewSeasonPage() {
     const warnings = [] as string[];
     const now = new Date();
     if (form.startDate && Date.parse(form.startDate) < now.getTime()) warnings.push('Start date is in the past. Check this is not stale carry-forward content.');
-    if (form.registrationUrl && /2025|2026/.test(form.registrationUrl) && !form.name.includes('2025') && !form.name.includes('2026')) warnings.push('Registration URL contains an older year. Review it before publishing.');
     return { selectedSections, warnings, summary: `${form.name || 'New season'} · ${form.startDate || 'no start'} to ${form.endDate || 'no end'}` };
   }, [form]);
 
@@ -76,10 +75,11 @@ export default function StartNewSeasonPage() {
             <label className="text-sm font-semibold">Start date<input type="date" className="mt-1 w-full rounded-lg border px-3 py-2" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></label>
             <label className="text-sm font-semibold">End date<input type="date" className="mt-1 w-full rounded-lg border px-3 py-2" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></label>
             <label className="text-sm font-semibold">Copy from previous season<select className="mt-1 w-full rounded-lg border px-3 py-2" value={form.sourceSeasonId} onChange={(e) => setForm({ ...form, sourceSeasonId: e.target.value })}>{seasons.map((season) => <option key={season.id} value={season.id}>{season.name}{season.is_current ? ' (current)' : ''}</option>)}</select></label>
-            <label className="text-sm font-semibold">Registration status<select className="mt-1 w-full rounded-lg border px-3 py-2" value={form.registrationStatus} onChange={(e) => setForm({ ...form, registrationStatus: e.target.value })}>{['closed','opening_soon','open','waitlist','archived'].map((value) => <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>)}</select></label>
-            <label className="text-sm font-semibold md:col-span-2">Registration URL<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.registrationUrl} placeholder="https://www.playhq.com/..." onChange={(e) => setForm({ ...form, registrationUrl: e.target.value })} /></label>
             <label className="text-sm font-semibold">PlayHQ season ID<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.playhqSeasonId} onChange={(e) => setForm({ ...form, playhqSeasonId: e.target.value })} /></label>
             <label className="text-sm font-semibold">Schedule activation<input type="datetime-local" className="mt-1 w-full rounded-lg border px-3 py-2" value={form.scheduledActivationAt} onChange={(e) => setForm({ ...form, scheduledActivationAt: e.target.value })} /></label>
+          </div>
+          <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+            Player registration will start closed and hidden. Audience labels and terms can be copied, but every registration URL is cleared and each option is inactive until reviewed in Player Registration after this draft is created.
           </div>
           <fieldset className="mt-5"><legend className="text-sm font-semibold">Sections to copy as draft</legend><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{COPY_SECTIONS.map((section) => <label key={section} className="flex items-center gap-2 rounded-lg border p-2 text-sm"><input type="checkbox" checked={Boolean(form.copySections[section])} onChange={(e) => setForm({ ...form, copySections: { ...form.copySections, [section]: e.target.checked } })} />{section.replace(/([A-Z])/g, ' $1')}</label>)}</div></fieldset>
           <div className="mt-5 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900"><strong>Review preview:</strong> {preview.summary}<br />Copied sections: {preview.selectedSections.join(', ') || 'none'}{preview.warnings.map((warning) => <p key={warning} className="mt-2">Warning: {warning}</p>)}</div>
