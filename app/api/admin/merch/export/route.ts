@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
-import { csvCell } from '@/lib/csv';
+import { toCsv } from '@/lib/csv';
+import {
+  buildSupplierExportRows,
+  type SupplierExportOrder,
+} from '@/lib/orders/supplier-export';
 
 export const dynamic = 'force-dynamic';
-
-// Shared CSV cell encoding: RFC 4180 quoting + formula-injection guard.
-const esc = csvCell;
 
 export async function GET() {
   const user = await requireSession(['admin']);
@@ -21,24 +22,8 @@ export async function GET() {
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 
-  const rows: string[] = [];
-  for (const order of data || []) {
-    const items = Array.isArray(order.items) ? order.items : [];
-    for (const item of items) {
-      rows.push([
-        esc(order.customer_name),
-        esc(item?.name),
-        esc(item?.size),
-        esc(item?.quantity),
-        esc(order.created_at),
-        esc(order.merch_window_label),
-        esc(order.order_status),
-      ].join(','));
-    }
-  }
-
-  const header = ['customer', 'product', 'size', 'quantity', 'order_date', 'window_label', 'status'].join(',');
-  return new NextResponse([header, ...rows].join('\n'), {
+  const rows = buildSupplierExportRows((data || []) as unknown as SupplierExportOrder[]);
+  return new NextResponse(toCsv(rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': 'attachment; filename="ndcc-merch-supplier-export.csv"',

@@ -24,6 +24,8 @@ export type ExportOrder = {
     applied_options?: Array<{ group: string; value: string; label: string; price_delta: number }>;
     custom_name?: string;
     custom_number?: number;
+    alternate_number?: number;
+    number_request_status?: 'subject_to_availability';
   }>;
   total_amount: number;
   amount_paid?: number | null;
@@ -78,6 +80,8 @@ export const EXPORT_HEADER = [
   'payment_references',
   'order_processed',
   'notes',
+  'alternate_number',
+  'number_request_status',
 ];
 
 const melbourneDate = new Intl.DateTimeFormat('en-AU', {
@@ -186,6 +190,8 @@ export function buildMerchExportRows(
         references,
         order.processed ? 'yes' : 'no',
         order.notes || '',
+        item.alternate_number === undefined || item.alternate_number === null ? '' : String(item.alternate_number),
+        item.number_request_status || '',
       ]);
     }
   }

@@ -12,10 +12,10 @@ function check(label, pass) {
   if (!pass) failures.push(label);
 }
 
-check('exactly 15 products have verified artwork', supplied.length === 15);
-check('exactly 4 products are blocked on missing artwork', missing.length === 4);
-check('missing artwork is limited to the four verified hats',
-  missing.map((item) => item.slug).sort().join(',') === 'baggy-cap,bucket-hat,cap,wide-brim-hat');
+check('exactly 20 products have verified artwork', supplied.length === 20);
+check('exactly 2 products remain unpublished pending supplied artwork', missing.length === 2);
+check('missing artwork is limited to the two products absent from both supplied files',
+  missing.map((item) => item.slug).sort().join(',') === 'baggy-cap,wide-brim-hat');
 
 for (const item of supplied) {
   const pngPath = resolve(root, 'assets/apparel-masters/2026-27', item.png_filename);
@@ -31,4 +31,4 @@ for (const item of supplied) {
 }
 for (const item of missing) check(`${item.slug} has no public asset`, item.public_asset === null && item.embedded_pricing_absent === null);
 if (failures.length) process.exit(1);
-console.log(`Verified ${supplied.length} generated price-free public images and ${missing.length} unpublished products.`);
+console.log(`Verified ${supplied.length} generated price-free public images and ${missing.length} products awaiting supplied artwork.`);

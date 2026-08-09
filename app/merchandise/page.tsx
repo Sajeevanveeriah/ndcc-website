@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, XCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, ExternalLink, ImageOff } from 'lucide-react';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -13,6 +13,7 @@ import { CLUB_NAME } from '@/lib/constants';
 import { formatCurrency, validateEmail, validatePhone, cn } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
 import { computeUnitPrice, type CatalogueOption } from '@/lib/apparel/pricing';
+import { validatePersonalisation } from '@/lib/apparel/personalisation';
 
 interface CartItem extends OrderItem {
   id: string;
@@ -146,6 +147,9 @@ function MerchandiseContent() {
   const [sizeErrors, setSizeErrors] = useState<Record<string, string>>({});
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [customNumbers, setCustomNumbers] = useState<Record<string, string>>({});
+  const [alternateNumbers, setAlternateNumbers] = useState<Record<string, string>>({});
+  const [personalisationConfirmed, setPersonalisationConfirmed] = useState<Record<string, boolean>>({});
+  const [personalisationErrors, setPersonalisationErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -162,6 +166,8 @@ function MerchandiseContent() {
     order_id: string;
     total_amount: number;
     payment_reference: string;
+    personalisation_requested: boolean;
+    number_requested: boolean;
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
@@ -346,10 +352,28 @@ function MerchandiseContent() {
     setSizeErrors((prev) => ({ ...prev, [productId]: '' }));
 
     const qty = quantities[productId] || 1;
-    const custom_name = product.customisable ? customNames[productId]?.trim() || undefined : undefined;
-    const custom_number = product.customisable && customNumbers[productId]
-      ? parseInt(customNumbers[productId], 10)
-      : undefined;
+    const personalisation = validatePersonalisation(
+      product.customisable
+        ? {
+          custom_name: customNames[productId],
+          custom_number: customNumbers[productId],
+          alternate_number: alternateNumbers[productId],
+          personalisation_confirmed: personalisationConfirmed[productId],
+        }
+        : {}
+    );
+    if (!personalisation.ok) {
+      setPersonalisationErrors((prev) => ({ ...prev, [productId]: personalisation.error }));
+      return;
+    }
+    setPersonalisationErrors((prev) => ({ ...prev, [productId]: '' }));
+    const {
+      custom_name,
+      custom_number,
+      alternate_number,
+      number_request_status,
+      personalisation_confirmed,
+    } = personalisation.value;
 
     const priced = computeUnitPrice(
       { slug: product.id, name: product.name, price: product.price, options: product.options },
@@ -368,7 +392,8 @@ function MerchandiseContent() {
 
     const existingIdx = cart.findIndex(
       (item) => item.id === productId && item.size === size && item.custom_name === custom_name
-        && item.custom_number === custom_number && JSON.stringify(item.options || {}) === optionsKey
+        && item.custom_number === custom_number && item.alternate_number === alternate_number
+        && JSON.stringify(item.options || {}) === optionsKey
     );
 
     if (existingIdx >= 0) {
@@ -389,7 +414,10 @@ function MerchandiseContent() {
           options: Object.keys(appliedOptions).length > 0 ? appliedOptions : undefined,
           option_labels: optionLabels.length > 0 ? optionLabels : undefined,
           custom_name,
-          custom_number: custom_number !== undefined && !isNaN(custom_number) ? custom_number : undefined,
+          custom_number,
+          alternate_number,
+          number_request_status,
+          personalisation_confirmed,
         },
       ]);
     }
@@ -398,6 +426,8 @@ function MerchandiseContent() {
     if (product.customisable) {
       setCustomNames((prev) => ({ ...prev, [productId]: '' }));
       setCustomNumbers((prev) => ({ ...prev, [productId]: '' }));
+      setAlternateNumbers((prev) => ({ ...prev, [productId]: '' }));
+      setPersonalisationConfirmed((prev) => ({ ...prev, [productId]: false }));
     }
   }
 
@@ -463,7 +493,10 @@ function MerchandiseContent() {
           customer_email: formData.email,
           customer_phone: formData.phone,
           notes: formData.notes,
-          items: cart.map(({ id, name, size, quantity, price, options, custom_name, custom_number }) => ({
+          items: cart.map(({
+            id, name, size, quantity, price, options, custom_name, custom_number,
+            alternate_number, number_request_status, personalisation_confirmed,
+          }) => ({
             slug: id,
             name,
             size,
@@ -472,6 +505,9 @@ function MerchandiseContent() {
             ...(options ? { options } : {}),
             ...(custom_name ? { custom_name } : {}),
             ...(custom_number !== undefined ? { custom_number } : {}),
+            ...(alternate_number !== undefined ? { alternate_number } : {}),
+            ...(number_request_status ? { number_request_status } : {}),
+            ...(personalisation_confirmed ? { personalisation_confirmed } : {}),
           })),
           total_amount: cartTotal,
           order_category: 'merch',
@@ -491,6 +527,8 @@ function MerchandiseContent() {
         order_id: data.order_id || '',
         total_amount: Number(data.total_amount || 0),
         payment_reference: data.payment_reference || '',
+        personalisation_requested: Boolean(data.personalisation_requested),
+        number_requested: Boolean(data.number_requested),
         bank_details: data.bank_details || { account_name: '', bsb: '', account_number: '' },
       });
       setSubmitStatus('success');
@@ -597,14 +635,18 @@ function MerchandiseContent() {
                     </div>
                   ) : (
                     <div
-                      className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}
-                      aria-hidden="true"
+                      className={`h-36 bg-gradient-to-br ${gradient} flex flex-col items-center justify-center gap-2 px-4 text-center`}
+                      role="img"
+                      aria-label={product.imageAlt || `Product image unavailable for ${product.name}`}
                     >
-                      {iconData && (
+                      {iconData ? (
                         <svg className={`w-12 h-12 ${iconData.textColor}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d={iconData.path} />
                         </svg>
+                      ) : (
+                        <ImageOff className="h-8 w-8 text-white/80" aria-hidden="true" />
                       )}
+                      <span className="text-xs font-body font-semibold text-white">Product image unavailable</span>
                     </div>
                   )}
                   <CardContent className="space-y-3">
@@ -695,33 +737,74 @@ function MerchandiseContent() {
                       )}
                     </div>
 
-                    {/* Custom name/number for customisable products */}
+                    {/* Surname and number preferences for customisable products */}
                     {product.customisable && (
                       <div className="space-y-2">
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                          Surname only. Nicknames will not be accepted. Both number preferences are requests and remain subject to availability and club confirmation.
+                        </p>
                         <div>
-                          <label htmlFor={`custom-name-${product.id}`} className="form-label text-xs">Name on Shirt (optional)</label>
+                          <label htmlFor={`custom-name-${product.id}`} className="form-label text-xs">Surname (optional)</label>
                           <input
                             id={`custom-name-${product.id}`}
                             type="text"
                             className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
                             placeholder="e.g. SMITH"
+                            maxLength={40}
                             value={customNames[product.id] || ''}
-                            onChange={(e) => setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                            onChange={(e) => {
+                              setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }));
+                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+                            }}
                           />
                         </div>
                         <div>
-                          <label htmlFor={`custom-number-${product.id}`} className="form-label text-xs">Number on Shirt (optional)</label>
+                          <label htmlFor={`custom-number-${product.id}`} className="form-label text-xs">First number preference (optional)</label>
                           <input
                             id={`custom-number-${product.id}`}
                             type="number"
-                            min={0}
+                            min={1}
                             max={99}
                             className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
-                            placeholder="0-99"
+                            placeholder="1-99"
                             value={customNumbers[product.id] || ''}
-                            onChange={(e) => setCustomNumbers((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                            onChange={(e) => {
+                              setCustomNumbers((prev) => ({ ...prev, [product.id]: e.target.value }));
+                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+                            }}
                           />
                         </div>
+                        <div>
+                          <label htmlFor={`alternate-number-${product.id}`} className="form-label text-xs">Second number preference (optional)</label>
+                          <input
+                            id={`alternate-number-${product.id}`}
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            placeholder="1-99"
+                            value={alternateNumbers[product.id] || ''}
+                            onChange={(e) => {
+                              setAlternateNumbers((prev) => ({ ...prev, [product.id]: e.target.value }));
+                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+                            }}
+                          />
+                        </div>
+                        <label className="flex items-start gap-2 text-xs text-content-secondary">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={personalisationConfirmed[product.id] || false}
+                            onChange={(e) => {
+                              setPersonalisationConfirmed((prev) => ({ ...prev, [product.id]: e.target.checked }));
+                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+                            }}
+                          />
+                          <span>I confirm any name entered is a surname and understand that both number preferences are subject to availability and club confirmation.</span>
+                        </label>
+                        {personalisationErrors[product.id] && (
+                          <p className="text-xs text-red-600" role="alert">{personalisationErrors[product.id]}</p>
+                        )}
                       </div>
                     )}
 
@@ -820,6 +903,13 @@ function MerchandiseContent() {
                     <p>BSB: <span className="font-semibold">{orderConfirmation.bank_details.bsb}</span></p>
                     <p>Account Number: <span className="font-semibold">{orderConfirmation.bank_details.account_number}</span></p>
                   </div>
+                </div>
+              )}
+              {orderConfirmation?.personalisation_requested && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  {orderConfirmation.number_requested
+                    ? 'Your surname and number preferences have been recorded for club review. The club will confirm the final number by email, subject to availability.'
+                    : 'Your surname has been recorded for club review.'}
                 </div>
               )}
               {capabilities.card && orderConfirmation?.order_id && (
@@ -942,10 +1032,12 @@ function MerchandiseContent() {
                           <p key={label} className="font-body text-xs text-content-muted">{label}</p>
                         ))}
                         {item.custom_name && (
-                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Name: {item.custom_name}</p>
+                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Surname: {item.custom_name}</p>
                         )}
                         {item.custom_number !== undefined && (
-                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Number: {item.custom_number}</p>
+                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">
+                            Number preferences: {item.custom_number}{item.alternate_number !== undefined ? `, ${item.alternate_number}` : ''} (subject to availability)
+                          </p>
                         )}
                       </div>
                       <div className="flex items-center gap-4">

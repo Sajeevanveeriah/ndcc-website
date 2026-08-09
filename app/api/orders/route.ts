@@ -178,14 +178,30 @@ export async function POST(request: Request) {
       );
     }
 
+    const personalisationRequested = normalisedItems.some(
+      (i) => Boolean(i.custom_name) || i.number_request_status === 'subject_to_availability'
+    );
+    const numberRequested = normalisedItems.some((i) => i.number_request_status === 'subject_to_availability');
     const itemListHtml = normalisedItems
-      .map((i) =>
+      .map((i) => {
+        const preferences = [i.custom_number, i.alternate_number]
+          .filter((number): number is number => typeof number === 'number')
+          .join(', ');
+        const selectedOptionLines = (i.applied_options || [])
+          .map((option) => `${escapeHtml(option.group)}: ${escapeHtml(option.label)}`);
+        const itemDetailLines = [
+          ...selectedOptionLines,
+          i.custom_name ? `Surname: ${escapeHtml(i.custom_name)}` : '',
+          preferences ? `Number preferences: ${escapeHtml(preferences)} (subject to availability)` : '',
+        ].filter(Boolean).join('<br>');
+        return (
         `<tr>
-          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${escapeHtml(String(i.name || 'Item'))}${i.size && i.size !== 'kitchen' ? ` (${escapeHtml(String(i.size))})` : ''}</td>
+          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${escapeHtml(String(i.name || 'Item'))}${i.size && i.size !== 'kitchen' ? ` (${escapeHtml(String(i.size))})` : ''}${itemDetailLines ? `<br><span style="font-size:12px;color:#6b7280;">${itemDetailLines}</span>` : ''}</td>
           <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;text-align:center;">${i.quantity ?? 1}</td>
           <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;text-align:right;">$${((i.price ?? 0) * (i.quantity ?? 1)).toFixed(2)}</td>
         </tr>`
-      )
+        );
+      })
       .join('');
     void sendEmail({
       to: sanitiseInput(customer_email),
@@ -210,6 +226,11 @@ export async function POST(request: Request) {
             </tr>
           </tfoot>
         </table>
+        ${numberRequested
+          ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> Surnames and number preferences are subject to club review. Number preferences are subject to availability, and the club will confirm the final number separately by email.</div>`
+          : personalisationRequested
+            ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The surname entered has been recorded for club review.</div>`
+            : ''}
         ${bankDetailsHtml(paymentReference, serverTotal)}
         <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
@@ -222,6 +243,8 @@ export async function POST(request: Request) {
       payment_reference: paymentReference,
       order_status: orderStatus,
       merch_window_label: merchWindowLabel,
+      personalisation_requested: personalisationRequested,
+      number_requested: numberRequested,
       bank_details: {
         account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
         bsb: process.env.NDCC_BANK_BSB || '',

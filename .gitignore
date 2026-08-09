@@ -38,4 +38,4 @@ yarn-error.log*
 next-env.d.ts
 
 # Deterministic build outputs generated from approved apparel sources.
-/assets/apparel-masters/2026-27/*-Rev01.png
+/assets/apparel-masters/2026-27/*-Rev*.png

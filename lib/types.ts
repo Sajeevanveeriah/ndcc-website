@@ -35,6 +35,9 @@ export interface OrderItem {
   base_price?: number;
   custom_name?: string;
   custom_number?: number;
+  alternate_number?: number;
+  number_request_status?: 'subject_to_availability';
+  personalisation_confirmed?: boolean;
 }
 
 export interface Contact {
