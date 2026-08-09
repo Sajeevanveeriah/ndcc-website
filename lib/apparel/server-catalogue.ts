@@ -5,6 +5,7 @@
 // prices, applied option surcharges and a server-computed total.
 
 import { computeUnitPrice, fromCents, type CatalogueOption } from '@/lib/apparel/pricing';
+import { validatePersonalisation } from '@/lib/apparel/personalisation';
 
 export type PostedOrderItem = {
   slug?: string;
@@ -15,6 +16,9 @@ export type PostedOrderItem = {
   options?: Record<string, string>;
   custom_name?: string;
   custom_number?: number;
+  alternate_number?: number;
+  number_request_status?: 'subject_to_availability';
+  personalisation_confirmed?: boolean;
 };
 
 export type ServerCatalogueProduct = {
@@ -23,6 +27,8 @@ export type ServerCatalogueProduct = {
   name: string;
   price: number;
   active: boolean;
+  sizes: string[];
+  customisable: boolean;
   options: CatalogueOption[];
 };
 
@@ -46,7 +52,7 @@ export async function loadPricedCatalogue(client: unknown): Promise<
   const supabase = client as SupabaseLike;
   const { data: products, error } = await supabase
     .from('apparel_products')
-    .select('id,slug,name,price,active')
+    .select('id,slug,name,price,active,sizes,customisable')
     .eq('active', true);
   if (error || !products) {
     return { ok: false, error: error?.message || 'catalogue unavailable' };
@@ -72,9 +78,14 @@ export async function loadPricedCatalogue(client: unknown): Promise<
 
   return {
     ok: true,
-    products: (products as Array<{ id: string; slug: string; name: string; price: number; active: boolean }>).map((p) => ({
+    products: (products as Array<{
+      id: string; slug: string; name: string; price: number; active: boolean;
+      sizes: string[] | null; customisable: boolean;
+    }>).map((p) => ({
       ...p,
       price: Number(p.price),
+      sizes: Array.isArray(p.sizes) ? p.sizes : [],
+      customisable: Boolean(p.customisable),
       options: byProduct.get(p.id) || [],
     })),
   };
@@ -123,6 +134,24 @@ export function priceOrderItems(
       return { ok: false, error: `Invalid quantity for ${match.name}.` };
     }
 
+    const size = typeof rawItem.size === 'string' ? rawItem.size.trim() : '';
+    const allowedSizes = match.sizes.length > 0 ? match.sizes : ['One Size'];
+    if (!size || !allowedSizes.includes(size)) {
+      return { ok: false, error: `Choose a valid size for ${match.name}.` };
+    }
+
+    const hasPostedPersonalisation = Boolean(
+      rawItem.custom_name || rawItem.custom_number !== undefined || rawItem.alternate_number !== undefined
+      || rawItem.personalisation_confirmed
+    );
+    if (!match.customisable && hasPostedPersonalisation) {
+      return { ok: false, error: `Personalisation is not available for ${match.name}.` };
+    }
+    const personalisation = validatePersonalisation(match.customisable ? rawItem : {});
+    if (!personalisation.ok) {
+      return { ok: false, error: `${match.name}: ${personalisation.error}` };
+    }
+
     const priced = computeUnitPrice(match, rawItem.options);
     if (!priced.ok) {
       return { ok: false, error: priced.error };
@@ -135,13 +164,21 @@ export function priceOrderItems(
     }
 
     totalCents += priced.unitPriceCents * quantity;
+    const safeRawItem = { ...rawItem };
+    delete safeRawItem.custom_name;
+    delete safeRawItem.custom_number;
+    delete safeRawItem.alternate_number;
+    delete safeRawItem.number_request_status;
+    delete safeRawItem.personalisation_confirmed;
     pricedItems.push({
-      ...rawItem,
+      ...safeRawItem,
       name: match.name,
       slug: match.slug,
+      size,
       quantity,
       price: priced.unitPrice,
       base_price: Number(match.price),
+      ...personalisation.value,
       ...(priced.applied.length > 0 ? { applied_options: priced.applied } : {}),
     });
   }

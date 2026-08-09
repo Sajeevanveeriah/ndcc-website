@@ -12,9 +12,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const stage = mkdtempSync(path.join(tmpdir(), 'ndcc-export-'));
 writeFileSync(path.join(stage, 'csv.ts'), readFileSync(path.join(repoRoot, 'lib/csv.ts'), 'utf8'));
 writeFileSync(path.join(stage, 'export.ts'), readFileSync(path.join(repoRoot, 'lib/orders/export.ts'), 'utf8'));
+writeFileSync(path.join(stage, 'supplier-export.ts'), readFileSync(path.join(repoRoot, 'lib/orders/supplier-export.ts'), 'utf8'));
 
 const { csvCell, toCsv, guardFormulaInjection } = await import(pathToFileURL(path.join(stage, 'csv.ts')).href);
 const { buildMerchExportRows, EXPORT_HEADER } = await import(pathToFileURL(path.join(stage, 'export.ts')).href);
+const { buildSupplierExportRows, SUPPLIER_EXPORT_HEADER } = await import(pathToFileURL(path.join(stage, 'supplier-export.ts')).href);
 
 let passed = 0;
 function test(name, fn) { fn(); passed += 1; console.log(`  ok - ${name}`); }
@@ -80,6 +82,7 @@ const orders = [
       {
         slug: 'playing-shirt', name: 'Playing Shirt', size: 'One Size', quantity: 1,
         price: 36, base_price: 36, custom_name: 'SMITH', custom_number: 7,
+        alternate_number: 23, number_request_status: 'subject_to_availability',
       },
     ],
     total_amount: 104,
@@ -141,14 +144,18 @@ test('ISO and Melbourne timestamps both present', () => {
   assert.match(String(first.order_date_melbourne), /10\/07\/2026/);
 });
 
-test('custom name/number and empty optional fields', () => {
+test('surname, two number preferences and availability status are exported', () => {
   const rows = buildMerchExportRows(orders, payments);
   const second = Object.fromEntries(EXPORT_HEADER.map((h, i) => [h, rows[2][i]]));
   assert.equal(second.custom_name, 'SMITH');
   assert.equal(second.custom_number, '7');
+  assert.equal(second.alternate_number, '23');
+  assert.equal(second.number_request_status, 'subject_to_availability');
   const third = Object.fromEntries(EXPORT_HEADER.map((h, i) => [h, rows[3][i]]));
   assert.equal(third.custom_name, '');
   assert.equal(third.custom_number, '');
+  assert.equal(third.alternate_number, '');
+  assert.equal(third.number_request_status, '');
 });
 
 test('void payments excluded from methods; provider references included', () => {
@@ -201,6 +208,20 @@ test('filter: unpaid alias matches legacy pending_bank_transfer', () => {
   const legacy = [{ ...orders[0], id: 'order-3', payment_status: 'pending_bank_transfer' }];
   const rows = buildMerchExportRows(legacy, [], { paymentStatus: 'unpaid' });
   assert.equal(rows.length, 3); // header + two items
+});
+
+test('supplier export includes options, surname, two preferences and request status', () => {
+  const rows = buildSupplierExportRows(orders);
+  assert.deepEqual(rows[0], SUPPLIER_EXPORT_HEADER);
+  assert.deepEqual(rows[0].slice(0, 7), [
+    'customer', 'product', 'size', 'quantity', 'order_date', 'window_label', 'status',
+  ]);
+  const personalised = Object.fromEntries(SUPPLIER_EXPORT_HEADER.map((h, i) => [h, rows[2][i]]));
+  assert.equal(personalised.product, 'Playing Shirt');
+  assert.equal(personalised.surname, 'SMITH');
+  assert.equal(personalised.first_number_preference, '7');
+  assert.equal(personalised.second_number_preference, '23');
+  assert.equal(personalised.number_request_status, 'subject_to_availability');
 });
 
 console.log(`\ntest-merch-export: ${passed} tests passed`);

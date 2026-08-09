@@ -426,10 +426,19 @@ export default function AdminOrdersPage() {
                 <TableCell>
                   <div className="space-y-1">
                     {o.items.map((item, i) => (
-                      <p key={i} className="text-xs">
-                        {item.name} ({item.size}) x{item.quantity}
-                        {item.applied_options?.map((opt) => ` · ${opt.label}`).join('')}
-                      </p>
+                      <div key={i} className="text-xs">
+                        <p>
+                          {item.name} ({item.size}) x{item.quantity}
+                          {item.applied_options?.map((opt) => ` · ${opt.label}`).join('')}
+                        </p>
+                        {item.custom_name && <p className="text-content-muted">Surname: {item.custom_name}</p>}
+                        {item.custom_number !== undefined && (
+                          <p className="text-content-muted">
+                            Number preferences: {item.custom_number}
+                            {item.alternate_number !== undefined ? `, ${item.alternate_number}` : ''} (subject to availability)
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </TableCell>
