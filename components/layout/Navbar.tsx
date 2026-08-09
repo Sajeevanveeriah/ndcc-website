@@ -253,7 +253,7 @@ export default function Navbar() {
               <span className={cn('font-display font-semibold uppercase tracking-wide text-lg leading-none block', transparent ? 'text-white' : 'text-maroon-700 dark:text-maroon-200')}>
                 {settings.club_short}
               </span>
-              <span className={cn('text-[10.5px] font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-400 dark:text-slate-400')}>
+              <span className={cn('text-[10.5px] font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-600 dark:text-slate-400')}>
                 The Dinos · Est. {settings.established_year}
               </span>
             </div>
@@ -369,7 +369,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={cn('lg:hidden p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
+            className={cn('lg:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
@@ -403,7 +403,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
+                  className="min-h-11 min-w-11 p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
                   aria-label="Close menu"
                 >
                   <X className="h-6 w-6 text-content-secondary" />
