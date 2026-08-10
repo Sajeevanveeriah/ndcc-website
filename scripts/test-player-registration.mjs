@@ -143,10 +143,11 @@ assert.match(publicPage, /target="_blank"/);
 assert.match(publicPage, /rel="noopener noreferrer"/);
 assert.doesNotMatch(publicPage, /dangerouslySetInnerHTML/);
 
-assert.match(authConfig, /CLUB_ADMIN_ROLES[^\n]+\['admin', 'president', 'secretary', 'committee'\]/);
-assert.doesNotMatch(authConfig.match(/CLUB_ADMIN_ROLES[^\n]+/)?.[0] || '', /fantasy_manager/);
-assert.match(adminApi, /requireSession\(CLUB_ADMIN_ROLES\)/);
-assert.doesNotMatch(adminApi, /FANTASY_ADMIN_ROLES/);
+assert.match(authConfig, /FULL_ACCESS_ROLES/);
+assert.match(authConfig, /CLUB_ADMIN_ROLES[^\n]+FULL_ACCESS_ROLES[^\n]+committee/);
+assert.doesNotMatch(authConfig.match(/CLUB_ADMIN_ROLES[^\n]+/)?.[0] || '', /fantasy_manager|fantasy_support/);
+assert.match(adminApi, /requirePermission\('season\.registration'\)/);
+assert.doesNotMatch(adminApi, /FANTASY_ADMIN_ROLES|CLUB_ADMIN_ROLES/);
 assert.match(adminApi, /validateRegistrationSettings/);
 assert.match(adminApi, /\.upsert\(/);
 
