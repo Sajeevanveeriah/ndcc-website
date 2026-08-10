@@ -1,12 +1,14 @@
 import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase-server';
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, AuthRole, SESSION_TTL_DAYS, SESSION_IDLE_TIMEOUT_MINUTES } from './config';
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_DOMAIN, type AuthRole, SESSION_TTL_DAYS, SESSION_IDLE_TIMEOUT_MINUTES } from './config';
+import { getEffectivePermissions, getLegacyEffectivePermissions, type PermissionKey } from './permissions';
 
 export interface CommitteeSessionUser {
   id: string;
   email: string;
   full_name: string;
   role: AuthRole;
+  permissions: PermissionKey[];
 }
 
 export type SessionResolution =
@@ -92,26 +94,45 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
   const tokenHash = hashSessionToken(token);
 
   try {
-    // last_seen_at may not exist until the 20260706_admin_session_activity
-    // migration is applied, so fall back to the legacy column set on a
-    // missing-column error instead of locking every admin out.
+    // Keep rollout compatibility with databases that have not yet received
+    // last_seen_at or cms_permissions. Missing permissions use the previous
+    // effective role behaviour so an application deploy cannot lock users out.
     let hasLastSeenColumn = true;
-    let query = await supabase
-      .from('committee_sessions')
-      .select('expires_at, last_seen_at, committee_users(id, email, full_name, role, is_active)')
-      .eq('session_token_hash', tokenHash)
-      .maybeSingle();
+    let hasPermissionsColumn = true;
+    let query;
 
-    if (query.error?.message?.includes('last_seen_at')) {
-      hasLastSeenColumn = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const sessionColumns = ['expires_at'];
+      if (hasLastSeenColumn) sessionColumns.push('last_seen_at');
+      const userColumns = ['id', 'email', 'full_name', 'role', 'is_active'];
+      if (hasPermissionsColumn) userColumns.push('cms_permissions');
+
       query = await supabase
         .from('committee_sessions')
-        .select('expires_at, committee_users(id, email, full_name, role, is_active)')
+        .select(`${sessionColumns.join(', ')}, committee_users(${userColumns.join(', ')})`)
         .eq('session_token_hash', tokenHash)
         .maybeSingle();
+
+      const message = query.error?.message || '';
+      if (hasLastSeenColumn && message.includes('last_seen_at')) {
+        hasLastSeenColumn = false;
+        continue;
+      }
+      if (hasPermissionsColumn && message.includes('cms_permissions')) {
+        hasPermissionsColumn = false;
+        continue;
+      }
+      break;
     }
 
-    type SessionUserRow = { id: string; email: string; full_name: string; role: string; is_active: boolean };
+    type SessionUserRow = {
+      id: string;
+      email: string;
+      full_name: string;
+      role: string;
+      is_active: boolean;
+      cms_permissions?: string[] | null;
+    };
     const { data, error } = query as unknown as {
       data: {
         expires_at: string;
@@ -138,12 +159,9 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
     }
 
     const rawUser = Array.isArray(data.committee_users) ? data.committee_users[0] : data.committee_users;
-
     if (!rawUser || !rawUser.is_active) return { status: 'unauthenticated', reason: 'inactive_user' };
 
     if (hasLastSeenColumn) {
-      // Sliding-window refresh; throttled to once per 60s so busy admin screens
-      // don't write on every request. Failures are non-fatal.
       const lastSeenMs = data.last_seen_at ? new Date(data.last_seen_at).getTime() : 0;
       if (!lastSeenMs || Date.now() - lastSeenMs > 60_000) {
         await supabase
@@ -154,13 +172,19 @@ export async function resolveSessionFromToken(token?: string | null): Promise<Se
       }
     }
 
+    const role = rawUser.role as AuthRole;
+    const permissions = hasPermissionsColumn
+      ? getEffectivePermissions(role, rawUser.cms_permissions || [])
+      : getLegacyEffectivePermissions(role);
+
     return {
       status: 'authenticated',
       user: {
         id: rawUser.id,
         email: rawUser.email,
         full_name: rawUser.full_name,
-        role: rawUser.role as AuthRole,
+        role,
+        permissions,
       },
       expiresAt,
     };
