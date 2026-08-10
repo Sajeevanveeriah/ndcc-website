@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('minutes');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const supabase = createServerClient();
@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary']);
+  const user = await requirePermission('minutes', ['admin', 'president', 'secretary']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { title, meeting_date, content, status } = await request.json();
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary']);
+  const user = await requirePermission('minutes', ['admin', 'president', 'secretary']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { id, ...payload } = await request.json();
