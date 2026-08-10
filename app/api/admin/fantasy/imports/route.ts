@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { getFantasyImportBatches } from '@/lib/fantasy-leaderboard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.imports');
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
   }
