@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
 import { validateCalendarEventPayload } from '@/lib/calendar/format';
 import { PUBLICATION_TYPES } from '@/lib/public-publications';
 import type { AuthRole } from '@/lib/auth/config';
+import { isFullAccessRole, RESOURCE_PERMISSIONS } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,9 +40,9 @@ const resourceMap: Record<string, ResourceConfig> = {
   news: { table: 'news', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'content', 'author', 'image_url', 'published', 'published_at', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   seasonAppointments: { table: 'season_appointments', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'role', 'image_url', 'announcement_date', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   teams: { table: 'teams', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'grade', 'description', 'captain', 'playhq_url', 'image_url', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
-  fantasyPlayers: { table: 'fantasy_players', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], allowedFields: ['display_name', 'playhq_player_id', 'role', 'team_label', 'active'], defaultOrder: { column: 'display_name', ascending: true }, allowDelete: false },
-  fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], allowedFields: ['round_number', 'name', 'deadline_at', 'status', 'season_id'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
-  fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
+  fantasyPlayers: { table: 'fantasy_players', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['display_name', 'playhq_player_id', 'role', 'team_label', 'active'], defaultOrder: { column: 'display_name', ascending: true }, allowDelete: false },
+  fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['round_number', 'name', 'deadline_at', 'status', 'season_id'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
+  fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
   sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -50,7 +51,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   volunteerExpressions: { table: 'volunteer_expressions', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['status', 'contacted_at'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['contacted_at'] },
   // album_id is writable so images can be assigned to / removed from gallery
   // albums (null detaches). Storage provenance fields (storage_path,
-  // original_url, ...) are deliberately NOT writable here — they are set only
+  // original_url, ...) are deliberately NOT writable here - they are set only
   // by the dedicated gallery upload finalisation endpoint.
   galleryImages: { table: 'gallery_images', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'caption', 'image_url', 'alt_text', 'sort_order', 'allow_download', 'published', 'album_id'], defaultOrder: { column: 'sort_order', ascending: true } },
   apparelProducts: { table: 'apparel_products', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['slug', 'name', 'description', 'price', 'sizes', 'image_url', 'image_alt', 'customisable', 'category', 'display_order', 'order_guidance', 'size_guidance', 'active', 'payment_mode', 'payment_link_url', 'stripe_price_id', 'checkout_enabled', 'fulfilment_notes', 'order_email'], defaultOrder: { column: 'display_order', ascending: true } },
@@ -118,7 +119,7 @@ const CHROME_SCOPED_RESOURCES = new Set(['contentBlocks', 'pageLinkCards', 'club
 function affectsSiteChrome(resource: string, record?: Record<string, unknown> | null) {
   if (!CHROME_SCOPED_RESOURCES.has(resource)) return false;
   if (resource === 'clubSettings') return true;
-  if (!record) return true; // deletes only return the id, so assume the chrome may be affected
+  if (!record) return true;
   const key = record.block_key ?? record.section_key;
   return typeof key === 'string' && key.startsWith('footer');
 }
@@ -131,8 +132,6 @@ function parseBatchIds(value: unknown): string[] | null {
   return ids.every((entry) => entry.length > 0) ? ids : null;
 }
 
-// News is the only resource with id-specific revalidation paths (/news/${id}),
-// so batch writes revalidate per id there and once at resource level elsewhere.
 const PUBLICATION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function validatePublicationPayload(payload: Record<string, unknown>, isCreate: boolean): string | null {
@@ -182,8 +181,6 @@ function revalidateForResource(resource: string, id?: string, record?: Record<st
   for (const tag of revalidationTags[resource] || []) {
     try { revalidateTag(tag); } catch { /* best-effort */ }
   }
-  // Footer content renders on every page via the root layout, so a footer-scoped
-  // write must refresh the layout, not just the paths listed above.
   if (affectsSiteChrome(resource, record)) {
     try { revalidatePath('/', 'layout'); } catch { /* best-effort */ }
   }
@@ -194,15 +191,15 @@ function pickResource(resource: string) {
 }
 
 function canRead(role: AuthRole, allowed: AuthRole[]) {
-  return allowed.includes(role);
+  return isFullAccessRole(role) || allowed.includes(role);
 }
 
 function canWrite(role: AuthRole, config: ResourceConfig) {
-  return config.writeRoles.includes(role);
+  return isFullAccessRole(role) || config.writeRoles.includes(role);
 }
 
 function canDelete(role: AuthRole, config: ResourceConfig) {
-  return (config.deleteRoles || config.writeRoles).includes(role);
+  return isFullAccessRole(role) || (config.deleteRoles || config.writeRoles).includes(role);
 }
 
 function safeDeleteErrorResponse(message: string) {
@@ -235,8 +232,6 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
   return payload;
 }
 
-
-
 function hasRequiredClubSettingsFields(payload: Record<string, unknown>) {
   return ['club_name', 'club_short', 'club_nickname'].every((field) => (
     typeof payload[field] === 'string' && payload[field].trim().length > 0
@@ -267,11 +262,17 @@ function isMissingSortOrderColumnError(errorMessage: string, table: string) {
     && errorMessage.includes('news');
 }
 
+async function authoriseResource(resource: string) {
+  const permission = RESOURCE_PERMISSIONS[resource];
+  if (!permission) return null;
+  return requirePermission(permission);
+}
+
 export async function GET(request: Request, { params }: { params: { resource: string } }) {
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee', 'fantasy_manager']);
+  const user = await authoriseResource(params.resource);
   if (!user || !canRead(user.role, config.readRoles)) {
     return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
@@ -313,7 +314,7 @@ export async function POST(request: Request, { params }: { params: { resource: s
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee', 'fantasy_manager']);
+  const user = await authoriseResource(params.resource);
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
@@ -365,7 +366,7 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee', 'fantasy_manager']);
+  const user = await authoriseResource(params.resource);
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
@@ -439,7 +440,7 @@ export async function DELETE(request: Request, { params }: { params: { resource:
   const config = pickResource(params.resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee', 'fantasy_manager']);
+  const user = await authoriseResource(params.resource);
   if (!user || !canDelete(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot delete this record.' }, { status: 403 });
   }
