@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 import { getGitHubMediaEnv, getMediaConfigStatus } from '@/lib/server/media-env';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('diagnostics.media');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   return NextResponse.json({ success: true, data: getMediaConfigStatus() });
@@ -48,7 +48,7 @@ async function testGitHubAccess() {
 // action used to live here; it was removed because firing the hook alongside an
 // in-flight git deployment makes Vercel cancel both, leaving production stale.
 export async function POST(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('diagnostics.media');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
