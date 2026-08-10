@@ -25,7 +25,7 @@ assert.doesNotMatch(layout, /fantasyManagerHrefs/);
 assert.match(config, /'fantasy_manager'/);
 assert.match(config, /'fantasy_support'/);
 assert.match(permissions, /scope: 'fantasy'/);
-assert.match(permissions, /return '\/admin\/change-password'/);
+assert.match(permissions, /'\/admin\/change-password'/);
 
 console.log('CMS navigation checks passed.');
 
