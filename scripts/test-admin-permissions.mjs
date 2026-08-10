@@ -121,11 +121,14 @@ assert.match(session, /cms_permissions/);
 assert.match(session, /getEffectivePermissions/);
 assert.match(session, /getLegacyEffectivePermissions/);
 
-const migration = readFileSync('supabase/migrations/20260811092000_granular_cms_access.sql', 'utf8');
+const migrationName = readdirSync('supabase/migrations').find((name) => name.endsWith('_granular_cms_access.sql'));
+assert.ok(migrationName, 'Granular CMS access migration must exist.');
+const migration = readFileSync(path.join('supabase/migrations', migrationName), 'utf8');
 for (const role of expectedRoles) assert.match(migration, new RegExp(`'${role}'`), `Migration must support ${role}.`);
 for (const fragment of [
   'cms_permissions TEXT[] NOT NULL',
   "WHERE role = 'committee'",
+  'ndcc_cms_permissions_are_unique',
   'ndcc_admin_create_committee_user_with_access',
   'ndcc_admin_update_committee_user_access',
   'SECURITY DEFINER',
@@ -134,7 +137,7 @@ for (const fragment of [
   'ALTER TABLE public.committee_users ENABLE ROW LEVEL SECURITY',
   'ALTER TABLE public.committee_sessions ENABLE ROW LEVEL SECURITY',
   'DELETE FROM public.committee_sessions WHERE user_id = p_user_id',
-]) assert.match(migration, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+]) assert.ok(migration.includes(fragment), `Migration missing: ${fragment}`);
 assert.doesNotMatch(migration, /WHERE\s+(?:lower\()?email|WHERE\s+full_name/i, 'Migration must not infer role changes from names or email addresses.');
 
 console.log('Admin permission policy checks passed.');
