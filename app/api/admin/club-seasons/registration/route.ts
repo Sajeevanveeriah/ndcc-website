@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { CLUB_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import {
   createFutureSeasonRegistrationDraft,
   registrationEditorFromRow,
@@ -39,7 +38,7 @@ function unavailableResponse() {
 }
 
 export async function GET(request: Request) {
-  const user = await requireSession(CLUB_ADMIN_ROLES);
+  const user = await requirePermission('season.registration');
   if (!user) {
     return NextResponse.json({ success: false, error: 'Committee sign in is required.' }, { status: 403, headers: noStoreHeaders });
   }
@@ -98,7 +97,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await requireSession(CLUB_ADMIN_ROLES);
+  const user = await requirePermission('season.registration');
   if (!user) {
     return NextResponse.json({ success: false, error: 'Committee sign in is required.' }, { status: 403, headers: noStoreHeaders });
   }
