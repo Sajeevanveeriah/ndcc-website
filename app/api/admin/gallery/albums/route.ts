@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
-import { GALLERY_ADMIN_ROLES } from '@/lib/gallery/roles';
+import { requirePermission } from '@/lib/auth/guard';
 import { isValidAlbumSlug, isUuid, MAX_ALBUM_SLUG_LENGTH } from '@/lib/gallery/shared';
 
 export const dynamic = 'force-dynamic';
@@ -62,8 +61,12 @@ function sanitizeAlbumPayload(raw: Record<string, unknown>) {
   return payload;
 }
 
+async function requireGallery() {
+  return requirePermission('gallery');
+}
+
 export async function GET() {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requireGallery();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const supabase = createServerClient();
@@ -83,7 +86,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requireGallery();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const raw = await request.json().catch(() => null);
@@ -92,8 +95,6 @@ export async function POST(request: Request) {
   const validationError = validateAlbumPayload(payload, true);
   if (validationError) return NextResponse.json({ success: false, error: validationError }, { status: 400 });
 
-  // New albums always start as drafts; publishing is an explicit separate act
-  // that carries the consent acknowledgement.
   payload.published = false;
 
   const supabase = createServerClient();
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requireGallery();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const raw = await request.json().catch(() => null);
@@ -129,8 +130,6 @@ export async function PATCH(request: Request) {
     .from('gallery_albums').select('id, slug, published').eq('id', id).single();
   if (fetchError || !existing) return NextResponse.json({ success: false, error: 'Album not found.' }, { status: 404 });
 
-  // Publishing (false -> true) requires the explicit consent acknowledgement
-  // and stamps the audit fields. Unpublishing keeps the historical audit.
   if (payload.published === true && existing.published !== true) {
     if (confirmPublication !== true) {
       return NextResponse.json({
@@ -155,7 +154,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requireGallery();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
@@ -166,10 +165,6 @@ export async function DELETE(request: Request) {
   const { data: existing } = await supabase.from('gallery_albums').select('id, slug').eq('id', id).single();
   if (!existing) return NextResponse.json({ success: false, error: 'Album not found.' }, { status: 404 });
 
-  // Preservation-first delete: removes only album metadata. The FK is
-  // ON DELETE SET NULL so image rows survive as ungrouped images, and every
-  // Storage object is left untouched. Permanent media deletion is a separate
-  // explicit action in /api/admin/gallery/uploads/cleanup.
   const { error } = await supabase.from('gallery_albums').delete().eq('id', id);
   if (error) return NextResponse.json({ success: false, error: 'Delete failed. Please try again.' }, { status: 500 });
   revalidateGallery(existing.slug);
