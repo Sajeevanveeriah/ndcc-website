@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const repairPath = path.join(root, 'supabase/migrations/20260630_repair_committee_auth_pgcrypto.sql');
+const repairPath = path.join(root, 'supabase/migrations/20260630000300_repair_committee_auth_pgcrypto.sql');
 const originalPath = path.join(root, 'supabase/migrations/20260401_custom_committee_auth.sql');
 
 function fail(message) {
