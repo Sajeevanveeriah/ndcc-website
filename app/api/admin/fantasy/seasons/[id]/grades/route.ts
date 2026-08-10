@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPlayHQGrades } from '@/lib/playhq/client';
 
@@ -12,7 +11,7 @@ const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
 // GET: current grade sources for the season plus live PlayHQ grades for its
 // linked PlayHQ season. PUT: replace the enabled grade mapping.
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.seasons');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const supabase = createServerClient();
   try {
@@ -43,7 +42,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.seasons');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const body = await request.json().catch(() => ({}));
   const grades = Array.isArray(body.grades) ? body.grades : [];
