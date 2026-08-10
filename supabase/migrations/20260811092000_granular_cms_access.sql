@@ -57,9 +57,25 @@ SET cms_permissions = ARRAY[
 WHERE role = 'committee'
   AND cardinality(cms_permissions) = 0;
 
+CREATE OR REPLACE FUNCTION public.ndcc_cms_permissions_are_unique(p_permissions TEXT[])
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog
+AS $$
+  SELECT COALESCE(cardinality(p_permissions), 0) = (
+    SELECT count(DISTINCT permission)
+    FROM unnest(COALESCE(p_permissions, ARRAY[]::TEXT[])) AS p(permission)
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.ndcc_cms_permissions_are_unique(TEXT[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ndcc_cms_permissions_are_unique(TEXT[]) TO service_role;
+
 ALTER TABLE public.committee_users DROP CONSTRAINT IF EXISTS committee_users_cms_permissions_check;
 ALTER TABLE public.committee_users ADD CONSTRAINT committee_users_cms_permissions_check CHECK (
-  cms_permissions <@ ARRAY[
+  public.ndcc_cms_permissions_are_unique(cms_permissions)
+  AND cms_permissions <@ ARRAY[
     'dashboard',
     'season.setup',
     'season.registration',
@@ -143,7 +159,7 @@ BEGIN
 
   SELECT count(*), count(DISTINCT permission)
   INTO supplied_count, distinct_count
-  FROM unnest(normalized_permissions) AS permission;
+  FROM unnest(normalized_permissions) AS p(permission);
 
   IF supplied_count <> distinct_count THEN
     RAISE EXCEPTION 'Duplicate CMS permissions are not allowed';
@@ -217,7 +233,7 @@ BEGIN
 
   SELECT count(*), count(DISTINCT permission)
   INTO supplied_count, distinct_count
-  FROM unnest(normalized_permissions) AS permission;
+  FROM unnest(normalized_permissions) AS p(permission);
 
   IF supplied_count <> distinct_count THEN
     RAISE EXCEPTION 'Duplicate CMS permissions are not allowed';
