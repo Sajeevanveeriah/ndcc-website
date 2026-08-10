@@ -9,6 +9,8 @@ import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspape
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
+import type { AuthRole } from '@/lib/auth/config';
+import { canManageUsers, getDefaultAdminHref, hasPermission, isFullAccessRole, permissionForAdminPath, type PermissionKey } from '@/lib/auth/permissions';
 
 const SESSION_CHECK_TIMEOUT_MS = 8_000;
 const SESSION_RETRY_DELAYS_MS = [10_000, 30_000, 60_000] as const;
@@ -17,13 +19,11 @@ type SessionUser = {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'president' | 'secretary' | 'committee' | 'fantasy_manager';
+  role: AuthRole;
+  permissions: PermissionKey[];
 };
 
-// fantasy_manager is a restricted CMS role: Fantasy modules and password only.
-const fantasyManagerHrefs = ['/admin/fantasy', '/admin/fantasy/seasons', '/admin/fantasy/players', '/admin/fantasy/import', '/admin/fantasy/imports', '/admin/fantasy/reconciliation', '/admin/playhq-diagnostics', '/admin/change-password'];
-
-type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; roles?: SessionUser['role'][] };
+type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; usersOnly?: boolean };
 type AdminGroup = { title: string; icon: typeof LayoutDashboard; links: AdminLink[] };
 
 const adminGroups: AdminGroup[] = [
@@ -72,7 +72,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/playhq-diagnostics', label: 'PlayHQ Diagnostics', icon: Settings },
   ] },
   { title: 'Administration', icon: Shield, links: [
-    { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'] },
+    { href: '/admin/users', label: 'Users', icon: Users, usersOnly: true },
     { href: '/admin/email-diagnostics', label: 'Email Diagnostics', icon: Mail },
     { href: '/admin/media-diagnostics', label: 'Media Diagnostics', icon: Settings },
     { href: '/admin/change-password', label: 'Password', icon: KeyRound },
@@ -84,12 +84,21 @@ function groupsForUser(user: SessionUser, search: string) {
   return adminGroups.map((group) => ({
     ...group,
     links: group.links.filter((link) => {
-      if (user.role === 'fantasy_manager' && !fantasyManagerHrefs.includes(link.href)) return false;
-      if (link.roles && !link.roles.includes(user.role)) return false;
+      if (link.usersOnly && !canManageUsers(user.role)) return false;
+      const permission = permissionForAdminPath(link.href);
+      if (permission && !hasPermission(user, permission)) return false;
       const label = `${group.title} ${link.label} ${link.plainLabel || ''}`.toLowerCase();
       return !query || label.includes(query);
     }),
   })).filter((group) => group.links.length > 0);
+}
+
+function canAccessPath(user: SessionUser, pathname: string) {
+  if (pathname === '/admin/change-password') return true;
+  if (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) return canManageUsers(user.role);
+  if (isFullAccessRole(user.role)) return true;
+  const permission = permissionForAdminPath(pathname);
+  return Boolean(permission && hasPermission(user, permission));
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -171,6 +180,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [isLoginPage, runSessionCheck]);
 
+  useEffect(() => {
+    if (!user || isLoginPage || canAccessPath(user, pathname)) return;
+    router.replace(getDefaultAdminHref(user));
+  }, [isLoginPage, pathname, router, user]);
+
   const handleSignOut = async () => {
     const response = await fetch('/api/admin/auth/logout', { method: 'POST', cache: 'no-store', credentials: 'include' });
     await parseApiResponse(response).catch(() => undefined);
@@ -200,9 +214,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  if (!canAccessPath(user, pathname)) {
+    return <div className="min-h-screen bg-surface-page flex items-center justify-center">Redirecting...</div>;
+  }
+
   const groupedLinks = groupsForUser(user, navSearch);
-
-
 
   return (
     <div className="min-h-screen bg-surface-page flex">
@@ -211,7 +227,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           over the site footer at the bottom of long admin pages. */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-28 lg:self-start lg:h-[calc(100vh-7rem)] bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
-          <Link href="/admin" className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
+          <Link href={getDefaultAdminHref(user)} className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
           <p className="text-[10.5px] uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>
         </div>
         <div className="px-3 pt-4">
@@ -264,7 +280,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
             <span className="font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">{CLUB_SHORT} Admin</span>
           </div>
-          {mobileOpen && <nav className="px-4 pb-3 space-y-4 max-h-[70vh] overflow-y-auto" aria-label="Mobile grouped admin navigation">{groupedLinks.map((group) => <section key={group.title}><h2 className="text-xs font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.title}</h2>{group.links.map((link) => <Link className="block rounded-lg py-2 text-sm" key={`${group.title}-${link.href}-${link.label}`} href={link.href}>{link.label}</Link>)}</section>)}</nav>}
+          {mobileOpen && (
+            <nav className="px-4 pb-3 space-y-4 max-h-[70vh] overflow-y-auto" aria-label="Mobile grouped admin navigation">
+              {groupedLinks.map((group) => (
+                <section key={group.title}>
+                  <h2 className="text-xs font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.title}</h2>
+                  {group.links.map((link) => (
+                    <Link
+                      className="block rounded-lg py-2 text-sm"
+                      key={`${group.title}-${link.href}-${link.label}`}
+                      href={link.href}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </section>
+              ))}
+            </nav>
+          )}
         </header>
         <main className="p-6 lg:p-8">{children}</main>
         {message && <p className="px-6 pb-6 text-sm text-red-600">{message}</p>}
