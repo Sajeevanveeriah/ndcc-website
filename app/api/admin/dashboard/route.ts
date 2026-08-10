@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ function adminJson(body: Record<string, unknown>, status = 200) {
 }
 
 export async function GET() {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('dashboard');
   if (!user) return adminJson({ success: false, error: 'Forbidden.' }, 403);
 
   try {
@@ -44,14 +44,12 @@ export async function GET() {
       supabase.from('contacts').select('name, enquiry_type, created_at').order('created_at', { ascending: false }).limit(2),
     ]);
 
-    recentVols?.forEach((v) => recentItems.push({ type: 'volunteer', message: `New volunteer registration — ${v.name}`, date: v.created_at }));
+    recentVols?.forEach((v) => recentItems.push({ type: 'volunteer', message: `New volunteer registration - ${v.name}`, date: v.created_at }));
     recentOrders?.forEach((o) => recentItems.push({ type: 'order', message: `New order from ${o.customer_name}`, date: o.created_at }));
-    recentContacts?.forEach((c) => recentItems.push({ type: 'enquiry', message: `New enquiry from ${c.name} — ${c.enquiry_type}`, date: c.created_at }));
+    recentContacts?.forEach((c) => recentItems.push({ type: 'enquiry', message: `New enquiry from ${c.name} - ${c.enquiry_type}`, date: c.created_at }));
 
     recentItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // CMS health indicators. Each is a cheap head-count; failures degrade to
-    // null so a single slow table cannot take down the dashboard.
     const countOrNull = async (query: PromiseLike<{ count: number | null; error: unknown }>) => {
       try {
         const { count, error } = await query;
