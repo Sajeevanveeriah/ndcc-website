@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireSession } from '@/lib/auth/guard';
+import { hasPermission, MEDIA_UPLOAD_PERMISSIONS } from '@/lib/auth/permissions';
 import { getGitHubMediaEnv } from '@/lib/server/media-env';
 
 export const dynamic = 'force-dynamic';
@@ -22,25 +23,22 @@ function sanitizeName(name: string) {
 
 function extFromType(mimeType: string) {
   switch (mimeType) {
-    case 'image/jpeg':
-      return 'jpg';
-    case 'image/png':
-      return 'png';
-    case 'image/webp':
-      return 'webp';
-    case 'image/gif':
-      return 'gif';
-    case 'application/pdf':
-      return 'pdf';
-    default:
-      return '';
+    case 'image/jpeg': return 'jpg';
+    case 'image/png': return 'png';
+    case 'image/webp': return 'webp';
+    case 'image/gif': return 'gif';
+    case 'application/pdf': return 'pdf';
+    default: return '';
   }
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requireSession();
   if (!user) {
     return NextResponse.json({ success: false, error: 'Authentication required.' }, { status: 401 });
+  }
+  if (!MEDIA_UPLOAD_PERMISSIONS.some((permission) => hasPermission(user, permission))) {
+    return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
 
   const env = getGitHubMediaEnv();
@@ -81,8 +79,6 @@ export async function POST(request: Request) {
 
   const arrayBuffer = await file.arrayBuffer();
   const bytes = Buffer.from(arrayBuffer);
-  // Content sniff: a claimed PDF must actually start with the %PDF magic bytes
-  // (defence against renamed executables reaching the public repo path).
   if (isPdf && !bytes.subarray(0, 5).toString('latin1').startsWith('%PDF-')) {
     return NextResponse.json({ success: false, error: 'File is not a valid PDF document.' }, { status: 400 });
   }
@@ -134,12 +130,8 @@ export async function POST(request: Request) {
   const commitDetails = await response.json().catch(() => null);
   const commitSha = typeof commitDetails?.commit?.sha === 'string' ? commitDetails.commit.sha : null;
   const commitUrl = typeof commitDetails?.commit?.html_url === 'string' ? commitDetails.commit.html_url : null;
-
   const warning = env.basePathWarning;
 
-  // The commit to the production branch already triggers Vercel's git auto-deploy.
-  // Do not fire a deploy hook here: a second deployment for the same commit races
-  // the git-push deployment and Vercel cancels both, leaving production stale.
   return NextResponse.json({
     success: true,
     path: publicPath,
