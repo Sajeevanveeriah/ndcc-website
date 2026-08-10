@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,8 +17,6 @@ type PlayerPayload = {
   price_million?: number | string | null;
 };
 
-// UNASSIGNED is the safe parking role for imported players pending review;
-// UNASSIGNED players are never selectable in squads.
 const roles = new Set(['WK', 'BAT', 'AR', 'BOWL', 'UNASSIGNED']);
 
 function revalidateFantasy() {
@@ -67,12 +64,12 @@ async function playersWithPrices(supabase: ReturnType<typeof createServerClient>
   return (players ?? []).map((player) => ({ ...player, price_million: priceByPlayer.get(player.id) ?? 0 }));
 }
 
-async function requireFantasyAdmin() {
-  return requireSession(FANTASY_ADMIN_ROLES);
+async function requireFantasyPlayers() {
+  return requirePermission('fantasy.players');
 }
 
 export async function GET() {
-  const user = await requireFantasyAdmin();
+  const user = await requireFantasyPlayers();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   try {
@@ -89,8 +86,6 @@ async function currentSeasonId(supabase: ReturnType<typeof createServerClient>) 
   return data?.id ?? null;
 }
 
-// One base price per player per season: update in place when a base price row
-// already exists, otherwise insert one for the current season.
 async function upsertPrice(supabase: ReturnType<typeof createServerClient>, playerId: string, price: number | null, seasonId: string | null) {
   if (price === null || !seasonId) return;
   const { data: existing } = await supabase.from('fantasy_player_prices').select('id').eq('season_id', seasonId).eq('player_id', playerId).is('effective_round_id', null).limit(1).maybeSingle();
@@ -100,8 +95,6 @@ async function upsertPrice(supabase: ReturnType<typeof createServerClient>, play
   if (result.error) throw new Error(result.error.message);
 }
 
-// Keep the current season's membership aligned with the reviewed global player
-// so role review makes players selectable (or hides them) immediately.
 async function syncSeasonMembership(supabase: ReturnType<typeof createServerClient>, playerId: string, player: { role?: FantasyRole; team_label?: string | null; active: boolean; playhq_player_id?: string | null }, seasonId: string | null) {
   if (!seasonId) return;
   const selectable = player.active && player.role !== undefined && player.role !== 'UNASSIGNED';
@@ -114,7 +107,7 @@ async function syncSeasonMembership(supabase: ReturnType<typeof createServerClie
 }
 
 export async function POST(request: Request) {
-  const user = await requireFantasyAdmin();
+  const user = await requireFantasyPlayers();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   try {
@@ -142,7 +135,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await requireFantasyAdmin();
+  const user = await requireFantasyPlayers();
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   try {
