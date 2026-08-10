@@ -6,7 +6,7 @@ const logout = readFileSync('app/api/admin/auth/logout/route.ts','utf8');
 const helper = readFileSync('lib/supabase-operation.ts','utf8');
 const adminClient = readFileSync('lib/admin-client.ts','utf8');
 const loginPage = readFileSync('app/admin/login/page.tsx','utf8');
-const cryptRepair = readFileSync('supabase/migrations/20260630_repair_committee_auth_crypt_resolution.sql','utf8');
+const cryptRepair = readFileSync('supabase/migrations/20260630000200_repair_committee_auth_crypt_resolution.sql','utf8');
 const readiness = readFileSync('app/api/admin/auth/readiness/route.ts','utf8');
 const supabaseServer = readFileSync('lib/supabase-server.ts','utf8');
 if (!login.includes('requestId') || !login.includes('CREDENTIAL_RPC_TIMEOUT_MS') || !login.includes('SESSION_INSERT_TIMEOUT_MS')) { console.error('Login route missing bounded timeout/requestId behaviour.'); process.exit(1); }
