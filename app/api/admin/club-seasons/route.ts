@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { CLUB_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { CLUB_SEASON_COLUMNS, slugifySeasonName } from '@/lib/club-seasons';
 import { createServerClient } from '@/lib/supabase-server';
 
@@ -9,7 +8,7 @@ const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
 const STATUSES = ['draft', 'upcoming', 'active', 'completed', 'archived'];
 
 export async function GET() {
-  const user = await requireSession(CLUB_ADMIN_ROLES);
+  const user = await requirePermission('season.setup');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const supabase = createServerClient();
   const { data: seasons, error } = await supabase.from('club_seasons').select(CLUB_SEASON_COLUMNS).order('start_date', { ascending: false });
@@ -18,7 +17,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(CLUB_ADMIN_ROLES);
+  const user = await requirePermission('season.setup');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const body = await request.json().catch(() => ({}));
   const name = String(body.name || '').trim();
@@ -35,8 +34,6 @@ export async function POST(request: Request) {
     end_date: endDate,
     status,
     is_current: false,
-    // Every new season starts closed. Registration links are managed only in
-    // the dedicated seasonal registration CMS after review.
     registration_status: 'closed',
     registration_url: null,
     playhq_season_id: String(body.playhqSeasonId || '').trim() || null,
