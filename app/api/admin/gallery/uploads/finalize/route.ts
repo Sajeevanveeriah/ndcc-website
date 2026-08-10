@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
-import { GALLERY_ADMIN_ROLES } from '@/lib/gallery/roles';
+import { requirePermission } from '@/lib/auth/guard';
 import {
   GALLERY_MEDIA_BUCKET,
   MAX_GALLERY_BATCH_FILES,
@@ -35,17 +34,8 @@ function optionalText(value: unknown, maxLength: number): string | null {
   return trimmed ? trimmed.slice(0, maxLength) : null;
 }
 
-/**
- * Receives metadata for objects the browser has ALREADY uploaded to Storage
- * with signed tokens, verifies each object really exists inside the album's
- * bucket prefix, and inserts gallery_images rows in one bounded batch.
- * Storage object creation and the database insert are NOT one distributed
- * transaction: on database failure the objects stay in the bucket, the album
- * stays draft, and finalisation can be retried (already-inserted paths are
- * skipped as duplicates, so retries are idempotent).
- */
 export async function POST(request: Request) {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requirePermission('gallery');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const raw = await request.json().catch(() => null);
@@ -64,8 +54,6 @@ export async function POST(request: Request) {
     .from('gallery_albums').select('id, slug, title, allow_download').eq('id', albumId).single();
   if (albumError || !album) return NextResponse.json({ success: false, error: 'Album not found.' }, { status: 404 });
 
-  // Revalidate every declared entry: path inside this album's prefix, MIME
-  // and size within policy. Nothing from the browser is trusted as-is.
   const rejected: Array<{ path: string; reason: string }> = [];
   const candidates: Array<FinalizeEntry & { path: string }> = [];
   const seenPaths = new Set<string>();
@@ -92,7 +80,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'No valid entries to finalise.', rejected }, { status: 400 });
   }
 
-  // Skip paths that were already finalised (retry idempotency).
   const { data: existingRows, error: existingError } = await supabase
     .from('gallery_images')
     .select('storage_path, content_hash')
@@ -125,8 +112,6 @@ export async function POST(request: Request) {
       continue;
     }
 
-    // The object must genuinely exist in Storage before a row is inserted.
-    // createSignedUrl fails with "Object not found" for missing paths.
     const { error: existsError } = await supabase.storage
       .from(GALLERY_MEDIA_BUCKET)
       .createSignedUrl(entry.path, 60);
@@ -147,7 +132,6 @@ export async function POST(request: Request) {
       caption: optionalText(entry.caption, 300) ?? defaultCaption,
       image_url: publicUrl,
       original_url: publicUrl,
-      // Raw filenames are kept for downloads but never used as public alt text.
       alt_text: optionalText(entry.altText, 300) ?? fallbackAlt,
       sort_order: (existingCount + toInsert.length + 1) * 10,
       allow_download: allowDownload,
@@ -165,7 +149,7 @@ export async function POST(request: Request) {
     if (hash) existingHashes.add(hash);
   }
 
-  let inserted: number = 0;
+  let inserted = 0;
   if (toInsert.length > 0) {
     const { data: insertedRows, error: insertError } = await supabase
       .from('gallery_images')
@@ -174,7 +158,7 @@ export async function POST(request: Request) {
     if (insertError) {
       return NextResponse.json({
         success: false,
-        error: `Database insert failed: ${insertError.message}. The uploaded files are intact in Storage — retry finalisation, or run cleanup for orphaned paths.`,
+        error: `Database insert failed: ${insertError.message}. The uploaded files are intact in Storage - retry finalisation, or run cleanup for orphaned paths.`,
         rejected,
         duplicates,
         failed: failed.concat(toInsert.map((row) => ({ path: String(row.storage_path), reason: 'Insert failed; retry finalisation.' }))),
@@ -183,9 +167,6 @@ export async function POST(request: Request) {
     inserted = insertedRows?.length ?? 0;
   }
 
-  // The ALBUM's published flag is never touched here: publishing is an
-  // explicit separate action with its own confirmation, and never automatic
-  // while any file in the batch has failed.
   try { revalidatePath('/gallery'); } catch { /* best-effort */ }
   try { revalidatePath(`/gallery/${album.slug}`); } catch { /* best-effort */ }
 
