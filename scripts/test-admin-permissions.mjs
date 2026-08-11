@@ -116,6 +116,26 @@ assert.match(usersRoute, /ndcc_admin_update_committee_user_access/);
 assert.doesNotMatch(usersRoute, /password_hash|session_token_hash/, 'User API source must not select or return password/session hashes.');
 assert.match(usersRoute, /Explicit permissions are required when changing to this role/);
 
+const merchSupplierExportRoute = readFileSync('app/api/admin/merch/export/route.ts', 'utf8');
+assert.match(
+  merchSupplierExportRoute,
+  /requirePermission\('merchandise', \['committee'\]\)/,
+  'Committee users with Merchandise permission must be able to export the supplier CSV.',
+);
+
+const resourcesRoute = readFileSync('app/api/admin/resources/[resource]/route.ts', 'utf8');
+const merchWindowsConfig = resourcesRoute.match(/merchWindows:\s*\{[^}]+\}/)?.[0] ?? '';
+assert.match(
+  merchWindowsConfig,
+  /writeRoles:\s*\['admin', 'committee'\]/,
+  'Committee users with Merchandise permission must be able to create and update merch windows.',
+);
+assert.match(
+  merchWindowsConfig,
+  /deleteRoles:\s*\['admin'\]/,
+  'Committee merch-window access must not grant delete authority.',
+);
+
 const session = readFileSync('lib/auth/session.ts', 'utf8');
 assert.match(session, /cms_permissions/);
 assert.match(session, /getEffectivePermissions/);
