@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { buildMigrationPreview, reconcileLegacyStat, summariseReconciliation, toCsv, type PlayHQCandidateInput } from '@/lib/fantasy-historical-reconciliation';
 
@@ -15,7 +14,7 @@ function forbidden() {
 const RUN_COLUMNS = 'id, legacy_season_id, target_season_id, status, stats_row_count, exact_count, review_count, rejected_count, proposed_migration_sql, rollback_sql, notes, created_by, created_at, updated_at';
 
 export async function GET(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.review');
   if (!user) return forbidden();
   const url = new URL(request.url);
   const exportRunId = url.searchParams.get('export');
@@ -52,7 +51,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.review');
   if (!user) return forbidden();
   const body = await request.json().catch(() => ({}));
   const targetSeasonId = String(body.targetSeasonId || '').trim();

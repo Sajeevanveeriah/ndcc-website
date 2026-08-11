@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { getActivePlayHQBaseUrl, getPlayHQPublicData } from '@/lib/playhq/client';
 import { getPlayHQConfig, isFantasySyncEnabled, redactedPlayHQConfig } from '@/lib/playhq/config';
 import { supabase } from '@/lib/supabase';
@@ -33,7 +32,7 @@ async function syncMetadata() {
 }
 
 export async function GET() {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.diagnostics');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403, headers: noStore });
 
   const config = getPlayHQConfig();
@@ -70,7 +69,7 @@ export async function GET() {
     connection: { status: data?.error ? 'fail' : config.configured ? 'ok' : 'fail', detail: !config.configured ? 'Not tested because required configuration is missing.' : data?.error || 'PlayHQ request completed without an API error.' },
     discovery: {
       organisation: data ? `${data.seasons.length} season(s) returned for the configured organisation.` : 'Not tested.',
-      season: data?.selectedSeasonId ? `Selected season discovered. Value hidden in UI response details.` : 'No selected season discovered.',
+      season: data?.selectedSeasonId ? 'Selected season discovered. Value hidden in UI response details.' : 'No selected season discovered.',
       grades: data ? `${data.grades.length} grade(s), ${data.fixtures.length} fixture(s), ${data.ladders.length} ladder row(s) returned.` : 'Not tested.',
     },
     sync: { ...sync, nextScheduledRun: nextPlayHQCronRun() },

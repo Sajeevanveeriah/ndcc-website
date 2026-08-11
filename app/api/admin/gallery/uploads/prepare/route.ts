@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 import {
   GALLERY_MEDIA_BUCKET,
   buildGalleryStoragePath,
@@ -9,21 +9,13 @@ import {
   validateGalleryBatch,
   type GalleryUploadFileMeta,
 } from '@/lib/gallery/shared';
-import { GALLERY_ADMIN_ROLES } from '@/lib/gallery/roles';
 
 export const dynamic = 'force-dynamic';
 
-// Supabase signed upload tokens are valid for 2 hours (fixed by the platform).
 const SIGNED_UPLOAD_TTL_SECONDS = 2 * 60 * 60;
 
-/**
- * Metadata-only endpoint: receives declared file metadata, never bytes.
- * Returns server-generated immutable object paths plus short-lived signed
- * upload tokens so the browser uploads DIRECTLY to Supabase Storage — image
- * binary data never passes through a Vercel Function.
- */
 export async function POST(request: Request) {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requirePermission('gallery');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const raw = await request.json().catch(() => null);
@@ -43,8 +35,6 @@ export async function POST(request: Request) {
   const entries = [];
   for (const file of files as GalleryUploadFileMeta[]) {
     const path = buildGalleryStoragePath(albumId, year, randomUUID(), file.filename as string, file.mimeType as string);
-    // upsert stays false (default): object paths are immutable — a token can
-    // never overwrite an existing object.
     const { data: signed, error: signError } = await supabase.storage
       .from(GALLERY_MEDIA_BUCKET)
       .createSignedUploadUrl(path);
@@ -52,7 +42,6 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         error: `Could not prepare an upload slot for ${String(file.filename)}: ${signError?.message ?? 'unknown storage error'}`,
-        // Entries already prepared remain usable client-side via partial retry.
         entries,
       }, { status: 502 });
     }

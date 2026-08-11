@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 import { emailHtml, getEmailConfigStatus, sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -13,14 +13,14 @@ function safeFailureReason(reason: string) {
 }
 
 export async function GET() {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('diagnostics.email');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   return NextResponse.json({ success: true, data: getEmailConfigStatus() });
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('diagnostics.email');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));

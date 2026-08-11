@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
-import { GALLERY_ADMIN_ROLES } from '@/lib/gallery/roles';
+import { requirePermission } from '@/lib/auth/guard';
 import {
   GALLERY_MEDIA_BUCKET,
   MAX_GALLERY_BATCH_FILES,
@@ -12,21 +11,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Two explicit, narrowly-scoped cleanup operations (admin roles only):
- *
- * 1. { albumId, orphanPaths } — removes Storage objects left over when
- *    finalisation failed after upload. Every path must sit inside the album's
- *    own prefix AND must not be referenced by any gallery_images row.
- *
- * 2. { imageIds, confirmCount } — permanent media deletion for selected
- *    images: deletes the DB rows AND their Storage objects. confirmCount must
- *    equal the number of ids, so the client has shown the user an exact count.
- *
- * Never deletes by prefix, and never touches objects outside gallery-media.
- */
 export async function POST(request: Request) {
-  const user = await requireSession(GALLERY_ADMIN_ROLES);
+  const user = await requirePermission('gallery');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const raw = await request.json().catch(() => null);
@@ -51,7 +37,6 @@ export async function POST(request: Request) {
     }
     const paths = orphanPaths as string[];
 
-    // Refuse to delete any object a database row still references.
     const { data: referenced, error: refError } = await supabase
       .from('gallery_images').select('storage_path').in('storage_path', paths);
     if (refError) return NextResponse.json({ success: false, error: refError.message }, { status: 500 });
@@ -92,8 +77,6 @@ export async function POST(request: Request) {
       .from('gallery_images').delete().in('id', rows.map((r) => r.id));
     if (deleteError) return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 });
 
-    // Only remove Storage objects that no OTHER row still references (the
-    // same object may legitimately back rows in different albums).
     const paths = rows.map((r) => r.storage_path).filter((p): p is string => Boolean(p));
     let removed: string[] = [];
     if (paths.length > 0) {

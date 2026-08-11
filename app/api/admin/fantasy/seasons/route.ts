@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { SEASON_COLUMNS } from '@/lib/fantasy-seasons';
 import { getPlayHQSeasons } from '@/lib/playhq/client';
@@ -10,7 +9,6 @@ import { getPlayHQConfig } from '@/lib/playhq/config';
 export const dynamic = 'force-dynamic';
 
 const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
-
 const SEASON_STATUSES = ['draft', 'upcoming', 'active', 'completed', 'archived'];
 
 function forbidden() {
@@ -18,7 +16,7 @@ function forbidden() {
 }
 
 export async function GET(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.seasons');
   if (!user) return forbidden();
   const url = new URL(request.url);
   const supabase = createServerClient();
@@ -30,7 +28,6 @@ export async function GET(request: Request) {
     if (error) throw new Error(error.message);
     if (gradeError) throw new Error(gradeError.message);
 
-    // Optional PlayHQ discovery so admins can add a season from live data.
     let playhqSeasons: any[] = [];
     let playhqError: string | null = null;
     if (url.searchParams.get('discover') === '1') {
@@ -52,7 +49,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.seasons');
   if (!user) return forbidden();
   const body = await request.json().catch(() => ({}));
   const name = String(body.name || '').trim();
@@ -77,7 +74,6 @@ export async function POST(request: Request) {
   const { data: season, error } = await supabase.from('fantasy_seasons').insert(insert).select(SEASON_COLUMNS).single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400, headers: noStore });
 
-  // Every season carries its own settings row so budgets/limits stay isolated.
   const { error: settingsError } = await supabase.from('fantasy_settings').insert({
     season_name: name,
     season_id: season.id,
@@ -89,7 +85,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.seasons');
   if (!user) return forbidden();
   const body = await request.json().catch(() => ({}));
   const seasonId = String(body.seasonId || '').trim();
@@ -106,8 +102,6 @@ export async function PATCH(request: Request) {
     if (typeof body[key] === 'boolean') update[column] = body[key];
   }
 
-  // Setting the current season clears the previous current first (a partial
-  // unique index enforces at most one).
   if (body.isCurrent === true) {
     const { error: clearError } = await supabase.from('fantasy_seasons').update({ is_current: false }).eq('is_current', true).neq('id', seasonId);
     if (clearError) return NextResponse.json({ success: false, error: clearError.message }, { status: 500, headers: noStore });

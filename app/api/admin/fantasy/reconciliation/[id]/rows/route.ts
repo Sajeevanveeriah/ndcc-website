@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +7,7 @@ const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
 const statuses = ['approved', 'rejected', 'deferred'] as const;
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.review');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const url = new URL(request.url);
   const classification = url.searchParams.get('classification');
@@ -21,7 +20,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.review');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || '');

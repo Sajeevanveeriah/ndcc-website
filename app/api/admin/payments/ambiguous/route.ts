@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireSession(['admin']);
+  const user = await requirePermission('payments', ['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const supabase = createServerClient();
@@ -20,7 +20,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin']);
+  const user = await requirePermission('payments', ['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { transaction_id, order_id, notes } = await request.json();

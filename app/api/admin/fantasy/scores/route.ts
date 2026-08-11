@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth/guard';
-import { FANTASY_ADMIN_ROLES } from '@/lib/auth/config';
+import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { calculatePlayerStatPoints, getEnabledScoringRules } from '@/lib/fantasy-game';
 
@@ -75,7 +74,7 @@ async function calculateRound(roundId: string) {
 }
 
 export async function GET(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.home');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
   const supabase = createServerClient();
   const { searchParams } = new URL(request.url);
@@ -87,7 +86,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(FANTASY_ADMIN_ROLES);
+  const user = await requirePermission('fantasy.home');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const roundId = String(body.roundId || '');

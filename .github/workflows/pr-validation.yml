@@ -1,7 +1,7 @@
 name: PR validation
 
 # Release-protection workflow: every pull request (and push to main) must
-# pass lint, the deterministic test suites, database-backed migration tests,
+# pass lint, deterministic test suites, database-backed migration tests,
 # the migration-history consistency check, and a production build.
 #
 # Recommended branch protection for `main` (repository settings - cannot be
@@ -30,6 +30,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run test:admin-permissions
+      - run: npm run test:admin-auth
+      - run: npm run test:cms-navigation
+      - run: npm run test:committee-auth-schema
+      - run: npm run test:core-schema
       - run: npm run lint
       - run: npm run check:migrations
       - run: npm run check:assets

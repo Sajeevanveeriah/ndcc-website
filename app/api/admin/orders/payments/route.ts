@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 
 export const dynamic = 'force-dynamic';
 
 const MANUAL_METHODS = ['bank_transfer', 'cash', 'other'] as const;
 
-// Committee payment ledger access.
-//
-// GET  — list payment history (optionally ?order_id=...).
-// POST — record a manual settled payment, or a correcting entry:
-//        { order_id, amount, method, notes?, received_at? }        -> settled
-//        { reverses_payment_id, notes? }                            -> refunded (reversal)
-//        { void_payment_id, notes? }                                -> void (pending rows only)
-//
-// History is never edited or deleted here; corrections are new rows. The
-// database trigger derives order totals/status and flags overpayments.
 export async function GET(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary', 'committee']);
+  const user = await requirePermission('orders');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
@@ -37,14 +27,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await requireSession(['admin']);
+  const user = await requirePermission('orders', ['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const body = await request.json();
   const supabase = createServerClient();
   const recordedBy = user.email || user.id || 'committee-admin';
 
-  // --- Correction: void a pending payment -------------------------------
   if (typeof body.void_payment_id === 'string' && body.void_payment_id) {
     const { data: target, error: findError } = await supabase
       .from('order_payments')
@@ -68,7 +57,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data });
   }
 
-  // --- Correction: reverse a settled payment ----------------------------
   if (typeof body.reverses_payment_id === 'string' && body.reverses_payment_id) {
     const { data: original, error: findError } = await supabase
       .from('order_payments')
@@ -106,7 +94,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data });
   }
 
-  // --- Record a manual settled payment -----------------------------------
   const orderId = typeof body.order_id === 'string' ? body.order_id.trim() : '';
   const amount = Number(body.amount);
   const method = String(body.method || '');
@@ -146,7 +133,6 @@ export async function POST(request: Request) {
     .single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 
-  // Surface the derived order state so the CMS can refresh in place.
   const { data: updatedOrder } = await supabase
     .from('orders')
     .select('id,amount_paid,balance_due,payment_status,order_status,needs_review_reason')

@@ -1,18 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requireSession } from '@/lib/auth/guard';
+import { requirePermission } from '@/lib/auth/guard';
 import { toCsv } from '@/lib/csv';
 import { buildMerchExportRows, type ExportFilters, type ExportOrder, type ExportPayment } from '@/lib/orders/export';
 
 export const dynamic = 'force-dynamic';
 
-// Export Merchandise Orders — one CSV row per order item, restricted to the
-// committee roles that handle orders and supplier runs. Query filters:
-//   window_id, date_from, date_to (ISO), payment_status,
-//   processed=true|false, product (slug/name substring),
-//   paid_in_full_only=1, include_part_paid=0
 export async function GET(request: Request) {
-  const user = await requireSession(['admin', 'president', 'secretary']);
+  const user = await requirePermission('orders', ['admin', 'president', 'secretary']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
@@ -40,8 +35,6 @@ export async function GET(request: Request) {
     .from('order_payments')
     .select('order_id,method,status,provider_reference')
     .limit(5000);
-  // The ledger table may not be migrated yet; the export still works with
-  // order-level fields only.
   if (!paymentsError && Array.isArray(paymentRows)) {
     payments = paymentRows as ExportPayment[];
   }
