@@ -10,7 +10,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requirePermission('merchandise', ['admin']);
+  const user = await requirePermission('merchandise', ['committee']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const supabase = createServerClient();
