@@ -11,19 +11,19 @@ export const EASE_CINEMATIC = [0.16, 1, 0.3, 1] as const;
 
 export const DURATION = {
   /** Micro feedback: hovers, underline sweeps. */
-  fast: 0.3,
+  fast: 0.2,
   /** Standard section/card reveal. */
-  base: 0.55,
+  base: 0.45,
   /** Hero copy entrances. */
-  slow: 0.8,
+  slow: 0.7,
   /** Hero image settle. */
-  settle: 1.4,
+  settle: 1.2,
 } as const;
 
 /** Entrance travel distances in px. */
 export const DISTANCE = {
-  sm: 16,
-  base: 24,
+  sm: 12,
+  base: 16,
   lg: 40,
 } as const;
 
@@ -37,8 +37,8 @@ export const STAGGER = {
 /** Spring for interactive surfaces returning to neutral (card tilt). */
 export const SPRING_SOFT = { stiffness: 180, damping: 24, mass: 0.8 } as const;
 
-/** Default viewport margin: reveal starts slightly before entering the fold. */
-export const VIEWPORT_MARGIN = '0px 0px -60px 0px';
+/** Default viewport margin: reveal starts before content crosses the fold. */
+export const VIEWPORT_MARGIN = '0px 0px 80px 0px';
 
 /** Interaction limits. */
 export const TILT_MAX_DEG = 2;

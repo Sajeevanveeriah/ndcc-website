@@ -23,7 +23,7 @@ export default function HomeStatsStrip() {
   ];
 
   return (
-    <section className="band-maroon px-4 sm:px-6 lg:px-8 py-14 border-y border-maroon-950/40" aria-label="Club at a glance">
+    <section className="band-maroon border-y border-maroon-950/40 px-4 py-8 sm:px-6 lg:px-8" aria-label="Club at a glance">
       {/* Oversized club-nickname typography drifting slowly behind the numbers. */}
       <ParallaxLayer drift={16} className="absolute inset-0 flex items-center justify-center overflow-hidden">
         <span className="watermark-type whitespace-nowrap text-[28vw] sm:text-[20vw] lg:text-[15rem]">
@@ -34,16 +34,16 @@ export default function HomeStatsStrip() {
         <ScrollReveal stagger staggerInterval={0.1}>
           <ScrollRevealItem
             effect="draw"
-            className="mx-auto mb-10 h-px w-28 bg-gradient-to-r from-gold-300/0 via-gold-300/80 to-gold-300/0"
+            className="mx-auto mb-5 h-px w-28 bg-gradient-to-r from-gold-300/0 via-gold-300/80 to-gold-300/0"
           />
-          <ul className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 text-center">
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-6 text-center lg:grid-cols-4">
             {stats.map((stat) => (
               <ScrollRevealItem
                 as="li"
                 key={stat.label}
                 className="lg:border-r lg:border-white/10 lg:last:border-r-0"
               >
-                <p className="stat-value text-4xl sm:text-5xl text-gold-200">
+                <p className="stat-value text-3xl text-gold-200 sm:text-4xl">
                   {stat.animate ? <AnimatedCounter to={stat.value} /> : stat.value}
                 </p>
                 <p className="stat-label text-maroon-100">{stat.label}</p>

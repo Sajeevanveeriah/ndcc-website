@@ -144,7 +144,7 @@
   }
 
   .section-padding {
-    @apply px-4 sm:px-6 lg:px-8 py-16 sm:py-20;
+    @apply px-4 py-10 sm:px-6 sm:py-12 lg:px-8;
   }
 
   .container-width {
@@ -168,7 +168,7 @@
   }
 
   .page-hero {
-    @apply relative text-white section-padding overflow-hidden;
+    @apply relative overflow-hidden px-4 py-10 text-white sm:px-6 sm:py-12 lg:px-8;
     background:
       radial-gradient(1100px 420px at 85% -10%, rgba(255, 255, 255, 0.08), transparent 60%),
       linear-gradient(135deg, theme('colors.maroon.700') 0%, theme('colors.maroon.800') 60%, theme('colors.maroon.900') 100%);
@@ -193,19 +193,19 @@
   }
 
   .page-hero-title {
-    @apply text-4xl sm:text-5xl font-display font-semibold uppercase tracking-wide mb-4;
+    @apply mb-3 font-display text-3xl font-semibold uppercase tracking-wide sm:text-4xl;
   }
 
   .page-hero-subtitle {
-    @apply text-lg sm:text-xl text-maroon-100 font-body max-w-2xl;
+    @apply max-w-2xl font-body text-base text-maroon-100 sm:text-lg;
   }
 
   .section-title {
-    @apply text-3xl sm:text-4xl font-display font-semibold uppercase tracking-wide text-maroon-800 mb-4 dark:text-maroon-100;
+    @apply mb-3 font-display text-2xl font-semibold uppercase tracking-wide text-maroon-800 dark:text-maroon-100 sm:text-3xl;
   }
 
   .section-subtitle {
-    @apply text-lg text-content-muted font-body max-w-2xl;
+    @apply max-w-2xl font-body text-base text-content-muted sm:text-lg;
   }
 
   /* Semantic blue surfaces (replaced the alpha-wash .surface-sky). Solid

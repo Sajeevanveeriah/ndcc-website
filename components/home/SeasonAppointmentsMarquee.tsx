@@ -53,7 +53,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <ScrollReveal className="text-center mb-12">
+        <ScrollReveal className="mb-8 text-center">
           <span className="section-eyebrow">Season appointments</span>
           <h2 className="section-title">Season appointments</h2>
         </ScrollReveal>
@@ -67,8 +67,8 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
           <div
             id={MARQUEE_TRACK_ID}
             className={marquee.animate
-              ? 'homepage-marquee-track season-appointments-marquee-track gap-5 py-2'
-              : 'flex flex-wrap justify-center gap-5 py-2'}
+              ? 'homepage-marquee-track season-appointments-marquee-track gap-4 py-2'
+              : 'flex flex-wrap justify-center gap-4 py-2'}
             style={marquee.animate
               ? {
                   // Constant per-card pace however many appointments the CMS holds.
@@ -92,7 +92,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
                   return (
                     <div
                       key={`${appointment.id}-${sequence.key}`}
-                      className="group relative h-[360px] w-[270px] flex-none rounded-2xl overflow-hidden bg-maroon-900 shadow-md hover:shadow-xl transition-shadow duration-300"
+                      className="group relative h-[300px] w-[225px] flex-none overflow-hidden rounded-2xl bg-maroon-900 shadow-md transition-shadow duration-300 hover:shadow-xl"
                     >
                       {appointment.image_url ? (
                         <SafeImage
@@ -120,11 +120,11 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
                         className="absolute inset-0"
                         style={{ background: 'linear-gradient(to top, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.18) 55%, transparent 100%)' }}
                       />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 group-hover:-translate-y-1 transition-transform duration-300">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 transition-transform duration-300 group-hover:-translate-y-1">
                         <p className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-sky_accent mb-1">
                           {appointment.role}
                         </p>
-                        <p className="font-display font-bold text-white text-xl uppercase leading-tight">
+                        <p className="font-display text-lg font-bold uppercase leading-tight text-white">
                           {appointment.name}
                         </p>
                       </div>
@@ -151,7 +151,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
             </button>
           </div>
         )}
-        <div className="mt-8 flex flex-col items-center gap-3 text-center">
+        <div className="mt-6 flex flex-col items-center gap-2 text-center">
           <Link href="/about#committee" className="btn-secondary">View all appointments</Link>
           <p className="text-content-muted font-body text-sm">
             Season appointments are managed in the CMS. Follow us on{' '}
