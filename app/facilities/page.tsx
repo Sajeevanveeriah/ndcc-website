@@ -7,6 +7,7 @@ import { getClubSettings } from '@/lib/club-settings';
 import { normalisePublicText } from '@/lib/utils';
 import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content';
 import { CLUB_ADDRESS, CLUB_ESTABLISHED } from '@/lib/constants';
+import { FACILITY_BOOKING_LINK } from '@/lib/public-links';
 
 export const metadata: Metadata = {
   title: 'Facilities',
@@ -53,7 +54,7 @@ export default async function FacilitiesPage() {
       </section>
 
       <section className="band-maroon" aria-label="Facility highlights">
-        <div className="container-width px-4 sm:px-6 lg:px-8 py-6">
+        <div className="container-width px-4 py-5 sm:px-6 lg:px-8">
           <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5 text-center">
             {statItems.map((item) => (
               <li key={item} className="px-2 sm:border-r sm:border-white/15 sm:last:border-r-0">
@@ -64,29 +65,48 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
-      <section className="section-padding">
+      <nav className="border-b border-edge-subtle bg-surface-card px-4 py-3 sm:px-6 lg:px-8" aria-label="On this page">
+        <div className="container-width flex flex-wrap items-center gap-x-5 gap-y-2 font-body text-sm font-semibold">
+          <span className="text-content-muted">On this page</span>
+          <a href="#facility-overview" className="text-maroon-700 hover:underline dark:text-maroon-200">Overview</a>
+          <a href="#training-facility" className="text-maroon-700 hover:underline dark:text-maroon-200">Training</a>
+          <a href="#facility-features" className="text-maroon-700 hover:underline dark:text-maroon-200">Features</a>
+        </div>
+      </nav>
+
+      <section id="facility-overview" className="section-padding scroll-mt-28">
         <div className="container-width">
-          <ScrollReveal className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <ScrollReveal className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
             <div>
               <h2 className="section-title">{blocks['facilities.intro']?.title || 'Grinter Reserve'}</h2>
               <p className="text-content-muted font-body text-sm mb-6">{settings.address}</p>
               <div className="prose prose-sm max-w-none text-content-secondary font-body leading-relaxed whitespace-pre-line">
                 <p>{normalisePublicText(blocks['facilities.intro']?.body)}</p>
               </div>
-              <a
-                href={directionsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary mt-6 inline-flex items-center"
-              >
-                <svg className="mr-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                </svg>
-                Get Directions
-              </a>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary inline-flex items-center"
+                >
+                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                  </svg>
+                  Get Directions
+                </a>
+                <a
+                  href={FACILITY_BOOKING_LINK.href}
+                  target={FACILITY_BOOKING_LINK.target}
+                  rel={FACILITY_BOOKING_LINK.rel}
+                  className="btn-primary inline-flex items-center"
+                >
+                  {FACILITY_BOOKING_LINK.label}
+                </a>
+              </div>
             </div>
-            <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
+            <div className="relative h-64 overflow-hidden rounded-xl lg:h-80">
               <Image
                 src={blocks['facilities.intro']?.image_url || '/images/Turf_Ground.jpg'}
                 alt="Panoramic view of Grinter Reserve"
@@ -99,10 +119,10 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
-      <section className="section-padding surface-blue-band">
+      <section id="training-facility" className="section-padding surface-blue-band scroll-mt-28">
         <div className="container-width">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="order-2 lg:order-1 relative h-72 lg:h-96 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
+            <div className="relative order-2 h-64 overflow-hidden rounded-xl lg:order-1 lg:h-80">
               <Image
                 src={blocks['facilities.training']?.image_url || '/images/Turf.jpg'}
                 alt="Training facility at Grinter Reserve"
@@ -121,19 +141,19 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
-      <section className="section-padding">
+      <section id="facility-features" className="section-padding scroll-mt-28">
         <div className="container-width">
-          <div className="text-center mb-12">
+          <div className="mb-8 text-center">
             <h2 className="section-title">{blocks['facilities.features_intro']?.title || 'Facility Features'}</h2>
             <p className="section-subtitle mx-auto">{normalisePublicText(blocks['facilities.features_intro']?.body)}</p>
           </div>
-          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featureCards.map((feature) => (
               <ScrollRevealItem key={feature.id}>
               <Card hover className="h-full">
-                <CardContent className="p-6">
-                  <div className="w-14 h-14 bg-maroon-50 dark:bg-maroon-950 rounded-lg flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-maroon-600 dark:text-maroon-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                <CardContent className="p-5">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-maroon-50 dark:bg-maroon-950">
+                    <svg className="h-6 w-6 text-maroon-600 dark:text-maroon-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d={iconByKey[feature.icon_key] || iconByKey.feature} />
                     </svg>
                   </div>
@@ -144,7 +164,7 @@ export default async function FacilitiesPage() {
               </ScrollRevealItem>
             ))}
           </ScrollReveal>
-          <div className="text-center mt-10">
+          <div className="mt-8 text-center">
             <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200">{blocks['facilities.cta']?.title || 'Visit or Enquire'}</h3>
             <p className="text-content-muted font-body mt-2 mb-4">{blocks['facilities.cta']?.body || ''}</p>
             <a href={blocks['facilities.cta']?.cta_url || '/contact'} className="btn-accent">

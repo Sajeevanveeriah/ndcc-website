@@ -69,7 +69,7 @@ export default async function TeamsPage() {
       {/* Head Coach */}
       <section className="section-padding surface-blue-band">
         <div className="container-width">
-          <div className="surface-panel border-l-4 border-l-maroon-700 p-8">
+          <div className="surface-panel border-l-4 border-l-maroon-700 p-6">
             <h2 className="text-2xl font-display font-bold text-content-primary mb-2">
               Head Coach: Craig Hillgrove
             </h2>
@@ -89,7 +89,7 @@ export default async function TeamsPage() {
       {/* Teams */}
       <section className="section-padding">
         <div className="container-width">
-          <div className="space-y-12">
+          <div className="space-y-6">
             {teams.map((team, index) => {
               const teamImage = team.image_url || TEAM_IMAGES[team.name];
 
@@ -98,7 +98,7 @@ export default async function TeamsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3">
                     {/* Team image or colour block */}
                     {teamImage ? (
-                      <div className="relative min-h-[200px] md:min-h-0">
+                      <div className="relative min-h-[180px] md:min-h-0">
                         <SafeImage
                           src={teamImage}
                           alt={`${team.name} team photo`}
@@ -107,9 +107,9 @@ export default async function TeamsPage() {
                           sizes="(max-width: 768px) 100vw, 33vw"
                           fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                         />
-                        <div className="absolute inset-0 bg-maroon-900/40 flex items-end p-6">
+                        <div className="absolute inset-0 flex items-end bg-maroon-900/40 p-5">
                           <div className="text-white">
-                            <h2 className="text-2xl font-display font-bold mb-1">{team.name}</h2>
+                            <h2 className="mb-1 font-display text-xl font-bold">{team.name}</h2>
                             <Badge className="bg-white/20 text-white border border-white/30">
                               {team.grade}
                             </Badge>
@@ -118,14 +118,14 @@ export default async function TeamsPage() {
                       </div>
                     ) : (
                       <div
-                        className={`flex items-center justify-center p-8 md:p-12 ${
+                        className={`flex items-center justify-center p-6 md:p-8 ${
                           index % 2 === 0
                             ? 'bg-gradient-to-br from-maroon-700 to-maroon-900'
                             : 'bg-gradient-to-br from-maroon-600 to-maroon-800'
                         }`}
                       >
                         <div className="text-center text-white">
-                          <h2 className="text-3xl font-display font-bold mb-2">{team.name}</h2>
+                          <h2 className="mb-2 font-display text-2xl font-bold">{team.name}</h2>
                           <Badge className="bg-white/20 text-white border border-white/30">
                             {team.grade}
                           </Badge>
@@ -133,15 +133,15 @@ export default async function TeamsPage() {
                       </div>
                     )}
                     {/* Team details */}
-                    <CardContent className="md:col-span-2 p-8">
-                      <div className="flex items-start gap-3 mb-4">
+                    <CardContent className="p-6 md:col-span-2">
+                      <div className="mb-3 flex items-start gap-3">
                         <Badge>{team.grade}</Badge>
                       </div>
-                      <p className="text-content-secondary font-body leading-relaxed mb-4">
+                      <p className="mb-3 font-body leading-relaxed text-content-secondary">
                         {team.description}
                       </p>
                       {team.captain && (
-                        <p className="text-sm text-content-muted font-body mb-4">
+                        <p className="mb-3 font-body text-sm text-content-muted">
                           <span className="font-semibold">Captain:</span> {team.captain}
                         </p>
                       )}
@@ -174,12 +174,12 @@ export default async function TeamsPage() {
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
             Join a Team
           </h2>
-          <p className="text-maroon-100 font-body text-lg max-w-2xl mx-auto mb-8">
+          <p className="mx-auto mb-6 max-w-2xl font-body text-base text-maroon-100 sm:text-lg">
             Whether you are an experienced cricketer or a complete beginner, there is a team for you
             at the {CLUB_NICKNAME}. We welcome players of all ages and abilities across our men&apos;s,
             women&apos;s, and junior squads.
           </p>
-          <Link href="/contact" className="btn-accent text-lg px-8 py-4">
+          <Link href="/contact" className="btn-accent px-7 py-3 text-base">
             Get in Touch
           </Link>
         </div>

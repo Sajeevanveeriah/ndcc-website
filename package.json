@@ -51,6 +51,7 @@
     "test:cms-navigation": "node scripts/test-cms-navigation.mjs",
     "test:no-hardcoded-seasonal-content": "node scripts/test-no-hardcoded-seasonal-content.mjs",
     "test:public-visuals": "node scripts/test-public-visuals.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-season-appointments-marquee.mjs",
+    "test:public-layout": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-layout.mjs",
     "test:migration-replay": "node scripts/test-migration-replay.mjs",
     "test:gallery-albums": "node scripts/test-gallery-albums.mjs",
     "test:gallery-bulk-upload": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-gallery-bulk-upload.mjs",

@@ -69,28 +69,9 @@ export default async function Footer() {
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">
-      {/* Strong club CTA ahead of the link grid. */}
-      <div className="band-maroon px-4 py-14 sm:px-6 lg:px-8">
-        <div className="container-width flex flex-col items-center gap-6 text-center lg:flex-row lg:justify-between lg:text-left">
-          <div>
-            <span className="eyebrow-gold">Play cricket with us</span>
-            <h2 className="font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl">
-              Pull on the {settings.club_short} colours
-            </h2>
-            <p className="mt-2 max-w-xl font-body text-maroon-100">
-              Players, volunteers and supporters are always welcome at Grinter Reserve.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/join" className="btn-accent rounded-full px-8 py-3.5">Join the Club</Link>
-            <Link href="/contact" className="btn-outline-white rounded-full px-8 py-3.5">Contact Us</Link>
-          </div>
-        </div>
-      </div>
-
       {/* Acknowledgement */}
       <div
-        className="px-4 sm:px-6 lg:px-8 py-5 border-b border-white/10"
+        className="border-b border-white/10 px-4 py-4 sm:px-6 lg:px-8"
         style={acknowledgementImage
           ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.85), rgba(74,0,0,0.85)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
           : { background: 'rgba(255,255,255,0.06)' }}
@@ -103,12 +84,12 @@ export default async function Footer() {
       </div>
 
       {/* Main Footer */}
-      <div className="px-4 sm:px-6 lg:px-8 py-12">
+      <div className="px-4 py-8 sm:px-6 lg:px-8">
         <div className="container-width">
-          <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <ScrollReveal stagger className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
             {/* Club Info */}
-            <ScrollRevealItem className="lg:col-span-1">
-              <Link href="/" className="flex items-center gap-3 mb-4">
+            <ScrollRevealItem className="col-span-2 lg:col-span-1">
+              <Link href="/" className="mb-3 flex items-center gap-3">
                 <Image
                   src="/images/logo.jpg"
                   alt="NDCC Logo"
@@ -118,7 +99,7 @@ export default async function Footer() {
                 />
                 <span className="font-display font-semibold uppercase tracking-wide text-lg">{settings.club_short}</span>
               </Link>
-              <p className="text-maroon-200 text-sm font-body mb-4">
+              <p className="mb-3 font-body text-sm text-maroon-200">
                 {settings.club_name}. Proudly competing in the {settings.association_name} since {settings.established_year}.
               </p>
               <div className="space-y-2">
@@ -141,7 +122,7 @@ export default async function Footer() {
                   </a>
                 </div>
               </div>
-              <div className="mt-5 flex items-center gap-3">
+              <div className="mt-4 flex items-center gap-3">
                 <a
                   href={settings.facebook_url || FACEBOOK_URL}
                   target="_blank"
@@ -166,8 +147,8 @@ export default async function Footer() {
             {/* Quick Links */}
             {quickLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="font-display font-semibold uppercase tracking-[0.08em] text-[13px] text-gold-200 mb-4 pb-2 border-b border-gold-400/25">Quick Links</h3>
-                <ul className="space-y-2">
+                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em] text-gold-200">Quick Links</h3>
+                <ul className="space-y-1.5">
                   {quickLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
@@ -183,8 +164,8 @@ export default async function Footer() {
             {/* More Links */}
             {getInvolvedLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="font-display font-semibold uppercase tracking-[0.08em] text-[13px] text-gold-200 mb-4 pb-2 border-b border-gold-400/25">Get Involved</h3>
-                <ul className="space-y-2">
+                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em] text-gold-200">Get Involved</h3>
+                <ul className="space-y-1.5">
                   {getInvolvedLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
@@ -200,8 +181,8 @@ export default async function Footer() {
             {/* Partners */}
             {affiliationLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="font-display font-semibold uppercase tracking-[0.08em] text-[13px] text-gold-200 mb-4 pb-2 border-b border-gold-400/25">Affiliations</h3>
-                <ul className="space-y-2">
+                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em] text-gold-200">Affiliations</h3>
+                <ul className="space-y-1.5">
                   {affiliationLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
@@ -218,8 +199,8 @@ export default async function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-maroon-700 px-4 sm:px-6 lg:px-8 py-5">
-        <div className="container-width flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="border-t border-maroon-700 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="container-width flex flex-col items-center justify-between gap-2 sm:flex-row">
           <p className="text-xs text-maroon-300 font-body">
             &copy; {currentYear} {settings.club_name}. All rights reserved.
           </p>

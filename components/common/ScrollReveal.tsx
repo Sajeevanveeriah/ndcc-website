@@ -15,7 +15,7 @@ type ScrollRevealProps = {
   onMount?: boolean;
   /** Stagger direct children (use with <ScrollRevealItem> wrappers). */
   stagger?: boolean;
-  /** Reveal duration in seconds. Defaults to 0.55; hero sequences use ~0.8. */
+  /** Reveal duration in seconds. Defaults to 0.45; hero sequences use ~0.7. */
   duration?: number;
   /** Direction the content reveals from. Defaults to 'up'. */
   direction?: 'up' | 'left' | 'right';
@@ -25,7 +25,7 @@ type ScrollRevealProps = {
    * filter animation is not cheap); 'fade' is opacity alone.
    */
   effect?: RevealEffect;
-  /** Travel distance in px for rise/blur entrances. Defaults to the house 24px. */
+  /** Travel distance in px for rise/blur entrances. Defaults to the house 16px. */
   distance?: number;
   /** Seconds between staggered children. Defaults to the house 0.08s. */
   staggerInterval?: number;
@@ -138,7 +138,7 @@ export function ScrollRevealItem({
     effect === 'zoom'
       ? {
           hidden: { opacity: 0, scale: 1.08 },
-          visible: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: EASE } },
+          visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: EASE } },
         }
       : effect === 'draw'
         ? {
@@ -146,8 +146,8 @@ export function ScrollRevealItem({
             visible: { opacity: 1, scaleX: 1, transition: { duration: 0.7, ease: EASE } },
           }
         : {
-          hidden: { opacity: 0, y: 20 },
-          visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+          hidden: { opacity: 0, y: 16 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
         };
   const variants = reduceMotion
     ? {

@@ -189,8 +189,17 @@ export default function SponsorsPage() {
         </div>
       </section>
 
+      <nav className="border-b border-edge-subtle bg-surface-card px-4 py-3 sm:px-6 lg:px-8" aria-label="On this page">
+        <div className="container-width flex flex-wrap items-center gap-x-5 gap-y-2 font-body text-sm font-semibold">
+          <span className="text-content-muted">On this page</span>
+          <a href="#current-sponsors" className="text-maroon-700 hover:underline dark:text-maroon-200">Current sponsors</a>
+          <a href="#sponsorship-packages" className="text-maroon-700 hover:underline dark:text-maroon-200">Packages</a>
+          <a href="#enquiry-form" className="text-maroon-700 hover:underline dark:text-maroon-200">Enquire</a>
+        </div>
+      </nav>
+
       {/* Intro */}
-      <section className="section-padding bg-surface-page">
+      <section id="current-sponsors" className="section-padding bg-surface-page scroll-mt-28">
         <div className="container-width">
           <ScrollReveal className="max-w-3xl mx-auto text-center">
             <h2 className="section-title">{introTitle}</h2>
@@ -234,12 +243,12 @@ export default function SponsorsPage() {
           >
             <div className="container-width">
               {/* Honour-board tier divider: short maroon rule + gold-tinted tier badge. */}
-              <div className="flex items-center gap-4 mb-8">
+              <div className="mb-5 flex items-center gap-4">
                 <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
                 <h2 className="section-title mb-0">{tier.label}s</h2>
                 <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
               </div>
-              <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {sponsorsByTier[tier.value].map((sponsor) => {
                   const description = getSponsorDescription(sponsor);
                   const logoFallback = (
@@ -257,7 +266,7 @@ export default function SponsorsPage() {
                       className="block group"
                     >
                       <div className="card-hover-sponsor h-full">
-                        <CardContent className="p-6">
+                        <CardContent className="p-5">
                           <LogoChip
                             name={sponsor.name}
                             src={sponsor.logo_url}
@@ -267,8 +276,8 @@ export default function SponsorsPage() {
                             width={220}
                             height={96}
                             sizes="220px"
-                            className="mb-3 h-32 rounded-xl ring-1 ring-maroon-100"
-                            imageClassName="max-h-24 max-w-[85%] w-auto drop-shadow-sm"
+                            className="mb-3 h-24 rounded-xl ring-1 ring-maroon-100"
+                            imageClassName="max-h-16 max-w-[85%] w-auto drop-shadow-sm"
                             fallback={logoFallback}
                           />
                           {/* Name caption beneath the logo so a low-contrast or missing logo still
@@ -317,7 +326,7 @@ export default function SponsorsPage() {
         <div className="container-width text-center">
           <span className="eyebrow-gold">Partner With the Dinos</span>
           <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">Become a Sponsor</h2>
-          <p className="text-maroon-100 font-body text-lg max-w-2xl mx-auto mb-6">
+          <p className="mx-auto mb-5 max-w-2xl font-body text-base text-maroon-100 sm:text-lg">
             Interested in partnering with the Dinos? We offer flexible sponsorship packages for
             businesses of all sizes. Get your brand in front of our members, families, and the wider
             Geelong cricket community.
@@ -328,10 +337,10 @@ export default function SponsorsPage() {
         </div>
       </section>
 
-      <section className="section-padding bg-surface-page">
-        <div className="container-width max-w-4xl mx-auto space-y-8">
+      <section id="sponsorship-packages" className="section-padding bg-surface-page scroll-mt-28">
+        <div className="container-width mx-auto grid max-w-5xl grid-cols-1 items-start gap-4 lg:grid-cols-[1.25fr_1fr]">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-5">
               <h2 className="text-2xl font-display font-bold text-content-primary mb-3">2026/27 Sponsorship Packages</h2>
               {/* Same 8 real packages/prices, presented as a scannable ledger table. */}
               <div className="mb-4" aria-label="Sponsorship package summary">
@@ -372,7 +381,7 @@ export default function SponsorsPage() {
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-5">
               <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Apparel Sponsorship</h2>
               <p className="text-content-secondary font-body mb-4">
                 Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season.
@@ -386,10 +395,10 @@ export default function SponsorsPage() {
       </section>
 
       {/* Sponsorship Enquiry Form */}
-      <section id="enquiry-form" className="section-padding" aria-label="Sponsorship enquiry form">
+      <section id="enquiry-form" className="section-padding scroll-mt-28" aria-label="Sponsorship enquiry form">
         <div className="container-width max-w-2xl mx-auto">
           <h2 className="section-title text-center">Sponsorship Enquiry</h2>
-          <p className="section-subtitle text-center mx-auto mb-8">
+          <p className="section-subtitle mx-auto mb-6 text-center">
             Fill out the form below and our sponsorship coordinator will be in touch.
           </p>
 

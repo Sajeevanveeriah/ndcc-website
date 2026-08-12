@@ -77,9 +77,19 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section-padding">
+      <nav className="border-b border-edge-subtle bg-surface-card px-4 py-3 sm:px-6 lg:px-8" aria-label="On this page">
+        <div className="container-width flex flex-wrap items-center gap-x-5 gap-y-2 font-body text-sm font-semibold">
+          <span className="text-content-muted">On this page</span>
+          <a href="#club-history" className="text-maroon-700 hover:underline dark:text-maroon-200">History</a>
+          <a href="#premiership-honours" className="text-maroon-700 hover:underline dark:text-maroon-200">Honours</a>
+          <a href="#club-connections" className="text-maroon-700 hover:underline dark:text-maroon-200">Connections</a>
+          <a href="#committee" className="text-maroon-700 hover:underline dark:text-maroon-200">Committee</a>
+        </div>
+      </nav>
+
+      <section id="club-history" className="section-padding scroll-mt-28">
         <div className="container-width">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
             <ScrollReveal direction="left">
               <div>
                 <span className="section-eyebrow">Est. <AnimatedCounter to={1972} duration={1.8} /></span>
@@ -90,7 +100,7 @@ export default async function AboutPage() {
               </div>
             </ScrollReveal>
             <ScrollReveal direction="right">
-              <div className="relative h-72 lg:h-96 rounded-xl overflow-hidden">
+              <div className="relative h-64 overflow-hidden rounded-xl lg:h-80">
                 <Image
                   src={historyImage}
                   alt="Grinter Reserve, home ground of the Newcomb and District Cricket Club"
@@ -107,21 +117,21 @@ export default async function AboutPage() {
 
       <section className="band-maroon section-padding">
         <div className="container-width">
-          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+          <ScrollReveal stagger className="grid grid-cols-3 gap-4 text-center">
             <ScrollRevealItem>
-              <p className="font-display text-5xl sm:text-6xl font-bold text-gold-200">
+              <p className="font-display text-3xl font-bold text-gold-200 sm:text-4xl">
                 <AnimatedCounter to={yearsStrong} />
               </p>
               <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Years Strong</p>
             </ScrollRevealItem>
             <ScrollRevealItem>
-              <p className="font-display text-5xl sm:text-6xl font-bold text-gold-200">
+              <p className="font-display text-3xl font-bold text-gold-200 sm:text-4xl">
                 <AnimatedCounter to={premiershipCount} />
               </p>
               <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Premierships Won</p>
             </ScrollRevealItem>
             <ScrollRevealItem>
-              <p className="font-display text-5xl sm:text-6xl font-bold text-gold-200">
+              <p className="font-display text-3xl font-bold text-gold-200 sm:text-4xl">
                 <AnimatedCounter to={seasonsInGca} />
               </p>
               <p className="mt-2 font-body text-sm uppercase tracking-wide text-maroon-100">Seasons in the {CLUB_ASSOCIATION_SHORT}</p>
@@ -129,14 +139,6 @@ export default async function AboutPage() {
           </ScrollReveal>
         </div>
       </section>
-
-      <div className="container-width px-4">
-        <div className="flex items-center justify-center gap-4 py-10" aria-hidden="true">
-          <span className="h-px w-20 bg-gradient-to-r from-transparent to-maroon-200" />
-          <span className="h-2.5 w-2.5 rotate-45 rounded-[2px] bg-maroon-600" />
-          <span className="h-px w-20 bg-gradient-to-l from-transparent to-maroon-200" />
-        </div>
-      </div>
 
       <section className="section-padding surface-blue-band">
         <div className="container-width">
@@ -160,17 +162,17 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section-padding">
+      <section id="premiership-honours" className="section-padding scroll-mt-28">
         <div className="container-width">
           <span className="section-eyebrow">Club History</span>
           <h2 className="section-title">Premiership Honours</h2>
-          <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <ScrollReveal stagger className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {premiershipTeams.map((teamLabel) => {
               const teamPremierships = premierships.filter((item) => item.team_label === teamLabel);
               return (
                 <ScrollRevealItem key={teamLabel}>
                 {/* The literal honour board: gold-lettered premiership plaques. */}
-                <div className="h-full band-maroon rounded-xl shadow-card p-6 space-y-3">
+                <div className="band-maroon h-full space-y-3 rounded-xl p-5 shadow-card">
                   <h3 className="text-xl font-display font-bold uppercase tracking-wide text-gold-200 border-b border-gold-400/25 pb-3">{teamLabel}</h3>
                   {teamPremierships.length === 0 ? (
                     <p className="text-sm text-white/60 font-body">No premierships recorded yet.</p>
@@ -191,49 +193,51 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      <section className="section-padding surface-blue-band">
+      <section id="club-connections" className="section-padding surface-blue-band scroll-mt-28">
         <div className="container-width">
-          <ScrollReveal className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="section-title">{blocks['about.affiliation']?.title || `${CLUB_ASSOCIATION_SHORT} Affiliation`}</h2>
-              <p className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
-                {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
-              </p>
-            </div>
-            <div className="surface-panel p-8 text-center">
-              <div className="w-20 h-20 bg-maroon-100 dark:bg-maroon-950 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-maroon-700 dark:text-maroon-200 font-display font-bold text-2xl">{CLUB_ASSOCIATION_SHORT}</span>
-              </div>
-              <h3 className="text-xl font-display font-bold text-content-primary mb-2">{CLUB_ASSOCIATION}</h3>
-              <p className="text-content-muted font-body text-sm">Affiliated since {CLUB_ESTABLISHED}</p>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <section className="section-padding">
-        <div className="container-width">
-          <ScrollReveal className="max-w-3xl">
-            <span className="section-eyebrow">Accreditation</span>
-            <h2 className="section-title">{blocks['about.goodsports']?.title || 'Good Sports Level 3'}</h2>
-            <p className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
-              {normalisePublicText(blocks['about.goodsports']?.body)}
-            </p>
-            <Badge variant="success" className="mt-4 text-sm px-4 py-1">
-              {normalisePublicText(blocks['about.goodsports']?.cta_label) || 'Good Sports Level 3 Accredited'}
-            </Badge>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <section className="section-padding surface-blue-band">
-        <div className="container-width">
-          <div className="max-w-3xl">
-            <h2 className="section-title">{normalisePublicText(blocks['about.partnership']?.title) || 'Newcomb Power Football & Netball Club'}</h2>
-            <p className="space-y-4 text-content-secondary font-body leading-relaxed whitespace-pre-line">
-              {normalisePublicText(blocks['about.partnership']?.body) || `NDCC shares facilities at ${CLUB_GROUND}.`}
-            </p>
+          <div className="mb-8 text-center">
+            <span className="section-eyebrow">Community &amp; Standards</span>
+            <h2 className="section-title">Club Connections</h2>
           </div>
+          <ScrollReveal stagger className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <ScrollRevealItem>
+              <Card className="h-full">
+                <CardContent className="flex h-full flex-col p-5">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-100 dark:bg-maroon-950">
+                    <span className="font-display text-base font-bold text-maroon-700 dark:text-maroon-200">{CLUB_ASSOCIATION_SHORT}</span>
+                  </div>
+                  <h3 className="mb-2 font-display text-xl font-bold text-content-primary">{blocks['about.affiliation']?.title || `${CLUB_ASSOCIATION_SHORT} Affiliation`}</h3>
+                  <p className="whitespace-pre-line font-body leading-relaxed text-content-secondary">
+                    {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
+                  </p>
+                  <p className="mt-auto pt-4 font-body text-sm text-content-muted">Affiliated since {CLUB_ESTABLISHED}</p>
+                </CardContent>
+              </Card>
+            </ScrollRevealItem>
+            <ScrollRevealItem>
+              <Card className="h-full">
+                <CardContent className="flex h-full flex-col p-5">
+                  <span className="section-eyebrow">Accreditation</span>
+                  <h3 className="mb-2 font-display text-xl font-bold text-content-primary">{blocks['about.goodsports']?.title || 'Good Sports Level 3'}</h3>
+                  <p className="whitespace-pre-line font-body leading-relaxed text-content-secondary">{normalisePublicText(blocks['about.goodsports']?.body)}</p>
+                  <Badge variant="success" className="mt-auto self-start text-sm">
+                    {normalisePublicText(blocks['about.goodsports']?.cta_label) || 'Good Sports Level 3 Accredited'}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </ScrollRevealItem>
+            <ScrollRevealItem>
+              <Card className="h-full">
+                <CardContent className="p-5">
+                  <span className="section-eyebrow">Shared Facilities</span>
+                  <h3 className="mb-2 font-display text-xl font-bold text-content-primary">{normalisePublicText(blocks['about.partnership']?.title) || 'Newcomb Power Football & Netball Club'}</h3>
+                  <p className="whitespace-pre-line font-body leading-relaxed text-content-secondary">
+                    {normalisePublicText(blocks['about.partnership']?.body) || `NDCC shares facilities at ${CLUB_GROUND}.`}
+                  </p>
+                </CardContent>
+              </Card>
+            </ScrollRevealItem>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -241,10 +245,10 @@ export default async function AboutPage() {
         <section className="section-padding">
           <div className="container-width">
             <h2 className="section-title">About Articles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               {aboutArticles.map((article) => (
                 <Card key={article.id}>
-                  <CardContent className="p-6">
+                  <CardContent className="p-5">
                     <h3 className="font-display font-bold text-content-primary text-xl">{article.title}</h3>
                     <p className="text-content-muted mt-2 whitespace-pre-line">{normalisePublicText(article.description)}</p>
                     <a href={article.href} className="btn-secondary mt-4 inline-flex">
@@ -258,21 +262,21 @@ export default async function AboutPage() {
         </section>
       )}
 
-      <section className="section-padding">
+      <section id="committee" className="section-padding scroll-mt-28">
         <div className="container-width">
-          <div className="text-center mb-12">
+          <div className="mb-8 text-center">
             <span className="section-eyebrow">Office Bearers</span>
             <h2 className="section-title">{blocks['about.committee']?.title || 'Committee & Office Bearers'}</h2>
             <p className="section-subtitle mx-auto">
               {blocks['about.committee']?.body || `The people who keep the ${CLUB_NICKNAME} running behind the scenes.`}
             </p>
           </div>
-          <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+          <ScrollReveal stagger className="mx-auto grid max-w-5xl grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {activeCommittee.map((member) => (
               <ScrollRevealItem key={member.name}>
                 <Card hover className="group h-full">
-                  <CardContent className="p-7 text-center h-full flex flex-col items-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-maroon-700 to-maroon-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-md group-hover:scale-105 transition-all duration-300">
+                  <CardContent className="flex h-full flex-col items-center p-5 text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-maroon-700 to-maroon-900 shadow-md transition-all duration-300 group-hover:scale-105">
                       <span className="text-gold-200 font-display font-bold text-xl">
                         {getInitials(member.name)}
                       </span>

@@ -79,10 +79,10 @@ function HeroView({
   ctaUrl: string;
 }) {
   return (
-    // Cinematic full-height hero. The section pulls itself up under the fixed
+    // Compact cinematic hero. The section pulls itself up under the fixed
     // navigation (-mt cancels the layout's nav offset) so the homepage nav can
     // sit transparent over the imagery at the top of the page.
-    <section className="relative -mt-24 lg:-mt-28 flex min-h-[88svh] flex-col overflow-hidden text-white">
+    <section className="relative -mt-24 flex min-h-[clamp(34rem,68svh,42rem)] flex-col overflow-hidden text-white lg:-mt-28">
       {/* Scroll-linked depth: the image settles on load and drifts ≤40px as the
           hero leaves the viewport, while the scrims and ambient layers below
           stay fixed — two planes moving at different rates. */}
@@ -132,7 +132,7 @@ function HeroView({
       />
       {/* Mobile crops put more sky behind the title; deepen the scrim so copy always sits on a dark patch. */}
       <div className="absolute inset-0 sm:hidden bg-maroon-950/30" aria-hidden="true" />
-      <div className="container-width relative z-10 flex flex-1 items-center px-4 pb-16 pt-32 sm:px-6 sm:items-end sm:pb-24 lg:px-8 lg:pt-40">
+      <div className="container-width relative z-10 flex flex-1 items-center px-4 pb-12 pt-28 sm:items-end sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pt-36">
         <div className="w-full text-center sm:text-left">
           <ScrollReveal onMount delay={0.2} duration={0.8}>
             <span className="eyebrow-gold">
@@ -141,25 +141,25 @@ function HeroView({
           </ScrollReveal>
           <h1 className="font-display font-bold uppercase leading-[0.95] tracking-tight">
             <MaskReveal delay={0.35}>
-              <span className="block text-4xl sm:text-6xl lg:text-7xl">{title}</span>
+              <span className="block text-4xl sm:text-5xl lg:text-6xl">{title}</span>
             </MaskReveal>
             <MaskReveal delay={0.5}>
-              <span className="mt-2 block text-2xl italic text-gold-200/90 sm:text-4xl lg:text-5xl">
+              <span className="mt-2 block text-2xl italic text-gold-200/90 sm:text-3xl lg:text-4xl">
                 Home of the {CLUB_NICKNAME}
               </span>
             </MaskReveal>
           </h1>
           <ScrollReveal onMount delay={0.7} duration={0.8}>
-            <p className="mx-auto mb-8 mt-5 max-w-2xl font-body text-lg text-maroon-100 sm:mx-0 sm:text-2xl">
+            <p className="mx-auto mb-6 mt-4 max-w-2xl font-body text-base text-maroon-100 sm:mx-0 sm:text-xl">
               {body}
             </p>
           </ScrollReveal>
           <ScrollReveal onMount delay={0.85} duration={0.8}>
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-              <Link href={ctaUrl} className="btn-primary rounded-full px-8 py-4 text-lg">
+              <Link href={ctaUrl} className="btn-primary rounded-full px-7 py-3 text-base">
                 {ctaLabel}
               </Link>
-              <Link href="/fixtures" className="btn-outline-white rounded-full px-8 py-4 text-lg">
+              <Link href="/fixtures" className="btn-outline-white rounded-full px-7 py-3 text-base">
                 View Fixtures
               </Link>
             </div>
@@ -208,23 +208,23 @@ const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
 function QuickLinkIcon({ icon }: { icon: string }) {
   const Icon = QUICK_LINK_ICONS[icon.trim()];
   if (Icon) {
-    return <Icon className="h-8 w-8 text-maroon-700 mb-3 dark:text-maroon-300" aria-hidden="true" />;
+    return <Icon className="mb-2 h-7 w-7 text-maroon-700 dark:text-maroon-300" aria-hidden="true" />;
   }
-  return <span className="text-3xl mb-3 block" aria-hidden="true">{icon}</span>;
+  return <span className="mb-2 block text-2xl" aria-hidden="true">{icon}</span>;
 }
 
 function QuickLinksSkeleton() {
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <div className="text-center mb-12">
+        <div className="mb-8 text-center">
           <span className="section-eyebrow">Quick Links</span>
           <div className="mx-auto h-9 w-64 max-w-full rounded bg-gray-200 animate-pulse mb-3" />
           <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[0, 1, 2].map((index) => (
-            <div key={index} className="h-full bg-surface-card border border-edge-subtle border-l-4 border-l-maroon-700 rounded-xl p-6 shadow-sm">
+            <div key={index} className="h-full rounded-xl border border-l-4 border-edge-subtle border-l-maroon-700 bg-surface-card p-5 shadow-sm">
               <div className="h-8 w-8 rounded bg-gray-200 animate-pulse mb-3" />
               <div className="h-6 w-2/3 rounded bg-gray-200 animate-pulse mb-3" />
               <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
@@ -245,14 +245,14 @@ async function QuickLinksSection() {
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <ScrollReveal className="text-center mb-12">
+        <ScrollReveal className="mb-8 text-center">
           <span className="section-eyebrow">Quick Links</span>
           <h2 className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
           <p className="section-subtitle mx-auto">
             {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
           </p>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {quickLinks.map((link) => (
             <ScrollRevealItem key={link.id}>
             {/* Hover lift lives on the Link; the tilt/spotlight surface is the
@@ -263,10 +263,10 @@ async function QuickLinksSection() {
               className="group block h-full rounded-xl focus-ring hover:-translate-y-1 transition-transform duration-300"
             >
               <TiltCard className="h-full rounded-xl">
-                <div className="h-full bg-surface-card border border-edge-subtle border-l-4 border-l-maroon-700 rounded-xl p-6 flex flex-col shadow-sm group-hover:shadow-lift transition-shadow duration-300 dark:border-slate-700 dark:border-l-maroon-500">
+                <div className="flex h-full flex-col rounded-xl border border-l-4 border-edge-subtle border-l-maroon-700 bg-surface-card p-5 shadow-sm transition-shadow duration-300 group-hover:shadow-lift dark:border-slate-700 dark:border-l-maroon-500">
                   {link.icon && <QuickLinkIcon icon={link.icon} />}
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2 group-hover:text-maroon-700 transition-colors">
+                    <h3 className="mb-2 font-display text-lg font-bold text-maroon-800 transition-colors group-hover:text-maroon-700 dark:text-maroon-200">
                       {link.title}
                     </h3>
                     <span className="text-gray-300 text-xl group-hover:text-maroon-500 group-hover:translate-x-1 transition-all duration-200 shrink-0">→</span>
@@ -300,10 +300,10 @@ function SeasonStatusView({
     <section className="band-maroon section-padding">
       <div className="container-width">
         <ScrollReveal>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-8 items-center">
+        <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto]">
           <div>
             <span className="eyebrow-gold">Season Update</span>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold uppercase tracking-wide text-white mb-3">{title}</h2>
+            <h2 className="mb-2 font-display text-2xl font-bold uppercase tracking-wide text-white sm:text-3xl">{title}</h2>
             <p className="font-body leading-relaxed mb-0 text-white/75">
               {body}{' '}
               <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-sky_accent hover:underline font-semibold">
@@ -343,20 +343,20 @@ async function SeasonStatusSection() {
   );
 }
 
-function NewsSkeleton() {
+function ClubUpdatesSkeleton() {
   return (
     <section className="section-padding surface-blue-band">
       <div className="container-width">
-        <div className="text-center mb-12">
-          <span className="section-eyebrow">Club News</span>
+        <div className="mb-8 text-center">
+          <span className="section-eyebrow">Club Updates</span>
           <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse mb-3" />
           <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[0, 1, 2].map((index) => (
             <Card key={index} className="h-full overflow-hidden">
-              <div className="aspect-[4/3] w-full bg-gray-200 animate-pulse" />
-              <CardContent className="p-6">
+              <div className="aspect-video w-full bg-gray-200 animate-pulse" />
+              <CardContent className="p-5">
                 <div className="h-4 w-28 rounded bg-gray-200 animate-pulse mb-3" />
                 <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse mb-3" />
                 <div className="h-4 w-full rounded bg-gray-200 animate-pulse mb-2" />
@@ -365,208 +365,163 @@ function NewsSkeleton() {
             </Card>
           ))}
         </div>
-        <div className="text-center mt-8">
-          <Link href="/news" className="btn-secondary">
-            Read More News
-          </Link>
-        </div>
       </div>
     </section>
   );
 }
 
-async function NewsSection() {
-  const [blocks, news] = await Promise.all([
+async function ClubUpdatesSection() {
+  const [blocks, news, publications] = await Promise.all([
     getContentBlocks(['home.welcome']),
     getLatestNews(),
+    getPublishedPublications({ limit: 2 }),
   ]);
 
   return (
     <section className="section-padding surface-blue-band">
       <div className="container-width">
-        <ScrollReveal className="text-center mb-12">
-          <span className="section-eyebrow">Club News</span>
-          <h2 className="section-title">{blocks['home.welcome']?.title || 'Latest News'}</h2>
+        <ScrollReveal className="mb-8 text-center">
+          <span className="section-eyebrow">Club Updates</span>
+          <h2 className="section-title">{blocks['home.welcome']?.title || 'Latest from NDCC'}</h2>
           <p className="section-subtitle mx-auto">
             {blocks['home.welcome']?.body || 'Stay up to date with everything happening at NDCC.'}
           </p>
         </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {news.map((article) => {
-            const inner = (
-              <Card hover className="h-full overflow-hidden">
-                {(article.image_url || article.image) ? (
-                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-page">
-                    <SafeImage
-                      src={article.image_url || article.image || '/images/Womens_Team.jpg'}
-                      alt={article.title}
-                      fill
-                      className="object-contain group-hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      fallback={
-                        <div className="h-full w-full flex items-center justify-center bg-maroon-800">
-                          <span className="text-white/30 font-display font-black text-4xl">NDCC</span>
-                        </div>
-                      }
-                    />
-                  </div>
-                ) : (
-                  <div className="relative aspect-[4/3] w-full overflow-hidden">
-                    <Image
-                      src="/images/Womens_Team.jpg"
-                      alt="Newcomb and District Cricket Club"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  </div>
-                )}
-                <CardContent className="p-6">
-                  {article.published_at && (
-                    <p className="text-xs uppercase tracking-[0.08em] text-maroon-600 dark:text-maroon-300 font-body font-semibold mb-2">
-                      {formatDate(article.published_at)}
-                    </p>
-                  )}
-                  <h3 className="text-lg font-display font-bold text-content-primary mb-2 group-hover:text-maroon-700 transition-colors">
-                    {article.title}
-                  </h3>
-                  <p className="text-content-muted font-body text-sm">
-                    {truncateText(article.content, 120)}
-                  </p>
-                </CardContent>
-              </Card>
-            );
+        <div className={publications.length > 0 ? 'grid grid-cols-1 gap-8 xl:grid-cols-[1.7fr_1fr]' : ''}>
+          <div>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Club News</h3>
+              <Link href="/news" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all news</Link>
+            </div>
+            <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {news.map((article) => {
+                const inner = (
+                  <Card hover className="h-full overflow-hidden">
+                    <div className="relative aspect-video w-full overflow-hidden bg-surface-page">
+                      <SafeImage
+                        src={article.image_url || article.image || '/images/Womens_Team.jpg'}
+                        alt={article.title}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 28vw"
+                        fallback={
+                          <div className="flex h-full w-full items-center justify-center bg-maroon-800">
+                            <span className="font-display text-4xl font-black text-white/30">NDCC</span>
+                          </div>
+                        }
+                      />
+                    </div>
+                    <CardContent className="p-5">
+                      {article.published_at && (
+                        <p className="mb-2 font-body text-xs font-semibold uppercase tracking-[0.08em] text-maroon-600 dark:text-maroon-300">
+                          {formatDate(article.published_at)}
+                        </p>
+                      )}
+                      <h4 className="mb-2 font-display text-lg font-bold text-content-primary transition-colors group-hover:text-maroon-700">
+                        {article.title}
+                      </h4>
+                      <p className="font-body text-sm text-content-muted">{truncateText(article.content, 90)}</p>
+                    </CardContent>
+                  </Card>
+                );
 
-            return (
-              <ScrollRevealItem key={article.id}>
-                <Link href={`/news/${article.id}`} className="group block h-full rounded-xl focus-ring">
-                  <TiltCard className="h-full rounded-xl">
-                    {inner}
-                  </TiltCard>
-                </Link>
-              </ScrollRevealItem>
-            );
-          })}
-        </ScrollReveal>
-        <div className="text-center mt-8">
-          <Link href="/news" className="btn-secondary">
-            Read More News
-          </Link>
+                return (
+                  <ScrollRevealItem key={article.id}>
+                    <Link href={`/news/${article.id}`} className="group block h-full rounded-xl focus-ring">
+                      <TiltCard className="h-full rounded-xl">{inner}</TiltCard>
+                    </Link>
+                  </ScrollRevealItem>
+                );
+              })}
+            </ScrollReveal>
+          </div>
+          {publications.length > 0 && (
+            <div>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Publications</h3>
+                <Link href="/publications" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all publications</Link>
+              </div>
+              <ScrollReveal stagger direction="right" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                {publications.map((publication) => (
+                  <PublicationCard key={publication.id} publication={publication} />
+                ))}
+              </ScrollReveal>
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
 
-async function LatestPublicationsSection() {
-  // Live CMS data; the whole section is hidden when nothing is published.
-  const publications = await getPublishedPublications({ limit: 3 });
-  if (publications.length === 0) return null;
-
-  return (
-    // Alternating feature layout: narrative on the left, live publication
-    // cards on the right (stacking on mobile).
-    <section className="section-padding">
-      <div className="container-width grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-14">
-        <ScrollReveal direction="left" className="lg:sticky lg:top-32">
-          <span className="section-eyebrow">Publications</span>
-          <h2 className="section-title">Newsletters &amp; Match Reports</h2>
-          <p className="section-subtitle mb-8">
-            The latest from the club in writing — newsletters and weekly match reports.
-          </p>
-          <Link href="/publications" className="btn-secondary">
-            View All Publications
-          </Link>
-        </ScrollReveal>
-        <ScrollReveal stagger direction="right" className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {publications.map((publication) => (
-            <PublicationCard key={publication.id} publication={publication} />
-          ))}
-        </ScrollReveal>
-      </div>
-    </section>
-  );
-}
-
-async function EventsSection() {
-  const { data: events } = await getPublicEvents();
+async function WhatsOnSection() {
+  const [{ data: events }, calendarResult] = await Promise.all([
+    getPublicEvents(),
+    getUpcomingCalendarEvents({ limit: 4, home: true }),
+  ]);
   const now = Date.now();
   const upcoming = events
     .filter((event) => {
       const time = Date.parse(String(event.date || ''));
       return Number.isFinite(time) && time >= now - 24 * 60 * 60 * 1000;
     })
-    .slice(0, 3);
-  if (upcoming.length === 0) return null;
+    .slice(0, 2);
+  const calendarEvents = calendarResult.degraded ? [] : calendarResult.data.map(toCalendarFeedEvent);
+  if (upcoming.length === 0 && calendarEvents.length === 0) return null;
 
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <ScrollReveal className="text-center mb-10">
+        <ScrollReveal className="mb-8 text-center">
           <span className="section-eyebrow">What&apos;s On</span>
-          <h2 className="section-title">Upcoming Events</h2>
+          <h2 className="section-title">Events &amp; Club Calendar</h2>
         </ScrollReveal>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcoming.map((event) => (
-            <ScrollReveal key={event.id}>
-              <Card hover className="h-full flex flex-col">
-                {event.image_url && (
-                  <div className="relative aspect-[4/3] w-full bg-surface-page">
-                    <SafeImage
-                      src={event.image_url}
-                      alt={`${event.title} event artwork`}
-                      fill
-                      className="object-contain"
-                      sizes="(max-width: 1024px) 100vw, 33vw"
-                      fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
-                    />
-                  </div>
-                )}
-                <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-6 py-4">
-                  <p className="text-gold-200 font-body text-xs font-semibold uppercase tracking-[0.08em]">{formatDate(event.date)}</p>
-                  <h3 className="text-white font-display font-bold text-xl mt-1">{event.title}</h3>
-                </div>
-                <CardContent className="flex-1">
-                  <p className="font-body text-sm text-content-muted mb-2">{event.location}</p>
-                  <p className="font-body text-content-secondary text-sm leading-relaxed mb-4">{truncateText(event.description, 130)}</p>
-                  <Link
-                    href={`/events/${event.id}`}
-                    className="inline-flex items-center text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 font-body font-semibold text-sm transition-colors"
-                  >
-                    View Details
-                  </Link>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
-          ))}
-        </div>
-        <div className="text-center mt-8">
-          <Link href="/events" className="btn-secondary">View All Events</Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-async function CalendarPreviewSection() {
-  // Hidden entirely when nothing is published or the live query degrades —
-  // never stale fallback calendar content.
-  const result = await getUpcomingCalendarEvents({ limit: 4, home: true });
-  if (result.degraded || result.data.length === 0) return null;
-  const events = result.data.map(toCalendarFeedEvent);
-
-  return (
-    <section className="section-padding surface-blue-band">
-      <div className="container-width">
-        <ScrollReveal className="text-center mb-10">
-          <span className="section-eyebrow">Club Calendar</span>
-          <h2 className="section-title">What&apos;s On at the Club</h2>
-        </ScrollReveal>
-        <div className="max-w-3xl mx-auto">
-          <UpcomingEventsStrip events={events} showViewAll={false} />
-        </div>
-        <div className="text-center mt-8">
-          <Link href="/calendar" className="btn-secondary">View Full Calendar</Link>
+        <div className={upcoming.length > 0 && calendarEvents.length > 0 ? 'grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.25fr_1fr]' : ''}>
+          {upcoming.length > 0 && (
+            <div>
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Upcoming Events</h3>
+                <Link href="/events" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all</Link>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {upcoming.map((event) => (
+                  <ScrollReveal key={event.id}>
+                    <Card hover className="flex h-full flex-col">
+                      {event.image_url && (
+                        <div className="relative aspect-video w-full bg-surface-page">
+                          <SafeImage
+                            src={event.image_url}
+                            alt={`${event.title} event artwork`}
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 1024px) 100vw, 40vw"
+                            fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
+                          />
+                        </div>
+                      )}
+                      <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-5 py-3">
+                        <p className="font-body text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">{formatDate(event.date)}</p>
+                        <h4 className="mt-1 font-display text-lg font-bold text-white">{event.title}</h4>
+                      </div>
+                      <CardContent className="flex-1 p-4">
+                        <p className="mb-3 font-body text-sm text-content-muted">{event.location}</p>
+                        <Link href={`/events/${event.id}`} className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View details</Link>
+                      </CardContent>
+                    </Card>
+                  </ScrollReveal>
+                ))}
+              </div>
+            </div>
+          )}
+          {calendarEvents.length > 0 && (
+            <div>
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Club Calendar</h3>
+                <Link href="/calendar" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View full calendar</Link>
+              </div>
+              <UpcomingEventsStrip events={calendarEvents} showViewAll={false} />
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -581,17 +536,17 @@ async function GalleryPreviewSection() {
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <ScrollReveal className="text-center mb-10">
+        <ScrollReveal className="mb-6 text-center">
           <span className="section-eyebrow">Around the Club</span>
           <h2 className="section-title">Gallery</h2>
         </ScrollReveal>
         {/* Cinematic gallery entrance: each frame settles from a gentle zoom on
             a relaxed stagger; hovering re-engages the zoom. Image identity,
             crops, alt text and order are untouched. */}
-        <ScrollReveal stagger staggerInterval={0.12} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <ScrollReveal stagger staggerInterval={0.1} className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {preview.map((photo) => (
             <ScrollRevealItem key={photo.id}>
-              <div className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-surface-page ring-1 ring-maroon-100/60">
+              <div className="group relative aspect-video overflow-hidden rounded-xl bg-surface-page ring-1 ring-maroon-100/60">
                 {/* The zoom plane sits inside the clipped frame, so the image
                     settles from 108% behind the mask without ever crossing the
                     grid gap. */}
@@ -609,7 +564,7 @@ async function GalleryPreviewSection() {
             </ScrollRevealItem>
           ))}
         </ScrollReveal>
-        <div className="text-center mt-8">
+        <div className="mt-6 text-center">
           <Link href="/gallery" className="btn-secondary">View Full Gallery</Link>
         </div>
       </div>
@@ -621,11 +576,11 @@ function SeasonAppointmentsSkeleton() {
   return (
     <section className="section-padding bg-surface-card">
       <div className="container-width">
-        <div className="text-center mb-12">
+        <div className="mb-8 text-center">
           <span className="section-eyebrow">Season appointments</span>
           <h2 className="section-title">Season appointments</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
             <div
               key={index}
@@ -634,7 +589,7 @@ function SeasonAppointmentsSkeleton() {
             />
           ))}
         </div>
-        <p className="text-center text-content-muted font-body text-sm mt-8">
+        <p className="mt-6 text-center font-body text-sm text-content-muted">
           Season appointments are managed in the CMS. Follow us on{' '}
           <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
             Facebook
@@ -664,23 +619,23 @@ function SponsorsSkeleton() {
   return (
     <section className="section-padding surface-blue-band">
       <div className="container-width">
-        <div className="text-center mb-10">
+        <div className="mb-8 text-center">
           <span className="section-eyebrow">Community Partners</span>
           <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse mb-3" />
           <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
             <Card key={index} className="h-full border border-edge-blue/60">
-              <CardContent className="p-6 flex flex-col items-center text-center h-full">
-                <div className="w-full h-28 rounded-lg bg-gray-200 animate-pulse mb-4" />
+              <CardContent className="flex h-full flex-col items-center p-5 text-center">
+                <div className="mb-4 h-24 w-full animate-pulse rounded-lg bg-gray-200" />
                 <div className="h-5 w-40 rounded bg-gray-200 animate-pulse mb-3" />
                 <div className="h-4 w-24 rounded bg-gray-200 animate-pulse" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <div className="text-center mt-8">
+        <div className="mt-6 text-center">
           <Link href="/sponsors" className="btn-secondary">
             View All Sponsors
           </Link>
@@ -709,7 +664,7 @@ async function SponsorsSection() {
   return (
     <section className="section-padding surface-blue-band">
       <div className="container-width">
-        <ScrollReveal className="text-center mb-10">
+        <ScrollReveal className="mb-8 text-center">
           <span className="section-eyebrow">Community Partners</span>
           <h2 className="section-title">{sponsorshipTitle}</h2>
           <p className="section-subtitle mx-auto">
@@ -744,8 +699,8 @@ async function SponsorsSection() {
                     width={190}
                     height={70}
                     sizes="190px"
-                    className="h-28 w-56 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-all duration-300 group-hover:shadow-lift group-hover:ring-2 group-hover:ring-maroon-200/70 group-hover:-translate-y-1"
-                    imageClassName="max-h-16 w-auto"
+                    className="h-24 w-48 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lift group-hover:ring-2 group-hover:ring-maroon-200/70"
+                    imageClassName="max-h-14 w-auto"
                     fallback={brandedFallback}
                   />
                   <span className="sponsor-caption">{sponsor.name}</span>
@@ -778,7 +733,7 @@ async function SponsorsSection() {
             ))}
           </div>
         </ScrollReveal>
-        <div className="text-center mt-8">
+        <div className="mt-6 text-center">
           <Link href="/sponsors" className="btn-secondary">
             View All Sponsors
           </Link>
@@ -800,12 +755,12 @@ function FantasyTeaserSection() {
     <section className="section-padding bg-surface-card">
       <div className="container-width">
         <ScrollReveal effect="scale">
-          <div className="surface-panel p-8 sm:p-10 lg:p-12 overflow-hidden relative">
-            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8 items-center">
+          <div className="surface-panel relative overflow-hidden p-6 sm:p-8">
+            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
               <div>
                 <span className="section-eyebrow">Dinos Fantasy</span>
                 <h2 className="section-title">Fantasy Cricket League</h2>
-                <p className="section-subtitle mb-6">
+                <p className="section-subtitle mb-5">
                   Back your judgement against the rest of the club. Pick a squad of real NDCC
                   players, captain your stars, and score points from actual match performances
                   across the season.
@@ -819,11 +774,11 @@ function FantasyTeaserSection() {
                   </Link>
                 </div>
               </div>
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {highlights.map((item) => (
                   <li
                     key={item.label}
-                    className="flex items-start gap-3 rounded-xl border border-edge-subtle bg-white/70 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70"
+                    className="flex items-start gap-3 rounded-xl border border-edge-subtle bg-white/70 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/70"
                   >
                     <Trophy className="h-5 w-5 mt-0.5 shrink-0 text-gold-500" aria-hidden="true" />
                     <div>
@@ -849,14 +804,14 @@ function JuniorsCtaView({ title, body }: { title: string; body: string }) {
         <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
           {title}
         </h2>
-        <p className="text-lg text-maroon-100 font-body mb-8 max-w-xl mx-auto">
+        <p className="mx-auto mb-6 max-w-xl font-body text-base text-maroon-100 sm:text-lg">
           {body}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/contact" className="btn-accent text-lg px-8 py-4">
+          <Link href="/contact" className="btn-accent px-7 py-3 text-base">
             Get in Touch
           </Link>
-          <Link href="/volunteer" className="btn-secondary border-white text-white hover:bg-surface-card hover:text-maroon-800 text-lg px-8 py-4">
+          <Link href="/volunteer" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
             Volunteer With Us
           </Link>
         </div>
@@ -917,8 +872,8 @@ export default function HomePage() {
 
       <FantasyTeaserSection />
 
-      <Suspense fallback={null}>
-        <LatestPublicationsSection />
+      <Suspense fallback={<ClubUpdatesSkeleton />}>
+        <ClubUpdatesSection />
       </Suspense>
 
       <Suspense fallback={<SeasonAppointmentsSkeleton />}>
@@ -926,16 +881,7 @@ export default function HomePage() {
       </Suspense>
 
       <Suspense fallback={null}>
-        <EventsSection />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <CalendarPreviewSection />
-      </Suspense>
-
-      {/* Community: club news ahead of the sponsor and gallery closers. */}
-      <Suspense fallback={<NewsSkeleton />}>
-        <NewsSection />
+        <WhatsOnSection />
       </Suspense>
 
       <Suspense fallback={<SponsorsSkeleton />}>
