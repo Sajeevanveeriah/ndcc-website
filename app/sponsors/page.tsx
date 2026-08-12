@@ -198,22 +198,22 @@ export default function SponsorsPage() {
         </div>
       </nav>
 
-      {/* Intro */}
-      <section id="current-sponsors" className="section-padding bg-surface-page scroll-mt-28">
+      {/* Intro and sponsor tiers share one section so every current partner stays
+          visible without repeating full-page vertical padding for each tier. */}
+      <section
+        id="current-sponsors"
+        className="section-padding bg-surface-page scroll-mt-28"
+        aria-label="Current sponsors by tier"
+      >
         <div className="container-width">
-          <ScrollReveal className="max-w-3xl mx-auto text-center">
+          <ScrollReveal className="mx-auto mb-8 max-w-3xl text-center">
             <h2 className="section-title">{introTitle}</h2>
             <p className="text-content-muted font-body text-lg leading-relaxed">
               {introBody}
             </p>
           </ScrollReveal>
-        </div>
-      </section>
 
-      {/* Sponsor Tiers */}
-      {loading ? (
-        <section className="section-padding">
-          <div className="container-width">
+          {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="bg-surface-card rounded-xl border border-edge-subtle p-6 animate-pulse">
@@ -222,118 +222,102 @@ export default function SponsorsPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      ) : (
-        tiersWithSponsors.length === 0 ? (
-          <section className="section-padding">
-            <div className="container-width">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No active sponsors published</h2>
-                  <p className="text-content-muted font-body">Active sponsor records will appear here after they are published in the CMS.</p>
-                </CardContent>
-              </Card>
+          ) : tiersWithSponsors.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No active sponsors published</h2>
+                <p className="text-content-muted font-body">Active sponsor records will appear here after they are published in the CMS.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-7">
+              {tiersWithSponsors.map((tier, idx) => (
+                <div
+                  key={tier.value}
+                  data-sponsor-tier={tier.value}
+                  className={idx === 0 ? undefined : 'border-t border-edge-subtle pt-7'}
+                >
+                  {/* Honour-board tier divider: short maroon rule + gold-tinted tier badge. */}
+                  <div className="mb-4 flex items-center gap-4">
+                    <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
+                    <h2 className="section-title mb-0">{tier.label}s</h2>
+                    <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
+                  </div>
+                  <ScrollReveal
+                    stagger
+                    className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${tier.value === 'standard' ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-3'}`}
+                  >
+                    {sponsorsByTier[tier.value].map((sponsor) => {
+                      const description = getSponsorDescription(sponsor);
+                      const logoFallback = (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
+                          <span className="font-display text-2xl font-bold leading-none text-gold-200">{getInitials(sponsor.name)}</span>
+                          <span className="font-display text-xs font-semibold uppercase tracking-wide text-gold-100">{sponsor.name}</span>
+                        </div>
+                      );
+                      return (
+                        <ScrollRevealItem key={sponsor.id}>
+                          <a
+                            href={sponsor.website || undefined}
+                            target={sponsor.website ? '_blank' : undefined}
+                            rel={sponsor.website ? 'noopener noreferrer' : undefined}
+                            className="block group"
+                          >
+                            <div className="card-hover-sponsor h-full">
+                              <CardContent className="p-5">
+                                <LogoChip
+                                  name={sponsor.name}
+                                  src={sponsor.logo_url}
+                                  surfaceMode={sponsor.logo_surface_mode}
+                                  paddingClassName={sponsor.logo_padding}
+                                  objectPosition={sponsor.logo_object_position}
+                                  width={220}
+                                  height={96}
+                                  sizes="220px"
+                                  className="mb-3 h-24 rounded-xl ring-1 ring-maroon-100"
+                                  imageClassName="max-h-16 max-w-[85%] w-auto drop-shadow-sm"
+                                  fallback={logoFallback}
+                                />
+                                {/* Name caption beneath the logo so a low-contrast or missing logo still
+                                    shows an identifiable, non-empty card. */}
+                                <h3 className="font-display font-bold text-content-primary text-lg group-hover:text-maroon-700 transition-colors mb-2">
+                                  {sponsor.name}
+                                </h3>
+                                {description && (
+                                  <p className="text-content-muted font-body text-sm mb-3">{description}</p>
+                                )}
+                                {sponsor.website && (
+                                  <p className="text-maroon-600 dark:text-maroon-300 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
+                                    Visit website
+                                    <svg className="ml-1 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                    </svg>
+                                  </p>
+                                )}
+                              </CardContent>
+                            </div>
+                          </a>
+                        </ScrollRevealItem>
+                      );
+                    })}
+                    {idx === tiersWithSponsors.length - 1 && (
+                      <ScrollRevealItem key="become-a-sponsor-cta">
+                        <Link href="#enquiry-form" className="group block h-full">
+                          <Card hover className="h-full border-2 border-dashed border-maroon-200">
+                            <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
+                              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 dark:bg-maroon-950 text-2xl font-bold text-maroon-700 dark:text-maroon-200 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
+                              <h3 className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200">Become a Sponsor</h3>
+                              <p className="mt-1 font-body text-sm text-content-muted">Partner with the Dinos — enquire below.</p>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      </ScrollRevealItem>
+                    )}
+                  </ScrollReveal>
+                </div>
+              ))}
             </div>
-          </section>
-        ) : tiersWithSponsors.map((tier, idx) => (
-          <section
-            key={tier.value}
-            className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-surface-page'}
-          >
-            <div className="container-width">
-              {/* Honour-board tier divider: short maroon rule + gold-tinted tier badge. */}
-              <div className="mb-5 flex items-center gap-4">
-                <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
-                <h2 className="section-title mb-0">{tier.label}s</h2>
-                <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
-              </div>
-              <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {sponsorsByTier[tier.value].map((sponsor) => {
-                  const description = getSponsorDescription(sponsor);
-                  const logoFallback = (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
-                      <span className="font-display text-2xl font-bold leading-none text-gold-200">{getInitials(sponsor.name)}</span>
-                      <span className="font-display text-xs font-semibold uppercase tracking-wide text-gold-100">{sponsor.name}</span>
-                    </div>
-                  );
-                  return (
-                    <ScrollRevealItem key={sponsor.id}>
-                    <a
-                      href={sponsor.website || undefined}
-                      target={sponsor.website ? '_blank' : undefined}
-                      rel={sponsor.website ? 'noopener noreferrer' : undefined}
-                      className="block group"
-                    >
-                      <div className="card-hover-sponsor h-full">
-                        <CardContent className="p-5">
-                          <LogoChip
-                            name={sponsor.name}
-                            src={sponsor.logo_url}
-                            surfaceMode={sponsor.logo_surface_mode}
-                            paddingClassName={sponsor.logo_padding}
-                            objectPosition={sponsor.logo_object_position}
-                            width={220}
-                            height={96}
-                            sizes="220px"
-                            className="mb-3 h-24 rounded-xl ring-1 ring-maroon-100"
-                            imageClassName="max-h-16 max-w-[85%] w-auto drop-shadow-sm"
-                            fallback={logoFallback}
-                          />
-                          {/* Name caption beneath the logo so a low-contrast or missing logo still
-                              shows an identifiable, non-empty card. */}
-                          <h3 className="font-display font-bold text-content-primary text-lg group-hover:text-maroon-700 transition-colors mb-2">
-                            {sponsor.name}
-                          </h3>
-                          {description && (
-                            <p className="text-content-muted font-body text-sm mb-3">{description}</p>
-                          )}
-                          {sponsor.website && (
-                            <p className="text-maroon-600 dark:text-maroon-300 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
-                              Visit website
-                              <svg className="ml-1 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                              </svg>
-                            </p>
-                          )}
-                        </CardContent>
-                      </div>
-                    </a>
-                    </ScrollRevealItem>
-                  );
-                })}
-                {idx === tiersWithSponsors.length - 1 && (
-                  <ScrollRevealItem key="become-a-sponsor-cta">
-                    <Link href="#enquiry-form" className="group block h-full">
-                      <Card hover className="h-full border-2 border-dashed border-maroon-200">
-                        <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
-                          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 dark:bg-maroon-950 text-2xl font-bold text-maroon-700 dark:text-maroon-200 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
-                          <h3 className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200">Become a Sponsor</h3>
-                          <p className="mt-1 font-body text-sm text-content-muted">Partner with the Dinos — enquire below.</p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </ScrollRevealItem>
-                )}
-              </ScrollReveal>
-            </div>
-          </section>
-        ))
-      )}
-
-      {/* Become a Sponsor */}
-      <section className="band-maroon section-padding">
-        <div className="container-width text-center">
-          <span className="eyebrow-gold">Partner With the Dinos</span>
-          <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">Become a Sponsor</h2>
-          <p className="mx-auto mb-5 max-w-2xl font-body text-base text-maroon-100 sm:text-lg">
-            Interested in partnering with the Dinos? We offer flexible sponsorship packages for
-            businesses of all sizes. Get your brand in front of our members, families, and the wider
-            Geelong cricket community.
-          </p>
-          <Link href="#enquiry-form" className="btn-accent">
-            Enquire Below
-          </Link>
+          )}
         </div>
       </section>
 
@@ -347,8 +331,8 @@ export default function SponsorsPage() {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableHeader>Package</TableHeader>
-                      <TableHeader className="text-right">Price</TableHeader>
+                      <TableHeader className="py-2">Package</TableHeader>
+                      <TableHeader className="py-2 text-right">Price</TableHeader>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -363,8 +347,8 @@ export default function SponsorsPage() {
                       ['Platinum Sponsorship', 'AUD 2,100'],
                     ].map(([tier, price]) => (
                       <TableRow key={tier}>
-                        <TableCell className="font-semibold text-content-primary">{tier}</TableCell>
-                        <TableCell className="text-right font-display font-bold text-maroon-700 dark:text-maroon-200">{price}</TableCell>
+                        <TableCell className="py-2 font-semibold text-content-primary">{tier}</TableCell>
+                        <TableCell className="py-2 text-right font-display font-bold text-maroon-700 dark:text-maroon-200">{price}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -395,7 +379,7 @@ export default function SponsorsPage() {
       </section>
 
       {/* Sponsorship Enquiry Form */}
-      <section id="enquiry-form" className="section-padding scroll-mt-28" aria-label="Sponsorship enquiry form">
+      <section id="enquiry-form" className="section-padding py-8 scroll-mt-28" aria-label="Sponsorship enquiry form">
         <div className="container-width max-w-2xl mx-auto">
           <h2 className="section-title text-center">Sponsorship Enquiry</h2>
           <p className="section-subtitle mx-auto mb-6 text-center">
@@ -425,7 +409,7 @@ export default function SponsorsPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <input
               type="text"
               name="website"
@@ -455,7 +439,7 @@ export default function SponsorsPage() {
               onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 id="sponsor_email"
                 label="Email Address"

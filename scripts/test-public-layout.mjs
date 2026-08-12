@@ -17,4 +17,26 @@ const facilitiesPage = await readFile(new URL('../app/facilities/page.tsx', impo
 assert.match(facilitiesPage, /href=\{FACILITY_BOOKING_LINK\.href\}/, 'Facilities page must render the booking URL.');
 assert.match(facilitiesPage, /\{FACILITY_BOOKING_LINK\.label\}/, 'Facilities page must render the booking label.');
 
+const sponsorsPage = await readFile(new URL('../app/sponsors/page.tsx', import.meta.url), 'utf8');
+assert.match(
+  sponsorsPage,
+  /aria-label="Current sponsors by tier"/,
+  'Sponsor tiers must share one compact, accessible section.',
+);
+assert.match(
+  sponsorsPage,
+  /data-sponsor-tier=\{tier\.value\}/,
+  'Each sponsor tier must remain identifiable in the combined section.',
+);
+assert.match(
+  sponsorsPage,
+  /xl:grid-cols-5/,
+  'The largest sponsor tier must use the denser desktop grid.',
+);
+assert.doesNotMatch(
+  sponsorsPage,
+  /<section className="band-maroon section-padding">/,
+  'The sponsor page must not repeat the enquiry CTA before the packages and form.',
+);
+
 console.log('Public layout contract checks passed.');
