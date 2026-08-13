@@ -550,8 +550,11 @@ export default function AdminApparelPage() {
       </section>
 
       <section className="bg-surface-card border rounded-xl p-5">
+        <p className="mb-3 text-sm text-content-muted">
+          Downloads a four-sheet Excel workbook containing only apparel orders not included in an earlier apparel export.
+        </p>
         <a href="/api/admin/merch/export">
-          <Button variant="secondary">Export supplier CSV</Button>
+          <Button variant="secondary">Export new apparel orders (Excel)</Button>
         </a>
       </section>
     </div>

@@ -120,7 +120,7 @@ const merchSupplierExportRoute = readFileSync('app/api/admin/merch/export/route.
 assert.match(
   merchSupplierExportRoute,
   /requirePermission\('merchandise', \['committee'\]\)/,
-  'Committee users with Merchandise permission must be able to export the supplier CSV.',
+  'Committee users with Merchandise permission must be able to export the apparel workbook.',
 );
 
 const resourcesRoute = readFileSync('app/api/admin/resources/[resource]/route.ts', 'utf8');

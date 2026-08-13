@@ -13,10 +13,12 @@ const stage = mkdtempSync(path.join(tmpdir(), 'ndcc-export-'));
 writeFileSync(path.join(stage, 'csv.ts'), readFileSync(path.join(repoRoot, 'lib/csv.ts'), 'utf8'));
 writeFileSync(path.join(stage, 'export.ts'), readFileSync(path.join(repoRoot, 'lib/orders/export.ts'), 'utf8'));
 writeFileSync(path.join(stage, 'supplier-export.ts'), readFileSync(path.join(repoRoot, 'lib/orders/supplier-export.ts'), 'utf8'));
+writeFileSync(path.join(stage, 'apparel-workbook.ts'), readFileSync(path.join(repoRoot, 'lib/orders/apparel-workbook.ts'), 'utf8'));
 
 const { csvCell, toCsv, guardFormulaInjection } = await import(pathToFileURL(path.join(stage, 'csv.ts')).href);
 const { buildMerchExportRows, EXPORT_HEADER } = await import(pathToFileURL(path.join(stage, 'export.ts')).href);
 const { buildSupplierExportRows, SUPPLIER_EXPORT_HEADER } = await import(pathToFileURL(path.join(stage, 'supplier-export.ts')).href);
+const { buildApparelWorkbook, buildApparelDetailRows, buildApparelSummaryRows } = await import(pathToFileURL(path.join(stage, 'apparel-workbook.ts')).href);
 
 let passed = 0;
 function test(name, fn) { fn(); passed += 1; console.log(`  ok - ${name}`); }
@@ -222,6 +224,38 @@ test('supplier export includes options, surname, two preferences and request sta
   assert.equal(personalised.first_number_preference, '7');
   assert.equal(personalised.second_number_preference, '23');
   assert.equal(personalised.number_request_status, 'subject_to_availability');
+});
+
+test('apparel workbook matches the four-sheet supplier structure', () => {
+  const workbook = buildApparelWorkbook(orders);
+  assert.equal(workbook.subarray(0, 2).toString(), 'PK');
+  const source = workbook.toString('utf8');
+  for (const sheetName of ['Master', 'Custom bags', '2627 - Order 1', '2627 - Order 1 Summary']) {
+    assert.ok(source.includes(`name="${sheetName}"`), `missing sheet ${sheetName}`);
+  }
+  assert.ok(source.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml'));
+});
+
+test('apparel detail rows use supplier names, sizes and number preferences', () => {
+  const detail = buildApparelDetailRows(orders);
+  assert.deepEqual(detail[0], [
+    'Name', 'Item', 'Size', 'Shirt name', 'Shirt number',
+    'Invoiced?', 'Paid?', 'Ready for distribution',
+  ]);
+  assert.equal(detail[1][1], 'Training - LS tee');
+  assert.equal(detail[1][2], 'One size');
+  assert.equal(detail[3][1], 'Maroon playing - SS shirt');
+  assert.equal(detail[3][3], 'SMITH');
+  assert.equal(detail[3][4], '7 / 23');
+});
+
+test('apparel summary is limited to and reconciles the current export rows', () => {
+  const detail = buildApparelDetailRows(orders.slice(0, 1));
+  const summary = buildApparelSummaryRows(detail);
+  const totalRow = summary.at(-1);
+  assert.equal(totalRow?.[0], 'Grand Total');
+  assert.equal(totalRow?.at(-1), 3);
+  assert.ok(!summary.some((row) => row[0] === 'Hoodie - standard'));
 });
 
 console.log(`\ntest-merch-export: ${passed} tests passed`);
