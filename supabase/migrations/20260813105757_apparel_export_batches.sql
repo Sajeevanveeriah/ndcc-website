@@ -1,5 +1,11 @@
 -- Claim apparel orders into a single export batch so separate users and
 -- successive exports cannot include the same order twice.
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  order_category text not null default 'general',
+  created_at timestamptz default now()
+);
+
 alter table public.orders
   add column if not exists apparel_export_batch_id uuid,
   add column if not exists apparel_exported_at timestamptz;
