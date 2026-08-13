@@ -28,7 +28,9 @@ export async function GET() {
     const filenameDate = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit',
     }).format(new Date());
-    return new NextResponse(workbook, {
+    const responseBody = new Uint8Array(workbook.length);
+    responseBody.set(workbook);
+    return new NextResponse(responseBody, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="ndcc-apparel-orders-${filenameDate}.xlsx"`,
