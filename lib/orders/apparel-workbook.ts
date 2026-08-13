@@ -264,7 +264,8 @@ function worksheetXml(
 
 function crc32(data: Buffer): number {
   let crc = 0xffffffff;
-  for (const byte of data) {
+  for (let index = 0; index < data.length; index += 1) {
+    const byte = data[index];
     crc ^= byte;
     for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
   }
