@@ -14,6 +14,7 @@ import { formatCurrency, validateEmail, validatePhone, cn } from '@/lib/utils';
 import { OrderItem } from '@/lib/types';
 import { computeUnitPrice, type CatalogueOption } from '@/lib/apparel/pricing';
 import { validatePersonalisation } from '@/lib/apparel/personalisation';
+import SizingGuides from '@/components/merchandise/SizingGuides';
 
 interface CartItem extends OrderItem {
   id: string;
@@ -565,6 +566,7 @@ function MerchandiseContent() {
               <p className="mt-2 text-sm text-content-secondary whitespace-pre-line">{heroContent.orderBody}</p>
             </div>
           )}
+          <SizingGuides />
           {liveProductsFailed && !productsLoading && (
             <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-4 flex flex-wrap items-center justify-between gap-3" role="alert">
               <p className="font-body text-sm text-amber-900 dark:text-amber-100">
