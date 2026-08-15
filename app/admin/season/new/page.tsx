@@ -3,90 +3,144 @@
 import { useEffect, useMemo, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { COPY_SECTIONS, WIZARD_STEPS } from '@/lib/club-season-wizard';
+import Input from '@/components/ui/Input';
 
-type ClubSeason = { id: string; name: string; slug: string; is_current: boolean; start_date: string; end_date: string };
-type WizardState = { id: string; status: string; preview: { summary?: string; warnings?: string[]; selectedSections?: string[] }; club_season_id: string | null; updated_at: string };
+type ClubSeason = { id: string; name: string; is_current: boolean };
+type SeasonDraft = { name: string; slug: string; startDate: string; endDate: string };
+type WizardState = { id: string; status: string; preview: { summary?: string; warnings?: string[] }; updated_at: string };
+
+const emptyDraft: SeasonDraft = { name: '', slug: '', startDate: '', endDate: '' };
 
 export default function StartNewSeasonPage() {
   const [seasons, setSeasons] = useState<ClubSeason[]>([]);
   const [states, setStates] = useState<WizardState[]>([]);
+  const [form, setForm] = useState<SeasonDraft>(emptyDraft);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    name: '', slug: '', startDate: '', endDate: '', sourceSeasonId: '', playhqSeasonId: '', scheduledActivationAt: '', activateNow: false,
-    copySections: Object.fromEntries(COPY_SECTIONS.map((section) => [section, ['teams','appointments','training','registration','notices','fantasy'].includes(section)])),
-  });
-  const preview = useMemo(() => {
-    const selectedSections = Object.entries(form.copySections).filter(([, selected]) => selected).map(([key]) => key);
-    const warnings = [] as string[];
-    const now = new Date();
-    if (form.startDate && Date.parse(form.startDate) < now.getTime()) warnings.push('Start date is in the past. Check this is not stale carry-forward content.');
-    return { selectedSections, warnings, summary: `${form.name || 'New season'} · ${form.startDate || 'no start'} to ${form.endDate || 'no end'}` };
-  }, [form]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const currentSeason = seasons.find((season) => season.is_current) || null;
+  const complete = Boolean(form.name && form.startDate && form.endDate && form.endDate >= form.startDate);
+  const summary = useMemo(() => `${form.name || 'New season'} · ${form.startDate || 'start date needed'} to ${form.endDate || 'end date needed'}`, [form]);
 
   async function load() {
-    const res = await fetch('/api/admin/club-seasons/wizard', { cache: 'no-store', credentials: 'include' });
-    const json = await res.json();
-    if (json.success) {
-      setSeasons(json.seasons || []);
-      setStates(json.states || []);
-      const current = (json.seasons || []).find((season: ClubSeason) => season.is_current) || json.seasons?.[0];
-      setForm((value) => ({ ...value, sourceSeasonId: value.sourceSeasonId || current?.id || '' }));
-    } else setMessage(json.error || 'Could not load season wizard.');
+    const response = await fetch('/api/admin/club-seasons/wizard', { cache: 'no-store', credentials: 'include' });
+    const json = await response.json();
+    if (!response.ok || !json.success) {
+      setMessage(json.error || 'Could not load season setup.');
+      return;
+    }
+    setSeasons(json.seasons || []);
+    setStates(json.states || []);
+    setForm((previous) => previous.name ? previous : (json.suggestedSeason || emptyDraft));
   }
 
-  async function saveDraft() {
-    setBusy(true); setMessage('');
+  async function prepareSeason() {
+    if (!complete) {
+      setMessage('Enter a season name and valid start and end dates.');
+      return;
+    }
+    setBusy(true);
+    setMessage('');
     const idempotencyKey = `${form.name}-${form.startDate}-${form.endDate}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     try {
-      const res = await fetch('/api/admin/club-seasons/wizard', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idempotencyKey, currentStep: step, payload: { ...form, scheduledActivationAt: form.scheduledActivationAt || null } }) });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.errors?.join(' ') || json.error || 'Could not save wizard.');
-      setMessage(json.idempotent ? 'Existing draft resumed. No duplicate season was created.' : 'Season draft saved. Review before activation.');
+      const response = await fetch('/api/admin/club-seasons/wizard', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idempotencyKey, currentStep: 2, payload: { ...form, sourceSeasonId: currentSeason?.id || null } }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.errors?.join(' ') || json.error || 'Could not prepare the season.');
+      setMessage(json.idempotent ? 'This season draft already exists. Review it below.' : 'Season prepared safely. Registration starts closed and seasonal pages will follow this season when activated.');
       await load();
-    } catch (err) { setMessage(err instanceof Error ? err.message : 'Could not save wizard.'); }
-    finally { setBusy(false); }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not prepare the season.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function activate(stateId: string) {
-    setBusy(true); setMessage('');
-    const res = await fetch('/api/admin/club-seasons/wizard', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stateId, action: 'activate' }) });
-    const json = await res.json();
-    setMessage(json.success ? 'Season activated atomically. Previous current season was preserved in activation audit.' : json.error || 'Activation failed.');
-    await load();
-    setBusy(false);
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/admin/club-seasons/wizard', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stateId, action: 'activate' }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.error || 'Activation failed.');
+      setMessage('Season activated. Season-aware pages now use it automatically.');
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Activation failed.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="space-y-6">
-      <div><h1 className="text-2xl font-display font-bold text-content-primary">Start new season</h1><p className="mt-1 max-w-4xl text-sm text-content-muted">A committee-friendly workflow for preparing the next season without code, SQL or environment changes. Copied content starts as draft and inherited values are clearly marked for review.</p></div>
-      {message && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status">{message}</div>}
-      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <Card><CardContent><h2 className="text-lg font-display font-bold text-content-primary">Steps</h2><ol className="mt-3 space-y-1">{WIZARD_STEPS.map((label, index) => <li key={label}><button type="button" onClick={() => setStep(index + 1)} className={`w-full rounded-lg px-3 py-2 text-left text-sm ${step === index + 1 ? 'bg-maroon-700 text-white' : 'hover:bg-surface-page'}`}>{index + 1}. {label}</button></li>)}</ol></CardContent></Card>
-        <Card><CardContent>
-          <h2 className="text-lg font-display font-bold text-content-primary">{step}. {WIZARD_STEPS[step - 1]}</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-semibold">Season name<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.name} placeholder="2027/2028 Season" onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-            <label className="text-sm font-semibold">Slug<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.slug} placeholder="2027-28" onChange={(e) => setForm({ ...form, slug: e.target.value })} /></label>
-            <label className="text-sm font-semibold">Start date<input type="date" className="mt-1 w-full rounded-lg border px-3 py-2" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></label>
-            <label className="text-sm font-semibold">End date<input type="date" className="mt-1 w-full rounded-lg border px-3 py-2" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></label>
-            <label className="text-sm font-semibold">Copy from previous season<select className="mt-1 w-full rounded-lg border px-3 py-2" value={form.sourceSeasonId} onChange={(e) => setForm({ ...form, sourceSeasonId: e.target.value })}>{seasons.map((season) => <option key={season.id} value={season.id}>{season.name}{season.is_current ? ' (current)' : ''}</option>)}</select></label>
-            <label className="text-sm font-semibold">PlayHQ season ID<input className="mt-1 w-full rounded-lg border px-3 py-2" value={form.playhqSeasonId} onChange={(e) => setForm({ ...form, playhqSeasonId: e.target.value })} /></label>
-            <label className="text-sm font-semibold">Schedule activation<input type="datetime-local" className="mt-1 w-full rounded-lg border px-3 py-2" value={form.scheduledActivationAt} onChange={(e) => setForm({ ...form, scheduledActivationAt: e.target.value })} /></label>
-          </div>
-          <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-            Player registration will start closed and hidden. Audience labels and terms can be copied, but every registration URL is cleared and each option is inactive until reviewed in Player Registration after this draft is created.
-          </div>
-          <fieldset className="mt-5"><legend className="text-sm font-semibold">Sections to copy as draft</legend><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{COPY_SECTIONS.map((section) => <label key={section} className="flex items-center gap-2 rounded-lg border p-2 text-sm"><input type="checkbox" checked={Boolean(form.copySections[section])} onChange={(e) => setForm({ ...form, copySections: { ...form.copySections, [section]: e.target.checked } })} />{section.replace(/([A-Z])/g, ' $1')}</label>)}</div></fieldset>
-          <div className="mt-5 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900"><strong>Review preview:</strong> {preview.summary}<br />Copied sections: {preview.selectedSections.join(', ') || 'none'}{preview.warnings.map((warning) => <p key={warning} className="mt-2">Warning: {warning}</p>)}</div>
-          <div className="mt-5 flex flex-wrap gap-3"><Button type="button" variant="secondary" onClick={() => setStep(Math.max(1, step - 1))}>Back</Button><Button type="button" variant="secondary" onClick={() => setStep(Math.min(WIZARD_STEPS.length, step + 1))}>Next</Button><Button type="button" onClick={saveDraft} disabled={busy}>Save draft and preview</Button></div>
-        </CardContent></Card>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-display font-bold text-content-primary">Start next season</h1>
+        <p className="mt-1 text-sm text-content-muted">Prepare the next season with four details. Registration starts closed, old signings stay with their original season, and season-aware public pages update when the new season is activated.</p>
       </div>
-      <Card><CardContent><h2 className="text-lg font-display font-bold text-content-primary">Resumable drafts</h2><div className="mt-3 space-y-3">{states.map((state) => <div key={state.id} className="rounded-lg border p-3"><p className="text-sm font-semibold">{state.preview?.summary || 'Season draft'} · {state.status}</p>{state.preview?.warnings?.map((warning) => <p key={warning} className="text-sm text-yellow-800">Warning: {warning}</p>)}<Button type="button" className="mt-3" onClick={() => activate(state.id)} disabled={busy || state.status === 'activated'}>Activate now</Button></div>)}</div></CardContent></Card>
+
+      {message && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status">{message}</div>}
+
+      <Card>
+        <CardContent className="space-y-5 p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input id="season-name" label="Season name" value={form.name} placeholder="2027/2028 Season" onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))} required />
+            <Input id="season-start" label="Season starts" type="date" value={form.startDate} onChange={(event) => setForm((previous) => ({ ...previous, startDate: event.target.value }))} required />
+            <Input id="season-end" label="Season ends" type="date" value={form.endDate} onChange={(event) => setForm((previous) => ({ ...previous, endDate: event.target.value }))} required />
+          </div>
+
+          <button type="button" className="text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)}>
+            {showAdvanced ? 'Hide advanced option' : 'Show advanced option'}
+          </button>
+          {showAdvanced && (
+            <Input id="season-slug" label="Web address label" value={form.slug} placeholder="2027-28" onChange={(event) => setForm((previous) => ({ ...previous, slug: event.target.value }))} />
+          )}
+
+          <div className="rounded-lg border border-edge-subtle bg-surface-page p-4 text-sm">
+            <p className="font-semibold text-content-primary">Review</p>
+            <p className="mt-1 text-content-muted">{summary}</p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-content-muted">
+              <li>Player registration starts closed.</li>
+              <li>Season signings start empty and appear only after they are added.</li>
+              <li>Sponsors remain in one shared A-Z list.</li>
+              <li>Current-season labels update automatically after activation.</li>
+            </ul>
+          </div>
+
+          <Button type="button" onClick={prepareSeason} disabled={busy || !complete}>{busy ? 'Preparing...' : 'Prepare season'}</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-display font-bold text-content-primary">Prepared seasons</h2>
+          <div className="mt-3 space-y-3">
+            {states.length === 0 && <p className="text-sm text-content-muted">No prepared season drafts.</p>}
+            {states.map((state) => (
+              <div key={state.id} className="flex flex-col gap-3 rounded-lg border border-edge-subtle p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-content-primary">{state.preview?.summary || 'Season draft'}</p>
+                  <p className="text-xs uppercase tracking-wide text-content-muted">{state.status}</p>
+                  {state.preview?.warnings?.map((warning) => <p key={warning} className="mt-1 text-sm text-amber-800">{warning}</p>)}
+                </div>
+                <Button type="button" onClick={() => activate(state.id)} disabled={busy || state.status === 'activated'}>{state.status === 'activated' ? 'Active' : 'Activate season'}</Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

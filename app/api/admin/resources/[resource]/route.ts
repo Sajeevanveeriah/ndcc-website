@@ -67,7 +67,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   kitchenItems: { table: 'kitchen_items', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['menu_id', 'name', 'description', 'image_url', 'price', 'is_available', 'is_hidden', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   kitchenOrders: { table: 'kitchen_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['status', 'payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
-  clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url'] },
+  clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url', 'sponsor_marquee_speed'] },
 };
 
 // Public CMS helpers now read Supabase uncached at request time, so these tag/path
@@ -282,6 +282,12 @@ export async function GET(request: Request, { params }: { params: { resource: st
   const limitParam = searchParams.get('limit');
   const limit = limitParam ? Number(limitParam) : null;
   let query = supabase.from(config.table).select('*');
+  if (config.table === 'season_appointments') {
+    const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
+    if (currentSeasonError) return NextResponse.json({ success: false, error: currentSeasonError.message }, { status: 500 });
+    if (!currentSeason?.id) return NextResponse.json({ success: true, data: [] });
+    query = query.eq('club_season_id', currentSeason.id);
+  }
   if (Number.isInteger(limit) && limit !== null && limit > 0 && limit <= 100) {
     query = query.limit(limit);
   }
@@ -332,6 +338,13 @@ export async function POST(request: Request, { params }: { params: { resource: s
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
   const supabase = createServerClient();
+  if (config.table === 'season_appointments') {
+    const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
+    if (currentSeasonError || !currentSeason?.id) {
+      return NextResponse.json({ success: false, error: currentSeasonError?.message || 'Create a current club season before adding appointments.' }, { status: 400 });
+    }
+    payload.club_season_id = currentSeason.id;
+  }
   let { data, error } = await supabase.from(config.table).insert(payload).select().single();
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
     const retryPayload = { ...payload };

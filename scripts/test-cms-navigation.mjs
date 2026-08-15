@@ -12,6 +12,9 @@ for (const href of ['/admin/events','/admin/news','/admin/publications','/admin/
   assert.match(layout, new RegExp(`href: '${href.replace(/\//g, '\\/')}'`));
 }
 assert.match(layout, /Search admin modules/);
+assert.match(layout, /More tools/);
+assert.match(layout, /showAdvanced/);
+assert.match(layout, /advanced\?: boolean/);
 assert.match(layout, /Grouped admin navigation/);
 assert.match(layout, /Mobile grouped admin navigation/);
 assert.match(layout, /permissionForAdminPath/);

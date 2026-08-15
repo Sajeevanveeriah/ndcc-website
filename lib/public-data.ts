@@ -2,6 +2,7 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { normalizeEventImage, normalizeGalleryImage } from '@/lib/public-content-normalizers';
 import type { Event, Sponsor } from '@/lib/types';
+import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
 
 export type PublicDataSource = 'supabase' | 'fallback';
 
@@ -223,14 +224,14 @@ export async function getPublicAlbumBySlug(slug: string): Promise<PublicAlbumDet
 }
 
 export async function getPublicSponsors(): Promise<PublicDataResult<Sponsor[]>> {
-  const fallback = fallbackSponsors as Sponsor[];
+  const fallback = sortSponsorsAlphabetically(fallbackSponsors as Sponsor[]);
   if (!isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getActiveSponsorsFromSupabase();
     if (error) return fallbackResult(fallback, error);
     if (data.length === 0) return { data: [], error: null, source: 'supabase' as const, degraded: false };
-    return { data: mergeSponsorsWithFallback(data as Sponsor[]), error: null, source: 'supabase', degraded: false };
+    return { data: sortSponsorsAlphabetically(mergeSponsorsWithFallback(data as Sponsor[])), error: null, source: 'supabase', degraded: false };
   } catch (err) {
     return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load sponsors');
   }

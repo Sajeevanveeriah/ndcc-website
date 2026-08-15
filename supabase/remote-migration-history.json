@@ -1,6 +1,6 @@
 {
   "description": "Recorded migration history for the production project (ref alduwuipmmnzorcgkcli). Every version listed here has a matching file in supabase/migrations/ and a row in supabase_migrations.schema_migrations. Versions marked preHistory were executed against production before history tracking existed and were recorded as applied via bookkeeping rows (version+name only, no DDL) on 2026-07-16 — see docs/operations/20260716-Migration-History-Reconciliation-Rev00.md. scripts/check-migration-history.mjs enforces consistency. Update this file only when a migration is genuinely applied to production.",
-  "capturedAt": "2026-07-16T04:00:00Z",
+  "capturedAt": "2026-08-15T05:25:00Z",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     { "version": "20260331000000", "name": "prehistory_baseline", "preHistory": true },
@@ -66,7 +66,43 @@
     { "version": "20260715000733", "name": "publications" },
     { "version": "20260715000755", "name": "fantasy_sync_automation" },
     { "version": "20260715000825", "name": "publications_updated_at_search_path" },
-    { "version": "20260715101111", "name": "grade_sources_playhq_season" }
+    { "version": "20260715101111", "name": "grade_sources_playhq_season" },
+    { "version": "20260716040000", "name": "apparel_product_options" },
+    { "version": "20260716041000", "name": "apparel_catalogue_2026_27" },
+    { "version": "20260716050000", "name": "payment_ledger" },
+    { "version": "20260716060000", "name": "fantasy_sync_health" },
+    { "version": "20260716070000", "name": "security_performance_hardening" },
+    { "version": "20260716080000", "name": "enable_rls_baseline" },
+    { "version": "20260720090000", "name": "gallery_albums_bulk_upload" },
+    {
+      "version": "20260806092106",
+      "name": "event_registration_order_payments",
+      "localFile": "20260806190000_event_registration_order_payments.sql"
+    },
+    {
+      "version": "20260809105226",
+      "name": "apparel_catalogue_retail_2026_27",
+      "localFile": "20260809210000_apparel_catalogue_retail_2026_27.sql"
+    },
+    { "version": "20260809163000", "name": "player_registration_cms" },
+    { "version": "20260810235457", "name": "granular_cms_access" },
+    {
+      "version": "20260813111527",
+      "name": "apparel_export_batches",
+      "localFile": "20260813105757_apparel_export_batches.sql"
+    },
+    {
+      "version": "20260815051950",
+      "name": "simplify_sponsors_and_season_presentation",
+      "localFile": "20260815050000_simplify_sponsors_and_season_presentation.sql"
+    },
+    {
+      "version": "20260815052456",
+      "name": "current_season_content_cleanup",
+      "localFile": "20260815053000_current_season_content_cleanup.sql"
+    }
   ],
-  "localOnlyApplied": []
+  "localOnlyApplied": [
+    "20260806080000_stripe_checkout_integrity.sql"
+  ]
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
-import { CLUB_SEASON_COLUMNS } from '@/lib/club-seasons';
+import { CLUB_SEASON_COLUMNS, nextClubSeasonDraft } from '@/lib/club-seasons';
 import { buildSeasonWizardPreview, validateSeasonWizardPayload } from '@/lib/club-season-wizard';
 import { createServerClient } from '@/lib/supabase-server';
 
@@ -16,7 +16,8 @@ export async function GET() {
     supabase.from('club_season_wizard_states').select('*').neq('status', 'cancelled').order('updated_at', { ascending: false }).limit(10),
   ]);
   if (seasonsError || statesError) return NextResponse.json({ success: false, error: seasonsError?.message || statesError?.message }, { status: 500, headers: noStore });
-  return NextResponse.json({ success: true, seasons, states }, { headers: noStore });
+  const currentSeason = (seasons || []).find((season) => season.is_current) || seasons?.[0] || null;
+  return NextResponse.json({ success: true, seasons, states, suggestedSeason: nextClubSeasonDraft(currentSeason) }, { headers: noStore });
 }
 
 export async function POST(request: Request) {
@@ -53,9 +54,9 @@ export async function POST(request: Request) {
     idempotency_key: idempotencyKey,
     club_season_id: season.id,
     source_season_id: payload.sourceSeasonId || null,
-    current_step: Number(body.currentStep || 10),
-    completed_steps: body.completedSteps || [1,2,3,4,5,6,7,8,9,10],
-    copy_sections: payload.copySections || {},
+    current_step: Number(body.currentStep || 2),
+    completed_steps: body.completedSteps || [1,2],
+    copy_sections: {},
     draft_payload: payload,
     stale_warnings: preview.warnings,
     preview,

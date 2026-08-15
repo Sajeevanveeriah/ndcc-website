@@ -8,7 +8,6 @@ import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
-import Badge from '@/components/ui/Badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import {
   SPONSOR_TIERS,
@@ -22,6 +21,7 @@ import { sponsorshipDownloads2026_27 } from '@/lib/assets';
 import { getInitials, validateEmail } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 import { mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
 
 
 const SPONSOR_DESCRIPTIONS_BY_NAME: Record<string, string> = {
@@ -39,14 +39,6 @@ const SPONSOR_DESCRIPTIONS_BY_NAME: Record<string, string> = {
 function getSponsorDescription(sponsor: Sponsor) {
   return SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || SPONSOR_DESCRIPTIONS_BY_NAME[sponsor.name] || '';
 }
-
-const TIER_BADGE_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-  major: 'danger',
-  gold: 'warning',
-  silver: 'default',
-  standard: 'info',
-  community: 'success',
-};
 
 export default function SponsorsPage() {
   const clubEmail = `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
@@ -73,6 +65,7 @@ export default function SponsorsPage() {
   const [introBody, setIntroBody] = useState(
     `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`
   );
+  const [currentSeasonName, setCurrentSeasonName] = useState('Current Season');
 
   useEffect(() => {
     document.title = 'Our Sponsors | NDCC Dinos';
@@ -113,8 +106,19 @@ export default function SponsorsPage() {
       }
     }
 
+    async function fetchCurrentSeason() {
+      try {
+        const response = await fetch('/api/public/club-season', { cache: 'no-store' });
+        const json = await response.json();
+        if (response.ok && json.season?.name) setCurrentSeasonName(String(json.season.name));
+      } catch {
+        // The neutral fallback avoids publishing a stale year.
+      }
+    }
+
     fetchSponsors();
     fetchContentBlock();
+    fetchCurrentSeason();
   }, []);
 
   function validateForm(): boolean {
@@ -171,13 +175,7 @@ export default function SponsorsPage() {
 
   const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
 
-  // Group sponsors by tier
-  const sponsorsByTier = SPONSOR_TIERS.reduce<Record<string, Sponsor[]>>((acc, tier) => {
-    acc[tier.value] = sponsors.filter((s) => s.tier === tier.value);
-    return acc;
-  }, {});
-
-  const tiersWithSponsors = SPONSOR_TIERS.filter((tier) => sponsorsByTier[tier.value].length > 0);
+  const sortedSponsors = sortSponsorsAlphabetically(sponsors);
 
   return (
     <>
@@ -210,7 +208,7 @@ export default function SponsorsPage() {
         </div>
       </section>
 
-      {/* Sponsor Tiers */}
+      {/* One maintainable A-Z sponsor list. */}
       {loading ? (
         <section className="section-padding">
           <div className="container-width">
@@ -225,7 +223,7 @@ export default function SponsorsPage() {
           </div>
         </section>
       ) : (
-        tiersWithSponsors.length === 0 ? (
+        sortedSponsors.length === 0 ? (
           <section className="section-padding">
             <div className="container-width">
               <Card>
@@ -236,20 +234,15 @@ export default function SponsorsPage() {
               </Card>
             </div>
           </section>
-        ) : tiersWithSponsors.map((tier, idx) => (
-          <section
-            key={tier.value}
-            className={idx % 2 === 0 ? 'section-padding' : 'section-padding bg-surface-page'}
-          >
+        ) : (
+          <section className="section-padding">
             <div className="container-width">
-              {/* Honour-board tier divider: short maroon rule + gold-tinted tier badge. */}
               <div className="mb-5 flex items-center gap-4">
                 <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
-                <h2 className="section-title mb-0">{tier.label}s</h2>
-                <Badge variant={TIER_BADGE_VARIANT[tier.value]}>{tier.label}</Badge>
+                <h2 className="section-title mb-0">Sponsors A-Z</h2>
               </div>
-              <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {sponsorsByTier[tier.value].map((sponsor) => {
+              <ScrollReveal stagger as="ul" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {sortedSponsors.map((sponsor) => {
                   const description = getSponsorDescription(sponsor);
                   const logoFallback = (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
@@ -258,7 +251,7 @@ export default function SponsorsPage() {
                     </div>
                   );
                   return (
-                    <ScrollRevealItem key={sponsor.id}>
+                    <ScrollRevealItem key={sponsor.id} as="li">
                     <a
                       href={sponsor.website || undefined}
                       target={sponsor.website ? '_blank' : undefined}
@@ -302,8 +295,7 @@ export default function SponsorsPage() {
                     </ScrollRevealItem>
                   );
                 })}
-                {idx === tiersWithSponsors.length - 1 && (
-                  <ScrollRevealItem key="become-a-sponsor-cta">
+                  <ScrollRevealItem key="become-a-sponsor-cta" as="li">
                     <Link href="#enquiry-form" className="group block h-full">
                       <Card hover className="h-full border-2 border-dashed border-maroon-200">
                         <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
@@ -314,11 +306,10 @@ export default function SponsorsPage() {
                       </Card>
                     </Link>
                   </ScrollRevealItem>
-                )}
               </ScrollReveal>
             </div>
           </section>
-        ))
+        )
       )}
 
       {/* Become a Sponsor */}
@@ -341,7 +332,7 @@ export default function SponsorsPage() {
         <div className="container-width mx-auto grid max-w-5xl grid-cols-1 items-start gap-4 lg:grid-cols-[1.25fr_1fr]">
           <Card>
             <CardContent className="p-5">
-              <h2 className="text-2xl font-display font-bold text-content-primary mb-3">2026/27 Sponsorship Packages</h2>
+              <h2 className="text-2xl font-display font-bold text-content-primary mb-3">{currentSeasonName} Sponsorship Packages</h2>
               {/* Same 8 real packages/prices, presented as a scannable ledger table. */}
               <div className="mb-4" aria-label="Sponsorship package summary">
                 <Table>
@@ -384,7 +375,7 @@ export default function SponsorsPage() {
             <CardContent className="p-5">
               <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Apparel Sponsorship</h2>
               <p className="text-content-secondary font-body mb-4">
-                Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season.
+                Put your brand on Newcomb and District apparel and support community cricket in the {currentSeasonName.toLowerCase()}.
               </p>
               <p className="text-content-secondary font-body">
                 This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors">{clubEmail}</a>.

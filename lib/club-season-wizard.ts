@@ -2,19 +2,9 @@ import { slugifySeasonName } from './club-seasons';
 
 export const WIZARD_STEPS = [
   'Season details',
-  'Choose previous season',
-  'Copy choices',
-  'Teams and grades',
-  'PlayHQ mappings',
-  'Appointments',
-  'Training and registration',
-  'Website notices and key events',
-  'Fantasy setup',
-  'Review and preview',
-  'Activate now or schedule',
+  'Review',
+  'Activate',
 ] as const;
-
-export const COPY_SECTIONS = ['teams','playhqMappings','appointments','training','registration','notices','events','fantasy','sponsors','merchandise'] as const;
 
 export type SeasonWizardPayload = {
   name?: string;
@@ -22,7 +12,6 @@ export type SeasonWizardPayload = {
   startDate?: string;
   endDate?: string;
   sourceSeasonId?: string | null;
-  copySections?: Partial<Record<(typeof COPY_SECTIONS)[number], boolean>>;
   playhqSeasonId?: string;
   scheduledActivationAt?: string | null;
   activateNow?: boolean;
@@ -48,13 +37,11 @@ export function buildSeasonWizardPreview(payload: SeasonWizardPayload, now = new
   const warnings: string[] = [];
   if (staleDate(payload.startDate, now)) warnings.push('Start date is in the past. Confirm this is intentional before activation.');
   if (staleDate(payload.endDate, now)) warnings.push('End date is in the past. Confirm this is not stale carry-forward content.');
-  const selectedSections = Object.entries(payload.copySections || {}).filter(([, selected]) => selected).map(([key]) => key);
   return {
     slug,
     warnings,
-    selectedSections,
     activationMode: payload.activateNow ? 'activate_now' : payload.scheduledActivationAt ? 'scheduled' : 'draft',
     registrationSafety: 'closed_hidden_links_cleared',
-    summary: `${payload.name || 'New season'} · ${payload.startDate || 'no start'} to ${payload.endDate || 'no end'} · ${selectedSections.length} copied section(s)`,
+    summary: `${payload.name || 'New season'} · ${payload.startDate || 'no start'} to ${payload.endDate || 'no end'}`,
   };
 }

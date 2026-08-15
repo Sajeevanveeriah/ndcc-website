@@ -28,19 +28,22 @@ import {
 import { formatDate, truncateText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
-import { getFallbackSeasonAppointments, getPublicSeasonAppointments } from '@/lib/public-season-appointments';
+import { getPublicSeasonAppointments, type PublicSeasonAppointment } from '@/lib/public-season-appointments';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews } from '@/lib/fallback-content';
-import LogoChip from '@/components/common/LogoChip';
 import PublicationCard from '@/components/publications/PublicationCard';
-import MarqueeVisibilityPause from '@/components/home/MarqueeVisibilityPause';
+import SponsorsMarquee from '@/components/home/SponsorsMarquee';
 import { getPublishedPublications } from '@/lib/public-publications';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
 import { toCalendarFeedEvent } from '@/lib/calendar/format';
 import UpcomingEventsStrip from '@/components/calendar/UpcomingEventsStrip';
+import { getClubSettings } from '@/lib/club-settings';
+import { getCurrentClubSeason } from '@/lib/club-seasons';
+import { renderSeasonContent } from '@/lib/season-content';
+import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -332,13 +335,17 @@ function SeasonStatusView({
 const SEASON_STATUS_DEFAULT_BODY = `Follow the latest ${CLUB_NICKNAME} season updates, match-day notices, and club announcements on our official channels.`;
 
 async function SeasonStatusSection() {
-  const blocks = await getContentBlocks(['home.season_status']);
+  const [blocks, currentSeason] = await Promise.all([
+    getContentBlocks(['home.season_status']),
+    getCurrentClubSeason(),
+  ]);
+  const block = blocks['home.season_status'];
   return (
     <SeasonStatusView
-      title={blocks['home.season_status']?.title || 'Season Update'}
-      body={blocks['home.season_status']?.body || SEASON_STATUS_DEFAULT_BODY}
-      ctaLabel={blocks['home.season_status']?.cta_label || 'View Results on PlayHQ'}
-      ctaUrl={blocks['home.season_status']?.cta_url || PLAYHQ_ORG_URL}
+      title={renderSeasonContent(block?.title || 'Season Update', currentSeason)}
+      body={renderSeasonContent(block?.body || SEASON_STATUS_DEFAULT_BODY, currentSeason)}
+      ctaLabel={renderSeasonContent(block?.cta_label || 'View Results on PlayHQ', currentSeason)}
+      ctaUrl={block?.cta_url || PLAYHQ_ORG_URL}
     />
   );
 }
@@ -602,14 +609,14 @@ function SeasonAppointmentsSkeleton() {
 }
 
 async function SeasonAppointmentsSection() {
-  // Server-render the live appointments so seed data never paints first; the
-  // static list only stands in when Supabase is unconfigured or the query fails.
-  let initialAppointments;
+  // Server-render only the active season's appointments. Fail closed so stale
+  // signings never reappear during an unavailable data-source window.
+  let initialAppointments: PublicSeasonAppointment[];
   try {
     initialAppointments = await getPublicSeasonAppointments();
   } catch (err) {
-    console.error('[home] Failed to load season appointments; serving static fallback:', err);
-    initialAppointments = getFallbackSeasonAppointments();
+    console.error('[home] Failed to load season appointments; hiding the seasonal section:', err);
+    initialAppointments = [];
   }
   return <SeasonAppointmentsMarquee initialAppointments={initialAppointments} />;
 }
@@ -646,9 +653,10 @@ function SponsorsSkeleton() {
 }
 
 async function SponsorsSection() {
-  const [blocks, dbSponsors] = await Promise.all([
+  const [blocks, dbSponsors, clubSettings] = await Promise.all([
     getContentBlocks(['home.sponsor_intro', 'home.sponsorship']),
     getPublicSponsors(),
+    getClubSettings(),
   ]);
 
   // getPublicSponsors already backfills missing logo/website fields on live rows
@@ -671,73 +679,9 @@ async function SponsorsSection() {
             {sponsorshipBody}
           </p>
         </ScrollReveal>
-        <ScrollReveal className="homepage-marquee-region relative overflow-hidden" role="region" aria-label="Club sponsor logos carousel">
-          <MarqueeVisibilityPause />
-          <div className="homepage-marquee-track gap-4 py-2">
-            {[false, true].map((isDuplicateSequence) => (
-            <div
-              key={isDuplicateSequence ? 'duplicate' : 'primary'}
-              className="contents"
-              aria-hidden={isDuplicateSequence || undefined}
-            >
-            {sponsors.map((sponsor, index) => {
-              const brandedFallback = (
-                <div className="flex h-full w-full items-center justify-center rounded-xl bg-maroon-800 px-3 text-center">
-                  <span className="font-display text-sm font-bold uppercase leading-tight tracking-wide text-gold-200">
-                    {sponsor.name}
-                  </span>
-                </div>
-              );
-              const chip = (
-                <>
-                  <LogoChip
-                    name={sponsor.name}
-                    src={sponsor.logo_url}
-                    surfaceMode={sponsor.logo_surface_mode}
-                    paddingClassName={sponsor.logo_padding}
-                    objectPosition={sponsor.logo_object_position}
-                    width={190}
-                    height={70}
-                    sizes="190px"
-                    className="h-24 w-48 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lift group-hover:ring-2 group-hover:ring-maroon-200/70"
-                    imageClassName="max-h-14 w-auto"
-                    fallback={brandedFallback}
-                  />
-                  <span className="sponsor-caption">{sponsor.name}</span>
-                </>
-              );
-
-              if (!sponsor.website) {
-                return (
-                  <div key={`${sponsor.id}-${index}`} className="group flex-none" aria-label={isDuplicateSequence ? undefined : sponsor.name}>
-                    {chip}
-                  </div>
-                );
-              }
-
-              return (
-                <a
-                  key={`${sponsor.id}-${index}`}
-                  href={sponsor.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={isDuplicateSequence ? undefined : `Visit ${sponsor.name} website`}
-                  tabIndex={isDuplicateSequence ? -1 : undefined}
-                  className="group block flex-none rounded-2xl focus-ring"
-                >
-                  {chip}
-                </a>
-              );
-            })}
-            </div>
-            ))}
-          </div>
+        <ScrollReveal>
+          <SponsorsMarquee sponsors={sponsors} durationSeconds={sponsorMarqueeDurationSeconds(clubSettings.sponsor_marquee_speed, sponsors.length)} />
         </ScrollReveal>
-        <div className="mt-6 text-center">
-          <Link href="/sponsors" className="btn-secondary">
-            View All Sponsors
-          </Link>
-        </div>
       </div>
     </section>
   );

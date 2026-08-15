@@ -24,5 +24,5 @@ const access = readFileSync('lib/club-seasons.ts', 'utf8');
 assert.match(access, /CLUB_SEASON_COLUMNS/);
 assert.match(access, /slugifySeasonName/);
 const api = readFileSync('app/api/admin/club-seasons/route.ts', 'utf8');
-assert.match(api, /requireSession/);
+assert.match(api, /requirePermission\(['"]season\.setup['"]\)/);
 assert.match(api, /club_seasons/);

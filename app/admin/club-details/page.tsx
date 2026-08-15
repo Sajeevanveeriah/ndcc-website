@@ -26,6 +26,7 @@ const emptyForm: ClubSettingsForm = {
   instagram_handle: '',
   playhq_url: '',
   google_maps_embed_url: '',
+  sponsor_marquee_speed: 'slow',
 };
 
 function toForm(settings: ClubSettings): ClubSettingsForm {
@@ -45,6 +46,7 @@ function toForm(settings: ClubSettings): ClubSettingsForm {
     instagram_handle: settings.instagram_handle || '',
     playhq_url: settings.playhq_url || '',
     google_maps_embed_url: settings.google_maps_embed_url || '',
+    sponsor_marquee_speed: settings.sponsor_marquee_speed,
   };
 }
 
@@ -110,6 +112,7 @@ export default function AdminClubDetailsPage() {
       instagram_handle: form.instagram_handle?.trim() || null,
       playhq_url: form.playhq_url?.trim() || null,
       google_maps_embed_url: form.google_maps_embed_url?.trim() || null,
+      sponsor_marquee_speed: form.sponsor_marquee_speed,
     };
 
     try {
@@ -184,6 +187,22 @@ export default function AdminClubDetailsPage() {
                 <Input id="playhq-url" label="PlayHQ URL" type="url" value={form.playhq_url || ''} onChange={(e) => updateField('playhq_url', e.target.value)} />
                 <Input id="google-maps-embed-url" label="Google Maps embed URL" value={form.google_maps_embed_url || ''} onChange={(e) => updateField('google_maps_embed_url', e.target.value)} className="md:col-span-2" />
               </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-display font-bold text-content-primary mb-4">Homepage sponsor logos</h2>
+              <label className="block max-w-md text-sm font-semibold text-content-primary" htmlFor="sponsor-marquee-speed">
+                Logo movement speed
+                <select
+                  id="sponsor-marquee-speed"
+                  value={form.sponsor_marquee_speed}
+                  onChange={(event) => setForm((previous) => ({ ...previous, sponsor_marquee_speed: event.target.value as ClubSettingsForm['sponsor_marquee_speed'] }))}
+                  className="mt-1 block w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2 font-normal"
+                >
+                  <option value="slow">Slow</option>
+                  <option value="very_slow">Very slow</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex justify-end">
