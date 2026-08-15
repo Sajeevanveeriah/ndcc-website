@@ -1,180 +1,179 @@
-'use client';
+'use client'
 
-import Image from 'next/image';
-import { useState } from 'react';
-
-type GuideKey = 'tee' | 'pants';
-
-type SizeRow = {
-  size: string;
-  measurements: string[];
-};
+import Image from 'next/image'
+import { useState, type KeyboardEvent } from 'react'
 
 type SizeGuide = {
-  label: string;
-  image: string;
-  imageAlt: string;
-  headers: string[];
-  adultRows: SizeRow[];
-  kidsRows: SizeRow[];
-};
-
-const GUIDES: Record<GuideKey, SizeGuide> = {
-  tee: {
-    label: 'Tee',
-    image: '/images/cms/apparel/size-guides/tee-size-guide.webp',
-    imageAlt: 'Supplier tee size chart showing adult and kids width and length measurements in centimetres',
-    headers: ['Size', 'Width (cm)', 'Length (cm)'],
-    adultRows: [
-      { size: 'XS', measurements: ['50', '71'] },
-      { size: 'S', measurements: ['52.5', '72'] },
-      { size: 'M', measurements: ['55', '73'] },
-      { size: 'L', measurements: ['57.5', '74'] },
-      { size: 'XL', measurements: ['60.5', '75'] },
-      { size: '2XL', measurements: ['64', '76'] },
-      { size: '3XL', measurements: ['67.5', '80'] },
-      { size: '4XL', measurements: ['71', '81.5'] },
-      { size: '5XL', measurements: ['74', '83'] },
-      { size: '6XL', measurements: ['77.5', '84.5'] },
-      { size: '7XL', measurements: ['81', '86'] },
-    ],
-    kidsRows: [
-      { size: 'K4', measurements: ['36', '45'] },
-      { size: 'K6', measurements: ['38', '50'] },
-      { size: 'K8', measurements: ['40', '57'] },
-      { size: 'K10', measurements: ['42', '62'] },
-      { size: 'K12', measurements: ['44', '65'] },
-      { size: 'K14', measurements: ['46', '68'] },
-      { size: 'K16', measurements: ['48', '70'] },
-    ],
-  },
-  pants: {
-    label: 'Cricket pants',
-    image: '/images/cms/apparel/size-guides/cricket-pants-size-guide.webp',
-    imageAlt: 'Supplier cricket pants size chart showing adult and kids waist, inner leg and length measurements in centimetres',
-    headers: ['Size', 'Waist (cm)', 'Inner leg (cm)', 'Length (cm)'],
-    adultRows: [
-      { size: 'XS', measurements: ['TBC', 'TBC', 'TBC'] },
-      { size: 'S', measurements: ['36', '69', '99'] },
-      { size: 'M', measurements: ['37', '70', '101'] },
-      { size: 'L', measurements: ['38', '71.5', '102'] },
-      { size: 'XL', measurements: ['39', '73', '106'] },
-      { size: '2XL', measurements: ['40', '74', '107'] },
-      { size: '3XL', measurements: ['41', '74', '108'] },
-      { size: '4XL', measurements: ['45', '75', '109'] },
-      { size: '5XL', measurements: ['49', '78', '110'] },
-      { size: '6XL', measurements: ['TBC', 'TBC', 'TBC'] },
-      { size: '7XL', measurements: ['TBC', 'TBC', 'TBC'] },
-    ],
-    kidsRows: [
-      { size: 'K4', measurements: ['TBC', 'TBC', 'TBC'] },
-      { size: 'K6', measurements: ['TBC', 'TBC', 'TBC'] },
-      { size: 'K8', measurements: ['28', '56.5', '83'] },
-      { size: 'K10', measurements: ['28', '63.5', '90'] },
-      { size: 'K12', measurements: ['30', '66', '94'] },
-      { size: 'K14', measurements: ['32', '67', '96.5'] },
-      { size: 'K16', measurements: ['33', '68.5', '98'] },
-    ],
-  },
-};
-
-function SizeTable({ caption, guide, rows }: { caption: string; guide: SizeGuide; rows: SizeRow[] }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[28rem] border-collapse text-left font-body text-xs text-content-secondary">
-        <caption className="pb-2 text-left font-semibold text-content-primary">{caption}</caption>
-        <thead>
-          <tr className="border-b border-edge-strong">
-            {guide.headers.map((header) => (
-              <th key={header} scope="col" className="px-2 py-2 font-semibold">{header}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.size} className="border-b border-edge-subtle last:border-0">
-              <th scope="row" className="px-2 py-1.5 font-semibold text-content-primary">{row.size}</th>
-              {row.measurements.map((measurement, index) => (
-                <td key={`${row.size}-${guide.headers[index + 1]}`} className="px-2 py-1.5">{measurement}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  key: string
+  code: string
+  label: string
+  group: 'Tops' | 'Playing gear' | 'Pants and shorts' | 'Outerwear'
+  image: string
+  width: number
+  height: number
 }
 
+const GUIDE_ROOT = '/images/cms/apparel/size-guides/2026-27'
+
+const GUIDES: SizeGuide[] = [
+  { key: 'p925', code: 'P925', label: 'Unisex Tee', group: 'Tops', image: `${GUIDE_ROOT}/p925-unisex-tee.png`, width: 1102, height: 765 },
+  { key: 'p01', code: 'P01', label: 'Unisex Polo Shirt', group: 'Tops', image: `${GUIDE_ROOT}/p01-unisex-polo-shirt.png`, width: 1503, height: 1057 },
+  { key: 'p295', code: 'P295', label: 'Unisex Singlet', group: 'Tops', image: `${GUIDE_ROOT}/p295-unisex-singlet.png`, width: 837, height: 1178 },
+  { key: 'p199', code: 'P199', label: 'Cricket Vest', group: 'Playing gear', image: `${GUIDE_ROOT}/p199-cricket-vest.png`, width: 1668, height: 1169 },
+  { key: 'p209', code: 'P209', label: 'Reversible Cricket Vest and Jumper', group: 'Playing gear', image: `${GUIDE_ROOT}/p209-unisex-reversible-cricket-vest-jumper.png`, width: 1660, height: 1035 },
+  { key: 'p957', code: 'P957', label: 'Unisex Cricket Pants', group: 'Pants and shorts', image: `${GUIDE_ROOT}/p957-unisex-cricket-pants.png`, width: 1110, height: 776 },
+  { key: 'p191', code: 'P191', label: 'Unisex Basic Cricket Pants', group: 'Pants and shorts', image: `${GUIDE_ROOT}/p191-unisex-cricket-pants.png`, width: 1667, height: 1175 },
+  { key: 'p909', code: 'P909', label: 'Unisex Track Pants', group: 'Pants and shorts', image: `${GUIDE_ROOT}/p909-unisex-track-pants.png`, width: 1106, height: 765 },
+  { key: 'p911', code: 'P911', label: 'Unisex Travel Shorts', group: 'Pants and shorts', image: `${GUIDE_ROOT}/p911-unisex-travel-shorts.png`, width: 1101, height: 766 },
+  { key: 'p913', code: 'P913', label: 'Unisex Training Shorts', group: 'Pants and shorts', image: `${GUIDE_ROOT}/p913-unisex-training-shorts.png`, width: 1483, height: 1047 },
+  { key: 'p127', code: 'P127', label: 'Unisex Set-In Sleeve Hoodie', group: 'Outerwear', image: `${GUIDE_ROOT}/p127-unisex-set-in-sleeve-hoodie.png`, width: 887, height: 618 },
+  { key: 'p1143', code: 'P1143', label: 'Summit Hoodie', group: 'Outerwear', image: `${GUIDE_ROOT}/p1143-summit-hoodie.png`, width: 1673, height: 1173 },
+  { key: 'p919', code: 'P919', label: 'Unisex Puffer Vest', group: 'Outerwear', image: `${GUIDE_ROOT}/p919-unisex-puffer-vest.png`, width: 886, height: 619 },
+  { key: 'p1059', code: 'P1059', label: 'Unisex Boss Top', group: 'Outerwear', image: `${GUIDE_ROOT}/p1059-unisex-boss-top.png`, width: 1502, height: 1050 },
+  { key: 'p1280', code: 'P1280', label: 'Unisex Retro Jacket', group: 'Outerwear', image: `${GUIDE_ROOT}/p1280-unisex-retro-jacket.png`, width: 886, height: 623 },
+  { key: 'p969a', code: 'P969A', label: 'Unisex Team Jacket', group: 'Outerwear', image: `${GUIDE_ROOT}/p969a-unisex-team-jacket.png`, width: 1001, height: 699 },
+]
+
+const GROUPS: SizeGuide['group'][] = ['Tops', 'Playing gear', 'Pants and shorts', 'Outerwear']
+
 export default function SizingGuides() {
-  const [activeGuide, setActiveGuide] = useState<GuideKey>('tee');
-  const guide = GUIDES[activeGuide];
+  const [activeIndex, setActiveIndex] = useState(0)
+  const activeGuide = GUIDES[activeIndex]
+
+  const selectGuide = (key: string) => {
+    const nextIndex = GUIDES.findIndex((guide) => guide.key === key)
+    if (nextIndex >= 0) setActiveIndex(nextIndex)
+  }
+
+  const handleShortcuts = (event: KeyboardEvent<HTMLElement>) => {
+    if (!event.altKey) return
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      setActiveIndex((index) => Math.max(0, index - 1))
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      setActiveIndex((index) => Math.min(GUIDES.length - 1, index + 1))
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault()
+      setActiveIndex(0)
+    }
+  }
 
   return (
-    <section aria-labelledby="sizing-guides-title" className="mb-8 rounded-2xl border border-gold-300 bg-surface-card p-4 shadow-soft sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 id="sizing-guides-title" className="font-display text-xl font-bold text-maroon-800 dark:text-maroon-200">Sizing guides</h3>
-          <p className="mt-1 max-w-2xl font-body text-sm text-content-secondary">
-            Use these temporary supplier charts to compare garment measurements before ordering. All measurements are in centimetres.
-          </p>
-        </div>
-        <div className="inline-flex w-fit rounded-lg border border-edge-strong bg-surface-muted p-1" role="tablist" aria-label="Apparel sizing guide">
-          {(Object.keys(GUIDES) as GuideKey[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              id={`size-guide-tab-${key}`}
-              aria-controls={`size-guide-panel-${key}`}
-              aria-selected={activeGuide === key}
-              onClick={() => setActiveGuide(key)}
-              className={`focus-ring rounded-md px-3 py-2 font-body text-sm font-semibold transition-colors ${
-                activeGuide === key
-                  ? 'bg-maroon-800 text-white shadow-sm'
-                  : 'text-content-secondary hover:bg-surface-card hover:text-maroon-800 dark:hover:text-maroon-200'
-              }`}
-            >
-              {GUIDES[key].label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <section
+      aria-labelledby="sizing-guides-heading"
+      className="mb-8 rounded-2xl border border-gold-300 bg-surface-card p-4 shadow-soft sm:p-6"
+      onKeyDown={handleShortcuts}
+    >
+      <div>
+        <h3 id="sizing-guides-heading" className="font-display text-xl font-bold text-maroon-800 dark:text-maroon-200">
+          Apparel sizing guides
+        </h3>
 
-      <div
-        id={`size-guide-panel-${activeGuide}`}
-        role="tabpanel"
-        aria-labelledby={`size-guide-tab-${activeGuide}`}
-        className="mt-5"
-      >
-        <a
-          href={guide.image}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="focus-ring group mx-auto block max-w-3xl overflow-hidden rounded-xl border border-gold-400 bg-[#f7d968]"
-          aria-label={`Open the ${guide.label} sizing guide at full size in a new tab`}
-        >
-          <Image
-            src={guide.image}
-            alt={guide.imageAlt}
-            width={806}
-            height={800}
-            className="h-auto w-full transition-transform duration-200 group-hover:scale-[1.01]"
-            sizes="(max-width: 768px) 100vw, 768px"
-            priority={false}
-          />
-        </a>
-        <p className="mt-2 text-center font-body text-xs text-content-muted">Select the chart to open it at full size.</p>
+        <div className="mt-5 rounded-xl border border-edge-subtle bg-surface-muted p-4 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <label className="block font-body text-sm font-bold text-content-primary" htmlFor="size-guide-selector">
+              Garment chart
+              <select
+                id="size-guide-selector"
+                className="focus-ring mt-2 block w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-3 font-body text-base font-semibold text-content-primary shadow-sm"
+                onChange={(event) => selectGuide(event.target.value)}
+                value={activeGuide.key}
+              >
+                {GROUPS.map((group) => (
+                  <optgroup key={group} label={group}>
+                    {GUIDES.filter((guide) => guide.group === group).map((guide) => (
+                      <option key={guide.key} value={guide.key}>
+                        {guide.code} - {guide.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
 
-        <details className="mx-auto mt-4 max-w-3xl rounded-lg border border-edge-subtle bg-surface-muted p-3">
-          <summary className="cursor-pointer font-body text-sm font-semibold text-maroon-800 dark:text-maroon-200">
-            View measurements as accessible text
-          </summary>
-          <div className="mt-4 grid gap-5 lg:grid-cols-2">
-            <SizeTable caption="Adult sizes" guide={guide} rows={guide.adultRows} />
-            <SizeTable caption="Kids sizes" guide={guide} rows={guide.kidsRows} />
+            <div className="grid grid-cols-3 gap-2" aria-label="Sizing guide controls">
+              <button
+                aria-keyshortcuts="Alt+ArrowLeft"
+                className="focus-ring rounded-lg border border-edge-strong bg-surface-card px-4 py-3 font-body text-sm font-bold text-content-primary transition-colors hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={activeIndex === 0}
+                onClick={() => setActiveIndex((index) => Math.max(0, index - 1))}
+                type="button"
+              >
+                Previous
+              </button>
+              <button
+                aria-keyshortcuts="Alt+ArrowRight"
+                className="focus-ring rounded-lg border border-edge-strong bg-surface-card px-4 py-3 font-body text-sm font-bold text-content-primary transition-colors hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={activeIndex === GUIDES.length - 1}
+                onClick={() => setActiveIndex((index) => Math.min(GUIDES.length - 1, index + 1))}
+                type="button"
+              >
+                Next
+              </button>
+              <button
+                aria-keyshortcuts="Alt+Home"
+                className="focus-ring rounded-lg bg-maroon-800 px-4 py-3 font-body text-sm font-bold text-white transition-colors hover:bg-maroon-700"
+                onClick={() => setActiveIndex(0)}
+                type="button"
+              >
+                Reset
+              </button>
+            </div>
           </div>
-        </details>
+
+          <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2" aria-live="polite">
+            <h4 className="font-display text-xl font-black text-content-primary sm:text-2xl">
+              {activeGuide.code} {activeGuide.label}
+            </h4>
+            <p className="font-body text-sm font-semibold text-content-secondary">
+              Guide {activeIndex + 1} of {GUIDES.length}
+            </p>
+          </div>
+
+          <figure key={activeGuide.key} className="mt-4 motion-safe:animate-fade-up">
+            <a
+              aria-label={`Open the full-size ${activeGuide.code} ${activeGuide.label} sizing guide`}
+              className="focus-ring block overflow-hidden rounded-xl border border-edge-strong bg-white"
+              href={activeGuide.image}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Image
+                alt={`${activeGuide.code} ${activeGuide.label} supplier specification and size chart`}
+                className="mx-auto h-auto max-h-[75vh] w-auto max-w-full object-contain"
+                height={activeGuide.height}
+                priority={activeIndex === 0}
+                src={activeGuide.image}
+                width={activeGuide.width}
+              />
+            </a>
+          </figure>
+
+          <details className="mt-5 rounded-lg border border-edge-strong bg-surface-card px-4 py-3">
+            <summary className="cursor-pointer font-body font-bold text-content-primary">View all available guides as text</summary>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {GUIDES.map((guide, index) => (
+                <li key={guide.key}>
+                  <button
+                    aria-current={index === activeIndex ? 'true' : undefined}
+                    className="focus-ring w-full rounded-md px-3 py-2 text-left font-body text-sm font-semibold text-content-secondary hover:bg-surface-muted aria-[current=true]:bg-gold-100 aria-[current=true]:text-maroon-900 dark:aria-[current=true]:bg-maroon-900/50 dark:aria-[current=true]:text-maroon-100"
+                    onClick={() => setActiveIndex(index)}
+                    type="button"
+                  >
+                    {guide.code} {guide.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
       </div>
     </section>
-  );
+  )
 }
