@@ -35,6 +35,7 @@ export type ClubSettings = {
   instagram_handle: string | null;
   playhq_url: string | null;
   google_maps_embed_url: string | null;
+  sponsor_marquee_speed: 'slow' | 'very_slow';
   updated_at?: string | null;
 };
 
@@ -57,4 +58,5 @@ export const fallbackClubSettings: ClubSettings = {
   instagram_handle: INSTAGRAM_HANDLE,
   playhq_url: PLAYHQ_ORG_URL,
   google_maps_embed_url: GOOGLE_MAPS_EMBED_URL,
+  sponsor_marquee_speed: 'slow',
 };

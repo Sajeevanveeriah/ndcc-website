@@ -425,6 +425,7 @@
 
 .homepage-marquee-track:hover,
 .homepage-marquee-track:focus-within,
+.homepage-marquee-track.marquee-manually-paused,
 body.marquee-page-hidden .homepage-marquee-track {
   animation-play-state: paused;
 }

@@ -2,7 +2,7 @@
 -- Run this after schema.sql to populate initial data
 
 -- ============================================
--- SPONSORS (2025/26 Season)
+-- SPONSORS
 -- ============================================
 
 INSERT INTO sponsors (name, tier, website, placement_type, active) VALUES
@@ -31,8 +31,7 @@ Congratulations to everyone involved in the Division 4 1st Eleven premiership, t
   ('Annual General Meeting - Wednesday 20 May 2026', 'All members are encouraged to attend the Annual General Meeting. Date: Wednesday 20 May 2026. Time: 6:30 pm. Venue: NDCC Club Rooms, 141 Coppards Road, Moolap VIC 3224. Have your say and help shape the future of the club. Your club. Your voice. Be there for the AGM.', 'NDCC Committee', '', TRUE, '2026-05-01 09:00:00+10', 0),
   ('Dino Lotto 2026 is Open', 'Dino Lotto has 50 numbers available at AUD 50 per number. One AUD 100 prize is drawn every Friday at 7:00 pm across a 10 week block, starting when all numbers are sold. Each number remains in every weekly draw. To secure a number, contact ndsc.cricket@gmail.com.', 'NDCC Committee', '', TRUE, '2026-04-30 17:00:00+10', 10),
   ('Apparel Sponsorship 2026/27', 'Put your brand on Newcomb and District apparel and support community cricket in the 2026/27 season. This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on 0419 236 866 or ndsc.cricket@gmail.com.', 'NDCC Committee', '', TRUE, '2026-04-29 10:00:00+10', 20),
-  ('U13s Reach Grand Final', 'Congratulations to our Under 13s side who secured a spot in the GCA grand final after an undefeated 2025/26 season. The grand final was held at Grinter Reserve, capping off a fantastic season for the junior programme. The boys showed incredible dedication and team spirit throughout the year, and the club could not be prouder of their achievement. A huge thank you to the coaches, parents, and volunteers who supported the team all season.', 'NDCC Committee', '', TRUE, '2026-03-10 10:00:00+11', 30),
-  ('2026/27 Season Preview', 'With the 2025/26 season now wrapped up, attention turns to the 2026/27 campaign starting in October 2026. Pre-season training will return to the Peter ''Skinny'' Harrison Training Facility at Grinter Reserve, with sessions for all senior and junior squads. We are encouraging new players across men''s, women''s, and junior cricket to get involved. Registrations will open on PlayHQ closer to the season. Keep an eye on our Facebook page and this website for announcements about training schedules and registration dates.', 'NDCC Committee', '', TRUE, '2026-03-15 08:30:00+11', 40);
+  ('2026/27 Season Preview', 'The 2026/27 campaign starts in October 2026. Pre-season training will return to the Peter ''Skinny'' Harrison Training Facility at Grinter Reserve, with sessions for senior and junior squads. New players across men''s, women''s and junior cricket are welcome. Keep an eye on our Facebook page and this website for current training and registration information.', 'NDCC Committee', '', TRUE, '2026-03-15 08:30:00+11', 40);
 
 -- ============================================
 -- EVENTS

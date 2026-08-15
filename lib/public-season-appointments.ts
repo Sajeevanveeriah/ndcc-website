@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { fallbackSeasonAppointments } from '@/lib/fallback-content';
+import { getCurrentClubSeason, shouldShowSeasonAppointments } from '@/lib/club-seasons';
 
 export type PublicSeasonAppointment = {
   id: string;
@@ -33,10 +34,13 @@ export async function getPublicSeasonAppointments(): Promise<PublicSeasonAppoint
   }
 
   const supabase = createServerClient();
+  const currentSeason = await getCurrentClubSeason();
+  if (!currentSeason || !shouldShowSeasonAppointments(currentSeason)) return [];
   const { data, error } = await supabase
     .from('season_appointments')
     .select('id,name,role,image_url,announcement_date,sort_order,is_active')
     .eq('is_active', true)
+    .eq('club_season_id', currentSeason.id)
     .order('sort_order', { ascending: true })
     .order('announcement_date', { ascending: false })
     .order('name', { ascending: true });

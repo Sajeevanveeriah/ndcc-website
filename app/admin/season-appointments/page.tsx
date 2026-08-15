@@ -23,6 +23,7 @@ type SeasonAppointment = {
 };
 
 type AppointmentForm = Omit<SeasonAppointment, 'id' | 'created_at'>;
+type CurrentSeason = { id: string; name: string; slug: string; show_season_appointments: boolean };
 
 
 function imageStatus(imageUrl: string | null) {
@@ -50,13 +51,21 @@ export default function AdminSeasonAppointmentsPage() {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [currentSeason, setCurrentSeason] = useState<CurrentSeason | null>(null);
 
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        const response = await fetch('/api/admin/resources/seasonAppointments', { cache: 'no-store' });
-        const result = await parseApiResponse<{ data?: SeasonAppointment[] }>(response);
+        const [response, settingsResponse] = await Promise.all([
+          fetch('/api/admin/resources/seasonAppointments', { cache: 'no-store' }),
+          fetch('/api/admin/season-appointments/settings', { cache: 'no-store' }),
+        ]);
+        const [result, settings] = await Promise.all([
+          parseApiResponse<{ data?: SeasonAppointment[] }>(response),
+          parseApiResponse<{ season?: CurrentSeason | null }>(settingsResponse),
+        ]);
         setAppointments(result.data || []);
+        setCurrentSeason(settings.season || null);
       } catch (err) {
         setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch season appointments.' });
       } finally {
@@ -66,6 +75,24 @@ export default function AdminSeasonAppointmentsPage() {
 
     fetchAppointments();
   }, []);
+
+  const updateSectionVisibility = async (showSeasonAppointments: boolean) => {
+    setSaving(true);
+    try {
+      const response = await adminFetch('/api/admin/season-appointments/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showSeasonAppointments }),
+      });
+      const result = await parseApiResponse<{ season: CurrentSeason }>(response);
+      setCurrentSeason(result.season);
+      setFeedback({ type: 'success', message: showSeasonAppointments ? 'Season signings are visible on the homepage.' : 'Season signings are hidden from the homepage.' });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not update homepage visibility.' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingId(null);
@@ -162,7 +189,7 @@ export default function AdminSeasonAppointmentsPage() {
             Season Appointments
           </h1>
           <p className="text-content-muted font-body mt-1">
-            Cards shown on homepage section: 2026/27 Season Appointments.
+            {currentSeason ? `Manage signings and appointments for ${currentSeason.name}.` : 'Create or activate a season before adding appointments.'}
           </p>
         </div>
         <Button variant="primary" onClick={openCreate}>
@@ -172,6 +199,18 @@ export default function AdminSeasonAppointmentsPage() {
       </div>
       {feedback && (
         <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+      )}
+
+      {currentSeason && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-edge-subtle bg-surface-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-display font-bold text-content-primary">Homepage signings section</p>
+            <p className="text-sm text-content-muted">Hide it when the signing window closes. The setting belongs to {currentSeason.name} only.</p>
+          </div>
+          <Button type="button" variant={currentSeason.show_season_appointments ? 'secondary' : 'primary'} disabled={saving} onClick={() => updateSectionVisibility(!currentSeason.show_season_appointments)}>
+            {currentSeason.show_season_appointments ? 'Hide from homepage' : 'Show on homepage'}
+          </Button>
+        </div>
       )}
 
       {loading ? (

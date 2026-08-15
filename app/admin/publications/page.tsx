@@ -504,7 +504,7 @@ export default function AdminPublicationsPage() {
             <Input
               id="publication-season"
               label="Season label (optional)"
-              placeholder="2025/26"
+              placeholder="2026/27"
               value={form.season_label || ''}
               onChange={(e) => setForm({ ...form, season_label: e.target.value })}
             />

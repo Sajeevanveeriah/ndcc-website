@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SPONSOR_TIERS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Sponsor } from '@/lib/types';
@@ -14,35 +13,7 @@ import Input, { Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Handshake, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
-import { analyseSponsorLogoPixels, type SponsorLogoAnalysis } from '@/lib/sponsor-logo-analysis';
-
-// Draw the (same-origin or CORS-permitted) logo into an offscreen canvas and
-// classify its pixels so the plate select can suggest a verified mode for new
-// uploads. Fails silently — analysis is a hint, never a gate.
-async function analyseLogoUrl(url: string): Promise<SponsorLogoAnalysis | null> {
-  try {
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error('logo load failed'));
-      image.src = url;
-    });
-    const scale = Math.min(1, 160 / Math.max(image.naturalWidth, image.naturalHeight, 1));
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d', { willReadFrequently: true });
-    if (!context) return null;
-    context.drawImage(image, 0, 0, width, height);
-    const pixels = context.getImageData(0, 0, width, height);
-    return analyseSponsorLogoPixels({ width, height, data: pixels.data });
-  } catch {
-    return null;
-  }
-}
+import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
 
 const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
   name: '',
@@ -67,27 +38,7 @@ export default function AdminSponsorsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptySponsor);
-  const [logoAnalysis, setLogoAnalysis] = useState<SponsorLogoAnalysis | null>(null);
-
-  // Suggest a plate mode from the actual artwork pixels whenever the logo URL
-  // changes. When the stored mode is still 'auto' the suggestion is applied
-  // as an explicit resolved mode; an admin can always override the select.
-  useEffect(() => {
-    let cancelled = false;
-    const url = asString(form.logo_url).trim();
-    if (!url) { setLogoAnalysis(null); return; }
-    analyseLogoUrl(url).then((analysis) => {
-      if (cancelled || !analysis) return;
-      setLogoAnalysis(analysis);
-      setForm((prev) => (
-        (asString(prev.logo_surface_mode) || 'auto') === 'auto' && asString(prev.logo_url).trim() === url
-          ? { ...prev, logo_surface_mode: analysis.suggestedMode }
-          : prev
-      ));
-    });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.logo_url]);
+  const [showLogoOptions, setShowLogoOptions] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
@@ -98,7 +49,7 @@ export default function AdminSponsorsPage() {
     try {
       const response = await fetch('/api/admin/resources/sponsors', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Sponsor[] }>(response);
-      setSponsors(result.data || []);
+      setSponsors(sortSponsorsAlphabetically(result.data || []));
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch sponsors.' });
     } finally {
@@ -111,33 +62,12 @@ export default function AdminSponsorsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getTierLabel = (value: string) => {
-    const found = SPONSOR_TIERS.find((t) => t.value === value);
-    return found ? found.label : value;
-  };
-
-  const getTierBadgeVariant = (tier: string): 'default' | 'success' | 'warning' | 'danger' | 'info' => {
-    switch (tier) {
-      case 'major':
-        return 'danger';
-      case 'gold':
-        return 'warning';
-      case 'silver':
-        return 'info';
-      case 'standard':
-        return 'default';
-      case 'community':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
   const openCreate = () => {
     setEditingId(null);
     setForm(emptySponsor);
     setFormErrors({});
     setFeedback(null);
+    setShowLogoOptions(false);
     setModalOpen(true);
   };
 
@@ -158,13 +88,13 @@ export default function AdminSponsorsPage() {
     });
     setFormErrors({});
     setFeedback(null);
+    setShowLogoOptions(false);
     setModalOpen(true);
   };
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!form.name.trim()) errors.name = 'Name is required.';
-    if (!form.tier) errors.tier = 'Tier is required.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -176,7 +106,6 @@ export default function AdminSponsorsPage() {
 
     const payload = {
       name: form.name.trim(),
-      tier: form.tier,
       logo_url: form.logo_url.trim(),
       website: form.website.trim(),
       placement_type: form.placement_type.trim(),
@@ -196,7 +125,7 @@ export default function AdminSponsorsPage() {
           body: JSON.stringify({ id: editingId, ...payload }),
         });
         const result = await parseApiResponse<{ data: Sponsor }>(response);
-        setSponsors((prev) => prev.map((s) => (s.id === editingId ? result.data : s)));
+        setSponsors((prev) => sortSponsorsAlphabetically(prev.map((s) => (s.id === editingId ? result.data : s))));
       } else {
         const response = await adminFetch('/api/admin/resources/sponsors', {
           method: 'POST',
@@ -204,7 +133,7 @@ export default function AdminSponsorsPage() {
           body: JSON.stringify(payload),
         });
         const result = await parseApiResponse<{ data: Sponsor }>(response);
-        if (result.data) setSponsors((prev) => [result.data, ...prev]);
+        if (result.data) setSponsors((prev) => sortSponsorsAlphabetically([...prev, result.data]));
       }
       setFeedback({ type: 'success', message: editingId ? 'Sponsor updated.' : 'Sponsor created.' });
       setModalOpen(false);
@@ -264,14 +193,6 @@ export default function AdminSponsorsPage() {
     'Selected sponsors deleted.'
   );
 
-  const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
-  const placementOptions = [
-    { value: 'website', label: 'Website' },
-    { value: 'ground', label: 'Ground Signage' },
-    { value: 'shirt', label: 'Shirt Sponsor' },
-    { value: 'both', label: 'Website + Ground' },
-  ];
-
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -281,7 +202,7 @@ export default function AdminSponsorsPage() {
             Sponsors
           </h1>
           <p className="text-content-muted font-body mt-1">
-            {sponsors.length} sponsor{sponsors.length !== 1 ? 's' : ''}
+            {sponsors.length} sponsor{sponsors.length !== 1 ? 's' : ''}, automatically ordered A-Z
           </p>
         </div>
         <Button variant="primary" onClick={openCreate}>
@@ -330,8 +251,6 @@ export default function AdminSponsorsPage() {
                 />
               </TableHeader>
               <TableHeader>Name</TableHeader>
-              <TableHeader>Tier</TableHeader>
-              <TableHeader>Placement</TableHeader>
               <TableHeader>Website</TableHeader>
               <TableHeader>Status</TableHeader>
               <TableHeader>Added</TableHeader>
@@ -351,12 +270,6 @@ export default function AdminSponsorsPage() {
                   />
                 </TableCell>
                 <TableCell className="font-medium">{sponsor.name}</TableCell>
-                <TableCell>
-                  <Badge variant={getTierBadgeVariant(sponsor.tier)}>
-                    {getTierLabel(sponsor.tier)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="capitalize">{sponsor.placement_type}</TableCell>
                 <TableCell>
                   {sponsor.website ? (
                     <a
@@ -415,23 +328,6 @@ export default function AdminSponsorsPage() {
             error={formErrors.name}
             required
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
-              id="sponsor-tier"
-              label="Tier"
-              options={tierOptions}
-              value={form.tier}
-              onChange={(e) => setForm({ ...form, tier: e.target.value })}
-              error={formErrors.tier}
-            />
-            <Select
-              id="sponsor-placement"
-              label="Placement Type"
-              options={placementOptions}
-              value={form.placement_type}
-              onChange={(e) => setForm({ ...form, placement_type: e.target.value })}
-            />
-          </div>
           <ImageUploadField
             id="sponsor-logo"
             label="Logo URL (optional)"
@@ -440,23 +336,23 @@ export default function AdminSponsorsPage() {
             placeholder="/images/sponsors/logo.png"
             helpText="Paste an external logo URL or upload a file to store under /images/cms."
           />
-          <Select
-            id="sponsor-logo-surface"
-            label="Logo plate"
-            options={[
-              { value: 'auto', label: 'Auto (recommended)' },
-              { value: 'light', label: 'Light plate (dark artwork)' },
-              { value: 'dark', label: 'Dark plate (white artwork)' },
-              { value: 'neutral', label: 'Neutral (logo has its own background)' },
-              { value: 'transparent', label: 'Transparent (no plate)' },
-            ]}
-            value={asString(form.logo_surface_mode) || 'auto'}
-            onChange={(e) => setForm({ ...form, logo_surface_mode: e.target.value })}
-          />
-          {logoAnalysis && (
-            <p className="text-xs font-body text-content-muted -mt-2">
-              Artwork analysis suggests the <span className="font-semibold">{logoAnalysis.suggestedMode}</span> plate — {logoAnalysis.reason}
-            </p>
+          <button type="button" className="text-left text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200" aria-expanded={showLogoOptions} onClick={() => setShowLogoOptions((value) => !value)}>
+            {showLogoOptions ? 'Hide logo display options' : 'Logo display options'}
+          </button>
+          {showLogoOptions && (
+            <Select
+              id="sponsor-logo-surface"
+              label="Logo background"
+              options={[
+                { value: 'auto', label: 'Automatic (recommended)' },
+                { value: 'light', label: 'Light background' },
+                { value: 'dark', label: 'Dark background' },
+                { value: 'neutral', label: 'Keep the logo background' },
+                { value: 'transparent', label: 'No background' },
+              ]}
+              value={asString(form.logo_surface_mode) || 'auto'}
+              onChange={(e) => setForm({ ...form, logo_surface_mode: e.target.value })}
+            />
           )}
           <Textarea
             id="sponsor-description"
@@ -472,29 +368,6 @@ export default function AdminSponsorsPage() {
             value={form.website}
             onChange={(e) => setForm({ ...form, website: e.target.value })}
             placeholder="https://example.com"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              id="sponsor-sort-order"
-              label="Sort order"
-              type="number"
-              value={String(form.sort_order || 0)}
-              onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
-            />
-            <Input
-              id="sponsor-source-url"
-              label="Source URL (optional)"
-              value={asString(form.source_url)}
-              onChange={(e) => setForm({ ...form, source_url: e.target.value })}
-              placeholder="https://example.com"
-            />
-          </div>
-          <Input
-            id="sponsor-logo-source-url"
-            label="Logo source URL (optional)"
-            value={asString(form.logo_source_url)}
-            onChange={(e) => setForm({ ...form, logo_source_url: e.target.value })}
-            placeholder="https://example.com/logo.png"
           />
           <label className="flex items-center gap-2 cursor-pointer">
             <input

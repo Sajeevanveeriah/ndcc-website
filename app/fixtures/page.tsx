@@ -4,6 +4,8 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { getClubSettings } from '@/lib/club-settings';
+import { getCurrentClubSeason } from '@/lib/club-seasons';
+import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
@@ -101,18 +103,19 @@ function LadderTable({ rows }: { rows: PlayHQLadderRow[] }) {
 }
 
 export default async function FixturesPage() {
-  const [settings, blocks, playhq, teamLinks] = await Promise.all([
+  const [settings, blocks, playhq, teamLinks, currentSeason] = await Promise.all([
     getClubSettings(),
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
     getPlayHQPublicData(),
     getPageLinkCards('fixtures', 'team_links'),
+    getCurrentClubSeason(),
   ]);
   const { upcoming, results } = splitFixtures(playhq.fixtures);
   const upcomingByGrade = groupByGrade(upcoming);
   const resultsByGrade = groupByGrade(results.slice(0, 12));
   const laddersByGrade = groupByGrade(playhq.ladders);
   const playhqCtaUrl = blocks['fixtures.status']?.cta_url || settings.playhq_url || PLAYHQ_ORG_URL;
-  const playhqCtaLabel = blocks['fixtures.status']?.cta_label || 'View fixtures on PlayHQ';
+  const playhqCtaLabel = renderSeasonContent(blocks['fixtures.status']?.cta_label || 'View fixtures on PlayHQ', currentSeason);
   const selectedSeason = playhq.selectedSeasonId ? playhq.seasons.find((season) => season.id === playhq.selectedSeasonId) : undefined;
   const seasonLabel = selectedSeason && selectedSeason.name !== selectedSeason.id ? selectedSeason.name : null;
   const fetchedAtDate = new Date(playhq.fetchedAt);
@@ -134,9 +137,9 @@ export default async function FixturesPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <span className="eyebrow-gold">Season Status</span>
-                <h2 className="text-2xl font-display font-bold uppercase tracking-wide text-white mb-3">{blocks['fixtures.status']?.title || 'PlayHQ Fixtures'}</h2>
+                <h2 className="text-2xl font-display font-bold uppercase tracking-wide text-white mb-3">{renderSeasonContent(blocks['fixtures.status']?.title || 'PlayHQ Fixtures', currentSeason)}</h2>
                 <p className="text-white/75 font-body leading-relaxed max-w-3xl">
-                  {playhq.message || blocks['fixtures.status']?.body || `Live fixtures, results and ladders for the ${settings.club_nickname}.`}
+                  {playhq.message || renderSeasonContent(blocks['fixtures.status']?.body || `Live fixtures, results and ladders for the ${settings.club_nickname}.`, currentSeason)}
                 </p>
                 {fetchedAtLabel && (
                   <p className="mt-3 text-xs text-white/60 font-body">
@@ -173,8 +176,8 @@ export default async function FixturesPage() {
       {teamLinks.length > 0 && (
         <section className="section-padding">
           <div className="container-width">
-            <h2 className="section-title mb-4">{blocks['fixtures.team_links']?.title || 'Follow your team on PlayHQ'}</h2>
-            {blocks['fixtures.team_links']?.body && <p className="text-content-muted font-body max-w-3xl mb-6">{blocks['fixtures.team_links'].body}</p>}
+            <h2 className="section-title mb-4">{renderSeasonContent(blocks['fixtures.team_links']?.title || 'Follow your team on PlayHQ', currentSeason)}</h2>
+            {blocks['fixtures.team_links']?.body && <p className="text-content-muted font-body max-w-3xl mb-6">{renderSeasonContent(blocks['fixtures.team_links'].body, currentSeason)}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {teamLinks.map((link) => (
                 <a key={link.id} href={link.href} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">

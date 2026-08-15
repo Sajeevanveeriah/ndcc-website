@@ -24,7 +24,7 @@ type SessionUser = {
 };
 
 type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; usersOnly?: boolean };
-type AdminGroup = { title: string; icon: typeof LayoutDashboard; links: AdminLink[] };
+type AdminGroup = { title: string; icon: typeof LayoutDashboard; links: AdminLink[]; advanced?: boolean };
 
 const adminGroups: AdminGroup[] = [
   { title: 'Home', icon: Home, links: [
@@ -46,12 +46,12 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/content', label: 'Page Sections', plainLabel: 'Page sections', icon: FileText },
     { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
   ] },
-  { title: 'Club', icon: Building2, links: [
+  { title: 'Club', icon: Building2, advanced: true, links: [
     { href: '/admin/history', label: 'History', icon: Newspaper },
     { href: '/admin/minutes', label: 'Minutes', icon: Newspaper },
     { href: '/admin/club-details', label: 'Contact Details', icon: Settings },
   ] },
-  { title: 'Community', icon: HeartHandshake, links: [
+  { title: 'Community', icon: HeartHandshake, advanced: true, links: [
     { href: '/admin/volunteers', label: 'Volunteers', icon: Users },
     { href: '/admin/memberships', label: 'Memberships', icon: Users },
     { href: '/admin/enquiries', label: 'Enquiries', icon: Mail },
@@ -63,7 +63,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/payments', label: 'Payments', icon: ShoppingBag },
   ] },
-  { title: 'Fantasy', icon: Trophy, links: [
+  { title: 'Fantasy', icon: Trophy, advanced: true, links: [
     { href: '/admin/fantasy', label: 'Fantasy Home', icon: Trophy },
     { href: '/admin/fantasy/seasons', label: 'Seasons & PlayHQ', plainLabel: 'Fantasy seasons and PlayHQ grades', icon: CalendarDays },
     { href: '/admin/fantasy/players', label: 'Players', icon: Users },
@@ -71,7 +71,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/fantasy/reconciliation', label: 'Historical Review', icon: Shield },
     { href: '/admin/playhq-diagnostics', label: 'PlayHQ Diagnostics', icon: Settings },
   ] },
-  { title: 'Administration', icon: Shield, links: [
+  { title: 'Administration', icon: Shield, advanced: true, links: [
     { href: '/admin/users', label: 'Users', icon: Users, usersOnly: true },
     { href: '/admin/email-diagnostics', label: 'Email Diagnostics', icon: Mail },
     { href: '/admin/media-diagnostics', label: 'Media Diagnostics', icon: Settings },
@@ -79,9 +79,9 @@ const adminGroups: AdminGroup[] = [
   ] },
 ];
 
-function groupsForUser(user: SessionUser, search: string) {
+function groupsForUser(user: SessionUser, search: string, showAdvanced: boolean) {
   const query = search.trim().toLowerCase();
-  return adminGroups.map((group) => ({
+  return adminGroups.filter((group) => showAdvanced || query || !group.advanced).map((group) => ({
     ...group,
     links: group.links.filter((link) => {
       if (link.usersOnly && !canManageUsers(user.role)) return false;
@@ -110,6 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [navSearch, setNavSearch] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(() => adminGroups.some((group) => group.advanced && group.links.some((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))));
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const runSessionCheck = useCallback(async (retryAttempt = 0, allowAutoRetry = true) => {
@@ -218,7 +219,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <div className="min-h-screen bg-surface-page flex items-center justify-center">Redirecting...</div>;
   }
 
-  const groupedLinks = groupsForUser(user, navSearch);
+  const groupedLinks = groupsForUser(user, navSearch, showAdvanced);
 
   return (
     <div className="min-h-screen bg-surface-page flex">
@@ -241,6 +242,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className="w-full rounded-lg border border-maroon-700 bg-maroon-900/40 py-2 pl-9 pr-3 text-sm text-white placeholder:text-maroon-200 focus:border-gold-300 focus:outline-none focus:ring-2 focus:ring-gold-300/30"
             />
           </label>
+          <button type="button" className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-maroon-100 hover:bg-maroon-700/50 hover:text-white" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)}>
+            {showAdvanced ? 'Fewer tools' : 'More tools'}
+          </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto" aria-label="Grouped admin navigation">
           {groupedLinks.map((group) => (
@@ -282,6 +286,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           {mobileOpen && (
             <nav className="px-4 pb-3 space-y-4 max-h-[70vh] overflow-y-auto" aria-label="Mobile grouped admin navigation">
+              <button type="button" className="w-full rounded-lg border border-edge-subtle px-3 py-2 text-left text-sm font-semibold" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)}>{showAdvanced ? 'Fewer tools' : 'More tools'}</button>
               {groupedLinks.map((group) => (
                 <section key={group.title}>
                   <h2 className="text-xs font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.title}</h2>
