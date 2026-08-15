@@ -69,7 +69,7 @@ export default function SponsorsMarquee({ sponsors, durationSeconds }: { sponsor
         <button
           type="button"
           onClick={() => setPaused((value) => !value)}
-          className="btn-secondary inline-flex items-center gap-2"
+          className="sponsor-marquee-toggle btn-secondary inline-flex items-center gap-2"
           aria-pressed={paused}
           aria-label={paused ? 'Play the sponsor logo movement' : 'Pause the sponsor logo movement'}
         >

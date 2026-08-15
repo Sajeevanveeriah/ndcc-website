@@ -464,7 +464,8 @@ body.marquee-page-hidden .homepage-marquee-track {
   }
   /* Reduced motion replaces the scroll with a static wrapped grid, so the
      pause/play control has nothing to act on. */
-  .season-appointments-marquee-toggle {
+  .season-appointments-marquee-toggle,
+  .sponsor-marquee-toggle {
     display: none;
   }
 }
