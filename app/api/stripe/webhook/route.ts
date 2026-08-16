@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
 import { isPaymentTestMode } from '@/lib/payments/payment-config';
 import { getCheckoutEventAction } from '@/lib/payments/stripe-checkout';
+import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,8 @@ type LedgerRow = {
   metadata: Record<string, unknown> | null;
 };
 
+type ServerSupabase = ReturnType<typeof createServerClient>;
+
 function paymentIntentId(session: Stripe.Checkout.Session): string | null {
   if (typeof session.payment_intent === 'string') return session.payment_intent;
   return session.payment_intent?.id || null;
@@ -29,6 +32,19 @@ function cents(amount: number): number {
 
 function isDuplicateError(error: { code?: string; message?: string } | null): boolean {
   return Boolean(error && (error.code === '23505' || /duplicate key/i.test(error.message || '')));
+}
+
+async function notifyPaidOrder(
+  supabase: ServerSupabase,
+  payment: Pick<LedgerRow, 'id' | 'metadata'>,
+  orderId: string,
+): Promise<boolean> {
+  const notification = await sendPaidStaffOrderNotificationForPayment(supabase, payment, orderId);
+  if (notification.status === 'failed') {
+    console.error(`Webhook: paid staff notification for order ${orderId} failed:`, notification.reason);
+    return false;
+  }
+  return true;
 }
 
 async function markSessionFailed(
@@ -97,6 +113,9 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
       return NextResponse.json({ error: 'Payment ledger mismatch.' }, { status: 500 });
     }
     if (payment.status === 'settled') {
+      if (!(await notifyPaidOrder(supabase, payment, orderId))) {
+        return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
+      }
       return NextResponse.json({ received: true, duplicate: true });
     }
     if (payment.status !== 'pending' && payment.status !== 'failed') {
@@ -104,6 +123,11 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
       return NextResponse.json({ error: 'Payment ledger state conflict.' }, { status: 500 });
     }
 
+    const settledMetadata = {
+      ...(payment.metadata || {}),
+      payment_intent: paymentIntentId(session),
+      settlement_event_type: event.type,
+    };
     const { data: settled, error: settleError } = await supabase
       .from('order_payments')
       .update({
@@ -111,11 +135,7 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
         provider_event_id: event.id,
         received_at: new Date(event.created * 1000).toISOString(),
         recorded_by: 'stripe-webhook',
-        metadata: {
-          ...(payment.metadata || {}),
-          payment_intent: paymentIntentId(session),
-          settlement_event_type: event.type,
-        },
+        metadata: settledMetadata,
       })
       .eq('id', payment.id)
       .eq('status', payment.status)
@@ -123,6 +143,14 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
       .maybeSingle();
 
     if (isDuplicateError(settleError)) {
+      const { data: duplicatePayment } = await supabase
+        .from('order_payments')
+        .select('id,metadata')
+        .eq('id', payment.id)
+        .maybeSingle();
+      if (duplicatePayment && !(await notifyPaidOrder(supabase, duplicatePayment, orderId))) {
+        return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
+      }
       return NextResponse.json({ received: true, duplicate: true });
     }
     if (settleError) {
@@ -132,13 +160,20 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
     if (!settled) {
       const { data: concurrent } = await supabase
         .from('order_payments')
-        .select('status')
+        .select('status,metadata')
         .eq('id', payment.id)
         .maybeSingle();
       if (concurrent?.status === 'settled') {
+        if (!(await notifyPaidOrder(supabase, { id: payment.id, metadata: concurrent.metadata }, orderId))) {
+          return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
+        }
         return NextResponse.json({ received: true, duplicate: true });
       }
       return NextResponse.json({ error: 'Concurrent payment update conflict.' }, { status: 500 });
+    }
+
+    if (!(await notifyPaidOrder(supabase, { id: payment.id, metadata: settledMetadata }, orderId))) {
+      return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
     }
     return NextResponse.json({ received: true });
   }
@@ -161,31 +196,48 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
     return NextResponse.json({ error: 'Checkout payment reference mismatch.' }, { status: 500 });
   }
 
-  const { error: insertError } = await supabase.from('order_payments').insert({
-    order_id: orderId,
-    amount: amountCents / 100,
-    currency: 'AUD',
-    method: 'stripe',
-    provider: 'stripe',
-    provider_reference: session.id,
-    provider_event_id: event.id,
-    status: 'settled',
-    received_at: new Date(event.created * 1000).toISOString(),
-    recorded_by: 'stripe-webhook-legacy',
-    metadata: {
-      payment_intent: paymentIntentId(session),
-      payment_kind: session.metadata?.payment_kind || 'balance',
-      payment_reference: session.metadata?.payment_reference || null,
-      settlement_event_type: event.type,
-    },
-  });
+  const legacyMetadata = {
+    payment_intent: paymentIntentId(session),
+    payment_kind: session.metadata?.payment_kind || 'balance',
+    payment_reference: session.metadata?.payment_reference || null,
+    settlement_event_type: event.type,
+  };
+  const { data: legacyPayment, error: insertError } = await supabase
+    .from('order_payments')
+    .insert({
+      order_id: orderId,
+      amount: amountCents / 100,
+      currency: 'AUD',
+      method: 'stripe',
+      provider: 'stripe',
+      provider_reference: session.id,
+      provider_event_id: event.id,
+      status: 'settled',
+      received_at: new Date(event.created * 1000).toISOString(),
+      recorded_by: 'stripe-webhook-legacy',
+      metadata: legacyMetadata,
+    })
+    .select('id,metadata')
+    .single();
 
   if (isDuplicateError(insertError)) {
+    const { data: duplicatePayment } = await supabase
+      .from('order_payments')
+      .select('id,metadata')
+      .eq('provider', 'stripe')
+      .eq('provider_reference', session.id)
+      .maybeSingle();
+    if (duplicatePayment && !(await notifyPaidOrder(supabase, duplicatePayment, orderId))) {
+      return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
+    }
     return NextResponse.json({ received: true, duplicate: true });
   }
-  if (insertError) {
+  if (insertError || !legacyPayment) {
     console.error('Webhook: failed to record the legacy Stripe payment:', insertError);
     return NextResponse.json({ error: 'Failed to record payment.' }, { status: 500 });
+  }
+  if (!(await notifyPaidOrder(supabase, legacyPayment, orderId))) {
+    return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
   }
   return NextResponse.json({ received: true, legacy: true });
 }
