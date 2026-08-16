@@ -27,7 +27,7 @@ const FOUNDATION = [
   '20260716040000_apparel_product_options.sql',
   '20260716041000_apparel_catalogue_2026_27.sql',
 ];
-const RETAIL = '20260809210000_apparel_catalogue_retail_2026_27.sql';
+const RETAIL = '20260809105226_apparel_catalogue_retail_2026_27.sql';
 
 createTestDatabase(DB);
 // Tables that predate the committed migration lineage (created via the

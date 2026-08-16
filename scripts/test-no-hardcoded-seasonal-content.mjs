@@ -17,7 +17,7 @@ for (const file of ['app/admin/publications/page.tsx', 'app/admin/season-appoint
   const source = readFileSync(file, 'utf8');
   assert.ok(!/2025\/(?:26|2026)/.test(source), `${file} must not expose the old 2025/2026 season.`);
 }
-const currentSeasonContentMigration = readFileSync('supabase/migrations/20260815053000_current_season_content_cleanup.sql', 'utf8');
+const currentSeasonContentMigration = readFileSync('supabase/migrations/20260815052456_current_season_content_cleanup.sql', 'utf8');
 assert.match(currentSeasonContentMigration, /home\.season_status/);
 assert.match(currentSeasonContentMigration, /fixtures\.status/);
 assert.match(currentSeasonContentMigration, /fixtures\.team_links/);
