@@ -4,6 +4,7 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,6 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
 
 export async function POST(request: Request) {
   try {
@@ -124,9 +124,8 @@ export async function POST(request: Request) {
     // Never trust client prices or totals: resolve every posted item against
     // the live catalogue (base price + selected option surcharges) and
     // recompute everything server-side. Unknown products, invalid options or
-    // an unreachable catalogue reject the order — since the live catalogue
-    // page shows an explicit unavailable state, an order that references
-    // products the server cannot verify is never accepted at face value.
+    // an unreachable catalogue reject the order because the live catalogue
+    // page shows an explicit unavailable state.
     const catalogue = await loadPricedCatalogue(supabase);
     if (!catalogue.ok) {
       console.error('Orders catalogue lookup failed:', catalogue.error);
@@ -205,7 +204,7 @@ export async function POST(request: Request) {
       .join('');
     void sendEmail({
       to: sanitiseInput(customer_email),
-      subject: `Order confirmed — Ref ${paymentReference} | NDCC Dinos`,
+      subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(sanitiseInput(customer_name))},</p>
@@ -235,6 +234,14 @@ export async function POST(request: Request) {
         <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
+
+    if (order_category === 'merch') {
+      const staffNotification = await sendStaffOrderNotificationForOrder(supabase, data.id, 'created');
+      if (staffNotification.status === 'failed') {
+        console.error('Apparel staff order notification failed:', staffNotification.reason);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Order submitted successfully!',

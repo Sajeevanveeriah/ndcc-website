@@ -21,6 +21,7 @@ export interface EmailPayload {
   cc?: EmailAddress;
   bcc?: EmailAddress;
   tags?: Tag[];
+  idempotencyKey?: string;
 }
 
 function getResend(): Resend {
@@ -130,7 +131,6 @@ export function getContactEmailRecipients() {
   };
 }
 
-
 // Backwards-compatible alias for older internal callers.
 export const getContactEmailConfig = getContactEmailRecipients;
 
@@ -158,6 +158,7 @@ function validatePayload(payload: EmailPayload): string | null {
   if (!payload || !hasRecipients(payload.to)) return 'Recipient email is required.';
   if (!payload.subject?.trim()) return 'Email subject is required.';
   if (!payload.html?.trim()) return 'Email HTML body is required.';
+  if (payload.idempotencyKey && payload.idempotencyKey.length > 256) return 'Email idempotency key is too long.';
   return null;
 }
 
@@ -186,7 +187,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
   }
 
   if (process.env.EMAIL_TEST_MODE === 'true') {
-    console.log('[email] TEST MODE — send simulated:', {
+    console.log('[email] TEST MODE - send simulated:', {
       to: maskRecipients(payload.to),
       subject: payload.subject,
       tags: payload.tags ?? [],
@@ -204,9 +205,12 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     ...(payload.bcc ? { bcc: payload.bcc } : {}),
     ...(payload.tags ? { tags: payload.tags } : {}),
   };
+  const sendOptions = payload.idempotencyKey
+    ? { idempotencyKey: payload.idempotencyKey }
+    : undefined;
 
   try {
-    const result = await getResend().emails.send(email);
+    const result = await getResend().emails.send(email, sendOptions);
 
     if (result.error) {
       const reason = result.error.message || 'Resend returned an email send error.';

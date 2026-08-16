@@ -4,6 +4,7 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
     .join('');
   void sendEmail({
     to: sanitiseInput(customer_email),
-    subject: `Kitchen order confirmed — Ref ${paymentReference} | NDCC Dinos`,
+    subject: `Kitchen order confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
       'Kitchen Order Confirmation',
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(customer_name)},</p>
@@ -156,6 +157,12 @@ export async function POST(request: Request) {
       <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
     ),
   });
+
+  const staffNotification = await sendStaffOrderNotificationForOrder(supabase, linkedOrder.id, 'created');
+  if (staffNotification.status === 'failed') {
+    console.error('Kitchen staff order notification failed:', staffNotification.reason);
+  }
+
   return NextResponse.json({
     success: true,
     order_id: linkedOrder.id,

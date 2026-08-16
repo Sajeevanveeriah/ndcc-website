@@ -1,0 +1,124 @@
+import 'server-only';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { emailHtml, sendEmail } from '@/lib/email';
+import {
+  buildStaffOrderNotificationContent,
+  type StaffOrderCategory,
+  type StaffOrderItem,
+  type StaffOrderNotificationStage,
+} from '@/lib/order-notification-content';
+
+const PAID_NOTIFICATION_SENT_AT = 'staff_paid_notification_sent_at';
+const PAID_NOTIFICATION_MESSAGE_ID = 'staff_paid_notification_message_id';
+
+export type StaffOrderNotificationResult =
+  | { status: 'sent'; id?: string }
+  | { status: 'simulated'; reason: string }
+  | { status: 'already_sent'; reason: string }
+  | { status: 'not_applicable'; reason: string }
+  | { status: 'failed'; reason: string };
+
+type PaymentMarker = {
+  id: string;
+  metadata: Record<string, unknown> | null;
+};
+
+function categoryFromOrder(value: unknown): StaffOrderCategory | null {
+  if (value === 'merch') return 'apparel';
+  if (value === 'kitchen') return 'kitchen';
+  return null;
+}
+
+function isSentResult(
+  result: StaffOrderNotificationResult,
+): result is Extract<StaffOrderNotificationResult, { status: 'sent' | 'simulated' }> {
+  return result.status === 'sent' || result.status === 'simulated';
+}
+
+export async function sendStaffOrderNotificationForOrder(
+  supabase: SupabaseClient,
+  orderId: string,
+  stage: StaffOrderNotificationStage,
+): Promise<StaffOrderNotificationResult> {
+  const { data: order, error } = await supabase
+    .from('orders')
+    .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,payment_reference,order_category')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (error) return { status: 'failed', reason: `Unable to load order for notification: ${error.message}` };
+  if (!order) return { status: 'failed', reason: 'Order not found for staff notification.' };
+
+  const category = categoryFromOrder(order.order_category);
+  if (!category) return { status: 'not_applicable', reason: 'Order category does not require a staff notification.' };
+  if (stage === 'paid' && order.payment_status !== 'paid') {
+    return { status: 'not_applicable', reason: 'Order is not fully paid.' };
+  }
+
+  const content = buildStaffOrderNotificationContent({
+    orderId: order.id,
+    paymentReference: order.payment_reference || order.id,
+    category,
+    stage,
+    paymentMade: stage === 'paid',
+    customer: {
+      name: order.customer_name || '',
+      email: order.customer_email || '',
+      phone: order.customer_phone || '',
+    },
+    items: Array.isArray(order.items) ? (order.items as StaffOrderItem[]) : [],
+    totalAmount: Number(order.total_amount || 0),
+  });
+
+  const result = await sendEmail({
+    to: content.recipients,
+    replyTo: order.customer_email || undefined,
+    subject: content.subject,
+    html: emailHtml(content.title, content.bodyHtml),
+    idempotencyKey: content.idempotencyKey,
+    tags: [
+      { name: 'category', value: 'staff-order' },
+      { name: 'order-type', value: category },
+      { name: 'payment-made', value: content.paymentMadeLabel.toLowerCase() },
+    ],
+  });
+
+  if (result.status === 'sent' || result.status === 'simulated') return result;
+  return { status: 'failed', reason: result.reason };
+}
+
+export async function sendPaidStaffOrderNotificationForPayment(
+  supabase: SupabaseClient,
+  payment: PaymentMarker,
+  orderId: string,
+): Promise<StaffOrderNotificationResult> {
+  const metadata = payment.metadata || {};
+  if (typeof metadata[PAID_NOTIFICATION_SENT_AT] === 'string') {
+    return { status: 'already_sent', reason: 'Paid staff notification was already recorded.' };
+  }
+
+  const result = await sendStaffOrderNotificationForOrder(supabase, orderId, 'paid');
+  if (!isSentResult(result)) return result;
+
+  const nextMetadata: Record<string, unknown> = {
+    ...metadata,
+    [PAID_NOTIFICATION_SENT_AT]: new Date().toISOString(),
+  };
+  if (result.status === 'sent' && result.id) nextMetadata[PAID_NOTIFICATION_MESSAGE_ID] = result.id;
+
+  const { data: marked, error } = await supabase
+    .from('order_payments')
+    .update({ metadata: nextMetadata })
+    .eq('id', payment.id)
+    .select('id')
+    .maybeSingle();
+
+  if (error || !marked) {
+    return {
+      status: 'failed',
+      reason: error?.message || 'Paid notification marker could not be recorded.',
+    };
+  }
+
+  return result;
+}

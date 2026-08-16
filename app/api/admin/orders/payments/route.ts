@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
+import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,5 +140,23 @@ export async function POST(request: Request) {
     .eq('id', orderId)
     .maybeSingle();
 
-  return NextResponse.json({ success: true, data, order: updatedOrder ?? null });
+  let staffNotificationStatus: string | null = null;
+  if (updatedOrder?.payment_status === 'paid') {
+    const notification = await sendPaidStaffOrderNotificationForPayment(
+      supabase,
+      { id: data.id, metadata: data.metadata || null },
+      orderId,
+    );
+    staffNotificationStatus = notification.status;
+    if (notification.status === 'failed') {
+      console.error(`Manual payment staff notification for order ${orderId} failed:`, notification.reason);
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    data,
+    order: updatedOrder ?? null,
+    staff_notification_status: staffNotificationStatus,
+  });
 }
