@@ -1,405 +1,733 @@
-# Newcomb and District Cricket Club (NDCC) Website
+# Newcomb and District Cricket Club Website
 
-Official website for the Newcomb and District Cricket Club — the Dinos. Competing in the Geelong Cricket Association since 1972.
+Official website and committee content-management system for Newcomb and District Cricket Club (NDCC), the Dinos.
 
 **Production:** [www.ndcc.com.au](https://www.ndcc.com.au)
 
-## Tech Stack
+This repository contains:
 
-- **Framework:** Next.js 14 (App Router) with TypeScript
-- **Styling:** Tailwind CSS (club branding: maroon and blue primary, gold for emphasis only)
-- **Database:** Supabase Postgres (managed via `supabase/migrations`)
-- **Email:** Resend API for app notifications; Supabase SMTP for auth emails
-- **Payments:** bank-transfer orders live today; Stripe-ready (Payment Links / Checkout) but dormant until explicitly enabled
-- **Fixtures:** PlayHQ Public API (fixtures come from PlayHQ only — never manually entered)
-- **Deployment:** Vercel (region `sin1`, daily keep-alive cron)
+- the public club website;
+- a permission-controlled committee CMS;
+- seasonal registration, appointments and club-season management;
+- PlayHQ-backed fixtures and fantasy cricket administration;
+- merchandise, ordering and payment workflows;
+- news, events, calendar, gallery, sponsors, publications, kitchen, membership and volunteer modules;
+- production integrations for Supabase, Vercel, Resend, Stripe and GitHub-backed media.
 
-## Getting Started
+## Current Operating Model
+
+| Area | Current implementation |
+| --- | --- |
+| Public application | Next.js App Router application deployed on Vercel |
+| Public content | Supabase-backed CMS content read at request time with no-store behaviour |
+| Committee CMS | Custom cookie-session authentication with server-enforced module permissions |
+| Club seasons | One canonical current season, plus draft, upcoming, completed and archived seasons |
+| Fixtures | Official PlayHQ Public API only, with no manually entered fixture dataset |
+| Fantasy cricket | Multi-season manager experience with PlayHQ-assisted imports and admin review |
+| Sponsors | One active A-Z sponsor list, plus CMS-controlled homepage marquee behaviour |
+| Merchandise | CMS catalogue, order windows, sizing guides, order handling and supplier workbook export |
+| Payments | Manual bank-transfer mode by default, with separately gated Stripe Payment Link and Checkout paths |
+| App email | Resend API through the server-only application email helper |
+| Authentication email | Supabase Auth SMTP, configured independently from app email |
+| Single CMS media | GitHub Contents API commit under `public/images`, followed by Vercel git auto-deployment |
+| Bulk gallery media | Direct browser upload to Supabase Storage through short-lived signed upload tokens |
+| Deployment | Vercel production deployment from the configured Git branch, with scheduled cron routes |
+
+Runtime environment variables and dashboard settings determine which optional integrations are active. Do not infer production readiness from code presence alone.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    V[Visitors] --> N[Next.js public routes]
+    C[Committee users] --> A[Protected admin routes]
+    A --> P[Typed permission registry]
+    P --> R[Admin APIs]
+
+    N --> S[(Supabase Postgres)]
+    R --> S
+
+    N --> H[PlayHQ Public API]
+    R --> H
+
+    R --> E[Resend API]
+    R --> T[Stripe]
+    R --> G[GitHub Contents API]
+    G --> D[Vercel git deployment]
+
+    B[Bulk gallery upload] --> ST[(Supabase Storage)]
+    N --> ST
+```
+
+### Source-of-truth boundaries
+
+- Supabase is the source of truth for mutable CMS and operational records.
+- `supabase/migrations` and `supabase/remote-migration-history.json` define the reconciled database migration history.
+- PlayHQ is the source of truth for fixtures and supported imported cricket statistics.
+- GitHub stores versioned application code and single-file CMS media committed under `public/images`.
+- Supabase Storage stores bulk gallery originals.
+- Vercel environment variables and scheduled functions define deployment-time behaviour.
+- Resend handles application transactional email.
+- Supabase Auth SMTP handles fantasy authentication email.
+- Stripe settles only the payment paths explicitly enabled by server configuration and CMS controls.
+
+## Technology Stack
+
+| Layer | Package or service |
+| --- | --- |
+| Framework | Next.js `14.2.35`, App Router |
+| UI runtime | React `18`, React DOM `18` |
+| Language | TypeScript `5` |
+| Styling | Tailwind CSS `3.4.1` |
+| Motion | Framer Motion `12.40.0` |
+| Icons | Lucide React |
+| Theme handling | `next-themes` |
+| Database and auth | Supabase Postgres, `@supabase/supabase-js` `2.99.1`, `@supabase/ssr` `0.9.0` |
+| Calendar | FullCalendar `6.1.21` |
+| App email | Resend `6.12.3` |
+| Payments | Stripe server SDK `22.4.0` |
+| Image processing | Sharp |
+| Hosting and cron | Vercel, region `sin1` |
+| Continuous integration | GitHub Actions on Node.js `22`, with PostgreSQL `16` for database tests |
+
+The package is marked private and is not intended for npm publication. The repository uses `npm` with a committed lockfile.
+
+## Local Development
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22, matching the GitHub Actions runtime
 - npm
+- access to the required Supabase project or a suitable development project
+- only the external credentials needed for the feature being tested
 
-### Installation
+### Install
 
 ```bash
-npm install
+npm ci
 ```
 
-### Environment Variables
+Use `npm ci`, not `npm install`, so local dependencies match `package-lock.json`.
 
-Copy `.env.example` to `.env.local` and fill in your values:
+### Configure
+
+Copy the annotated environment template:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Variables split by exposure (full annotated list in `.env.example`):
+On Windows PowerShell:
 
-- **Public (browser-safe, `NEXT_PUBLIC_*`)**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`.
-- **Server-only (never expose)**: `SUPABASE_SERVICE_ROLE_KEY`, `PLAYHQ_*`, `RESEND_*`, `CONTACT_*`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `EMAIL_TEST_MODE`, `NDCC_BANK_*`, `GITHUB_*` media upload vars, `AUTH_COOKIE_DOMAIN` (optional).
-- **Optional email vars**: `EMAIL_TEST_MODE` (simulate sends), `CONTACT_TO_EMAIL` / `CONTACT_CC_EMAILS` / `CONTACT_BCC_EMAILS`.
-- **Optional payment vars**: `PAYMENT_PROVIDER` (`manual` | `stripe_payment_link` | `stripe_checkout`, default `manual`), `PAYMENT_TEST_MODE` (default `true`), `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Hosted Checkout does not use a client publishable key.
+```powershell
+Copy-Item .env.example .env.local
+```
 
-### Database Setup
+Populate only the values required for the current environment. Never commit `.env.local`, service-role keys, API keys, webhook secrets, SMTP credentials, bank details or GitHub tokens.
 
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Apply SQL migrations from `supabase/migrations` in timestamp order.
-3. Treat migrations as the source of truth. `supabase/schema.sql` is a legacy snapshot and not authoritative.
-4. Copy your project URL, anon key, and service role key to `.env.local`
-
-### Development
+### Run
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3000`.
 
-### Admin Setup (Custom Committee Auth)
+The `predev` and `prebuild` hooks generate the current apparel assets before development or production builds.
 
-1. Apply `20260401_custom_committee_auth.sql` and later migrations (pgcrypto is required for password hashing; the repair migrations handle it).
-2. Bootstrap the first admin using `POST /api/admin/auth/bootstrap`.
-3. Log in at `/admin/login` (password field has a show/hide toggle).
-4. Manage committee users in `/admin/users` (admin-only). Roles available: `admin`, `president`, `secretary`, `committee`.
+## Environment Variables
 
-Sessions are cookie-based (hashed tokens in `committee_sessions`) with a 14-day absolute TTL **and** a sliding inactivity window: the admin UI warns at 9 minutes of inactivity and signs out at 10; the server independently expires sessions idle for more than 15 minutes (`last_seen_at`). A root `middleware.ts` redirects cookie-less visits to `/admin/*` straight to the login page.
+`.env.example` is the canonical annotated variable list. The groups below explain ownership and exposure.
 
-### CMS Modules and Content Freshness
+### Browser-safe variables
 
-CMS-backed modules (public route ← table): news (`news`), events (`events`), gallery (`gallery_images`), merchandise (`apparel_products` + `merch_order_windows`), sponsors (`sponsors`), committee (`committee_members`, rendered on `/about` and `/contact`), teams (`teams`), facilities (`facility_features`), history, season appointments, kitchen menus, volunteer positions, content blocks and page link cards (footer/nav/page copy) via `/admin/site-pages` and `/admin/content`.
+Only variables intentionally prefixed with `NEXT_PUBLIC_` may enter the browser bundle:
 
-Freshness model: mutable CMS content is read at request time with no store — public CMS pages export `dynamic = 'force-dynamic'` / `revalidate = 0` / `fetchCache = 'force-no-store'`, and the public data helpers (`lib/public-data.ts`, `lib/public-news.ts`, `lib/content-blocks.ts`, `lib/club-settings.ts`, `lib/structured-content.ts`, `lib/site-chrome.ts`) query Supabase uncached on every request. There is no ISR or `unstable_cache` layer underneath public CMS pages or APIs, so build-time output can never resurface as stale seed content. Public JSON APIs (`/api/public/*`, `/api/gallery`, `/api/content-blocks`, `/api/club-settings`, `/api/apparel/*`) are `force-dynamic` with `no-store` headers. Live CMS rows are the single source of truth: static fallback content renders only when Supabase env is missing (local/unconfigured) or when a live query fails — never during the production build, never on top of a successful (even empty) live result, and never merged into live rows. The admin `/api/admin/resources/*` `revalidateTag`/`revalidatePath` calls remain as belt-and-braces for the few remaining cached routes (e.g. fantasy pages). After changing the cache strategy, a production redeploy **without build cache** may be required so previously prerendered/ISR payloads are dropped. Note: Supabase preview branches can report `MIGRATIONS_FAILED` because of historical duplicate migration prefixes — that is a preview-branch artefact and must not be used as evidence that the production CMS is broken.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SITE_URL`
 
-### PlayHQ (Fixtures)
+### Server-only groups
 
-Fixtures come from the PlayHQ Public API only — the repo contains no manually-entered fixture data and must never gain any. Configuration is centralised in `lib/playhq/config.ts` and driven by server-only env vars:
+| Group | Main variables | Purpose |
+| --- | --- | --- |
+| Supabase | `SUPABASE_SERVICE_ROLE_KEY` | Server-side CMS and operational access |
+| Payments | `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Manual, Payment Link or Checkout selection and settlement |
+| PlayHQ | `PLAYHQ_API_BASE_URL`, `PLAYHQ_TENANT`, `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_DEFAULT_SEASON_ID`, `PLAYHQ_DEFAULT_GRADE_IDS`, `PLAYHQ_CACHE_REVALIDATE_SECONDS` | Fixtures and PlayHQ-backed season data |
+| Fantasy automation | `CRON_SECRET`, `PLAYHQ_FANTASY_SYNC_ENABLED`, `PLAYHQ_FANTASY_SYNC_BATCH_SIZE` | Guarded scheduled and on-demand fantasy sync |
+| App email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM`, `EMAIL_TEST_MODE` | Server-side application notifications |
+| Contact recipients | `CONTACT_TO_EMAIL`, `CONTACT_CC_EMAILS`, `CONTACT_BCC_EMAILS` | Notification routing |
+| Bank transfer | `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER` | Order and payment instructions |
+| CMS media | `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` | Single-file CMS upload commits |
+| Admin diagnostics | `ADMIN_AUTH_READINESS_ENABLED`, `ADMIN_DIAGNOSTIC_TOKEN`, `DIAGNOSTIC_MUTATION_ENABLED` | Temporary, explicitly enabled authentication diagnostics |
+| Cookie scope | `AUTH_COOKIE_DOMAIN` | Optional bare-domain cookie scope |
 
-- `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID` — the only required values
-- `PLAYHQ_API_BASE_URL` (default `https://api.playhq.com`; the legacy `https://api.caprod.playhq.com` host is honoured with automatic fallback between the two on auth/routing failures)
-- `PLAYHQ_TENANT` (defaults to the Cricket Australia tenant short-name `ca`, sent as the `x-phq-tenant` header; only set it if PlayHQ issues a different tenant)
-- `PLAYHQ_DEFAULT_SEASON_ID` (optional; when unset the current/most recent season is auto-selected)
-- `PLAYHQ_DEFAULT_GRADE_IDS` (optional)
-- `PLAYHQ_CACHE_REVALIDATE_SECONDS` (default 3600)
+Supabase Auth SMTP values are configured in the Supabase dashboard. They are documented in `.env.example` for operator reference but are not read by the app's Resend helper.
 
-Never prefix PlayHQ vars with `NEXT_PUBLIC`. When the API is unconfigured or returns no fixtures, `/fixtures` shows an explanatory card with an external PlayHQ CTA (from the `fixtures.status` content block, club settings `playhq_url`, or the `PLAYHQ_ORG_URL` constant) — no fake fixtures. Per-team PlayHQ links are admin-editable as `fixtures / team_links` page link cards. The club-wide PlayHQ org URL lives in `lib/constants.ts` (`PLAYHQ_ORG_URL`) and in CMS club settings.
+## Database and Migrations
 
-### Payments
+Supabase Postgres stores CMS content, committee users and sessions, orders, payments, club seasons, fantasy data, calendar records and other operational modules.
 
-Three modes, selected by `PAYMENT_PROVIDER` (server-only) plus per-product fields (`payment_mode`, `payment_link_url`, `stripe_price_id`, `checkout_enabled`):
+### Migration rules
 
-1. **`manual` (live today):** merchandise orders post to `/api/orders`, get an `NDCC-…` payment reference and bank-transfer details (from `NDCC_BANK_*` env), and are reconciled in `/admin/payments`. No card charging anywhere.
-2. **`stripe_payment_link` (one admin step):** create a Payment Link in the Stripe dashboard, paste it into a product's `payment_link_url` with `payment_mode = stripe_payment_link` in `/admin/apparel` — the product card shows a safe external "Pay online" button. Recommended first rollout path.
-3. **`stripe_checkout`:** orders are created through `/api/orders`, then `/api/payments/checkout-session` creates a Stripe-hosted Checkout Session for the server-calculated outstanding balance. The signed webhook at `/api/stripe/webhook` is the only path that settles the pending ledger row. The compatibility route `/api/checkout` cannot create orders or payments.
+- Treat `supabase/migrations` as the application migration source.
+- Reconcile it with `supabase/remote-migration-history.json`.
+- Run `npm run check:migrations` before release.
+- New migrations must use a unique full `YYYYMMDDHHMMSS` prefix.
+- Do not rename or replay historical migrations without following the reconciliation runbook.
+- `supabase/schema.sql` is a dated legacy snapshot, not the authoritative migration history.
+- A brand-new environment needs the documented migration-reconciliation process because some production tables predate the current migrations folder.
 
-**Safety:** checkout remains unavailable until `PAYMENT_PROVIDER=stripe_checkout`, a mode-matched Stripe server key, `STRIPE_WEBHOOK_SECRET`, and the CMS card switch are all configured. `PAYMENT_TEST_MODE=true` accepts only `sk_test_` or `rk_test_` keys. `PAYMENT_TEST_MODE=false` accepts only live equivalents.
+See [Migration History Reconciliation](docs/operations/20260716-Migration-History-Reconciliation-Rev00.md).
 
-#### Stripe sandbox rollout
+### Safe change sequence
 
-1. Apply migrations through `20260806080000_stripe_checkout_integrity.sql`. The migration fails without deleting or rewriting anything if duplicate provider references need manual review.
-2. In a Stripe sandbox, create a webhook endpoint for `https://www.ndcc.com.au/api/stripe/webhook` and subscribe only to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.
-3. Store the sandbox server key and webhook signing secret in Vercel as sensitive server-only environment variables. Set `PAYMENT_PROVIDER=stripe_checkout` and keep `PAYMENT_TEST_MODE=true`.
-4. Redeploy, then enable `Stripe Checkout enabled` in `/admin/orders`. Leave partial payments disabled unless the committee wants that option.
-5. Place a sandbox merchandise order, complete Checkout with a Stripe test payment method, and verify exactly one settled Stripe row appears in the order payment history.
-6. Before live rollout, create a separate live webhook endpoint, replace both sandbox secrets with live values, complete Stripe's go-live checklist, set `PAYMENT_TEST_MODE=false`, redeploy, and run one controlled low-value acceptance payment. Never copy keys into Git, chat, email or logs.
+1. Add the smallest forward-only migration.
+2. Update `supabase/remote-migration-history.json` only when the migration has genuinely been applied to the tracked remote environment.
+3. Run migration-history and replay checks.
+4. Validate application behaviour against the migrated schema.
+5. Keep rollback data-safe and explicit.
 
-Checkout uses Dashboard-managed dynamic payment methods. A stable idempotency key makes identical retries return the same Session, and the ledger uniquely constrains each Stripe Session so webhook retries or delayed-payment events cannot double-credit an order.
+## Committee Authentication and Access
 
-### Email Setup
+The CMS uses custom committee authentication, separate from Supabase Auth used by fantasy managers.
 
-The site has two separate email paths. Keep them configured separately:
+### Initial setup
 
-1. **App transactional email through the Resend API** — contact/enquiry, volunteer, event, membership, order, kitchen, and fantasy manager notification-style emails sent by app API routes through `lib/email.ts`.
-2. **Supabase Auth email through Supabase SMTP** — fantasy signup confirmation, resend confirmation, sign-in, and password reset emails controlled by Supabase Auth. These do not go through `lib/email.ts` and should not be implemented as a custom app route.
+1. Apply the custom committee-auth migrations and every later auth or permission migration.
+2. Bootstrap the first administrator through `POST /api/admin/auth/bootstrap`.
+3. Sign in at `/admin/login`.
+4. Manage users and access from `/admin/users`.
 
-#### Resend API app email variables
+### Roles
 
-Configure these as **server-only** variables locally and in Vercel:
+| Role | Access model |
+| --- | --- |
+| `admin` | Full CMS and user-management access |
+| `president` | Full CMS and user-management access |
+| `secretary` | Full CMS and user-management access |
+| `vice_president` | Full CMS and user-management access |
+| `treasurer` | Full CMS and user-management access |
+| `committee` | Explicit per-module permissions, with existing action restrictions retained |
+| `fantasy_manager` | Automatic full Fantasy-only access |
+| `fantasy_support` | Explicitly selected Fantasy-only permissions |
 
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL` (for example `NDCC Dinos <noreply@ndcc.com.au>`)
+The central registry in `lib/auth/permissions.ts` controls navigation, direct admin routes, resource APIs, dedicated APIs and shared media upload. A hidden menu item is not the security boundary. Server permission checks are.
 
-`RESEND_FROM` remains supported as a legacy fallback if `RESEND_FROM_EMAIL` is not set. Do not expose either Resend variable to client components. If `RESEND_API_KEY`, a sender address, or required email fields are missing, or if Resend returns an error, form submissions still complete after the database write. The app logs the email skip/failure and does not block the user-facing flow. Do not claim live email delivery is working until a real Resend send has been tested in the target environment.
+Changing a user's role or permissions revokes active committee sessions.
 
-#### Supabase Auth SMTP
+### Session behaviour
 
-Configure fantasy signup confirmation and password reset email in **Supabase Dashboard → Authentication → SMTP Settings**. Use Resend SMTP credentials there after Resend domain sending is verified. The typical Resend SMTP values are:
+- Cookie name: `ndcc_committee_session`
+- Absolute session life: 14 days
+- Admin warning: 9 minutes of inactivity
+- Client sign-out: 10 minutes of inactivity
+- Server idle expiry: 15 minutes, allowing a small grace for in-flight requests
+- Root middleware redirects cookie-less `/admin/*` requests to `/admin/login`
 
-- Host: `smtp.resend.com`
-- Port: `465`
-- Username: `resend`
-- Password: the Resend SMTP/API credential supplied for SMTP use
-- Sender name/address: the verified NDCC sender
+## CMS Navigation and Modules
 
-Do not add a custom app route for Supabase Auth confirmation or password reset emails.
+The admin navigation is grouped for non-technical committee users. Common modules are shown first. Specialist modules sit behind `More tools`, and the navigation can be searched.
 
-#### Namecheap DNS and Resend sending checklist
+| Group | Main modules |
+| --- | --- |
+| Home | Dashboard |
+| Season | Start New Season, Player Registration, Club Details, Teams, Appointments, Training and Calendar |
+| Publish | News, Publications, Events, Pages and Links, Page Sections, Gallery |
+| Club | History, Minutes |
+| Community | Volunteers, Memberships, Enquiries |
+| Commercial | Sponsors, Merchandise, Kitchen, Orders, Payments |
+| Fantasy | Fantasy Home, Seasons and PlayHQ, Players, Imports, Historical Review, PlayHQ Diagnostics |
+| Administration | Users, Email Diagnostics, Media Diagnostics, Password |
 
-DNS changes are manual in Namecheap. For BasicDNS, use **Advanced DNS → Mail Settings → Custom MX** for MX records. Do not automate DNS from this repo.
+Each user sees only the modules allowed by their role and effective permission set.
 
-- Resend domain verification checklist:
-  - Confirm Resend DKIM is verified.
-  - Add/confirm TXT host `resend._domainkey` for DKIM.
-  - Add MX host `send` for Resend return-path feedback SMTP.
-  - Add TXT host `send` for SPF.
-  - Add/confirm a DMARC TXT record at `_dmarc` (start with `v=DMARC1; p=none; rua=mailto:<monitoring inbox>` and tighten to `quarantine`/`reject` after monitoring).
-  - Keep Resend receiving disabled unless inbound email webhooks are intentionally implemented.
-  - Do not change the root `@` MX records unless the club intentionally changes mailbox provider.
-- Vercel environment variable checklist:
-  - Set `RESEND_API_KEY` as a server-only environment variable.
-  - Set `RESEND_FROM_EMAIL` to a sender on the verified domain.
-  - Keep Supabase service role and Resend secrets out of `NEXT_PUBLIC_*` variables.
-  - Redeploy after changing Vercel environment variables.
-- Supabase SMTP checklist:
-  - Configure Supabase Auth SMTP after Resend sending DNS is verified.
-  - Send Supabase Auth test confirmation/reset emails from the Supabase dashboard or a controlled signup/password-reset flow.
-- Final live email test checklist:
-  - Submit a non-destructive contact/enquiry-style app flow and confirm Resend API delivery.
-  - Test a Supabase Auth confirmation email.
-  - Test a Supabase Auth password reset email.
-  - Confirm failed or missing app email configuration does not block the form/database flow.
+### Content ownership
 
-Local DNS check commands from Windows PowerShell:
+Use the dedicated module when one exists:
 
-```powershell
-Resolve-DnsName -Type TXT resend._domainkey.ndcc.com.au
-Resolve-DnsName -Type TXT send.ndcc.com.au
-Resolve-DnsName -Type MX send.ndcc.com.au
-Resolve-DnsName -Type TXT _dmarc.ndcc.com.au
-```
+- News and announcements: `/admin/news`
+- Publications and downloadable documents: `/admin/publications`
+- Events and registrations: `/admin/events`
+- Calendar and training dates: `/admin/calendar`
+- Gallery albums and images: `/admin/gallery`
+- Sponsors: `/admin/sponsors`
+- Merchandise catalogue, options and windows: `/admin/apparel`
+- Orders and payment records: `/admin/orders` and `/admin/payments`
+- Club and contact details: `/admin/club-details`
+- Teams and grades: `/admin/teams`
+- Seasonal appointments: `/admin/season-appointments`
+- Player registration: `/admin/season/registration`
+- Reusable page sections: `/admin/content`
+- Page links, buttons and navigation cards: `/admin/site-pages`
 
-#### Email test mode
+Do not hardcode routine season copy, public links or editable club content in page components when the corresponding CMS control exists.
 
-Set `EMAIL_TEST_MODE=true` locally (or temporarily in a preview environment) to log/simulate every app email instead of sending it — form flows and `/admin/email-diagnostics` still exercise the full path. Leave it unset/false in production. Never run bulk sends while testing; real test sends should go only to a configured admin/test recipient, triggered deliberately.
+## Club-Season Workflow
 
-### GitHub-backed CMS Image Upload Setup
+Club seasons are managed independently from fantasy seasons.
 
-Set these as **server-only** environment variables (for local `.env.local` and Vercel Project Environment Variables):
+### Season states
 
-- `GITHUB_CONTENTS_TOKEN`
-- `GITHUB_REPO_OWNER`
-- `GITHUB_REPO_NAME`
-- `GITHUB_CONTENTS_BRANCH`
-- `GITHUB_MEDIA_BASE_PATH` (for example `public/images/cms`)
-- `GITHUB_COMMITTER_NAME`
-- `GITHUB_COMMITTER_EMAIL`
+- `draft`
+- `upcoming`
+- `active`
+- `completed`
+- `archived`
 
-Image uploads from admin forms commit files to GitHub via the Contents API under `public/images` (or a `public/images` subfolder), then return a browser URL that starts with `/images/` and removes the leading `public` segment (for example `/images/cms/YYYY/MM/file.webp`). If `GITHUB_MEDIA_BASE_PATH` is set to `images/cms`, the upload API interprets it as `public/images/cms`; paths outside `public/images` are rejected so uploaded files are web-accessible after deployment.
-Publication relies on Vercel's git auto-deploy: the commit the upload creates on `main` triggers a production deployment automatically. Do **not** configure a Vercel deploy hook for uploads — firing a hook as well creates a second deployment for the same commit, and Vercel cancels both, leaving the image unpublished (`VERCEL_DEPLOY_HOOK_URL` is no longer read by the upload route and can be deleted).
-Configure these environment variables in **Vercel Production** for the production project.
-When environment variables are added or changed in Vercel, trigger a new deployment for them to take effect.
+Only one season is canonical and current.
 
-**GitHub token permissions:** `GITHUB_CONTENTS_TOKEN` must be a fine-grained personal access token (or classic token) with **Contents: Read and write** permission on this repository only. If the token expires or loses access, uploads fail with a clear "GitHub authentication failed" error.
+### Starting a season
 
-**Expected upload sequence:**
+Use `/admin/season/new`.
 
-1. Admin picks a file in a CMS image field (JPEG/PNG/WebP/GIF, max 4 MB).
-2. The API commits the file to GitHub under `public/images/...` on the configured branch and returns the commit link.
-3. Vercel detects the new commit on `main` and automatically starts a production deployment.
-4. The image becomes publicly visible only after that deployment finishes (about a minute). The saved `/images/...` URL is correct immediately, but the file is not live until deploy completes.
+The wizard follows:
 
-**Diagnostics:** `/admin/media-diagnostics` shows which media env vars are present (without exposing values), validates the media base path, and can test GitHub token/repo/branch access without committing anything.
+1. Season details
+2. Review
+3. Activate
 
-**Troubleshooting a broken public image:**
+The core details are the season name, start date and end date, with optional PlayHQ season mapping and scheduled activation. Creation is idempotent, and activation runs through the database season-activation function.
 
-1. Open the image URL directly (e.g. `https://<site>/images/cms/YYYY/MM/file.png`). If it loads, the CMS record is fine — hard-refresh the page.
-2. Check the file exists in GitHub on the configured branch under `public/images/...`.
-3. Check a Vercel deployment was triggered after the upload (Vercel → Deployments).
-4. Check that deployment succeeded; if not, redeploy `main` manually.
-5. Only if the saved URL itself is wrong (typo, old path), re-save the CMS item with the correct URL.
+New season registration starts safely:
 
-### Gallery Albums and Bulk Photo Upload (Supabase Storage)
+- status closed;
+- public links hidden;
+- copied audience labels or terms retained where available;
+- previous registration URLs cleared;
+- copied options inactive.
 
-Bulk event photography (e.g. finals day) uses a **separate direct-to-Storage path** — the GitHub uploader above stays in use for single CMS images and PDFs.
+### Player registration
 
-- **Bucket:** `gallery-media` (public **read** only; JPEG/PNG/WebP; 20 MB per original; created by migration `20260720090000_gallery_albums_bulk_upload.sql`). No `storage.objects` write policies exist for anon or authenticated roles — uploads are authorised solely by short-lived signed upload tokens minted server-side after committee-session validation, and cleanup uses the server's service-role client.
-- **Workflow:** `/admin/gallery` → **Bulk Upload** tab → choose or create a draft album → drag-and-drop up to 100 photos → the browser requests signed upload slots from `/api/admin/gallery/uploads/prepare` (metadata only), uploads each file **directly to Supabase Storage** (concurrency 3, bounded retries), then `/api/admin/gallery/uploads/finalize` verifies each object exists inside the album's prefix and inserts `gallery_images` rows in one bounded batch. Image bytes never pass through a Vercel Function.
-- **Publication:** albums are always created as drafts. Publishing (Albums tab or the wizard's final step) requires ticking the consent acknowledgement ("the club has authority to publish these photographs…"), audited in `publish_confirmed_at`/`publish_confirmed_by`. A partially-failed batch never auto-publishes; failed files can be retried without re-uploading successful ones.
-- **Public pages:** `/gallery` shows published album cards plus legacy/ungrouped images; `/gallery/<slug>` renders the album grid with an accessible lightbox. Downloads (when allowed per album *and* per image) serve the **original** Storage object via its public URL with the `?download=<safe-filename>` parameter; legacy URL images keep plain anchor downloads. Display uses the original file with responsive `sizes` — no derivative pipeline is added, which trades some bandwidth for reliability (next/image optimises Storage URLs where configured).
-- **Deletion model:** deleting an album detaches its images (`album_id` set to NULL by FK) and never touches Storage. Permanent media deletion and orphaned-object cleanup are explicit, count-confirmed calls to `/api/admin/gallery/uploads/cleanup`; nothing deletes by prefix. Never delete the bucket while it holds unverified club media.
-- **Migration sequence:** apply `20260720090000_gallery_albums_bulk_upload.sql` (idempotent, replay-safe; the bucket block self-skips on plain Postgres) to a **preview branch first**, run the Supabase security/performance advisors there, exercise an end-to-end upload against the preview, then apply to production before deploying this code. Rollback: unpublish or delete new albums, then drop the `gallery_albums` table and the added `gallery_images` columns if required — Storage originals are preserved either way; the flat `/gallery` rendering returns automatically when no published albums exist.
-- **Tests:** `npm run test:gallery-albums` (DB replay + schema rules), `npm run test:gallery-bulk-upload` (validation/path logic), `npm run test:gallery-security` (structural security checks).
+Use `/admin/season/registration` to manage:
 
-### CMS Content Workflow
+- public page title and introductory text;
+- header navigation label;
+- status and visibility;
+- open and close times;
+- ordered audience options;
+- Terms and Conditions;
+- exact PlayHQ registration URLs.
 
-1. Sign in to `/admin`.
-2. Edit singleton page text in **Content Blocks**.
-3. For repeatable content, use dedicated admin screens (News, Gallery, Sponsors, Apparel, Kitchen, etc.).
-4. Use the **Upload image** button in image fields to store assets in GitHub under `/public/images/cms`.
-5. Save changes and verify the public page route.
+Open or waitlist states require at least one active valid option. Closed, archived or expired settings do not expose a clickable registration link. Registration changes are read live and do not normally require a deployment.
+
+### Seasonal appointments and signings
+
+The current season controls whether season appointments are publicly shown. Close the section through the active-season setting when signings are no longer relevant, rather than editing page code or carrying a stale year into the next season.
+
+Public seasonal copy should derive from the active season, not a hardcoded year.
+
+## Sponsors
+
+Current sponsors are presented as one active alphabetical list.
+
+- Public ordering uses locale-aware A-Z sorting.
+- Routine sponsor management does not require public tier grouping.
+- Sponsorship packages and tier selection remain part of the prospective-sponsor enquiry flow.
+- Missing logos use an identifiable branded text fallback, not an invented logo.
+- Sponsor links open only when a website is present.
+
+### Homepage marquee
+
+The homepage marquee:
+
+- uses CMS-controlled `slow` or `very_slow` speed;
+- allocates 5 or 7 seconds per sponsor, with a 60-second minimum cycle;
+- provides an explicit pause or play button;
+- pauses when appropriate for visibility;
+- becomes static for reduced-motion preferences;
+- hides the irrelevant motion control when reduced motion is active.
+
+## Merchandise, Orders and Payments
+
+### Merchandise catalogue
+
+The public merchandise area is managed through `/admin/apparel` and supports:
+
+- products and selectable options;
+- merchandise order windows;
+- controlled public visibility;
+- product imagery;
+- apparel sizing guidance;
+- payment configuration fields.
+
+The current sizing-guide interface contains 16 supplied charts grouped by garment type. It includes previous, next and reset controls, keyboard shortcuts, full-size image links and an accessible chart list.
+
+### Supplier workbook export
+
+Authorised merchandise users export through the admin merchandise flow.
+
+The export:
+
+- claims only merchandise orders that have not previously been exported;
+- uses one atomic batch update shared across authorised users;
+- prevents a later export from repeating an earlier batch;
+- restores the batch markers if workbook generation fails;
+- returns an `.xlsx` workbook named with the Australia/Melbourne date.
+
+The workbook contains four sheets:
+
+1. `Master`
+2. `Custom bags`
+3. `2627 - Order 1`
+4. `2627 - Order 1 Summary`
+
+The two order sheets preserve the supplier's required naming convention. They are export-format labels, not the website's active-season source of truth.
+
+### Payment modes
+
+`PAYMENT_PROVIDER` selects the server path:
+
+| Mode | Behaviour |
+| --- | --- |
+| `manual` | Creates the order, payment reference and bank-transfer instructions |
+| `stripe_payment_link` | Shows a product-specific external Stripe Payment Link when configured |
+| `stripe_checkout` | Creates a Stripe-hosted Checkout Session for an existing server-priced order |
+
+Manual is the default in `.env.example`. The actual production mode must be verified from the target environment.
+
+Stripe Checkout remains unavailable unless all required gates agree:
+
+- `PAYMENT_PROVIDER=stripe_checkout`;
+- key mode matches `PAYMENT_TEST_MODE`;
+- `STRIPE_WEBHOOK_SECRET` is present;
+- the CMS Checkout switch is enabled.
+
+The signed Stripe webhook is the settlement authority. Do not mark an order paid from a browser redirect alone.
+
+## Fixtures and PlayHQ
+
+Fixtures come from the official PlayHQ Public API only.
+
+Required server values:
+
+- `PLAYHQ_API_KEY`
+- `PLAYHQ_ORGANISATION_ID`
+
+The API base URL defaults to `https://api.playhq.com`. The tenant defaults to Cricket Australia's `ca` short name. Optional season, grade and cache settings are documented in `.env.example`.
+
+Rules:
+
+- never prefix PlayHQ secrets with `NEXT_PUBLIC_`;
+- never add a manually entered fixture dataset;
+- never scrape PlayHQ;
+- show a clear PlayHQ call-to-action when configuration or data is unavailable;
+- use CMS-managed team links and club settings for public PlayHQ destinations.
+
+See [PlayHQ Setup](docs/PlayHQ_Setup_Rev00.md).
+
+## Fantasy Cricket
+
+Fantasy cricket is multi-season and separate from the club-season presentation model.
+
+Public features include:
+
+- registration and authentication;
+- manager account;
+- draft and submitted squads;
+- transfers and chips;
+- private leagues;
+- player and manager leaderboards;
+- season selection;
+- squad carry-over into a new season as a target-season draft.
+
+Admin features include:
+
+- fantasy seasons and PlayHQ grade mapping;
+- players, roles, prices and availability;
+- rounds, locks and scoring;
+- import batches and publication;
+- reconciliation and historical review;
+- manager review;
+- automatic and on-demand PlayHQ sync.
+
+PlayHQ imports are resumable and idempotent. Unsupported, ambiguous or name-only matches are held for review rather than guessed. Imported statistics affect public scoring only after the intended validation and publication path.
+
+The daily cron calls `/api/cron/playhq-fantasy-sync` at `16:30 UTC`. `CRON_SECRET` guards the route. Admins can run the same orchestrator on demand.
+
+See:
+
+- [Fantasy Seasons and PlayHQ Runbook](docs/operations/20260710-NDCC-Fantasy-Seasons-PlayHQ-Run-Rev00.md)
+- [PlayHQ Fantasy Automation](docs/operations/playhq-fantasy-automation.md)
+
+## Calendar
+
+The club calendar is separate from ticketed events.
+
+Public capabilities include:
+
+- month, week and list views;
+- type filters and search;
+- event details;
+- ICS download;
+- optional home and contact previews.
+
+Admin capabilities include:
+
+- list and month views;
+- create, edit, duplicate and status changes;
+- batch actions;
+- Melbourne-local date and time entry;
+- per-surface visibility.
+
+Calendar records are stored in UTC and displayed in Australia/Melbourne club time.
+
+See [Calendar CMS Runbook](docs/operations/20260708-NDCC-Calendar-CMS-Run-Rev00.md).
+
+## Email
+
+The project has two independent email systems.
+
+### App transactional email
+
+`lib/email.ts` uses the Resend API for application notifications such as contact, volunteer, event, membership, order, kitchen and fantasy-manager messages.
+
+- configuration is server-only;
+- `EMAIL_TEST_MODE=true` simulates app sends;
+- missing or failed email configuration does not undo a completed database write;
+- delivery must be verified in the target Resend environment before it is described as live.
+
+### Supabase Auth email
+
+Fantasy confirmation, sign-in and password-reset email is controlled by Supabase Auth SMTP.
+
+- configure it in the Supabase dashboard;
+- do not duplicate it with a custom app route;
+- verify Site URL and redirect URLs in the target project;
+- test confirmation and password-reset flows independently from app email.
+
+See [Email Setup](docs/email-setup.md).
+
+## Media
+
+### Single CMS media file
+
+Admin image fields use the GitHub Contents API.
+
+1. The server validates the configured repository, branch and media path.
+2. The file is committed under `public/images` or an allowed subdirectory.
+3. The CMS stores a browser path beginning with `/images/`.
+4. The Git commit triggers the configured Vercel git deployment.
+5. The image becomes public after that deployment succeeds.
+
+Do not configure a Vercel deploy hook for this path. The Git commit already triggers deployment, and a second hook can create duplicate deployment attempts.
+
+Use `/admin/media-diagnostics` to inspect configuration presence and test repository access without committing a file.
+
+### Bulk gallery upload
+
+Bulk gallery uploads use Supabase Storage rather than GitHub.
+
+- originals upload directly from the browser through short-lived signed tokens;
+- the Vercel function handles metadata, not image bytes;
+- albums start as drafts;
+- publishing requires a consent acknowledgement;
+- partial failures never auto-publish;
+- deletion and orphan cleanup are explicit and count-confirmed;
+- deleting an album does not silently delete its stored originals.
+
+## Public Data Freshness
+
+Mutable CMS pages and public CMS APIs are request-time and no-store.
+
+- successful live queries are authoritative, including a successful empty result;
+- fallback content is used only when the environment is unconfigured or a live query fails;
+- fallback rows are not merged over successful live results;
+- CMS edits normally appear without a deployment;
+- GitHub-backed media is the exception because the file must first reach a successful Vercel deployment;
+- PlayHQ caching remains separately configurable.
+
+Do not reintroduce build-time seed content, ISR or shared cache layers for mutable CMS routes without a deliberate data-freshness review.
+
+## Security Model
+
+Key controls include:
+
+- server-only secrets;
+- custom committee session authentication;
+- module permissions enforced at route and API boundaries;
+- role and permission validation;
+- session revocation after access changes;
+- Supabase RLS where applicable;
+- signed bulk-upload tokens;
+- signed Stripe webhooks;
+- idempotent payment and import paths;
+- no-store admin and mutable public responses;
+- GitHub secret scanning;
+- blocking critical dependency audit in CI;
+- security headers in `next.config.mjs`.
+
+The Content Security Policy is currently report-only. Do not switch it to enforcement until Stripe, Supabase, Google embeds, Next.js runtime behaviour and current inline requirements have been verified in the real application.
 
 ## Project Structure
 
-```
+```text
 app/
-  ├── page.tsx              # Home (hero, quick links, news, events, sponsors, gallery, join CTA)
-  ├── about/                # Club history & committee
-  ├── teams/                # Senior Men, Women, Juniors
-  ├── facilities/           # Grinter Reserve & training facility
-  ├── fixtures/             # PlayHQ fixtures & ladders
-  ├── fantasy/              # Fantasy cricket (register/login/squad/transfers/leagues/leaderboards/rules)
-  ├── events/               # Events listing & registration
-  ├── news/                 # News & announcements
-  ├── merchandise/          # Club apparel & orders
-  ├── kitchen/              # Kitchen menu & pre-orders
-  ├── join/                 # Membership / join the club
-  ├── sponsors/             # Sponsor tiers & enquiry form
-  ├── gallery/              # Photo gallery
-  ├── volunteer/            # Volunteer expressions of interest
-  ├── contact/              # Contact form, CMS committee list, map
-  ├── committee/            # Committee-only meeting minutes
-  ├── admin/                # Protected admin dashboard (custom committee auth)
-  └── api/                  # Public content APIs, form submissions, admin resource API
+  public routes                 Public club, fixtures, fantasy and content pages
+  admin/                        Protected committee CMS
+  api/                          Public, admin, integration and cron APIs
 components/
-  ├── ui/                   # Reusable UI primitives (Input incl. PasswordInput, Card, Button…)
-  ├── common/               # SafeImage, ScrollReveal, LogoChip, theme toggle…
-  ├── home/                 # Home page sections
-  ├── fantasy/              # Fantasy UI components
-  ├── layout/               # Navbar & Footer
-  └── admin/                # Admin components (InactivityGuard, batch actions…)
+  admin/                        CMS components and controls
+  common/                       Shared images, motion and utility components
+  fantasy/                      Fantasy UI
+  home/                         Homepage sections
+  layout/                       Navbar and footer
+  ui/                           Reusable UI primitives
 lib/
-  ├── supabase.ts / supabase-server.ts   # Supabase clients
-  ├── auth/                 # Committee session auth (config, session, guard)
-  ├── playhq/               # PlayHQ config, client, normalisers
-  ├── payments/             # Payment config & reconciliation matching
-  ├── public-data.ts / public-news.ts / structured-content.ts / content-blocks.ts  # uncached request-time public reads
-  ├── fallback-content.ts   # fallbacks for unconfigured/error states only (never replace live data)
-  ├── email.ts              # Resend app email (server-only, non-blocking, test mode)
-  └── constants.ts / types.ts / utils.ts
-middleware.ts               # Redirects cookie-less /admin visits to /admin/login
+  auth/                         Committee auth, guards and permission registry
+  orders/                       Merchandise workbook and order helpers
+  payments/                     Payment configuration and reconciliation
+  playhq/                       PlayHQ config, client and normalisation
+  server/                       Server-only integration helpers
+  public-data.ts                Public CMS reads
+  fallback-content.ts           Degraded-state fallback content
+  email.ts                      Resend app email helper
+public/
+  images/                       Versioned public and CMS-uploaded assets
+scripts/
+  admin/                        User provisioning and administration scripts
+  production/                   Explicit production scripts
+  restore/                      Recovery and diagnostics scripts
+  test-*.mjs                    Deterministic focused tests
+  smoke-*.mjs                   Route and content smoke tests
 supabase/
-  ├── migrations/           # Source of truth — apply in timestamp order
-  └── schema.sql            # Legacy snapshot (not authoritative)
-scripts/                    # Smoke tests & operational scripts (see package.json)
+  migrations/                   Forward database migrations
+  remote-migration-history.json Reconciled remote migration manifest
+  schema.sql                    Legacy snapshot
+docs/
+  operations/                   Operator runbooks and incident procedures
+middleware.ts                   Admin login redirect boundary
+next.config.mjs                 Images and security headers
+vercel.json                     Region and cron configuration
 ```
 
-## Fantasy League
+## Common Commands
 
-- **Public routes:** `/fantasy` (hub), `/fantasy/register`, `/fantasy/login`, `/fantasy/account`, `/fantasy/squad`, `/fantasy/team`, `/fantasy/transfers`, `/fantasy/leagues`, `/fantasy/players`, `/fantasy/leaderboard`, `/fantasy/manager-leaderboard`, `/fantasy/rules`.
-- **Flow:** Supabase Auth signup → email confirmation (requires Supabase SMTP configured) → fantasy manager profile auto-created/upserted on first authenticated visit (no duplicates) → squad building within budget/role limits → transfers and chips → leaderboards.
-- **Squads:** managers can **save a draft** (incomplete squad allowed; players/budget/role caps still validated) or **submit** (full validation: 11 starters + 4 bench, exact role counts, captain/vice-captain, bench order). Both are blocked once the round deadline passes.
-- **Leagues:** create a private league, join by code, and **leave a league** (confirm-first) from `/fantasy/leagues`.
-- **Player list:** `/fantasy/players` has search, role/team filters, and sorting by name, price, total points, and points-per-match (points appear once stat batches are published).
-- **Admin controls** (`/admin/fantasy/*`): registration open/closed, team selection open/closed, season label, budget/role limits, rounds with lock deadlines (enforced server-side), scoring rules, player imports, round score calculation, and a read-only **Manager Review** page (`/admin/fantasy/managers`) showing each manager's latest squad status, budget, and captaincy. Rules text is editable via the `fantasy.rules` content block in `/admin/content`.
-- **Multi-season:** Fantasy is season-scoped end to end (`fantasy_seasons` + `fantasy_season_players` + `season_id` on settings, rounds, prices, stats, imports, squads, transfers, chips, leagues, and manager scores). A shared season dropdown appears on every public fantasy page and the selection travels in the `?season=` query param (shareable links; default is the current season). Admins manage seasons in `/admin/fantasy/seasons`: create seasons (manually or from live PlayHQ discovery), set the single current season, control visibility/registration/team-selection/historical team-building flags, and map the PlayHQ grades each season imports from (`fantasy_season_grade_sources`). Legacy pre-season data lives in a non-public **Legacy / Unverified** season and is never relabelled as a real season.
-- **PlayHQ import (official API only):** `/admin/fantasy/seasons` runs a resumable, idempotent sync (`fantasy_sync_jobs`): enabled grades → completed NDCC fixtures → per-game summaries → per-player stats (runs, wickets, maidens, catches, runouts, stumpings, duck, not-out, player of match — nothing inferred). Players match primarily by PlayHQ player id; name-only matches and ambiguous rounds are parked as review items, never guessed. New players arrive `UNASSIGNED` and unselectable until an admin assigns a role. Stats land in a draft import batch with full provenance (`playhq_game_id`, round metadata, `source_hash`, fetch time) and only affect public scores after admin publish; re-running a sync creates zero duplicates, and changed published summaries surface as reconciliation review items. A daily cron (`/api/cron/playhq-fantasy-sync`, `CRON_SECRET`-guarded) resumes one bounded batch (default `PLAYHQ_FANTASY_SYNC_BATCH_SIZE=10` games); sync is enabled by default and only pauses when `PLAYHQ_FANTASY_SYNC_ENABLED=false` is set explicitly. Admins can also drive the same orchestrator on demand from `/admin/fantasy/seasons` ("Run automatic sync now") without waiting for the cron.
-- **Season rollover:** managers can **carry a squad to a new season** from `/fantasy/squad` — preview shows carried/unavailable players, role changes, price changes and remaining budget; applying writes only a target-season *draft* (audit-linked via `fantasy_squads.carried_from_squad_id`, idempotent, source squad untouched) which the manager reviews and submits.
-- **Import provenance:** CSV import batches record an optional **source URL** (e.g. the public PlayHQ scorecard the stats were read from) and a **fetched-at** timestamp (`fantasy_import_batches.source_url` / `fetched_at`), shown on the batch review page. Stats only affect public scores after an admin publishes the batch. The validated CSV importer remains the documented fallback when the official API lacks a field. There is no PlayHQ scraping.
-- **Roles:** a restricted `fantasy_manager` committee role can manage Fantasy CMS modules only (seasons, players, prices, rounds, imports, scoring, sync); it gets no other admin modules.
-- **Tests:** `npm run test:fantasy-logic` (deterministic unit tests for scoring, CSV normalisation, duplicate detection, squad/draft validation, deadline locks, leaderboard aggregation), `npm run test:fantasy-seasons` (season selection, PlayHQ summary normalisation, exact round mapping, source hashing, carryover planning, cron auth, migration structure), `npm run test:footer-link`, plus `npm run smoke:fantasy` and `npm run test:fantasy`; full live acceptance steps are in the operator checklist below. Operations runbook: `docs/operations/20260710-NDCC-Fantasy-Seasons-PlayHQ-Run-Rev00.md`.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start local development |
+| `npm run lint` | Run Next.js ESLint checks |
+| `npx tsc --noEmit` | Run a direct TypeScript check |
+| `npm run build` | Build the production application |
+| `npm run smoke` | Smoke-test core routes |
+| `npm run smoke:content` | Smoke-test CMS-driven content routes |
+| `npm run smoke:fantasy` | Smoke-test fantasy routes |
+| `npm run check:assets` | Check required public assets |
+| `npm run check:migrations` | Validate migration history |
+| `npm run audit:public` | Audit the public site contract |
+| `npm run test:admin-auth` | Test committee authentication |
+| `npm run test:admin-permissions` | Test module permission enforcement |
+| `npm run test:cms-navigation` | Test permission-aware CMS navigation |
+| `npm run test:player-registration` | Test seasonal registration behaviour |
+| `npm run test:sponsor-presentation` | Test A-Z sponsor and marquee presentation |
+| `npm run test:merch-export` | Test the four-sheet supplier workbook export |
+| `npm run test:apparel-images` | Test apparel sizing assets |
+| `npm run test:stripe` | Test Stripe integration contracts |
+| `npm run test:calendar` | Test calendar validation and time handling |
+| `npm run test:fantasy-orchestrator` | Test PlayHQ fantasy automation |
+| `npm run test:fantasy-reconciliation` | Test fantasy import reconciliation |
+| `npm run test:migration-replay` | Replay database migrations against PostgreSQL |
 
-## Club Calendar
+Run the focused tests for the changed behaviour, then run lint and the production build. Database tests require PostgreSQL.
 
-A CMS-managed club calendar backed by the `calendar_events` Supabase table (separate from the ticketed **Events** CMS, which is unchanged — a calendar entry can link to an event registration page via its CTA URL, e.g. `/events/<id>`).
+## Continuous Integration
 
-- **Public routes:** `/calendar` (full FullCalendar month/week/list views, type filters, search, legend, event detail modal, ICS download), a "What's On at the Club" preview on the home page (next 4 entries flagged *Show on home*), and an "Upcoming at the Club" card on `/contact` (next 3 entries flagged *Show on contact*). Sections hide entirely when nothing is published — no placeholder content.
-- **Public APIs:** `GET /api/public/calendar` (params: `from`, `to`, `limit`, `type` (comma list), `featured`, `home`, `contact`; returns FullCalendar-shaped events with NDCC `extendedProps`), `GET /api/public/calendar/upcoming`, `GET /api/public/calendar/ics` (RFC 5545 feed of published public entries; stable `<id>@ndcc.com.au` UIDs). All responses are `no-store`.
-- **Admin:** `/admin/calendar` (committee login required) — list view with status/type/visibility filters and search, month view with click-a-day quick add, create/edit modal (all fields, Australia/Melbourne datetime inputs), duplicate, publish/unpublish, archive-instead-of-delete option, and batch publish/unpublish/archive/restore/delete. CRUD goes through the existing generic resource API (`/api/admin/resources/calendarEvents`) with server-side validation (allowlisted status/type/visibility, end-after-start, URL/price/capacity checks).
-- **Data model:** `supabase/migrations/20260708090000_calendar_events.sql` — additive only. Statuses: `draft/published/cancelled/postponed/archived`; visibility: `public/members/committee/draft`; per-surface flags `show_on_home/show_on_contact/show_on_calendar`; `recurrence_rule`/`recurrence_until` columns exist but recurring-event UI is deliberately not enabled yet. RLS is enabled with an anon policy limited to published+public+calendar-visible rows (the app itself uses the service-role key server-side, same as every other resource).
-- **Freshness:** all calendar pages/APIs are `force-dynamic` + `no-store`; the public query serves live data only — on failure it returns an explicit unavailable state, never stale fallback events. Admin writes also fire belt-and-braces revalidation of `/`, `/calendar`, `/contact`.
-- **Timezone:** timestamps are stored UTC; all display is Australia/Melbourne (admin inputs are Melbourne wall-clock; the public calendar renders floating Melbourne times so every visitor sees club time).
-- **Tests:** `npm run test:calendar` (validation, feed mapping, AEST/AEDT conversion); `/calendar` is covered by `npm run smoke:content`.
-- **Post-deploy check:** publish a test entry in `/admin/calendar`, confirm it appears on `/calendar` (and home/contact when flagged), then unpublish and confirm it disappears; delete the test entry.
-- **Future options (not implemented):** Google Calendar sync, iCal subscription feed URL promotion, PlayHQ fixture overlay, reminder emails, recurring-event UI.
+`.github/workflows/pr-validation.yml` runs on every pull request and every push to `main`.
 
-## Sponsor Logos
+### `validate`
 
-Sponsor cards render whatever `sponsors.logo_url` points at, with a branded name-text fallback card (never a fake logo) when the file is missing or fails to load. All current logo URLs are repo-local paths under `public/`, so **a logo can be replaced with no database change by committing a new file at the exact same path/filename**. The staging folder for final recreated logos is `public/images/sponsors/recreated/` — see the README inside it for the current live paths (including the two known-missing files for MBR Cricket and Leopold Sportsmans Club) and the naming convention for new assets. Logos are letterboxed with `object-contain` inside a fixed plate, so any aspect ratio is safe.
+Uses Node.js 22 and runs:
 
-## Verification Checklist
+- permission, auth, CMS navigation and schema tests;
+- lint;
+- migration and asset checks;
+- PlayHQ normalisation;
+- fantasy orchestration, reconciliation, season and smoke tests;
+- content smoke tests;
+- apparel pricing;
+- payment and Stripe tests;
+- player registration;
+- merchandise export;
+- production build.
 
-Run before claiming any change is release-ready:
+### `database-tests`
 
-1. `npm run lint`
-2. `npx tsc --noEmit`
-3. `npm run build`
-4. Public route smoke test: `npm run smoke` (or manually `/`, `/news`, `/events`, `/gallery`, `/merchandise`, `/contact`, `/fixtures`, `/fantasy`, `/admin/login`)
-5. Data checks: public news/events/gallery/committee/sponsors match live published/active Supabase rows exactly (no seed content when Supabase is up); merchandise lists all active products.
-6. Admin CRUD smoke: login (incl. show-password), create/edit/unpublish/delete a draft news item, edit a committee member and confirm `/contact` updates, batch publish/unpublish on safe records, product edit.
-7. Email: with `EMAIL_TEST_MODE=true`, submit contact/volunteer forms and confirm simulated sends in logs and `/admin/email-diagnostics`.
-8. PlayHQ: `/fixtures` renders live data or the PlayHQ CTA card; `npm run test:playhq-config`.
-9. Fantasy logic: `npm run test:fantasy-logic` passes.
-10. Payments: `npm run test:stripe` passes; manual order flow issues a payment reference; sandbox Checkout creates one pending ledger row and a signed webhook settles it exactly once.
-11. Admin inactivity: idle 9 minutes → warning; extend works; 10 minutes → signed out.
+Uses PostgreSQL 16 and runs:
 
-## Known Limitations
+- apparel catalogue database tests;
+- payments ledger tests;
+- full migration replay.
 
-- **Stripe checkout is disabled until operator setup is complete.** The code path is present, but the mode-matched key, webhook secret, provider switch and CMS switch must all be configured before it appears publicly.
-- **Supabase Auth emails depend on Supabase SMTP** being configured in the dashboard; until then fantasy signup confirmations do not send.
-- **Migration bookkeeping drift:** some early tables exist in production but their base `CREATE TABLE` statements predate the migrations folder; a brand-new environment needs `supabase/schema.sql` as a starting reference plus the migrations. Production is unaffected.
-- **Supabase preview branching fails on historical migration filenames.** The Supabase CLI treats the filename prefix before the first underscore as the migration version, and several historical files share a date-only version (two `20260401_*`, seven `20260402_*`, …), so the PR "Supabase Preview" check errors with a duplicate `schema_migrations` key. Production schema is managed with idempotent migrations applied directly. Fix path: a dedicated PR renaming historical migrations to unique full timestamps and reconciling `supabase_migrations.schema_migrations`, or disable branching for this repo. New migrations use full `YYYYMMDDHHMMSS` prefixes.
-- **CMS image uploads deploy via git commits** to `main`, so an uploaded image becomes visible only after the auto-deployment finishes (~1 minute).
-- **PlayHQ-to-fantasy import is wired** through `/admin/fantasy/seasons` (resumable `fantasy_sync_jobs`, draft batches, admin publish). The legacy `sync`/`import-public-page` placeholder endpoints remain guarded; validated CSV import stays as the fallback path.
-- **Manager leaderboard has no per-round filter** (the player leaderboard does).
-- **Supabase dashboard settings** (leaked-password protection, Auth SMTP, redirect URLs) cannot be managed from this repo and must be maintained in the dashboard.
+### `security-scans`
 
-## Club Details
+Runs:
 
-- **Ground:** Grinter Reserve, 141 Coppards Road, Moolap VIC 3224
-- **Association:** Geelong Cricket Association (GCA)
-- **Teams:** Senior Men (Grade 4), Senior Women (E Grade East), Junior Boys
-- **Training:** Peter 'Skinny' Harrison Training Facility
-- **Accreditation:** Good Sports Level 3
-- **Partner:** Newcomb Power Football Club
+- Gitleaks secret scanning;
+- blocking `npm audit --audit-level=critical`;
+- informational high-severity dependency audit.
+
+A CI pass does not replace live Vercel, Supabase, Resend, Stripe, PlayHQ or browser acceptance where a change affects those systems.
+
+## Deployment and Scheduled Work
+
+Vercel is configured for region `sin1`.
+
+Scheduled routes:
+
+| Route | UTC schedule | Purpose |
+| --- | --- | --- |
+| `/api/cron/keep-alive` | `0 5 * * *` | Daily keep-alive |
+| `/api/cron/playhq-fantasy-sync` | `30 16 * * *` | Daily bounded fantasy sync |
+
+Operational rules:
+
+- environment-variable changes require a new deployment;
+- CMS content changes usually do not;
+- GitHub-backed media requires the automatic deployment triggered by its commit;
+- do not add a second deploy hook to the media path;
+- validate the actual deployment and public route before claiming a production change is complete;
+- dashboard settings in Vercel, Supabase, Resend, Stripe, GitHub and the DNS provider are not controlled by this repository.
+
+## Operator Runbooks
+
+- [Admin Auth Diagnostics](docs/Admin_Auth_Diagnostics_Rev00.md)
+- [Email Setup](docs/email-setup.md)
+- [PlayHQ Setup](docs/PlayHQ_Setup_Rev00.md)
+- [Calendar CMS](docs/operations/20260708-NDCC-Calendar-CMS-Run-Rev00.md)
+- [Fantasy Seasons and PlayHQ](docs/operations/20260710-NDCC-Fantasy-Seasons-PlayHQ-Run-Rev00.md)
+- [Migration History Reconciliation](docs/operations/20260716-Migration-History-Reconciliation-Rev00.md)
+- [Supabase I/O Incident Runbook](docs/operations/SUPABASE_IO_INCIDENT_RUNBOOK.md)
+- [CMS Recovery](docs/operations/june16-cms-recovery.md)
+- [PlayHQ Fantasy Automation](docs/operations/playhq-fantasy-automation.md)
+
+## Change Rules
+
+Before changing the repository:
+
+1. Read `AGENTS.md`.
+2. Inspect the current branch and worktree.
+3. Preserve public routes, admin routes, API routes, CMS behaviour, Supabase behaviour, media upload behaviour and payment behaviour unless the task explicitly changes them.
+4. Do not invent public names, dates, prices, sponsor benefits, PlayHQ links, committee details, contact details, URLs or payment behaviour.
+5. Keep important event information as accessible HTML, not only inside images.
+6. Use meaningful alt text and optimise large public images.
+7. Add the smallest focused test for changed observable behaviour.
+8. Run the relevant checks, lint and build.
+9. Prefer a small reviewable pull request.
+10. Verify the live system separately when the change affects an external service.
+
+## Known Operational Constraints
+
+- Optional integrations are code paths, not proof of current production configuration.
+- Supabase Auth email depends on target-project SMTP configuration.
+- Stripe Checkout depends on matching server keys, webhook configuration, provider selection and CMS enablement.
+- Historical migration bookkeeping requires the remote-history manifest and reconciliation runbook.
+- GitHub-backed CMS media is not public until its deployment succeeds.
+- Bulk gallery originals are preserved unless explicitly cleaned up.
+- PlayHQ imports hold ambiguous records for review instead of guessing.
+- Public CMS freshness depends on retaining request-time no-store behaviour.
+- The Content Security Policy is report-only pending real-interface validation.
+- Dashboard settings and secrets must be maintained outside the repository.
 
 ## Licence
 
 All rights reserved. Newcomb and District Cricket Club.
-
-## Final Production Operator Checklist
-
-Use this checklist after deploying this PR. Do not mark live acceptance complete until these dashboard and live-service checks have been completed in the target Vercel/Supabase/Resend projects.
-
-### Vercel environment variables
-
-Configure production values and redeploy after every change:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_SITE_URL`
-- `RESEND_API_KEY`
-- `RESEND_FROM`
-- `RESEND_FROM_EMAIL`
-- GitHub media upload variables already used by this repo: `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` (`VERCEL_DEPLOY_HOOK_URL` is no longer used — uploads publish via Vercel's git auto-deploy)
-- Stripe server variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (sensitive; leave unset until a Stripe mode is enabled). Hosted Checkout does not require `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
-- Payment mode switches: `PAYMENT_PROVIDER` (`manual` unless going live with Stripe), `PAYMENT_TEST_MODE`
-- PlayHQ (server-only): `PLAYHQ_API_BASE_URL`, `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_DEFAULT_SEASON_ID`, `PLAYHQ_DEFAULT_GRADE_IDS`, `PLAYHQ_CACHE_REVALIDATE_SECONDS`
-- Fantasy PlayHQ sync (server-only): `CRON_SECRET`, `PLAYHQ_FANTASY_SYNC_ENABLED`, `PLAYHQ_FANTASY_SYNC_BATCH_SIZE`
-- Contact recipients (optional): `CONTACT_TO_EMAIL`, `CONTACT_CC_EMAILS`, `CONTACT_BCC_EMAILS`; keep `EMAIL_TEST_MODE` unset/false in production
-- Bank transfer email variables already used by this repo: `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER`
-
-### Namecheap DNS for Resend sending
-
-- Add/verify `TXT resend._domainkey` exactly as Resend provides it.
-- Add/verify the Resend `TXT send` record exactly as Resend provides it.
-- Add/verify the Resend `MX send` record exactly as Resend provides it.
-- Do not change the root `@` MX records unless the club is deliberately changing mailbox provider.
-
-### Resend
-
-- Domain is verified.
-- Sending is enabled.
-- Receiving is disabled unless inbound webhook routes are intentionally built later.
-- Check Resend logs after using `/admin/email-diagnostics`.
-
-### Supabase Auth email
-
-Supabase Auth confirmation and password reset emails are sent by Supabase SMTP, not by `lib/email.ts`.
-
-- Enable custom SMTP in Supabase Dashboard → Authentication → SMTP Settings.
-- Use Resend SMTP values: host `smtp.resend.com`, port `465`, username `resend`, password set to the Resend API/SMTP key, sender set to the verified NDCC sender such as `noreply@ndcc.com.au`.
-- Set Supabase Site URL to the production site URL.
-- Add redirect URLs for `/fantasy/account` and `/api/auth/callback` on the production domain.
-- Confirm email provider and confirmation settings are enabled as intended.
-
-### Fantasy live acceptance test
-
-- Use a fresh email alias that has not previously registered.
-- Register at `/fantasy/register` with display name, fantasy team name, email, and password.
-- Watch Resend/Supabase Auth logs for the confirmation email.
-- Click the confirmation email link and confirm it lands on `/fantasy/account`.
-- Confirm the fantasy manager profile is auto-created once and shows as active.
-- Log out and log back in to confirm the same profile is preserved.
-- If app email is configured, confirm the welcome email result in Resend logs.
