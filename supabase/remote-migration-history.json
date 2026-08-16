@@ -1,6 +1,6 @@
 {
   "description": "Recorded migration history for the production project (ref alduwuipmmnzorcgkcli). Every version listed here has a matching file in supabase/migrations/ and a row in supabase_migrations.schema_migrations. Versions marked preHistory were executed against production before history tracking existed and were recorded as applied via bookkeeping rows (version+name only, no DDL) on 2026-07-16 - see docs/operations/20260716-Migration-History-Reconciliation-Rev00.md. scripts/check-migration-history.mjs enforces consistency. Update this file only when a migration is genuinely applied to production.",
-  "capturedAt": "2026-08-16T02:19:00Z",
+  "capturedAt": "2026-08-16T02:51:55Z",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     { "version": "20260331000000", "name": "prehistory_baseline", "preHistory": true },
@@ -81,7 +81,7 @@
     { "version": "20260813111527", "name": "apparel_export_batches" },
     { "version": "20260815051950", "name": "simplify_sponsors_and_season_presentation" },
     { "version": "20260815052456", "name": "current_season_content_cleanup" },
-    { "version": "20260816121900", "name": "stripe_checkout_integrity" }
+    { "version": "20260816025155", "name": "stripe_checkout_integrity" }
   ],
   "localOnlyApplied": []
 }
