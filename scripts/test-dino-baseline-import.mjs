@@ -107,6 +107,7 @@ test('exposes committee template, preview and apply controls in the existing rec
   assert.match(page, /Prior-season price evidence/);
   assert.match(page, /Download roster template/);
   assert.match(page, /Apply reviewed price evidence/);
+  assert.doesNotMatch(page, /Historical evidence runs|Create review run|Create read-only run/);
 });
 
 test('allows CMS recalculation from the latest applied audited baseline', () => {
