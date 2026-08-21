@@ -23,6 +23,9 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [teamName, setTeamName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [rulesVersion, setRulesVersion] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [manager, setManager] = useState<any>(null);
@@ -33,13 +36,17 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
   const [sendingReset, setSendingReset] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [startingPayment, setStartingPayment] = useState(false);
 
   useEffect(() => {
-    if (mode !== 'register') return;
+    if (mode === 'login') return;
     let cancelled = false;
     fantasyJsonFetch<any>('/api/fantasy/players')
       .then((result) => {
-        if (!cancelled) setRegistrationOpen(result?.settings?.is_registration_open !== false);
+        if (!cancelled) {
+          setRegistrationOpen(result?.settings?.is_registration_open !== false);
+          setRulesVersion(result?.settings?.rules_version || '');
+        }
       })
       .catch(() => {
         // If the settings lookup fails, leave registration available; the
@@ -79,17 +86,22 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           setManager(result.manager);
           const metadataDisplayName = typeof data.session?.user.user_metadata?.display_name === 'string' ? data.session.user.user_metadata.display_name : '';
           const metadataTeamName = typeof data.session?.user.user_metadata?.team_name === 'string' ? data.session.user.user_metadata.team_name : '';
+          const metadataDob = typeof data.session?.user.user_metadata?.date_of_birth === 'string' ? data.session.user.user_metadata.date_of_birth : '';
+          const metadataRules = typeof data.session?.user.user_metadata?.rules_version === 'string' ? data.session.user.user_metadata.rules_version : '';
           const nextDisplayName = result.manager?.display_name || metadataDisplayName;
           const nextTeamName = result.manager?.team_name || metadataTeamName;
           setDisplayName(nextDisplayName);
           setTeamName(nextTeamName);
+          setDateOfBirth(metadataDob);
+          setRulesVersion(metadataRules);
+          setRulesAccepted(Boolean(metadataRules));
 
-          if (!result.manager && metadataDisplayName && metadataTeamName) {
+          if (!result.manager && metadataDisplayName && metadataTeamName && metadataDob && metadataRules) {
             setAutoCreating(true);
             try {
               const created = await fantasyJsonFetch<any>('/api/fantasy/manager', {
                 method: 'POST',
-                body: JSON.stringify({ displayName: metadataDisplayName, teamName: metadataTeamName }),
+                body: JSON.stringify({ displayName: metadataDisplayName, teamName: metadataTeamName, dateOfBirth: metadataDob, rulesVersion: metadataRules, rulesAccepted: true }),
               });
               setManager(created.manager);
               setFeedback({ type: 'success', message: 'Fantasy manager profile created from your confirmed account details.' });
@@ -109,7 +121,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const saveProfile = async () => {
     const result = await fantasyJsonFetch<any>('/api/fantasy/manager', {
       method: 'POST',
-      body: JSON.stringify({ displayName, teamName }),
+      body: JSON.stringify({ displayName, teamName, dateOfBirth, rulesVersion, rulesAccepted }),
     });
     setManager(result.manager);
     setFeedback({ type: 'success', message: 'Fantasy manager profile saved.' });
@@ -165,6 +177,12 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     }
   };
 
+  const startPayment = async () => {
+    setStartingPayment(true); setFeedback(null);
+    try { const result = await fantasyJsonFetch<any>('/api/fantasy/checkout', { method: 'POST', body: '{}' }); window.location.href = result.url; }
+    catch (err) { setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not start secure Checkout.' }); setStartingPayment(false); }
+  };
+
   const submit = async () => {
     if (mode === 'register' && registrationOpen === false) {
       setFeedback({ type: 'error', message: 'Fantasy registration is currently closed.' });
@@ -178,7 +196,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           email,
           password,
           options: {
-            data: { display_name: displayName.trim(), team_name: teamName.trim() },
+            data: { display_name: displayName.trim(), team_name: teamName.trim(), date_of_birth: dateOfBirth, rules_version: rulesVersion },
             emailRedirectTo: getFantasyEmailRedirectTo(),
           },
         });
@@ -230,6 +248,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode !== 'login' && <Input id="teamName" label="Fantasy team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
         {mode !== 'account' && <Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
         {mode !== 'account' && <Input id="password" label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />}
+        {mode !== 'login' && <Input id="dateOfBirth" label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} required />}
+        {mode !== 'login' && <label className="flex items-start gap-3 text-sm font-body"><input className="mt-1 h-5 w-5" type="checkbox" checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} required /><span>I am at least 18 and accept the current <Link className="font-semibold text-maroon-700 hover:underline" href="/fantasy/rules">Dino Coach rules</Link>{rulesVersion ? ` (${rulesVersion})` : ''}.</span></label>}
         {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
         {feedback && <p className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
@@ -256,6 +276,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               Sign out
             </Button>
           )}
+          {mode === 'account' && manager && <Button onClick={startPayment} isLoading={startingPayment}>Pay AUD 25.00 entry</Button>}
         </div>
         {mode === 'login' && !awaitingConfirm && (
           <button

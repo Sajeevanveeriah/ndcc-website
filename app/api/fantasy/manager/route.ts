@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUserFromRequest, type FantasyManagerRecord } from '@/lib/fantasy-manager-auth';
-import { getFantasySettings } from '@/lib/fantasy-game';
+import { resolveRequestSeason } from '@/lib/fantasy-seasons';
+import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { isAdultOnDate, moderateTeamName } from '@/lib/dino-coach/domain';
 import { sendEmail, emailHtml } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +23,7 @@ function escapeHtml(value: string) {
 }
 
 function publicManagerSelect() {
-  return 'id, auth_user_id, display_name, email, team_name, is_active';
+  return 'id, auth_user_id, display_name, email, team_name, is_active, team_name_status, team_name_locked, age_verified_at, rules_version_accepted';
 }
 
 export async function GET(request: Request) {
@@ -63,27 +66,46 @@ export async function POST(request: Request) {
     console.error('[fantasy-manager] Existing manager lookup failed', { userId: user.id, message: existing.error.message });
     return NextResponse.json({ success: false, error: 'Could not check your existing fantasy manager profile.' }, { status: 500 });
   }
-
-  const settings = await getFantasySettings();
-  if (!existing.data && !settings.is_registration_open) {
-    return NextResponse.json({ success: false, error: 'Fantasy registration is currently closed.' }, { status: 403 });
-  }
+  const existingManager = existing.data as any;
 
   const body = await request.json().catch(() => ({}));
+  const season = await resolveRequestSeason(request, body);
+  if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
+  const settings = await getDinoCoachSettings(season.id);
+  if (!existingManager && (!settings.public_launch_enabled || !settings.registration_open)) {
+    return NextResponse.json({ success: false, error: 'Dino Coach registration is currently closed.' }, { status: 403 });
+  }
   const displayName = cleanText(body.displayName || user.user_metadata?.display_name);
   const teamName = cleanText(body.teamName || user.user_metadata?.team_name);
+  const dateOfBirth = cleanText(body.dateOfBirth || user.user_metadata?.date_of_birth);
+  const acceptedRulesVersion = cleanText(body.rulesVersion || user.user_metadata?.rules_version);
   if (!displayName || !teamName) {
     return NextResponse.json({ success: false, error: 'Display name and team name are required.' }, { status: 400 });
   }
   if (displayName.length > 80 || teamName.length > 80) {
     return NextResponse.json({ success: false, error: 'Display name and team name must be 80 characters or fewer.' }, { status: 400 });
   }
+  if (!isAdultOnDate(dateOfBirth, new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' }), settings.minimum_age)) {
+    return NextResponse.json({ success: false, error: `Dino Coach is only available to participants aged ${settings.minimum_age} or older.` }, { status: 400 });
+  }
+  if (acceptedRulesVersion !== settings.rules_version || body.rulesAccepted !== true) {
+    return NextResponse.json({ success: false, error: `Accept the current Dino Coach rules (${settings.rules_version}) to register.` }, { status: 400 });
+  }
+  if (existingManager?.team_name_locked && teamName !== existingManager.team_name) {
+    return NextResponse.json({ success: false, error: 'This team name was replaced and locked by the league manager.' }, { status: 403 });
+  }
+  const moderation = moderateTeamName(teamName, settings.blocked_team_name_terms || []);
 
   const payload = {
     auth_user_id: user.id,
     email: user.email.toLowerCase(),
     display_name: displayName,
     team_name: teamName,
+    date_of_birth: dateOfBirth,
+    age_verified_at: new Date().toISOString(),
+    team_name_status: moderation.status,
+    rules_version_accepted: settings.rules_version,
+    rules_accepted_at: new Date().toISOString(),
     is_active: true,
   };
 
@@ -103,15 +125,19 @@ export async function POST(request: Request) {
 
   const manager = data as unknown as FantasyManagerRecord;
   const isNewManager = !existing.data;
+  if (isNewManager || teamName !== existingManager?.team_name) {
+    await supabase.from('fantasy_team_name_moderation').insert({ manager_id: manager.id, submitted_name: teamName, resulting_name: moderation.status === 'approved' ? teamName : null, status: moderation.status, reason: moderation.matchedTerm ? 'Matched a committee-managed blocked term.' : 'Passed deterministic blocked-term checks.' });
+  }
+  await supabase.from('fantasy_entries').upsert({ manager_id: manager.id, season_id: season.id, status: 'payment_required', entry_fee_cents: settings.entry_fee_cents, currency: settings.entry_fee_currency, metadata: { product: 'Dino Coach', rules_version: settings.rules_version } }, { onConflict: 'manager_id,season_id', ignoreDuplicates: true });
   let emailResult: Awaited<ReturnType<typeof sendEmail>> | null = null;
   if (isNewManager) {
     emailResult = await sendEmail({
       to: user.email.toLowerCase(),
-      subject: 'Welcome to NDCC Fantasy Cricket!',
+      subject: 'Dino Coach registration received',
       html: emailHtml(
-        'Welcome to NDCC Fantasy Cricket',
+        'Dino Coach registration received',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(manager.display_name)},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">Your fantasy manager profile is set up and ready to go.</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Your manager details and rules acceptance have been recorded. Team selection unlocks only after your team name is approved and the AUD 25.00 entry payment is settled.</p>
         <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
           <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:bold;">Your team</p>
           <p style="margin:0;font-size:16px;color:#800000;font-weight:bold;">${escapeHtml(manager.team_name)}</p>

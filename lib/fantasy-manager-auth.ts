@@ -20,6 +20,10 @@ export type FantasyManagerRecord = {
   email: string;
   team_name: string;
   is_active: boolean;
+  team_name_status?: 'pending' | 'approved' | 'review_required' | 'replaced';
+  team_name_locked?: boolean;
+  age_verified_at?: string | null;
+  rules_version_accepted?: string | null;
 };
 
 export function createAnonAuthClient() {

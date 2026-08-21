@@ -4,6 +4,9 @@ import {
   calculateBasePerformancePoints, calculateAssignedRolePoints, calculateInitialPrice,
   calculateRollingPerformance, calculatePriceMovement, isAdultOnDate,
   isTransferWindowOpen, moderateTeamName, validateSquadAssignments,
+  fantasyWeekFromMatchDate, classifyRoundKind, evaluateReleaseReadiness,
+  resolveExactIdentityCandidate,
+  dinoEntryStatusForStripeEvent,
 } from '../lib/dino-coach/domain.ts';
 
 const test = (name, fn) => {
@@ -77,6 +80,52 @@ test('validates all 15 assigned slots independent of real-world player role', ()
   assert.equal(result.valid, true);
   assert.equal(result.budgetUsedDinoDollars, 1500000);
   assert.equal(validateSquadAssignments(assignments.slice(0, 14), slots, 2000000).valid, false);
+});
+
+test('maps grade-local rounds into a shared Dino Coach week by match date', () => {
+  assert.equal(fantasyWeekFromMatchDate('2025-10-04', '2025-10-01'), 1);
+  assert.equal(fantasyWeekFromMatchDate('2025-10-05', '2025-10-01'), 1);
+  assert.equal(fantasyWeekFromMatchDate('2025-10-11', '2025-10-01'), 2);
+  assert.equal(fantasyWeekFromMatchDate('2025-10-18', '2025-10-01'), 3);
+});
+
+test('classifies every configured final as scoring but price-ineligible', () => {
+  for (const label of ['Preliminary Final', 'Quarter Final', 'Semi Final', 'Grand Final']) {
+    assert.deepEqual(classifyRoundKind(label), { roundKind: label.toLowerCase().replaceAll(' ', '_'), pricingEligible: false });
+  }
+  assert.deepEqual(classifyRoundKind('Round 12'), { roundKind: 'regular', pricingEligible: true });
+});
+
+test('blocks release until every selectable player is resolved and positively published', () => {
+  assert.equal(evaluateReleaseReadiness({ selectable: 134, resolved: 134, positivePublished: 134, ambiguous: 0, duplicateLinks: 0 }).ready, true);
+  assert.equal(evaluateReleaseReadiness({ selectable: 134, resolved: 133, positivePublished: 134, ambiguous: 0, duplicateLinks: 0 }).ready, false);
+  assert.equal(evaluateReleaseReadiness({ selectable: 134, resolved: 134, positivePublished: 133, ambiguous: 0, duplicateLinks: 0 }).ready, false);
+  assert.equal(evaluateReleaseReadiness({ selectable: 134, resolved: 134, positivePublished: 134, ambiguous: 1, duplicateLinks: 0 }).ready, false);
+});
+
+test('auto-links only a unique exact normalised player identity', () => {
+  const roster = [
+    { id: '1', displayName: 'Saj Veeriah' },
+    { id: '2', displayName: 'Alex Smith' },
+  ];
+  assert.deepEqual(resolveExactIdentityCandidate('  SAJ   VEERIAH ', roster), { status: 'unique_exact', playerId: '1' });
+  assert.deepEqual(resolveExactIdentityCandidate('Unknown Player', roster), { status: 'unmatched', playerId: null });
+  assert.deepEqual(resolveExactIdentityCandidate('Alex Smith', [...roster, { id: '3', displayName: 'Alex Smith' }]), { status: 'ambiguous', playerId: null });
+});
+
+test('maps Stripe settlement, failure, refund and dispute events to entry eligibility', () => {
+  assert.equal(dinoEntryStatusForStripeEvent('checkout.session.completed', { paymentStatus: 'paid' }), 'paid');
+  assert.equal(dinoEntryStatusForStripeEvent('checkout.session.expired', {}), 'expired');
+  assert.equal(dinoEntryStatusForStripeEvent('checkout.session.async_payment_failed', {}), 'failed');
+  assert.equal(dinoEntryStatusForStripeEvent('charge.refunded', { amount: 2500, amountRefunded: 2500 }), 'refunded');
+  assert.equal(dinoEntryStatusForStripeEvent('charge.refunded', { amount: 2500, amountRefunded: 500 }), null);
+  assert.equal(dinoEntryStatusForStripeEvent('charge.dispute.created', {}), 'disputed');
+  assert.equal(dinoEntryStatusForStripeEvent('charge.dispute.closed', { disputeStatus: 'won' }), 'paid');
+});
+
+test('uses the configured vice-captain multiplier independently', () => {
+  const scoring = { ...DEFAULT_SCORING_CONFIG, captainMultiplier: 3, viceCaptainMultiplier: 2 };
+  assert.equal(calculateAssignedRolePoints({ runs: 10 }, 'AR', scoring, true, scoring.viceCaptainMultiplier), 30);
 });
 
 console.log('Dino Coach deterministic rule suite passed.');

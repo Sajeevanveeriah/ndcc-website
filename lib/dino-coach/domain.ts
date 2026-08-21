@@ -144,7 +144,7 @@ export function calculateBasePerformancePoints(stat: DinoStatLine, scoring: Dino
   return Number(total.toFixed(2));
 }
 
-export function calculateAssignedRolePoints(stat: DinoStatLine, role: DinoRole, scoring: DinoScoringConfig = DEFAULT_SCORING_CONFIG, doublePoints = false) {
+export function calculateAssignedRolePoints(stat: DinoStatLine, role: DinoRole, scoring: DinoScoringConfig = DEFAULT_SCORING_CONFIG, doublePoints = false, leadershipMultiplier?: number) {
   const runs = nonNegative(stat.runs);
   const wickets = nonNegative(stat.wickets);
   const catches = nonNegative(stat.catches);
@@ -164,7 +164,7 @@ export function calculateAssignedRolePoints(stat: DinoStatLine, role: DinoRole, 
     + nonNegative(stat.stumpings) * scoring.stumpingPoints
     + (notOut ? scoring.notOutPoints : 0)
     + milestonePoints(stat, scoring);
-  const multiplied = doublePoints ? total * scoring.captainMultiplier : total;
+  const multiplied = doublePoints ? total * finite(leadershipMultiplier ?? scoring.captainMultiplier) : total;
   return Number(multiplied.toFixed(2));
 }
 
@@ -264,3 +264,69 @@ export function validateSquadAssignments(assignments: DinoSquadAssignment[], slo
 }
 
 export function formatDinoDollars(value: number, currencyName = 'Dino Dollars') { return `${Math.round(finite(value)).toLocaleString('en-AU')} ${currencyName}`; }
+
+export type DinoRoundKind = 'regular' | 'preliminary_final' | 'quarter_final' | 'semi_final' | 'grand_final' | 'other_final';
+
+export function fantasyWeekFromMatchDate(matchDate: string, seasonStartDate: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(matchDate) || !/^\d{4}-\d{2}-\d{2}$/.test(seasonStartDate)) return null;
+  const match = Date.parse(`${matchDate}T00:00:00.000Z`);
+  const start = Date.parse(`${seasonStartDate}T00:00:00.000Z`);
+  if (!Number.isFinite(match) || !Number.isFinite(start) || match < start) return null;
+  return Math.floor((match - start) / 604800000) + 1;
+}
+
+export function classifyRoundKind(name: string): { roundKind: DinoRoundKind; pricingEligible: boolean } {
+  const value = String(name || '').trim().toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+  if (/\bpreliminary final\b/.test(value)) return { roundKind: 'preliminary_final', pricingEligible: false };
+  if (/\bquarter final\b/.test(value)) return { roundKind: 'quarter_final', pricingEligible: false };
+  if (/\bsemi final\b/.test(value)) return { roundKind: 'semi_final', pricingEligible: false };
+  if (/\bgrand final\b/.test(value)) return { roundKind: 'grand_final', pricingEligible: false };
+  if (/\bfinal\b/.test(value)) return { roundKind: 'other_final', pricingEligible: false };
+  return { roundKind: 'regular', pricingEligible: true };
+}
+
+export type DinoReleaseCounts = {
+  selectable: number;
+  resolved: number;
+  positivePublished: number;
+  ambiguous: number;
+  duplicateLinks: number;
+};
+
+export function evaluateReleaseReadiness(counts: DinoReleaseCounts) {
+  const blockers: string[] = [];
+  if (!Number.isInteger(counts.selectable) || counts.selectable <= 0) blockers.push('No selectable players are configured.');
+  if (counts.resolved !== counts.selectable) blockers.push(`${counts.selectable - counts.resolved} selectable player outcome(s) are unresolved.`);
+  if (counts.positivePublished !== counts.selectable) blockers.push(`${counts.selectable - counts.positivePublished} selectable player price(s) are not positive and published.`);
+  if (counts.ambiguous > 0) blockers.push(`${counts.ambiguous} ambiguous identity decision(s) remain.`);
+  if (counts.duplicateLinks > 0) blockers.push(`${counts.duplicateLinks} duplicate PlayHQ source link(s) remain.`);
+  return { ready: blockers.length === 0, blockers };
+}
+
+export function normalisePlayerIdentity(value: string) {
+  return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
+export function resolveExactIdentityCandidate(
+  playhqDisplayName: string,
+  roster: Array<{ id: string; displayName: string }>,
+) {
+  const target = normalisePlayerIdentity(playhqDisplayName);
+  const matches = target ? roster.filter((candidate) => normalisePlayerIdentity(candidate.displayName) === target) : [];
+  if (matches.length === 1) return { status: 'unique_exact' as const, playerId: matches[0].id };
+  if (matches.length > 1) return { status: 'ambiguous' as const, playerId: null };
+  return { status: 'unmatched' as const, playerId: null };
+}
+
+export function dinoEntryStatusForStripeEvent(eventType: string, evidence: {
+  paymentStatus?: string | null; amount?: number | null; amountRefunded?: number | null; disputeStatus?: string | null;
+}) {
+  if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(eventType)) return evidence.paymentStatus === 'paid' ? 'paid' : null;
+  if (eventType === 'checkout.session.expired') return 'expired';
+  if (eventType === 'checkout.session.async_payment_failed') return 'failed';
+  if (eventType === 'charge.refunded') return Number(evidence.amountRefunded) >= Number(evidence.amount) ? 'refunded' : null;
+  if (eventType === 'charge.dispute.created') return 'disputed';
+  if (eventType === 'charge.dispute.closed' && evidence.disputeStatus === 'won') return 'paid';
+  return null;
+}

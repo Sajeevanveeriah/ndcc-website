@@ -28,6 +28,9 @@ export type FantasyPlayerWithPrice = {
   role: FantasyRole;
   team_label: string | null;
   price_million: number;
+  price_dino_dollars: number;
+  source_status: string;
+  published_at: string | null;
 };
 
 export type SquadSelection = {
@@ -100,24 +103,30 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
       .eq('season_id', targetSeasonId)
       .eq('active', true)
       .eq('selectable', true),
-    supabase.from('fantasy_player_prices').select('player_id, price_million, created_at').eq('season_id', targetSeasonId).order('created_at', { ascending: false }),
+    supabase.from('fantasy_player_prices').select('player_id, price_million, price_dino_dollars, source_status, published_at, created_at').eq('season_id', targetSeasonId).order('created_at', { ascending: false }),
   ]);
   if (memberError) throw new Error(memberError.message);
   if (priceError) throw new Error(priceError.message);
 
-  const priceByPlayer = new Map<string, number>();
+  const priceByPlayer = new Map<string, { legacy: number; dino: number; source: string; published: string | null }>();
   for (const row of prices ?? []) {
-    if (!priceByPlayer.has(row.player_id)) priceByPlayer.set(row.player_id, Number(row.price_million ?? 0));
+    if (!priceByPlayer.has(row.player_id)) priceByPlayer.set(row.player_id, {
+      legacy: Number(row.price_million ?? 0), dino: Number(row.price_dino_dollars ?? 0),
+      source: row.source_status || 'pending_playhq', published: row.published_at || null,
+    });
   }
 
   return (memberships ?? [])
-    .filter((row: any) => row.role !== 'UNASSIGNED' && row.fantasy_players)
+    .filter((row: any) => row.fantasy_players)
     .map((row: any) => ({
       id: row.player_id,
       display_name: row.fantasy_players.display_name,
-      role: row.role,
+      role: (row.role === 'UNASSIGNED' ? 'BAT' : row.role) as FantasyRole,
       team_label: row.team_label,
-      price_million: priceByPlayer.get(row.player_id) ?? 0,
+      price_million: priceByPlayer.get(row.player_id)?.legacy ?? 0,
+      price_dino_dollars: priceByPlayer.get(row.player_id)?.dino ?? 0,
+      source_status: priceByPlayer.get(row.player_id)?.source ?? 'pending_playhq',
+      published_at: priceByPlayer.get(row.player_id)?.published ?? null,
     }))
     .sort((a: FantasyPlayerWithPrice, b: FantasyPlayerWithPrice) => a.display_name.localeCompare(b.display_name));
 }
@@ -144,6 +153,9 @@ async function getActivePlayersWithLatestPricesLegacy(): Promise<FantasyPlayerWi
       role: player.role,
       team_label: player.team_label,
       price_million: priceByPlayer.get(player.id) ?? 0,
+      price_dino_dollars: Math.round((priceByPlayer.get(player.id) ?? 0) * 1000000),
+      source_status: 'legacy',
+      published_at: null,
     }));
 }
 

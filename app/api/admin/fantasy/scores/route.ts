@@ -2,13 +2,13 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
-import { calculatePlayerStatPoints, getEnabledScoringRules } from '@/lib/fantasy-game';
+import { calculateAssignedRolePoints } from '@/lib/dino-coach/domain';
+import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 
 export const dynamic = 'force-dynamic';
 
 async function calculateRound(roundId: string) {
   const supabase = createServerClient();
-  const rules = await getEnabledScoringRules();
   const { data: round, error: roundError } = await supabase.from('fantasy_rounds').select('id, season_id').eq('id', roundId).maybeSingle();
   if (roundError) throw new Error(roundError.message);
   if (!round) throw new Error('Round not found.');
@@ -20,45 +20,29 @@ async function calculateRound(roundId: string) {
     .eq('fantasy_import_batches.status', 'published');
   if (statsError) throw new Error(statsError.message);
 
-  const pointsByPlayer = new Map<string, number>();
+  const statsByPlayer = new Map<string, any[]>();
   for (const stat of stats ?? []) {
     if (!stat.player_id) continue;
-    pointsByPlayer.set(stat.player_id, (pointsByPlayer.get(stat.player_id) ?? 0) + calculatePlayerStatPoints(stat, rules));
+    const items=statsByPlayer.get(stat.player_id)??[];items.push(stat);statsByPlayer.set(stat.player_id,items);
   }
+  const dinoSettings=await getDinoCoachSettings(seasonId);
 
   const { data: squads, error: squadError } = await supabase
     .from('fantasy_squads')
-    .select('id, manager_id, round_id, season_id, fantasy_managers(display_name, team_name), fantasy_squad_players(player_id, position_type, is_captain, fantasy_players(display_name))')
+    .select('id, manager_id, round_id, season_id, fantasy_managers(display_name, team_name), fantasy_squad_players(player_id, position_type, assigned_role, is_captain, is_vice_captain, fantasy_players(display_name))')
     .eq('season_id', seasonId)
     .or(`round_id.eq.${roundId},round_id.is.null`)
     .in('status', ['submitted', 'locked']);
   if (squadError) throw new Error(squadError.message);
 
-  const { data: transfers, error: transferError } = await supabase.from('fantasy_transfers').select('manager_id, penalty_points').eq('round_id', roundId);
-  if (transferError) throw new Error(transferError.message);
-  const penaltyByManager = new Map<string, number>();
-  for (const transfer of transfers ?? []) penaltyByManager.set(transfer.manager_id, (penaltyByManager.get(transfer.manager_id) ?? 0) + Number(transfer.penalty_points ?? 0));
-
-  const { data: chips, error: chipError } = await supabase.from('fantasy_chips').select('manager_id, chip_type').eq('round_id', roundId);
-  if (chipError) throw new Error(chipError.message);
-  const chipsByManager = new Map<string, Set<string>>();
-  for (const chip of chips ?? []) {
-    const set = chipsByManager.get(chip.manager_id) ?? new Set<string>();
-    set.add(chip.chip_type);
-    chipsByManager.set(chip.manager_id, set);
-  }
-
   const result = (squads ?? []).map((squad: any) => {
-    const chipsForManager = chipsByManager.get(squad.manager_id) ?? new Set<string>();
     let total = 0;
     for (const squadPlayer of squad.fantasy_squad_players ?? []) {
-      const playerPoints = pointsByPlayer.get(squadPlayer.player_id) ?? 0;
-      const includeBench = chipsForManager.has('bench_boost');
-      if (squadPlayer.position_type !== 'starter' && !includeBench) continue;
-      if (squadPlayer.is_captain) total += chipsForManager.has('triple_captain') ? playerPoints * 3 : playerPoints * 2;
-      else total += playerPoints;
+      if (squadPlayer.position_type !== 'starter') continue;
+      const leadershipMultiplier=squadPlayer.is_captain?dinoSettings.scoring_config.captainMultiplier:squadPlayer.is_vice_captain?dinoSettings.scoring_config.viceCaptainMultiplier:undefined;
+      for(const stat of statsByPlayer.get(squadPlayer.player_id)??[]) total+=calculateAssignedRolePoints(stat,squadPlayer.assigned_role,dinoSettings.scoring_config,leadershipMultiplier!==undefined,leadershipMultiplier);
     }
-    const transferPenalty = penaltyByManager.get(squad.manager_id) ?? 0;
+    const transferPenalty = 0;
     return {
       managerId: squad.manager_id,
       squadId: squad.id,
@@ -67,7 +51,7 @@ async function calculateRound(roundId: string) {
       totalPoints: Number(total.toFixed(2)),
       transferPenalty,
       netPoints: Number((total - transferPenalty).toFixed(2)),
-      chips: Array.from(chipsForManager),
+      chips: [],
     };
   }).sort((a, b) => b.netPoints - a.netPoints);
   return { seasonId, rows: result };

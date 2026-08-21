@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -17,6 +18,8 @@ export default function FantasyReconciliationPage() {
   const [targetSeasonId, setTargetSeasonId] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [dinoPlayers, setDinoPlayers] = useState<any[]>([]);
+  const [readiness, setReadiness] = useState<any>(null);
 
   async function load() {
     const [runRes, seasonRes] = await Promise.all([
@@ -25,7 +28,7 @@ export default function FantasyReconciliationPage() {
     ]);
     const runJson = await runRes.json();
     const seasonJson = await seasonRes.json();
-    if (runJson.success) setRuns(runJson.runs || []);
+    if (runJson.success) { setRuns(runJson.runs || []); setDinoPlayers(runJson.dinoPlayers || []); setReadiness(runJson.readiness); }
     if (seasonJson.success) {
       const realSeasons = (seasonJson.seasons || []).filter((season: Season) => season.slug !== 'legacy-unverified');
       setSeasons(realSeasons);
@@ -55,6 +58,7 @@ export default function FantasyReconciliationPage() {
       setBusy(false);
     }
   }
+  async function pricing(action:'recalculate'|'publish'){setBusy(true);setMessage('');try{const res=await fetch('/api/admin/fantasy/pricing',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});const json=await res.json();if(!res.ok)throw new Error(json.error);setMessage(action==='publish'?'Dino Dollar prices published.':'Dino Dollar prices recalculated from verified evidence.');await load();}catch(err){setMessage(err instanceof Error?err.message:'Pricing action failed.');}finally{setBusy(false);}}
 
   async function bulkApproveExact() {
     if (!selectedRun) return;
@@ -71,11 +75,15 @@ export default function FantasyReconciliationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold text-content-primary">Historical Fantasy reconciliation</h1>
-        <p className="mt-1 max-w-4xl text-sm text-content-muted font-body">Review Legacy / Unverified statistics against official PlayHQ source data. This workflow is read-only against match statistics: it prepares evidence, export files and SQL proposals only.</p>
+        <h1 className="text-2xl font-display font-bold text-content-primary">Dino Coach player reconciliation</h1>
+        <p className="mt-1 max-w-4xl text-sm text-content-muted font-body">Current-player identity, source status and published price evidence. Ambiguous matches remain quarantined.</p>
       </div>
 
       {message && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status">{message}</div>}
+
+      <Card><CardContent><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-display font-bold">Current release coverage</h2><p className={readiness?.ready?'mt-2 text-green-700':'mt-2 text-amber-800'}>{readiness?.ready?'Ready to launch.':(readiness?.blockers||['Readiness unavailable.']).join(' ')}</p></div><div className="flex gap-2"><Button disabled={busy} variant="secondary" onClick={()=>pricing('recalculate')}>Recalculate prices</Button><Button disabled={busy} onClick={()=>pricing('publish')}>Publish prices</Button></div></div><div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead><tr className="border-b"><th className="p-2">Player</th><th className="p-2">Outcome</th><th className="p-2">PlayHQ link</th><th className="p-2">Appearances</th><th className="p-2">Price</th><th className="p-2">Published</th></tr></thead><tbody>{dinoPlayers.map((player)=><tr key={player.player_id} className="border-b"><td className="p-2 font-semibold">{player.display_name}</td><td className="p-2">{player.stats_status}</td><td className="p-2">{player.playhq_player_id||player.identity?.decision||'Unresolved'}</td><td className="p-2">{player.prior_regular_appearances}</td><td className="p-2">{player.price?.price_dino_dollars>0?`${Number(player.price.price_dino_dollars).toLocaleString('en-AU')} Dino Dollars`:'Pending'}</td><td className="p-2">{player.price?.published_at?'Yes':'No'}</td></tr>)}</tbody></table></div></CardContent></Card>
+
+      <h2 className="text-xl font-display font-bold">Historical evidence runs</h2>
 
       <Card><CardContent>
         <h2 className="text-lg font-display font-bold text-content-primary">Create review run</h2>

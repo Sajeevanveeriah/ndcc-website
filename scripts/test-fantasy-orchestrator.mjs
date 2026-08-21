@@ -157,8 +157,11 @@ try {
   check('orchestrator records per-season sync health', orchestrator.includes("from('fantasy_sync_health')") || orchestratorSource.includes('updateSyncHealth'));
   check('orchestrator computes season readiness rollup', orchestratorSource.includes('playhq_season_linked') && orchestratorSource.includes('unresolved_reviews'));
   check('orchestrator surfaces Awaiting PlayHQ instead of empty success', orchestratorSource.includes('awaiting_playhq'));
-  check('player matching stays PlayHQ-id-first with review-only name matches',
-    syncSource.includes("eq('playhq_player_id', line.playhq_player_id)") && syncSource.includes('name_match_review'));
+  check('player matching is PlayHQ-id-first and persists only unique exact normalised matches',
+    syncSource.includes("eq('playhq_player_id', line.playhq_player_id)")
+      && syncSource.includes('resolveExactIdentityCandidate')
+      && syncSource.includes("decision.status === 'ambiguous'")
+      && syncSource.includes("decision: 'unique_normalised_name'"));
 
   const healthMigration = readFileSync(join(repoRoot, 'supabase/migrations/20260716060000_fantasy_sync_health.sql'), 'utf8');
   for (const column of ['last_successful_discovery', 'last_successful_game_import', 'raw_entries', 'queued_games', 'processed_games', 'matched_players', 'ambiguous_players', 'failed_games', 'last_error', 'next_retry_at']) {

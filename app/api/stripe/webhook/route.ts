@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase-server';
@@ -5,6 +6,8 @@ import { getStripe } from '@/lib/stripe';
 import { isPaymentTestMode } from '@/lib/payments/payment-config';
 import { getCheckoutEventAction } from '@/lib/payments/stripe-checkout';
 import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
+import { emailHtml, sendEmail } from '@/lib/email';
+import { dinoEntryStatusForStripeEvent } from '@/lib/dino-coach/domain';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +35,59 @@ function cents(amount: number): number {
 
 function isDuplicateError(error: { code?: string; message?: string } | null): boolean {
   return Boolean(error && (error.code === '23505' || /duplicate key/i.test(error.message || '')));
+}
+
+async function handleDinoCoachEvent(event: Stripe.Event): Promise<NextResponse | null> {
+  const object = event.data.object as any;
+  const isCheckout = event.type.startsWith('checkout.session.');
+  const isDinoCheckout = isCheckout && object.metadata?.product === 'Dino Coach';
+  const isDinoImpact = ['charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'].includes(event.type);
+  if (!isDinoCheckout && !isDinoImpact) return null;
+  const supabase = createServerClient();
+  let entry: any = null;
+  if (isDinoCheckout) {
+    const entryId = object.metadata?.entry_id;
+    if (!entryId || !UUID_PATTERN.test(entryId)) return NextResponse.json({ error: 'Invalid Dino Coach entry metadata.' }, { status: 400 });
+    const found = await supabase.from('fantasy_entries').select('*,fantasy_managers(display_name,email,team_name)').eq('id', entryId).maybeSingle();
+    if (found.error || !found.data) return NextResponse.json({ error: 'Dino Coach entry was not found.' }, { status: 404 });
+    entry = found.data;
+    if (entry.manager_id !== object.metadata?.manager_id || entry.season_id !== object.metadata?.season_id || entry.entry_fee_cents !== Number(object.metadata?.expected_amount_cents)) {
+      return NextResponse.json({ error: 'Dino Coach Checkout metadata mismatch.' }, { status: 400 });
+    }
+  } else {
+    const paymentIntent = typeof object.payment_intent === 'string' ? object.payment_intent : object.payment_intent?.id;
+    if (!paymentIntent) return NextResponse.json({ received: true, ignored: true });
+    const found = await supabase.from('fantasy_entries').select('*,fantasy_managers(display_name,email,team_name)').eq('stripe_payment_intent_id', paymentIntent).maybeSingle();
+    if (!found.data) return NextResponse.json({ received: true, ignored: true });
+    entry = found.data;
+  }
+  const nextStatus = dinoEntryStatusForStripeEvent(event.type, {
+    paymentStatus: object.payment_status, amount: object.amount, amountRefunded: object.amount_refunded, disputeStatus: object.status,
+  });
+  if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
+    if (object.payment_status !== 'paid' || object.amount_total !== entry.entry_fee_cents || String(object.currency).toLowerCase() !== 'aud') {
+      return NextResponse.json({ error: 'Dino Coach settlement amount or currency mismatch.' }, { status: 400 });
+    }
+  }
+  if (!nextStatus) return NextResponse.json({ received: true, ignored: true });
+  const audit = await supabase.from('fantasy_entry_payment_events').insert({
+    entry_id: entry.id, provider_event_id: event.id, provider_event_type: event.type,
+    provider_created_at: new Date(event.created * 1000).toISOString(), resulting_status: nextStatus,
+    evidence: { checkout_session_id: isCheckout ? object.id : null, payment_intent_id: isCheckout ? paymentIntentId(object) : object.payment_intent || null },
+  });
+  if (isDuplicateError(audit.error)) return NextResponse.json({ received: true, duplicate: true });
+  if (audit.error) return NextResponse.json({ error: 'Could not record Dino Coach payment event.' }, { status: 500 });
+  const update: Record<string, unknown> = { status: nextStatus, provider_event_id: event.id };
+  if (isCheckout) { update.stripe_checkout_session_id = object.id; update.stripe_payment_intent_id = paymentIntentId(object); }
+  if (nextStatus === 'paid') update.paid_at = new Date(event.created * 1000).toISOString();
+  if (nextStatus === 'refunded') update.refunded_at = new Date(event.created * 1000).toISOString();
+  const changed = await supabase.from('fantasy_entries').update(update).eq('id', entry.id);
+  if (changed.error) return NextResponse.json({ error: 'Could not update Dino Coach entry eligibility.' }, { status: 500 });
+  const recipient = entry.fantasy_managers?.email;
+  if (recipient) await sendEmail({ to: recipient, subject: nextStatus === 'paid' ? 'Dino Coach payment confirmed' : 'Dino Coach entry eligibility update',
+    html: emailHtml(nextStatus === 'paid' ? 'Payment confirmed' : 'Entry eligibility update', `<p>Hi ${entry.fantasy_managers.display_name},</p><p>Your Dino Coach entry status is now <strong>${nextStatus}</strong>.</p>${nextStatus === 'paid' ? '<p>You can build your squad when team selection is open.</p>' : '<p>Team-selection eligibility is paused while this payment status applies. Contact the club if you need help.</p>'}`),
+    idempotencyKey: `dino-coach-${event.id}` });
+  return NextResponse.json({ received: true, dinoCoach: true, status: nextStatus });
 }
 
 async function notifyPaidOrder(
@@ -261,6 +317,9 @@ export async function POST(request: Request) {
     console.error(`Webhook: event ${event.id} mode does not match PAYMENT_TEST_MODE.`);
     return NextResponse.json({ error: 'Webhook mode mismatch.' }, { status: 400 });
   }
+
+  const dinoCoachResult = await handleDinoCoachEvent(event);
+  if (dinoCoachResult) return dinoCoachResult;
 
   const session = event.data.object as Stripe.Checkout.Session;
   const action = getCheckoutEventAction(event.type, session.payment_status);
