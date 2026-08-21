@@ -104,6 +104,7 @@ const stripeClient = readFileSync(path.join(repoRoot, 'lib/stripe.ts'), 'utf8');
 const integrityMigration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260816025155_stripe_checkout_integrity.sql'), 'utf8');
 const eventOrderMigration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260806092106_event_registration_order_payments.sql'), 'utf8');
 const legacyRoute = readFileSync(path.join(repoRoot, 'app/api/checkout/route.ts'), 'utf8');
+const dinoCheckoutRoute = readFileSync(path.join(repoRoot, 'app/api/fantasy/checkout/route.ts'), 'utf8');
 const sharedPaymentControl = readFileSync(path.join(repoRoot, 'components/payments/OrderPaymentOptions.tsx'), 'utf8');
 const membershipRoute = readFileSync(path.join(repoRoot, 'app/api/memberships/route.ts'), 'utf8');
 const eventRoute = readFileSync(path.join(repoRoot, 'app/api/events/route.ts'), 'utf8');
@@ -148,6 +149,12 @@ test('Stripe SDK and ledger integrity gates are current', () => {
 test('legacy direct checkout cannot bypass the order-first flow', () => {
   assert.match(legacyRoute, /status:\s*410/);
   assert.doesNotMatch(legacyRoute, /checkout\.sessions\.create/);
+});
+
+test('Dino Coach Checkout is concurrency-safe and retryable after a stale session', () => {
+  assert.match(dinoCheckoutRoute, /upsert\([\s\S]*onConflict:\s*'manager_id,season_id'/);
+  assert.match(dinoCheckoutRoute, /stripe_checkout_session_id\s*\|\|\s*'first'/);
+  assert.match(dinoCheckoutRoute, /\['payment_required','pending','failed','expired'\]/);
 });
 
 test('shared payment control starts server-verified Checkout', () => {

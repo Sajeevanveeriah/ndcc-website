@@ -22,14 +22,15 @@ export async function POST(request: Request) {
   if (!manager?.is_active || !manager.age_verified_at || manager.team_name_status !== 'approved' || manager.rules_version_accepted !== settings.rules_version) {
     return NextResponse.json({ success: false, error: 'Complete age, rules and team-name eligibility before payment.' }, { status: 403 });
   }
-  const found = await supabase.from('fantasy_entries').select('*').eq('manager_id', manager.id).eq('season_id', season.id).maybeSingle();
-  const created = found.data ? null : await supabase.from('fantasy_entries').insert({
+  const inserted = await supabase.from('fantasy_entries').upsert({
     manager_id: manager.id, season_id: season.id, entry_fee_cents: settings.entry_fee_cents, currency: settings.entry_fee_currency,
     metadata: { product: 'Dino Coach', rules_version: settings.rules_version },
-  }).select('*').single();
-  const entry = found.data || created?.data;
-  const entryError = found.error || created?.error;
-  if (entryError || !entry) return NextResponse.json({ success: false, error: entryError?.message || 'Could not create Dino Coach entry.' }, { status: 500 });
+  }, { onConflict: 'manager_id,season_id', ignoreDuplicates: true }).select('*').maybeSingle();
+  if (inserted.error) return NextResponse.json({ success: false, error: 'Could not create Dino Coach entry.' }, { status: 500 });
+  const entryLookup = inserted.data ? null : await supabase.from('fantasy_entries').select('*')
+    .eq('manager_id', manager.id).eq('season_id', season.id).single();
+  const entry = inserted.data || entryLookup?.data;
+  if (entryLookup?.error || !entry) return NextResponse.json({ success: false, error: 'Could not load Dino Coach entry.' }, { status: 500 });
   if (entry.status === 'paid') return NextResponse.json({ success: false, error: 'This Dino Coach entry is already paid.' }, { status: 409 });
   if (entry.stripe_checkout_session_id && ['pending','payment_required'].includes(entry.status)) {
     const existing = await getStripe().checkout.sessions.retrieve(entry.stripe_checkout_session_id).catch(() => null);
@@ -46,9 +47,13 @@ export async function POST(request: Request) {
     metadata: { product: 'Dino Coach', manager_id: manager.id, season_id: season.id, entry_id: entry.id,
       rules_version: settings.rules_version, expected_amount_cents: String(settings.entry_fee_cents) },
     payment_intent_data: { metadata: { product: 'Dino Coach', manager_id: manager.id, season_id: season.id, entry_id: entry.id } },
-  }, { idempotencyKey: `dino-coach:${entry.id}:${settings.rules_version}:${settings.entry_fee_cents}` });
+  }, { idempotencyKey: `dino-coach:${entry.id}:${settings.rules_version}:${settings.entry_fee_cents}:${entry.status}:${entry.stripe_checkout_session_id || 'first'}` });
   if (!session.url) return NextResponse.json({ success: false, error: 'Stripe did not return a Checkout URL.' }, { status: 502 });
-  const { error } = await supabase.from('fantasy_entries').update({ status: 'pending', stripe_checkout_session_id: session.id }).eq('id', entry.id).in('status', ['payment_required','failed','expired']);
-  if (error) { await getStripe().checkout.sessions.expire(session.id).catch(() => undefined); return NextResponse.json({ success: false, error: 'Could not record the Checkout session.' }, { status: 500 }); }
+  const recorded = await supabase.from('fantasy_entries').update({ status: 'pending', stripe_checkout_session_id: session.id })
+    .eq('id', entry.id).in('status', ['payment_required','pending','failed','expired']).select('id').maybeSingle();
+  if (recorded.error || !recorded.data) {
+    await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
+    return NextResponse.json({ success: false, error: recorded.error ? 'Could not record the Checkout session.' : 'This Dino Coach entry is no longer payable.' }, { status: recorded.error ? 500 : 409 });
+  }
   return NextResponse.json({ success: true, url: session.url });
 }
