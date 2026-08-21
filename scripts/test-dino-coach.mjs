@@ -145,4 +145,11 @@ test('uses Dino Coach branding on current participant surfaces', () => {
   }
 });
 
+test('aligns CMS-managed fantasy navigation with Dino Coach branding', () => {
+  const migration = readFileSync('supabase/migrations/20260821025951_dino_coach_cms_brand_alignment.sql', 'utf8');
+  assert.match(migration, /update public\.page_link_cards/iu);
+  assert.match(migration, /title = 'Dino Coach'/u);
+  assert.match(migration, /href = '\/fantasy'/u);
+});
+
 console.log('Dino Coach deterministic rule suite passed.');
