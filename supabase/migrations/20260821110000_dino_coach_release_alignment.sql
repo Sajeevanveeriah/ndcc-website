@@ -1,0 +1,6 @@
+-- Production migration-history alignment marker.
+--
+-- This version was recorded during the approved Dino Coach production release
+-- alignment. It intentionally contains no schema or data changes. Keeping the
+-- marker in source control makes the forward-only repository history match the
+-- applied Supabase history without replaying or rewriting production migrations.
