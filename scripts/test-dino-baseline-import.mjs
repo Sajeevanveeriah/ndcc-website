@@ -104,9 +104,9 @@ test('exposes committee template, preview and apply controls in the existing rec
   assert.match(route, /createHash\('sha256'\)/);
   assert.match(route, /publish_dino_coach_baseline_import/);
   assert.match(route, /baseline-template\.csv/);
-  assert.match(page, /Prior-season baseline import/);
+  assert.match(page, /Prior-season price evidence/);
   assert.match(page, /Download roster template/);
-  assert.match(page, /Apply reviewed baseline/);
+  assert.match(page, /Apply reviewed price evidence/);
 });
 
 test('allows CMS recalculation from the latest applied audited baseline', () => {
