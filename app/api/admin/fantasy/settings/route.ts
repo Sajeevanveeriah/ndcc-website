@@ -1,52 +1,41 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
-import { ROLE_LIMITS, getFantasySettings } from '@/lib/fantasy-game';
+import { getDinoCoachSettings, getDinoReleaseReadiness } from '@/lib/dino-coach/server';
 
 export const dynamic = 'force-dynamic';
-
-async function ensureAdmin() {
-  return requirePermission('fantasy.home');
-}
+async function currentSeason() { const { data, error } = await createServerClient().from('fantasy_seasons').select('id,name,slug').eq('is_current', true).single(); if (error) throw new Error(error.message); return data; }
 
 export async function GET() {
-  const user = await ensureAdmin();
-  if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
-  try {
-    const settings = await getFantasySettings();
-    return NextResponse.json({ success: true, settings });
-  } catch (err) {
-    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Could not load settings.' }, { status: 500 });
-  }
+  if (!await requirePermission('fantasy.home')) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
+  try { const season = await currentSeason(); const [settings, readiness] = await Promise.all([getDinoCoachSettings(season.id), getDinoReleaseReadiness(season.id).catch(() => null)]); return NextResponse.json({ success: true, season, settings, readiness }); }
+  catch (error) { return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not load Dino Coach settings.' }, { status: 500 }); }
 }
 
 export async function PATCH(request: Request) {
-  const user = await ensureAdmin();
+  const user = await requirePermission('fantasy.home');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403 });
-  const body = await request.json().catch(() => ({}));
-  const settings = await getFantasySettings();
-  const roleLimits = {
-    WK: Number(body?.maxPlayersPerRole?.WK ?? ROLE_LIMITS.WK),
-    BAT: Number(body?.maxPlayersPerRole?.BAT ?? ROLE_LIMITS.BAT),
-    AR: Number(body?.maxPlayersPerRole?.AR ?? ROLE_LIMITS.AR),
-    BOWL: Number(body?.maxPlayersPerRole?.BOWL ?? ROLE_LIMITS.BOWL),
-  };
-  const payload = {
-    season_name: String(body.seasonName || '').trim() || 'NDCC Fantasy Cricket',
-    squad_budget: Number(body.squadBudget),
-    max_players_per_role: roleLimits,
-    free_transfers_per_round: Number(body.freeTransfersPerRound),
-    transfer_penalty_points: Number(body.transferPenaltyPoints),
-    is_registration_open: body.isRegistrationOpen === true,
-    is_team_selection_open: body.isTeamSelectionOpen === true,
-  };
-  if (!Number.isFinite(payload.squad_budget) || payload.squad_budget <= 0) return NextResponse.json({ success: false, error: 'Squad budget must be greater than zero.' }, { status: 400 });
-  if (!Number.isInteger(payload.free_transfers_per_round) || payload.free_transfers_per_round < 0) return NextResponse.json({ success: false, error: 'Free transfers must be zero or more.' }, { status: 400 });
-  if (!Number.isInteger(payload.transfer_penalty_points) || payload.transfer_penalty_points < 0) return NextResponse.json({ success: false, error: 'Transfer penalty must be zero or more.' }, { status: 400 });
-  if (Object.values(roleLimits).some((value) => !Number.isInteger(value) || value < 0)) return NextResponse.json({ success: false, error: 'Role limits must be whole numbers.' }, { status: 400 });
-
-  const supabase = createServerClient();
-  const { data, error } = await supabase.from('fantasy_settings').update(payload).eq('id', settings.id).select().single();
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true, settings: data });
+  const body = await request.json().catch(() => ({})); const season = await currentSeason();
+  const numeric = (key: string, minimum: number) => { const value = Number(body[key]); if (!Number.isFinite(value) || value < minimum) throw new Error(`${key} is invalid.`); return value; };
+  try {
+    const payload = {
+      brand_name: String(body.brand_name || 'Dino Coach').trim(), rules_version: String(body.rules_version || '').trim(),
+      entry_fee_cents: numeric('entry_fee_cents', 1), minimum_age: numeric('minimum_age', 18),
+      notification_recipients: Array.isArray(body.notification_recipients) ? body.notification_recipients.map(String).map((v: string) => v.trim()).filter(Boolean) : [],
+      budget_dino_dollars: numeric('budget_dino_dollars', 1), initial_price_floor_dino_dollars: numeric('initial_price_floor_dino_dollars', 1),
+      initial_price_ceiling_dino_dollars: numeric('initial_price_ceiling_dino_dollars', 1), price_point_value_dino_dollars: numeric('price_point_value_dino_dollars', 1),
+      price_changes_start_round: numeric('price_changes_start_round', 1), round_robin_prize_dino_dollars: numeric('round_robin_prize_dino_dollars', 0),
+      squad_value_prize_label: String(body.squad_value_prize_label || '').trim(), squad_value_prize_description: String(body.squad_value_prize_description || '').trim() || null,
+      pilot_notice: String(body.pilot_notice || '').trim(), blocked_team_name_terms: Array.isArray(body.blocked_team_name_terms) ? body.blocked_team_name_terms.map(String) : [],
+      transfer_timezone: 'Australia/Melbourne', transfer_open_weekday: 1, transfer_open_minute: 540, transfer_close_weekday: 6, transfer_close_minute: 660,
+      slot_counts: body.slot_counts, scoring_config: body.scoring_config, rollover_strategy: String(body.rollover_strategy || 'previous_regular_season'),
+      updated_by: user.id,
+    };
+    if (!payload.rules_version || !payload.pilot_notice || payload.initial_price_ceiling_dino_dollars < payload.initial_price_floor_dino_dollars) throw new Error('Rules version, pilot notice and a valid floor/ceiling are required.');
+    const supabase = createServerClient(); const saved = await supabase.from('fantasy_dino_settings').update(payload).eq('season_id', season.id).select().single();
+    if (saved.error) throw new Error(saved.error.message);
+    const flags = await supabase.rpc('set_dino_coach_launch_state', { target_season_id: season.id, launch_enabled: body.public_launch_enabled === true, registration_enabled: body.registration_open === true, selection_enabled: body.team_selection_open === true });
+    if (flags.error) throw new Error(flags.error.message);
+    return NextResponse.json({ success: true, settings: saved.data, readiness: await getDinoReleaseReadiness(season.id) });
+  } catch (error) { return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not save Dino Coach settings.' }, { status: 400 }); }
 }

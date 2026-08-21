@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { buildMigrationPreview, reconcileLegacyStat, summariseReconciliation, toCsv, type PlayHQCandidateInput } from '@/lib/fantasy-historical-reconciliation';
+import { getDinoReleaseReadiness } from '@/lib/dino-coach/server';
 
 export const dynamic = 'force-dynamic';
 const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
@@ -47,7 +48,20 @@ export async function GET(request: Request) {
   }
   const { data: runs, error } = await supabase.from('fantasy_historical_reconciliation_runs').select(RUN_COLUMNS).order('created_at', { ascending: false }).limit(20);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: noStore });
-  return NextResponse.json({ success: true, runs }, { headers: noStore });
+  const { data: current } = await supabase.from('fantasy_seasons').select('id').eq('is_current', true).single();
+  let dinoPlayers: any[] = []; let readiness = null;
+  if (current) {
+    const [memberships, prices, audits] = await Promise.all([
+      supabase.from('fantasy_season_players').select('player_id,stats_status,prior_regular_appearances,prior_average_points,fantasy_players(display_name,playhq_player_id,is_international)').eq('season_id', current.id).eq('active', true).eq('selectable', true),
+      supabase.from('fantasy_player_prices').select('player_id,price_dino_dollars,source_status,published_at,calculation,created_at').eq('season_id', current.id).order('created_at', { ascending: false }),
+      supabase.from('fantasy_player_identity_audit').select('player_id,playhq_player_id,decision,detail,created_at').eq('season_id', current.id).order('created_at', { ascending: false }),
+    ]);
+    const latestPrice = new Map<string, any>(); for (const price of prices.data || []) if (!latestPrice.has(price.player_id)) latestPrice.set(price.player_id, price);
+    const latestAudit = new Map<string, any>(); for (const audit of audits.data || []) if (audit.player_id && !latestAudit.has(audit.player_id)) latestAudit.set(audit.player_id, audit);
+    dinoPlayers = (memberships.data || []).map((row: any) => ({ ...row, ...row.fantasy_players, price: latestPrice.get(row.player_id) || null, identity: latestAudit.get(row.player_id) || null }));
+    readiness = await getDinoReleaseReadiness(current.id).catch(() => null);
+  }
+  return NextResponse.json({ success: true, runs, dinoPlayers, readiness }, { headers: noStore });
 }
 
 export async function POST(request: Request) {

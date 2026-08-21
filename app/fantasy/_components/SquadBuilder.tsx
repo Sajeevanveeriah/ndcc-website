@@ -4,90 +4,71 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Card, { CardContent } from '@/components/ui/Card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { fantasyJsonFetch } from '@/lib/fantasy-browser';
 import { useSeasonParam } from './useSeasonParam';
-import CarryoverPanel from './CarryoverPanel';
 
-type Player = { id: string; display_name: string; role: 'WK' | 'BAT' | 'AR' | 'BOWL'; team_label: string | null; price_million: number };
-type Selection = { playerId: string; positionType: 'starter' | 'bench'; benchOrder: number | null; isCaptain: boolean; isViceCaptain: boolean };
+type Role = 'BAT' | 'AR' | 'WK' | 'BOWL';
+type Player = { id: string; display_name: string; team_label: string | null; price_dino_dollars: number; source_status: string; published_at: string | null };
+type Slot = { key: string; role: Role; positionType: 'starter' | 'bench'; label: string; order: number };
+type Pick = { slotKey: string; playerId: string; assignedRole: Role; positionType: 'starter' | 'bench'; isCaptain: boolean; isViceCaptain: boolean; purchasePriceDinoDollars: number };
+
+function money(value: number) { return `${Math.round(value).toLocaleString('en-AU')} Dino Dollars`; }
 
 export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: boolean }) {
-  const { season, query } = useSeasonParam();
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [selection, setSelection] = useState<Selection[]>([]);
-  const [settings, setSettings] = useState<any>(null);
-  const [squadStatus, setSquadStatus] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+  const { query } = useSeasonParam();
+  const [players, setPlayers] = useState<Player[]>([]); const [slots, setSlots] = useState<Slot[]>([]);
+  const [selection, setSelection] = useState<Pick[]>([]); const [settings, setSettings] = useState<any>(null);
+  const [search, setSearch] = useState(''); const [sort, setSort] = useState('name'); const [selectedPlayer, setSelectedPlayer] = useState('');
+  const [feedback, setFeedback] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    fantasyJsonFetch<any>(`/api/fantasy/squad${query}`)
-      .then((result) => {
-        setPlayers(result.players ?? []);
-        setSettings(result.settings);
-        setSquadStatus(result.squad?.status ?? null);
-        const saved = result.squad?.fantasy_squad_players?.map((item: any) => ({ playerId: item.player_id, positionType: item.position_type, benchOrder: item.bench_order, isCaptain: item.is_captain, isViceCaptain: item.is_vice_captain })) ?? [];
-        setSelection(saved);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [query, reloadKey]);
+  useEffect(() => { setLoading(true); fantasyJsonFetch<any>(`/api/fantasy/squad${query}`).then((result) => {
+    setPlayers(result.players || []); setSlots(result.slots || []); setSettings(result.settings);
+    setSelection((result.squad?.fantasy_squad_players || []).map((item: any) => ({
+      slotKey: item.slot_key, playerId: item.player_id, assignedRole: item.assigned_role, positionType: item.position_type,
+      isCaptain: item.is_captain, isViceCaptain: item.is_vice_captain, purchasePriceDinoDollars: Number(item.purchase_price_dino_dollars),
+    })));
+  }).catch((reason) => setError(reason.message)).finally(() => setLoading(false)); }, [query]);
 
   const selectedIds = useMemo(() => new Set(selection.map((item) => item.playerId)), [selection]);
-  const selectedPlayers = selection.map((item) => players.find((player) => player.id === item.playerId)).filter(Boolean) as Player[];
-  const budgetUsed = selectedPlayers.reduce((total, player) => total + player.price_million, 0);
+  const filtered = useMemo(() => players.filter((player) => player.display_name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => sort === 'price-high' ? b.price_dino_dollars - a.price_dino_dollars : sort === 'price-low' ? a.price_dino_dollars - b.price_dino_dollars : a.display_name.localeCompare(b.display_name)), [players, search, sort]);
+  const used = selection.reduce((sum, item) => sum + item.purchasePriceDinoDollars, 0);
+  const remaining = Number(settings?.budget_dino_dollars || 0) - used;
 
-  const togglePlayer = (player: Player) => {
-    if (readonlyMode) return;
-    if (selectedIds.has(player.id)) setSelection((prev) => prev.filter((item) => item.playerId !== player.id));
-    else setSelection((prev) => [...prev, { playerId: player.id, positionType: prev.filter((item) => item.positionType === 'starter').length < 11 ? 'starter' : 'bench', benchOrder: null, isCaptain: false, isViceCaptain: false }]);
+  const assign = (slot: Slot, playerId: string) => {
+    if (readonlyMode || !playerId) return;
+    const player = players.find((candidate) => candidate.id === playerId);
+    if (!player || !player.published_at || player.price_dino_dollars <= 0) { setError('That player does not yet have a published Dino Dollar price.'); return; }
+    setError(''); setSelection((current) => [...current.filter((item) => item.slotKey !== slot.key && item.playerId !== playerId), {
+      slotKey: slot.key, playerId, assignedRole: slot.role, positionType: slot.positionType,
+      isCaptain: false, isViceCaptain: false, purchasePriceDinoDollars: player.price_dino_dollars,
+    }]);
+    setFeedback(`${player.display_name} assigned to ${slot.label}.`);
   };
+  const mark = (slotKey: string, kind: 'captain' | 'vice') => setSelection((current) => current.map((item) => ({ ...item,
+    isCaptain: kind === 'captain' ? item.slotKey === slotKey : item.isCaptain,
+    isViceCaptain: kind === 'vice' ? item.slotKey === slotKey : item.isViceCaptain,
+  })));
+  const save = async (mode: 'draft' | 'submit') => { setSaving(true); setError(''); try {
+    await fantasyJsonFetch('/api/fantasy/squad', { method: 'POST', body: JSON.stringify({ selection, mode }) });
+    setFeedback(mode === 'draft' ? 'Dino Coach draft saved.' : 'Dino Coach squad submitted.');
+  } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save squad.'); } finally { setSaving(false); } };
 
-  const updateSelection = (playerId: string, patch: Partial<Selection>) => setSelection((prev) => prev.map((item) => item.playerId === playerId ? { ...item, ...patch } : item));
+  if (loading) return <Card><CardContent className="p-6"><p role="status">Loading Dino Coach squad builder...</p></CardContent></Card>;
+  if (/sign in/i.test(error)) return <Card><CardContent className="p-6"><p className="mb-4">Sign in to manage your Dino Coach squad.</p><Link href="/fantasy/login" className="btn-primary">Sign in</Link></CardContent></Card>;
+  return <div className="space-y-6">
+    <Card><CardContent className="p-5"><div className="grid gap-4 sm:grid-cols-3 font-body"><div><strong>Squad</strong><br />{selection.length}/15</div><div><strong>Budget remaining</strong><br /><span className={remaining < 0 ? 'text-red-700' : ''}>{money(remaining)}</span></div><div><strong>Captain / vice</strong><br />{selection.some((p) => p.isCaptain) ? 'Captain set' : 'Needed'} / {selection.some((p) => p.isViceCaptain) ? 'Vice set' : 'Needed'}</div></div><p className="mt-4 text-sm text-content-muted">Any real NDCC player can fill any fantasy slot. The slot controls scoring. The playing XI scores; the bench scores zero.</p></CardContent></Card>
+    {!settings?.team_selection_open && <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950" role="status"><strong>Team selection is closed.</strong> The committee will open it only after every player identity and price passes release checks.</div>}
+    <Card><CardContent className="p-5"><h2 className="text-xl font-display font-bold mb-4">Player catalogue</h2><div className="grid gap-3 md:grid-cols-[1fr_12rem] mb-4"><label className="font-body text-sm">Search by player name<input className="form-input mt-1 w-full" type="search" value={search} onChange={(e) => setSearch(e.target.value)} /></label><label className="font-body text-sm">Sort<select className="form-input mt-1 w-full" value={sort} onChange={(e) => setSort(e.target.value)}><option value="name">Name</option><option value="price-high">Price: high to low</option><option value="price-low">Price: low to high</option></select></label></div><label className="font-body text-sm">Player for keyboard/touch assignment<select className="form-input mt-1 w-full" value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)}><option value="">Choose a player</option>{filtered.map((player) => <option key={player.id} value={player.id} disabled={selectedIds.has(player.id) || !player.published_at}>{player.display_name} - {player.published_at ? money(player.price_dino_dollars) : 'price awaiting publication'}</option>)}</select></label><div className="mt-4 max-h-64 overflow-y-auto rounded-lg border"><ul className="divide-y">{filtered.map((player) => <li key={player.id} draggable={!readonlyMode && Boolean(player.published_at)} onDragStart={(event) => event.dataTransfer.setData('text/player-id', player.id)} className="flex items-center justify-between gap-3 p-3"><span><strong>{player.display_name}</strong><span className="block text-xs text-content-muted">{player.team_label || 'NDCC'}</span></span><span className="text-sm text-right">{player.published_at ? money(player.price_dino_dollars) : 'Awaiting verified price'}</span></li>)}</ul></div></CardContent></Card>
+    <div aria-live="polite" className="min-h-6 text-sm font-body">{error ? <span className="text-red-700">{error}</span> : <span className="text-green-700">{feedback}</span>}</div>
+    <section aria-labelledby="xi-title"><h2 id="xi-title" className="section-title">Playing XI</h2><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{slots.filter((s) => s.positionType === 'starter').map((slot) => <SlotBox key={slot.key} slot={slot} pick={selection.find((p) => p.slotKey === slot.key)} players={players} selectedPlayer={selectedPlayer} readonlyMode={readonlyMode} onAssign={assign} onRemove={() => setSelection((items) => items.filter((p) => p.slotKey !== slot.key))} onCaptain={() => mark(slot.key, 'captain')} onVice={() => mark(slot.key, 'vice')} />)}</div></section>
+    <section aria-labelledby="bench-title"><h2 id="bench-title" className="section-title">Bench - zero points</h2><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{slots.filter((s) => s.positionType === 'bench').map((slot) => <SlotBox key={slot.key} slot={slot} pick={selection.find((p) => p.slotKey === slot.key)} players={players} selectedPlayer={selectedPlayer} readonlyMode={readonlyMode} onAssign={assign} onRemove={() => setSelection((items) => items.filter((p) => p.slotKey !== slot.key))} />)}</div></section>
+    {!readonlyMode && <div className="flex flex-wrap gap-3"><Button onClick={() => save('submit')} disabled={saving || !settings?.team_selection_open}>Submit squad</Button><Button variant="secondary" onClick={() => save('draft')} disabled={saving || !settings?.team_selection_open}>Save draft</Button></div>}
+  </div>;
+}
 
-  const save = async (mode: 'draft' | 'submit') => {
-    setFeedback(null); setError(null); setSaving(true);
-    try {
-      await fantasyJsonFetch('/api/fantasy/squad', { method: 'POST', body: JSON.stringify({ selection, mode, season: season || undefined }) });
-      setSquadStatus(mode === 'draft' ? 'draft' : 'submitted');
-      setFeedback(mode === 'draft' ? 'Draft saved. Submit your final squad before the round deadline.' : 'Squad saved and submitted.');
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not save squad.'); }
-    finally { setSaving(false); }
-  };
-
-  if (loading) return <Card><CardContent className="p-6">Loading fantasy squad tools…</CardContent></Card>;
-  if (error && error.includes('sign in')) return <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">Sign in to manage your squad.</p><Link href="/fantasy/login" className="btn-primary">Sign in</Link></CardContent></Card>;
-  if (error && error.includes('manager profile')) return <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">You are signed in, but you need a fantasy manager profile before building a squad.</p><Link href="/fantasy/account" className="btn-primary">Create your fantasy manager profile</Link></CardContent></Card>;
-
-  if (readonlyMode && selection.length === 0) return <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">No squad submitted yet. Build and save your 15-player squad to see it here.</p><Link href="/fantasy/squad" className="btn-primary">Build my squad</Link></CardContent></Card>;
-
-  return (
-    <div className="space-y-6">
-      {!readonlyMode && <CarryoverPanel onApplied={() => setReloadKey((value) => value + 1)} />}
-      <Card><CardContent className="p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-body"><div><strong>Squad</strong><br />{selection.length}/15</div><div><strong>Starters</strong><br />{selection.filter((item) => item.positionType === 'starter').length}/11</div><div><strong>Bench</strong><br />{selection.filter((item) => item.positionType === 'bench').length}/4</div><div><strong>Budget</strong><br />{budgetUsed.toFixed(1)} / {Number(settings?.squad_budget ?? 100).toFixed(1)}</div></div><p className="mt-4 text-sm text-content-muted font-body">Select exactly 2 WK, 5 BAT, 3 AR and 5 BOWL. Captain and vice-captain must be starters. Bench players need order 1–4.</p></CardContent></Card>
-      {feedback && <p className="text-green-700 font-body">{feedback}</p>}{error && <p className="text-red-600 font-body">{error}</p>}
-      <Table><TableHead><TableRow><TableHeader>Pick</TableHeader><TableHeader>Player</TableHeader><TableHeader>Role</TableHeader><TableHeader>Price</TableHeader><TableHeader>Position</TableHeader><TableHeader>Captain</TableHeader><TableHeader>Vice</TableHeader><TableHeader>Bench order</TableHeader></TableRow></TableHead><TableBody>{players.map((player) => {
-        const item = selection.find((entry) => entry.playerId === player.id);
-        return <TableRow key={player.id}><TableCell><input type="checkbox" checked={Boolean(item)} disabled={readonlyMode} onChange={() => togglePlayer(player)} aria-label={`Select ${player.display_name}`} /></TableCell><TableCell className="font-medium">{player.display_name}<div className="text-xs text-content-muted">{player.team_label || 'NDCC'}</div></TableCell><TableCell><Badge>{player.role}</Badge></TableCell><TableCell>{player.price_million.toFixed(1)}</TableCell><TableCell>{item ? <select className="form-input min-w-28" disabled={readonlyMode} value={item.positionType} onChange={(event) => updateSelection(player.id, { positionType: event.target.value as any, benchOrder: event.target.value === 'starter' ? null : item.benchOrder })}><option value="starter">Starter</option><option value="bench">Bench</option></select> : '—'}</TableCell><TableCell>{item ? <input type="radio" name="captain" disabled={readonlyMode} checked={item.isCaptain} onChange={() => setSelection((prev) => prev.map((entry) => ({ ...entry, isCaptain: entry.playerId === player.id })))} /> : '—'}</TableCell><TableCell>{item ? <input type="radio" name="vice" disabled={readonlyMode} checked={item.isViceCaptain} onChange={() => setSelection((prev) => prev.map((entry) => ({ ...entry, isViceCaptain: entry.playerId === player.id })))} /> : '—'}</TableCell><TableCell>{item?.positionType === 'bench' ? <input className="form-input w-20" type="number" min="1" max="4" disabled={readonlyMode} value={item.benchOrder ?? ''} onChange={(event) => updateSelection(player.id, { benchOrder: Number(event.target.value) })} /> : '—'}</TableCell></TableRow>;
-      })}</TableBody></Table>
-      {!readonlyMode && (
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <Button onClick={() => save('submit')} disabled={saving}>Submit squad</Button>
-          <Button variant="secondary" onClick={() => save('draft')} disabled={saving}>Save draft</Button>
-          {squadStatus && (
-            <span className="font-body text-sm text-content-muted">
-              Current status: <strong className={squadStatus === 'submitted' ? 'text-green-700' : 'text-amber-700'}>{squadStatus}</strong>
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
+function SlotBox({ slot, pick, players, selectedPlayer, readonlyMode, onAssign, onRemove, onCaptain, onVice }: { slot: Slot; pick?: Pick; players: Player[]; selectedPlayer: string; readonlyMode: boolean; onAssign: (slot: Slot, playerId: string) => void; onRemove: () => void; onCaptain?: () => void; onVice?: () => void }) {
+  const player = players.find((candidate) => candidate.id === pick?.playerId);
+  return <Card><CardContent className="p-4 min-h-44"><div onDragOver={(e) => e.preventDefault()} onDrop={(e) => onAssign(slot, e.dataTransfer.getData('text/player-id'))}><p className="text-xs font-bold uppercase tracking-wide text-content-muted">{slot.key}</p><h3 className="font-display text-lg font-bold">{slot.label}</h3>{player ? <div className="mt-3"><p className="font-semibold">{player.display_name}</p><p className="text-sm text-content-muted">{money(pick?.purchasePriceDinoDollars || 0)}</p>{slot.positionType === 'starter' && <div className="mt-3 flex gap-2"><button type="button" className={`rounded px-3 py-2 text-sm ${pick?.isCaptain ? 'bg-maroon-800 text-white' : 'border'}`} onClick={onCaptain} disabled={readonlyMode}>Captain</button><button type="button" className={`rounded px-3 py-2 text-sm ${pick?.isViceCaptain ? 'bg-maroon-800 text-white' : 'border'}`} onClick={onVice} disabled={readonlyMode}>Vice</button></div>}<button type="button" className="mt-3 text-sm font-semibold text-maroon-700 hover:underline" onClick={onRemove} disabled={readonlyMode}>Remove</button></div> : <div className="mt-4"><p className="text-sm text-content-muted">Drop a player here or use the accessible assignment control.</p><button type="button" className="btn-secondary mt-3 w-full" disabled={readonlyMode || !selectedPlayer} onClick={() => onAssign(slot, selectedPlayer)}>Assign selected player</button></div>}</div></CardContent></Card>;
 }

@@ -3,10 +3,6 @@ name: PR validation
 # Release-protection workflow: every pull request (and push to main) must
 # pass lint, deterministic test suites, database-backed migration tests,
 # the migration-history consistency check, and a production build.
-#
-# Recommended branch protection for `main` (repository settings - cannot be
-# set from a workflow file): require the "validate" and "database-tests"
-# checks to pass before merging.
 
 on:
   pull_request:
@@ -35,6 +31,7 @@ jobs:
       - run: npm run test:cms-navigation
       - run: npm run test:committee-auth-schema
       - run: npm run test:core-schema
+      - run: node --experimental-strip-types scripts/test-dino-coach.mjs
       - run: npm run lint
       - run: npm run check:migrations
       - run: npm run check:assets
@@ -102,6 +99,4 @@ jobs:
       - name: Dependency audit (critical = blocking)
         run: npm audit --audit-level=critical
       - name: Dependency audit (high = informational)
-        # Known highs currently require a breaking next@16 upgrade; those are
-        # reviewed manually rather than auto-applied.
         run: npm audit --audit-level=high || true

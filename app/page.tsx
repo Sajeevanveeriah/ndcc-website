@@ -703,7 +703,7 @@ function FantasyTeaserSection() {
             <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
               <div>
                 <span className="section-eyebrow">Dinos Fantasy</span>
-                <h2 className="section-title">Fantasy Cricket League</h2>
+                <h2 className="section-title">Dino Coach</h2>
                 <p className="section-subtitle mb-5">
                   Back your judgement against the rest of the club. Pick a squad of real NDCC
                   players, captain your stars, and score points from actual match performances
@@ -711,7 +711,7 @@ function FantasyTeaserSection() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link href="/fantasy" className="btn-primary">
-                    Play Fantasy Cricket
+                    Play Dino Coach
                   </Link>
                   <Link href="/fantasy/leaderboard" className="btn-secondary">
                     View Leaderboard

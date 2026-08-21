@@ -98,7 +98,7 @@ export default function AdminFantasyImportPage() {
           Fantasy CSV Import
         </h1>
         <p className="text-content-muted font-body mt-1">
-          Validate manual match-stat CSV files and save admin-only draft imports for future Fantasy Cricket scoring.
+          Validate manual match-stat CSV files and save admin-only draft imports for Dino Coach scoring.
         </p>
       </div>
 

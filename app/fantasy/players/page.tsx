@@ -12,8 +12,8 @@ import { getSeasonPageContext, seasonStatusLabel, type FantasySeason } from '@/l
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Fantasy Player List',
-  description: 'View available NDCC Fantasy Cricket players, roles, teams, and prices.',
+  title: 'Dino Coach Player Catalogue',
+  description: 'Search NDCC players and published Dino Dollar prices.',
 };
 
 
@@ -55,9 +55,9 @@ export default async function FantasyPlayersPage({ searchParams }: { searchParam
       <div className="container-width">
         <FantasyBackLink />
         <div className="mb-8 max-w-3xl">
-          <h1 className="section-title">Fantasy Player List</h1>
+          <h1 className="section-title">Dino Coach player catalogue</h1>
           <p className="font-body text-content-secondary leading-relaxed">
-            Browse active fantasy players published by the club, including role, team or grade label, and current fantasy price.
+            Search every current selectable NDCC player and compare published Dino Dollar prices. A player&apos;s real-world role never limits their fantasy slot.
           </p>
         </div>
         <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -72,12 +72,12 @@ export default async function FantasyPlayersPage({ searchParams }: { searchParam
             title="We couldn&rsquo;t load the player list"
             retryHref="/fantasy/players"
             backHref="/fantasy"
-            backLabel="Back to Fantasy Cricket"
+            backLabel="Back to Dino Coach"
           />
         ) : players.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <h2 className="text-xl font-display font-bold text-content-primary mb-2">No active fantasy players published yet</h2>
+              <h2 className="text-xl font-display font-bold text-content-primary mb-2">No Dino Coach players published yet</h2>
               <p className="font-body text-content-secondary">
                 The player list appears after club admins publish active fantasy players and prices.
               </p>

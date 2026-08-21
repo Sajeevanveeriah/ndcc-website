@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
     { label: 'Published Events', value: stats.publishedEvents, icon: Calendar, href: '/admin/events', colour: 'bg-green-50 text-green-700' },
     { label: 'News Articles', value: stats.totalNews, icon: Newspaper, href: '/admin/news', colour: 'bg-purple-50 text-purple-700' },
     { label: 'Active Sponsors', value: stats.activeSponsors, icon: Handshake, href: '/admin/sponsors', colour: 'bg-maroon-50 dark:bg-maroon-950 text-maroon-700 dark:text-maroon-200' },
-    { label: 'Fantasy Cricket', value: 'Admin', icon: Trophy, href: '/admin/fantasy', colour: 'bg-surface-blue-subtle text-content-blue' },
+    { label: 'Dino Coach', value: 'Admin', icon: Trophy, href: '/admin/fantasy', colour: 'bg-surface-blue-subtle text-content-blue' },
     { label: 'Site Settings', value: 'CMS', icon: Settings, href: '/admin/site-pages', colour: 'bg-surface-page text-content-secondary' },
     { label: 'Email Diagnostics', value: 'Test', icon: Mail, href: '/admin/email-diagnostics', colour: 'bg-indigo-50 text-indigo-700' },
     { label: 'Media Diagnostics', value: 'Test', icon: Settings, href: '/admin/media-diagnostics', colour: 'bg-teal-50 text-teal-700' },

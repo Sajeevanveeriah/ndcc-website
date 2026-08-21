@@ -8,6 +8,7 @@
 // upserts into a draft import batch that admins review and publish.
 import 'server-only';
 import { createServerClient } from '@/lib/supabase-server';
+import { classifyRoundKind, fantasyWeekFromMatchDate, resolveExactIdentityCandidate } from '@/lib/dino-coach/domain';
 import { getPlayHQGameSummary, getPlayHQGradeFixtureRaw, getPlayHQTeamFixtureRaw, getPlayHQTeams } from './client';
 import { isClubTeamName } from './season-match';
 import { normaliseFixtures } from './normalise';
@@ -274,24 +275,39 @@ async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayer
   let playerId: string | null = byId?.id ?? null;
 
   if (!playerId) {
-    const { data: byName } = await supabase.from('fantasy_players').select('id, playhq_player_id').ilike('display_name', line.display_name).limit(1).maybeSingle();
-    if (byName && byName.playhq_player_id && byName.playhq_player_id !== line.playhq_player_id) {
-      reviewItems.push({ type: 'duplicate_name', playerId: line.playhq_player_id, detail: `PlayHQ player ${line.display_name} (${line.playhq_player_id}) clashes with an existing player of the same name linked to a different PlayHQ id. Review before importing their stats.` });
-      return null;
-    }
-    if (byName) {
-      // Same display name, no PlayHQ id on file: review-only fallback, never auto-link.
-      reviewItems.push({ type: 'name_match_review', playerId: line.playhq_player_id, detail: `PlayHQ player ${line.display_name} (${line.playhq_player_id}) matches an existing unlinked player by name only. Confirm the link in player review, then re-run the sync.` });
-      return null;
-    }
-    const { data: created, error: createError } = await supabase
+    const { data: roster, error: rosterError } = await supabase
       .from('fantasy_players')
-      .insert({ display_name: line.display_name, playhq_player_id: line.playhq_player_id, role: 'UNASSIGNED', team_label: line.team_name || null, active: true })
-      .select('id')
-      .single();
-    if (createError || !created) throw new Error(createError?.message || `Could not create player ${line.display_name}.`);
-    playerId = created.id;
-    counts.created += 1;
+      .select('id, display_name, playhq_player_id')
+      .eq('active', true);
+    if (rosterError) throw new Error(rosterError.message);
+    const decision = resolveExactIdentityCandidate(line.display_name, (roster ?? []).map((candidate: any) => ({ id: candidate.id, displayName: candidate.display_name })));
+    if (decision.status === 'ambiguous') {
+      reviewItems.push({ type: 'ambiguous_exact_name', playerId: line.playhq_player_id, detail: `PlayHQ player ${line.display_name} (${line.playhq_player_id}) matches more than one NDCC roster identity. Manual review is required.` });
+      return null;
+    }
+    if (decision.status === 'unmatched' || !decision.playerId) {
+      reviewItems.push({ type: 'unmatched_player', playerId: line.playhq_player_id, detail: `PlayHQ player ${line.display_name} (${line.playhq_player_id}) has no unique exact NDCC roster match. No player was created automatically.` });
+      return null;
+    }
+    const rosterPlayer = (roster ?? []).find((candidate: any) => candidate.id === decision.playerId);
+    if (rosterPlayer?.playhq_player_id && rosterPlayer.playhq_player_id !== line.playhq_player_id) {
+      reviewItems.push({ type: 'duplicate_source_link', playerId: line.playhq_player_id, detail: `NDCC player ${line.display_name} is already linked to a different PlayHQ player id. Manual review is required.` });
+      return null;
+    }
+    const { error: linkError } = await supabase.from('fantasy_players').update({ playhq_player_id: line.playhq_player_id }).eq('id', decision.playerId).is('playhq_player_id', null);
+    if (linkError) throw new Error(linkError.message);
+    playerId = decision.playerId;
+    const { error: auditError } = await supabase.from('fantasy_player_identity_audit').upsert({
+      season_id: seasonId,
+      player_id: playerId,
+      playhq_player_id: line.playhq_player_id,
+      playhq_display_name: line.display_name,
+      local_display_name: rosterPlayer?.display_name ?? line.display_name,
+      decision: 'unique_normalised_name',
+      detail: `Unique exact normalised-name match in ${gradeName}.`,
+    }, { onConflict: 'season_id,playhq_player_id,player_id,decision' });
+    if (auditError) throw new Error(auditError.message);
+    counts.matched += 1;
   } else {
     counts.matched += 1;
   }
@@ -316,35 +332,71 @@ async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayer
   return playerId;
 }
 
-async function ensureRound(supabase: any, seasonId: string, roundNumber: number, roundName: string) {
+async function ensureRound(
+  supabase: any,
+  seasonId: string,
+  seasonStartDate: string | null,
+  gradeId: string,
+  sourceRoundNumber: number,
+  sourceRoundName: string,
+  matchDate: string | null,
+) {
+  const fantasyWeek = matchDate && seasonStartDate
+    ? fantasyWeekFromMatchDate(matchDate, seasonStartDate)
+    : sourceRoundNumber;
+  if (!fantasyWeek) throw new Error(`Could not map ${sourceRoundName} to a Dino Coach week.`);
+  const roundContract = classifyRoundKind(sourceRoundName);
   const readRound = () => supabase
     .from('fantasy_rounds')
     .select('id')
     .eq('season_id', seasonId)
-    .eq('round_number', roundNumber)
+    .eq('round_number', fantasyWeek)
     .limit(1)
     .maybeSingle();
 
   const { data: existing } = await readRound();
-  if (existing) return existing.id as string;
-  const { data: created, error } = await supabase
-    .from('fantasy_rounds')
-    .insert({ season_id: seasonId, round_number: roundNumber, name: roundName, status: 'draft' })
-    .select('id')
-    .single();
-  if (error) {
-    // Idempotency under races or stale reads: if the round already exists
-    // (unique on season_id + round_number), adopt it instead of failing the
-    // game import. Production evidence 2026-07-16: stale cached reads made
-    // the pre-check miss rounds created seconds earlier, failing 10 games.
-    if (error.code === '23505' || /duplicate key/i.test(error.message || '')) {
-      const { data: after } = await readRound();
-      if (after) return after.id as string;
+  let roundId = existing?.id as string | undefined;
+  if (!roundId) {
+    const { data: created, error } = await supabase
+      .from('fantasy_rounds')
+      .insert({
+        season_id: seasonId,
+        round_number: fantasyWeek,
+        name: roundContract.pricingEligible ? `Dino Coach Week ${fantasyWeek}` : sourceRoundName,
+        status: 'draft',
+        round_kind: roundContract.roundKind,
+        pricing_eligible: roundContract.pricingEligible,
+      })
+      .select('id')
+      .single();
+    roundId = created?.id as string | undefined;
+    if (error) {
+      // Idempotency under races or stale reads: if the round already exists
+      // (unique on season_id + round_number), adopt it instead of failing the
+      // game import. Production evidence 2026-07-16: stale cached reads made
+      // the pre-check miss rounds created seconds earlier, failing 10 games.
+      if (error.code === '23505' || /duplicate key/i.test(error.message || '')) {
+        const { data: after } = await readRound();
+        if (after) roundId = after.id as string;
+        else throw new Error(error.message || `Could not create Dino Coach week ${fantasyWeek}.`);
+      } else {
+        throw new Error(error.message || `Could not create Dino Coach week ${fantasyWeek}.`);
+      }
     }
-    throw new Error(error.message || `Could not create round ${roundNumber}.`);
   }
-  if (!created) throw new Error(`Could not create round ${roundNumber}.`);
-  return created.id as string;
+  if (!roundId) throw new Error(`Could not resolve Dino Coach week ${fantasyWeek}.`);
+  const { error: sourceError } = await supabase.from('fantasy_playhq_round_sources').upsert({
+    season_id: seasonId,
+    playhq_grade_id: gradeId,
+    playhq_round_number: sourceRoundNumber,
+    playhq_round_name: sourceRoundName,
+    match_date: matchDate,
+    fantasy_round_id: roundId,
+    round_kind: roundContract.roundKind,
+    pricing_eligible: roundContract.pricingEligible,
+  }, { onConflict: 'season_id,playhq_grade_id,playhq_round_number,playhq_round_name' });
+  if (sourceError) throw new Error(sourceError.message);
+  return roundId;
 }
 
 export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT_SYNC_BATCH_SIZE) {
@@ -355,6 +407,12 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
   if (['completed', 'cancelled', 'failed'].includes(job.status)) return { job, done: true, processed: 0 };
 
   const queue: QueueEntry[] = Array.isArray(job.game_queue) ? job.game_queue : [];
+  const { data: season, error: seasonError } = await supabase
+    .from('fantasy_seasons')
+    .select('start_date')
+    .eq('id', job.season_id)
+    .maybeSingle();
+  if (seasonError) throw new Error(seasonError.message);
   const counts = { created: 0, matched: 0, updated: 0, skipped: 0, warnings: 0, failed: 0, ...(job.counts || {}) };
   const reviewItems: ReviewItem[] = Array.isArray(job.review_items) ? job.review_items : [];
   const errors: Array<{ gameId: string; message: string }> = Array.isArray(job.error_summary) ? job.error_summary : [];
@@ -373,8 +431,30 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
     try {
       const summary = await withRetries(() => getPlayHQGameSummary(entry.gameId));
       const lines = normaliseGameSummaryPlayers(summary);
-      const clubLines = lines.filter((line) => !line.team_name || /newcomb/i.test(line.team_name));
-      const roundId = await ensureRound(supabase, job.season_id, entry.roundNumber as number, entry.roundName || `Round ${entry.roundNumber}`);
+      if (!lines.length) {
+        reviewItems.push({
+          type: 'empty_game_summary',
+          gameId: entry.gameId,
+          detail: `Completed game ${entry.gameId} returned no player statistics and was quarantined instead of being counted as a successful contribution.`,
+        });
+        counts.warnings += 1;
+        continue;
+      }
+      const clubLines = lines.filter((line) => /newcomb/i.test(line.team_name || ''));
+      if (lines.length > 0 && clubLines.length === 0) {
+        reviewItems.push({ type: 'club_identity_missing', gameId: entry.gameId, detail: `Game ${entry.gameId} returned player statistics without an explicit Newcomb team identity. The game was quarantined to prevent opponent-player leakage.` });
+        counts.warnings += 1;
+        continue;
+      }
+      const roundId = await ensureRound(
+        supabase,
+        job.season_id,
+        season?.start_date ?? null,
+        entry.gradeId,
+        entry.roundNumber as number,
+        entry.roundName || `Round ${entry.roundNumber}`,
+        entry.matchDate,
+      );
       const opponent = /newcomb/i.test(entry.homeTeam) ? entry.awayTeam : entry.homeTeam;
 
       for (const line of clubLines) {

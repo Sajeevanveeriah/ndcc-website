@@ -10,6 +10,9 @@ export type PlayerListEntry = {
   role: string;
   team_label: string | null;
   price_million: number;
+  price_dino_dollars: number;
+  source_status: string;
+  published_at: string | null;
   total_points: number;
   matches_counted: number;
 };
@@ -29,11 +32,9 @@ function formScore(player: PlayerListEntry) {
 
 export default function PlayerListExplorer({ players, hasPublishedPoints }: { players: PlayerListEntry[]; hasPublishedPoints: boolean }) {
   const [search, setSearch] = useState('');
-  const [role, setRole] = useState('all');
   const [team, setTeam] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('name');
 
-  const roles = useMemo(() => Array.from(new Set(players.map((p) => p.role))).sort(), [players]);
   const teams = useMemo(
     () => Array.from(new Set(players.map((p) => p.team_label).filter((label): label is string => Boolean(label && label.trim())))).sort(),
     [players],
@@ -43,17 +44,16 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
     const query = search.trim().toLowerCase();
     const filtered = players.filter((player) => {
       if (query && !player.display_name.toLowerCase().includes(query)) return false;
-      if (role !== 'all' && player.role !== role) return false;
       if (team !== 'all' && (player.team_label || '') !== team) return false;
       return true;
     });
     const sorted = [...filtered];
     if (sortKey === 'name') sorted.sort((a, b) => a.display_name.localeCompare(b.display_name));
-    if (sortKey === 'price') sorted.sort((a, b) => b.price_million - a.price_million || a.display_name.localeCompare(b.display_name));
+    if (sortKey === 'price') sorted.sort((a, b) => b.price_dino_dollars - a.price_dino_dollars || a.display_name.localeCompare(b.display_name));
     if (sortKey === 'points') sorted.sort((a, b) => b.total_points - a.total_points || a.display_name.localeCompare(b.display_name));
     if (sortKey === 'form') sorted.sort((a, b) => formScore(b) - formScore(a) || a.display_name.localeCompare(b.display_name));
     return sorted;
-  }, [players, search, role, team, sortKey]);
+  }, [players, search, team, sortKey]);
 
   return (
     <div className="space-y-4">
@@ -67,15 +67,6 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-        </label>
-        <label className="block">
-          <span className="sr-only">Filter by role</span>
-          <select className="form-input w-full" value={role} onChange={(event) => setRole(event.target.value)}>
-            <option value="all">All roles</option>
-            {roles.map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </select>
         </label>
         {teams.length > 0 && (
           <label className="block">
@@ -113,7 +104,6 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
           <TableHead>
             <TableRow>
               <TableHeader>Player</TableHeader>
-              <TableHeader>Role</TableHeader>
               <TableHeader>Team / grade</TableHeader>
               <TableHeader>Price</TableHeader>
               {hasPublishedPoints && <TableHeader>Points</TableHeader>}
@@ -123,9 +113,8 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
             {visible.map((player) => (
               <TableRow key={player.id}>
                 <TableCell className="font-medium">{player.display_name}</TableCell>
-                <TableCell><Badge>{player.role}</Badge></TableCell>
                 <TableCell>{player.team_label || 'NDCC'}</TableCell>
-                <TableCell>{player.price_million.toFixed(1)}</TableCell>
+                <TableCell>{player.published_at ? `${player.price_dino_dollars.toLocaleString('en-AU')} Dino Dollars` : <Badge>Awaiting verified price</Badge>}</TableCell>
                 {hasPublishedPoints && (
                   <TableCell>
                     {player.matches_counted > 0 ? `${player.total_points} (${player.matches_counted} match${player.matches_counted === 1 ? '' : 'es'})` : '—'}

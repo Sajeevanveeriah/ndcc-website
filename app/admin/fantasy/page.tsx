@@ -5,8 +5,8 @@ import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch, Set
 const fantasySections = [
   {
     href: '/admin/fantasy/seasons',
-    title: 'Seasons & PlayHQ Sync',
-    description: 'Add fantasy seasons, map PlayHQ grades, run resumable stat imports and choose the current public season.',
+    title: 'Current Season & PlayHQ Sync',
+    description: 'Map current-season PlayHQ grades, run resumable scoring imports and control the live Dino Coach season.',
     icon: CalendarDays,
   },
   {
@@ -30,7 +30,7 @@ const fantasySections = [
   {
     href: '/admin/fantasy/players',
     title: 'Players',
-    description: 'Maintain the Fantasy Cricket player registry, roles, team labels, and active status.',
+    description: 'Maintain the Dino Coach player registry, source links, team labels, and active status.',
     icon: Users,
   },
   {
@@ -42,7 +42,7 @@ const fantasySections = [
   {
     href: '/admin/fantasy/scoring',
     title: 'Scoring',
-    description: 'Review and update the point values used by future Fantasy Cricket scoring calculations.',
+    description: 'Review and update the point values used by Dino Coach scoring calculations.',
     icon: SlidersHorizontal,
   },
   {
@@ -54,19 +54,19 @@ const fantasySections = [
   {
     href: '/admin/fantasy/import',
     title: 'CSV Import',
-    description: 'Validate match-stat CSV files and save draft Fantasy Cricket import batches.',
+    description: 'Validate match-stat CSV files and save draft Dino Coach import batches.',
     icon: Upload,
   },
   {
     href: '/admin/fantasy/imports',
     title: 'Import Review',
-    description: 'Review saved import batches, inspect stat rows, and publish or reject Fantasy Cricket scores.',
+    description: 'Review saved import batches, inspect stat rows, and publish or reject Dino Coach scores.',
     icon: FileSearch,
   },
   {
     href: '/admin/fantasy/reconciliation',
-    title: 'Historical Reconciliation',
-    description: 'Compare Legacy / Unverified stats with PlayHQ evidence, quarantine ambiguous rows and export reviewed proposals.',
+    title: 'Player & Price Evidence',
+    description: 'Reconcile every current player and retain prior-season evidence solely for auditable opening Dino Dollar prices.',
     icon: ShieldCheck,
   },
 ];
@@ -77,15 +77,15 @@ export default function AdminFantasyPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
           <Trophy className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
-          Fantasy Cricket
+          Dino Coach
         </h1>
         <p className="text-content-muted font-body mt-1">
-          Admin controls for NDCC Fantasy Cricket gameplay, imports, scoring and manager leaderboards.
+          Committee controls for Dino Coach players, imports, scoring, prices and manager leaderboards.
         </p>
       </div>
 
       <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
-        Use published import batches before calculating public manager scores. Fantasy manager accounts remain separate from committee admin users.
+        Use published import batches before calculating public manager scores. Dino Coach manager accounts remain separate from committee admin users.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

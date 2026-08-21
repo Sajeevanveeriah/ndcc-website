@@ -1,0 +1,33 @@
+CREATE TABLE IF NOT EXISTS fantasy_dino_settings (
+  season_id UUID PRIMARY KEY REFERENCES fantasy_seasons(id) ON DELETE CASCADE,
+  brand_name TEXT NOT NULL DEFAULT 'Dino Coach',
+  virtual_currency_name TEXT NOT NULL DEFAULT 'Dino Dollars',
+  rules_version TEXT NOT NULL DEFAULT '2026-27-rev01',
+  entry_fee_cents INTEGER NOT NULL DEFAULT 2500 CHECK (entry_fee_cents > 0),
+  entry_fee_currency TEXT NOT NULL DEFAULT 'AUD' CHECK (entry_fee_currency = 'AUD'),
+  minimum_age INTEGER NOT NULL DEFAULT 18 CHECK (minimum_age >= 18),
+  budget_dino_dollars BIGINT NOT NULL DEFAULT 2000000 CHECK (budget_dino_dollars > 0),
+  initial_price_floor_dino_dollars BIGINT NOT NULL DEFAULT 50000 CHECK (initial_price_floor_dino_dollars >= 0),
+  initial_price_ceiling_dino_dollars BIGINT NOT NULL DEFAULT 200000 CHECK (initial_price_ceiling_dino_dollars >= initial_price_floor_dino_dollars),
+  price_point_value_dino_dollars INTEGER NOT NULL DEFAULT 1000 CHECK (price_point_value_dino_dollars > 0),
+  rolling_baseline_weight NUMERIC(6,5) NOT NULL DEFAULT 0.5 CHECK (rolling_baseline_weight >= 0 AND rolling_baseline_weight <= 1),
+  rolling_recent_game_weight NUMERIC(6,5) NOT NULL DEFAULT 0.25 CHECK (rolling_recent_game_weight >= 0 AND rolling_recent_game_weight <= 1),
+  price_changes_start_round INTEGER NOT NULL DEFAULT 5 CHECK (price_changes_start_round >= 1),
+  transfer_timezone TEXT NOT NULL DEFAULT 'Australia/Melbourne',
+  transfer_open_weekday INTEGER NOT NULL DEFAULT 1 CHECK (transfer_open_weekday BETWEEN 1 AND 7),
+  transfer_open_minute INTEGER NOT NULL DEFAULT 540 CHECK (transfer_open_minute BETWEEN 0 AND 1439),
+  transfer_close_weekday INTEGER NOT NULL DEFAULT 6 CHECK (transfer_close_weekday BETWEEN 1 AND 7),
+  transfer_close_minute INTEGER NOT NULL DEFAULT 660 CHECK (transfer_close_minute BETWEEN 0 AND 1439),
+  round_robin_prize_dino_dollars INTEGER NOT NULL DEFAULT 500 CHECK (round_robin_prize_dino_dollars >= 0),
+  squad_value_prize_label TEXT NOT NULL DEFAULT 'Highest total squad value prize',
+  pilot_notice TEXT NOT NULL,
+  slot_counts JSONB NOT NULL,
+  scoring_config JSONB NOT NULL,
+  blocked_team_name_terms TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  registration_open BOOLEAN NOT NULL DEFAULT FALSE,
+  team_selection_open BOOLEAN NOT NULL DEFAULT FALSE,
+  public_launch_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_by UUID
+);
+ALTER TABLE fantasy_dino_settings ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON fantasy_dino_settings FROM anon, authenticated;

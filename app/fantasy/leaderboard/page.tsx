@@ -11,8 +11,8 @@ import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
 
 export const metadata: Metadata = {
-  title: 'Fantasy Cricket Leaderboard',
-  description: 'Published-only NDCC Fantasy Cricket player leaderboard.',
+  title: 'Dino Coach Leaderboard',
+  description: 'Published-only NDCC Dino Coach player leaderboard.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +51,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
     <>
       <section className="page-hero">
         <div className="container-width">
-          <span className="eyebrow-gold">{CLUB_SHORT} Fantasy Cricket</span>
+          <span className="eyebrow-gold">{CLUB_SHORT} Dino Coach</span>
           <h1 className="page-hero-title">Player Leaderboard</h1>
           <p className="page-hero-subtitle">
             Published fantasy import batches only. Draft, reviewed, and rejected imports are never shown here.
@@ -78,7 +78,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
                     <Trophy className="h-6 w-6 text-maroon-700 dark:text-maroon-200" aria-hidden="true" />
                     {selectedRound ? `Round ${selectedRound.roundNumber}: ${selectedRound.name}` : 'All rounds'}
                   </h2>
-                  <p className="text-content-muted font-body mt-1">Totals are recalculated from the current Fantasy Cricket scoring rules.</p>
+                  <p className="text-content-muted font-body mt-1">Totals are recalculated from the current Dino Coach scoring rules.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link href={roundHref(null, searchParams?.season)} className={`px-4 py-2 rounded-md font-body font-semibold text-sm ${!leaderboard.selectedRoundId ? 'bg-maroon-700 text-white' : 'border border-maroon-700 text-maroon-700 dark:text-maroon-200 hover:bg-maroon-50'}`}>
@@ -99,7 +99,7 @@ export default async function FantasyLeaderboardPage({ searchParams }: PageProps
               title="We couldn&rsquo;t load the leaderboard"
               retryHref={roundHref(searchParams?.round || null, searchParams?.season)}
               backHref="/fantasy"
-              backLabel="Back to Fantasy Cricket"
+              backLabel="Back to Dino Coach"
             />
           ) : leaderboard.rows.length === 0 ? (
             <Card>

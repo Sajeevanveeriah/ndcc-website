@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
+import { categoriseAdminSeasons } from '@/lib/fantasy-seasons';
 
 const STATUSES = ['draft', 'upcoming', 'active', 'completed', 'archived'];
 
@@ -76,6 +77,7 @@ export default function AdminFantasySeasonsPage() {
   }, done);
 
   const sourcesFor = (seasonId: string) => gradeSources.filter((source) => source.season_id === seasonId);
+  const seasonGroups = categoriseAdminSeasons(seasons);
 
   const loadHealth = useCallback(async () => {
     try {
@@ -122,7 +124,7 @@ export default function AdminFantasySeasonsPage() {
               <p className="text-xs font-body text-content-muted">
                 Scheduled sync {health.syncEnabled ? 'enabled' : <span className="font-semibold text-amber-700">explicitly disabled (remove PLAYHQ_FANTASY_SYNC_ENABLED=false in Vercel)</span>} · PlayHQ credentials {health.playhqConfigured ? 'configured' : <span className="font-semibold text-amber-700">missing</span>}
               </p>
-              {(health.seasons || []).filter((s: any) => s.auto_sync_enabled).map((s: any) => {
+              {(health.seasons || []).filter((s: any) => s.is_current && s.auto_sync_enabled).map((s: any) => {
                 const seasonJobs = (health.jobs || []).filter((j: any) => j.season_id === s.id);
                 const job = seasonJobs[0];
                 const grades = (health.gradeSources || []).filter((g: any) => g.season_id === s.id);
@@ -190,7 +192,7 @@ export default function AdminFantasySeasonsPage() {
       </Card>
 
       <div className="space-y-4">
-        {seasons.map((season) => {
+        {seasonGroups.operational.map((season) => {
           const jobs = jobsBySeason[season.id] || [];
           const latestJob = jobs[0];
           return (
@@ -299,6 +301,22 @@ export default function AdminFantasySeasonsPage() {
           );
         })}
       </div>
+
+      {seasonGroups.referenceOnly.length > 0 && (
+        <Card className="mt-6">
+          <CardContent className="p-5">
+            <h2 className="text-lg font-display font-bold text-content-primary">Prior-season price evidence</h2>
+            <p className="mt-1 text-sm text-content-muted font-body">
+              These seasons are retained as read-only evidence for opening Dino Dollar prices. They are not live import or participant season options.
+            </p>
+            <ul className="mt-3 space-y-1 text-sm text-content-secondary font-body">
+              {seasonGroups.referenceOnly.map((season) => (
+                <li key={season.id}>{season.name} - {season.slug === 'legacy-unverified' ? 'quarantined legacy evidence' : 'verified baseline reference'}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-6">
         <CardContent className="p-5 space-y-3">

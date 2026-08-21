@@ -634,8 +634,7 @@ export async function runFantasyOrchestrator(options: {
       .from('fantasy_seasons')
       .select('id, name, slug, status, is_current, is_public, playhq_season_id, playhq_discovery, auto_sync_enabled, sync_exception, last_playhq_sync_at')
       .eq('auto_sync_enabled', true)
-      .neq('status', 'archived')
-      .eq('is_public', true);
+      .neq('status', 'archived');
     if (seasonsError) throw new Error(seasonsError.message);
 
     // Current season first, then older seasons awaiting historical bootstrap.

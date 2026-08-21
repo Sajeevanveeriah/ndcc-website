@@ -19,7 +19,7 @@ export default function ResetPasswordForm() {
   useEffect(() => {
     if (!isFantasySupabaseConfigured) {
       setStatus('no-session');
-      setError('Fantasy sign-in is not configured yet.');
+      setError('Dino Coach sign-in is not configured yet.');
       return;
     }
 
@@ -101,10 +101,10 @@ export default function ResetPasswordForm() {
     return (
       <Card>
         <CardContent className="p-6 space-y-4">
-          <p className="font-body text-green-700">Your password has been updated. You can now use it to sign in to your fantasy account.</p>
+          <p className="font-body text-green-700">Your password has been updated. You can now use it to sign in to your Dino Coach account.</p>
           <div className="flex flex-wrap gap-3">
             <Link href="/fantasy/login" className="btn-primary">Go to sign in</Link>
-            <Link href="/fantasy/account" className="btn-secondary">My fantasy account</Link>
+            <Link href="/fantasy/account" className="btn-secondary">My Dino Coach account</Link>
           </div>
         </CardContent>
       </Card>

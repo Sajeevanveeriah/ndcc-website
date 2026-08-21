@@ -65,10 +65,10 @@ const adminGroups: AdminGroup[] = [
   ] },
   { title: 'Fantasy', icon: Trophy, advanced: true, links: [
     { href: '/admin/fantasy', label: 'Fantasy Home', icon: Trophy },
-    { href: '/admin/fantasy/seasons', label: 'Seasons & PlayHQ', plainLabel: 'Fantasy seasons and PlayHQ grades', icon: CalendarDays },
+    { href: '/admin/fantasy/seasons', label: 'Current Season & PlayHQ', plainLabel: 'Dino Coach season and PlayHQ grades', icon: CalendarDays },
     { href: '/admin/fantasy/players', label: 'Players', icon: Users },
     { href: '/admin/fantasy/imports', label: 'Imports', icon: FileText },
-    { href: '/admin/fantasy/reconciliation', label: 'Historical Review', icon: Shield },
+    { href: '/admin/fantasy/reconciliation', label: 'Player & Price Evidence', icon: Shield },
     { href: '/admin/playhq-diagnostics', label: 'PlayHQ Diagnostics', icon: Settings },
   ] },
   { title: 'Administration', icon: Shield, advanced: true, links: [
