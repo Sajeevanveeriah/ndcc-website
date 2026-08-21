@@ -133,6 +133,10 @@ try {
     releaseRunner.includes("rpc('consume_fantasy_release_token'") && releaseRunner.includes('createHash'));
   check('release runner drives only the orchestrator',
     releaseRunner.includes('runFantasyOrchestrator') && !releaseRunner.includes('public_launch_enabled'));
+  check('release runner can requeue an explicitly identified failed job',
+    releaseRunner.includes("action === 'retry_failed'")
+      && releaseRunner.includes('retryFailedGames')
+      && releaseRunner.includes("/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i"));
   check('release runner responses are never cached',
     releaseRunner.includes("'Cache-Control': 'no-store'") && releaseRunner.includes("'Referrer-Policy': 'no-referrer'"));
 

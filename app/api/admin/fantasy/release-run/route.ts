@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
+import { retryFailedGames } from '@/lib/playhq/fantasy-sync';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,14 @@ const noStore = {
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const action = url.searchParams.get('action')?.trim() || 'orchestrate';
+  const jobId = url.searchParams.get('jobId')?.trim() || '';
+  if (action !== 'orchestrate' && action !== 'retry_failed') {
+    return NextResponse.json({ success: false, error: 'Unsupported release action.' }, { status: 400, headers: noStore });
+  }
+  if (action === 'retry_failed' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
+    return NextResponse.json({ success: false, error: 'A valid jobId is required.' }, { status: 400, headers: noStore });
+  }
   const token = url.searchParams.get('token')?.trim() ?? '';
   if (token.length < 32 || token.length > 256) {
     return NextResponse.json({ success: false, error: 'Unauthorised.' }, { status: 401, headers: noStore });
@@ -38,6 +47,10 @@ export async function GET(request: Request) {
   }
 
   try {
+    if (action === 'retry_failed') {
+      const result = await retryFailedGames(jobId);
+      return NextResponse.json({ success: true, action, jobId, requeued: result.requeued }, { headers: noStore });
+    }
     const result = await runFantasyOrchestrator({ invokedBy: `release-token:${tokenId}` });
     return NextResponse.json({ success: true, ...result }, { headers: noStore });
   } catch (error) {
