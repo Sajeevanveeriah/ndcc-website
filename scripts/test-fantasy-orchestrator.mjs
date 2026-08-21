@@ -99,6 +99,8 @@ try {
   check('orchestrator recovers abandoned running jobs', orchestrator.includes('Recovered abandoned running job'));
   check('orchestrator alerts admins after repeated failures', orchestrator.includes('maybeAlertAdmins'));
   check('orchestrator is server-only', orchestrator.includes("import 'server-only';"));
+  check('orchestrator includes hidden historical bootstrap seasons',
+    !orchestrator.includes(".eq('is_public', true)"));
 
   const cron = readFileSync(join(repoRoot, 'app/api/cron/playhq-fantasy-sync/route.ts'), 'utf8');
   check('cron drives the orchestrator', cron.includes('runFantasyOrchestrator'));
@@ -125,6 +127,14 @@ try {
   check('season normaliser keeps competition name evidence', normaliseSource.includes('competitionName'));
   check('cron keeps CRON_SECRET auth', cron.includes('isAuthorizedCronRequest'));
   check('cron keeps enable flag gate', cron.includes('PLAYHQ_FANTASY_SYNC_ENABLED'));
+
+  const releaseRunner = readFileSync(join(repoRoot, 'app/api/admin/fantasy/release-run/route.ts'), 'utf8');
+  check('release runner consumes a one-time token',
+    releaseRunner.includes("rpc('consume_fantasy_release_token'") && releaseRunner.includes('createHash'));
+  check('release runner drives only the orchestrator',
+    releaseRunner.includes('runFantasyOrchestrator') && !releaseRunner.includes('public_launch_enabled'));
+  check('release runner responses are never cached',
+    releaseRunner.includes("'Cache-Control': 'no-store'") && releaseRunner.includes("'Referrer-Policy': 'no-referrer'"));
 
   const vercel = JSON.parse(readFileSync(join(repoRoot, 'vercel.json'), 'utf8'));
   check('vercel cron path present', vercel.crons.some((c) => c.path === '/api/cron/playhq-fantasy-sync'));
@@ -168,6 +178,15 @@ try {
     check(`health migration has ${column}`, healthMigration.includes(column));
   }
   check('health migration enables RLS', /alter table .*fantasy_sync_health enable row level security/i.test(healthMigration));
+
+  const releaseTokenMigration = readFileSync(join(repoRoot, 'supabase/migrations/20260821121500_dino_coach_release_token_runner.sql'), 'utf8');
+  check('release token consumption is an atomic conditional update',
+    /update public\.fantasy_release_tokens[\s\S]*used_at is null[\s\S]*revoked_at is null[\s\S]*expires_at > now\(\)/i.test(releaseTokenMigration));
+  check('release token function has a safe search path',
+    /security definer[\s\S]*set search_path = ''/i.test(releaseTokenMigration));
+  check('release token function is service-role only',
+    /revoke all on function public\.consume_fantasy_release_token\(text\) from public, anon, authenticated/i.test(releaseTokenMigration)
+      && /grant execute on function public\.consume_fantasy_release_token\(text\) to service_role/i.test(releaseTokenMigration));
 
   // Stale-read hardening (production evidence 2026-07-16: cached Supabase
   // GETs failed 10 game imports on duplicate round keys).
