@@ -31,7 +31,7 @@ export const FANTASY_RULE_SECTIONS = [
   ] },
   { title: 'Transfers and prices', items: [
     'Transfers are unlimited, free and carry no points penalty. The server-authoritative window is Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time.',
-    'Opening prices use verified role-neutral 2025/2026 regular-season performance. Prices are frozen for rounds 1-4.',
+    'Opening prices use a committee-authorised provisional baseline distributed deterministically across the configured price range. This baseline is not represented as verified PlayHQ history and will be replaced through the audited evidence workflow when the reviewed 2025/2026 statistics are supplied. Prices are frozen for rounds 1-4.',
     'From round 5, rolling performance is 50% prior baseline, 25% latest qualifying appearance and 25% second-latest qualifying appearance. A non-appearance does not advance that window.',
     'Each performance-point change moves price by 1,000 Dino Dollars. Finals score points but never affect prices.',
   ] },

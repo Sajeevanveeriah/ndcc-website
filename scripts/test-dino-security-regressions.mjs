@@ -9,6 +9,7 @@ const transfers = read('app/api/fantasy/transfers/route.ts');
 const server = read('lib/dino-coach/server.ts');
 const releaseRunner = read('app/api/internal/fantasy/release-run/route.ts');
 const transferSecurityMigration = read('supabase/migrations/20260821055500_dino_coach_transfer_function_hardening.sql');
+const provisionalBaselineMigration = read('supabase/migrations/20260821195000_dino_coach_provisional_baseline.sql');
 
 assert.match(webhook, /rpc\('apply_dino_entry_payment_event'/,
   'Dino Coach payment audit and eligibility must be committed atomically by one database function.');
@@ -41,5 +42,20 @@ assert.match(transferSecurityMigration, /SECURITY DEFINER SET search_path = ''/,
   'Dino Coach transfer functions must use an empty search path.');
 assert.match(transferSecurityMigration, /public\.fantasy_dino_settings/,
   'Objects used by hardened transfer functions must be schema-qualified.');
+
+assert.match(provisionalBaselineMigration, /provisional_baseline/,
+  'The authorised launch baseline must have an explicit non-PlayHQ source status.');
+assert.match(provisionalBaselineMigration, /md5\(sp\.player_id::text \|\| target_season_id::text\)/,
+  'Provisional price ordering must be deterministic and season-seeded.');
+assert.match(provisionalBaselineMigration, /top_15_cost <= cfg\.budget_dino_dollars/,
+  'The baseline must reject an economy where the top 15 fit within budget.');
+assert.match(provisionalBaselineMigration, /affordable_15_cost > cfg\.budget_dino_dollars/,
+  'The baseline must reject an economy with no affordable 15-player squad.');
+assert.match(provisionalBaselineMigration, /not_verified_playhq_history/,
+  'Published audit evidence must state that the provisional seed is not verified PlayHQ history.');
+assert.match(provisionalBaselineMigration, /SECURITY DEFINER SET search_path = ''/,
+  'The provisional publication function must use an empty search path.');
+assert.match(provisionalBaselineMigration, /REVOKE ALL ON FUNCTION public\.apply_dino_coach_provisional_baseline/,
+  'The provisional publication function must not be callable by participants.');
 
 console.log('PASS Dino Coach security regressions');
