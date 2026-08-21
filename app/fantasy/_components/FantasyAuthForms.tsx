@@ -61,7 +61,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   useEffect(() => {
     if (mode !== 'account') return;
     if (!isFantasySupabaseConfigured) {
-      setFeedback({ type: 'error', message: 'Fantasy sign-in is not configured yet.' });
+      setFeedback({ type: 'error', message: 'Dino Coach sign-in is not configured yet.' });
       return;
     }
 
@@ -104,9 +104,9 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
                 body: JSON.stringify({ displayName: metadataDisplayName, teamName: metadataTeamName, dateOfBirth: metadataDob, rulesVersion: metadataRules, rulesAccepted: true }),
               });
               setManager(created.manager);
-              setFeedback({ type: 'success', message: 'Fantasy manager profile created from your confirmed account details.' });
+              setFeedback({ type: 'success', message: 'Dino Coach manager profile created from your confirmed account details.' });
             } catch (err) {
-              setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not create your fantasy manager profile automatically.' });
+              setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not create your Dino Coach manager profile automatically.' });
             } finally {
               setAutoCreating(false);
             }
@@ -115,7 +115,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         .catch((err) => setFeedback({ type: 'error', message: err.message }));
     };
 
-    loadAccount().catch((err) => setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not load fantasy account.' }));
+    loadAccount().catch((err) => setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not load your Dino Coach account.' }));
   }, [mode]);
 
   const saveProfile = async () => {
@@ -124,7 +124,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       body: JSON.stringify({ displayName, teamName, dateOfBirth, rulesVersion, rulesAccepted }),
     });
     setManager(result.manager);
-    setFeedback({ type: 'success', message: 'Fantasy manager profile saved.' });
+    setFeedback({ type: 'success', message: 'Dino Coach manager profile saved.' });
   };
 
   const handleResend = async () => {
@@ -185,7 +185,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   const submit = async () => {
     if (mode === 'register' && registrationOpen === false) {
-      setFeedback({ type: 'error', message: 'Fantasy registration is currently closed.' });
+      setFeedback({ type: 'error', message: 'Dino Coach registration is currently closed.' });
       return;
     }
     setLoading(true);
@@ -208,7 +208,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           setAwaitingConfirm(true);
           setFeedback({
             type: 'success',
-            message: `Almost there! A confirmation email has been sent to ${email}. Click the link in that email to return to your fantasy account and complete your manager profile.`,
+            message: `Almost there! A confirmation email has been sent to ${email}. Click the link in that email to return to your Dino Coach account and complete your manager profile.`,
           });
         }
       } else if (mode === 'login') {
@@ -227,7 +227,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   if (mode === 'account' && !sessionEmail) {
     return (
-      <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">Sign in to manage your fantasy account.</p><Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>
+      <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">Sign in to manage your Dino Coach account.</p><Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>
     );
   }
 
@@ -239,13 +239,13 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {registrationClosed && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <p className="text-sm font-body text-amber-900">
-              <strong>Fantasy registration is currently closed.</strong> New manager sign-ups are paused by the club. Already have an account?{' '}
+              <strong>Dino Coach registration is currently closed.</strong> New manager sign-ups are paused by the club. Already have an account?{' '}
               <Link href="/fantasy/login" className="font-semibold text-maroon-700 dark:text-maroon-200 hover:underline">Sign in instead</Link>.
             </p>
           </div>
         )}
         {mode !== 'login' && <Input id="displayName" label="Display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />}
-        {mode !== 'login' && <Input id="teamName" label="Fantasy team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
+        {mode !== 'login' && <Input id="teamName" label="Dino Coach team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
         {mode !== 'account' && <Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
         {mode !== 'account' && <Input id="password" label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />}
         {mode !== 'login' && <Input id="dateOfBirth" label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} required />}

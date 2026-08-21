@@ -133,8 +133,15 @@ test('uses Dino Coach branding on current participant surfaces', () => {
   const participantSurfaces = [
     'app/page.tsx',
     'app/fantasy/register/page.tsx',
+    'app/fantasy/login/page.tsx',
+    'app/fantasy/account/page.tsx',
+    'app/fantasy/reset-password/page.tsx',
+    'app/fantasy/team/page.tsx',
+    'app/fantasy/leagues/page.tsx',
     'app/fantasy/leaderboard/page.tsx',
     'app/fantasy/manager-leaderboard/page.tsx',
+    'app/fantasy/_components/FantasyAuthForms.tsx',
+    'app/fantasy/_components/ResetPasswordForm.tsx',
     'app/admin/fantasy/page.tsx',
     'app/admin/fantasy/import/page.tsx',
     'components/fantasy/FantasyBackLink.tsx',
@@ -142,6 +149,7 @@ test('uses Dino Coach branding on current participant surfaces', () => {
   ];
   for (const path of participantSurfaces) {
     assert.doesNotMatch(readFileSync(path, 'utf8'), /Fantasy Cricket/iu, `${path} still exposes legacy branding`);
+    assert.doesNotMatch(readFileSync(path, 'utf8'), /(?:Fantasy|fantasy) (?:manager|account|registration|sign-in|team|classic league)/u, `${path} still exposes legacy participant copy`);
   }
 });
 

@@ -85,7 +85,7 @@ export default function AdminFantasyPage() {
       </div>
 
       <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
-        Use published import batches before calculating public manager scores. Fantasy manager accounts remain separate from committee admin users.
+        Use published import batches before calculating public manager scores. Dino Coach manager accounts remain separate from committee admin users.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
