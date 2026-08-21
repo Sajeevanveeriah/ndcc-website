@@ -131,8 +131,8 @@ export default function FantasyReconciliationPage() {
       <Card><CardContent>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-display font-bold text-content-primary">Prior-season baseline import</h2>
-            <p className="mt-1 max-w-3xl text-sm text-content-muted">Use this if PlayHQ supplies a committee export. Every current player needs one explicit outcome. The import is validated, hashed and audited before draft Dino Dollar prices are calculated.</p>
+            <h2 className="text-lg font-display font-bold text-content-primary">Prior-season price evidence</h2>
+            <p className="mt-1 max-w-3xl text-sm text-content-muted">This reference-only evidence calculates opening Dino Dollar prices; it never becomes a live competition season. Every current player needs one explicit, audited outcome.</p>
           </div>
           <a className="inline-flex min-h-11 items-center justify-center rounded-lg border border-edge-strong px-3 py-2 text-sm font-semibold focus-ring" href="/api/admin/fantasy/baseline-import?template=1">Download roster template</a>
         </div>
@@ -158,8 +158,8 @@ export default function FantasyReconciliationPage() {
         </label>
         <p className="mt-2 text-xs text-content-muted">Allowed outcomes: verified_playhq, verified_no_prior_appearance, international_manual, international_premium. Role-neutral points must already include exclusive milestones and not-out bonuses, with no role or captain multiplier.</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button type="button" variant="secondary" disabled={busy || !baselineCsv.trim()} onClick={() => submitBaseline('preview')}>Validate baseline</Button>
-          <Button type="button" disabled={busy || !baselinePreview || baselinePreview.summary.errorRows > 0 || baselinePreview.summary.missingPlayers > 0} onClick={() => submitBaseline('apply')}>Apply reviewed baseline</Button>
+          <Button type="button" variant="secondary" disabled={busy || !baselineCsv.trim()} onClick={() => submitBaseline('preview')}>Validate price evidence</Button>
+          <Button type="button" disabled={busy || !baselinePreview || baselinePreview.summary.errorRows > 0 || baselinePreview.summary.missingPlayers > 0} onClick={() => submitBaseline('apply')}>Apply reviewed price evidence</Button>
         </div>
         {baselinePreview && <div className="mt-5" aria-live="polite">
           <dl className="grid gap-3 sm:grid-cols-4">

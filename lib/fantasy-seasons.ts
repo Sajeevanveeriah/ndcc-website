@@ -32,13 +32,28 @@ export function seasonStatusLabel(season: Pick<FantasySeason, 'status'>): string
   }
 }
 
+// Historical seasons remain queryable by committee/server workflows as price
+// evidence, but they are not alternative live competitions. Public Dino Coach
+// surfaces expose only the explicitly current season.
+export function operationalSeasons<T extends { is_current: boolean }>(seasons: T[]): T[] {
+  return seasons.filter((season) => season.is_current);
+}
+
+export function categoriseAdminSeasons<T extends { is_current: boolean }>(seasons: T[]): { operational: T[]; referenceOnly: T[] } {
+  return {
+    operational: operationalSeasons(seasons),
+    referenceOnly: seasons.filter((season) => !season.is_current),
+  };
+}
+
 export async function getFantasySeasons(options: { includeNonPublic?: boolean } = {}): Promise<FantasySeason[]> {
   const supabase = createServerClient();
   let query = supabase.from('fantasy_seasons').select(SEASON_COLUMNS).order('start_date', { ascending: false, nullsFirst: false });
   if (!options.includeNonPublic) query = query.eq('is_public', true);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data ?? []) as FantasySeason[];
+  const seasons = (data ?? []) as FantasySeason[];
+  return options.includeNonPublic ? seasons : operationalSeasons(seasons);
 }
 
 export async function getCurrentSeason(): Promise<FantasySeason | null> {

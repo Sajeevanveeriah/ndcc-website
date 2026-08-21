@@ -5,8 +5,8 @@ import { Upload, SlidersHorizontal, Trophy, Users, CalendarDays, FileSearch, Set
 const fantasySections = [
   {
     href: '/admin/fantasy/seasons',
-    title: 'Seasons & PlayHQ Sync',
-    description: 'Add fantasy seasons, map PlayHQ grades, run resumable stat imports and choose the current public season.',
+    title: 'Current Season & PlayHQ Sync',
+    description: 'Map current-season PlayHQ grades, run resumable scoring imports and control the live Dino Coach season.',
     icon: CalendarDays,
   },
   {
@@ -65,8 +65,8 @@ const fantasySections = [
   },
   {
     href: '/admin/fantasy/reconciliation',
-    title: 'Historical Reconciliation',
-    description: 'Compare Legacy / Unverified stats with PlayHQ evidence, quarantine ambiguous rows and export reviewed proposals.',
+    title: 'Player & Price Evidence',
+    description: 'Reconcile every current player and retain prior-season evidence solely for auditable opening Dino Dollar prices.',
     icon: ShieldCheck,
   },
 ];

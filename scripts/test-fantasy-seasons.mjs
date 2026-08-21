@@ -61,6 +61,18 @@ try {
   check('season: unknown selector falls back to current', seasons.pickSeason(seasonList, 'nope')?.id === 's3');
   check('season: no current falls back to first', seasons.pickSeason([{ id: 'a', slug: 'x', is_current: false }], null)?.id === 'a');
   check('season: empty list returns null', seasons.pickSeason([], null) === null);
+  const publicCompetitionSeasons = seasons.operationalSeasons([
+    { id: 'current', slug: '2026-27', is_current: true, status: 'active' },
+    { id: 'baseline', slug: '2025-26', is_current: false, status: 'completed' },
+    { id: 'legacy', slug: 'legacy-unverified', is_current: false, status: 'archived' },
+  ]);
+  check('season: public competition options exclude pricing-reference and legacy seasons', publicCompetitionSeasons.length === 1 && publicCompetitionSeasons[0]?.id === 'current');
+  const adminSeasonGroups = seasons.categoriseAdminSeasons([
+    { id: 'current', slug: '2026-27', is_current: true, status: 'active' },
+    { id: 'baseline', slug: '2025-26', is_current: false, status: 'completed' },
+    { id: 'legacy', slug: 'legacy-unverified', is_current: false, status: 'archived' },
+  ]);
+  check('season: stale seasons are reference-only in admin operations', adminSeasonGroups.operational.length === 1 && adminSeasonGroups.referenceOnly.length === 2 && adminSeasonGroups.referenceOnly.every((season) => !season.is_current));
   check('season: historical label', seasons.seasonStatusLabel({ status: 'completed' }) === 'Historical');
   check('season: team changes gated by current selection window', seasons.seasonAllowsTeamChanges({ is_current: true, team_selection_open: true, allow_team_building: false }) === true);
   check('season: historical team building requires flag', seasons.seasonAllowsTeamChanges({ is_current: false, team_selection_open: true, allow_team_building: false }) === false);
