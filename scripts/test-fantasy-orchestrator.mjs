@@ -119,6 +119,9 @@ try {
   const syncSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-sync.ts'), 'utf8');
   check('a dead grade fixture endpoint is skipped, not fatal', syncSource.includes('skippedGrades.push'));
   check('sync only fails when every grade fixture endpoint fails', syncSource.includes('skippedGrades.length === grades.length'));
+  check('empty completed-game summaries are quarantined, not counted as successful',
+    syncSource.includes("type: 'empty_game_summary'")
+      && /if \(!lines\.length\)[\s\S]*continue;/.test(syncSource));
   check('grade 404 falls back to per-team fixture feeds', syncSource.includes('getPlayHQTeamFixtureRaw'));
   check('team-feed fallback dedupes games by id', syncSource.includes('seenGameIds.has(fixture.id)'));
   check('fixture reads walk candidate endpoint paths', clientSource.includes('playHQFetchFirst'));

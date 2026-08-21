@@ -431,6 +431,15 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
     try {
       const summary = await withRetries(() => getPlayHQGameSummary(entry.gameId));
       const lines = normaliseGameSummaryPlayers(summary);
+      if (!lines.length) {
+        reviewItems.push({
+          type: 'empty_game_summary',
+          gameId: entry.gameId,
+          detail: `Completed game ${entry.gameId} returned no player statistics and was quarantined instead of being counted as a successful contribution.`,
+        });
+        counts.warnings += 1;
+        continue;
+      }
       const clubLines = lines.filter((line) => /newcomb/i.test(line.team_name || ''));
       if (lines.length > 0 && clubLines.length === 0) {
         reviewItems.push({ type: 'club_identity_missing', gameId: entry.gameId, detail: `Game ${entry.gameId} returned player statistics without an explicit Newcomb team identity. The game was quarantined to prevent opponent-player leakage.` });
