@@ -27,10 +27,27 @@ export type DinoCoachSettings = {
   slot_counts: DinoSlotCounts;
   scoring_config: DinoScoringConfig;
   blocked_team_name_terms: string[];
+  notification_recipients: string[];
+  international_baseline_strategy: string;
+  rollover_strategy: string;
+  leaderboard_tiebreaker: string;
   registration_open: boolean;
   team_selection_open: boolean;
   public_launch_enabled: boolean;
 };
+
+export type PublicDinoCoachSettings = Omit<DinoCoachSettings, 'blocked_team_name_terms' | 'notification_recipients'>;
+
+export function toPublicDinoCoachSettings(settings: DinoCoachSettings): PublicDinoCoachSettings {
+  const {
+    blocked_team_name_terms: _privateModerationTerms,
+    notification_recipients: _privateNotificationRecipients,
+    ...publicSettings
+  } = settings;
+  void _privateModerationTerms;
+  void _privateNotificationRecipients;
+  return publicSettings;
+}
 
 export async function getDinoCoachSettings(seasonId: string): Promise<DinoCoachSettings> {
   const { data, error } = await createServerClient().from('fantasy_dino_settings').select('*').eq('season_id', seasonId).single();

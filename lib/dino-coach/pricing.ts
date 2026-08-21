@@ -6,12 +6,21 @@ import { getDinoCoachSettings, getDinoReleaseReadiness } from './server';
 
 const FINAL_STATUSES = ['verified_playhq','verified_no_prior_appearance','international_manual','international_premium'];
 
+async function recalculateFromAppliedBaseline(supabase:any, seasonId:string, batch:{id:string}) {
+  const { data, error } = await supabase.rpc('recalculate_dino_coach_applied_baseline', { target_season_id: seasonId });
+  if (error) throw new Error(error.message);
+  return { ...(data || {}), seasonId, baselineImportId: batch.id, formulaVersion: 'dino-baseline-import-v1' };
+}
+
 export async function recalculateDinoCoachInitialPrices(seasonId: string) {
   const supabase = createServerClient();
   const [{ data: season, error: seasonError }, settings] = await Promise.all([
     supabase.from('fantasy_seasons').select('id,start_date').eq('id', seasonId).single(), getDinoCoachSettings(seasonId),
   ]);
   if (seasonError || !season) throw new Error(seasonError?.message || 'Dino Coach season not found.');
+  const {data:appliedBaseline,error:baselineError}=await supabase.from('fantasy_baseline_import_batches').select('id').eq('target_season_id',seasonId).eq('status','applied').order('applied_at',{ascending:false}).limit(1).maybeSingle();
+  if(baselineError)throw new Error(baselineError.message);
+  if(appliedBaseline)return recalculateFromAppliedBaseline(supabase,seasonId,appliedBaseline);
   const { data: prior } = await supabase.from('fantasy_seasons').select('id,name').lt('start_date', season.start_date).neq('slug','legacy-unverified').order('start_date',{ascending:false}).limit(1).maybeSingle();
   if (!prior) throw new Error('No prior regular season is configured for initial pricing.');
   const { data: completedJobs } = await supabase.from('fantasy_sync_jobs').select('id,status,review_items,error_summary,import_batch_id').eq('season_id', prior.id).eq('status','completed').order('created_at',{ascending:false}).limit(1);
@@ -36,31 +45,28 @@ export async function recalculateDinoCoachInitialPrices(seasonId: string) {
   const averages=(roster||[]).map((row:any)=>{const history=totals.get(row.player_id);const appearances=history?.games.size||0;return {row,appearances,average:appearances?Number((history!.points/appearances).toFixed(4)):0};});
   const best=Math.max(0,...averages.filter((item:any)=>!item.row.fantasy_players?.is_international).map((item:any)=>item.average));
   if (best<=0) throw new Error('Published prior-season data produced no verified domestic appearance baseline.');
-  for (const item of averages) {
+  const calculated = averages.map((item:any) => {
     const international=Boolean(item.row.fantasy_players?.is_international); const linked=Boolean(item.row.fantasy_players?.playhq_player_id);
     const status=international?(item.appearances?'international_manual':'international_premium'):(item.appearances?'verified_playhq':'verified_no_prior_appearance');
     if (!international && !linked && item.appearances) throw new Error(`Player ${item.row.fantasy_players?.display_name} has statistics without a stable source link.`);
     const baseline=international&&!item.appearances?best:item.average;
     const price=calculateInitialPrice(baseline,best,settings.initial_price_floor_dino_dollars,settings.initial_price_ceiling_dino_dollars);
-    await supabase.from('fantasy_season_players').update({stats_status:status,prior_regular_appearances:item.appearances,prior_average_points:baseline,international_baseline_points:international?baseline:null}).eq('season_id',seasonId).eq('player_id',item.row.player_id);
     const evidence={prior_season_id:prior.id,import_batch_id:batch.id,appearances:item.appearances,role_neutral_points:item.appearances?Number((item.average*item.appearances).toFixed(4)):0,best_domestic_average:best,source_status:status,international_premium_fallback:international&&!item.appearances};
-    const existing=await supabase.from('fantasy_player_prices').select('id').eq('season_id',seasonId).eq('player_id',item.row.player_id).is('effective_round_id',null).maybeSingle();
-    const pricePayload={price_dino_dollars:price,price_million:price/1000000,formula_version:'dino-initial-v1',prior_baseline_points:baseline,rolling_performance_points:baseline,previous_rolling_performance_points:baseline,price_change_dino_dollars:0,source_status:status,calculation:evidence,published_at:null};
-    if(existing.data) await supabase.from('fantasy_player_prices').update(pricePayload).eq('id',existing.data.id); else await supabase.from('fantasy_player_prices').insert({season_id:seasonId,player_id:item.row.player_id,effective_round_id:null,...pricePayload});
-    await supabase.from('fantasy_price_calculations').upsert({season_id:seasonId,player_id:item.row.player_id,effective_round_id:null,formula_version:'dino-initial-v1',prior_baseline_points:baseline,recent_points:[],previous_rolling_performance_points:baseline,rolling_performance_points:baseline,previous_price_dino_dollars:price,price_change_dino_dollars:0,new_price_dino_dollars:price,source_status:status,evidence,published_at:null},{onConflict:'season_id,player_id,effective_round_id,formula_version'});
-  }
-  const prices=averages.map((item:any)=>calculateInitialPrice(item.row.fantasy_players?.is_international&&!item.appearances?best:item.average,best,settings.initial_price_floor_dino_dollars,settings.initial_price_ceiling_dino_dollars)).sort((a:number,b:number)=>b-a);
+    return { player_id:item.row.player_id, stats_status:status, appearances:item.appearances, baseline_points:baseline,
+      international_baseline_points:international?baseline:null, price_dino_dollars:price, evidence };
+  });
+  const prices=calculated.map((item:any)=>item.price_dino_dollars).sort((a:number,b:number)=>b-a);
   const top15=prices.slice(0,15).reduce((a:number,b:number)=>a+b,0); const affordable=prices.slice(-15).reduce((a:number,b:number)=>a+b,0);
   if(top15<=settings.budget_dino_dollars||affordable>settings.budget_dino_dollars) throw new Error(`Economy calibration failed: top 15 ${top15}, cheapest 15 ${affordable}, budget ${settings.budget_dino_dollars}.`);
+  const applied=await supabase.rpc('apply_dino_coach_initial_price_recalculation',{target_season_id:seasonId,calculated_players:calculated});
+  if(applied.error)throw new Error(applied.error.message);
   return {seasonId,priorSeasonId:prior.id,players:averages.length,bestDomesticAverage:best,top15Cost:top15,cheapest15Cost:affordable,budget:settings.budget_dino_dollars,statuses:Object.fromEntries(FINAL_STATUSES.map((status)=>[status,averages.filter((item:any)=>status===(item.row.fantasy_players?.is_international?(item.appearances?'international_manual':'international_premium'):(item.appearances?'verified_playhq':'verified_no_prior_appearance'))).length]))};
 }
 
 export async function publishDinoCoachInitialPrices(seasonId:string){
   const supabase=createServerClient(); const readiness=await getDinoReleaseReadiness(seasonId);
   if(!readiness||readiness.resolved_players!==readiness.selectable_players||readiness.ambiguous_identities>0||readiness.duplicate_source_links>0) throw new Error('Player identity reconciliation is incomplete. Prices were not published.');
-  const now=new Date().toISOString();
-  const {data:prices,error}=await supabase.from('fantasy_player_prices').update({published_at:now}).eq('season_id',seasonId).gt('price_dino_dollars',0).in('source_status',FINAL_STATUSES).select('id');
-  if(error)throw new Error(error.message); if((prices||[]).length!==Number(readiness.selectable_players))throw new Error('Positive price coverage does not match the selectable roster.');
-  await supabase.from('fantasy_price_calculations').update({published_at:now}).eq('season_id',seasonId).is('effective_round_id',null);
+  const {error}=await supabase.rpc('publish_dino_coach_initial_prices',{target_season_id:seasonId});
+  if(error)throw new Error(error.message);
   return getDinoReleaseReadiness(seasonId);
 }

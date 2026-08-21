@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { getActivePlayersWithLatestPrices, getCurrentRoundId } from '@/lib/fantasy-game';
-import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
 import { isTransferWindowOpen } from '@/lib/dino-coach/domain';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     timezone: settings.transfer_timezone, openWeekday: settings.transfer_open_weekday, openMinute: settings.transfer_open_minute,
     closeWeekday: settings.transfer_close_weekday, closeMinute: settings.transfer_close_minute,
   });
-  return NextResponse.json({ success: true, season, settings, players, squad: squad.data, transfers: transfers.data, roundId, windowOpen, chips: [] }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ success: true, season, settings: toPublicDinoCoachSettings(settings), players, squad: squad.data, transfers: transfers.data, roundId, windowOpen, chips: [] }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(request: Request) {

@@ -18,17 +18,18 @@ const noStore = {
  * an interactive committee session is unavailable; it cannot alter launch
  * flags and does not expose the token or its digest in the response.
  */
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const action = url.searchParams.get('action')?.trim() || 'orchestrate';
-  const jobId = url.searchParams.get('jobId')?.trim() || '';
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({}));
+  const action = typeof body.action === 'string' ? body.action.trim() || 'orchestrate' : 'orchestrate';
+  const jobId = typeof body.jobId === 'string' ? body.jobId.trim() : '';
   if (action !== 'orchestrate' && action !== 'retry_failed') {
     return NextResponse.json({ success: false, error: 'Unsupported release action.' }, { status: 400, headers: noStore });
   }
   if (action === 'retry_failed' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
     return NextResponse.json({ success: false, error: 'A valid jobId is required.' }, { status: 400, headers: noStore });
   }
-  const token = url.searchParams.get('token')?.trim() ?? '';
+  const authorization = request.headers.get('authorization') || '';
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
   if (token.length < 32 || token.length > 256) {
     return NextResponse.json({ success: false, error: 'Unauthorised.' }, { status: 401, headers: noStore });
   }

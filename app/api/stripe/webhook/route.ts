@@ -37,6 +37,12 @@ function isDuplicateError(error: { code?: string; message?: string } | null): bo
   return Boolean(error && (error.code === '23505' || /duplicate key/i.test(error.message || '')));
 }
 
+function escapeEmailHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[character] || character));
+}
+
 async function handleDinoCoachEvent(event: Stripe.Event): Promise<NextResponse | null> {
   const object = event.data.object as any;
   const isCheckout = event.type.startsWith('checkout.session.');
@@ -70,24 +76,20 @@ async function handleDinoCoachEvent(event: Stripe.Event): Promise<NextResponse |
     }
   }
   if (!nextStatus) return NextResponse.json({ received: true, ignored: true });
-  const audit = await supabase.from('fantasy_entry_payment_events').insert({
-    entry_id: entry.id, provider_event_id: event.id, provider_event_type: event.type,
-    provider_created_at: new Date(event.created * 1000).toISOString(), resulting_status: nextStatus,
-    evidence: { checkout_session_id: isCheckout ? object.id : null, payment_intent_id: isCheckout ? paymentIntentId(object) : object.payment_intent || null },
+  const { data: paymentResult, error: paymentError } = await supabase.rpc('apply_dino_entry_payment_event', {
+    target_entry_id: entry.id, target_provider_event_id: event.id, target_provider_event_type: event.type,
+    target_provider_created_at: new Date(event.created * 1000).toISOString(), target_resulting_status: nextStatus,
+    target_checkout_session_id: isCheckout ? object.id : null,
+    target_payment_intent_id: isCheckout ? paymentIntentId(object) : object.payment_intent || null,
+    target_evidence: { checkout_session_id: isCheckout ? object.id : null, payment_intent_id: isCheckout ? paymentIntentId(object) : object.payment_intent || null },
   });
-  if (isDuplicateError(audit.error)) return NextResponse.json({ received: true, duplicate: true });
-  if (audit.error) return NextResponse.json({ error: 'Could not record Dino Coach payment event.' }, { status: 500 });
-  const update: Record<string, unknown> = { status: nextStatus, provider_event_id: event.id };
-  if (isCheckout) { update.stripe_checkout_session_id = object.id; update.stripe_payment_intent_id = paymentIntentId(object); }
-  if (nextStatus === 'paid') update.paid_at = new Date(event.created * 1000).toISOString();
-  if (nextStatus === 'refunded') update.refunded_at = new Date(event.created * 1000).toISOString();
-  const changed = await supabase.from('fantasy_entries').update(update).eq('id', entry.id);
-  if (changed.error) return NextResponse.json({ error: 'Could not update Dino Coach entry eligibility.' }, { status: 500 });
+  if (paymentError) return NextResponse.json({ error: 'Could not atomically record Dino Coach payment eligibility.' }, { status: 500 });
+  const duplicate = paymentResult?.[0]?.duplicate === true;
   const recipient = entry.fantasy_managers?.email;
-  if (recipient) await sendEmail({ to: recipient, subject: nextStatus === 'paid' ? 'Dino Coach payment confirmed' : 'Dino Coach entry eligibility update',
-    html: emailHtml(nextStatus === 'paid' ? 'Payment confirmed' : 'Entry eligibility update', `<p>Hi ${entry.fantasy_managers.display_name},</p><p>Your Dino Coach entry status is now <strong>${nextStatus}</strong>.</p>${nextStatus === 'paid' ? '<p>You can build your squad when team selection is open.</p>' : '<p>Team-selection eligibility is paused while this payment status applies. Contact the club if you need help.</p>'}`),
+  if (recipient && !duplicate) await sendEmail({ to: recipient, subject: nextStatus === 'paid' ? 'Dino Coach payment confirmed' : 'Dino Coach entry eligibility update',
+    html: emailHtml(nextStatus === 'paid' ? 'Payment confirmed' : 'Entry eligibility update', `<p>Hi ${escapeEmailHtml(entry.fantasy_managers.display_name)},</p><p>Your Dino Coach entry status is now <strong>${nextStatus}</strong>.</p>${nextStatus === 'paid' ? '<p>You can build your squad when team selection is open.</p>' : '<p>Team-selection eligibility is paused while this payment status applies. Contact the club if you need help.</p>'}`),
     idempotencyKey: `dino-coach-${event.id}` });
-  return NextResponse.json({ received: true, dinoCoach: true, status: nextStatus });
+  return NextResponse.json({ received: true, dinoCoach: true, status: nextStatus, duplicate });
 }
 
 async function notifyPaidOrder(

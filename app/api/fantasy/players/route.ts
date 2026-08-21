@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getActivePlayersWithLatestPrices, getFantasySettings } from '@/lib/fantasy-game';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
-import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const [settings, dinoSettings, players] = await Promise.all([getFantasySettings(season.id), getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id)]);
     return NextResponse.json({
       success: true, season,
-      settings: { ...settings, ...dinoSettings, is_registration_open: dinoSettings.registration_open, is_team_selection_open: dinoSettings.team_selection_open },
+      settings: { ...settings, ...toPublicDinoCoachSettings(dinoSettings), is_registration_open: dinoSettings.registration_open, is_team_selection_open: dinoSettings.team_selection_open },
       players,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {

@@ -5,7 +5,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fantasy-game';
 import { buildSquadSlots, validateSquadAssignments, type DinoSquadAssignment } from '@/lib/dino-coach/domain';
-import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const season = await resolveRequestSeason(request);
     if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
     const [settings, players, squad] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), loadSquad(auth.manager.id, season.id)]);
-    return NextResponse.json({ success: true, season, settings, slots: buildSquadSlots(settings.slot_counts), players, squad }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ success: true, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players, squad }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not load Dino Coach squad.' }, { status: 500 });
   }
