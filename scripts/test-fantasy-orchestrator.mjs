@@ -131,7 +131,7 @@ try {
   check('cron keeps CRON_SECRET auth', cron.includes('isAuthorizedCronRequest'));
   check('cron keeps enable flag gate', cron.includes('PLAYHQ_FANTASY_SYNC_ENABLED'));
 
-  const releaseRunner = readFileSync(join(repoRoot, 'app/api/admin/fantasy/release-run/route.ts'), 'utf8');
+  const releaseRunner = readFileSync(join(repoRoot, 'app/api/internal/fantasy/release-run/route.ts'), 'utf8');
   check('release runner consumes a one-time token',
     releaseRunner.includes("rpc('consume_fantasy_release_token'") && releaseRunner.includes('createHash'));
   check('release runner drives only the orchestrator',
