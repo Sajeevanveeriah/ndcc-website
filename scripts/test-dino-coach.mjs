@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   DEFAULT_SCORING_CONFIG, DEFAULT_SLOT_COUNTS, buildSquadSlots,
   calculateBasePerformancePoints, calculateAssignedRolePoints, calculateInitialPrice,
@@ -126,6 +127,22 @@ test('maps Stripe settlement, failure, refund and dispute events to entry eligib
 test('uses the configured vice-captain multiplier independently', () => {
   const scoring = { ...DEFAULT_SCORING_CONFIG, captainMultiplier: 3, viceCaptainMultiplier: 2 };
   assert.equal(calculateAssignedRolePoints({ runs: 10 }, 'AR', scoring, true, scoring.viceCaptainMultiplier), 30);
+});
+
+test('uses Dino Coach branding on current participant surfaces', () => {
+  const participantSurfaces = [
+    'app/page.tsx',
+    'app/fantasy/register/page.tsx',
+    'app/fantasy/leaderboard/page.tsx',
+    'app/fantasy/manager-leaderboard/page.tsx',
+    'app/admin/fantasy/page.tsx',
+    'app/admin/fantasy/import/page.tsx',
+    'components/fantasy/FantasyBackLink.tsx',
+    'lib/constants.ts',
+  ];
+  for (const path of participantSurfaces) {
+    assert.doesNotMatch(readFileSync(path, 'utf8'), /Fantasy Cricket/iu, `${path} still exposes legacy branding`);
+  }
 });
 
 console.log('Dino Coach deterministic rule suite passed.');

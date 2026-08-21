@@ -30,7 +30,7 @@ const fantasySections = [
   {
     href: '/admin/fantasy/players',
     title: 'Players',
-    description: 'Maintain the Fantasy Cricket player registry, roles, team labels, and active status.',
+    description: 'Maintain the Dino Coach player registry, source links, team labels, and active status.',
     icon: Users,
   },
   {
@@ -42,7 +42,7 @@ const fantasySections = [
   {
     href: '/admin/fantasy/scoring',
     title: 'Scoring',
-    description: 'Review and update the point values used by future Fantasy Cricket scoring calculations.',
+    description: 'Review and update the point values used by Dino Coach scoring calculations.',
     icon: SlidersHorizontal,
   },
   {
@@ -54,13 +54,13 @@ const fantasySections = [
   {
     href: '/admin/fantasy/import',
     title: 'CSV Import',
-    description: 'Validate match-stat CSV files and save draft Fantasy Cricket import batches.',
+    description: 'Validate match-stat CSV files and save draft Dino Coach import batches.',
     icon: Upload,
   },
   {
     href: '/admin/fantasy/imports',
     title: 'Import Review',
-    description: 'Review saved import batches, inspect stat rows, and publish or reject Fantasy Cricket scores.',
+    description: 'Review saved import batches, inspect stat rows, and publish or reject Dino Coach scores.',
     icon: FileSearch,
   },
   {
@@ -77,10 +77,10 @@ export default function AdminFantasyPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
           <Trophy className="h-6 w-6 text-maroon-700 dark:text-maroon-200" />
-          Fantasy Cricket
+          Dino Coach
         </h1>
         <p className="text-content-muted font-body mt-1">
-          Admin controls for NDCC Fantasy Cricket gameplay, imports, scoring and manager leaderboards.
+          Committee controls for Dino Coach players, imports, scoring, prices and manager leaderboards.
         </p>
       </div>
 

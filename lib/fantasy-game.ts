@@ -76,7 +76,7 @@ export async function getFantasySettings(seasonId?: string | null): Promise<Fant
 function normaliseSettings(data: any): FantasySettings {
   return {
     id: data?.id || '',
-    season_name: data?.season_name || 'NDCC Fantasy Cricket',
+    season_name: data?.season_name || 'NDCC Dino Coach',
     squad_budget: Number(data?.squad_budget ?? 100),
     max_players_per_role: { ...ROLE_LIMITS, ...(data?.max_players_per_role || {}) },
     starting_players_required: Number(data?.starting_players_required ?? 11),

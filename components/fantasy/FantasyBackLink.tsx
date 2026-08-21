@@ -13,7 +13,7 @@ export default function FantasyBackLink({ className }: { className?: string }) {
         className="inline-flex items-center rounded text-maroon-700 dark:text-maroon-200 hover:underline font-body font-semibold focus-ring"
       >
         <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-        Back to Fantasy Cricket
+        Back to Dino Coach
       </Link>
     </div>
   );
