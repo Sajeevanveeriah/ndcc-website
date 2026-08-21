@@ -179,7 +179,7 @@ try {
   }
   check('health migration enables RLS', /alter table .*fantasy_sync_health enable row level security/i.test(healthMigration));
 
-  const releaseTokenMigration = readFileSync(join(repoRoot, 'supabase/migrations/20260821121500_dino_coach_release_token_runner.sql'), 'utf8');
+  const releaseTokenMigration = readFileSync(join(repoRoot, 'supabase/migrations/20260821035433_dino_coach_release_token_runner.sql'), 'utf8');
   check('release token consumption is an atomic conditional update',
     /update public\.fantasy_release_tokens[\s\S]*used_at is null[\s\S]*revoked_at is null[\s\S]*expires_at > now\(\)/i.test(releaseTokenMigration));
   check('release token function has a safe search path',
