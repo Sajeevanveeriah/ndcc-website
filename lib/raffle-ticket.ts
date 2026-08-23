@@ -1,7 +1,7 @@
 import 'server-only';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import sharp from 'sharp';
+import { getServerSharp } from './server-fonts.mjs';
 
 const REF_PATTERN = /^NDCCRAF-26\d{4}$/;
 
@@ -27,5 +27,6 @@ export async function renderRaffleTicket(reference: string): Promise<Buffer> {
     <text x="1040" y="500" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="900" fill="#ffffff">$5.00 AUD</text>
     <text x="1040" y="552" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="700" fill="#ffffff">DRAWN 19 DECEMBER 2026 AT THE CHRISTMAS PARTY</text>
   </svg>`;
+  const sharp = await getServerSharp();
   return sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer();
 }

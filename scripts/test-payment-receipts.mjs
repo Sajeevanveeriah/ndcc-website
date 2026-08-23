@@ -52,11 +52,14 @@ if (process.env.RECEIPT_TEST_OUTPUT) {
   await writeFile(path.resolve(process.env.RECEIPT_TEST_OUTPUT), pdf);
 }
 
-const [webhook, receipts, raffle, generator] = await Promise.all([
+const [webhook, receipts, raffle, raffleTicket, generator, fontConfig, bundledFont] = await Promise.all([
   readFile(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/payment-receipts.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/raffle-email.ts'), 'utf8'),
+  readFile(path.join(repoRoot, 'lib/raffle-ticket.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/payment-receipt-pdf.ts'), 'utf8'),
+  readFile(path.join(repoRoot, 'public/fonts/fonts.conf'), 'utf8'),
+  readFile(path.join(repoRoot, 'public/fonts/NotoSans-Regular.ttf')),
 ]);
 
 assert.match(webhook, /sendOrderPaymentReceiptForPayment\(supabase, payment\.id, orderId\)/);
@@ -73,7 +76,14 @@ assert.match(receipts, /event: 'Event Registration'/);
 assert.match(receipts, /paymentKind === 'partial'/);
 assert.match(raffle, /contentType: 'application\/pdf'/);
 assert.match(raffle, /payment receipt are attached/);
+assert.match(raffleTicket, /getServerSharp/);
+assert.doesNotMatch(raffleTicket, /import sharp from 'sharp'/);
 assert.doesNotMatch(generator, /Player Sponsorship|sponsorship may|business expense/i);
+assert.match(generator, /public\/fonts\/NotoSans-Regular\.ttf/);
+assert.match(generator, /getServerSharp/);
+assert.doesNotMatch(generator, /import sharp from 'sharp'/);
+assert.match(fontConfig, /Noto Sans/);
+assert.ok(bundledFont.length > 20_000, 'Bundled receipt font should not be empty or truncated.');
 assert.match(generator, /not currently registered for GST/);
 assert.match(generator, /not a tax-deductible donation receipt/i);
 
