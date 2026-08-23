@@ -141,7 +141,7 @@ export async function buildPaymentReceiptPdf(data: PaymentReceiptData): Promise<
     .slice(0, 5)
     .map(escapeXml);
   const descriptionSvg = descriptionLines
-    .map((line, index) => `<text x="168" y="${1690 + index * 54}" class="value description">${line}</text>`)
+    .map((line, index) => `<text x="168" y="${1760 + index * 54}" class="value description">${line}</text>`)
     .join('');
 
   const [logo, font] = await Promise.all([
@@ -195,7 +195,7 @@ export async function buildPaymentReceiptPdf(data: PaymentReceiptData): Promise<
     <text x="1560" y="1540" text-anchor="end" font-size="72" font-weight="900" fill="#ffffff">${escapeXml(amount)} AUD</text>
 
     <text x="150" y="1650" class="section">PAYMENT DESCRIPTION</text>
-    <line x1="150" y1="1672" x2="1618" y2="1672" stroke="#d6c8c0" stroke-width="3"/>
+    <line x1="150" y1="1698" x2="1618" y2="1698" stroke="#d6c8c0" stroke-width="3"/>
     ${descriptionSvg}
 
     <rect x="150" y="2020" width="1468" height="156" rx="14" fill="#f8f3ef"/>
