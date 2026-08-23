@@ -5,6 +5,7 @@ import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal
 import { type PageLinkCard } from '@/lib/structured-content';
 import { getSiteChromeData } from '@/lib/site-chrome';
 import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
+import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 
 function isExternalLink(link: PageLinkCard) {
   // Only real http(s) URLs open in a new tab — a local route mis-flagged
@@ -63,9 +64,11 @@ export default async function Footer() {
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const quickLinks = resolveLinks(cmsQuickLinks);
-  const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks);
-  const affiliationLinks = resolveLinks(cmsAffiliationLinks);
+  const dinoCoachEnabled = await isDinoCoachPublic();
+  const hideDisabledDinoCoach = (link: PageLinkCard) => dinoCoachEnabled || !link.href.startsWith('/fantasy');
+  const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledDinoCoach);
+  const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks).filter(hideDisabledDinoCoach);
+  const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledDinoCoach);
 
   return (
     <footer className="bg-maroon-900 text-white" role="contentinfo">

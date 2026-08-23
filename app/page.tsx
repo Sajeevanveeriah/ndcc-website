@@ -44,6 +44,7 @@ import { getClubSettings } from '@/lib/club-settings';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
+import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -687,7 +688,8 @@ async function SponsorsSection() {
   );
 }
 
-function FantasyTeaserSection() {
+async function FantasyTeaserSection() {
+  if (!(await isDinoCoachPublic())) return null;
   // Static teaser: copy describes the game itself, so nothing here can go
   // stale or invent scores. Live numbers stay on the fantasy pages.
   const highlights = [
@@ -814,7 +816,9 @@ export default function HomePage() {
         <SeasonStatusSection />
       </Suspense>
 
-      <FantasyTeaserSection />
+      <Suspense fallback={null}>
+        <FantasyTeaserSection />
+      </Suspense>
 
       <Suspense fallback={<ClubUpdatesSkeleton />}>
         <ClubUpdatesSection />
