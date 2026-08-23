@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { isRafflePublic } from '@/lib/raffle-visibility';
 
 async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute.Sitemap> {
   // Detail pages only exist for published CMS rows; skip silently when
@@ -66,7 +67,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/join`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/player-registration`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/kitchen`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/raffle`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/merchandise`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/sponsors`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/gallery`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
@@ -81,6 +81,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: `${baseUrl}/fantasy/rules`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
       { url: `${baseUrl}/fantasy/players`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.5 },
     );
+  }
+  if (await isRafflePublic()) {
+    staticEntries.push({ url: `${baseUrl}/raffle`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 });
   }
 
   const detailEntries = await getPublishedDetailEntries(baseUrl);
