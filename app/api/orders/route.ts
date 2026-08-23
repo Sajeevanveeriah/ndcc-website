@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at, order_category, merch_window_id } = body;
+    const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at, order_category, merch_window_id, payment_method } = body;
 
     const ip = getClientIp(request);
     if (!enforceRateLimit(`order:${ip}`, 6, 60_000)) {
@@ -208,7 +208,9 @@ export async function POST(request: Request) {
       html: emailHtml(
         'Order Confirmation',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(sanitiseInput(customer_name))},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">Your order has been received. Please complete payment using the bank transfer details below.</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">${payment_method === 'stripe'
+          ? 'Your order has been received. Continue to Stripe Checkout to complete payment.'
+          : 'Your order has been received. Please complete payment using the bank transfer details below.'}</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <thead>
             <tr style="background:#f9fafb;">
@@ -230,12 +232,12 @@ export async function POST(request: Request) {
           : personalisationRequested
             ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The surname entered has been recorded for club review.</div>`
             : ''}
-        ${bankDetailsHtml(paymentReference, serverTotal)}
+        ${payment_method === 'stripe' ? '' : bankDetailsHtml(paymentReference, serverTotal)}
         <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
 
-    if (order_category === 'merch') {
+    if (order_category === 'merch' && payment_method !== 'stripe') {
       const staffNotification = await sendStaffOrderNotificationForOrder(supabase, data.id, 'created');
       if (staffNotification.status === 'failed') {
         console.error('Apparel staff order notification failed:', staffNotification.reason);
