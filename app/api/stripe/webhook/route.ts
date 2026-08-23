@@ -8,6 +8,7 @@ import { getCheckoutEventAction } from '@/lib/payments/stripe-checkout';
 import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 import { emailHtml, sendEmail } from '@/lib/email';
 import { dinoEntryStatusForStripeEvent } from '@/lib/dino-coach/domain';
+import { sendPaidRaffleEmails } from '@/lib/raffle-email';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +91,38 @@ async function handleDinoCoachEvent(event: Stripe.Event): Promise<NextResponse |
     html: emailHtml(nextStatus === 'paid' ? 'Payment confirmed' : 'Entry eligibility update', `<p>Hi ${escapeEmailHtml(entry.fantasy_managers.display_name)},</p><p>Your Dino Coach entry status is now <strong>${nextStatus}</strong>.</p>${nextStatus === 'paid' ? '<p>You can build your squad when team selection is open.</p>' : '<p>Team-selection eligibility is paused while this payment status applies. Contact the club if you need help.</p>'}`),
     idempotencyKey: `dino-coach-${event.id}` });
   return NextResponse.json({ received: true, dinoCoach: true, status: nextStatus, duplicate });
+}
+
+async function handleRaffleEvent(event: Stripe.Event): Promise<NextResponse | null> {
+  if (!event.type.startsWith('checkout.session.')) return null;
+  const session = event.data.object as Stripe.Checkout.Session;
+  if (session.metadata?.product !== 'NDCC Raffle') return null;
+  const orderId = session.metadata.raffle_order_id;
+  if (!orderId || !UUID_PATTERN.test(orderId)) return NextResponse.json({ error: 'Invalid raffle order metadata.' }, { status: 400 });
+  if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
+    return NextResponse.json({ received: true, raffle: true, pending: true });
+  }
+  if (session.payment_status !== 'paid' || session.currency?.toLowerCase() !== 'aud') {
+    return NextResponse.json({ received: true, raffle: true, pending: true });
+  }
+  const db = createServerClient();
+  const { data: order, error } = await db.from('raffle_orders').select('id,amount_cents,quantity').eq('id', orderId).single();
+  if (error || !order) return NextResponse.json({ error: 'Raffle order not found.' }, { status: 404 });
+  const expected = Number(session.metadata.expected_amount_cents);
+  if (session.amount_total !== order.amount_cents || expected !== order.amount_cents || Number(session.metadata.quantity) !== order.quantity) {
+    return NextResponse.json({ error: 'Raffle settlement mismatch.' }, { status: 400 });
+  }
+  const { data: tickets, error: issueError } = await db.rpc('issue_paid_raffle_tickets', {
+    target_order_id: orderId, target_provider_event_id: event.id, target_session_id: session.id,
+    target_payment_intent_id: paymentIntentId(session),
+  });
+  if (issueError || !tickets?.length) {
+    console.error('Raffle ticket allocation failed:', issueError);
+    return NextResponse.json({ error: 'Raffle ticket allocation failed.' }, { status: 500 });
+  }
+  try { await sendPaidRaffleEmails(orderId, event.id); }
+  catch (emailError) { console.error('Raffle email failed:', emailError); return NextResponse.json({ error: 'Raffle email delivery failed.' }, { status: 500 }); }
+  return NextResponse.json({ received: true, raffle: true, duplicate: tickets.every((t: { duplicate: boolean }) => t.duplicate) });
 }
 
 async function notifyPaidOrder(
@@ -322,6 +355,9 @@ export async function POST(request: Request) {
 
   const dinoCoachResult = await handleDinoCoachEvent(event);
   if (dinoCoachResult) return dinoCoachResult;
+
+  const raffleResult = await handleRaffleEvent(event);
+  if (raffleResult) return raffleResult;
 
   const session = event.data.object as Stripe.Checkout.Session;
   const action = getCheckoutEventAction(event.type, session.payment_status);

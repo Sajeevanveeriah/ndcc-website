@@ -42,6 +42,7 @@ const registry = {
   sponsors: { group: 'Commercial', label: 'Sponsors', href: '/admin/sponsors', scope: 'club' },
   merchandise: { group: 'Commercial', label: 'Merchandise', href: '/admin/apparel', scope: 'club' },
   kitchen: { group: 'Commercial', label: 'Kitchen', href: '/admin/kitchen', scope: 'club' },
+  raffle: { group: 'Commercial', label: 'Raffle', href: '/admin/raffle', scope: 'club' },
   orders: { group: 'Commercial', label: 'Orders', href: '/admin/orders', scope: 'club' },
   payments: { group: 'Commercial', label: 'Payments', href: '/admin/payments', scope: 'club' },
   'fantasy.home': {
@@ -167,6 +168,8 @@ export const RESOURCE_PERMISSIONS: Readonly<Record<string, PermissionKey>> = {
   kitchenMenus: 'kitchen',
   kitchenItems: 'kitchen',
   kitchenOrders: 'kitchen',
+  raffleCampaigns: 'raffle',
+  raffleOrders: 'raffle',
   contentBlocks: 'content',
   clubSettings: 'club.details',
 };

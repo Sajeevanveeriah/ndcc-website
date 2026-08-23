@@ -37,6 +37,7 @@ export type StaffOrderNotificationContent = {
 };
 
 const SECRETARY_EMAIL = 'ndcc.secretary1@gmail.com';
+const TREASURER_EMAIL = 'ndcc.treasurer1@gmail.com';
 const APPAREL_EMAILS = [SECRETARY_EMAIL, 'joshwalker20695@gmail.com'] as const;
 
 function escapeHtml(value: unknown): string {
@@ -85,7 +86,7 @@ function detailLines(item: StaffOrderItem): string[] {
 }
 
 export function getStaffOrderRecipients(category: StaffOrderCategory): string[] {
-  return category === 'apparel' ? [...APPAREL_EMAILS] : [SECRETARY_EMAIL];
+  return category === 'apparel' ? [...APPAREL_EMAILS] : [SECRETARY_EMAIL, TREASURER_EMAIL];
 }
 
 export function buildStaffOrderNotificationContent(

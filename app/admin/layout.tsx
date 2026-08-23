@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -60,6 +60,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
     { href: '/admin/apparel', label: 'Merchandise', icon: Shirt },
     { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
+    { href: '/admin/raffle', label: 'Raffle', icon: Ticket },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/payments', label: 'Payments', icon: ShoppingBag },
   ] },

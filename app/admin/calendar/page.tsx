@@ -7,6 +7,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { DateClickArg } from '@fullcalendar/interaction';
 import type { EventClickArg } from '@fullcalendar/core';
+import type { EventDropArg } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { CalendarEvent } from '@/lib/calendar/types';
@@ -124,6 +126,8 @@ export default function AdminCalendarPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [visibilityFilter, setVisibilityFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [bulkField, setBulkField] = useState('');
+  const [bulkValue, setBulkValue] = useState('');
 
   const fetchEvents = async () => {
     try {
@@ -295,6 +299,20 @@ export default function AdminCalendarPage() {
     'Selected calendar events deleted.'
   );
 
+  const bulkOptions: Record<string, Array<{ value: string; label: string }>> = {
+    status: CALENDAR_STATUSES.map((value) => ({ value, label: value })),
+    event_type: CALENDAR_EVENT_TYPES.map((value) => ({ value, label: CALENDAR_EVENT_TYPE_LABELS[value] })),
+    visibility: CALENDAR_VISIBILITIES.map((value) => ({ value, label: value })),
+    show_on_home: [{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }],
+    show_on_contact: [{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }],
+    show_on_calendar: [{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }],
+  };
+  const applyBulkEdit = () => {
+    if (!bulkField || !bulkValue || selectedIds.length === 0) return;
+    const value: string | boolean = bulkValue === 'true' ? true : bulkValue === 'false' ? false : bulkValue;
+    void runBatch(() => adminFetch(RESOURCE_URL, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: selectedIds, [bulkField]: value }) }), 'Selected calendar events updated.');
+  };
+
   const monthEvents = useMemo(
     () =>
       filtered.map((event) => ({
@@ -321,6 +339,13 @@ export default function AdminCalendarPage() {
   const handleMonthEventClick = (arg: EventClickArg) => {
     const match = events.find((event) => event.id === arg.event.id);
     if (match) openEdit(match);
+  };
+
+  const persistCalendarMove = async (arg: EventDropArg | EventResizeDoneArg) => {
+    const patch: Record<string, unknown> = { start_at: arg.event.start?.toISOString() };
+    if (arg.event.end) patch.end_at = arg.event.end.toISOString();
+    try { await quickPatch(arg.event.id, patch, 'Event time updated.'); }
+    catch { arg.revert(); }
   };
 
   return (
@@ -413,6 +438,11 @@ export default function AdminCalendarPage() {
           { key: 'delete', label: 'Delete', variant: 'danger', confirm: true, confirmLabel: 'Delete the selected calendar events? This cannot be undone. Archiving is usually safer.', onAction: batchDelete },
         ]}
       />
+      {selectedIds.length > 0 && <div className="mb-5 grid gap-3 rounded-lg border border-edge-subtle bg-surface-card p-4 sm:grid-cols-[1fr_1fr_auto] items-end">
+        <Select id="calendar-bulk-field" label="Bulk change" value={bulkField} onChange={(e) => { setBulkField(e.target.value); setBulkValue(''); }} options={[{value:'',label:'Choose a field'}, {value:'status',label:'Status'}, {value:'event_type',label:'Event type'}, {value:'visibility',label:'Visibility'}, {value:'show_on_home',label:'Show on home'}, {value:'show_on_contact',label:'Show on contact'}, {value:'show_on_calendar',label:'Show on calendar'}]}/>
+        <Select id="calendar-bulk-value" label="New value" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} options={[{value:'',label:'Choose a value'}, ...(bulkOptions[bulkField] || [])]}/>
+        <Button type="button" disabled={!bulkField || !bulkValue || batchBusy} onClick={applyBulkEdit}>Update {selectedIds.length} event{selectedIds.length === 1 ? '' : 's'}</Button>
+      </div>}
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
@@ -422,7 +452,7 @@ export default function AdminCalendarPage() {
         </div>
       ) : view === 'month' ? (
         <div className="ndcc-calendar bg-surface-card rounded-xl border border-edge-subtle p-3 sm:p-5">
-          <p className="text-xs text-content-muted font-body mb-2">Click a day to add an event, or click an event to edit. Grey entries are not published.</p>
+          <p className="text-xs text-content-muted font-body mb-2">Click a day to add, click an event to edit, or drag and resize events to update their times. Grey entries are not published.</p>
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
@@ -431,6 +461,9 @@ export default function AdminCalendarPage() {
             events={monthEvents}
             dateClick={handleMonthDateClick}
             eventClick={handleMonthEventClick}
+            editable
+            eventDrop={persistCalendarMove}
+            eventResize={persistCalendarMove}
             height="auto"
             dayMaxEventRows={4}
             firstDay={1}
