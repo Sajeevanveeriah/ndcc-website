@@ -50,8 +50,11 @@ test('apparel routes to secretary and Josh in the required order', () => {
   ]);
 });
 
-test('kitchen routes only to the secretary', () => {
-  assert.deepEqual(content.getStaffOrderRecipients('kitchen'), ['ndcc.secretary1@gmail.com']);
+test('kitchen routes to the secretary and treasurer', () => {
+  assert.deepEqual(content.getStaffOrderRecipients('kitchen'), [
+    'ndcc.secretary1@gmail.com',
+    'ndcc.treasurer1@gmail.com',
+  ]);
 });
 
 test('new apparel order shows only the binary unpaid state', () => {
