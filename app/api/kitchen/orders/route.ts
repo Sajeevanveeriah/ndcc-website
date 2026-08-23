@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { getKitchenOrderWindow } from '@/lib/kitchen-order-window';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
@@ -13,6 +14,8 @@ function sanitiseInput(str: string): string {
 }
 
 export async function POST(request: Request) {
+  const orderingWindow = getKitchenOrderWindow();
+  if (!orderingWindow.open) return NextResponse.json({ error: orderingWindow.message, order_window: orderingWindow }, { status: 403 });
   let body;
   try {
     body = await request.json();
@@ -136,7 +139,7 @@ export async function POST(request: Request) {
     html: emailHtml(
       'Kitchen Order Confirmation',
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(customer_name)},</p>
-      <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received. Please complete payment using the bank transfer details below.</p>
+      <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe, or use the bank transfer details below.</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <thead>
           <tr style="background:#f9fafb;">

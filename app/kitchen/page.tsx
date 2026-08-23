@@ -18,6 +18,7 @@ type OrderConfirmation = {
   payment_reference: string;
   bank_details: { account_name: string; bsb: string; account_number: string } | null;
 };
+type OrderWindow = { open: boolean; message: string };
 
 const FALLBACK_KITCHEN_MENU = {
   menuName: 'Kitchen Menu',
@@ -38,6 +39,7 @@ export default function KitchenPage() {
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   const [hpField, setHpField] = useState('');
   const [submittedAt, setSubmittedAt] = useState(Date.now());
+  const [orderWindow, setOrderWindow] = useState<OrderWindow>({ open: false, message: 'Checking the online ordering window...' });
 
   useEffect(() => {
     void (async () => {
@@ -55,6 +57,8 @@ export default function KitchenPage() {
       setItems(FALLBACK_KITCHEN_MENU.items);
     });
   }, []);
+
+  useEffect(() => { void fetch('/api/kitchen/window', { cache: 'no-store' }).then(r => r.json()).then(data => setOrderWindow(data.data)); }, []);
 
   const selectedItems = useMemo(
     () => items.filter((i) => (cart[i.id] || 0) > 0).map((i) => ({ ...i, quantity: cart[i.id] })),
@@ -171,13 +175,14 @@ export default function KitchenPage() {
             <CardContent className="p-6 space-y-4">
               <h3 className="text-lg font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Kitchen Order</h3>
               <p className="font-display text-lg font-bold text-content-primary">Total: {formatCurrency(total)}</p>
+              <p className={orderWindow.open ? 'text-sm text-green-700' : 'text-sm text-amber-800'}>{orderWindow.message}</p>
               <form className="space-y-3" onSubmit={submitOrder}>
                 <input type="text" name="website" className="hidden" value={hpField} onChange={(e) => setHpField(e.target.value)} tabIndex={-1} autoComplete="off" />
                 <Input id="k_name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
                 <Input id="k_email" label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 <Input id="k_phone" label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 {formError && <p className="text-sm text-red-600" role="alert">{formError}</p>}
-                <Button type="submit" disabled={selectedItems.length === 0} isLoading={submitting}>
+                <Button type="submit" disabled={selectedItems.length === 0 || !orderWindow.open} isLoading={submitting}>
                   {submitting ? 'Submitting...' : 'Submit Kitchen Order'}
                 </Button>
               </form>

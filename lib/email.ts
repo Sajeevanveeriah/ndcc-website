@@ -22,6 +22,7 @@ export interface EmailPayload {
   bcc?: EmailAddress;
   tags?: Tag[];
   idempotencyKey?: string;
+  attachments?: Array<{ filename: string; content: Buffer | string; contentType?: string }>;
 }
 
 function getResend(): Resend {
@@ -204,6 +205,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     ...(payload.cc ? { cc: payload.cc } : {}),
     ...(payload.bcc ? { bcc: payload.bcc } : {}),
     ...(payload.tags ? { tags: payload.tags } : {}),
+    ...(payload.attachments ? { attachments: payload.attachments } : {}),
   };
   const sendOptions = payload.idempotencyKey
     ? { idempotencyKey: payload.idempotencyKey }
