@@ -468,11 +468,23 @@ export async function DELETE(request: Request, { params }: { params: { resource:
 
   const supabase = createServerClient();
 
+  // Order payment rows intentionally preserve an audit ledger during normal
+  // operation. An explicit admin order deletion is the exception: remove its
+  // dependent ledger rows first so test, duplicate, paid, or processed orders
+  // can all be deleted from the CMS as one deliberate action.
+  const deleteOrderPayments = async (orderIds: string[]) => {
+    if (params.resource !== 'orders') return null;
+    const { error } = await supabase.from('order_payments').delete().in('order_id', orderIds);
+    return error;
+  };
+
   if (!id) {
     const batchIds = parseBatchIds((idsParam ?? '').split(','));
     if (!batchIds) {
       return NextResponse.json({ success: false, error: `ids must be a comma-separated list of up to ${MAX_BATCH_IDS} non-empty ids.` }, { status: 400 });
     }
+    const paymentDeleteError = await deleteOrderPayments(batchIds);
+    if (paymentDeleteError) return safeDeleteErrorResponse(paymentDeleteError.message);
     const { data: batchData, error: batchError } = await supabase.from(config.table).delete().in('id', batchIds).select('id');
     if (batchError) {
       if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
@@ -484,6 +496,8 @@ export async function DELETE(request: Request, { params }: { params: { resource:
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
+  const paymentDeleteError = await deleteOrderPayments([id]);
+  if (paymentDeleteError) return safeDeleteErrorResponse(paymentDeleteError.message);
   const { data, error } = await supabase.from(config.table).delete().eq('id', id).select('id');
 
   if (error) {
