@@ -7,6 +7,8 @@ import { isPaymentTestMode } from '@/lib/payments/payment-config';
 import { getCheckoutEventAction } from '@/lib/payments/stripe-checkout';
 import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 import { emailHtml, sendEmail } from '@/lib/email';
+import { sendOrderPaymentReceiptForPayment } from '@/lib/payment-receipts';
+import { buildPaymentReceiptFilename, buildPaymentReceiptPdf } from '@/lib/payment-receipt-pdf';
 import { dinoEntryStatusForStripeEvent } from '@/lib/dino-coach/domain';
 import { sendPaidRaffleEmails } from '@/lib/raffle-email';
 
@@ -87,9 +89,55 @@ async function handleDinoCoachEvent(event: Stripe.Event): Promise<NextResponse |
   if (paymentError) return NextResponse.json({ error: 'Could not atomically record Dino Coach payment eligibility.' }, { status: 500 });
   const duplicate = paymentResult?.[0]?.duplicate === true;
   const recipient = entry.fantasy_managers?.email;
-  if (recipient && !duplicate) await sendEmail({ to: recipient, subject: nextStatus === 'paid' ? 'Dino Coach payment confirmed' : 'Dino Coach entry eligibility update',
-    html: emailHtml(nextStatus === 'paid' ? 'Payment confirmed' : 'Entry eligibility update', `<p>Hi ${escapeEmailHtml(entry.fantasy_managers.display_name)},</p><p>Your Dino Coach entry status is now <strong>${nextStatus}</strong>.</p>${nextStatus === 'paid' ? '<p>You can build your squad when team selection is open.</p>' : '<p>Team-selection eligibility is paused while this payment status applies. Contact the club if you need help.</p>'}`),
-    idempotencyKey: `dino-coach-${event.id}` });
+  if (recipient && nextStatus === 'paid') {
+    const eventRecord = await supabase.from('fantasy_entry_payment_events').select('evidence').eq('provider_event_id', event.id).maybeSingle();
+    if (eventRecord.error || !eventRecord.data) {
+      return NextResponse.json({ error: 'Dino Coach receipt evidence could not be loaded.' }, { status: 500 });
+    }
+    const evidence = (eventRecord.data.evidence || {}) as Record<string, unknown>;
+    if (typeof evidence.payment_receipt_sent_at !== 'string') {
+      const receiptData = {
+        purchaserName: String(entry.fantasy_managers.display_name || 'Dino Coach manager'),
+        purchaserEmail: String(recipient),
+        paymentDate: new Date(event.created * 1000),
+        amountCents: Number(entry.entry_fee_cents),
+        paymentType: 'Dino Coach Entry',
+        paymentMethod: 'Stripe Checkout',
+        reference: `DINO-${String(entry.id).slice(0, 8).toUpperCase()}`,
+        descriptionLines: [`Dino Coach entry - ${String(entry.fantasy_managers.team_name || 'Team entry')}`],
+      };
+      const filename = buildPaymentReceiptFilename(receiptData);
+      const receipt = await buildPaymentReceiptPdf(receiptData);
+      const emailResult = await sendEmail({
+        to: recipient,
+        subject: 'Dino Coach payment confirmed',
+        html: emailHtml('Payment confirmed', `<p>Hi ${escapeEmailHtml(entry.fantasy_managers.display_name)},</p><p>Your Dino Coach entry status is now <strong>paid</strong>.</p><p>You can build your squad when team selection is open. Your payment receipt is attached.</p>`),
+        attachments: [{ filename, content: receipt, contentType: 'application/pdf' }],
+        idempotencyKey: `dino-coach-${event.id}`,
+        tags: [{ name: 'category', value: 'dino-coach-receipt' }],
+      });
+      if (emailResult.status !== 'sent' && emailResult.status !== 'simulated') {
+        return NextResponse.json({ error: 'Dino Coach receipt delivery failed.' }, { status: 500 });
+      }
+      const receiptEvidence: Record<string, unknown> = {
+        ...evidence,
+        payment_receipt_sent_at: new Date().toISOString(),
+        payment_receipt_filename: filename,
+      };
+      if (emailResult.status === 'sent' && emailResult.id) receiptEvidence.payment_receipt_message_id = emailResult.id;
+      const marked = await supabase.from('fantasy_entry_payment_events').update({ evidence: receiptEvidence }).eq('provider_event_id', event.id).select('id').maybeSingle();
+      if (marked.error || !marked.data) {
+        return NextResponse.json({ error: 'Dino Coach receipt evidence could not be recorded.' }, { status: 500 });
+      }
+    }
+  } else if (recipient && !duplicate) {
+    const emailResult = await sendEmail({ to: recipient, subject: 'Dino Coach entry eligibility update',
+      html: emailHtml('Entry eligibility update', `<p>Hi ${escapeEmailHtml(entry.fantasy_managers.display_name)},</p><p>Your Dino Coach entry status is now <strong>${nextStatus}</strong>.</p><p>Team-selection eligibility is paused while this payment status applies. Contact the club if you need help.</p>`),
+      idempotencyKey: `dino-coach-${event.id}` });
+    if (emailResult.status !== 'sent' && emailResult.status !== 'simulated') {
+      return NextResponse.json({ error: 'Dino Coach eligibility email delivery failed.' }, { status: 500 });
+    }
+  }
   return NextResponse.json({ received: true, dinoCoach: true, status: nextStatus, duplicate });
 }
 
@@ -127,9 +175,14 @@ async function handleRaffleEvent(event: Stripe.Event): Promise<NextResponse | nu
 
 async function notifyPaidOrder(
   supabase: ServerSupabase,
-  payment: Pick<LedgerRow, 'id' | 'metadata'>,
+  payment: Pick<LedgerRow, 'id'>,
   orderId: string,
 ): Promise<boolean> {
+  const receipt = await sendOrderPaymentReceiptForPayment(supabase, payment.id, orderId);
+  if (receipt.status === 'failed') {
+    console.error(`Webhook: customer receipt for payment ${payment.id} failed:`, receipt.reason);
+    return false;
+  }
   const notification = await sendPaidStaffOrderNotificationForPayment(supabase, payment, orderId);
   if (notification.status === 'failed') {
     console.error(`Webhook: paid staff notification for order ${orderId} failed:`, notification.reason);
@@ -255,7 +308,7 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
         .eq('id', payment.id)
         .maybeSingle();
       if (concurrent?.status === 'settled') {
-        if (!(await notifyPaidOrder(supabase, { id: payment.id, metadata: concurrent.metadata }, orderId))) {
+        if (!(await notifyPaidOrder(supabase, { id: payment.id }, orderId))) {
           return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
         }
         return NextResponse.json({ received: true, duplicate: true });
@@ -263,7 +316,7 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
       return NextResponse.json({ error: 'Concurrent payment update conflict.' }, { status: 500 });
     }
 
-    if (!(await notifyPaidOrder(supabase, { id: payment.id, metadata: settledMetadata }, orderId))) {
+    if (!(await notifyPaidOrder(supabase, { id: payment.id }, orderId))) {
       return NextResponse.json({ error: 'Paid order notification failed.' }, { status: 500 });
     }
     return NextResponse.json({ received: true });
