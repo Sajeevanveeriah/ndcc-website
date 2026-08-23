@@ -38,10 +38,12 @@ function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: st
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[]) {
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean) {
   return PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
-    : { label: group.label, href: undefined, links: (group.links || []).map((link) => resolveLink(navLinks, link)) });
+    : { label: group.label, href: undefined, links: (group.links || [])
+      .filter((link) => dinoCoachEnabled || link.href !== '/fantasy')
+      .map((link) => resolveLink(navLinks, link)) });
 }
 
 export default function Navbar() {
@@ -53,6 +55,7 @@ export default function Navbar() {
   const [settings, setSettings] = useState<ClubSettings>(fallbackClubSettings);
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
   const [registrationNavigation, setRegistrationNavigation] = useState<RegistrationNavigation>(null);
+  const [dinoCoachEnabled, setDinoCoachEnabled] = useState(false);
   // Which desktop dropdown group is click/keyboard-opened (hover opening is
   // handled per-group in CSS). One label at a time so opening a group can
   // never surface another group's panel.
@@ -60,6 +63,18 @@ export default function Navbar() {
   const [accountOpen, setAccountOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    const loadDinoCoachStatus = async () => {
+      try {
+        const response = await fetch('/api/public/dino-coach-status', { cache: 'no-store' });
+        const result = await response.json();
+        setDinoCoachEnabled(response.ok && result?.enabled === true);
+      } catch {
+        setDinoCoachEnabled(false);
+      }
+    };
+    loadDinoCoachStatus();
+  }, [pathname]);
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -191,7 +206,7 @@ export default function Navbar() {
     await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
     setSessionUser(null);
   };
-  const navGroups = resolveGroups(navLinks);
+  const navGroups = resolveGroups(navLinks, dinoCoachEnabled);
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are
   // solid from the start.

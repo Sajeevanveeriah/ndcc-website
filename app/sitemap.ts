@@ -37,6 +37,19 @@ async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute
   }
 }
 
+async function isDinoCoachPublic(): Promise<boolean> {
+  if (!isServerSupabaseConfigured()) return false;
+  try {
+    const supabase = createServerClient({ fetchTimeoutMs: 5_000 });
+    const { data: season } = await supabase.from('fantasy_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
+    if (!season?.id) return false;
+    const { data: settings } = await supabase.from('fantasy_dino_settings').select('public_launch_enabled').eq('season_id', season.id).maybeSingle();
+    return settings?.public_launch_enabled === true;
+  } catch {
+    return false;
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
 
@@ -46,9 +59,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/teams`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/facilities`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/fixtures`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${baseUrl}/fantasy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${baseUrl}/fantasy/rules`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/fantasy/players`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.5 },
     { url: `${baseUrl}/events`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/calendar`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/news`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
@@ -63,6 +73,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/contact`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/committee/minutes`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.4 },
   ];
+
+  if (await isDinoCoachPublic()) {
+    staticEntries.push(
+      { url: `${baseUrl}/fantasy`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
+      { url: `${baseUrl}/fantasy/rules`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
+      { url: `${baseUrl}/fantasy/players`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.5 },
+    );
+  }
 
   const detailEntries = await getPublishedDetailEntries(baseUrl);
   return [...staticEntries, ...detailEntries];
