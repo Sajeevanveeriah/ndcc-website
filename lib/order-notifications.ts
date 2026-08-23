@@ -1,6 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { emailHtml, sendEmail } from '@/lib/email';
+import { getPaymentMetadata, mergePaymentMetadata } from '@/lib/payment-metadata';
 import {
   buildStaffOrderNotificationContent,
   type StaffOrderCategory,
@@ -20,7 +21,7 @@ export type StaffOrderNotificationResult =
 
 type PaymentMarker = {
   id: string;
-  metadata: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 function categoryFromOrder(value: unknown): StaffOrderCategory | null {
@@ -92,7 +93,9 @@ export async function sendPaidStaffOrderNotificationForPayment(
   payment: PaymentMarker,
   orderId: string,
 ): Promise<StaffOrderNotificationResult> {
-  const metadata = payment.metadata || {};
+  const current = await getPaymentMetadata(supabase, payment.id);
+  if (current.error) return { status: 'failed', reason: current.error };
+  const metadata = current.metadata;
   if (typeof metadata[PAID_NOTIFICATION_SENT_AT] === 'string') {
     return { status: 'already_sent', reason: 'Paid staff notification was already recorded.' };
   }
@@ -100,23 +103,16 @@ export async function sendPaidStaffOrderNotificationForPayment(
   const result = await sendStaffOrderNotificationForOrder(supabase, orderId, 'paid');
   if (!isSentResult(result)) return result;
 
-  const nextMetadata: Record<string, unknown> = {
-    ...metadata,
+  const marker: Record<string, unknown> = {
     [PAID_NOTIFICATION_SENT_AT]: new Date().toISOString(),
   };
-  if (result.status === 'sent' && result.id) nextMetadata[PAID_NOTIFICATION_MESSAGE_ID] = result.id;
+  if (result.status === 'sent' && result.id) marker[PAID_NOTIFICATION_MESSAGE_ID] = result.id;
 
-  const { data: marked, error } = await supabase
-    .from('order_payments')
-    .update({ metadata: nextMetadata })
-    .eq('id', payment.id)
-    .select('id')
-    .maybeSingle();
-
-  if (error || !marked) {
+  const marked = await mergePaymentMetadata(supabase, payment.id, marker);
+  if (!marked.ok) {
     return {
       status: 'failed',
-      reason: error?.message || 'Paid notification marker could not be recorded.',
+      reason: marked.reason,
     };
   }
 
