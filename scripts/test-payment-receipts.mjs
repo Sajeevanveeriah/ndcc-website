@@ -86,5 +86,15 @@ assert.match(fontConfig, /Noto Sans/);
 assert.ok(bundledFont.length > 20_000, 'Bundled receipt font should not be empty or truncated.');
 assert.match(generator, /not currently registered for GST/);
 assert.match(generator, /not a tax-deductible donation receipt/i);
+assert.match(
+  generator,
+  /y="\$\{1760 \+ index \* 54\}" class="value description"/,
+  'Payment descriptions must start below the section divider.',
+);
+assert.match(
+  generator,
+  /<line x1="150" y1="1698" x2="1618" y2="1698"/,
+  'The payment-description divider must leave clear space below its heading.',
+);
 
 console.log('Payment receipt PDF and all Stripe-backed website payment integrations passed.');
