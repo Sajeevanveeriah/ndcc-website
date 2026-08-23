@@ -172,6 +172,7 @@ function MerchandiseContent() {
     bank_details: { account_name: string; bsb: string; account_number: string };
   } | null>(null);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
+  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'stripe'>('bank_transfer');
   const [cardAmount, setCardAmount] = useState('');
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
@@ -512,6 +513,7 @@ function MerchandiseContent() {
           })),
           total_amount: cartTotal,
           order_category: 'merch',
+          payment_method: paymentMethod,
           merch_window_id: windowState.current_window?.id ?? windowState.next_window?.id ?? null,
           hp_field: formData.hp_field,
           submitted_at: formData.submitted_at,
@@ -536,6 +538,20 @@ function MerchandiseContent() {
       setCart([]);
       setFormData({ name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
       setFormErrors({});
+      if (paymentMethod === 'stripe' && data.order_id) {
+        const checkoutResponse = await fetch('/api/payments/checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: data.order_id, return_path: '/merchandise' }),
+        });
+        const checkout = await checkoutResponse.json();
+        if (!checkoutResponse.ok || !checkout.checkout_url) {
+          setCardError(checkout?.error || 'Card payment could not be started. Your order remains recorded.');
+          return;
+        }
+        window.location.href = checkout.checkout_url;
+        return;
+      }
     } catch (err) {
       setSubmitStatus('error');
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
@@ -1157,6 +1173,32 @@ function MerchandiseContent() {
                       }
                     />
 
+                    {capabilities.card && (
+                      <fieldset className="space-y-2">
+                        <legend className="form-label">Payment method</legend>
+                        <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
+                          <input
+                            type="radio"
+                            name="payment_method"
+                            value="bank_transfer"
+                            checked={paymentMethod === 'bank_transfer'}
+                            onChange={() => setPaymentMethod('bank_transfer')}
+                          />
+                          Bank transfer
+                        </label>
+                        <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
+                          <input
+                            type="radio"
+                            name="payment_method"
+                            value="stripe"
+                            checked={paymentMethod === 'stripe'}
+                            onChange={() => setPaymentMethod('stripe')}
+                          />
+                          Pay securely by card with Stripe
+                        </label>
+                      </fieldset>
+                    )}
+
                     <Button
                       type="submit"
                       isLoading={isSubmitting}
@@ -1170,14 +1212,14 @@ function MerchandiseContent() {
                           ? 'Ordering Closed'
                           : !windowState.processing_open
                             ? 'Queue Order for Next Window'
-                            : capabilities.card
-                              ? 'Place Order'
+                            : paymentMethod === 'stripe'
+                              ? 'Place Order and Pay by Card'
                               : 'Place Order (Bank Transfer)'}
                     </Button>
 
                     <p className="text-content-muted font-body text-xs text-center">
-                      {capabilities.card
-                        ? 'After submission you will receive a bank-transfer reference, or you can continue to Stripe Checkout.'
+                      {paymentMethod === 'stripe'
+                        ? 'After submission you will continue to Stripe Checkout.'
                         : 'After submission you will receive a payment reference for bank transfer.'}
                     </p>
                     <p className="text-content-muted font-body text-xs text-center">
