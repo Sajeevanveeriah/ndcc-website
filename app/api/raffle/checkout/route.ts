@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { getPublicRaffleCampaign } from '@/lib/raffle-visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,8 @@ export async function POST(request: Request) {
     const name = String(body.name || '').trim(); const email = String(body.email || '').trim().toLowerCase(); const phone = String(body.phone || '').trim(); const quantity = Number(body.quantity);
     if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return NextResponse.json({ error: 'Enter a valid name, email and quantity from 1 to 20.' }, { status: 400 });
     const db = createServerClient();
-    const { data: campaign, error } = await db.from('raffle_campaigns').select('*').eq('active', true).single();
-    if (error || !campaign) return NextResponse.json({ error: 'The raffle is not currently available.' }, { status: 503 });
+    const campaign = await getPublicRaffleCampaign();
+    if (!campaign) return NextResponse.json({ error: 'The raffle is not currently available.' }, { status: 503 });
     const amount = campaign.price_cents * quantity;
     const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount }).select('id').single();
     if (orderError || !order) return NextResponse.json({ error: 'The raffle order could not be created.' }, { status: 500 });

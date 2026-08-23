@@ -38,11 +38,11 @@ function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: st
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean) {
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean) {
   return PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
     : { label: group.label, href: undefined, links: (group.links || [])
-      .filter((link) => dinoCoachEnabled || link.href !== '/fantasy')
+      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || link.href !== '/raffle'))
       .map((link) => resolveLink(navLinks, link)) });
 }
 
@@ -56,6 +56,7 @@ export default function Navbar() {
   const [navLinks, setNavLinks] = useState<HeaderLink[]>(NAV_LINKS.map((link) => ({ ...link })));
   const [registrationNavigation, setRegistrationNavigation] = useState<RegistrationNavigation>(null);
   const [dinoCoachEnabled, setDinoCoachEnabled] = useState(false);
+  const [raffleEnabled, setRaffleEnabled] = useState(false);
   // Which desktop dropdown group is click/keyboard-opened (hover opening is
   // handled per-group in CSS). One label at a time so opening a group can
   // never surface another group's panel.
@@ -74,6 +75,18 @@ export default function Navbar() {
       }
     };
     loadDinoCoachStatus();
+  }, [pathname]);
+  useEffect(() => {
+    const loadRaffleStatus = async () => {
+      try {
+        const response = await fetch('/api/public/raffle-status', { cache: 'no-store' });
+        const result = await response.json();
+        setRaffleEnabled(response.ok && result?.enabled === true);
+      } catch {
+        setRaffleEnabled(false);
+      }
+    };
+    loadRaffleStatus();
   }, [pathname]);
   useEffect(() => {
     const handleScroll = () => {
@@ -206,7 +219,7 @@ export default function Navbar() {
     await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
     setSessionUser(null);
   };
-  const navGroups = resolveGroups(navLinks, dinoCoachEnabled);
+  const navGroups = resolveGroups(navLinks, dinoCoachEnabled, raffleEnabled);
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are
   // solid from the start.
