@@ -31,6 +31,7 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { getPublicSeasonAppointments, type PublicSeasonAppointment } from '@/lib/public-season-appointments';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
+import IntroLogoReveal from '@/components/home/IntroLogoReveal';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { fallbackNews } from '@/lib/fallback-content';
 import PublicationCard from '@/components/publications/PublicationCard';
@@ -336,9 +337,16 @@ function SeasonStatusView({
 const SEASON_STATUS_DEFAULT_BODY = `Follow the latest ${CLUB_NICKNAME} season updates, match-day notices, and club announcements on our official channels.`;
 
 async function SeasonStatusSection() {
+  // getCurrentClubSeason throws when Supabase is unreachable or unconfigured.
+  // Every other homepage data source fails safe; without this catch a single
+  // failed season lookup replaces the entire homepage with the global error
+  // page. Season placeholders simply render their fallbacks with no season.
   const [blocks, currentSeason] = await Promise.all([
     getContentBlocks(['home.season_status']),
-    getCurrentClubSeason(),
+    getCurrentClubSeason().catch((err) => {
+      console.error('[home] Failed to load current club season; rendering season status without it:', err);
+      return null;
+    }),
   ]);
   const block = blocks['home.season_status'];
   return (
@@ -782,6 +790,13 @@ async function JuniorsCtaSection() {
 export default function HomePage() {
   return (
     <>
+      {/* Client-only splash: plays the club logo reveal over the page on the
+          first homepage visit of a session, then fades out to the hero. It
+          renders nothing on the server and skips itself entirely on error,
+          slow networks, reduced-motion or Save-Data — the page beneath is
+          always fully rendered and never waits on it. */}
+      <IntroLogoReveal />
+
       <Suspense
         fallback={
           <HeroView
