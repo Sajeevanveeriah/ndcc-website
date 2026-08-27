@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { formatDate, truncateText } from '@/lib/utils';
+import { datetimeLocalToClubIso, formatDate, toDatetimeLocalInClubTimezone, truncateText } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Publication } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -406,7 +406,7 @@ export default function AdminPublicationsPage() {
                 <TableCell>{TYPE_LABELS[p.publication_type] || p.publication_type}</TableCell>
                 <TableCell>{formatDate(p.issue_date)}</TableCell>
                 <TableCell>
-                  {p.published ? <Badge variant="success">Published</Badge> : <Badge variant="warning">Draft</Badge>}
+                  {!p.published ? <Badge variant="warning">Draft</Badge> : p.published_at && Date.parse(p.published_at) > Date.now() ? <Badge variant="info">Scheduled for {new Date(p.published_at).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })}</Badge> : <Badge variant="success">Published</Badge>}
                 </TableCell>
                 <TableCell>
                   <button
@@ -568,22 +568,13 @@ export default function AdminPublicationsPage() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.published}
-                onChange={(e) => {
-                  const published = e.target.checked;
-                  setForm({
-                    ...form,
-                    published,
-                    published_at: published && !form.published_at ? new Date().toISOString() : form.published_at,
-                  });
-                }}
-                className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
-              />
-              <span className="text-sm font-body text-content-secondary">Publish (visible to the public)</span>
+            <label className="text-sm font-body text-content-secondary">Publication state
+              <select className="ml-2 rounded-lg border border-edge-strong bg-surface-card px-3 py-2" value={!form.published ? 'draft' : form.published_at && Date.parse(form.published_at) > Date.now() ? 'scheduled' : 'published'} onChange={(event) => {
+                const state = event.target.value;
+                setForm({ ...form, published: state !== 'draft', published_at: state === 'draft' ? null : state === 'published' ? new Date().toISOString() : (form.published_at && Date.parse(form.published_at) > Date.now() ? form.published_at : new Date(Date.now() + 60 * 60 * 1000).toISOString()) });
+              }}><option value="draft">Draft</option><option value="published">Publish now</option><option value="scheduled">Schedule</option></select>
             </label>
+            {form.published && form.published_at && Date.parse(form.published_at) > Date.now() && <Input id="publication-schedule" label="Scheduled time - Australia/Melbourne" type="datetime-local" value={toDatetimeLocalInClubTimezone(form.published_at)} onChange={(e) => setForm({ ...form, published_at: datetimeLocalToClubIso(e.target.value) })} required />}
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"

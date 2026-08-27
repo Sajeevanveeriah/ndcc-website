@@ -15,7 +15,7 @@ assert.match(route, /Delete is disabled for this resource[\s\S]*status: 405/, 'D
 assert.match(route, /Your role cannot delete this record[\s\S]*status: 403/, 'Non-admin deletes are rejected for admin-only resources.');
 assert.match(route, /authoriseResource\(params\.resource\)/, 'Unauthenticated requests go through the resource permission guard.');
 assert.match(route, /delete\(\)\.eq\('id', id\)\.select\('id'\)/, 'Delete verifies selected id.');
-assert.match(route, /from\('order_payments'\)\.delete\(\)\.in\('order_id', orderIds\)/, 'Order deletion removes dependent payment rows first.');
+assert.match(route, /rpc\('delete_test_order_atomic'/, 'Order deletion delegates all dependent cleanup to one transactional RPC.');
 assert.match(route, /Record not found[\s\S]*status: 404/, 'Missing IDs return 404.');
 assert.match(route, /status: 409/, 'Foreign-key conflicts return 409.');
 assert.match(route, /data: \{ id: deleted\.id \}/, 'Successful delete returns deleted id.');
@@ -37,7 +37,8 @@ assert.match(enquiries, /resource="enquiries"/, 'Enquiries page can delete enqui
 assert.match(enquiries, /setSelectedContact\(\(current\) => \(current\?\.id === id \? null : current\)\)/, 'Deleting selected enquiry closes modal.');
 assert.match(volunteers, /resource="volunteerExpressions"/, 'Volunteers page can delete EOIs.');
 assert.match(orders, /resource="orders"/, 'Orders page can delete orders.');
-assert.match(orders, /requireTypedConfirmation=\{o\.payment_status === 'paid' \|\| o\.processed\}/, 'Paid or processed orders require typed confirmation.');
+assert.match(orders, /requireTypedConfirmation\s/, 'Every test-order deletion requires typed confirmation.');
+assert.match(orders, /confirmationPhrase="DELETE TEST ORDER"/, 'Order deletion requires the dedicated strong confirmation phrase.');
 assert.match(events, /resource="eventRegistrations"/, 'Event registrations can be deleted.');
 assert.match(memberships, /resource="membershipApplications"/, 'Membership applications can be deleted.');
 assert.match(kitchen, /resource="kitchenOrders"/, 'Kitchen orders can be deleted.');

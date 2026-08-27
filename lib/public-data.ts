@@ -44,7 +44,9 @@ export type GalleryAlbum = {
   image_count: number;
 };
 
-const PUBLIC_QUERY_TIMEOUT_MS = 5_000;
+// See lib/calendar/queries.ts: the production database work is fast, but a
+// cold PostgREST connection has exceeded the previous five-second budget.
+const PUBLIC_QUERY_TIMEOUT_MS = 15_000;
 
 // Uncached live reads. These helpers back mutable public CMS content, so they
 // must hit Supabase on every request — wrapping them in unstable_cache let

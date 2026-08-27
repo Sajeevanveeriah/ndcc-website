@@ -374,6 +374,7 @@ async function validateAndPublish(supabase: any, season: SeasonRow, job: any): P
 
 /** Send a deduplicated admin alert after repeated failures for a season. */
 async function maybeAlertAdmins(supabase: any, invokedBy: string, season: SeasonRow, latestError: string) {
+  if (!season.auto_sync_enabled || season.status !== 'active') return;
   const { data: recent } = await supabase
     .from('fantasy_sync_runs')
     .select('status, stage, created_at')
@@ -634,7 +635,7 @@ export async function runFantasyOrchestrator(options: {
       .from('fantasy_seasons')
       .select('id, name, slug, status, is_current, is_public, playhq_season_id, playhq_discovery, auto_sync_enabled, sync_exception, last_playhq_sync_at')
       .eq('auto_sync_enabled', true)
-      .neq('status', 'archived');
+      .eq('status', 'active');
     if (seasonsError) throw new Error(seasonsError.message);
 
     // Current season first, then older seasons awaiting historical bootstrap.

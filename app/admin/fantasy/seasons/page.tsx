@@ -100,6 +100,16 @@ export default function AdminFantasySeasonsPage() {
     await Promise.all([load(), loadHealth()]);
   }, 'Automatic sync run finished. Review the health panel below.');
 
+  const clearOperationalLogs = (seasonId?: string) => run(async () => {
+    const suffix = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : '';
+    const preview = await parseApiResponse<any>(await adminFetch(`/api/admin/fantasy/logs${suffix}`));
+    const count = Number(preview.preview?.sync_runs || 0);
+    const confirmation = window.prompt(`This removes ${count} operational sync log entries and resets stale error/retry fields. Match stats, prices, payments, entries and import lineage are preserved. Type CLEAR LOGS to continue.`);
+    if (confirmation !== 'CLEAR LOGS') return;
+    await parseApiResponse(await adminFetch('/api/admin/fantasy/logs', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation, seasonId }) }));
+    await loadHealth();
+  }, 'Operational sync logs cleared. Authoritative game, payment and audit records were preserved.');
+
   return (
     <div>
       <h1 className="text-2xl font-display font-bold text-content-primary mb-2">Fantasy Seasons &amp; PlayHQ Sync</h1>
@@ -114,6 +124,7 @@ export default function AdminFantasySeasonsPage() {
             <h2 className="text-lg font-display font-bold text-content-primary">Automatic PlayHQ sync</h2>
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => loadHealth()}>Refresh health</Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => clearOperationalLogs()}>Clear all operational logs</Button>
               <Button size="sm" disabled={busy} onClick={runOrchestrator}>Run automatic sync now</Button>
             </div>
           </div>
@@ -141,8 +152,8 @@ export default function AdminFantasySeasonsPage() {
                     </p>
                     {awaitingPlayHQ && (
                       <p className="text-blue-800">
-                        PlayHQ has not published a matching season yet. Discovery keeps retrying on the daily schedule —
-                        this is not a successful sync, just a waiting state.
+                        PlayHQ has not published a matching season yet. Automatic match-stat sync is paused until the
+                        season is linked and activated; this is an expected waiting state.
                       </p>
                     )}
                     <p>Grade mappings: {grades.filter((g: any) => g.enabled).map((g: any) => g.grade_name).join(', ') || 'none'}{grades.some((g: any) => !g.enabled) ? ` (+${grades.filter((g: any) => !g.enabled).length} disabled)` : ''}</p>
@@ -206,7 +217,7 @@ export default function AdminFantasySeasonsPage() {
                   <span className="text-xs text-content-muted font-body">slug: {season.slug}{season.playhq_season_id ? ` · PlayHQ: ${season.playhq_season_id}` : ' · No PlayHQ link'}</span>
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm font-body">
-                  {([['is_public', 'isPublic', 'Public'], ['allow_team_building', 'allowTeamBuilding', 'Team building'], ['registration_open', 'registrationOpen', 'Registration open'], ['team_selection_open', 'teamSelectionOpen', 'Team selection open']] as const).map(([column, key, label]) => (
+                  {([['is_public', 'isPublic', 'Public'], ['auto_sync_enabled', 'autoSyncEnabled', 'Auto sync enabled'], ['allow_team_building', 'allowTeamBuilding', 'Team building'], ['registration_open', 'registrationOpen', 'Registration open'], ['team_selection_open', 'teamSelectionOpen', 'Team selection open']] as const).map(([column, key, label]) => (
                     <label key={key} className="flex items-center gap-2">
                       <input type="checkbox" checked={season[column] === true} disabled={busy} onChange={(e) => patchSeason(season.id, { [key]: e.target.checked }, `${label} updated.`)} />{label}
                     </label>
@@ -225,6 +236,7 @@ export default function AdminFantasySeasonsPage() {
                   <Button size="sm" variant="secondary" disabled={busy} onClick={() => openGrades(season.id)}>Map PlayHQ grades</Button>
                   <Button size="sm" variant="secondary" disabled={busy} onClick={() => loadJobs(season.id)}>View import jobs</Button>
                   <Button size="sm" variant="secondary" disabled={busy} onClick={() => runPreview(season.id)}>Run Preview</Button>
+                  <Button size="sm" variant="secondary" disabled={busy} onClick={() => clearOperationalLogs(season.id)}>Clear this season&apos;s logs</Button>
                   <Button size="sm" disabled={busy || !season.playhq_season_id} onClick={() => syncAction(season.id, { action: 'start', seasonId: season.id }, 'Import started; continue batches until complete.')}>Start PlayHQ import</Button>
                   {latestJob && !['completed', 'cancelled'].includes(latestJob.status) && (
                     <Button size="sm" disabled={busy} onClick={() => syncAction(season.id, { action: 'continue', jobId: latestJob.id }, 'Processed the next batch.')}>Continue import</Button>

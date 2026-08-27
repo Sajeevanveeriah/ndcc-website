@@ -33,7 +33,7 @@ const routes = [
 ];
 for (const file of routes) {
   const source = readFileSync(file, 'utf8');
-  assert.match(source, /requireSession\(GALLERY_ADMIN_ROLES\)/, `${file} uses requireSession with gallery roles`);
+  assert.match(source, /requireSession\(GALLERY_ADMIN_ROLES\)|requirePermission\('gallery'\)/, `${file} uses the gallery permission guard`);
   assert.match(source, /status: 403/, `${file} rejects missing sessions`);
   assert.doesNotMatch(source, /SUPABASE_SERVICE_ROLE_KEY/, `${file} never touches the raw service key`);
 }

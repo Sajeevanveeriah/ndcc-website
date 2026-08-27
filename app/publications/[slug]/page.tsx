@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { serializeJsonLd } from '@/lib/json-ld';
 import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import SafeImage from '@/components/common/SafeImage';
 import {
@@ -59,7 +60,7 @@ export default async function PublicationDetailPage({ params }: { params: { slug
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <section className="page-hero">
         <div className="container-width">
           <nav aria-label="Breadcrumb" className="mb-4">

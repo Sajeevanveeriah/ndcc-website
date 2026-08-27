@@ -206,6 +206,15 @@ function canDelete(role: AuthRole, config: ResourceConfig) {
 }
 
 function safeDeleteErrorResponse(message: string) {
+  if (/not explicitly marked as dummy\/test/i.test(message)) {
+    return NextResponse.json({ success: false, error: 'This order is not explicitly marked as a dummy/test record and remains protected.' }, { status: 409 });
+  }
+  if (/typed confirmation is incorrect/i.test(message)) {
+    return NextResponse.json({ success: false, error: 'Typed confirmation is incorrect.' }, { status: 400 });
+  }
+  if (/order not found/i.test(message)) {
+    return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
+  }
   if (/violates foreign key|23503|foreign key|constraint/i.test(message)) {
     return NextResponse.json({ success: false, error: 'This record cannot be deleted because related records still depend on it.' }, { status: 409 });
   }
@@ -471,23 +480,23 @@ export async function DELETE(request: Request, { params }: { params: { resource:
 
   const supabase = createServerClient();
 
-  // Order payment rows intentionally preserve an audit ledger during normal
-  // operation. An explicit admin order deletion is the exception: remove its
-  // dependent ledger rows first so test, duplicate, paid, or processed orders
-  // can all be deleted from the CMS as one deliberate action.
-  const deleteOrderPayments = async (orderIds: string[]) => {
-    if (params.resource !== 'orders') return null;
-    const { error } = await supabase.from('order_payments').delete().in('order_id', orderIds);
-    return error;
-  };
+  if (params.resource === 'orders') {
+    if (!id) return NextResponse.json({ success: false, error: 'Orders must be deleted one at a time.' }, { status: 400 });
+    const confirmation = request.headers.get('x-delete-confirmation') || '';
+    const { data, error } = await supabase.rpc('delete_test_order_atomic', {
+      p_order_id: id,
+      p_confirmation: confirmation,
+    });
+    if (error) return safeDeleteErrorResponse(error.message);
+    revalidateForResource(params.resource, id);
+    return NextResponse.json({ success: true, data: { id, cleanup: data } });
+  }
 
   if (!id) {
     const batchIds = parseBatchIds((idsParam ?? '').split(','));
     if (!batchIds) {
       return NextResponse.json({ success: false, error: `ids must be a comma-separated list of up to ${MAX_BATCH_IDS} non-empty ids.` }, { status: 400 });
     }
-    const paymentDeleteError = await deleteOrderPayments(batchIds);
-    if (paymentDeleteError) return safeDeleteErrorResponse(paymentDeleteError.message);
     const { data: batchData, error: batchError } = await supabase.from(config.table).delete().in('id', batchIds).select('id');
     if (batchError) {
       if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
@@ -499,8 +508,6 @@ export async function DELETE(request: Request, { params }: { params: { resource:
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
-  const paymentDeleteError = await deleteOrderPayments([id]);
-  if (paymentDeleteError) return safeDeleteErrorResponse(paymentDeleteError.message);
   const { data, error } = await supabase.from(config.table).delete().eq('id', id).select('id');
 
   if (error) {

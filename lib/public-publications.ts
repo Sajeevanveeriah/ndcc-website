@@ -49,10 +49,12 @@ export async function getPublishedPublications(options?: {
 }): Promise<PublicPublicationRecord[]> {
   try {
     const supabase = createServerClient();
+    const now = new Date().toISOString();
     let query = supabase
       .from('publications')
       .select(columns)
       .eq('published', true)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .order('issue_date', { ascending: false })
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
@@ -75,11 +77,13 @@ export async function getPublishedPublicationBySlug(slug: string): Promise<Publi
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
   try {
     const supabase = createServerClient();
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('publications')
       .select(columns)
       .eq('slug', slug)
       .eq('published', true)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .maybeSingle();
     if (error) {
       console.error('[public-publications] detail query failed:', error.message);

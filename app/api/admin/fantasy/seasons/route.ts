@@ -94,11 +94,14 @@ export async function PATCH(request: Request) {
   const supabase = createServerClient();
   const update: Record<string, unknown> = {};
   if (typeof body.name === 'string' && body.name.trim()) update.name = body.name.trim();
-  if (typeof body.status === 'string' && SEASON_STATUSES.includes(body.status)) update.status = body.status;
+  if (typeof body.status === 'string' && SEASON_STATUSES.includes(body.status)) {
+    update.status = body.status;
+    if (body.status === 'completed' || body.status === 'archived') update.auto_sync_enabled = false;
+  }
   if (typeof body.playhqSeasonId === 'string') update.playhq_season_id = body.playhqSeasonId.trim() || null;
   if (body.startDate !== undefined) update.start_date = body.startDate || null;
   if (body.endDate !== undefined) update.end_date = body.endDate || null;
-  for (const [key, column] of [['isPublic', 'is_public'], ['allowTeamBuilding', 'allow_team_building'], ['registrationOpen', 'registration_open'], ['teamSelectionOpen', 'team_selection_open']] as const) {
+  for (const [key, column] of [['isPublic', 'is_public'], ['autoSyncEnabled', 'auto_sync_enabled'], ['allowTeamBuilding', 'allow_team_building'], ['registrationOpen', 'registration_open'], ['teamSelectionOpen', 'team_selection_open']] as const) {
     if (typeof body[key] === 'boolean') update[column] = body[key];
   }
 

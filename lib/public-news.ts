@@ -48,6 +48,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
   const supabase = createServerClient();
   const id = options?.id;
   const limit = options?.limit;
+  const now = new Date().toISOString();
 
   if (id) {
     const initial = await supabase
@@ -55,6 +56,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
       .select(columnsWithImage)
       .eq('id', id)
       .eq('published', true)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .maybeSingle();
 
     if (isMissingImageUrlColumn(initial.error?.message)) {
@@ -63,6 +65,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
         .select(columnsWithoutImage)
         .eq('id', id)
         .eq('published', true)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .maybeSingle();
 
       if (fallback.error) {
@@ -72,6 +75,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
             .select(columnsWithoutImageNoSort)
             .eq('id', id)
             .eq('published', true)
+            .or(`published_at.is.null,published_at.lte.${now}`)
             .maybeSingle();
           if (noSortFallback.error) throw new Error(noSortFallback.error.message);
           return normalizePublicNewsRecord((noSortFallback.data as PublicNewsRecord | null) ?? null);
@@ -87,6 +91,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
         .select(columnsWithImageNoSort)
         .eq('id', id)
         .eq('published', true)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .maybeSingle();
 
       if (isMissingImageUrlColumn(noSortFallback.error?.message)) {
@@ -95,6 +100,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
           .select(columnsWithoutImageNoSort)
           .eq('id', id)
           .eq('published', true)
+          .or(`published_at.is.null,published_at.lte.${now}`)
           .maybeSingle();
         if (noSortNoImageFallback.error) throw new Error(noSortNoImageFallback.error.message);
       return normalizePublicNewsRecord((noSortNoImageFallback.data as PublicNewsRecord | null) ?? null);
@@ -112,6 +118,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
     .from('news')
     .select(columnsWithImage)
     .eq('published', true)
+    .or(`published_at.is.null,published_at.lte.${now}`)
     .order('sort_order', { ascending: true })
     .order('published_at', { ascending: false })
     .order('created_at', { ascending: false });
@@ -127,6 +134,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
       .from('news')
       .select(columnsWithoutImage)
       .eq('published', true)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .order('sort_order', { ascending: true })
       .order('published_at', { ascending: false })
       .order('created_at', { ascending: false });
@@ -142,6 +150,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
           .from('news')
           .select(columnsWithoutImageNoSort)
           .eq('published', true)
+          .or(`published_at.is.null,published_at.lte.${now}`)
           .order('published_at', { ascending: false })
           .order('created_at', { ascending: false });
 
@@ -163,6 +172,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
       .from('news')
       .select(columnsWithImageNoSort)
       .eq('published', true)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .order('published_at', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -176,6 +186,7 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
         .from('news')
         .select(columnsWithoutImageNoSort)
         .eq('published', true)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .order('published_at', { ascending: false })
         .order('created_at', { ascending: false });
 

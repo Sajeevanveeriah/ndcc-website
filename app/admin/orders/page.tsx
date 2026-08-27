@@ -497,8 +497,9 @@ export default function AdminOrdersPage() {
                         { label: 'Date', value: formatDate(o.created_at) },
                       ]}
                       dangerLevel={o.payment_status === 'paid' || o.processed ? 'strong' : 'normal'}
-                      requireTypedConfirmation={o.payment_status === 'paid' || o.processed}
-                      strongWarning="This order is paid or processed. Permanent deletion removes financial/order history for this record."
+                      requireTypedConfirmation
+                      confirmationPhrase="DELETE TEST ORDER"
+                      strongWarning="Only an order explicitly marked as dummy or test can be removed. Related business records are preserved and unlinked; payment rows belonging only to the test order are removed."
                       onDeleted={handleDeleted}
                       onSuccessMessage={setMessage}
                     />

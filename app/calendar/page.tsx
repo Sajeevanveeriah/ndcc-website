@@ -74,7 +74,7 @@ export default async function CalendarPage() {
                     Take the calendar with you
                   </h3>
                   <p className="text-sm font-body text-content-muted">
-                    Import published club events into Google, Apple or Outlook calendars.
+                    Keep published club events automatically updated in Google, Apple or Outlook calendars.
                   </p>
                   <AddToCalendarButton />
                 </div>

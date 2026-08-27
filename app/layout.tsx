@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { serializeJsonLd } from '@/lib/json-ld';
 import { Suspense } from 'react';
 import { Barlow_Condensed, Inter } from 'next/font/google';
 import Navbar from '@/components/layout/Navbar';
@@ -99,7 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#800000" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
         />
       </head>
       <body className="min-h-screen flex flex-col">
