@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { serializeJsonLd } from '@/lib/json-ld';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { truncateText } from '@/lib/utils';
 import NewsDetailClient from './NewsDetailClient';
@@ -66,7 +67,7 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <NewsDetailClient post={post} />
     </>

@@ -9,6 +9,6 @@ const [home, footer] = await Promise.all([
 assert.match(home, /if \(!\(await isDinoCoachPublic\(\)\)\) return null;/);
 assert.match(home, /<Suspense fallback=\{null\}>\s*<FantasyTeaserSection \/>/);
 assert.match(footer, /!link\.href\.startsWith\('\/fantasy'\)/);
-assert.match(footer, /await isDinoCoachPublic\(\)/);
+assert.match(footer, /Promise\.all\(\[isDinoCoachPublic\(\), isRafflePublic\(\)\]\)/, 'footer awaits both public feature gates before rendering links');
 
 console.log('Dino Coach public surface checks passed.');

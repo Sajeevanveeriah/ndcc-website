@@ -8,10 +8,11 @@ async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute
   if (!isServerSupabaseConfigured()) return [];
   try {
     const supabase = createServerClient({ fetchTimeoutMs: 5_000 });
+    const now = new Date().toISOString();
     const [news, events, publications] = await Promise.all([
-      supabase.from('news').select('id,published_at,created_at').eq('published', true),
+      supabase.from('news').select('id,published_at,created_at').eq('published', true).or(`published_at.is.null,published_at.lte.${now}`),
       supabase.from('events').select('id,date').eq('published', true),
-      supabase.from('publications').select('slug,published_at,updated_at,created_at').eq('published', true),
+      supabase.from('publications').select('slug,published_at,updated_at,created_at').eq('published', true).or(`published_at.is.null,published_at.lte.${now}`),
     ]);
     const newsEntries: MetadataRoute.Sitemap = (news.data ?? []).map((row) => ({
       url: `${baseUrl}/news/${row.id}`,

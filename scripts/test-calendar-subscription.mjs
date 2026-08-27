@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const route = readFileSync(new URL('../app/api/public/calendar/ics/route.ts', import.meta.url), 'utf8');
+const control = readFileSync(new URL('../components/calendar/AddToCalendarButton.tsx', import.meta.url), 'utf8');
+assert.doesNotMatch(route, /Content-Disposition/, 'subscription feed must not force download');
+for (const token of ['text/calendar', 'UID:', 'LAST-MODIFIED:', 'SEQUENCE:', 'STATUS:CANCELLED', 'RRULE:', 'Buffer.byteLength', 'X-WR-TIMEZONE:Australia/Melbourne']) assert.match(route, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+assert.match(control, /webcal:\/\//);
+assert.match(control, /Copy subscription URL/);
+assert.match(control, /Subscribe once and future NDCC calendar updates/);
+console.log('Calendar subscription structural tests passed.');

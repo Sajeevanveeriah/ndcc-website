@@ -33,22 +33,33 @@ function toIcsDate(iso: string): string {
 }
 
 function foldLine(line: string): string {
-  // RFC 5545: lines longer than 75 octets should be folded.
-  if (line.length <= 75) return line;
+  // RFC 5545 limits content lines to 75 UTF-8 octets, not 75 characters.
+  if (Buffer.byteLength(line, 'utf8') <= 75) return line;
   const chunks: string[] = [];
-  let rest = line;
-  while (rest.length > 75) {
-    chunks.push(rest.slice(0, 75));
-    rest = ' ' + rest.slice(75);
+  let chunk = '';
+  let chunkBytes = 0;
+  for (const character of line) {
+    const bytes = Buffer.byteLength(character, 'utf8');
+    const limit = chunks.length === 0 ? 75 : 74;
+    if (chunk && chunkBytes + bytes > limit) {
+      chunks.push(chunk);
+      chunk = character;
+      chunkBytes = bytes;
+    } else {
+      chunk += character;
+      chunkBytes += bytes;
+    }
   }
-  chunks.push(rest);
-  return chunks.join('\r\n');
+  if (chunk) chunks.push(chunk);
+  return chunks.join('\r\n ');
 }
 
 function eventToVevent(event: CalendarEvent): string[] {
   const lines: string[] = ['BEGIN:VEVENT'];
   lines.push(`UID:${event.id}@${ICS_DOMAIN}`);
   lines.push(`DTSTAMP:${toIcsUtc(event.updated_at || event.created_at)}`);
+  lines.push(`LAST-MODIFIED:${toIcsUtc(event.updated_at || event.created_at)}`);
+  lines.push(`SEQUENCE:${Math.max(0, Math.floor(Date.parse(event.updated_at || event.created_at) / 1000))}`);
   if (event.all_day) {
     lines.push(`DTSTART;VALUE=DATE:${toIcsDate(event.start_at)}`);
     if (event.end_at) {
@@ -68,6 +79,9 @@ function eventToVevent(event: CalendarEvent): string[] {
   const location = [event.location, event.venue_address].filter(Boolean).join(', ');
   if (location) lines.push(`LOCATION:${escapeIcsText(location)}`);
   if (event.status === 'cancelled') lines.push('STATUS:CANCELLED');
+  if (event.recurrence_rule && /^[A-Z0-9=;,\-]+$/i.test(event.recurrence_rule)) {
+    lines.push(`RRULE:${event.recurrence_rule}`);
+  }
   lines.push('END:VEVENT');
   return lines;
 }
@@ -103,7 +117,6 @@ export async function GET() {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ndcc-calendar.ics"',
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       Pragma: 'no-cache',
       Expires: '0',

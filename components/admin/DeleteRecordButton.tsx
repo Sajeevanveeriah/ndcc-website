@@ -16,6 +16,7 @@ type DeleteRecordButtonProps = {
   recordDetails?: Detail[];
   dangerLevel?: 'normal' | 'strong';
   requireTypedConfirmation?: boolean;
+  confirmationPhrase?: string;
   strongWarning?: string;
   onDeleted: (deletedId: string) => void;
   onSuccessMessage?: (message: string) => void;
@@ -49,6 +50,7 @@ export default function DeleteRecordButton({
   recordDetails = [],
   dangerLevel = 'normal',
   requireTypedConfirmation = false,
+  confirmationPhrase = 'DELETE',
   strongWarning,
   onDeleted,
   onSuccessMessage,
@@ -81,8 +83,9 @@ export default function DeleteRecordButton({
   const canConfirm = useMemo(() => {
     if (deleting) return false;
     if (!requireTypedConfirmation) return true;
-    return typedConfirmation === 'DELETE';
-  }, [deleting, requireTypedConfirmation, typedConfirmation]);
+    if (confirmationPhrase === 'DELETE') return typedConfirmation === 'DELETE';
+    return typedConfirmation === confirmationPhrase;
+  }, [confirmationPhrase, deleting, requireTypedConfirmation, typedConfirmation]);
 
   if (!sessionChecked || !isAdmin) return null;
 
@@ -103,6 +106,7 @@ export default function DeleteRecordButton({
     try {
       const response = await adminFetch(`/api/admin/resources/${resource}?id=${encodeURIComponent(recordId)}`, {
         method: 'DELETE',
+        headers: requireTypedConfirmation ? { 'X-Delete-Confirmation': typedConfirmation } : undefined,
       });
       const result = await parseApiResponse<DeleteResponse>(response);
       const deletedId = result.data?.id || result.deletedId || recordId;
@@ -148,7 +152,7 @@ export default function DeleteRecordButton({
           {requireTypedConfirmation && (
             <Input
               id={`delete-confirm-${recordId}`}
-              label="Type DELETE to confirm"
+              label={`Type ${confirmationPhrase} to confirm`}
               value={typedConfirmation}
               onChange={(event) => setTypedConfirmation(event.target.value)}
               disabled={deleting}

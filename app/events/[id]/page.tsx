@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { serializeJsonLd } from '@/lib/json-ld';
 import { createServerClient } from '@/lib/supabase-server';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
 import { formatDateTime, truncateText } from '@/lib/utils';
@@ -73,7 +74,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <EventDetailClient event={event} />
     </>
