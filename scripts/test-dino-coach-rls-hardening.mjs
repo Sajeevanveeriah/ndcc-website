@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const migration = readFileSync(
-  'supabase/migrations/20260830020000_dino_coach_rls_hardening.sql',
+  'supabase/migrations/20260830130833_dino_coach_rls_hardening.sql',
   'utf8',
 );
 const normalised = migration.replace(/--.*$/gm, '').replace(/\s+/g, ' ');

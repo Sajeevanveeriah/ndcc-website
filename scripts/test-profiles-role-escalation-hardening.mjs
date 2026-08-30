@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const migration = readFileSync(
-  'supabase/migrations/20260830021000_profiles_role_escalation_hardening.sql',
+  'supabase/migrations/20260830130835_profiles_role_escalation_hardening.sql',
   'utf8',
 );
 const sql = migration.replace(/--.*$/gm, '').replace(/\s+/g, ' ');

@@ -9,7 +9,7 @@ import {
 } from './lib/local-db.mjs';
 
 const DB = 'ndcc_security_privilege_defaults';
-const MIGRATION = '20260830022000_security_privilege_defaults_hardening.sql';
+const MIGRATION = '20260830130837_security_privilege_defaults_hardening.sql';
 
 function bool(database, sql) {
   return psql(database, sql) === 't';

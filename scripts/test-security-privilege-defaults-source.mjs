@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
-const migrationPath = 'supabase/migrations/20260830022000_security_privilege_defaults_hardening.sql';
+const migrationPath = 'supabase/migrations/20260830130837_security_privilege_defaults_hardening.sql';
 assert.equal(existsSync(migrationPath), true, 'the forward security migration must exist');
 assert.equal(
   existsSync('app/api/admin/auth/bootstrap/route.ts'),
