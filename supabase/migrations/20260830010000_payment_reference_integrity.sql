@@ -252,7 +252,7 @@ begin
   end if;
 
   expires_at := reserved_at + interval '1 hour';
-  expires_at_unix := pg_catalog.floor(pg_catalog.extract(epoch from expires_at))::bigint;
+  expires_at_unix := pg_catalog.floor(extract(epoch from expires_at))::bigint;
 
   select * into target_order from public.orders
     where id = target_order_id for update;
@@ -312,7 +312,7 @@ begin
       'checkout_contract_version', '1',
       'checkout_origin', clean_checkout_origin,
       'checkout_return_path', clean_return_path,
-      'checkout_created_at_unix', pg_catalog.floor(pg_catalog.extract(epoch from reserved_at))::bigint,
+      'checkout_created_at_unix', pg_catalog.floor(extract(epoch from reserved_at))::bigint,
       'checkout_expires_at_unix', expires_at_unix,
       'checkout_expires_at', expires_at,
       'checkout_customer_email', coalesce(target_order.customer_email, ''),
