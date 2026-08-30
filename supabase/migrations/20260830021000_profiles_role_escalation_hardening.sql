@@ -108,7 +108,7 @@ BEGIN
         'orders', 'sponsors', 'teams', 'volunteers'
       )
       AND (
-        pg_catalog.coalesce(qual, '') || ' ' || pg_catalog.coalesce(with_check, '')
+        coalesce(qual, '') || ' ' || coalesce(with_check, '')
       ) ~* '(^|[^a-z0-9_])(?:public[.])?profiles([^a-z0-9_]|$)'
   ) THEN
     RAISE EXCEPTION 'A protected-table policy still depends on public.profiles.';
