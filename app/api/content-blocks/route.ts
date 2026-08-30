@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { fallbackContentBlocks } from '@/lib/fallback-content';
+import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,6 +13,13 @@ const noStoreHeaders = {
   Pragma: 'no-cache',
   Expires: '0',
 };
+
+function normaliseContentBlockLinks<T extends { cta_url?: unknown }>(blocks: T[]) {
+  return blocks.map((block) => ({
+    ...block,
+    cta_url: normalisePublicLinkUrl(block.cta_url),
+  }));
+}
 
 // Uncached live read: content blocks are edited through admin, so the response
 // is assembled from Supabase on every request. Fallback blocks are reserved for
@@ -24,7 +32,7 @@ async function getActiveContentBlocks(page: string | null, keys: string | null) 
       if (page) return block.block_key.startsWith(`${page}.`);
       return true;
     });
-    return { data: values, error: null, source: 'fallback' as const, degraded: true };
+    return { data: normaliseContentBlockLinks(values), error: null, source: 'fallback' as const, degraded: true };
   }
 
   const supabase = createServerClient();
@@ -34,7 +42,7 @@ async function getActiveContentBlocks(page: string | null, keys: string | null) 
 
   const { data, error } = await query;
   if (error) return { data: [], error: error.message, source: 'supabase' as const, degraded: false };
-  return { data: data ?? [], error: null, source: 'supabase' as const, degraded: false };
+  return { data: normaliseContentBlockLinks(data ?? []), error: null, source: 'supabase' as const, degraded: false };
 }
 
 export async function GET(request: Request) {

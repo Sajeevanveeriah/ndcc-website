@@ -1,6 +1,7 @@
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
 import { normalisePublicText } from './utils';
 import { fallbackBlocksForKeys } from '@/lib/fallback-content';
+import { resolvePublicLinkUrl } from './public-link-url';
 
 export interface ContentBlock {
   block_key: string;
@@ -24,7 +25,7 @@ function resolveContentBlock(
     body: normalisePublicText(db?.body) || fallback?.body || null,
     image_url: normalisePublicText(db?.image_url) || fallback?.image_url || null,
     cta_label: normalisePublicText(db?.cta_label) || fallback?.cta_label || null,
-    cta_url: normalisePublicText(db?.cta_url) || fallback?.cta_url || null,
+    cta_url: resolvePublicLinkUrl(db?.cta_url, fallback?.cta_url),
   };
 }
 

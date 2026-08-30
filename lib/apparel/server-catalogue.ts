@@ -123,6 +123,9 @@ export function priceOrderItems(
   let totalCents = 0;
 
   for (const rawItem of items) {
+    if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) {
+      return { ok: false, error: 'One or more merchandise items are invalid.' };
+    }
     const bySlug = rawItem.slug ? products.find((p) => p.slug === rawItem.slug) : undefined;
     const match = bySlug || products.find((p) => p.name === rawItem.name);
     if (!match) {
@@ -164,14 +167,12 @@ export function priceOrderItems(
     }
 
     totalCents += priced.unitPriceCents * quantity;
-    const safeRawItem = { ...rawItem };
-    delete safeRawItem.custom_name;
-    delete safeRawItem.custom_number;
-    delete safeRawItem.alternate_number;
-    delete safeRawItem.number_request_status;
-    delete safeRawItem.personalisation_confirmed;
+    if (!Number.isSafeInteger(totalCents)) {
+      return { ok: false, error: 'Merchandise order total is outside the supported range.' };
+    }
+    // Persist only server-validated fields. The public JSON body must not be
+    // able to smuggle arbitrary nested keys into financial order history.
     pricedItems.push({
-      ...safeRawItem,
       name: match.name,
       slug: match.slug,
       size,

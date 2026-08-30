@@ -9,7 +9,7 @@ export function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not configured');
     }
     _stripe = new Stripe(key, {
-      apiVersion: '2026-02-25.clover' as Stripe.LatestApiVersion,
+      apiVersion: '2026-07-29.dahlia' as Stripe.LatestApiVersion,
     });
   }
   return _stripe;

@@ -7,6 +7,9 @@ import { validateCalendarEventPayload } from '@/lib/calendar/format';
 import { PUBLICATION_TYPES } from '@/lib/public-publications';
 import type { AuthRole } from '@/lib/auth/config';
 import { isFullAccessRole, RESOURCE_PERMISSIONS } from '@/lib/auth/permissions';
+import { canDeleteResource } from '@/lib/auth/resource-delete';
+import { normaliseGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
+import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +36,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   orders: { table: 'orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['processed', 'confirmed_by', 'confirmed_at', 'bank_reference_used', 'needs_review_reason'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['confirmed_at'] },
   merchPaymentSettings: { table: 'merch_payment_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['bank_transfer_enabled', 'card_checkout_enabled', 'partial_payments_enabled', 'minimum_partial_amount', 'required_deposit_percent'] },
   enquiries: { table: 'contacts', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['name', 'email', 'phone', 'enquiry_type', 'message', 'responded'], defaultOrder: { column: 'created_at', ascending: false } },
-  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'stripe_link', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
+  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
   calendarEvents: { table: 'calendar_events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'slug', 'description', 'start_at', 'end_at', 'all_day', 'location', 'venue_address', 'event_type', 'category', 'visibility', 'status', 'is_featured', 'show_on_home', 'show_on_contact', 'show_on_calendar', 'image_url', 'external_url', 'cta_label', 'cta_url', 'registration_required', 'ticket_price', 'capacity', 'colour', 'sort_order', 'recurrence_rule', 'recurrence_until'], defaultOrder: { column: 'start_at', ascending: true }, datetimeFields: ['start_at', 'end_at', 'recurrence_until'], validate: validateCalendarEventPayload },
   eventRegistrations: { table: 'event_registrations', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   publications: { table: 'publications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['publication_type', 'title', 'slug', 'summary', 'content', 'issue_date', 'season_label', 'round_label', 'cover_image_url', 'document_url', 'external_url', 'author', 'published', 'published_at', 'featured', 'display_order'], defaultOrder: { column: 'issue_date', ascending: false }, datetimeFields: ['published_at'], validate: validatePublicationPayload },
@@ -54,7 +57,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   // original_url, ...) are deliberately NOT writable here - they are set only
   // by the dedicated gallery upload finalisation endpoint.
   galleryImages: { table: 'gallery_images', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'caption', 'image_url', 'alt_text', 'sort_order', 'allow_download', 'published', 'album_id'], defaultOrder: { column: 'sort_order', ascending: true } },
-  apparelProducts: { table: 'apparel_products', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['slug', 'name', 'description', 'price', 'sizes', 'image_url', 'image_alt', 'customisable', 'category', 'display_order', 'order_guidance', 'size_guidance', 'active', 'payment_mode', 'payment_link_url', 'stripe_price_id', 'checkout_enabled', 'fulfilment_notes', 'order_email'], defaultOrder: { column: 'display_order', ascending: true } },
+  apparelProducts: { table: 'apparel_products', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['slug', 'name', 'description', 'price', 'sizes', 'image_url', 'image_alt', 'customisable', 'category', 'display_order', 'order_guidance', 'size_guidance', 'active', 'payment_mode', 'stripe_price_id', 'checkout_enabled', 'fulfilment_notes', 'order_email'], defaultOrder: { column: 'display_order', ascending: true } },
   apparelProductOptions: { table: 'apparel_product_options', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['product_id', 'option_group', 'option_value', 'option_label', 'price_delta', 'is_default', 'active', 'display_order'], defaultOrder: { column: 'display_order', ascending: true } },
   pageLinkCards: { table: 'page_link_cards', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['page_slug', 'section_key', 'title', 'description', 'href', 'icon', 'badge', 'is_external', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
   facilityFeatures: { table: 'facility_features', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowedFields: ['title', 'description', 'icon_key', 'sort_order', 'is_active'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -70,6 +73,18 @@ const resourceMap: Record<string, ResourceConfig> = {
   raffleOrders: { table: 'raffle_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['status'], defaultOrder: { column: 'created_at', ascending: false } },
   contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
   clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url', 'sponsor_marquee_speed'] },
+};
+
+type PublicLinkField = { field: string; requiredOnCreate?: boolean };
+
+const PUBLIC_LINK_FIELDS_BY_TABLE: Record<string, PublicLinkField[]> = {
+  page_link_cards: [{ field: 'href', requiredOnCreate: true }],
+  content_blocks: [{ field: 'cta_url' }],
+  club_settings: [{ field: 'facebook_url' }, { field: 'instagram_url' }, { field: 'playhq_url' }],
+  teams: [{ field: 'playhq_url' }],
+  sponsors: [{ field: 'website' }],
+  calendar_events: [{ field: 'external_url' }, { field: 'cta_url' }],
+  publications: [{ field: 'document_url' }, { field: 'external_url' }],
 };
 
 // Public CMS helpers now read Supabase uncached at request time, so these tag/path
@@ -202,7 +217,7 @@ function canWrite(role: AuthRole, config: ResourceConfig) {
 }
 
 function canDelete(role: AuthRole, config: ResourceConfig) {
-  return isFullAccessRole(role) || (config.deleteRoles || config.writeRoles).includes(role);
+  return canDeleteResource(role, config, isFullAccessRole(role));
 }
 
 function safeDeleteErrorResponse(message: string) {
@@ -244,10 +259,54 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
   return payload;
 }
 
+function validateAndNormalisePublicLinks(
+  config: ResourceConfig,
+  payload: Record<string, unknown>,
+  isCreate: boolean,
+) {
+  for (const { field, requiredOnCreate } of PUBLIC_LINK_FIELDS_BY_TABLE[config.table] ?? []) {
+    if (!(field in payload)) {
+      if (isCreate && requiredOnCreate) return `${field} is required.`;
+      continue;
+    }
+
+    const value = payload[field];
+    if (value === null || value === '') {
+      if (requiredOnCreate) return `${field} is required.`;
+      payload[field] = null;
+      continue;
+    }
+
+    const safeUrl = normalisePublicLinkUrl(value);
+    if (!safeUrl) return `${field} must be a safe site path or an HTTPS URL.`;
+    payload[field] = safeUrl;
+  }
+
+  if (config.table === 'page_link_cards' && typeof payload.href === 'string') {
+    payload.is_external = payload.href.startsWith('https://');
+  }
+  return null;
+}
+
 function hasRequiredClubSettingsFields(payload: Record<string, unknown>) {
   return ['club_name', 'club_short', 'club_nickname'].every((field) => (
     typeof payload[field] === 'string' && payload[field].trim().length > 0
   ));
+}
+
+function validateAndNormaliseClubSettings(payload: Record<string, unknown>) {
+  if (!hasRequiredClubSettingsFields(payload)) {
+    return 'Club name, short name, and nickname are required.';
+  }
+  if (!('google_maps_embed_url' in payload)) return null;
+  if (payload.google_maps_embed_url === null || payload.google_maps_embed_url === '') return null;
+
+  const mapsUrl = normaliseGoogleMapsEmbedUrl(payload.google_maps_embed_url);
+  if (!mapsUrl) {
+    return 'Google Maps embed URL must be an approved https://www.google.com/maps/embed URL.';
+  }
+  payload.google_maps_embed_url = mapsUrl;
+  return null;
 }
 
 function isMissingSeasonAppointmentsTableError(errorMessage: string, table: string) {
@@ -280,11 +339,12 @@ async function authoriseResource(resource: string) {
   return requirePermission(permission);
 }
 
-export async function GET(request: Request, { params }: { params: { resource: string } }) {
-  const config = pickResource(params.resource);
+export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
+  const { resource } = await params;
+  const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(params.resource);
+  const user = await authoriseResource(resource);
   if (!user || !canRead(user.role, config.readRoles)) {
     return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
@@ -328,11 +388,12 @@ export async function GET(request: Request, { params }: { params: { resource: st
   return NextResponse.json({ success: true, data });
 }
 
-export async function POST(request: Request, { params }: { params: { resource: string } }) {
-  const config = pickResource(params.resource);
+export async function POST(request: Request, { params }: { params: Promise<{ resource: string }> }) {
+  const { resource } = await params;
+  const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(params.resource);
+  const user = await authoriseResource(resource);
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
@@ -342,8 +403,15 @@ export async function POST(request: Request, { params }: { params: { resource: s
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
   }
-  if (config.table === 'club_settings' && !hasRequiredClubSettingsFields(payload)) {
-    return NextResponse.json({ success: false, error: 'Club name, short name, and nickname are required.' }, { status: 400 });
+  const publicLinkError = validateAndNormalisePublicLinks(config, payload, true);
+  if (publicLinkError) {
+    return NextResponse.json({ success: false, error: publicLinkError }, { status: 400 });
+  }
+  if (config.table === 'club_settings') {
+    const clubSettingsError = validateAndNormaliseClubSettings(payload);
+    if (clubSettingsError) {
+      return NextResponse.json({ success: false, error: clubSettingsError }, { status: 400 });
+    }
   }
   const validationError = config.validate?.(payload, true) ?? null;
   if (validationError) {
@@ -383,15 +451,16 @@ export async function POST(request: Request, { params }: { params: { resource: s
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource, data?.id, data);
+  revalidateForResource(resource, data?.id, data);
   return NextResponse.json({ success: true, data });
 }
 
-export async function PATCH(request: Request, { params }: { params: { resource: string } }) {
-  const config = pickResource(params.resource);
+export async function PATCH(request: Request, { params }: { params: Promise<{ resource: string }> }) {
+  const { resource } = await params;
+  const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(params.resource);
+  const user = await authoriseResource(resource);
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
@@ -409,8 +478,15 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
   }
-  if (config.table === 'club_settings' && !hasRequiredClubSettingsFields(payload)) {
-    return NextResponse.json({ success: false, error: 'Club name, short name, and nickname are required.' }, { status: 400 });
+  const publicLinkError = validateAndNormalisePublicLinks(config, payload, false);
+  if (publicLinkError) {
+    return NextResponse.json({ success: false, error: publicLinkError }, { status: 400 });
+  }
+  if (config.table === 'club_settings') {
+    const clubSettingsError = validateAndNormaliseClubSettings(payload);
+    if (clubSettingsError) {
+      return NextResponse.json({ success: false, error: clubSettingsError }, { status: 400 });
+    }
   }
   const validationError = config.validate?.(payload, false) ?? null;
   if (validationError) {
@@ -427,7 +503,7 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
       }
       return NextResponse.json({ success: false, error: batchError.message }, { status: 500 });
     }
-    revalidateForResourceBatch(params.resource, batchIds);
+    revalidateForResourceBatch(resource, batchIds);
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
@@ -457,15 +533,16 @@ export async function PATCH(request: Request, { params }: { params: { resource: 
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  revalidateForResource(params.resource, id, data);
+  revalidateForResource(resource, id, data);
   return NextResponse.json({ success: true, data });
 }
 
-export async function DELETE(request: Request, { params }: { params: { resource: string } }) {
-  const config = pickResource(params.resource);
+export async function DELETE(request: Request, { params }: { params: Promise<{ resource: string }> }) {
+  const { resource } = await params;
+  const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(params.resource);
+  const user = await authoriseResource(resource);
   if (!user || !canDelete(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot delete this record.' }, { status: 403 });
   }
@@ -480,7 +557,7 @@ export async function DELETE(request: Request, { params }: { params: { resource:
 
   const supabase = createServerClient();
 
-  if (params.resource === 'orders') {
+  if (resource === 'orders') {
     if (!id) return NextResponse.json({ success: false, error: 'Orders must be deleted one at a time.' }, { status: 400 });
     const confirmation = request.headers.get('x-delete-confirmation') || '';
     const { data, error } = await supabase.rpc('delete_test_order_atomic', {
@@ -488,7 +565,7 @@ export async function DELETE(request: Request, { params }: { params: { resource:
       p_confirmation: confirmation,
     });
     if (error) return safeDeleteErrorResponse(error.message);
-    revalidateForResource(params.resource, id);
+    revalidateForResource(resource, id);
     return NextResponse.json({ success: true, data: { id, cleanup: data } });
   }
 
@@ -504,7 +581,7 @@ export async function DELETE(request: Request, { params }: { params: { resource:
       }
       return safeDeleteErrorResponse(batchError.message);
     }
-    revalidateForResourceBatch(params.resource, batchIds);
+    revalidateForResourceBatch(resource, batchIds);
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
@@ -520,6 +597,6 @@ export async function DELETE(request: Request, { params }: { params: { resource:
   if (!deleted?.id) {
     return NextResponse.json({ success: false, error: 'Record not found.' }, { status: 404 });
   }
-  revalidateForResource(params.resource, id);
+  revalidateForResource(resource, id);
   return NextResponse.json({ success: true, data: { id: deleted.id } });
 }

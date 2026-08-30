@@ -2,17 +2,20 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
-import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
+import { validateEmail, validatePhone } from '@/lib/utils';
+import {
+  PUBLIC_ORDER_LIMITS,
+  audAmountToCents,
+  readLimitedJsonObject,
+  validateMembershipOrderInput,
+} from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export async function GET() {
@@ -39,13 +42,25 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body.' }, { status: 400 });
+  const rawBody = await readLimitedJsonObject(request);
+  if (!rawBody.ok) {
+    const status = rawBody.error === 'Request body is too large.' ? 413 : 400;
+    return NextResponse.json({ success: false, error: rawBody.error }, { status });
   }
-  const { full_name, email, phone, notes, membership_plan_id, addons, hp_field, submitted_at } = body;
+  const parsedInput = validateMembershipOrderInput(rawBody.value);
+  if (!parsedInput.ok) {
+    return NextResponse.json({ success: false, error: parsedInput.error }, { status: 400 });
+  }
+  const {
+    fullName: full_name,
+    email,
+    phone,
+    notes,
+    membershipPlanId: membership_plan_id,
+    addons,
+    hpField: hp_field,
+    submittedAt: submitted_at,
+  } = parsedInput.value;
 
   const ip = getClientIp(request);
   if (!enforceRateLimit(`membership:${ip}`, 6, 60_000)) {
@@ -56,12 +71,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
   }
 
-  if (!full_name || !email || !membership_plan_id) {
-    return NextResponse.json({ success: false, error: 'Name, email, and membership plan are required.' }, { status: 400 });
-  }
-
-  if (!isValidEmail(email)) {
+  if (!validateEmail(email)) {
     return NextResponse.json({ success: false, error: 'Please enter a valid email address.' }, { status: 400 });
+  }
+  if (phone && !validatePhone(phone)) {
+    return NextResponse.json({ success: false, error: 'Please enter a valid phone number.' }, { status: 400 });
   }
 
   const supabase = createServerClient();
@@ -77,39 +91,63 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Selected membership plan is unavailable.' }, { status: 400 });
   }
 
-  const addonIds: string[] = Array.isArray(addons) ? addons.map((a: { addon_id: string }) => a.addon_id) : [];
-  const { data: addonRows } = addonIds.length > 0
-    ? await supabase.from('social_membership_addons').select('id, name, price').in('id', addonIds).eq('is_active', true)
-    : { data: [] };
-
-  const addonMap = new Map((addonRows || []).map((a) => [a.id, a]));
-  const validatedAddons = (Array.isArray(addons) ? addons : [])
-    .map((a: { addon_id: string; quantity?: number }) => ({
-      addon: addonMap.get(a.addon_id),
-      quantity: Math.max(1, Number(a.quantity || 1)),
-    }))
-    .filter((a) => a.addon);
-
-  const totalAmount = Number(plan.price) + validatedAddons.reduce(
-    (sum, item) => sum + Number(item.addon?.price || 0) * item.quantity,
-    0
-  );
-
-  if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
-    return NextResponse.json({ success: false, error: 'Selected membership total is invalid.' }, { status: 400 });
+  const planPrice = audAmountToCents(plan.price);
+  if (!planPrice.ok || typeof plan.name !== 'string' || !plan.name.trim()) {
+    return NextResponse.json({ success: false, error: 'Membership pricing is unavailable.' }, { status: 503 });
   }
 
+  const addonIds = addons.map((addon) => addon.addonId);
+  const { data: addonRows, error: addonRowsError } = addonIds.length > 0
+    ? await supabase.from('social_membership_addons').select('id, name, price').in('id', addonIds).eq('is_active', true)
+    : { data: [], error: null };
+
+  if (addonRowsError) {
+    return NextResponse.json({ success: false, error: 'Unable to validate membership add-ons.' }, { status: 503 });
+  }
+  if ((addonRows || []).length !== addonIds.length) {
+    return NextResponse.json({ success: false, error: 'One or more selected membership add-ons are unavailable.' }, { status: 409 });
+  }
+
+  const addonMap = new Map((addonRows || []).map((a) => [a.id, a]));
+  const validatedAddons: Array<{
+    addon: { id: string; name: string; price: number };
+    quantity: number;
+    unitCents: number;
+  }> = [];
+  let totalCents = planPrice.value;
+  for (const selection of addons) {
+    const addon = addonMap.get(selection.addonId);
+    const addonPrice = audAmountToCents(addon?.price);
+    if (!addon || !addonPrice.ok || typeof addon.name !== 'string' || !addon.name.trim()) {
+      return NextResponse.json({ success: false, error: 'Membership add-on pricing is unavailable.' }, { status: 503 });
+    }
+    totalCents += addonPrice.value * selection.quantity;
+    if (!Number.isSafeInteger(totalCents) || totalCents > PUBLIC_ORDER_LIMITS.maximumOrderCents) {
+      return NextResponse.json({ success: false, error: 'Membership order total exceeds the allowed limit.' }, { status: 400 });
+    }
+    validatedAddons.push({
+      addon: { id: addon.id, name: addon.name, price: addonPrice.value / 100 },
+      quantity: selection.quantity,
+      unitCents: addonPrice.value,
+    });
+  }
+
+  if (totalCents <= 0) {
+    return NextResponse.json({ success: false, error: 'Selected membership total is invalid.' }, { status: 400 });
+  }
+  const totalAmount = totalCents / 100;
+
   const orderItems = [
-    { name: plan.name, size: 'membership', quantity: 1, price: Number(plan.price) },
+    { name: plan.name, size: 'membership', quantity: 1, price: planPrice.value / 100 },
     ...validatedAddons.map((item) => ({
-      name: item.addon?.name,
+      name: item.addon.name,
       size: 'addon',
       quantity: item.quantity,
-      price: Number(item.addon?.price || 0),
+      price: item.unitCents / 100,
     })),
   ];
 
-  const paymentReference = await generateUniquePaymentReference();
+  const paymentReference = await generateUniquePaymentReference('membership');
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -156,7 +194,7 @@ export async function POST(request: Request) {
     const { error: addonInsertError } = await supabase.from('member_addon_selections').insert(
       validatedAddons.map((item) => ({
         member_application_id: application.id,
-        addon_id: item.addon?.id,
+        addon_id: item.addon.id,
         quantity: item.quantity,
       }))
     );
@@ -173,8 +211,8 @@ export async function POST(request: Request) {
     subject: `Membership signup confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
       'Membership Signup Confirmed',
-      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(full_name)},</p>
-      <p style="font-size:15px;color:#374151;line-height:1.6;">Your membership signup for <strong>${plan.name}</strong> has been received.</p>
+      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(full_name))},</p>
+      <p style="font-size:15px;color:#374151;line-height:1.6;">Your membership signup for <strong>${escapeEmailHtml(plan.name)}</strong> has been received.</p>
       ${bankDetailsHtml(paymentReference, totalAmount)}
       <p style="font-size:14px;color:#374151;line-height:1.6;">Your membership will be activated once we confirm your payment. If you have any questions, reach out at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
     ),

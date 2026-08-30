@@ -4,7 +4,7 @@ import { getSessionUserFromToken } from './session';
 import { hasPermission, isFullAccessRole, type PermissionKey } from './permissions';
 
 export async function requireSession(allowedRoles?: readonly AuthRole[]) {
-  const token = cookies().get(AUTH_COOKIE_NAME)?.value;
+  const token = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
   const user = await getSessionUserFromToken(token);
   if (!user) return null;
   if (allowedRoles && !allowedRoles.includes(user.role)) return null;

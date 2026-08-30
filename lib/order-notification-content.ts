@@ -15,6 +15,8 @@ export type StaffOrderItem = {
 export type StaffOrderNotificationInput = {
   orderId: string;
   paymentReference: string;
+  orderReference?: string;
+  bankReference?: string;
   category: StaffOrderCategory;
   stage: StaffOrderNotificationStage;
   paymentMade: boolean;
@@ -95,6 +97,8 @@ export function buildStaffOrderNotificationContent(
   const categoryLabel = input.category === 'apparel' ? 'Apparel' : 'Kitchen';
   const paymentMadeLabel = input.paymentMade ? 'Yes' : 'No';
   const safeReference = escapeHtml(input.paymentReference || input.orderId);
+  const safeOrderReference = escapeHtml(input.orderReference || input.paymentReference || input.orderId);
+  const safeBankReference = escapeHtml(input.bankReference || '');
   const safeName = escapeHtml(input.customer.name);
   const safeEmail = escapeHtml(input.customer.email);
   const safePhone = escapeHtml(input.customer.phone || 'Not supplied');
@@ -119,6 +123,13 @@ export function buildStaffOrderNotificationContent(
   const stageText = input.stage === 'paid'
     ? 'The order is now fully paid.'
     : 'A new order has been received.';
+  const referenceRows = input.stage === 'paid'
+    ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:150px;">Payment reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${safeReference}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Order / bank reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${safeOrderReference}</td></tr>
+        ${safeBankReference && safeBankReference !== safeOrderReference
+          ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Bank statement reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${safeBankReference}</td></tr>`
+          : ''}`
+    : `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:150px;">Order reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${safeOrderReference}</td></tr>`;
 
   return {
     recipients: getStaffOrderRecipients(input.category),
@@ -128,7 +139,7 @@ export function buildStaffOrderNotificationContent(
     paymentMadeLabel,
     bodyHtml: `<p style="font-size:15px;color:#374151;line-height:1.6;">${stageText}</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:16px 0;">
-        <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:150px;">Order reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${safeReference}</td></tr>
+        ${referenceRows}
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Payment made</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${paymentMadeLabel}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Ordered by</td><td style="padding:6px 0;font-size:14px;">${safeName}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;font-size:14px;">${safeEmail}</td></tr>

@@ -15,14 +15,15 @@ function canMoveStatus(currentStatus: FantasyImportStatus, nextStatus: FantasyIm
   return false;
 }
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requirePermission('fantasy.imports');
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
   }
 
   try {
-    const batch = await getFantasyImportBatchDetail(params.id);
+    const batch = await getFantasyImportBatchDetail(id);
     if (!batch) {
       return NextResponse.json({ success: false, error: 'Import batch not found.' }, { status: 404 });
     }
@@ -39,7 +40,8 @@ type PatchRequest = {
   status?: FantasyImportStatus;
 };
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requirePermission('fantasy.imports');
   if (!user) {
     return NextResponse.json({ success: false, error: 'Admin session required.' }, { status: 403 });
@@ -60,7 +62,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const existing = await supabase
     .from('fantasy_import_batches')
     .select('id, status')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (existing.error || !existing.data) {
@@ -76,7 +78,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const updated = await supabase
     .from('fantasy_import_batches')
     .update({ status: payload.status })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('id, filename, source, status, created_at')
     .single();
 

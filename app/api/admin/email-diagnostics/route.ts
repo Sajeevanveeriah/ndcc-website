@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
-import { emailHtml, getEmailConfigStatus, sendEmail } from '@/lib/email';
+import { emailHtml, escapeEmailHtml, getEmailConfigStatus, sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     subject: 'NDCC website email diagnostics test',
     html: emailHtml(
       'NDCC website email diagnostics test',
-      `<p style="font-size:15px;color:#374151;line-height:1.6;">This is a test email sent from the NDCC website admin diagnostics screen.</p><p style="font-size:13px;color:#6b7280;">Requested by ${user.full_name}.</p>`
+      `<p style="font-size:15px;color:#374151;line-height:1.6;">This is a test email sent from the NDCC website admin diagnostics screen.</p><p style="font-size:13px;color:#6b7280;">Requested by ${escapeEmailHtml(user.full_name)}.</p>`
     ),
   });
 

@@ -4,8 +4,14 @@ import { getKitchenOrderWindow } from '@/lib/kitchen-order-window';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
-import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
+import {
+  PUBLIC_ORDER_LIMITS,
+  audAmountToCents,
+  readLimitedJsonObject,
+  validateKitchenOrderInput,
+} from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,13 +22,23 @@ function sanitiseInput(str: string): string {
 export async function POST(request: Request) {
   const orderingWindow = getKitchenOrderWindow();
   if (!orderingWindow.open) return NextResponse.json({ error: orderingWindow.message, order_window: orderingWindow }, { status: 403 });
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body.' }, { status: 400 });
+  const rawBody = await readLimitedJsonObject(request);
+  if (!rawBody.ok) {
+    const status = rawBody.error === 'Request body is too large.' ? 413 : 400;
+    return NextResponse.json({ success: false, error: rawBody.error }, { status });
   }
-  const { customer_name, customer_email, customer_phone, items, hp_field, submitted_at } = body;
+  const parsedInput = validateKitchenOrderInput(rawBody.value);
+  if (!parsedInput.ok) {
+    return NextResponse.json({ success: false, error: parsedInput.error }, { status: 400 });
+  }
+  const {
+    customerName: customer_name,
+    customerEmail: customer_email,
+    customerPhone: customer_phone,
+    items,
+    hpField: hp_field,
+    submittedAt: submitted_at,
+  } = parsedInput.value;
 
   const ip = getClientIp(request);
   if (!enforceRateLimit(`kitchen:${ip}`, 8, 60_000)) {
@@ -31,18 +47,15 @@ export async function POST(request: Request) {
   if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
     return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
   }
-  if (!customer_name || !customer_email || !Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ success: false, error: 'Name, email and kitchen items are required.' }, { status: 400 });
-  }
   if (!validateEmail(customer_email)) {
     return NextResponse.json({ success: false, error: 'Please provide a valid email address.' }, { status: 400 });
   }
-  if (!customer_phone || !validatePhone(customer_phone)) {
+  if (!validatePhone(customer_phone)) {
     return NextResponse.json({ success: false, error: 'Please provide a valid phone number.' }, { status: 400 });
   }
 
   const supabase = createServerClient();
-  const itemIds = items.map((i: { item_id: string }) => i.item_id).filter(Boolean);
+  const itemIds = items.map((item) => item.itemId);
   const { data: dbItems, error: itemsError } = await supabase
     .from('kitchen_items')
     .select('id,name,price,is_available,is_hidden')
@@ -54,27 +67,41 @@ export async function POST(request: Request) {
   }
   const byId = new Map((dbItems ?? []).map((i) => [i.id, i]));
 
-  let total = 0;
+  let totalCents = 0;
   const orderItems: Array<{ item_id: string; quantity: number; price: number; name: string }> = [];
   for (const row of items) {
-    const matched = byId.get(row.item_id);
+    const matched = byId.get(row.itemId);
     if (!matched || !matched.is_available || matched.is_hidden) {
       return NextResponse.json({ success: false, error: 'One or more menu items are unavailable.' }, { status: 409 });
     }
-    const qty = Math.max(1, Number(row.quantity || 1));
-    const price = Number(matched.price || 0);
-    total += qty * price;
-    orderItems.push({ item_id: matched.id, quantity: qty, price, name: matched.name });
+    const price = audAmountToCents(matched.price);
+    if (!price.ok || typeof matched.name !== 'string' || !matched.name.trim()) {
+      return NextResponse.json({ success: false, error: 'Kitchen pricing is unavailable.' }, { status: 503 });
+    }
+    totalCents += row.quantity * price.value;
+    if (!Number.isSafeInteger(totalCents) || totalCents > PUBLIC_ORDER_LIMITS.maximumOrderCents) {
+      return NextResponse.json({ success: false, error: 'Kitchen order total exceeds the allowed limit.' }, { status: 400 });
+    }
+    orderItems.push({
+      item_id: matched.id,
+      quantity: row.quantity,
+      price: price.value / 100,
+      name: matched.name,
+    });
   }
+  if (totalCents <= 0) {
+    return NextResponse.json({ success: false, error: 'Kitchen order total must be greater than zero.' }, { status: 400 });
+  }
+  const total = totalCents / 100;
 
-  const paymentReference = await generateUniquePaymentReference();
+  const paymentReference = await generateUniquePaymentReference('kitchen');
 
   const { data: linkedOrder, error: linkedOrderError } = await supabase
     .from('orders')
     .insert({
       customer_name: sanitiseInput(customer_name),
       customer_email: sanitiseInput(customer_email),
-      customer_phone: customer_phone ? sanitiseInput(customer_phone) : '',
+      customer_phone: sanitiseInput(customer_phone),
       items: orderItems.map((i) => ({ name: i.name, size: 'kitchen', quantity: i.quantity, price: i.price })),
       total_amount: total,
       payment_status: 'pending_bank_transfer',
@@ -127,7 +154,7 @@ export async function POST(request: Request) {
   const kitchenItemListHtml = orderItems
     .map((i) =>
       `<tr>
-        <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${i.name}</td>
+        <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${escapeEmailHtml(i.name)}</td>
         <td style="padding:6px 8px;font-size:14px;text-align:center;border-bottom:1px solid #f3f4f6;">${i.quantity}</td>
         <td style="padding:6px 8px;font-size:14px;text-align:right;border-bottom:1px solid #f3f4f6;">$${(i.price * i.quantity).toFixed(2)}</td>
       </tr>`
@@ -138,7 +165,7 @@ export async function POST(request: Request) {
     subject: `Kitchen order confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
       'Kitchen Order Confirmation',
-      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(customer_name)},</p>
+      `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(customer_name))},</p>
       <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe, or use the bank transfer details below.</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <thead>

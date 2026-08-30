@@ -10,12 +10,13 @@ const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
 
 // GET: current grade sources for the season plus live PlayHQ grades for its
 // linked PlayHQ season. PUT: replace the enabled grade mapping.
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requirePermission('fantasy.seasons');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const supabase = createServerClient();
   try {
-    const { data: season, error: seasonError } = await supabase.from('fantasy_seasons').select('id, name, playhq_season_id').eq('id', params.id).maybeSingle();
+    const { data: season, error: seasonError } = await supabase.from('fantasy_seasons').select('id, name, playhq_season_id').eq('id', id).maybeSingle();
     if (seasonError) throw new Error(seasonError.message);
     if (!season) return NextResponse.json({ success: false, error: 'Season not found.' }, { status: 404, headers: noStore });
 
@@ -41,7 +42,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requirePermission('fantasy.seasons');
   if (!user) return NextResponse.json({ success: false, error: 'Admin sign in is required.' }, { status: 403, headers: noStore });
   const body = await request.json().catch(() => ({}));
@@ -53,7 +55,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       const gradeName = String(grade.gradeName || '').trim();
       if (!playhqGradeId || !gradeName) continue;
       const row = {
-        season_id: params.id,
+        season_id: id,
         playhq_grade_id: playhqGradeId,
         grade_name: gradeName,
         enabled: grade.enabled !== false,
@@ -65,7 +67,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const { data: sources, error: reloadError } = await supabase
       .from('fantasy_season_grade_sources')
       .select('id, playhq_grade_id, grade_name, enabled, team_filter')
-      .eq('season_id', params.id)
+      .eq('season_id', id)
       .order('grade_name');
     if (reloadError) throw new Error(reloadError.message);
     return NextResponse.json({ success: true, sources }, { headers: noStore });

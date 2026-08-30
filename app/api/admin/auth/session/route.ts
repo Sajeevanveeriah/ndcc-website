@@ -6,7 +6,7 @@ import { resolveSessionFromToken } from '@/lib/auth/session';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const token = cookies().get(AUTH_COOKIE_NAME)?.value;
+  const token = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
   const session = await resolveSessionFromToken(token);
 
   if (session.status === 'authenticated') {

@@ -4,7 +4,7 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 export const dynamic = 'force-dynamic';
 
 const LEGACY_COLUMNS = 'id,slug,name,description,price,sizes,image_url,customisable,category,display_order,order_guidance,size_guidance';
-const PAYMENT_COLUMNS = ['payment_mode', 'payment_link_url', 'stripe_price_id', 'checkout_enabled', 'fulfilment_notes', 'order_email'] as const;
+const PAYMENT_COLUMNS = ['payment_mode', 'stripe_price_id', 'checkout_enabled', 'fulfilment_notes', 'order_email'] as const;
 const COLUMNS_WITH_PAYMENT = `${LEGACY_COLUMNS},image_alt,${PAYMENT_COLUMNS.join(',')}`;
 
 // The payment columns ship in migration 20260706_apparel_payment_readiness.sql

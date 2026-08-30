@@ -26,5 +26,24 @@ check('fresh replay end-state sane (20 active products, 16 active options, setti
 const rlsOff = psql(DB, `select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`);
 check('RLS enabled on every public table (production parity)', rlsOff === '0', `${rlsOff} tables without RLS`);
+
+const profileRolePolicies = psql(DB, `select count(*) from pg_policies
+  where schemaname = 'public'
+    and (coalesce(qual, '') || ' ' || coalesce(with_check, '')) ~* 'profiles[^;]*role'`);
+check(
+  'no replayed RLS policy trusts browser-controlled profiles.role',
+  profileRolePolicies === '0',
+  `${profileRolePolicies} role-dependent policies remain`,
+);
+
+const browserWritesOnProfiles = psql(DB, `select count(*)
+  from (values ('anon'), ('authenticated')) as roles(role_name)
+  cross join (values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) as privileges(privilege_name)
+  where has_table_privilege(role_name, 'public.profiles', privilege_name)`);
+check(
+  'browser roles cannot mutate or truncate profiles after replay',
+  browserWritesOnProfiles === '0',
+  `${browserWritesOnProfiles} browser write privileges remain`,
+);
 dropTestDatabase(DB);
 finish('full-replay');

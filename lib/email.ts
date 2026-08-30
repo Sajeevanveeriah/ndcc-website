@@ -1,5 +1,8 @@
 import 'server-only';
 import { Resend, type CreateEmailOptions, type Tag } from 'resend';
+import { escapeEmailHtml } from './email-html';
+
+export { escapeEmailHtml } from './email-html';
 
 const DEFAULT_CONTACT_EMAIL = 'ndcc.secretary1@gmail.com';
 
@@ -132,6 +135,13 @@ export function getContactEmailRecipients() {
   };
 }
 
+export function getTransactionalReplyTo(): string {
+  const configured = String(process.env.RECEIPT_REPLY_TO_EMAIL || '').trim();
+  if (EMAIL_PATTERN.test(configured)) return configured;
+  const contact = getContactEmailRecipients().effectiveContactRecipient;
+  return EMAIL_PATTERN.test(contact) ? contact : DEFAULT_CONTACT_EMAIL;
+}
+
 // Backwards-compatible alias for older internal callers.
 export const getContactEmailConfig = getContactEmailRecipients;
 
@@ -244,7 +254,7 @@ export function emailHtml(title: string, body: string): string {
         </tr>
         <tr>
           <td style="padding:32px;">
-            <h1 style="margin:0 0 20px;font-size:20px;color:#4a0000;">${title}</h1>
+            <h1 style="margin:0 0 20px;font-size:20px;color:#4a0000;">${escapeEmailHtml(title)}</h1>
             ${body}
             <hr style="margin:32px 0;border:none;border-top:1px solid #e5e7eb;">
             <p style="margin:0;font-size:12px;color:#9ca3af;">
@@ -268,11 +278,11 @@ export function bankDetailsHtml(reference: string, amount?: number): string {
 <div style="background:#f3f4f6;border-radius:6px;padding:20px;margin:20px 0;">
   <p style="margin:0 0 12px;font-size:14px;font-weight:bold;color:#4a0000;">Bank Transfer Payment Details</p>
   <table cellpadding="0" cellspacing="0" style="width:100%;">
-    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:140px;">Account name</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_ACCOUNT_NAME || 'NDCC'}</td></tr>
-    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">BSB</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_BSB || ''}</td></tr>
-    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Account number</td><td style="padding:6px 0;font-size:14px;">${process.env.NDCC_BANK_ACCOUNT_NUMBER || ''}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:140px;">Account name</td><td style="padding:6px 0;font-size:14px;">${escapeEmailHtml(process.env.NDCC_BANK_ACCOUNT_NAME || 'NDCC')}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">BSB</td><td style="padding:6px 0;font-size:14px;">${escapeEmailHtml(process.env.NDCC_BANK_BSB || '')}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Account number</td><td style="padding:6px 0;font-size:14px;">${escapeEmailHtml(process.env.NDCC_BANK_ACCOUNT_NUMBER || '')}</td></tr>
     ${amountRow}
-    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">${reference}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">${escapeEmailHtml(reference)}</td></tr>
   </table>
   <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Use your reference number exactly as shown so we can match your payment.</p>
 </div>`;

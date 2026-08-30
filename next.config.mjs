@@ -10,9 +10,9 @@ const cspReportOnly = [
   // only third-party script surface.
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://mbrcricket.com https://leopoldsporties.com https://www.blackmansbrewery.com.au https://phoenixtruckbodies.com.au https://www.swlocksmiths.com.au",
+  "img-src 'self' data: blob: https://alduwuipmmnzorcgkcli.supabase.co https://mbrcricket.com https://leopoldsporties.com https://www.blackmansbrewery.com.au https://phoenixtruckbodies.com.au https://www.swlocksmiths.com.au",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co https://api.stripe.com",
+  "connect-src 'self' https://alduwuipmmnzorcgkcli.supabase.co https://api.stripe.com",
   "frame-src https://js.stripe.com https://checkout.stripe.com https://www.google.com",
   "form-action 'self' https://checkout.stripe.com",
   "frame-ancestors 'self'",
@@ -30,9 +30,13 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  poweredByHeader: false,
   images: {
+    // Temporary containment for the Next.js AVIF image-optimiser advisory on
+    // the pinned 14.x release. Remove only after an approved patched upgrade.
+    unoptimized: true,
     remotePatterns: [
-      { protocol: 'https', hostname: '*.supabase.co' },
+      { protocol: 'https', hostname: 'alduwuipmmnzorcgkcli.supabase.co' },
       { protocol: 'https', hostname: 'mbrcricket.com' },
       { protocol: 'https', hostname: 'leopoldsporties.com' },
       { protocol: 'https', hostname: 'www.blackmansbrewery.com.au' },

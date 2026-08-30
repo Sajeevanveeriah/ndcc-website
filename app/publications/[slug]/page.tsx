@@ -18,8 +18,9 @@ export const fetchCache = 'force-no-store';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const publication = await getPublishedPublicationBySlug(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const publication = await getPublishedPublicationBySlug(slug);
   if (!publication) return { title: 'Publication not found | Newcomb & District Cricket Club' };
   const description = publication.summary || `${publicationTypeLabel(publication.publication_type)} from the Newcomb & District Cricket Club.`;
   return {
@@ -35,8 +36,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function PublicationDetailPage({ params }: { params: { slug: string } }) {
-  const publication = await getPublishedPublicationBySlug(params.slug);
+export default async function PublicationDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const publication = await getPublishedPublicationBySlug(slug);
   if (!publication) notFound();
 
   // Previous / next within the same publication type, ordered by issue date.

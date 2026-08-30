@@ -1,6 +1,8 @@
 import { createPublicServerClient, isPublicSupabaseConfigured } from '@/lib/supabase-server';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { normaliseSponsorMarqueeSpeed } from '@/lib/sponsor-marquee';
+import { resolveGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
+import { resolvePublicLinkUrl } from '@/lib/public-link-url';
 
 function textOrFallback(value: unknown, fallback: string | null) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
@@ -31,11 +33,14 @@ export function normalizeClubSettings(row: Partial<ClubSettings> | null | undefi
     address: textOrFallback(row.address, fallbackClubSettings.address),
     association_name: textOrFallback(row.association_name, fallbackClubSettings.association_name),
     association_short: textOrFallback(row.association_short, fallbackClubSettings.association_short),
-    facebook_url: textOrFallback(row.facebook_url, fallbackClubSettings.facebook_url),
-    instagram_url: textOrFallback(row.instagram_url, fallbackClubSettings.instagram_url),
+    facebook_url: resolvePublicLinkUrl(row.facebook_url, fallbackClubSettings.facebook_url),
+    instagram_url: resolvePublicLinkUrl(row.instagram_url, fallbackClubSettings.instagram_url),
     instagram_handle: textOrFallback(row.instagram_handle, fallbackClubSettings.instagram_handle),
-    playhq_url: textOrFallback(row.playhq_url, fallbackClubSettings.playhq_url),
-    google_maps_embed_url: textOrFallback(row.google_maps_embed_url, fallbackClubSettings.google_maps_embed_url),
+    playhq_url: resolvePublicLinkUrl(row.playhq_url, fallbackClubSettings.playhq_url),
+    google_maps_embed_url: resolveGoogleMapsEmbedUrl(
+      row.google_maps_embed_url,
+      fallbackClubSettings.google_maps_embed_url,
+    ),
     sponsor_marquee_speed: normaliseSponsorMarqueeSpeed(row.sponsor_marquee_speed),
     updated_at: nullableText(row.updated_at),
   };

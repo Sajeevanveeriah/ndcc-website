@@ -6,8 +6,18 @@ import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
+import {
+  PUBLIC_ORDER_LIMITS,
+  audAmountToCents,
+  readLimitedJsonObject,
+} from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
+
+const MERCH_ITEM_LINES_LIMIT = 40;
+const MERCH_ITEM_QUANTITY_LIMIT = 50;
+const MERCH_ITEM_UNITS_LIMIT = 100;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -24,9 +34,51 @@ function escapeHtml(str: string): string {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const parsedBody = await readLimitedJsonObject(request);
+    if (!parsedBody.ok) {
+      return NextResponse.json(
+        { success: false, error: parsedBody.error },
+        { status: parsedBody.error === 'Request body is too large.' ? 413 : 400 },
+      );
+    }
+    const body = parsedBody.value;
 
     const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at, order_category, merch_window_id, payment_method } = body;
+
+    if (order_category !== 'merch') {
+      return NextResponse.json(
+        { success: false, error: 'This endpoint accepts merchandise orders only.' },
+        { status: 400 },
+      );
+    }
+    if (payment_method !== 'stripe' && payment_method !== 'bank_transfer') {
+      return NextResponse.json(
+        { success: false, error: 'Choose a valid merchandise payment method.' },
+        { status: 400 },
+      );
+    }
+    if (typeof customer_name !== 'string' || !customer_name.trim()
+      || customer_name.trim().length > PUBLIC_ORDER_LIMITS.nameLength
+      || typeof customer_email !== 'string' || !customer_email.trim()
+      || customer_email.trim().length > PUBLIC_ORDER_LIMITS.emailLength
+      || typeof customer_phone !== 'string' || !customer_phone.trim()
+      || customer_phone.trim().length > PUBLIC_ORDER_LIMITS.phoneLength
+      || (notes !== undefined && notes !== null && typeof notes !== 'string')
+      || (typeof notes === 'string' && notes.trim().length > PUBLIC_ORDER_LIMITS.notesLength)
+      || typeof hp_field !== 'string' || hp_field.length > 200
+      || typeof submitted_at !== 'number' || !Number.isFinite(submitted_at) || submitted_at <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'One or more customer details are invalid or too long.' },
+        { status: 400 },
+      );
+    }
+    if (merch_window_id !== undefined && merch_window_id !== null && merch_window_id !== ''
+      && (typeof merch_window_id !== 'string' || !UUID_PATTERN.test(merch_window_id))) {
+      return NextResponse.json(
+        { success: false, error: 'A valid merchandise order window is required.' },
+        { status: 400 },
+      );
+    }
 
     const ip = getClientIp(request);
     if (!enforceRateLimit(`order:${ip}`, 6, 60_000)) {
@@ -40,7 +92,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
     }
 
-    if (!customer_name || !customer_email || !items || !total_amount) {
+    if (!items || total_amount === undefined || total_amount === null) {
       return NextResponse.json(
         { success: false, error: 'Customer name, email, items, and total amount are required.' },
         { status: 400 }
@@ -61,16 +113,33 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0 || items.length > MERCH_ITEM_LINES_LIMIT) {
       return NextResponse.json(
-        { success: false, error: 'Order must contain at least one item.' },
+        { success: false, error: `Order must contain between 1 and ${MERCH_ITEM_LINES_LIMIT} item lines.` },
         { status: 400 }
       );
     }
 
-    if (typeof total_amount !== 'number' || total_amount <= 0) {
+    let totalUnits = 0;
+    for (const item of items) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return NextResponse.json({ success: false, error: 'One or more merchandise items are invalid.' }, { status: 400 });
+      }
+      const quantity = (item as Record<string, unknown>).quantity;
+      if (typeof quantity !== 'number' || !Number.isSafeInteger(quantity)
+        || quantity < 1 || quantity > MERCH_ITEM_QUANTITY_LIMIT) {
+        return NextResponse.json({ success: false, error: 'Merchandise quantities are invalid.' }, { status: 400 });
+      }
+      totalUnits += quantity;
+      if (totalUnits > MERCH_ITEM_UNITS_LIMIT) {
+        return NextResponse.json({ success: false, error: 'Too many merchandise units were selected.' }, { status: 400 });
+      }
+    }
+
+    const postedTotal = audAmountToCents(total_amount, { allowZero: false });
+    if (!postedTotal.ok) {
       return NextResponse.json(
-        { success: false, error: 'Total amount must be a positive number.' },
+        { success: false, error: 'Total amount must be a valid, bounded AUD amount.' },
         { status: 400 }
       );
     }
@@ -88,37 +157,35 @@ export async function POST(request: Request) {
     let merchWindowLabel: string | null = null;
     let safeMerchWindowId: string | null = null;
 
-    if (order_category === 'merch') {
-      const { data: windowRow, error: windowError } = merch_window_id
-        ? await supabase.from('merch_order_windows').select('*').eq('id', merch_window_id).eq('active', true).maybeSingle()
-        : await supabase
-            .from('merch_order_windows')
-            .select('*')
-            .eq('active', true)
-            .order('open_date', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+    const { data: windowRow, error: windowError } = merch_window_id
+      ? await supabase.from('merch_order_windows').select('*').eq('id', merch_window_id).eq('active', true).maybeSingle()
+      : await supabase
+          .from('merch_order_windows')
+          .select('*')
+          .eq('active', true)
+          .order('open_date', { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
-      if (windowError) {
-        return NextResponse.json({ success: false, error: 'Unable to validate merch window.' }, { status: 500 });
-      }
-      if (!windowRow) {
-        return NextResponse.json({ success: false, error: 'No valid merch window is configured.' }, { status: 409 });
-      }
-      if (merch_window_id && !windowRow.id) {
-        return NextResponse.json({ success: false, error: 'Invalid merch window.' }, { status: 409 });
-      }
+    if (windowError) {
+      return NextResponse.json({ success: false, error: 'Unable to validate merch window.' }, { status: 500 });
+    }
+    if (!windowRow) {
+      return NextResponse.json({ success: false, error: 'No valid merch window is configured.' }, { status: 409 });
+    }
+    if (merch_window_id && !windowRow.id) {
+      return NextResponse.json({ success: false, error: 'Invalid merch window.' }, { status: 409 });
+    }
 
-      safeMerchWindowId = windowRow.id;
-      merchWindowLabel = windowRow.label;
-      const now = new Date();
-      const isOpen = new Date(windowRow.open_date) <= now && new Date(windowRow.close_date) >= now;
-      if (!isOpen) {
-        if (!windowRow.allow_queue_after_close) {
-          return NextResponse.json({ success: false, error: 'Merch window is closed and queueing is disabled.' }, { status: 409 });
-        }
-        orderStatus = 'queued_next_window';
+    safeMerchWindowId = windowRow.id;
+    merchWindowLabel = windowRow.label;
+    const now = new Date();
+    const isOpen = new Date(windowRow.open_date) <= now && new Date(windowRow.close_date) >= now;
+    if (!isOpen) {
+      if (!windowRow.allow_queue_after_close) {
+        return NextResponse.json({ success: false, error: 'Merch window is closed and queueing is disabled.' }, { status: 409 });
       }
+      orderStatus = 'queued_next_window';
     }
 
     // Never trust client prices or totals: resolve every posted item against
@@ -135,18 +202,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const priced = priceOrderItems(catalogue.products, items as PostedItem[], { maxQuantity: 999 });
+    const priced = priceOrderItems(catalogue.products, items as PostedItem[], {
+      maxQuantity: MERCH_ITEM_QUANTITY_LIMIT,
+    });
     if (!priced.ok) {
       return NextResponse.json({ success: false, error: priced.error }, { status: 400 });
     }
 
     const normalisedItems = priced.items;
     const serverTotal = priced.totalAmount;
-    const needsReviewReason = priced.clientPriceMismatches.length > 0
-      ? `client price mismatch (server prices used): ${priced.clientPriceMismatches.join('; ')}`.slice(0, 500)
+    const serverTotalCents = audAmountToCents(serverTotal, { allowZero: false });
+    if (!serverTotalCents.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Merchandise order total exceeds the allowed limit.' },
+        { status: 400 },
+      );
+    }
+    const totalMismatch = postedTotal.value !== serverTotalCents.value
+      ? `cart total: client $${(postedTotal.value / 100).toFixed(2)}, server $${serverTotal.toFixed(2)}`
+      : null;
+    const priceMismatches = [
+      ...priced.clientPriceMismatches,
+      ...(totalMismatch ? [totalMismatch] : []),
+    ];
+    const needsReviewReason = priceMismatches.length > 0
+      ? `client price mismatch (server prices used): ${priceMismatches.join('; ')}`.slice(0, 500)
       : null;
 
-    const paymentReference = await generateUniquePaymentReference();
+    const paymentReference = await generateUniquePaymentReference('merch');
 
     const { data, error } = await supabase
       .from('orders')
@@ -158,7 +241,7 @@ export async function POST(request: Request) {
         total_amount: serverTotal,
         ...(needsReviewReason ? { needs_review_reason: needsReviewReason } : {}),
         payment_status: 'pending_bank_transfer',
-        order_category: order_category === 'merch' ? 'merch' : 'general',
+        order_category: 'merch',
         order_status: orderStatus,
         merch_window_id: safeMerchWindowId,
         merch_window_label: merchWindowLabel,
@@ -237,7 +320,7 @@ export async function POST(request: Request) {
       ),
     });
 
-    if (order_category === 'merch' && payment_method !== 'stripe') {
+    if (payment_method !== 'stripe') {
       const staffNotification = await sendStaffOrderNotificationForOrder(supabase, data.id, 'created');
       if (staffNotification.status === 'failed') {
         console.error('Apparel staff order notification failed:', staffNotification.reason);

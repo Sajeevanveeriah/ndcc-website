@@ -1,17 +1,16 @@
 export type CheckoutEventAction = 'ignore' | 'pending' | 'settle' | 'fail';
 
 type IdempotencyKeyInput = {
-  orderId: string;
-  amountPaidCents: number;
-  amountCents: number;
+  paymentReference: string;
 };
 
 export function buildCheckoutIdempotencyKey({
-  orderId,
-  amountPaidCents,
-  amountCents,
+  paymentReference,
 }: IdempotencyKeyInput): string {
-  return `ndcc:checkout:${orderId}:${amountPaidCents}:${amountCents}`;
+  if (!/^(?:NDCC[A-Z]{3}|NCDDKIT)-[0-9]{4}-[0-9]{6}$/.test(paymentReference)) {
+    throw new Error('A canonical NDCC payment reference is required for Checkout idempotency.');
+  }
+  return `ndcc:checkout:v3:${paymentReference}`;
 }
 
 export function getCheckoutEventAction(

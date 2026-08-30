@@ -78,6 +78,21 @@ test('paid follow-up shows the binary paid state and a distinct key', () => {
   assert.notEqual(created.idempotencyKey, paid.idempotencyKey);
 });
 
+test('paid follow-up distinguishes payment, order and bank references', () => {
+  const paid = content.buildStaffOrderNotificationContent({
+    ...apparelInput,
+    stage: 'paid',
+    paymentMade: true,
+    paymentReference: 'NDCCMER-2026-000042',
+    orderReference: 'NDCCMER-2026-ORDER01',
+    bankReference: 'BANK-TRACE-42',
+  });
+  assert.match(paid.subject, /NDCCMER-2026-000042/);
+  assert.match(paid.bodyHtml, />Payment reference<\/td><td[^>]*>NDCCMER-2026-000042<\/td>/);
+  assert.match(paid.bodyHtml, />Order \/ bank reference<\/td><td[^>]*>NDCCMER-2026-ORDER01<\/td>/);
+  assert.match(paid.bodyHtml, />Bank statement reference<\/td><td[^>]*>BANK-TRACE-42<\/td>/);
+});
+
 test('customer and item content is HTML escaped', () => {
   const built = content.buildStaffOrderNotificationContent(apparelInput);
   assert.doesNotMatch(built.bodyHtml, /<script>/);
@@ -137,10 +152,13 @@ test('kitchen creation route awaits a created notification', () => {
   assert.match(kitchenRoute, /sendStaffOrderNotificationForOrder\(supabase, linkedOrder\.id, 'created'\)/);
 });
 
-test('Stripe settlement and duplicate paths dispatch through the paid marker', () => {
+test('Stripe settlement and duplicate paths dispatch best-effort through the paid marker', () => {
   assert.match(webhookRoute, /sendPaidStaffOrderNotificationForPayment/);
-  assert.match(webhookRoute, /payment\.status === 'settled'/);
-  assert.match(webhookRoute, /notifyPaidOrder/);
+  assert.match(webhookRoute, /rpc\('settle_stripe_order_payment'/);
+  assert.match(webhookRoute, /duplicate:\s*settlement\.duplicate === true/);
+  assert.match(webhookRoute, /bestEffortPaidStaffNotice/);
+  assert.match(webhookRoute, /finishOrderSettlement/);
+  assert.doesNotMatch(webhookRoute, /Paid order notification failed[^\n]*status:\s*500/);
 });
 
 test('manual full-payment route dispatches the paid follow-up', () => {

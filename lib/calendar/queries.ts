@@ -1,6 +1,7 @@
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import type { CalendarEvent, CalendarEventType } from './types';
 import { CALENDAR_EVENT_TYPES } from './types';
+import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 // Production cold starts can spend more than five seconds establishing the
 // first PostgREST connection even though the database query itself completes
@@ -34,6 +35,14 @@ export function parseCalendarTypes(raw: string | null): CalendarEventType[] | nu
     .map((value) => value.trim())
     .filter((value): value is CalendarEventType => CALENDAR_EVENT_TYPES.includes(value as CalendarEventType));
   return parsed.length > 0 ? parsed : null;
+}
+
+function normaliseCalendarEventLinks(event: CalendarEvent): CalendarEvent {
+  return {
+    ...event,
+    external_url: normalisePublicLinkUrl(event.external_url),
+    cta_url: normalisePublicLinkUrl(event.cta_url),
+  };
 }
 
 /**
@@ -81,7 +90,11 @@ export async function getPublicCalendarEvents(query: PublicCalendarQuery = {}): 
       console.error('[calendar] Public calendar query failed:', error.message);
       return { data: [], error: error.message, degraded: true };
     }
-    return { data: (data ?? []) as unknown as CalendarEvent[], error: null, degraded: false };
+    return {
+      data: ((data ?? []) as unknown as CalendarEvent[]).map(normaliseCalendarEventLinks),
+      error: null,
+      degraded: false,
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to load calendar events';
     console.error('[calendar] Public calendar query threw:', message);

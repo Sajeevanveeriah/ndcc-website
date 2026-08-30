@@ -55,7 +55,6 @@ const EMPTY_OPTION_FORM = {
 
 const PAYMENT_MODES = [
   { value: 'manual_enquiry', label: 'Manual enquiry (bank transfer)' },
-  { value: 'stripe_payment_link', label: 'Stripe payment link' },
   { value: 'stripe_checkout', label: 'Stripe checkout' },
 ] as const;
 
@@ -75,7 +74,6 @@ const EMPTY_PRODUCT_FORM = {
   size_guidance: '',
   active: true,
   payment_mode: 'manual_enquiry',
-  payment_link_url: '',
   stripe_price_id: '',
   checkout_enabled: false,
   fulfilment_notes: '',
@@ -97,6 +95,7 @@ export default function AdminApparelPage() {
   const [options, setOptions] = useState<ApparelProductOption[]>([]);
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingWindowId, setEditingWindowId] = useState<string | null>(null);
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
@@ -161,7 +160,6 @@ export default function AdminApparelPage() {
       size_guidance: productForm.size_guidance.trim() || null,
       active: productForm.active,
       payment_mode: productForm.payment_mode || 'manual_enquiry',
-      payment_link_url: productForm.payment_link_url.trim() || null,
       stripe_price_id: productForm.stripe_price_id.trim() || null,
       checkout_enabled: productForm.checkout_enabled,
       fulfilment_notes: productForm.fulfilment_notes.trim() || null,
@@ -203,8 +201,7 @@ export default function AdminApparelPage() {
       order_guidance: product.order_guidance || '',
       size_guidance: product.size_guidance || '',
       active: product.active,
-      payment_mode: product.payment_mode || 'manual_enquiry',
-      payment_link_url: product.payment_link_url || '',
+      payment_mode: product.payment_mode === 'stripe_checkout' ? 'stripe_checkout' : 'manual_enquiry',
       stripe_price_id: product.stripe_price_id || '',
       checkout_enabled: Boolean(product.checkout_enabled),
       fulfilment_notes: product.fulfilment_notes || '',
@@ -334,6 +331,40 @@ export default function AdminApparelPage() {
     }
   }
 
+  async function exportNewApparelOrders() {
+    setExporting(true);
+    setStatus('');
+    try {
+      const response = await fetch('/api/admin/merch/export', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-NDCC-CSRF': '1' },
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Export failed (${response.status}).`);
+      }
+
+      const workbook = await response.blob();
+      const disposition = response.headers.get('content-disposition') || '';
+      const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+        || 'ndcc-apparel-orders.xlsx';
+      const downloadUrl = URL.createObjectURL(workbook);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+      setStatus('Apparel export downloaded. Included orders are now recorded in the export batch.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to export apparel orders.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Apparel & Merch Windows</h1>
@@ -370,7 +401,6 @@ export default function AdminApparelPage() {
               ))}
             </select>
           </div>
-          <Input id="payment_link_url" label="Payment link URL (stripe_payment_link mode)" value={productForm.payment_link_url} onChange={(e) => setProductForm((v) => ({ ...v, payment_link_url: e.target.value }))} />
           <Input id="stripe_price_id" label="Stripe price ID (stripe_checkout mode)" value={productForm.stripe_price_id} onChange={(e) => setProductForm((v) => ({ ...v, stripe_price_id: e.target.value }))} />
           <Input id="fulfilment_notes" label="Fulfilment notes" value={productForm.fulfilment_notes} onChange={(e) => setProductForm((v) => ({ ...v, fulfilment_notes: e.target.value }))} />
           <Input id="order_email" label="Order notification email" type="email" value={productForm.order_email} onChange={(e) => setProductForm((v) => ({ ...v, order_email: e.target.value }))} />
@@ -553,9 +583,9 @@ export default function AdminApparelPage() {
         <p className="mb-3 text-sm text-content-muted">
           Downloads a four-sheet Excel workbook containing only apparel orders not included in an earlier apparel export.
         </p>
-        <a href="/api/admin/merch/export">
-          <Button variant="secondary">Export new apparel orders (Excel)</Button>
-        </a>
+        <Button type="button" variant="secondary" isLoading={exporting} onClick={exportNewApparelOrders}>
+          Export new apparel orders (Excel)
+        </Button>
       </section>
     </div>
   );

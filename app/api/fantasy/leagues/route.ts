@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
@@ -7,7 +8,7 @@ import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 export const dynamic = 'force-dynamic';
 
 function makeCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  return randomBytes(6).toString('hex').slice(0, 8).toUpperCase();
 }
 
 async function leagueLeaderboard(leagueId: string, seasonId: string) {

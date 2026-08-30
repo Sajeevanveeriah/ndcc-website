@@ -377,7 +377,8 @@ export default function ContactPage() {
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                    referrerPolicy="strict-origin-when-cross-origin"
                     title={`Map showing ${settings.ground_name}, ${settings.address}`}
                   />
                 </div>

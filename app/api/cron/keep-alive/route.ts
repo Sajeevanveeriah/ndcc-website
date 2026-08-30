@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -22,10 +23,7 @@ function jsonNoCache(body: unknown, init?: ResponseInit) {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const expected = process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : null;
-
-  if (!expected || authHeader !== expected) {
+  if (!isAuthorizedCronRequest(request.headers.get('authorization'), process.env.CRON_SECRET)) {
     return jsonNoCache({ success: false, error: 'Unauthorized.' }, { status: 401 });
   }
 

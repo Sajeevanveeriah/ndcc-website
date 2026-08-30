@@ -216,7 +216,11 @@ export default function Navbar() {
     loadSession();
   }, [pathname]);
   const handleSignOut = async () => {
-    await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
+    await fetch('/api/admin/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'X-NDCC-CSRF': '1' },
+    }).catch(() => undefined);
     setSessionUser(null);
   };
   const navGroups = resolveGroups(navLinks, dinoCoachEnabled, raffleEnabled);

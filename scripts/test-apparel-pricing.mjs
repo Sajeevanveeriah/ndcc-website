@@ -125,6 +125,22 @@ test('priceOrderItems recomputes totals server-side and ignores client price', (
   assert.equal(r.clientPriceMismatches.length, 1);
 });
 
+test('priced order history contains only server-validated item fields', () => {
+  const r = priceOrderItems(catalogue, [{
+    slug: 'tee-shirt',
+    size: 'M',
+    quantity: 1,
+    price: 0.01,
+    attacker_controlled: { nested: 'must not persist' },
+  }]);
+  assert.equal(r.ok, true);
+  assert.equal('attacker_controlled' in r.items[0], false);
+  assert.deepEqual(
+    Object.keys(r.items[0]).sort(),
+    ['applied_options', 'base_price', 'name', 'price', 'quantity', 'size', 'slug'].sort(),
+  );
+});
+
 test('unknown product is rejected outright', () => {
   const r = priceOrderItems(catalogue, [{ slug: 'not-a-product', quantity: 1 }]);
   assert.equal(r.ok, false);

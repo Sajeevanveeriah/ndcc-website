@@ -28,12 +28,22 @@ jobs:
       - run: npm ci
       - run: npm run test:admin-permissions
       - run: npm run test:admin-auth
+      - run: npm run test:admin-delete
+      - run: npm run test:auth-callback-security
+      - run: npm run test:admin-csrf
+      - run: npm run test:google-maps-embed-security
+      - run: npm run test:public-link-security
+      - run: npm run test:email-html-security
+      - run: npm run test:public-order-input-security
       - run: npm run test:cms-navigation
       - run: npm run test:committee-auth-schema
       - run: npm run test:core-schema
       - run: node --experimental-strip-types scripts/test-dino-coach.mjs
       - run: npm run lint
       - run: npm run check:migrations
+      - run: npm run test:dino-coach-rls-hardening
+      - run: npm run test:profiles-role-escalation-hardening
+      - run: npm run test:security-privilege-defaults-hardening
       - run: npm run check:assets
       - run: npm run test:playhq-normalise
       - run: npm run test:fantasy-orchestrator
@@ -43,7 +53,13 @@ jobs:
       - run: npm run smoke:content
       - run: npm run test:apparel-pricing
       - run: npm run test:payments-partial
+      - run: npm run test:payment-ledger-export
+      - run: npm run test:payment-operations-hardening
       - run: npm run test:stripe
+      - run: npm run test:stripe-dispute-integrity
+      - run: npm run test:payment-reference-integrity
+      - run: npm run test:receipt-delivery-outbox
+      - run: npm run test:payment-receipts
       - run: npm run test:order-notifications
       - run: npm run test:player-registration
       - run: npm run test:merch-export
@@ -79,6 +95,7 @@ jobs:
       - run: npm ci
       - run: npm run test:apparel-catalogue
       - run: npm run test:payments-ledger
+      - run: npm run test:security-privilege-defaults-hardening:db
       - run: npm run test:migration-replay
 
   security-scans:

@@ -1,9 +1,23 @@
 export interface CandidateOrder {
   id: string;
-  total_amount: number;
+  balance_due: number;
   payment_reference: string | null;
   customer_name: string;
   created_at: string;
+}
+
+function amountCents(value: unknown): number | null {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  const rawCents = numeric * 100;
+  const cents = Math.round(rawCents);
+  return Number.isSafeInteger(cents) && Math.abs(rawCents - cents) < 0.000001 ? cents : null;
+}
+
+export function isExactBalanceMatch(order: CandidateOrder, transaction: ImportedTransaction): boolean {
+  const balanceCents = amountCents(order.balance_due);
+  const transactionCents = amountCents(transaction.amount);
+  return balanceCents !== null && balanceCents > 0 && balanceCents === transactionCents;
 }
 
 export interface ImportedTransaction {
@@ -21,7 +35,7 @@ export function scoreOrderMatch(order: CandidateOrder, transaction: ImportedTran
   const txRef = (transaction.transaction_reference || '').toLowerCase();
   if (orderRef && txRef && txRef.includes(orderRef)) score += 100;
 
-  if (Number(order.total_amount) === Number(transaction.amount)) score += 40;
+  if (isExactBalanceMatch(order, transaction)) score += 40;
 
   const customer = (order.customer_name || '').toLowerCase();
   const payer = (transaction.payer_name || '').toLowerCase();

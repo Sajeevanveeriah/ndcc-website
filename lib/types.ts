@@ -58,7 +58,7 @@ export interface Event {
   location: string;
   capacity: number | null;
   ticket_price: number;
-  stripe_link: string;
+  stripe_link?: string;
   published: boolean;
   created_at: string;
   image_url?: string | null;

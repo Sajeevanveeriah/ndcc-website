@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/playhq-fantasy-sync",
       "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/payment-receipts",
+      "schedule": "10 5 * * *"
     }
   ]
 }

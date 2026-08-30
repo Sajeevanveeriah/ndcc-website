@@ -21,7 +21,6 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   location: '',
   capacity: null,
   ticket_price: 0,
-  stripe_link: '',
   image_url: '',
   published: false,
 };
@@ -92,7 +91,6 @@ export default function AdminEventsPage() {
       location: asSafeString(event.location),
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
-      stripe_link: asSafeString(event.stripe_link),
       image_url: asSafeString(event.image_url),
       published: !!event.published,
     });
@@ -124,7 +122,6 @@ export default function AdminEventsPage() {
         location: asSafeString(form.location).trim(),
         capacity: form.capacity,
         ticket_price: form.ticket_price,
-        stripe_link: asSafeString(form.stripe_link).trim(),
         image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
       };
@@ -468,13 +465,6 @@ export default function AdminEventsPage() {
               error={formErrors.ticket_price}
             />
           </div>
-          <Input
-            id="event-stripe"
-            label="Stripe Payment Link (optional)"
-            value={form.stripe_link}
-            onChange={(e) => setForm({ ...form, stripe_link: e.target.value })}
-            placeholder="https://buy.stripe.com/..."
-          />
           <ImageUploadField
             id="event-image-url"
             label="Image URL (optional)"

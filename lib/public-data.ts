@@ -3,6 +3,7 @@ import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, mergeSponsorsW
 import { normalizeEventImage, normalizeGalleryImage } from '@/lib/public-content-normalizers';
 import type { Event, Sponsor } from '@/lib/types';
 import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
+import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 export type PublicDataSource = 'supabase' | 'fallback';
 
@@ -56,7 +57,7 @@ async function getPublishedEventsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
   const { data, error } = await supabase
     .from('events')
-    .select('id,title,description,date,location,capacity,ticket_price,stripe_link,published,image_url')
+    .select('id,title,description,date,location,capacity,ticket_price,published,image_url')
     .eq('published', true)
     .order('date', { ascending: true });
   return { data: data ?? [], error: error?.message ?? null };
@@ -108,6 +109,13 @@ function fallbackResult<T>(data: T, error: string | null = null): PublicDataResu
   // result), so record it — otherwise a Supabase outage is invisible in logs.
   if (error) console.error('[public-data] Live query failed; serving static fallback content:', error);
   return { data, error, source: 'fallback', degraded: true };
+}
+
+function normaliseSponsorLinks(sponsors: Sponsor[]): Sponsor[] {
+  return sponsors.map((sponsor) => ({
+    ...sponsor,
+    website: normalisePublicLinkUrl(sponsor.website) ?? '',
+  }));
 }
 
 export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
@@ -226,14 +234,14 @@ export async function getPublicAlbumBySlug(slug: string): Promise<PublicAlbumDet
 }
 
 export async function getPublicSponsors(): Promise<PublicDataResult<Sponsor[]>> {
-  const fallback = sortSponsorsAlphabetically(fallbackSponsors as Sponsor[]);
+  const fallback = sortSponsorsAlphabetically(normaliseSponsorLinks(fallbackSponsors as Sponsor[]));
   if (!isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {
     const { data, error } = await getActiveSponsorsFromSupabase();
     if (error) return fallbackResult(fallback, error);
     if (data.length === 0) return { data: [], error: null, source: 'supabase' as const, degraded: false };
-    return { data: sortSponsorsAlphabetically(mergeSponsorsWithFallback(data as Sponsor[])), error: null, source: 'supabase', degraded: false };
+    return { data: sortSponsorsAlphabetically(normaliseSponsorLinks(mergeSponsorsWithFallback(data as Sponsor[]))), error: null, source: 'supabase', degraded: false };
   } catch (err) {
     return fallbackResult(fallback, err instanceof Error ? err.message : 'Failed to load sponsors');
   }
