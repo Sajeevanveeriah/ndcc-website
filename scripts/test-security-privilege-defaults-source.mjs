@@ -63,8 +63,8 @@ assert.match(
 );
 assert.match(
   sql,
-  /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated/i,
-  'future public functions must not inherit explicit browser-role execution',
+  /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i,
+  'future public functions must not inherit schema-specific browser execution',
 );
 assert.match(
   sql,
