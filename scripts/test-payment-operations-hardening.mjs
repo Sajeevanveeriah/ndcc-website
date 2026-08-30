@@ -60,8 +60,8 @@ const manualRoute = read('app/api/admin/orders/payments/route.ts');
 const manualUi = read('app/admin/orders/page.tsx');
 const reconcile = read('app/api/admin/payments/reconcile/route.ts');
 const ambiguous = read('app/api/admin/payments/ambiguous/route.ts');
-const migration = read('supabase/migrations/20260830010000_payment_reference_integrity.sql');
-const financialMigration = read('supabase/migrations/20260830015000_stripe_financial_event_integrity.sql');
+const migration = read('supabase/migrations/20260830130818_payment_reference_integrity.sql');
+const financialMigration = read('supabase/migrations/20260830130824_stripe_financial_event_integrity.sql');
 const notifications = read('lib/order-notification-content.ts');
 const receipts = read('lib/payment-receipts.ts');
 

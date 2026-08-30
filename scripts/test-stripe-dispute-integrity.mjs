@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(path.join(root, file), 'utf8');
-const migration = read('supabase/migrations/20260830015000_stripe_financial_event_integrity.sql');
+const migration = read('supabase/migrations/20260830130824_stripe_financial_event_integrity.sql');
 const webhook = read('app/api/stripe/webhook/route.ts');
 const dinoDomain = read('lib/dino-coach/domain.ts');
 

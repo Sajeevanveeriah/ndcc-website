@@ -222,7 +222,7 @@ await test('signed refund and dispute evidence is normalised before Checkout han
 });
 
 await test('the payment-reference migration enforces atomic, private and unique allocation', () => {
-  const migration = read('supabase/migrations/20260830010000_payment_reference_integrity.sql');
+  const migration = read('supabase/migrations/20260830130818_payment_reference_integrity.sql');
   assert.match(migration, /create table if not exists public\.payment_reference_counters/u);
   assert.match(migration, /primary key \(category, reference_year\)/u);
   assert.match(migration, /on conflict \(category, reference_year\) do update/u);
@@ -257,7 +257,7 @@ await test('the payment-reference migration enforces atomic, private and unique 
 });
 
 await test('the financial-event migration is movement-idempotent, atomic and preserves ticket history', () => {
-  const migration = read('supabase/migrations/20260830015000_stripe_financial_event_integrity.sql');
+  const migration = read('supabase/migrations/20260830130824_stripe_financial_event_integrity.sql');
   assert.match(migration, /provider_event_id text primary key/u);
   assert.match(migration, /status in \('pending', 'settled', 'failed', 'refunded', 'disputed', 'recovered', 'void'\)/u);
   assert.match(migration, /create or replace function public\.apply_stripe_financial_event/u);

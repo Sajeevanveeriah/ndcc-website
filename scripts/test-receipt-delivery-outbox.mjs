@@ -23,7 +23,7 @@ const [
   ambiguousRoute,
   financialMigration,
 ] = await Promise.all([
-  readFile(path.join(root, 'supabase/migrations/20260830023000_payment_receipt_delivery_outbox.sql'), 'utf8'),
+  readFile(path.join(root, 'supabase/migrations/20260830130840_payment_receipt_delivery_outbox.sql'), 'utf8'),
   readFile(path.join(root, 'lib/payments/receipt-delivery.ts'), 'utf8'),
   readFile(path.join(root, 'app/api/cron/payment-receipts/route.ts'), 'utf8'),
   readFile(path.join(root, 'lib/raffle-email.ts'), 'utf8'),
@@ -36,7 +36,7 @@ const [
   readFile(path.join(root, 'app/api/admin/orders/payments/route.ts'), 'utf8'),
   readFile(path.join(root, 'app/api/admin/payments/reconcile/route.ts'), 'utf8'),
   readFile(path.join(root, 'app/api/admin/payments/ambiguous/route.ts'), 'utf8'),
-  readFile(path.join(root, 'supabase/migrations/20260830015000_stripe_financial_event_integrity.sql'), 'utf8'),
+  readFile(path.join(root, 'supabase/migrations/20260830130824_stripe_financial_event_integrity.sql'), 'utf8'),
 ]);
 
 let passed = 0;
