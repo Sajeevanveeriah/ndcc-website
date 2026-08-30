@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
+import { readLimitedJsonObject } from '@/lib/order-input-validation';
+import { isPaymentOperationUuid, MANUAL_PAYMENT_LIMITS } from '@/lib/payments/manual-payment';
+import { attemptPaymentReceiptDelivery, enqueuePaymentReceiptJob } from '@/lib/payments/receipt-delivery';
+import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,40 +27,55 @@ export async function POST(request: Request) {
   const user = await requirePermission('payments', ['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
-  const { transaction_id, order_id, notes } = await request.json();
-  if (!transaction_id || !order_id) return NextResponse.json({ success: false, error: 'transaction_id and order_id are required.' }, { status: 400 });
+  const rawBody = await readLimitedJsonObject(request, 16 * 1024);
+  if (!rawBody.ok) return NextResponse.json({ success: false, error: rawBody.error }, { status: 400 });
+  const { transaction_id, order_id, notes } = rawBody.value;
+  if (!isPaymentOperationUuid(transaction_id) || !isPaymentOperationUuid(order_id)) {
+    return NextResponse.json({ success: false, error: 'Valid transaction_id and order_id values are required.' }, { status: 400 });
+  }
+  if (notes !== undefined && typeof notes !== 'string') {
+    return NextResponse.json({ success: false, error: 'Notes must be text.' }, { status: 400 });
+  }
+  const cleanNotes = typeof notes === 'string' ? notes.trim() : '';
+  if (cleanNotes.length > MANUAL_PAYMENT_LIMITS.notesLength) {
+    return NextResponse.json({ success: false, error: 'Notes are too long.' }, { status: 400 });
+  }
 
   const supabase = createServerClient();
-
-  const { error: orderUpdateError } = await supabase.from('orders').update({
-    payment_status: 'paid',
-    confirmed_by: user.id,
-    confirmed_at: new Date().toISOString(),
-    needs_review_reason: '',
-  }).eq('id', order_id);
-  if (orderUpdateError) return NextResponse.json({ success: false, error: orderUpdateError.message }, { status: 500 });
-
-  const { error: txUpdateError } = await supabase.from('imported_transactions').update({
-    match_status: 'matched',
-    matched_order_id: order_id,
-    updated_at: new Date().toISOString(),
-  }).eq('id', transaction_id);
-  if (txUpdateError) {
-    await supabase.from('orders').update({ payment_status: 'needs_review' }).eq('id', order_id);
-    return NextResponse.json({ success: false, error: txUpdateError.message }, { status: 500 });
-  }
-
-  const { error: confirmationError } = await supabase.from('bank_transfer_confirmations').insert({
-    order_id,
-    transaction_id,
-    confirmed_by: user.id,
-    notes: notes || 'Confirmed from ambiguous queue',
+  const { data, error } = await supabase.rpc('confirm_imported_order_payment', {
+    target_transaction_id: transaction_id,
+    target_order_id: order_id,
+    target_confirmed_by: user.id,
+    target_notes: cleanNotes || 'Confirmed from ambiguous queue',
   });
-  if (confirmationError) {
-    await supabase.from('orders').update({ payment_status: 'needs_review' }).eq('id', order_id);
-    await supabase.from('imported_transactions').update({ match_status: 'needs_review', matched_order_id: null }).eq('id', transaction_id);
-    return NextResponse.json({ success: false, error: confirmationError.message }, { status: 500 });
+  const payment = data?.[0];
+  if (error || !payment?.payment_id) {
+    return NextResponse.json({ success: false, error: 'The imported payment could not be recorded atomically.' }, { status: 409 });
   }
 
-  return NextResponse.json({ success: true });
+  const queuedReceipt = await enqueuePaymentReceiptJob(supabase, 'order_payment', payment.payment_id);
+  let customerReceiptStatus = 'queue_failed';
+  if (!queuedReceipt.ok) {
+    console.error(`Imported payment receipt for order ${order_id} could not be queued:`, queuedReceipt.reason);
+  } else {
+    const receiptAttempt = await attemptPaymentReceiptDelivery(supabase, queuedReceipt.jobId);
+    customerReceiptStatus = receiptAttempt.status;
+    if (receiptAttempt.status === 'claim_failed' || receiptAttempt.status === 'completion_failed') {
+      console.error(`Imported payment receipt for order ${order_id} could not be attempted:`, receiptAttempt.reason);
+    }
+  }
+  const staffNotification = await sendPaidStaffOrderNotificationForPayment(
+    supabase,
+    { id: payment.payment_id },
+    order_id,
+  );
+  if (staffNotification.status === 'failed') {
+    console.error(`Imported paid staff notification for order ${order_id} failed:`, staffNotification.reason);
+  }
+  return NextResponse.json({
+    success: true,
+    payment_reference: payment.payment_reference,
+    customer_receipt_status: customerReceiptStatus,
+    staff_notification_status: staffNotification.status,
+  });
 }

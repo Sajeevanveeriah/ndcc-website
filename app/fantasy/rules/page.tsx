@@ -14,7 +14,8 @@ export const metadata: Metadata = {
   description: 'Current-season Dino Coach rules.',
 };
 
-export default async function FantasyRulesPage({ searchParams }: { searchParams?: { season?: string } }) {
+export default async function FantasyRulesPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   return (
     <>

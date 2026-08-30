@@ -68,6 +68,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
 
       const response = await fetch('/api/admin/media/upload', {
         method: 'POST',
+        headers: { 'X-NDCC-CSRF': '1' },
         body: formData,
       });
       const payload = await response.json().catch(() => null);

@@ -4,7 +4,7 @@ import 'server-only';
  * Central payment readiness config. The club has not chosen a payment
  * provider go-live yet: the live path is manual bank-transfer orders.
  * Stripe code stays dormant unless explicitly enabled via env:
- *   PAYMENT_PROVIDER    'manual' | 'stripe_payment_link' | 'stripe_checkout'
+ *   PAYMENT_PROVIDER    'manual' | 'stripe_checkout'
  *                       (defaults to 'manual' when unset or unrecognised)
  *   PAYMENT_TEST_MODE   'true' unless explicitly set to 'false'
  *   STRIPE_SECRET_KEY   must match PAYMENT_TEST_MODE
@@ -13,10 +13,10 @@ import 'server-only';
  * test mode, or a test key paired with live mode, keeps checkout disabled.
  */
 
-export type PaymentProvider = 'manual' | 'stripe_payment_link' | 'stripe_checkout';
+export type PaymentProvider = 'manual' | 'stripe_checkout';
 export type StripeKeyMode = 'test' | 'live' | 'unknown' | 'missing';
 
-const PAYMENT_PROVIDERS: readonly PaymentProvider[] = ['manual', 'stripe_payment_link', 'stripe_checkout'];
+const PAYMENT_PROVIDERS: readonly PaymentProvider[] = ['manual', 'stripe_checkout'];
 
 export function getPaymentProvider(): PaymentProvider {
   const raw = (process.env.PAYMENT_PROVIDER || '').trim().toLowerCase();

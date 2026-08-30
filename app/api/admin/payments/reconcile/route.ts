@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
-import { scoreOrderMatch, type CandidateOrder, type ImportedTransaction } from '@/lib/payments/matching';
+import {
+  isExactBalanceMatch,
+  scoreOrderMatch,
+  type CandidateOrder,
+  type ImportedTransaction,
+} from '@/lib/payments/matching';
+import { attemptPaymentReceiptDelivery, enqueuePaymentReceiptJob } from '@/lib/payments/receipt-delivery';
+import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +20,7 @@ export async function POST() {
 
   const [{ data: transactions, error: txFetchError }, { data: orders, error: orderFetchError }] = await Promise.all([
     supabase.from('imported_transactions').select('*').in('match_status', ['unmatched', 'needs_review']).order('transaction_date', { ascending: false }),
-    supabase.from('orders').select('id, total_amount, payment_reference, customer_name, created_at').in('payment_status', ['pending_bank_transfer', 'pending', 'unpaid', 'part_paid']),
+    supabase.from('orders').select('id, balance_due, payment_reference, customer_name, created_at').in('payment_status', ['pending_bank_transfer', 'pending', 'unpaid', 'part_paid']).gt('balance_due', 0),
   ]);
   if (txFetchError || orderFetchError) {
     return NextResponse.json({ success: false, error: txFetchError?.message || orderFetchError?.message || 'Failed to load reconciliation data.' }, { status: 500 });
@@ -21,68 +28,84 @@ export async function POST() {
 
   let autoMatched = 0;
   let needsReview = 0;
+  let reviewUpdateFailures = 0;
+
+  const markNeedsReview = async (transactionId: string) => {
+    const { error } = await supabase.from('imported_transactions').update({
+      match_status: 'needs_review',
+      matched_order_id: null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', transactionId);
+    if (error) {
+      reviewUpdateFailures += 1;
+      console.error(`Imported transaction ${transactionId} could not be marked for review:`, error.message);
+      return;
+    }
+    needsReview += 1;
+  };
 
   for (const tx of (transactions || []) as ImportedTransaction[]) {
     const ranked = ((orders || []) as CandidateOrder[])
       .map((order) => ({ order, score: scoreOrderMatch(order, tx) }))
-      .filter((entry) => entry.score >= 40)
+      // Amount-only auto reconciliation is permitted only for the exact
+      // balance still due. References and names can raise confidence, but
+      // can never override an amount mismatch.
+      .filter((entry) => isExactBalanceMatch(entry.order, tx) && entry.score >= 40)
       .sort((a, b) => b.score - a.score);
 
-    if (ranked.length === 1 || (ranked.length > 1 && ranked[0].score >= 120 && ranked[0].score - ranked[1].score >= 30)) {
+    const hasUniqueConfidentMatch = ranked.length === 1 && ranked[0].score >= 55;
+    const hasDominantReferenceMatch = ranked.length > 1
+      && ranked[0].score >= 120
+      && ranked[0].score - ranked[1].score >= 30;
+    if (hasUniqueConfidentMatch || hasDominantReferenceMatch) {
       const best = ranked[0].order;
-      const { error: orderUpdateError } = await supabase.from('orders').update({
-        confirmed_by: user.id,
-        confirmed_at: new Date().toISOString(),
-        bank_reference_used: tx.transaction_reference || null,
-      }).eq('id', best.id);
-      if (orderUpdateError) continue;
-
-      const { error: txUpdateError } = await supabase.from('imported_transactions').update({
-        match_status: 'matched',
-        matched_order_id: best.id,
-        updated_at: new Date().toISOString(),
-      }).eq('id', tx.id);
-      if (txUpdateError) {
-        await supabase.from('orders').update({ confirmed_by: null, confirmed_at: null, bank_reference_used: null }).eq('id', best.id);
+      const { data: recorded, error: recordError } = await supabase.rpc('confirm_imported_order_payment', {
+        target_transaction_id: tx.id,
+        target_order_id: best.id,
+        target_confirmed_by: user.id,
+        target_notes: 'Auto-matched by reconciliation job',
+      });
+      const payment = recorded?.[0];
+      if (recordError || !payment?.payment_id) {
+        await markNeedsReview(tx.id);
         continue;
       }
 
-      const { error: confirmationError } = await supabase.from('bank_transfer_confirmations').insert({
-        order_id: best.id,
-        transaction_id: tx.id,
-        confirmed_by: user.id,
-        bank_reference_used: tx.transaction_reference || '',
-        notes: 'Auto-matched by reconciliation job',
-      });
-      if (confirmationError) {
-        await supabase.from('orders').update({ confirmed_by: null, confirmed_at: null, bank_reference_used: null }).eq('id', best.id);
-        await supabase.from('imported_transactions').update({ match_status: 'needs_review', matched_order_id: null }).eq('id', tx.id);
-        continue;
+      const queuedReceipt = await enqueuePaymentReceiptJob(supabase, 'order_payment', payment.payment_id);
+      if (!queuedReceipt.ok) {
+        console.error(`Auto-matched payment receipt for order ${best.id} could not be queued:`, queuedReceipt.reason);
+      } else {
+        const receiptAttempt = await attemptPaymentReceiptDelivery(supabase, queuedReceipt.jobId);
+        if (receiptAttempt.status === 'claim_failed' || receiptAttempt.status === 'completion_failed') {
+          console.error(`Auto-matched payment receipt for order ${best.id} could not be attempted:`, receiptAttempt.reason);
+        }
       }
-
-      const { error: ledgerError } = await supabase.from('order_payments').insert({
-        order_id: best.id,
-        amount: tx.amount,
-        method: 'bank_transfer',
-        provider: 'bank_import',
-        provider_reference: tx.transaction_reference || null,
-        status: 'settled',
-        received_at: tx.transaction_date || new Date().toISOString(),
-        recorded_by: user.id,
-        notes: 'Auto-matched by reconciliation job',
-        metadata: { imported_transaction_id: tx.id },
-      });
-      if (ledgerError) {
-        await supabase.from('orders').update({ confirmed_by: null, confirmed_at: null, bank_reference_used: null }).eq('id', best.id);
-        await supabase.from('imported_transactions').update({ match_status: 'needs_review', matched_order_id: null }).eq('id', tx.id);
-        continue;
+      const staffNotification = await sendPaidStaffOrderNotificationForPayment(
+        supabase,
+        { id: payment.payment_id },
+        best.id,
+      );
+      if (staffNotification.status === 'failed') {
+        console.error(`Auto-matched paid staff notification for order ${best.id} failed:`, staffNotification.reason);
       }
 
       autoMatched += 1;
-    } else if (ranked.length > 1) {
-      const { error: needsReviewError } = await supabase.from('imported_transactions').update({ match_status: 'needs_review', updated_at: new Date().toISOString() }).eq('id', tx.id);
-      if (!needsReviewError) needsReview += 1;
+    } else {
+      await markNeedsReview(tx.id);
     }
+  }
+
+  if (reviewUpdateFailures > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Some payment mismatches could not be placed in the review queue. Re-run reconciliation.',
+        autoMatched,
+        needsReview,
+        reviewUpdateFailures,
+      },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ success: true, autoMatched, needsReview });

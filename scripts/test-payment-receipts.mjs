@@ -52,9 +52,11 @@ if (process.env.RECEIPT_TEST_OUTPUT) {
   await writeFile(path.resolve(process.env.RECEIPT_TEST_OUTPUT), pdf);
 }
 
-const [webhook, receipts, raffle, raffleTicket, generator, fontConfig, bundledFont] = await Promise.all([
+const [webhook, receipts, delivery, dinoReceipt, raffle, raffleTicket, generator, fontConfig, bundledFont] = await Promise.all([
   readFile(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/payment-receipts.ts'), 'utf8'),
+  readFile(path.join(repoRoot, 'lib/payments/receipt-delivery.ts'), 'utf8'),
+  readFile(path.join(repoRoot, 'lib/dino-coach/payment-receipt.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/raffle-email.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/raffle-ticket.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/payment-receipt-pdf.ts'), 'utf8'),
@@ -62,20 +64,31 @@ const [webhook, receipts, raffle, raffleTicket, generator, fontConfig, bundledFo
   readFile(path.join(repoRoot, 'public/fonts/NotoSans-Regular.ttf')),
 ]);
 
-assert.match(webhook, /sendOrderPaymentReceiptForPayment\(supabase, payment\.id, orderId\)/);
-assert.match(webhook, /payment_receipt_sent_at/);
-assert.match(webhook, /Dino Coach receipt delivery failed/);
+assert.match(webhook, /enqueuePaymentReceiptJob/);
+assert.match(webhook, /attemptPaymentReceiptDelivery/);
+assert.match(webhook, /queueAndAttemptReceipt\(supabase, 'order_payment', paymentId\)/);
+assert.match(webhook, /queueAndAttemptReceipt\(supabase, 'raffle_order', order\.id\)/);
+assert.match(webhook, /queueAndAttemptReceipt\(supabase, 'dino_entry', entry\.id\)/);
+assert.doesNotMatch(webhook, /sendOrderPaymentReceiptForPayment|sendPaidRaffleEmails|buildPaymentReceiptPdf/);
 assert.ok(
-  webhook.indexOf('constructEvent(body, signature') < webhook.indexOf('handleDinoCoachEvent(event)'),
+  webhook.indexOf('constructEvent(') < webhook.indexOf('handleDinoCoachCheckout(event)'),
   'Stripe signature verification must happen before any payment handler runs.',
 );
+assert.match(delivery, /sendOrderPaymentReceiptForPayment/);
+assert.match(delivery, /sendPaidRaffleEmails/);
+assert.match(delivery, /sendDinoCoachPaymentReceiptForEntry/);
+assert.match(delivery, /finish_payment_receipt_job/);
 assert.match(receipts, /website-payment-receipt-\$\{paymentId\}/);
 assert.match(receipts, /customer_receipt_sent_at/);
 assert.match(receipts, /membership: 'Social Membership'/);
 assert.match(receipts, /event: 'Event Registration'/);
 assert.match(receipts, /paymentKind === 'partial'/);
+assert.match(dinoReceipt, /dino-coach-receipt-\$\{entryId\}/);
+assert.match(dinoReceipt, /customer_receipt_sent_at/);
+assert.match(dinoReceipt, /payment_receipt_sent_at/);
 assert.match(raffle, /contentType: 'application\/pdf'/);
 assert.match(raffle, /payment receipt are attached/);
+assert.match(raffle, /raffle-customer-receipt-\$\{orderId\}/);
 assert.match(raffleTicket, /getServerSharp/);
 assert.doesNotMatch(raffleTicket, /import sharp from 'sharp'/);
 assert.doesNotMatch(generator, /Player Sponsorship|sponsorship may|business expense/i);

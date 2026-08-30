@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase-server';
+import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 export const PUBLICATION_TYPES = ['monthly_newsletter', 'weekly_newsletter', 'weekly_match_report'] as const;
 export type PublicationType = (typeof PUBLICATION_TYPES)[number];
@@ -42,6 +43,14 @@ export function publicationTypeLabel(type: string | null | undefined) {
   return isPublicationType(type) ? PUBLICATION_TYPE_LABELS[type] : 'Publication';
 }
 
+function normalisePublicationLinks(publication: PublicPublicationRecord): PublicPublicationRecord {
+  return {
+    ...publication,
+    document_url: normalisePublicLinkUrl(publication.document_url),
+    external_url: normalisePublicLinkUrl(publication.external_url),
+  };
+}
+
 /** Uncached request-time read of published publications, newest issue first. */
 export async function getPublishedPublications(options?: {
   type?: PublicationType;
@@ -65,7 +74,7 @@ export async function getPublishedPublications(options?: {
       console.error('[public-publications] list query failed:', error.message);
       return [];
     }
-    return (data ?? []) as PublicPublicationRecord[];
+    return ((data ?? []) as PublicPublicationRecord[]).map(normalisePublicationLinks);
   } catch (error) {
     console.error('[public-publications] list query threw:', error);
     return [];
@@ -89,7 +98,7 @@ export async function getPublishedPublicationBySlug(slug: string): Promise<Publi
       console.error('[public-publications] detail query failed:', error.message);
       return null;
     }
-    return (data as PublicPublicationRecord) ?? null;
+    return data ? normalisePublicationLinks(data as PublicPublicationRecord) : null;
   } catch (error) {
     console.error('[public-publications] detail query threw:', error);
     return null;

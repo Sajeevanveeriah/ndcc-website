@@ -26,7 +26,7 @@ This repository contains:
 | Fantasy cricket | Multi-season manager experience with PlayHQ-assisted imports and admin review |
 | Sponsors | One active A-Z sponsor list, plus CMS-controlled homepage marquee behaviour |
 | Merchandise | CMS catalogue, order windows, sizing guides, order handling and supplier workbook export |
-| Payments | Manual bank-transfer mode by default, with separately gated Stripe Payment Link and Checkout paths |
+| Payments | Manual bank-transfer mode by default, with a separately gated Stripe Checkout path |
 | App email | Resend API through the server-only application email helper |
 | Authentication email | Supabase Auth SMTP, configured independently from app email |
 | Single CMS media | GitHub Contents API commit under `public/images`, followed by Vercel git auto-deployment |
@@ -152,10 +152,10 @@ Only variables intentionally prefixed with `NEXT_PUBLIC_` may enter the browser 
 | Group | Main variables | Purpose |
 | --- | --- | --- |
 | Supabase | `SUPABASE_SERVICE_ROLE_KEY` | Server-side CMS and operational access |
-| Payments | `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Manual, Payment Link or Checkout selection and settlement |
+| Payments | `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Manual or Checkout selection and settlement |
 | PlayHQ | `PLAYHQ_API_BASE_URL`, `PLAYHQ_TENANT`, `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_DEFAULT_SEASON_ID`, `PLAYHQ_DEFAULT_GRADE_IDS`, `PLAYHQ_CACHE_REVALIDATE_SECONDS` | Fixtures and PlayHQ-backed season data |
-| Fantasy automation | `CRON_SECRET`, `PLAYHQ_FANTASY_SYNC_ENABLED`, `PLAYHQ_FANTASY_SYNC_BATCH_SIZE` | Guarded scheduled and on-demand fantasy sync |
-| App email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM`, `EMAIL_TEST_MODE` | Server-side application notifications |
+| Scheduled operations | `CRON_SECRET`, `PLAYHQ_FANTASY_SYNC_ENABLED`, `PLAYHQ_FANTASY_SYNC_BATCH_SIZE` | Guarded fantasy sync and durable payment-receipt retry |
+| App email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM`, `RECEIPT_REPLY_TO_EMAIL`, `EMAIL_TEST_MODE` | Server-side application notifications and optional receipt reply routing |
 | Contact recipients | `CONTACT_TO_EMAIL`, `CONTACT_CC_EMAILS`, `CONTACT_BCC_EMAILS` | Notification routing |
 | Bank transfer | `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER` | Order and payment instructions |
 | CMS media | `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` | Single-file CMS upload commits |
@@ -195,9 +195,12 @@ The CMS uses custom committee authentication, separate from Supabase Auth used b
 ### Initial setup
 
 1. Apply the custom committee-auth migrations and every later auth or permission migration.
-2. Bootstrap the first administrator through `POST /api/admin/auth/bootstrap`.
+2. Provision the first administrator with the audited operator-only `admin:provision-users` runbook.
 3. Sign in at `/admin/login`.
-4. Manage users and access from `/admin/users`.
+4. Manage all later users and access from `/admin/users`.
+
+The one-time HTTP bootstrap endpoint and its database RPC are retired and must
+not be re-enabled after initial production provisioning.
 
 ### Roles
 
@@ -381,7 +384,6 @@ The two order sheets preserve the supplier's required naming convention. They ar
 | Mode | Behaviour |
 | --- | --- |
 | `manual` | Creates the order, payment reference and bank-transfer instructions |
-| `stripe_payment_link` | Shows a product-specific external Stripe Payment Link when configured |
 | `stripe_checkout` | Creates a Stripe-hosted Checkout Session for an existing server-priced order |
 
 Manual is the default in `.env.example`. The actual production mode must be verified from the target environment.
@@ -394,6 +396,45 @@ Stripe Checkout remains unavailable unless all required gates agree:
 - the CMS Checkout switch is enabled.
 
 The signed Stripe webhook is the settlement authority. Do not mark an order paid from a browser redirect alone.
+
+### Payment reference contract
+
+Every new payable website record receives a PostgreSQL-allocated reference in
+the form `<PREFIX>-<Australia/Melbourne year>-<six-digit sequence>`. Each
+category and year has its own atomic sequence, so concurrent requests cannot
+issue the same reference.
+
+| Payment category | Prefix | Example |
+| --- | --- | --- |
+| Merchandise | `NDCCMER` | `NDCCMER-2026-000001` |
+| Kitchen | `NCDDKIT` | `NCDDKIT-2026-000001` |
+| Membership | `NDCCMEM` | `NDCCMEM-2026-000001` |
+| Event registration | `NDCCEVT` | `NDCCEVT-2026-000001` |
+| Raffle payment | `NDCCRAF` | `NDCCRAF-2026-000001` |
+| Dino Coach | `NDCCDCO` | `NDCCDCO-2026-000001` |
+| Future or general payment | `NDCCPAY` | `NDCCPAY-2026-000001` |
+
+The payment-level reference is the receipt reference and the accounting item
+number. It is separate from an order or bank-transfer reference because one
+order can receive more than one part payment. Checkout writes the identical
+value to the Checkout Session and PaymentIntent metadata as `item_number` and
+`ndcc_payment_reference`, and starts the PaymentIntent description with the
+same value. In Stripe Balance reports, include the
+`payment_metadata[item_number]` column to export it. Stripe's own
+`receipt_number` remains provider-managed and is not replaced.
+
+Direct Stripe Payment Links are disabled because they cannot receive a fresh,
+server-allocated reference for each purchase. Existing historical references
+are preserved; the migration does not invent or bulk-email historical payment
+identities.
+
+### Durable payment receipts
+
+A settled order payment, paid raffle order or paid Dino Coach entry creates one service-only receipt job in the same database transaction. The trigger gives new jobs a five-minute safety hold; after the payment flow finishes replaying deferred financial events, the server releases that hold and normally attempts delivery immediately. Jobs with a canonical Stripe Payment Intent link remain unclaimable while a financial event for that intent is still pending, and each sender repeats that preflight immediately before rendering mail. A Stripe payment missing that canonical link fails closed into visible retry state. The job identity is the payment or paid record, not a Stripe Event ID, so webhook retries and differently ordered events converge on the same receipt work.
+
+Email transport failure does not undo payment state or fail an otherwise durable Stripe acknowledgement: the job receives bounded exponential retry state, persisted lease recovery and an eventual dead-letter state. Delivery is operationally at-least-once, with source-keyed provider idempotency and a stable receipt issue date to minimise duplicate mail after ambiguous transport outcomes. A provider-accepted email is completed in the outbox even if its secondary source marker cannot be written; simulated email cannot complete production work.
+
+The authenticated `/api/cron/payment-receipts` route drains due work within a bounded runtime once daily at `05:10 UTC`, the Vercel Hobby-compatible fallback. Its response and server log expose remaining due and dead-letter totals so a permanently deferred financial event or exhausted receipt is visible to operations. `CRON_SECRET` must contain at least 16 characters and is compared as an exact bearer value. The migration deliberately does not bulk-enqueue historical payments. A known historical payment can be queued explicitly through the service-role RPC only when its status, AUD amount and canonical category reference are already valid; the migration never rewrites historical references.
 
 ## Fixtures and PlayHQ
 
@@ -623,6 +664,7 @@ vercel.json                     Region and cron configuration
 | `npm run test:merch-export` | Test the four-sheet supplier workbook export |
 | `npm run test:apparel-images` | Test apparel sizing assets |
 | `npm run test:stripe` | Test Stripe integration contracts |
+| `npm run test:receipt-delivery-outbox` | Test durable receipt queue, retry and cron contracts |
 | `npm run test:calendar` | Test calendar validation and time handling |
 | `npm run test:fantasy-orchestrator` | Test PlayHQ fantasy automation |
 | `npm run test:fantasy-reconciliation` | Test fantasy import reconciliation |

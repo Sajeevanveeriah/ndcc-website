@@ -49,6 +49,7 @@ try {
   const seasons = await import(pathToFileURL(join(tmpDir, 'fantasy-seasons.ts')).href);
   const carryover = await import(pathToFileURL(join(tmpDir, 'fantasy-carryover.ts')).href);
   const cron = await import(pathToFileURL(join(tmpDir, 'cron-auth.ts')).href);
+  const keepAliveCron = readFileSync(join(repoRoot, 'app/api/cron/keep-alive/route.ts'), 'utf8');
 
   // ---- 1. Season selection (dropdown default + fallback order) ----
   const seasonList = [
@@ -160,6 +161,7 @@ try {
   check('cron: wrong token rejected', cron.isAuthorizedCronRequest('Bearer nope', secret) === false);
   check('cron: missing header rejected', cron.isAuthorizedCronRequest(null, secret) === false);
   check('cron: unset/short secret rejected', cron.isAuthorizedCronRequest('Bearer x', undefined) === false && cron.isAuthorizedCronRequest('Bearer short', 'short') === false);
+  check('keep-alive cron uses the shared exact bearer and minimum-length rule', keepAliveCron.includes('isAuthorizedCronRequest'));
 
   // ---- 8. Migration structure (season schema and constraints) ----
   const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260710042257_fantasy_multi_season.sql'), 'utf8');

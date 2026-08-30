@@ -1,7 +1,8 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { sendEmail, emailHtml } from '@/lib/email';
+import { sendEmail, emailHtml, escapeEmailHtml } from '@/lib/email';
+import { readLimitedJsonObject, validateVolunteerFormInput } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,15 +10,29 @@ function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
 }
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
-    const { name, email, role, phone, availability, notes, hp_field, submitted_at } = body;
+    const parsedBody = await readLimitedJsonObject(request, 16 * 1024);
+    if (!parsedBody.ok) {
+      return NextResponse.json(
+        { success: false, error: parsedBody.error },
+        { status: parsedBody.error === 'Request body is too large.' ? 413 : 400 },
+      );
+    }
+    const input = validateVolunteerFormInput(parsedBody.value);
+    if (!input.ok) {
+      return NextResponse.json({ success: false, error: input.error }, { status: 400 });
+    }
+    const {
+      name,
+      email,
+      role,
+      phone,
+      availability,
+      notes,
+      hpField,
+      submittedAt,
+    } = input.value;
 
     const ip = getClientIp(request);
     if (!enforceRateLimit(`volunteer:${ip}`, 8, 60_000)) {
@@ -27,22 +42,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
+    if (!enforceHoneypotAndTiming(hpField, submittedAt)) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
-    }
-
-    if (!name || !email || !role) {
-      return NextResponse.json(
-        { success: false, error: 'Name, email, and role are required.' },
-        { status: 400 }
-      );
-    }
-
-    if (!isValidEmail(email)) {
-      return NextResponse.json(
-        { success: false, error: 'Please provide a valid email address.' },
-        { status: 400 }
-      );
     }
 
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -54,24 +55,39 @@ export async function POST(request: Request) {
 
     const supabase = createServerClient();
 
-    const { data: position } = await supabase
+    const safeRole = sanitiseInput(role);
+    const { data: position, error: positionError } = await supabase
       .from('volunteer_positions')
       .select('id')
-      .eq('title', sanitiseInput(role))
+      .eq('title', safeRole)
       .eq('is_active', true)
       .maybeSingle();
 
-    const { error: expressionError } = await supabase.from('volunteer_expressions').insert({
+    if (positionError) {
+      console.error('Supabase volunteer position lookup error:', positionError);
+      return NextResponse.json(
+        { success: false, error: 'Volunteer roles are temporarily unavailable.' },
+        { status: 503 },
+      );
+    }
+    if (!position) {
+      return NextResponse.json(
+        { success: false, error: 'The selected volunteer role is no longer available.' },
+        { status: 409 },
+      );
+    }
+
+    const { data: expression, error: expressionError } = await supabase.from('volunteer_expressions').insert({
       full_name: sanitiseInput(name),
       email: sanitiseInput(email),
-      phone: phone ? sanitiseInput(phone) : '',
-      volunteer_position_id: position?.id || null,
-      availability: availability ? sanitiseInput(availability) : '',
-      notes: notes ? sanitiseInput(notes) : '',
+      phone: sanitiseInput(phone),
+      volunteer_position_id: position.id,
+      availability: sanitiseInput(availability),
+      notes: sanitiseInput(notes),
       status: 'new',
-    });
+    }).select('id').single();
 
-    if (expressionError) {
+    if (expressionError || !expression) {
       console.error('Supabase volunteer expression insert error:', expressionError);
       return NextResponse.json(
         { success: false, error: 'Failed to submit volunteer registration.' },
@@ -82,13 +98,14 @@ export async function POST(request: Request) {
     const { error } = await supabase.from('volunteers').insert({
       name: sanitiseInput(name),
       email: sanitiseInput(email),
-      phone: phone ? sanitiseInput(phone) : '',
-      role: sanitiseInput(role),
-      availability: availability ? sanitiseInput(availability) : '',
+      phone: sanitiseInput(phone),
+      role: safeRole,
+      availability: sanitiseInput(availability),
       processed: false,
     });
 
     if (error) {
+      await supabase.from('volunteer_expressions').delete().eq('id', expression.id);
       console.error('Supabase volunteer insert error:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to submit volunteer registration.' },
@@ -101,11 +118,11 @@ export async function POST(request: Request) {
       subject: 'Volunteer expression of interest received — NDCC Dinos',
       html: emailHtml(
         'Thanks for volunteering',
-        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(name)},</p>
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(name))},</p>
         <p style="font-size:15px;color:#374151;line-height:1.6;">Thank you for expressing interest in volunteering with the Newcomb and District Cricket Club. We really appreciate your support.</p>
         <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
           <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:bold;">Role of interest</p>
-          <p style="margin:0;font-size:14px;color:#374151;">${sanitiseInput(role)}</p>
+          <p style="margin:0;font-size:14px;color:#374151;">${escapeEmailHtml(safeRole)}</p>
         </div>
         <p style="font-size:15px;color:#374151;line-height:1.6;">A committee member will be in touch with you shortly to discuss next steps.</p>
         <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`

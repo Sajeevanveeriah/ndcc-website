@@ -50,7 +50,8 @@ async function getRows(seasonId: string | null): Promise<Row[]> {
   return Array.from(grouped.values()).sort((a, b) => b.totalPoints - a.totalPoints || b.squadValueDinoDollars - a.squadValueDinoDollars || a.teamName.localeCompare(b.teamName)).map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-export default async function FantasyManagerLeaderboardPage({ searchParams }: { searchParams?: { season?: string } }) {
+export default async function FantasyManagerLeaderboardPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   let rows: Row[] = [];
   let loadFailed = false;

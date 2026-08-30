@@ -81,11 +81,11 @@ test('matching test and live configurations arm checkout', () => {
   });
 });
 
-test('idempotency key is stable and changes with ledger state or amount', () => {
-  const base = stripeCheckout.buildCheckoutIdempotencyKey({ orderId: 'order-1', amountPaidCents: 0, amountCents: 5000 });
-  assert.equal(base, stripeCheckout.buildCheckoutIdempotencyKey({ orderId: 'order-1', amountPaidCents: 0, amountCents: 5000 }));
-  assert.notEqual(base, stripeCheckout.buildCheckoutIdempotencyKey({ orderId: 'order-1', amountPaidCents: 1000, amountCents: 4000 }));
-  assert.notEqual(base, stripeCheckout.buildCheckoutIdempotencyKey({ orderId: 'order-1', amountPaidCents: 0, amountCents: 4000 }));
+test('idempotency key is stable and scoped to the reserved payment reference', () => {
+  const base = stripeCheckout.buildCheckoutIdempotencyKey({ paymentReference: 'NDCCMER-2026-000001' });
+  assert.equal(base, stripeCheckout.buildCheckoutIdempotencyKey({ paymentReference: 'NDCCMER-2026-000001' }));
+  assert.notEqual(base, stripeCheckout.buildCheckoutIdempotencyKey({ paymentReference: 'NDCCMER-2026-000002' }));
+  assert.notEqual(base, stripeCheckout.buildCheckoutIdempotencyKey({ paymentReference: 'NCDDKIT-2026-000001' }));
 });
 
 test('webhook event classification covers immediate and delayed outcomes', () => {
@@ -117,20 +117,39 @@ test('manual payment-method detector catches a known-defective Checkout snippet'
   assert.equal(hasManualPaymentMethodList("stripe.checkout.sessions.create({ payment_method_types: ['card'] })"), true);
 });
 
-test('Checkout route uses dynamic methods, idempotency and a pending ledger row', () => {
+test('Checkout route uses dynamic methods, idempotency and an atomic pending reservation', () => {
   assert.equal(hasManualPaymentMethodList(checkoutRoute), false);
   assert.match(checkoutRoute, /idempotencyKey/);
-  assert.match(checkoutRoute, /status:\s*'pending'/);
+  assert.match(checkoutRoute, /reserve_order_stripe_payment/);
+  assert.match(checkoutRoute, /reservationId/);
   assert.match(checkoutRoute, /client_reference_id/);
+  assert.match(checkoutRoute, /target_checkout_origin:\s*siteUrl/);
+  assert.match(checkoutRoute, /target_return_path:\s*returnPath/);
+  assert.match(checkoutRoute, /expires_at:\s*checkoutExpiresAtUnix/);
+  assert.doesNotMatch(checkoutRoute, /expires_at:\s*Math\.floor\(Date\.now/);
 });
 
 test('Checkout route has category-aware descriptions and safe return paths', () => {
   assert.match(checkoutRoute, /order_category/);
   assert.match(checkoutRoute, /getSafeReturnPath/);
-  assert.match(checkoutRoute, /encodeURIComponent\(returnPath\)/);
-  assert.match(checkoutRoute, /Newcomb & District Cricket Club \$\{categoryLabel\}/);
+  assert.match(checkoutRoute, /encodeURIComponent\(checkoutContract\.returnPath\)/);
+  assert.match(checkoutRoute, /Newcomb & District Cricket Club \$\{frozenCategoryLabel\}/);
   assert.match(paymentResultPage, /Payment submitted/);
   assert.match(paymentResultPage, /safeReturnPath/);
+});
+
+test('open Checkout reuse validates the complete financial and reference contract', () => {
+  for (const pattern of [
+    /existingSession\.mode === 'payment'/,
+    /existingSession\.amount_total === attemptAmountCents/,
+    /existingSession\.currency\?\.toLowerCase\(\) === 'aud'/,
+    /sessionMetadata\.ndcc_payment_type === paymentCategory/,
+    /sessionMetadata\.ndcc_order_id === order\.id/,
+    /sessionMetadata\.ndcc_payment_reference === attempt\.payment_reference/,
+    /sessionMetadata\.expected_amount_cents === String\(attemptAmountCents\)/,
+    /sessionMetadata\.payment_kind === paymentKind/,
+    /existingSession\.client_reference_id === attempt\.payment_reference/,
+  ]) assert.match(checkoutRoute, pattern);
 });
 
 test('webhook route covers signed delayed-payment lifecycle events', () => {
@@ -141,8 +160,10 @@ test('webhook route covers signed delayed-payment lifecycle events', () => {
 });
 
 test('Stripe SDK and ledger integrity gates are current', () => {
-  assert.match(stripeClient, /2026-02-25\.clover/);
+  assert.match(stripeClient, /2026-07-29\.dahlia/);
   assert.match(integrityMigration, /order_payments_provider_reference_unique/);
+  assert.match(integrityMigration, /unique \(provider, provider_reference\)/);
+  assert.match(integrityMigration, /group by provider, provider_reference[\s\S]*?having count\(\*\) > 1/);
   assert.match(integrityMigration, /new\.provider_reference is distinct from old\.provider_reference/);
 });
 
@@ -155,6 +176,20 @@ test('Dino Coach Checkout is concurrency-safe and retryable after a stale sessio
   assert.match(dinoCheckoutRoute, /upsert\([\s\S]*onConflict:\s*'manager_id,season_id'/);
   assert.match(dinoCheckoutRoute, /stripe_checkout_session_id\s*\|\|\s*'first'/);
   assert.match(dinoCheckoutRoute, /\['payment_required','pending','failed','expired'\]/);
+  assert.match(dinoCheckoutRoute, /enforceRateLimit\(`dino-checkout:/);
+  assert.match(dinoCheckoutRoute, /readLimitedJsonObject\(request, 8 \* 1024\)/);
+  assert.match(dinoCheckoutRoute, /rawBody\.error === 'Request body is too large\.' \? 413 : 400/);
+  assert.doesNotMatch(dinoCheckoutRoute, /request\.json\(\)/);
+  assert.match(dinoCheckoutRoute, /entry_fee_currency\)\.toLowerCase\(\) !== 'aud'/);
+  assert.match(dinoCheckoutRoute, /payableStatuses\.includes\(entry\.status\)/);
+  assert.match(dinoCheckoutRoute, /existing\.status === 'complete'/);
+  assert.match(dinoCheckoutRoute, /existing\.mode === 'payment'/);
+  assert.match(dinoCheckoutRoute, /session\.metadata\?\.item_number !== paymentReference/);
+  assert.match(dinoCheckoutRoute, /expected_amount_cents:\s*String\(entry\.entry_fee_cents\)/);
+  assert.match(dinoCheckoutRoute, /unit_amount:\s*entry\.entry_fee_cents/);
+  assert.match(dinoCheckoutRoute, /createHash\('sha256'\)/);
+  assert.match(dinoCheckoutRoute, /ndcc:dino:v2:/);
+  assert.doesNotMatch(dinoCheckoutRoute, /expires_at:\s*Math\.floor\(Date\.now/);
 });
 
 test('shared payment control starts server-verified Checkout', () => {

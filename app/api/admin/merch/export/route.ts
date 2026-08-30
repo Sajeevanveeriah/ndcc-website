@@ -6,7 +6,7 @@ import { buildApparelWorkbook, type ApparelWorkbookOrder } from '@/lib/orders/ap
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function POST() {
   const user = await requirePermission('merchandise', ['committee']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 

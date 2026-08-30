@@ -33,7 +33,8 @@ async function getSeasonName(seasonId?: string | null): Promise<string | null> {
   }
 }
 
-export default async function FantasyPage({ searchParams }: { searchParams?: { season?: string } }) {
+export default async function FantasyPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   const seasonQuery = searchParams?.season ? `?season=${encodeURIComponent(searchParams.season)}` : '';
   const seasonName = await getSeasonName(seasonContext.selected?.id);

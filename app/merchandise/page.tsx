@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, XCircle, ExternalLink, ImageOff } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, ImageOff } from 'lucide-react';
 import Card, { CardContent, CardFooter } from '@/components/ui/Card';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -41,7 +41,6 @@ type DisplayProduct = {
   customisable?: boolean;
   category?: string;
   payment_mode?: string | null;
-  payment_link_url?: string | null;
   options: CatalogueOption[];
 };
 
@@ -59,7 +58,6 @@ type ApiProduct = {
   size_guidance?: string | null;
   // Payment-readiness fields (may be absent until the migration is applied).
   payment_mode?: string | null;
-  payment_link_url?: string | null;
   stripe_price_id?: string | null;
   checkout_enabled?: boolean | null;
   fulfilment_notes?: string | null;
@@ -241,7 +239,6 @@ function MerchandiseContent() {
             customisable: Boolean(p.customisable),
             category: p.category || 'General',
             payment_mode: p.payment_mode || null,
-            payment_link_url: p.payment_link_url || null,
             options: Array.isArray(p.options) ? p.options : [],
           })));
         setLiveProductsFailed(false);
@@ -871,18 +868,6 @@ function MerchandiseContent() {
                     >
                       Add to Order
                     </Button>
-                    {product.payment_mode === 'stripe_payment_link' && product.payment_link_url && (
-                      <a
-                        href={product.payment_link_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="focus-ring inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-maroon-300 px-3 py-2 font-body text-sm font-semibold text-maroon-700 dark:text-maroon-200 transition-colors hover:bg-maroon-50"
-                        aria-label={`Pay online for ${product.name} (opens in a new tab)`}
-                      >
-                        Pay online
-                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                      </a>
-                    )}
                   </CardFooter>
                     </Card>
                   );
@@ -1003,7 +988,7 @@ function MerchandiseContent() {
                 <p className="text-yellow-800 font-body font-semibold">Online payment cancelled</p>
                 <p className="text-yellow-700 font-body text-sm mt-1">
                   Your order is still placed, but no card payment was completed. Use the payment reference from your
-                  confirmation email for bank transfer, or contact the club if you want another online payment link.
+                  confirmation email for bank transfer, or contact the club if you need another payment method.
                 </p>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
+import { readLimitedJsonObject, validateContactFormInput } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,19 +20,31 @@ function escapeHtml(str: string): string {
     .replace(/\n/g, '<br>');
 }
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 function safeFailureReason(reason?: string) {
   return (reason || 'Email was not sent.').replace(/re_[A-Za-z0-9_\-]+/g, '[redacted]').slice(0, 240);
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
-    const { name, email, message, enquiry_type, hp_field, submitted_at } = body;
+    const parsedBody = await readLimitedJsonObject(request, 16 * 1024);
+    if (!parsedBody.ok) {
+      return NextResponse.json(
+        { success: false, error: parsedBody.error },
+        { status: parsedBody.error === 'Request body is too large.' ? 413 : 400 },
+      );
+    }
+    const input = validateContactFormInput(parsedBody.value);
+    if (!input.ok) {
+      return NextResponse.json({ success: false, error: input.error }, { status: 400 });
+    }
+    const {
+      name,
+      email,
+      message,
+      enquiryType,
+      hpField,
+      submittedAt,
+    } = input.value;
 
     const ip = getClientIp(request);
     if (!enforceRateLimit(`contact:${ip}`, 8, 60_000)) {
@@ -41,28 +54,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
+    if (!enforceHoneypotAndTiming(hpField, submittedAt)) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
-    }
-
-    if (!name || !email || !message) {
-      return NextResponse.json(
-        { success: false, error: 'Name, email, and message are required.' },
-        { status: 400 }
-      );
     }
 
     const safeName = sanitiseInput(name);
     const safeEmail = sanitiseInput(email);
     const safeMessage = sanitiseInput(message);
-    const safeEnquiryType = enquiry_type ? sanitiseInput(enquiry_type) : 'general';
-
-    if (!isValidEmail(safeEmail)) {
-      return NextResponse.json(
-        { success: false, error: 'Please provide a valid email address.' },
-        { status: 400 }
-      );
-    }
+    const safeEnquiryType = enquiryType;
 
     let dbStatus: 'saved' | 'failed' = 'failed';
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

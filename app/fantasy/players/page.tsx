@@ -46,7 +46,8 @@ async function getPlayers(season: FantasySeason | null): Promise<{ players: Play
   }
 }
 
-export default async function FantasyPlayersPage({ searchParams }: { searchParams?: { season?: string } }) {
+export default async function FantasyPlayersPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   const { players, hasPublishedPoints, loadFailed } = await getPlayers(seasonContext.selected);
 

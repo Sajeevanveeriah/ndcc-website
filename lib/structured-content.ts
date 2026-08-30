@@ -7,6 +7,7 @@ import {
   fallbackLinksFor,
 } from '@/lib/fallback-content';
 import { createServerClient, isServerSupabaseConfigured } from './supabase-server';
+import { normalisePublicLinkUrl } from './public-link-url';
 
 export type PageLinkCard = {
   id: string;
@@ -50,12 +51,20 @@ function sortPageLinks(links: PageLinkCard[]) {
   });
 }
 
+function normalisePageLinkCards(links: PageLinkCard[]): PageLinkCard[] {
+  return links.flatMap((link) => {
+    const href = normalisePublicLinkUrl(link.href);
+    if (!href) return [];
+    return [{ ...link, href, is_external: href.startsWith('https://') }];
+  });
+}
+
 // All helpers below are uncached live reads: this is mutable CMS content edited
 // through admin, so it must be queried at request time. Fallback content is
 // reserved for missing Supabase env or a failed query — a successful empty
 // result is live truth and is returned as-is, never replaced with seed rows.
 export async function getPageLinkCards(pageSlug: string, sectionKey: string): Promise<PageLinkCard[]> {
-  const fallback = fallbackPageLinks(pageSlug, sectionKey);
+  const fallback = sortPageLinks(normalisePageLinkCards(fallbackPageLinks(pageSlug, sectionKey)));
   if (!hasSupabaseEnv()) return fallback;
   try {
     const supabase = createServerClient();
@@ -67,7 +76,7 @@ export async function getPageLinkCards(pageSlug: string, sectionKey: string): Pr
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     if (error) { warnFallback('Public page link cards query failed; using controlled fallbacks.', { pageSlug, sectionKey, error: error.message }); return fallback; }
-    return sortPageLinks((data as PageLinkCard[]) || []);
+    return sortPageLinks(normalisePageLinkCards((data as PageLinkCard[]) || []));
   } catch (error) {
     warnFallback('Public page link cards query failed; using controlled fallbacks.', { pageSlug, sectionKey, error: error instanceof Error ? error.message : 'unknown' });
     return fallback;

@@ -320,13 +320,10 @@ export function resolveExactIdentityCandidate(
 }
 
 export function dinoEntryStatusForStripeEvent(eventType: string, evidence: {
-  paymentStatus?: string | null; amount?: number | null; amountRefunded?: number | null; disputeStatus?: string | null;
+  paymentStatus?: string | null;
 }) {
   if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(eventType)) return evidence.paymentStatus === 'paid' ? 'paid' : null;
   if (eventType === 'checkout.session.expired') return 'expired';
   if (eventType === 'checkout.session.async_payment_failed') return 'failed';
-  if (eventType === 'charge.refunded') return Number(evidence.amountRefunded) >= Number(evidence.amount) ? 'refunded' : null;
-  if (eventType === 'charge.dispute.created') return 'disputed';
-  if (eventType === 'charge.dispute.closed' && evidence.disputeStatus === 'won') return 'paid';
   return null;
 }

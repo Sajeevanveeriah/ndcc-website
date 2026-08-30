@@ -32,10 +32,11 @@ const FILTERS: Array<{ value: 'all' | PublicationType; label: string }> = [
 ];
 
 export default async function PublicationsPage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams?: { type?: string };
+  searchParams?: Promise<{ type?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const activeType = isPublicationType(searchParams?.type) ? searchParams!.type as PublicationType : undefined;
   const publications = await getPublishedPublications({
     type: activeType,

@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge';
 import { TEAMS, CLUB_NICKNAME } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase-server';
 import type { TeamInfo } from '@/lib/types';
+import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
@@ -22,9 +23,16 @@ export const metadata: Metadata = {
   title: 'Teams',
 };
 
+function normaliseTeamLinks(teams: TeamInfo[]): TeamInfo[] {
+  return teams.map((team) => ({
+    ...team,
+    playhq_url: normalisePublicLinkUrl(team.playhq_url),
+  }));
+}
+
 async function getTeams(): Promise<TeamInfo[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return TEAMS;
+    return normaliseTeamLinks(TEAMS);
   }
 
   try {
@@ -38,12 +46,12 @@ async function getTeams(): Promise<TeamInfo[]> {
 
     if (error) {
       console.error('[teams] Failed to load teams from Supabase; serving static fallback:', error.message);
-      return TEAMS;
+      return normaliseTeamLinks(TEAMS);
     }
-    return (data as TeamInfo[]) || [];
+    return normaliseTeamLinks((data as TeamInfo[]) || []);
   } catch (err) {
     console.error('[teams] Failed to load teams from Supabase; serving static fallback:', err);
-    return TEAMS;
+    return normaliseTeamLinks(TEAMS);
   }
 }
 

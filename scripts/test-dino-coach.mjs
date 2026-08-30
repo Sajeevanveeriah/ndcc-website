@@ -114,14 +114,13 @@ test('auto-links only a unique exact normalised player identity', () => {
   assert.deepEqual(resolveExactIdentityCandidate('Alex Smith', [...roster, { id: '3', displayName: 'Alex Smith' }]), { status: 'ambiguous', playerId: null });
 });
 
-test('maps Stripe settlement, failure, refund and dispute events to entry eligibility', () => {
+test('maps only Checkout lifecycle events; financial state is derived atomically in SQL', () => {
   assert.equal(dinoEntryStatusForStripeEvent('checkout.session.completed', { paymentStatus: 'paid' }), 'paid');
   assert.equal(dinoEntryStatusForStripeEvent('checkout.session.expired', {}), 'expired');
   assert.equal(dinoEntryStatusForStripeEvent('checkout.session.async_payment_failed', {}), 'failed');
-  assert.equal(dinoEntryStatusForStripeEvent('charge.refunded', { amount: 2500, amountRefunded: 2500 }), 'refunded');
-  assert.equal(dinoEntryStatusForStripeEvent('charge.refunded', { amount: 2500, amountRefunded: 500 }), null);
-  assert.equal(dinoEntryStatusForStripeEvent('charge.dispute.created', {}), 'disputed');
-  assert.equal(dinoEntryStatusForStripeEvent('charge.dispute.closed', { disputeStatus: 'won' }), 'paid');
+  assert.equal(dinoEntryStatusForStripeEvent('charge.refunded', {}), null);
+  assert.equal(dinoEntryStatusForStripeEvent('charge.dispute.created', {}), null);
+  assert.equal(dinoEntryStatusForStripeEvent('charge.dispute.closed', {}), null);
 });
 
 test('uses the configured vice-captain multiplier independently', () => {
@@ -158,6 +157,12 @@ test('aligns CMS-managed fantasy navigation with Dino Coach branding', () => {
   assert.match(migration, /update public\.page_link_cards/iu);
   assert.match(migration, /title = 'Dino Coach'/u);
   assert.match(migration, /href = '\/fantasy'/u);
+});
+
+test('private league invitation codes use cryptographic randomness', () => {
+  const source = readFileSync('app/api/fantasy/leagues/route.ts', 'utf8');
+  assert.match(source, /randomBytes\(6\)/u);
+  assert.doesNotMatch(source, /Math\.random\(\)/u);
 });
 
 console.log('Dino Coach deterministic rule suite passed.');

@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import type { Order } from '@/lib/types';
@@ -11,6 +11,7 @@ import Input from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { ShoppingBag } from 'lucide-react';
+import { MANUAL_PAYMENT_LIMITS, parseAudInputToCents } from '@/lib/payments/manual-payment';
 
 type AdminOrder = Order & {
   amount_paid?: number | null;
@@ -24,6 +25,8 @@ type AdminOrder = Order & {
 type OrderPayment = {
   id: string;
   order_id: string;
+  payment_reference?: string | null;
+  client_operation_id?: string | null;
   amount: number;
   currency: string;
   method: string;
@@ -87,6 +90,7 @@ export default function AdminOrdersPage() {
   const [paymentForm, setPaymentForm] = useState({ method: 'bank_transfer', amount: '', notes: '' });
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const paymentOperationRef = useRef<{ signature: string; id: string } | null>(null);
 
   const fetchAll = async () => {
     try {
@@ -131,11 +135,12 @@ export default function AdminOrdersPage() {
   };
 
   const handleRecordPayment = async (order: AdminOrder) => {
-    const amount = Number(paymentForm.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setMessage('Enter a payment amount greater than zero.');
+    const amountCents = parseAudInputToCents(paymentForm.amount);
+    if (amountCents === null) {
+      setMessage('Enter a positive AUD amount with no more than two decimal places.');
       return;
     }
+    const amount = amountCents / 100;
     const methodLabel = PAYMENT_METHODS.find((m) => m.value === paymentForm.method)?.label || paymentForm.method;
     const confirmed = window.confirm(
       `Record a ${methodLabel} payment of ${formatCurrency(amount)} against order ${order.payment_reference || order.id} `
@@ -143,6 +148,16 @@ export default function AdminOrdersPage() {
     );
     if (!confirmed) return;
 
+    const operationSignature = JSON.stringify({
+      orderId: order.id,
+      amountCents,
+      method: paymentForm.method,
+      notes: paymentForm.notes.trim(),
+    });
+    const operationId = paymentOperationRef.current?.signature === operationSignature
+      ? paymentOperationRef.current.id
+      : crypto.randomUUID();
+    paymentOperationRef.current = { signature: operationSignature, id: operationId };
     setSavingPayment(true);
     try {
       const response = await fetch('/api/admin/orders/payments', {
@@ -150,18 +165,29 @@ export default function AdminOrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           order_id: order.id,
-          amount,
+          amount_cents: amountCents,
           method: paymentForm.method,
-          notes: paymentForm.notes,
+          notes: paymentForm.notes.trim(),
+          client_operation_id: operationId,
         }),
       });
-      const result = await parseApiResponse<{ data?: OrderPayment; order?: Partial<AdminOrder> | null }>(response);
-      if (result.data) setPayments((prev) => [result.data as OrderPayment, ...prev]);
+      const result = await parseApiResponse<{
+        data?: OrderPayment;
+        order?: Partial<AdminOrder> | null;
+        replayed?: boolean;
+      }>(response);
+      if (result.data) {
+        setPayments((prev) => [
+          result.data as OrderPayment,
+          ...prev.filter((payment) => payment.id !== result.data?.id),
+        ]);
+      }
       if (result.order) {
         setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, ...result.order } : o)));
       }
+      paymentOperationRef.current = null;
       setPaymentForm({ method: 'bank_transfer', amount: '', notes: '' });
-      setMessage('Payment recorded.');
+      setMessage(result.replayed ? 'Payment was already recorded; the existing record was reused.' : 'Payment recorded.');
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to record payment.');
     } finally {
@@ -479,6 +505,7 @@ export default function AdminOrdersPage() {
                       aria-expanded={isOpen}
                       onClick={() => {
                         setOpenOrderId(isOpen ? null : o.id);
+                        paymentOperationRef.current = null;
                         setPaymentForm({ method: 'bank_transfer', amount: '', notes: '' });
                       }}
                     >
@@ -521,13 +548,14 @@ export default function AdminOrdersPage() {
                                 <span className="font-mono">{formatDate(p.received_at || p.created_at)}</span>
                                 <span className="font-semibold">{formatCurrency(p.amount)}</span>
                                 <span>{p.method}</span>
+                                {p.payment_reference && <span className="font-mono text-content-muted">{p.payment_reference}</span>}
                                 <Badge variant={p.status === 'settled' ? 'success' : p.status === 'refunded' ? 'default' : p.status === 'void' ? 'default' : 'warning'}>
                                   {p.status}
                                 </Badge>
                                 {p.provider_reference && <span className="font-mono text-content-muted">{p.provider_reference}</span>}
                                 {p.recorded_by && <span className="text-content-muted">by {p.recorded_by}</span>}
                                 {p.notes && <span className="text-content-muted">— {p.notes}</span>}
-                                {p.status === 'settled' && (
+                                {p.status === 'settled' && p.provider !== 'stripe' && (
                                   <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleReversePayment(p)}>
                                     Reverse
                                   </Button>
@@ -552,6 +580,8 @@ export default function AdminOrdersPage() {
                             id={`amount-${o.id}`}
                             label="Amount ($)"
                             type="number"
+                            min="0.01"
+                            step="0.01"
                             value={paymentForm.amount}
                             onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
                           />
@@ -561,6 +591,7 @@ export default function AdminOrdersPage() {
                             id={`notes-${o.id}`}
                             label="Notes (optional)"
                             value={paymentForm.notes}
+                            maxLength={MANUAL_PAYMENT_LIMITS.notesLength}
                             onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))}
                           />
                         </div>

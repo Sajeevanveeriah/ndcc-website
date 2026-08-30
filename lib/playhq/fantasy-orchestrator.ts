@@ -15,7 +15,7 @@
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
-import { sendEmail, getContactEmailRecipients } from '@/lib/email';
+import { escapeEmailHtml, sendEmail, getContactEmailRecipients } from '@/lib/email';
 import { getPlayHQGrades, getPlayHQSeasons, getPlayHQTeams } from './client';
 import { getPlayHQConfig, isFantasySyncEnabled } from './config';
 import { isClubTeamName, matchPlayHQSeason } from './season-match';
@@ -399,7 +399,7 @@ async function maybeAlertAdmins(supabase: any, invokedBy: string, season: Season
   await sendEmail({
     to: recipients.effectiveContactRecipient,
     subject: `NDCC fantasy sync needs attention (${season.slug})`,
-    html: `<p>The automatic PlayHQ fantasy sync for season <strong>${season.slug}</strong> has failed ${failures.length} times in a row.</p><p>Latest error: ${latestError}</p><p>Open the CMS at /admin/fantasy/seasons to review the sync health panel and retry.</p>`,
+    html: `<p>The automatic PlayHQ fantasy sync for season <strong>${escapeEmailHtml(season.slug)}</strong> has failed ${failures.length} times in a row.</p><p>Latest error: ${escapeEmailHtml(latestError)}</p><p>Open the CMS at /admin/fantasy/seasons to review the sync health panel and retry.</p>`,
   });
   await recordRun(supabase, invokedBy, season.id, {
     seasonSlug: season.slug,

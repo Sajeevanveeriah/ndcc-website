@@ -19,10 +19,10 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 type PageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     round?: string;
     season?: string;
-  };
+  }>;
 };
 
 function roundHref(roundId: string | null, seasonSlug?: string | null) {
@@ -33,7 +33,8 @@ function roundHref(roundId: string | null, seasonSlug?: string | null) {
   return query ? `/fantasy/leaderboard?${query}` : '/fantasy/leaderboard';
 }
 
-export default async function FantasyLeaderboardPage({ searchParams }: PageProps) {
+export default async function FantasyLeaderboardPage({ searchParams: searchParamsPromise }: PageProps) {
+  const searchParams = await searchParamsPromise;
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   let leaderboard;
   let loadFailed = false;

@@ -3,9 +3,16 @@ import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
-import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
+import {
+  PUBLIC_ORDER_LIMITS,
+  audAmountToCents,
+  readLimitedJsonObject,
+} from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function sanitiseInput(str: string): string {
   return str.replace(/<[^>]*>/g, '').trim();
@@ -13,9 +20,29 @@ function sanitiseInput(str: string): string {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const parsedBody = await readLimitedJsonObject(request, 16 * 1024);
+    if (!parsedBody.ok) {
+      return NextResponse.json(
+        { success: false, error: parsedBody.error },
+        { status: parsedBody.error === 'Request body is too large.' ? 413 : 400 },
+      );
+    }
+    const body = parsedBody.value;
 
     const { event_id, name, email, phone, quantity, hp_field, submitted_at } = body;
+
+    if (typeof event_id !== 'string' || !UUID_PATTERN.test(event_id)
+      || typeof name !== 'string' || !name.trim() || name.trim().length > PUBLIC_ORDER_LIMITS.nameLength
+      || typeof email !== 'string' || !email.trim() || email.trim().length > PUBLIC_ORDER_LIMITS.emailLength
+      || typeof phone !== 'string' || !phone.trim() || phone.trim().length > PUBLIC_ORDER_LIMITS.phoneLength
+      || typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20
+      || typeof hp_field !== 'string' || hp_field.length > 200
+      || typeof submitted_at !== 'number' || !Number.isFinite(submitted_at) || submitted_at <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'One or more event registration details are invalid.' },
+        { status: 400 },
+      );
+    }
 
     const ip = getClientIp(request);
     if (!enforceRateLimit(`event:${ip}`, 8, 60_000)) {
@@ -27,13 +54,6 @@ export async function POST(request: Request) {
 
     if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
-    }
-
-    if (!event_id || !name || !email) {
-      return NextResponse.json(
-        { success: false, error: 'Event ID, name, and email are required.' },
-        { status: 400 }
-      );
     }
 
     if (!validateEmail(email)) {
@@ -49,8 +69,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsedQuantity = Number(quantity);
-    const qty = Math.min(20, Math.max(1, Number.isFinite(parsedQuantity) ? Math.floor(parsedQuantity) : 1));
+    const qty = quantity;
 
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
@@ -66,16 +85,26 @@ export async function POST(request: Request) {
       .from('events')
       .select('id,title,event_date,ticket_price,location')
       .eq('id', safeEventId)
+      .eq('published', true)
       .maybeSingle();
 
     if (eventError || !eventRow) {
       return NextResponse.json({ success: false, error: 'Event not found.' }, { status: 404 });
     }
 
-    const ticketPrice = Number(eventRow.ticket_price || 0);
-    const isPaid = Number.isFinite(ticketPrice) && ticketPrice > 0;
-    const totalCost = isPaid ? ticketPrice * qty : 0;
-    const paymentReference = isPaid ? await generateUniquePaymentReference() : null;
+    const ticketPriceResult = audAmountToCents(eventRow.ticket_price || 0);
+    if (!ticketPriceResult.ok) {
+      return NextResponse.json({ success: false, error: 'Event pricing is unavailable.' }, { status: 503 });
+    }
+    const ticketPriceCents = ticketPriceResult.value;
+    const totalCents = ticketPriceCents * qty;
+    if (!Number.isSafeInteger(totalCents) || totalCents > PUBLIC_ORDER_LIMITS.maximumOrderCents) {
+      return NextResponse.json({ success: false, error: 'Event registration total exceeds the allowed limit.' }, { status: 400 });
+    }
+    const ticketPrice = ticketPriceCents / 100;
+    const isPaid = ticketPriceCents > 0;
+    const totalCost = totalCents / 100;
+    const paymentReference = isPaid ? await generateUniquePaymentReference('event') : null;
 
     let linkedOrder: { id: string } | null = null;
     if (isPaid && paymentReference) {
@@ -138,9 +167,9 @@ export async function POST(request: Request) {
       subject: `Event registration confirmed - ${eventRow.title} | NDCC Dinos`,
       html: emailHtml(
         'Registration Confirmed',
-        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${sanitiseInput(name)},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">You are registered for <strong>${eventRow.title}</strong>${eventRow.event_date ? ` on ${new Date(eventRow.event_date).toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}.</p>
-        ${eventRow.location ? `<p style="font-size:14px;color:#374151;"><strong>Location:</strong> ${eventRow.location}</p>` : ''}
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(name))},</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">You are registered for <strong>${escapeEmailHtml(eventRow.title)}</strong>${eventRow.event_date ? ` on ${new Date(eventRow.event_date).toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}.</p>
+        ${eventRow.location ? `<p style="font-size:14px;color:#374151;"><strong>Location:</strong> ${escapeEmailHtml(eventRow.location)}</p>` : ''}
         <p style="font-size:14px;color:#374151;"><strong>Tickets:</strong> ${qty}</p>
         ${isPaid && paymentReference
           ? bankDetailsHtml(paymentReference, totalCost)

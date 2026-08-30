@@ -24,6 +24,11 @@ type PaymentMarker = {
   metadata?: Record<string, unknown> | null;
 };
 
+type PaidPaymentIdentity = {
+  paymentReference?: string;
+  bankReference?: string;
+};
+
 function categoryFromOrder(value: unknown): StaffOrderCategory | null {
   if (value === 'merch') return 'apparel';
   if (value === 'kitchen') return 'kitchen';
@@ -40,10 +45,11 @@ export async function sendStaffOrderNotificationForOrder(
   supabase: SupabaseClient,
   orderId: string,
   stage: StaffOrderNotificationStage,
+  paidPayment: PaidPaymentIdentity = {},
 ): Promise<StaffOrderNotificationResult> {
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,payment_reference,order_category')
+    .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,payment_reference,bank_reference_used,order_category')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -58,7 +64,9 @@ export async function sendStaffOrderNotificationForOrder(
 
   const content = buildStaffOrderNotificationContent({
     orderId: order.id,
-    paymentReference: order.payment_reference || order.id,
+    paymentReference: paidPayment.paymentReference || order.payment_reference || order.id,
+    orderReference: order.payment_reference || order.id,
+    bankReference: paidPayment.bankReference || order.bank_reference_used || undefined,
     category,
     stage,
     paymentMade: stage === 'paid',
@@ -100,7 +108,26 @@ export async function sendPaidStaffOrderNotificationForPayment(
     return { status: 'already_sent', reason: 'Paid staff notification was already recorded.' };
   }
 
-  const result = await sendStaffOrderNotificationForOrder(supabase, orderId, 'paid');
+  const { data: paymentIdentity, error: paymentError } = await supabase
+    .from('order_payments')
+    .select('payment_reference,method,provider,provider_reference')
+    .eq('id', payment.id)
+    .maybeSingle();
+  if (paymentError || !paymentIdentity) {
+    return { status: 'failed', reason: paymentError?.message || 'Payment identity was not found for staff notification.' };
+  }
+  const metadataBankReference = typeof metadata.bank_reference === 'string'
+    ? metadata.bank_reference.trim()
+    : '';
+  const providerBankReference = paymentIdentity.method === 'bank_transfer'
+    && paymentIdentity.provider !== 'bank_import'
+    && typeof paymentIdentity.provider_reference === 'string'
+    ? paymentIdentity.provider_reference.trim()
+    : '';
+  const result = await sendStaffOrderNotificationForOrder(supabase, orderId, 'paid', {
+    paymentReference: paymentIdentity.payment_reference || undefined,
+    bankReference: metadataBankReference || providerBankReference || undefined,
+  });
   if (!isSentResult(result)) return result;
 
   const marker: Record<string, unknown> = {

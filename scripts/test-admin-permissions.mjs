@@ -77,7 +77,6 @@ function collectRouteFiles(root) {
 }
 
 const exemptAdminRoutes = new Set([
-  'app/api/admin/auth/bootstrap/route.ts',
   'app/api/admin/auth/change-password/route.ts',
   'app/api/admin/auth/login/route.ts',
   'app/api/admin/auth/logout/route.ts',

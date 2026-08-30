@@ -8,10 +8,10 @@ export const metadata = {
 };
 
 type PaymentResultPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     status?: string;
     return_path?: string;
-  };
+  }>;
 };
 
 function safeReturnPath(value: string | undefined): string {
@@ -25,7 +25,8 @@ function safeReturnPath(value: string | undefined): string {
   return '/';
 }
 
-export default function PaymentResultPage({ searchParams }: PaymentResultPageProps) {
+export default async function PaymentResultPage({ searchParams: searchParamsPromise }: PaymentResultPageProps) {
+  const searchParams = await searchParamsPromise;
   const submitted = searchParams?.status === 'submitted';
   const returnPath = safeReturnPath(searchParams?.return_path);
 
