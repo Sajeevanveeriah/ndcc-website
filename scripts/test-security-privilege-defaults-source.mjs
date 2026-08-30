@@ -58,8 +58,13 @@ for (const objectType of ['TABLES', 'SEQUENCES']) {
 
 assert.match(
   sql,
-  /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i,
-  'future functions must not inherit browser execution',
+  /ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC/i,
+  'future functions must not inherit global PUBLIC execution',
+);
+assert.match(
+  sql,
+  /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated/i,
+  'future public functions must not inherit explicit browser-role execution',
 );
 assert.match(
   sql,
