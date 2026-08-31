@@ -53,6 +53,7 @@ jobs:
       - run: npm run test:fantasy-seasons
       - run: npm run smoke:fantasy
       - run: npm run smoke:content
+      - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-news-gallery.mjs
       - run: npm run test:apparel-pricing
       - run: npm run test:payments-partial
       - run: npm run test:payment-ledger-export

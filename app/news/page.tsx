@@ -2,6 +2,7 @@ import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
+import { stripNewsGalleryContent } from '@/lib/news-gallery';
 import { getPublishedNews } from '@/lib/public-news';
 import { fallbackNews } from '@/lib/fallback-content';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
@@ -15,7 +16,7 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 // Server-rendered live on every request. Fallback is reserved for
-// unconfigured / query-failure paths only — a successful empty result renders
+// unconfigured / query-failure paths only - a successful empty result renders
 // the empty state.
 async function loadPosts(): Promise<NewsPost[]> {
   if (!isServerSupabaseConfigured()) return fallbackNews;
@@ -79,7 +80,7 @@ export default async function NewsPage() {
                       <h2 className="mb-3 font-display text-2xl font-bold text-content-primary">
                         <Link href={`/news/${featuredPost.id}`} className="transition-colors hover:text-maroon-700">{featuredPost.title}</Link>
                       </h2>
-                      <p className="font-body leading-relaxed text-content-muted">{truncateText(featuredPost.content, 240)}</p>
+                      <p className="font-body leading-relaxed text-content-muted">{truncateText(stripNewsGalleryContent(featuredPost.content), 240)}</p>
                       <Link href={`/news/${featuredPost.id}`} className="mt-4 inline-flex items-center font-body text-sm font-semibold text-maroon-700 transition-colors hover:text-maroon-500 dark:text-maroon-200">
                         Read More
                         <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
@@ -117,7 +118,7 @@ export default async function NewsPage() {
                             <h2 className="mb-2 font-display text-lg font-bold text-content-primary">
                               <Link href={`/news/${post.id}`} className="transition-colors hover:text-maroon-700">{post.title}</Link>
                             </h2>
-                            <p className="font-body text-sm leading-relaxed text-content-muted">{truncateText(post.content, 120)}</p>
+                            <p className="font-body text-sm leading-relaxed text-content-muted">{truncateText(stripNewsGalleryContent(post.content), 120)}</p>
                             <Link href={`/news/${post.id}`} className="mt-auto pt-3 font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">Read More</Link>
                           </CardContent>
                         </article>
