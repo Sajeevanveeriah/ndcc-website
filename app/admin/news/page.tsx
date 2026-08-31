@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { datetimeLocalToClubIso, formatDate, toDatetimeLocalInClubTimezone, truncateText } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
+import { parseNewsContent, serializeNewsContent, stripNewsGalleryContent, type NewsGalleryImage } from '@/lib/news-gallery';
 import type { NewsPost } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import NewsImageUploadField from '@/components/admin/NewsImageUploadField';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -30,6 +32,7 @@ export default function AdminNewsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyNewsPost);
+  const [galleryImages, setGalleryImages] = useState<NewsGalleryImage[]>([]);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
@@ -57,22 +60,27 @@ export default function AdminNewsPage() {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyNewsPost);
+    setGalleryImages([]);
     setFormErrors({});
     setFeedback(null);
     setModalOpen(true);
   };
 
   const openEdit = (post: NewsPost) => {
+    const parsed = parseNewsContent(post.content);
+    const coverImage = post.image_url || post.image || '';
+
     setEditingId(post.id);
     setForm({
       title: post.title,
-      content: post.content,
+      content: parsed.body,
       author: post.author,
-      image_url: post.image_url || post.image || '',
+      image_url: coverImage,
       sort_order: post.sort_order ?? 0,
       published: post.published,
       published_at: post.published_at,
     });
+    setGalleryImages(parsed.images.filter((image) => image.src !== coverImage));
     setFormErrors({});
     setFeedback(null);
     setModalOpen(true);
@@ -83,6 +91,7 @@ export default function AdminNewsPage() {
     if (!form.title.trim()) errors.title = 'Title is required.';
     if (!form.content.trim()) errors.content = 'Content is required.';
     if (!form.author.trim()) errors.author = 'Author is required.';
+    if (galleryImages.some((image) => !image.alt.trim())) errors.galleryImages = 'Alt text is required for every additional image.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -92,11 +101,15 @@ export default function AdminNewsPage() {
 
     setSaving(true);
 
+    const coverImage = form.image_url?.trim() || null;
     const payload = {
       title: form.title.trim(),
-      content: form.content.trim(),
+      content: serializeNewsContent(
+        form.content.trim(),
+        galleryImages.filter((image) => image.src !== coverImage),
+      ),
       author: form.author.trim(),
-      image_url: form.image_url?.trim() || null,
+      image_url: coverImage,
       sort_order: Number(form.sort_order || 0),
       published: form.published,
       published_at: form.published ? (form.published_at || new Date().toISOString()) : null,
@@ -260,7 +273,7 @@ export default function AdminNewsPage() {
                 <TableCell className="font-medium">{post.title}</TableCell>
                 <TableCell>{post.author}</TableCell>
                 <TableCell>
-                  <p className="max-w-xs">{truncateText(post.content, 60)}</p>
+                  <p className="max-w-xs">{truncateText(stripNewsGalleryContent(post.content), 60)}</p>
                 </TableCell>
                 <TableCell>
                   {!post.published ? <Badge variant="warning">Draft</Badge> : post.published_at && Date.parse(post.published_at) > Date.now() ? <Badge variant="info">Scheduled for {new Date(post.published_at).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })}</Badge> : <Badge variant="success">Published</Badge>}
@@ -322,11 +335,22 @@ export default function AdminNewsPage() {
           />
           <ImageUploadField
             id="news-image-url"
-            label="Image URL (optional)"
+            label="Cover image URL (optional)"
             value={form.image_url || ''}
-            onChange={(value) => setForm({ ...form, image_url: value })}
+            onChange={(value) => {
+              setForm({ ...form, image_url: value });
+              setGalleryImages((current) => current.filter((image) => image.src !== value));
+            }}
             placeholder="https://example.com/news-image.jpg"
+            helpText="The cover image appears on the News listing and first in the article."
           />
+          <NewsImageUploadField
+            id="news-gallery-images"
+            value={galleryImages}
+            onChange={setGalleryImages}
+            articleTitle={form.title}
+          />
+          {formErrors.galleryImages && <p className="text-xs text-red-600">{formErrors.galleryImages}</p>}
           <Input
             id="news-sort-order"
             label="Display order (lower appears first)"
