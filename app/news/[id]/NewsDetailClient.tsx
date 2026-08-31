@@ -1,17 +1,29 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
+import { parseNewsContent, type NewsGalleryImage } from '@/lib/news-gallery';
 import type { PublicNewsRecord } from '@/lib/public-news';
 import { formatDate } from '@/lib/utils';
 
 type NewsDetailPost = PublicNewsRecord & { image?: string };
 
+type DisplayImage = NewsGalleryImage;
+
 export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
   const [linkCopied, setLinkCopied] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<DisplayImage | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const parsed = parseNewsContent(post.content);
+  const primaryImage = post.image_url || post.image || null;
+  const galleryImages: DisplayImage[] = [
+    ...(primaryImage ? [{ src: primaryImage, alt: post.title }] : []),
+    ...parsed.images.filter((image) => image.src !== primaryImage),
+  ];
+  const isMultiImageArticle = parsed.images.length > 0;
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -32,6 +44,34 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
       setTimeout(() => setLinkCopied(false), 2000);
     }
   }, []);
+
+  const closeLightbox = useCallback(() => {
+    setSelectedImage(null);
+    window.requestAnimationFrame(() => lastTriggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (!selectedImage) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeLightbox();
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [closeLightbox, selectedImage]);
+
+  const openLightbox = (image: DisplayImage, trigger: HTMLButtonElement) => {
+    lastTriggerRef.current = trigger;
+    setSelectedImage(image);
+  };
 
   return (
     <>
@@ -64,17 +104,40 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
         <div className="container-width max-w-3xl mx-auto">
           <Card>
             <CardContent className="p-8">
-              {(post.image_url || post.image) && (
-                <>
+              {galleryImages.length > 0 && (
+                isMultiImageArticle ? (
+                  <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2" aria-label="Article images">
+                    {galleryImages.map((image, index) => (
+                      <button
+                        key={image.src}
+                        type="button"
+                        onClick={(event) => openLightbox(image, event.currentTarget)}
+                        className="overflow-hidden rounded-lg border border-edge-subtle bg-surface-page cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                        aria-label={`View image ${index + 1} of ${galleryImages.length}: ${image.alt}`}
+                      >
+                        <SafeImage
+                          src={image.src}
+                          alt={image.alt}
+                          width={1200}
+                          height={1500}
+                          className="h-auto w-full object-contain"
+                          sizes="(max-width: 640px) 100vw, 384px"
+                          priority={index === 0}
+                          fallback={null}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => setLightboxOpen(true)}
+                    onClick={(event) => openLightbox(galleryImages[0], event.currentTarget)}
                     className="block w-full mb-6 rounded-lg overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-maroon-500"
                     aria-label="View full image"
                   >
                     <SafeImage
-                      src={post.image_url || post.image || '/images/Womens_Team.jpg'}
-                      alt={post.title}
+                      src={galleryImages[0].src}
+                      alt={galleryImages[0].alt}
                       width={800}
                       height={500}
                       className="w-full h-auto object-contain rounded-lg"
@@ -83,41 +146,44 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
                       fallback={null}
                     />
                   </button>
-                  {lightboxOpen && (
-                    <div
-                      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                      onClick={() => setLightboxOpen(false)}
-                      role="dialog"
-                      aria-modal="true"
-                      aria-label="Image lightbox"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setLightboxOpen(false)}
-                        className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors"
-                        aria-label="Close image"
-                      >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                      <SafeImage
-                        src={post.image_url || post.image || '/images/Womens_Team.jpg'}
-                        alt={post.title}
-                        width={1200}
-                        height={900}
-                        className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
-                        sizes="100vw"
-                        onClick={(e) => e.stopPropagation()}
-                        fallback={null}
-                      />
-                    </div>
-                  )}
-                </>
+                )
               )}
+
+              {selectedImage && (
+                <div
+                  className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                  onClick={closeLightbox}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Image lightbox"
+                >
+                  <button
+                    ref={closeButtonRef}
+                    type="button"
+                    onClick={closeLightbox}
+                    className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                    aria-label="Close image"
+                  >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <SafeImage
+                    src={selectedImage.src}
+                    alt={selectedImage.alt}
+                    width={1200}
+                    height={1500}
+                    className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
+                    sizes="100vw"
+                    onClick={(event) => event.stopPropagation()}
+                    fallback={null}
+                  />
+                </div>
+              )}
+
               <article className="prose max-w-none">
                 <p className="font-body text-content-secondary text-lg leading-relaxed whitespace-pre-line">
-                  {post.content}
+                  {parsed.body}
                 </p>
               </article>
             </CardContent>
