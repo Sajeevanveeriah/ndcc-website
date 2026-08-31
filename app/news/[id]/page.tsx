@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { serializeJsonLd } from '@/lib/json-ld';
+import { parseNewsContent } from '@/lib/news-gallery';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { truncateText } from '@/lib/utils';
 import NewsDetailClient from './NewsDetailClient';
@@ -26,7 +27,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!post) {
     return { title: 'Article Not Found' };
   }
-  const description = truncateText(post.content, 160);
+
+  const parsed = parseNewsContent(post.content);
+  const description = truncateText(parsed.body, 160);
+  const images = [
+    ...(post.image_url ? [{ url: post.image_url, alt: post.title }] : []),
+    ...parsed.images.map((image) => ({ url: image.src, alt: image.alt })),
+  ];
+
   return {
     title: post.title,
     description,
@@ -35,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title: post.title,
       description,
       ...(post.published_at ? { publishedTime: post.published_at } : {}),
-      images: post.image_url ? [{ url: post.image_url, alt: post.title }] : [{ url: '/images/logo.jpg', alt: 'NDCC Logo' }],
+      images: images.length ? images : [{ url: '/images/logo.jpg', alt: 'NDCC Logo' }],
     },
   };
 }
@@ -47,12 +55,18 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
+  const parsed = parseNewsContent(post.content);
+  const images = [
+    ...(post.image_url ? [post.image_url] : []),
+    ...parsed.images.map((image) => image.src),
+  ];
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: post.title,
-    description: truncateText(post.content, 200),
-    ...(post.image_url ? { image: [post.image_url] } : {}),
+    description: truncateText(parsed.body, 200),
+    ...(images.length ? { image: images } : {}),
     ...(post.published_at ? { datePublished: post.published_at } : {}),
     author: {
       '@type': 'Person',
