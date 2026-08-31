@@ -33,6 +33,8 @@ jobs:
       - run: npm run test:admin-csrf
       - run: npm run test:google-maps-embed-security
       - run: npm run test:public-link-security
+      - run: npm run test:calendar-subscription
+      - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-committee-calendar-subscription.mjs
       - run: npm run test:email-html-security
       - run: npm run test:public-order-input-security
       - run: npm run test:cms-navigation
