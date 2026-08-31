@@ -10,6 +10,14 @@ function normaliseBody(lines: string[]) {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function normaliseAltText(value: string) {
+  return String(value || '')
+    .replace(/[|\]\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 240);
+}
+
 export function parseNewsContent(content: string): { body: string; images: NewsGalleryImage[] } {
   const images: NewsGalleryImage[] = [];
   const seenSources = new Set<string>();
@@ -38,6 +46,25 @@ export function parseNewsContent(content: string): { body: string; images: NewsG
   }
 
   return { body: normaliseBody(bodyLines), images };
+}
+
+export function serializeNewsContent(body: string, images: NewsGalleryImage[]) {
+  const cleanBody = String(body || '').trim();
+  const seenSources = new Set<string>();
+  const directives: string[] = [];
+
+  for (const image of images || []) {
+    const src = String(image?.src || '').trim();
+    const alt = normaliseAltText(image?.alt || '');
+    if (!LOCAL_NEWS_IMAGE_PATH.test(src) || !alt || seenSources.has(src)) continue;
+
+    seenSources.add(src);
+    directives.push(`[[news-image:${src}|${alt}]]`);
+  }
+
+  if (!directives.length) return cleanBody;
+  if (!cleanBody) return directives.join('\n');
+  return `${cleanBody}\n\n${directives.join('\n')}`;
 }
 
 export function stripNewsGalleryContent(content: string) {

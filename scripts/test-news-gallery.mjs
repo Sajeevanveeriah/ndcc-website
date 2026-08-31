@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { parseNewsContent, stripNewsGalleryContent } from '../lib/news-gallery.ts';
+import { readFileSync } from 'node:fs';
+import * as newsGallery from '../lib/news-gallery.ts';
+
+const { parseNewsContent, stripNewsGalleryContent } = newsGallery;
 
 const content = [
   'The club is pleased to announce the 2026/27 senior captains.',
@@ -37,4 +40,47 @@ assert.equal(unsafe.images.length, 0, 'only local /images paths without traversa
 assert.match(unsafe.body, /Unsafe traversal/);
 assert.match(unsafe.body, /Remote image/);
 
-console.log('News gallery parser tests passed.');
+assert.equal(
+  typeof newsGallery.serializeNewsContent,
+  'function',
+  'news gallery helper must serialise the editable article body and ordered image list',
+);
+
+if (typeof newsGallery.serializeNewsContent === 'function') {
+  const serialised = newsGallery.serializeNewsContent('Body text', [
+    { src: '/images/news/2026/captains/1.webp', alt: 'First image' },
+    { src: '/images/news/2026/captains/2.webp', alt: 'Second image' },
+  ]);
+  assert.equal(
+    serialised,
+    'Body text\n\n[[news-image:/images/news/2026/captains/1.webp|First image]]\n[[news-image:/images/news/2026/captains/2.webp|Second image]]',
+    'serialisation must preserve body text and image ordering',
+  );
+  assert.deepEqual(parseNewsContent(serialised), {
+    body: 'Body text',
+    images: [
+      { src: '/images/news/2026/captains/1.webp', alt: 'First image' },
+      { src: '/images/news/2026/captains/2.webp', alt: 'Second image' },
+    ],
+  });
+}
+
+const adminNewsSource = readFileSync(new URL('../app/admin/news/page.tsx', import.meta.url), 'utf8');
+assert.match(
+  adminNewsSource,
+  /NewsImageUploadField/,
+  'News CMS must use the dedicated multi-image upload/editor control',
+);
+
+let multiImageFieldSource = '';
+try {
+  multiImageFieldSource = readFileSync(new URL('../components/admin/NewsImageUploadField.tsx', import.meta.url), 'utf8');
+} catch {
+  multiImageFieldSource = '';
+}
+assert.match(multiImageFieldSource, /multiple/, 'News image picker must allow selecting multiple files');
+assert.match(multiImageFieldSource, /alt/i, 'News image editor must expose alt text for accessibility');
+assert.match(multiImageFieldSource, /Move up|moveImage/i, 'News image editor must support deterministic reordering');
+assert.match(multiImageFieldSource, /Remove/i, 'News image editor must support removing an image before save');
+
+console.log('News gallery and multi-image CMS tests passed.');
