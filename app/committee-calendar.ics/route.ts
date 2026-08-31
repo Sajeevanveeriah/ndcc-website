@@ -1,17 +1,48 @@
 import { sanitiseCommitteeCalendarIcs } from '@/lib/calendar/google-committee-ics';
+import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-const GOOGLE_COMMITTEE_CALENDAR_ID =
-  '5dd8b075c21a66b0f00c52bfc27151d84271334e95d5d2346ed235ec05be1531@group.calendar.google.com';
-const GOOGLE_PUBLIC_ICS_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(GOOGLE_COMMITTEE_CALENDAR_ID)}/public/basic.ics`;
+const FEED_KEY = 'committee';
+
+function validateGooglePrivateIcsUrl(value: string): string {
+  const parsed = new URL(value);
+  const isGoogleCalendar = parsed.protocol === 'https:' && parsed.hostname === 'calendar.google.com';
+  const looksLikePrivateIcs = parsed.pathname.includes('/private-') && parsed.pathname.endsWith('/basic.ics');
+
+  if (!isGoogleCalendar || !looksLikePrivateIcs) {
+    throw new Error('Committee calendar source is not a valid Google private iCal address.');
+  }
+
+  return parsed.toString();
+}
+
+async function getCommitteeCalendarSourceUrl(): Promise<string> {
+  const supabase = createServerClient({ fetchTimeoutMs: 5000 });
+  const { data, error } = await supabase
+    .from('calendar_private_feeds')
+    .select('source_url')
+    .eq('feed_key', FEED_KEY)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Committee calendar source lookup failed: ${error.code || 'unknown'}.`);
+  }
+  if (!data?.source_url) {
+    throw new Error('Committee calendar source is not configured.');
+  }
+
+  return validateGooglePrivateIcsUrl(data.source_url);
+}
 
 export async function GET(request: Request) {
   try {
-    const upstream = await fetch(GOOGLE_PUBLIC_ICS_URL, {
+    const sourceUrl = await getCommitteeCalendarSourceUrl();
+    const upstream = await fetch(sourceUrl, {
       cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
       headers: { Accept: 'text/calendar, text/plain;q=0.9, */*;q=0.1' },
     });
 
