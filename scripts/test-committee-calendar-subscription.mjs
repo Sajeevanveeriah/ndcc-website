@@ -39,11 +39,26 @@ assert.ok(safe.endsWith('\r\n'));
 const route = readFileSync(new URL('../app/committee-calendar.ics/route.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/committee-calendar/page.tsx', import.meta.url), 'utf8');
 const control = readFileSync(new URL('../components/calendar/CommitteeCalendarSubscribe.tsx', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../supabase/migrations/20260831062000_committee_calendar_private_feed.sql', import.meta.url), 'utf8');
 
-assert.match(route, /public\/basic\.ics/);
+assert.match(route, /calendar_private_feeds/);
+assert.match(route, /createServerClient/);
+assert.match(route, /validateGooglePrivateIcsUrl/);
 assert.match(route, /sanitiseCommitteeCalendarIcs/);
+assert.match(route, /AbortSignal\.timeout\(8000\)/);
 assert.match(route, /text\/calendar/);
 assert.match(route, /X-Robots-Tag/);
+assert.doesNotMatch(route, /public\/basic\.ics/);
+assert.doesNotMatch(route, /calendar\.google\.com\/calendar\/ical\//);
+assert.doesNotMatch(route, /\/private-[a-f0-9]{16,}\//i);
+
+assert.match(migration, /create table if not exists public\.calendar_private_feeds/i);
+assert.match(migration, /enable row level security/i);
+assert.match(migration, /revoke all on table public\.calendar_private_feeds from public, anon, authenticated/i);
+assert.match(migration, /grant select on table public\.calendar_private_feeds to service_role/i);
+assert.doesNotMatch(migration, /calendar\.google\.com\/calendar\/ical\//);
+assert.doesNotMatch(migration, /private-[a-f0-9]{16,}/i);
+
 assert.match(page, /robots: \{ index: false, follow: false \}/);
 assert.match(control, /webcal:\/\/www\.ndcc\.com\.au\/committee-calendar\.ics/);
 assert.match(control, /Copy subscription link/);
