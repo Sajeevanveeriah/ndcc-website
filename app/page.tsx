@@ -45,6 +45,7 @@ import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
+import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -797,6 +798,8 @@ export default function HomePage() {
 
       {/* Compact club-stat strip directly under the cinematic hero. */}
       <HomeStatsStrip />
+
+      <CookieDoughFundraiserFeature />
 
       <Suspense fallback={<QuickLinksSkeleton />}>
         <QuickLinksSection />

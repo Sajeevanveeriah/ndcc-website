@@ -28,7 +28,7 @@ const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Home', href: '/' },
   { label: 'Cricket', links: [{ label: 'Teams', href: '/teams' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Fantasy', href: '/fantasy' }] },
   { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'Facilities', href: '/facilities' }, { label: 'History', href: '/about#history' }] },
-  { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }] },
+  { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }, { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }, { label: 'Sponsors', href: '/sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Kitchen', href: '/kitchen' }, { label: 'Raffle', href: '/raffle' }] },
   { label: 'Contact', href: '/contact' },
