@@ -58,6 +58,7 @@ export const NAV_LINKS: readonly NavLink[] = [
   { label: 'Fixtures', href: '/fixtures' },
   { label: 'Dino Coach', href: '/fantasy' },
   { label: 'Events', href: '/events' },
+  { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' },
   { label: 'Calendar', href: '/calendar' },
   { label: 'Join', href: '/join' },
   { label: 'News', href: '/news' },

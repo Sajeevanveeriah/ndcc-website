@@ -77,8 +77,9 @@ export const fallbackPageLinkCards: Record<string, PageLinkCard[]> = {
   'site:footer_get_involved': [
     card('fallback-footer-join', 'site', 'footer_get_involved', 'Join the Club', '', '/join', 1),
     card('fallback-footer-volunteer', 'site', 'footer_get_involved', 'Volunteer', '', '/volunteer', 2),
-    card('fallback-footer-sponsor', 'site', 'footer_get_involved', 'Become a Sponsor', '', '/sponsors', 3),
-    card('fallback-footer-merch', 'site', 'footer_get_involved', 'Merchandise', '', '/merchandise', 4),
+    card('fallback-footer-cookie-dough', 'site', 'footer_get_involved', 'Cookie Dough Fundraiser', '', '/fundraising/cookie-dough', 3),
+    card('fallback-footer-sponsor', 'site', 'footer_get_involved', 'Become a Sponsor', '', '/sponsors', 4),
+    card('fallback-footer-merch', 'site', 'footer_get_involved', 'Merchandise', '', '/merchandise', 5),
     card('fallback-footer-committee-login', 'site', 'footer_get_involved', 'Committee Login', '', '/admin/login', 99),
   ],
   'site:footer_affiliations': [
