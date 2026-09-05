@@ -118,7 +118,7 @@ test('allows CMS recalculation from the latest applied audited baseline', () => 
   assert.match(pricing, /rpc\('recalculate_dino_coach_applied_baseline'/);
   assert.doesNotMatch(pricing, /for\s*\(const item of calculated\)/,
     'Baseline recalculation must not perform partial per-player writes from application code.');
-  const migration = readFileSync('supabase/migrations/20260821060000_dino_coach_atomic_baseline_recalculation.sql', 'utf8');
+  const migration = readFileSync('supabase/migrations/20260821054404_dino_coach_atomic_baseline_recalculation.sql', 'utf8');
   assert.match(migration, /SECURITY DEFINER[\s\S]*SET search_path = ''/i);
   assert.match(migration, /GRANT EXECUTE[\s\S]*TO service_role/i);
 });
@@ -128,20 +128,20 @@ test('uses atomic database contracts for PlayHQ price application and publicatio
   assert.match(pricing, /rpc\('apply_dino_coach_initial_price_recalculation'/);
   assert.match(pricing, /rpc\('publish_dino_coach_initial_prices'/);
   assert.doesNotMatch(pricing, /from\('fantasy_player_prices'\)\.update\(\{published_at:now\}\)/);
-  const migration = readFileSync('supabase/migrations/20260821061500_dino_coach_atomic_price_operations.sql', 'utf8');
+  const migration = readFileSync('supabase/migrations/20260821054657_dino_coach_atomic_price_operations.sql', 'utf8');
   assert.match(migration, /create or replace function public\.apply_dino_coach_initial_price_recalculation/i);
   assert.match(migration, /create or replace function public\.publish_dino_coach_initial_prices/i);
   assert.match(migration, /SECURITY DEFINER SET search_path = ''/i);
-  const conflictIndex = readFileSync('supabase/migrations/20260821062000_dino_coach_price_conflict_index.sql', 'utf8');
+  const conflictIndex = readFileSync('supabase/migrations/20260821054754_dino_coach_price_conflict_index.sql', 'utf8');
   assert.match(conflictIndex, /NULLS NOT DISTINCT/i);
-  const typeFix = readFileSync('supabase/migrations/20260821062500_dino_coach_price_recent_points_type_fix.sql', 'utf8');
+  const typeFix = readFileSync('supabase/migrations/20260821054848_dino_coach_price_recent_points_type_fix.sql', 'utf8');
   assert.match(typeFix, /ARRAY\[\]::NUMERIC\[\]/i);
   assert.match(typeFix, /recalculate_dino_coach_applied_baseline/);
   assert.match(typeFix, /apply_dino_coach_initial_price_recalculation/);
-  const caseFix = readFileSync('supabase/migrations/20260821063000_dino_coach_price_recent_points_case_fix.sql', 'utf8');
+  const caseFix = readFileSync('supabase/migrations/20260821054945_dino_coach_price_recent_points_case_fix.sql', 'utf8');
   assert.match(caseFix, /regexp_replace/);
   assert.match(caseFix, /ARRAY\[\]::NUMERIC\[\]/i);
-  const timestampFix = readFileSync('supabase/migrations/20260821063500_dino_coach_price_calculation_timestamp_fix.sql', 'utf8');
+  const timestampFix = readFileSync('supabase/migrations/20260821055045_dino_coach_price_calculation_timestamp_fix.sql', 'utf8');
   assert.match(timestampFix, /calculated_at/);
   assert.match(timestampFix, /regexp_replace/);
 });

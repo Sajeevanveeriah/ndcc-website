@@ -29,7 +29,7 @@ const cookieDoughPage = await readFile(new URL('../app/fundraising/cookie-dough/
 const navbar = await readFile(new URL('../components/layout/Navbar.tsx', import.meta.url), 'utf8');
 const homepage = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
 const sitemap = await readFile(new URL('../app/sitemap.ts', import.meta.url), 'utf8');
-const migration = await readFile(new URL('../supabase/migrations/20260904000100_cookie_dough_fundraiser_links.sql', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../supabase/migrations/20260904070234_cookie_dough_fundraiser_links.sql', import.meta.url), 'utf8');
 
 assert.match(cookieDoughPage, /Register &amp; Start Fundraising/);
 assert.match(cookieDoughPage, /Buy Cookie Dough/);

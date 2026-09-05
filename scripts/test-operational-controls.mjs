@@ -6,7 +6,7 @@ const orchestrator = read('lib/playhq/fantasy-orchestrator.ts');
 const seasonsApi = read('app/api/admin/fantasy/seasons/route.ts');
 const logsApi = read('app/api/admin/fantasy/logs/route.ts');
 const ordersApi = read('app/api/admin/resources/[resource]/route.ts');
-const migration = read('supabase/migrations/20260827010000_cms_scheduling_fantasy_logs_order_cleanup.sql');
+const migration = read('supabase/migrations/20260827012857_cms_scheduling_fantasy_logs_order_cleanup.sql');
 
 assert.match(orchestrator, /season\.status !== 'active'/, 'alerts must be limited to active seasons');
 assert.match(orchestrator, /\.eq\('status', 'active'\)/, 'automatic sync must select active seasons only');
