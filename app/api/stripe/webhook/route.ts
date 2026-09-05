@@ -35,6 +35,7 @@ const DISPUTE_MOVEMENT_EVENT_TYPES = new Set([
   'charge.dispute.funds_reinstated',
 ]);
 const LEGACY_ORDER_CATEGORIES = new Set([
+  'donation',
   'merch',
   'merchandise',
   'kitchen',

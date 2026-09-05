@@ -23,6 +23,7 @@ export function normalizeClubSettings(row: Partial<ClubSettings> | null | undefi
 
   return {
     id: 'default',
+    donations_enabled: row.donations_enabled === true,
     club_name: textOrFallback(row.club_name, fallbackClubSettings.club_name) || fallbackClubSettings.club_name,
     club_short: textOrFallback(row.club_short, fallbackClubSettings.club_short) || fallbackClubSettings.club_short,
     club_nickname: textOrFallback(row.club_nickname, fallbackClubSettings.club_nickname) || fallbackClubSettings.club_nickname,
@@ -55,7 +56,7 @@ async function getClubSettingsUncached(): Promise<ClubSettings> {
     const supabase = createPublicServerClient();
     const { data, error } = await supabase
       .from('club_settings')
-      .select('id,club_name,club_short,club_nickname,established_year,email,phone,ground_name,address,association_name,association_short,facebook_url,instagram_url,instagram_handle,playhq_url,google_maps_embed_url,sponsor_marquee_speed,updated_at')
+      .select('donations_enabled,id,club_name,club_short,club_nickname,established_year,email,phone,ground_name,address,association_name,association_short,facebook_url,instagram_url,instagram_handle,playhq_url,google_maps_embed_url,sponsor_marquee_speed,updated_at')
       .eq('id', 'default')
       .maybeSingle();
 

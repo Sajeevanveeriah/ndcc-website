@@ -11,6 +11,7 @@ import { Settings } from 'lucide-react';
 type ClubSettingsForm = Omit<ClubSettings, 'id' | 'updated_at'>;
 
 const emptyForm: ClubSettingsForm = {
+  donations_enabled: false,
   club_name: '',
   club_short: '',
   club_nickname: '',
@@ -31,6 +32,7 @@ const emptyForm: ClubSettingsForm = {
 
 function toForm(settings: ClubSettings): ClubSettingsForm {
   return {
+    donations_enabled: settings.donations_enabled === true,
     club_name: settings.club_name,
     club_short: settings.club_short,
     club_nickname: settings.club_nickname,
@@ -97,6 +99,7 @@ export default function AdminClubDetailsPage() {
     setFeedback(null);
 
     const payload = {
+      donations_enabled: form.donations_enabled,
       club_name: form.club_name.trim(),
       club_short: form.club_short.trim(),
       club_nickname: form.club_nickname.trim(),
@@ -156,6 +159,16 @@ export default function AdminClubDetailsPage() {
       ) : (
         <Card>
           <CardContent className="p-6 space-y-8">
+            <section aria-labelledby="donations-setting-title">
+              <h2 id="donations-setting-title" className="text-lg font-display font-bold text-content-primary mb-3">Donations</h2>
+              <label className="flex items-center gap-3 font-body text-content-primary">
+                <input type="checkbox" checked={form.donations_enabled} disabled={saving}
+                  onChange={(e) => setForm((previous) => ({ ...previous, donations_enabled: e.target.checked }))}
+                  className="h-5 w-5 accent-maroon-700" aria-describedby="donations-setting-help" />
+                Publish donations under Sponsors
+              </label>
+              <p id="donations-setting-help" className="mt-2 text-sm text-content-muted">When off, the donation page is unavailable, its link is hidden and new checkouts are blocked. Existing Stripe checkouts may still complete. Save changes to apply.</p>
+            </section>
             <div>
               <h2 className="text-lg font-display font-bold text-content-primary mb-4">Club identity</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -16,7 +16,7 @@ type PaymentResultPageProps = {
 
 function safeReturnPath(value: string | undefined): string {
   if (!value) return '/';
-  if (value === '/merchandise' || value === '/kitchen' || value === '/join' || value === '/events') {
+  if (value === '/sponsors/donate' || value === '/merchandise' || value === '/kitchen' || value === '/join' || value === '/events') {
     return value;
   }
   if (/^\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
@@ -52,7 +52,9 @@ export default async function PaymentResultPage({ searchParams: searchParamsProm
               <p className="font-body text-content-secondary">
                 {submitted
                   ? 'Stripe has returned you to the club website. The signed payment notification is being matched to your order.'
-                  : 'No card payment was completed. Your order or registration remains available for bank transfer.'}
+                  : returnPath === '/sponsors/donate'
+                    ? 'Your donation checkout was cancelled. You can return to Sponsors whenever you are ready.'
+                    : 'No card payment was completed. Your order or registration remains available for bank transfer.'}
               </p>
               <Link href={returnPath} className="btn-primary inline-flex justify-center">
                 Return to the previous page

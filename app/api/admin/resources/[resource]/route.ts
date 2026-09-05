@@ -72,7 +72,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   raffleCampaigns: { table: 'raffle_campaigns', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['name', 'price_cents', 'draw_at', 'draw_label', 'active', 'public_visibility_mode', 'public_opens_at'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['draw_at', 'public_opens_at'] },
   raffleOrders: { table: 'raffle_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['status'], defaultOrder: { column: 'created_at', ascending: false } },
   contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
-  clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url', 'sponsor_marquee_speed'] },
+  clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['donations_enabled', 'club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url', 'sponsor_marquee_speed'] },
 };
 
 type PublicLinkField = { field: string; requiredOnCreate?: boolean };
@@ -295,6 +295,7 @@ function hasRequiredClubSettingsFields(payload: Record<string, unknown>) {
 }
 
 function validateAndNormaliseClubSettings(payload: Record<string, unknown>) {
+  if ('donations_enabled' in payload && typeof payload.donations_enabled !== 'boolean') return 'Donations must be on or off.';
   if (!hasRequiredClubSettingsFields(payload)) {
     return 'Club name, short name, and nickname are required.';
   }
