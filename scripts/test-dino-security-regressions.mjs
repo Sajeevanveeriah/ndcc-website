@@ -8,15 +8,18 @@ const squad = read('app/api/fantasy/squad/route.ts');
 const transfers = read('app/api/fantasy/transfers/route.ts');
 const server = read('lib/dino-coach/server.ts');
 const releaseRunner = read('app/api/internal/fantasy/release-run/route.ts');
-const transferSecurityMigration = read('supabase/migrations/20260821055500_dino_coach_transfer_function_hardening.sql');
-const provisionalBaselineMigration = read('supabase/migrations/20260821195000_dino_coach_provisional_baseline.sql');
+const transferSecurityMigration = read('supabase/migrations/20260821053617_dino_coach_transfer_function_hardening.sql');
+const provisionalBaselineMigration = read('supabase/migrations/20260821094819_dino_coach_provisional_baseline.sql');
 
 assert.match(webhook, /rpc\('apply_dino_entry_payment_event'/,
   'Dino Coach payment audit and eligibility must be committed atomically by one database function.');
 assert.doesNotMatch(webhook, /from\('fantasy_entry_payment_events'\)\.insert/,
   'The webhook must not write the audit row separately from the entry status.');
-assert.match(webhook, /escapeEmailHtml\(entry\.fantasy_managers\.display_name\)/,
+assert.match(webhook, /escapeEmailHtml\(manager\.display_name\)/,
   'Manager-controlled display names must be escaped before inclusion in email HTML.');
+
+assert.match(read('lib/dino-coach/payment-receipt.ts'), /escapeEmailHtml\(purchaserName\)/,
+  'Paid receipt names must be escaped after the receipt service refactor.');
 
 assert.match(server, /toPublicDinoCoachSettings/,
   'Dino Coach must define an explicit public settings projection.');

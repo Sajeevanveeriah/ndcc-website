@@ -1,0 +1,4 @@
+-- Historical production release marker, not a schema migration.
+-- Production recorded: "Dino Coach full specification schema applied through
+-- the approved production release". The preceding migrations contain that DDL.
+-- Preserve the recorded version without replaying or inventing schema changes.
