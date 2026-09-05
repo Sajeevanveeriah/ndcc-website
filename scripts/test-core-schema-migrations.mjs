@@ -88,7 +88,7 @@ for (const file of migrationFiles) {
   }
 }
 
-const authMigration = read(path.join(migrationsDir, '20260401_custom_committee_auth.sql'));
+const authMigration = read(path.join(migrationsDir, '20260401000000_custom_committee_auth.sql'));
 for (const functionName of [
   'ndcc_verify_committee_user',
   'ndcc_set_committee_password',

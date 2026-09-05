@@ -16,7 +16,7 @@ const DB = 'ndcc_test_ledger';
 createTestDatabase(DB);
 psql(DB, `create table if not exists news (id uuid primary key default gen_random_uuid(), title text, content text)`);
 applyMigrations(DB, [
-  '20260401_custom_committee_auth.sql',
+  '20260401000000_custom_committee_auth.sql',
   '20260402000500_merch_windows.sql',
   '20260402000600_payment_reconciliation.sql',
   '20260716050000_payment_ledger.sql',

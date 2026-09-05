@@ -13,7 +13,7 @@ import {
 const DB = 'ndcc_test_apparel';
 
 const BASE = [
-  '20260401_custom_committee_auth.sql',
+  '20260401000000_custom_committee_auth.sql',
   '20260402000500_merch_windows.sql',
   '20260402000600_payment_reconciliation.sql',
   '20260402000300_kitchen_orders.sql',
