@@ -122,31 +122,32 @@ function getFallbackSponsorLogo(name: string) {
   return Object.entries(fallbackSponsorLogos).find(([sponsorName]) => canonicalSponsorKey(sponsorName) === key)?.[1] || '';
 }
 
+// Club-supplied PNG set, including approved reconstructions and the provisional
+// Breakwater wordmark. Versioned paths avoid stale browser/CDN logo caches.
 export const fallbackSponsorLogos: Record<string, string> = {
-  'APCO Newcomb': '/images/2026/06/apco-1781148625016.png',
-  APCO: '/images/2026/06/apco-1781148625016.png',
-  // TODO: place the MBR Cricket logo at public/images/sponsors/mbr-cricket-logo.png.
-  // The original was an external gold-on-transparent CDN PNG that rendered near-invisible
-  // on the white sponsor card; localising it removes the third-party dependency. Until the
-  // file is added, sponsor slots fall back to a branded maroon/gold initials card, so no
-  // empty white box is shown (see SponsorsSection marquee and the sponsors page grid).
-  'MBR Cricket': '/images/sponsors/mbr-cricket-logo.png',
-  // TODO: replace with a dark-text or high-contrast Bennett Racing logo from the club.
-  // The current asset is light text on transparency; LogoChip's dark plate keeps it
-  // legible, but a proper asset is the real fix.
-  'Bennett Racing': '/images/2026/06/bennett-1781148645814.webp',
-  Bennett: '/images/2026/06/bennett-1781148645814.webp',
-  'Blackmans Brewery': '/images/2026/06/blackmans-1781148663993.webp',
-  "Blackman's Brewery": '/images/2026/06/blackmans-1781148663993.webp',
-  'Champion Trophies': '/images/2026/06/champion_trophy-1781148687999.jpg',
-  'General Public Corio': '/images/2026/06/gp-1781148742506.png',
-  GP: '/images/2026/06/gp-1781148742506.png',
-  'Mahoney Real Estate': '/images/2026/06/mahoney-1781148805224.png',
-  Mahoney: '/images/2026/06/mahoney-1781148805224.png',
-  'Phoenix Truck Bodies': '/images/2026/06/phoenix-1781148703539.jpg',
+  "APCO Newcomb": '/images/sponsors/20260906/apco.png',
+  "APCO": '/images/sponsors/20260906/apco.png',
+  "MBR Cricket": '/images/sponsors/20260906/mbr-cricket.png',
+  "Bennett Racing": '/images/sponsors/20260906/bennett-racing.png',
+  "Bennett": '/images/sponsors/20260906/bennett-racing.png',
+  "Blackmans Brewery": '/images/sponsors/20260906/blackmans-brewery.png',
+  "Blackman's Brewery": '/images/sponsors/20260906/blackmans-brewery.png',
+  "Champion Trophies": '/images/sponsors/20260906/champion-trophies.png',
+  "General Public Corio": '/images/sponsors/20260906/general-public.png',
+  "GP": '/images/sponsors/20260906/general-public.png',
+  "Mahoney Real Estate": '/images/sponsors/20260906/mahoney-real-estate.png',
+  "Mahoney": '/images/sponsors/20260906/mahoney-real-estate.png',
+  "Phoenix Truck Bodies": '/images/sponsors/20260906/phoenix-truck-bodies.png',
+  "Conveyancing Professionals": '/images/sponsors/20260906/conveyancing-professionals.png',
+  "Geelong Chilli Co": '/images/sponsors/20260906/geelong-chilli-co.png',
+  "Leopold Sporties": '/images/sponsors/20260906/leopold-sporties.png',
+  "Moolap Tyres": '/images/sponsors/20260906/moolap-tyres.png',
+  "Priceline Pharmacy": '/images/sponsors/20260906/priceline-pharmacy.png',
+  "The Breakwater Hotel": '/images/sponsors/20260906/the-breakwater-hotel-provisional.png',
+  "Valentines Small Business Solutions": '/images/sponsors/20260906/valentines-small-business-solutions.png',
 };
 
-const june16SponsorAssets: Sponsor[] = [
+const sponsorAssets: Sponsor[] = [
   { id: 'fallback-apco', name: 'APCO Newcomb', tier: 'standard', logo_url: fallbackSponsorLogos.APCO, website: 'https://www.apco.com.au/', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
   { id: 'fallback-bennett', name: 'Bennett Racing', tier: 'standard', logo_url: fallbackSponsorLogos.Bennett, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
   { id: 'fallback-blackmans', name: 'Blackmans Brewery', tier: 'silver', logo_url: fallbackSponsorLogos["Blackman's Brewery"], website: 'https://www.blackmansbrewery.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
@@ -154,6 +155,14 @@ const june16SponsorAssets: Sponsor[] = [
   { id: 'fallback-gp', name: 'General Public Corio', tier: 'standard', logo_url: fallbackSponsorLogos.GP, website: '', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
   { id: 'fallback-mahoney', name: 'Mahoney Real Estate', tier: 'standard', logo_url: fallbackSponsorLogos.Mahoney, website: 'https://www.realestate.com.au/agency/mahoney-real-estate-ISUSUH', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
   { id: 'fallback-phoenix', name: 'Phoenix Truck Bodies', tier: 'silver', logo_url: fallbackSponsorLogos['Phoenix Truck Bodies'], website: 'https://phoenixtruckbodies.com.au', placement_type: 'listing', active: true, created_at: '2026-06-16T00:00:00+10:00' },
+  { id: 'fallback-conveyancing', name: 'Conveyancing Professionals', tier: 'standard', logo_url: fallbackSponsorLogos['Conveyancing Professionals'], website: 'https://conveyancingprofessionals.com.au/locations/geelong/', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-chilli', name: 'Geelong Chilli Co', tier: 'community', logo_url: fallbackSponsorLogos['Geelong Chilli Co'], website: 'https://geelongchillico.com.au/', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-leopold', name: 'Leopold Sporties', tier: 'gold', logo_url: fallbackSponsorLogos['Leopold Sporties'], website: 'https://leopoldsporties.com/', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-mbr', name: 'MBR Cricket', tier: 'major', logo_url: fallbackSponsorLogos['MBR Cricket'], website: 'https://mbrcricket.com', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-moolap', name: 'Moolap Tyres', tier: 'standard', logo_url: fallbackSponsorLogos['Moolap Tyres'], website: '', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-priceline', name: 'Priceline Pharmacy', tier: 'standard', logo_url: fallbackSponsorLogos['Priceline Pharmacy'], website: 'https://www.priceline.com.au/', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-breakwater', name: 'The Breakwater Hotel', tier: 'standard', logo_url: fallbackSponsorLogos['The Breakwater Hotel'], website: 'https://www.facebook.com/groups/21807272626/', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
+  { id: 'fallback-valentines', name: 'Valentines Small Business Solutions', tier: 'community', logo_url: fallbackSponsorLogos['Valentines Small Business Solutions'], website: '', placement_type: 'website', active: true, created_at: '2026-09-06T00:00:00+10:00' },
 ];
 
 export const fallbackSponsors: Sponsor[] = [
@@ -164,9 +173,9 @@ export const fallbackSponsors: Sponsor[] = [
     logo_url: getFallbackSponsorLogo(sponsor.name) || sponsor.logo_url,
     created_at: '2026-06-16T00:00:00+10:00',
   })),
-  ...june16SponsorAssets,
+  ...sponsorAssets,
 ].reduce<Sponsor[]>((merged, sponsor) => {
-  if (!merged.some((item) => canonicalSponsorKey(item.name) === canonicalSponsorKey(sponsor.name))) merged.push({ ...sponsor, name: canonicalSponsorName(sponsor.name) });
+  if (!merged.some((item) => canonicalSponsorKey(item.name) === canonicalSponsorKey(sponsor.name))) merged.push({ ...sponsor, name: canonicalSponsorName(sponsor.name), logo_surface_mode: sponsor.name === 'Bennett Racing' ? 'dark' : 'light', logo_padding: 'p-3' });
   return merged;
 }, []);
 
