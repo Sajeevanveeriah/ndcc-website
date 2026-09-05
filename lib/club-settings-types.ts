@@ -20,6 +20,7 @@ import { assembleEmail } from '@/lib/utils';
 
 export type ClubSettings = {
   id: 'default';
+  donations_enabled: boolean;
   club_name: string;
   club_short: string;
   club_nickname: string;
@@ -43,6 +44,7 @@ const fallbackEmail = assembleEmail(CLUB_EMAIL_USER, CLUB_EMAIL_DOMAIN);
 
 export const fallbackClubSettings: ClubSettings = {
   id: 'default',
+  donations_enabled: false,
   club_name: CLUB_NAME,
   club_short: CLUB_SHORT,
   club_nickname: CLUB_NICKNAME,

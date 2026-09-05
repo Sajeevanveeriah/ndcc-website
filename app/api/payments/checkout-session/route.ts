@@ -1,3 +1,4 @@
+import { getClubSettings } from '@/lib/club-settings';
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ORDER_CATEGORY_LABELS: Record<string, string> = {
+  donation: 'club donation',
   merch: 'merchandise order',
   kitchen: 'kitchen order',
   membership: 'social membership',
@@ -25,6 +27,7 @@ const ORDER_CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_RETURN_PATHS: Record<string, string> = {
+  donation: '/sponsors/donate',
   merch: '/merchandise',
   kitchen: '/kitchen',
   membership: '/join',
@@ -50,7 +53,7 @@ function getSafeReturnPath(value: unknown, orderCategory: string): string {
   if (typeof value !== 'string') return fallback;
 
   const path = value.trim();
-  if (path === '/merchandise' || path === '/kitchen' || path === '/join' || path === '/events') {
+  if (path === '/sponsors/donate' || path === '/merchandise' || path === '/kitchen' || path === '/join' || path === '/events') {
     return path;
   }
   if (/^\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(path)) {
@@ -199,6 +202,10 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (orderError || !order) {
       return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
+    }
+
+    if (order.order_category === 'donation' && !(await getClubSettings()).donations_enabled) {
+      return NextResponse.json({ success: false, error: 'Donations are currently unavailable.' }, { status: 404 });
     }
 
     const balanceDue = Number(order.total_amount) - Number(order.amount_paid ?? 0);

@@ -31,6 +31,7 @@ type OrderItem = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
+  donation: 'Club Donation',
   merch: 'Merchandise',
   kitchen: 'Kitchen Order',
   membership: 'Social Membership',

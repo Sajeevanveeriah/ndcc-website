@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
+import DonationInvitation from '@/components/donations/DonationInvitation';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import LogoChip from '@/components/common/LogoChip';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -195,6 +196,8 @@ export default function SponsorsPage() {
           <a href="#enquiry-form" className="text-maroon-700 hover:underline dark:text-maroon-200">Enquire</a>
         </div>
       </nav>
+
+      <DonationInvitation />
 
       {/* Intro */}
       <section id="current-sponsors" className="section-padding bg-surface-page scroll-mt-28">
