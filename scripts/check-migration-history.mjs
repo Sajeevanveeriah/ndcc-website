@@ -53,6 +53,15 @@ for (const file of files) {
   seen.set(version, file);
 }
 
+// Hosted migration runners may compare filename order with database version order.
+// Mixed-width prefixes (20260401 and 20260401000100) invert that order.
+// Catch this even when every remote version has a matching local file.
+const filenameVersions = files.map(versionOf).filter(Boolean);
+const sortedVersions = [...filenameVersions].sort();
+if (filenameVersions.some((version, index) => version !== sortedVersions[index])) {
+  errors.push('Migration filename order differs from version order. Normalise conflicting legacy versions in both filenames and recorded history before deployment.');
+}
+
 // 1. every remote version resolves locally
 const documentedLocalFiles = new Set();
 for (const entry of manifest.versions) {
