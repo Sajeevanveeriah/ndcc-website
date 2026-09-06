@@ -11,7 +11,7 @@
      purpose-designed near-black / charcoal / deep-navy system instead of the
      old flat slate substitutions. */
   :root {
-    --surface-page: 248 250 252;        /* page background (slate-50)        */
+    --surface-page: 251 247 240;        /* page background (slate-50)        */
     --surface-elevated: 255 255 255;    /* raised chrome: nav, menus, modals */
     --surface-card: 255 255 255;        /* cards and panels                  */
     --surface-muted: 243 244 246;       /* subdued wells, table heads        */
@@ -160,11 +160,11 @@
   }
 
   .form-input {
-    @apply w-full px-4 py-3 border border-edge-strong rounded-lg font-body bg-surface-card text-content-primary placeholder-content-muted/70 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply w-full px-4 py-3 border border-edge-strong rounded-lg text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
   }
 
   .form-label {
-    @apply block text-sm font-semibold text-content-secondary mb-1.5 font-body;
+    @apply block text-base font-semibold text-content-secondary mb-2 font-body;
   }
 
   .page-hero {
@@ -473,4 +473,37 @@ body.marquee-page-hidden .homepage-marquee-track {
 @keyframes homepage-marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+
+/* NDCC club identity: clear type, real photography and cricket-blue wayfinding. */
+@layer components {
+  .club-home-hero { @apply border-b border-edge-strong bg-surface-page; }
+  .club-home-copy { @apply px-5 py-10 sm:px-8 sm:py-14 lg:py-16 lg:pr-12; }
+  .club-kicker { @apply text-sm font-semibold tracking-wide text-maroon-700 dark:text-sky_accent; }
+  .club-home-title { font-size: clamp(2.8rem, 4.8vw, 4.9rem); line-height: 1.03; letter-spacing: -.025em; text-wrap: balance; @apply mt-5 font-display font-bold text-maroon-800 dark:text-content-primary; }
+  .club-home-photo { @apply relative m-0 min-h-72 overflow-hidden border-t-4 border-sky_accent lg:min-h-full lg:border-l-4 lg:border-t-0; }
+  .club-ground-caption { @apply absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-2 bg-maroon-800 px-6 py-5 text-white; }
+  .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-200 underline-offset-8 transition-colors hover:decoration-maroon-700 dark:text-sky_accent; }
+  .club-disclosure { @apply rounded-lg border border-edge-strong bg-surface-card; }
+  .club-disclosure > summary { @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary; }
+  .club-disclosure[open] > summary { @apply border-b border-edge-subtle; }
+  .club-disclosure > summary::marker { color: rgb(var(--action-secondary)); }
+  .club-disclosure .product-options { @apply space-y-5 p-4; }
+  .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-lg border border-maroon-950 bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-lg; }
+  .page-hero { background: rgb(var(--brand-maroon-surface)); border-bottom: 5px solid #ADD8E6; }
+  .page-hero::after { background-image: none; }
+  .page-hero-title { font-size: clamp(2.5rem, 4.5vw, 4rem); line-height: 1.1; letter-spacing: -.01em; text-transform: none; }
+  .section-title { letter-spacing: -.01em; text-transform: none; }
+  .page-hero-subtitle { @apply text-lg leading-relaxed text-white; }
+  .form-input { min-height: 48px; }
+  .card-hover { transform: none; }
+  .card-hover:hover { transform: translateY(-2px); }
+  .prose { line-height: 1.8; }
+  .prose p, .prose li { font-size: 1rem; }
+  .prose a { text-decoration: underline; text-underline-offset: 3px; }
+  button, a, input, select, textarea { scroll-margin-top: 8rem; }
+  @media (prefers-reduced-motion: no-preference) {
+    .club-home-photo img { animation: club-photo-enter 600ms ease-out both; }
+    @keyframes club-photo-enter { from { opacity: .6; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }
+  }
 }

@@ -9,6 +9,7 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: { xs: ['0.875rem', '1.4rem'], sm: ['1rem', '1.5rem'] },
       colors: {
         maroon: {
           50: '#fdf2f2',

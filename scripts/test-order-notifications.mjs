@@ -141,7 +141,9 @@ test('server notification reader uses canonical order data', () => {
   assert.match(serverSource, /from\('orders'\)/);
   assert.match(serverSource, /order\.payment_status !== 'paid'/);
   assert.match(serverSource, /sendPaidStaffOrderNotificationForPayment/);
-  assert.match(serverSource, /staff_paid_notification_sent_at/);
+  assert.match(serverSource, /Staff recipients are included in the queued payment receipt/);
+  const compatibilityHandler = serverSource.split('export async function sendPaidStaffOrderNotificationForPayment')[1];
+  assert.doesNotMatch(compatibilityHandler, /await sendEmail/);
 });
 
 test('apparel creation route awaits a created notification', () => {

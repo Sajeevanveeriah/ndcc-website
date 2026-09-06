@@ -242,22 +242,22 @@ export function emailHtml(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f8f8f8;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f8f8;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#FBF7F0;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FBF7F0;padding:32px 16px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
         <tr>
-          <td style="background:#800000;padding:24px 32px;">
+          <td style="background:#800000;padding:24px;border-bottom:5px solid #ADD8E6;">
             <p style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">NDCC Dinos</p>
-            <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.7);">Newcomb and District Cricket Club</p>
+            <p style="margin:4px 0 0;font-size:14px;color:#ffffff;">Newcomb and District Cricket Club</p>
           </td>
         </tr>
         <tr>
-          <td style="padding:32px;">
-            <h1 style="margin:0 0 20px;font-size:20px;color:#4a0000;">${escapeEmailHtml(title)}</h1>
+          <td style="padding:24px;font-size:16px;line-height:1.65;color:#1f2937;">
+            <h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;color:#4a0000;">${escapeEmailHtml(title)}</h1>
             ${body}
             <hr style="margin:32px 0;border:none;border-top:1px solid #e5e7eb;">
-            <p style="margin:0;font-size:12px;color:#9ca3af;">
+            <p style="margin:0;font-size:14px;color:#4b5563;">
               Newcomb and District Cricket Club &bull; Grinter Reserve, 141 Coppards Road, Moolap VIC 3224<br>
               <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>
             </p>
@@ -284,6 +284,7 @@ export function bankDetailsHtml(reference: string, amount?: number): string {
     ${amountRow}
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">${escapeEmailHtml(reference)}</td></tr>
   </table>
-  <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Use your reference number exactly as shown so we can match your payment.</p>
+  <p style="margin:12px 0 0;font-size:14px;color:#4b5563;">Use your reference number exactly as shown so we can match your payment.</p>
 </div>`;
 }
+

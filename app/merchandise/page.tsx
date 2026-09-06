@@ -579,7 +579,7 @@ function MerchandiseContent() {
               <p className="mt-2 text-sm text-content-secondary whitespace-pre-line">{heroContent.orderBody}</p>
             </div>
           )}
-          <SizingGuides />
+          <details className="club-disclosure mb-8"><summary>Find your fit - apparel sizing guides</summary><SizingGuides /></details>
           {liveProductsFailed && !productsLoading && (
             <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-4 flex flex-wrap items-center justify-between gap-3" role="alert">
               <p className="font-body text-sm text-amber-900 dark:text-amber-100">
@@ -596,7 +596,7 @@ function MerchandiseContent() {
             </div>
           )}
           {productsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" aria-hidden="true">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i}>
                   <div className="h-36 bg-gray-200 animate-pulse" />
@@ -621,7 +621,7 @@ function MerchandiseContent() {
             </Card>
             )
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {!windowState.processing_open && (
               <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
                 Orders are currently outside the active merch window.
@@ -631,20 +631,20 @@ function MerchandiseContent() {
             {Object.entries(groupedProducts).map(([category, productsInCategory]) => (
               <div key={category} className="md:col-span-2 lg:col-span-3 xl:col-span-4">
                 <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-3">{category}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {productsInCategory.map((product) => {
                   const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
                   const iconData = PRODUCT_ICONS[product.id];
                   return (
-                    <Card key={product.id} className="hover-lift">
+                    <Card key={product.id} className="product-card hover-lift">
                   {product.image ? (
-                    <div className="relative h-36 bg-surface-page">
+                    <div className="relative h-56 bg-surface-page">
                       <SafeImage
                         src={product.image}
                         alt={product.imageAlt || product.name}
                         fill
                         className="object-contain"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         fallback={<div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} aria-hidden="true" />}
                       />
                     </div>
@@ -666,7 +666,7 @@ function MerchandiseContent() {
                   )}
                   <CardContent className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display font-bold text-content-primary text-sm leading-tight">
+                      <h3 className="font-display font-bold text-content-primary text-2xl leading-tight">
                         {product.name}
                       </h3>
                       <Badge variant="default" className="flex-shrink-0">{formatCurrency(displayUnitPrice(product))}</Badge>
@@ -677,6 +677,7 @@ function MerchandiseContent() {
                       <Badge variant="info" className="text-xs">Customisable</Badge>
                     )}
 
+                    <details className="club-disclosure"><summary>Choose options for {product.name}</summary><div className="product-options">
                     {/* Option selectors (colour, sleeve length, style, ...) */}
                     {Array.from(new Set(product.options.map((o) => o.option_group))).map((group) => {
                       const values = product.options
@@ -858,12 +859,17 @@ function MerchandiseContent() {
                         </button>
                       </div>
                     </div>
+                    </div></details>
                   </CardContent>
                   <CardFooter className="space-y-2">
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleAddToOrder(product.id)}
+                      onClick={(event) => {
+                        const options = event.currentTarget.closest('.product-card')?.querySelector('details');
+                        if (options) options.open = true;
+                        handleAddToOrder(product.id);
+                      }}
                       className="w-full"
                     >
                       Add to Order
@@ -880,8 +886,9 @@ function MerchandiseContent() {
         </div>
       </section>
 
+      {cart.length > 0 && <a href="#order-summary" className="club-basket-link">Review order <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} items</span></a>}
       {/* Order Summary & Form */}
-      <section className="section-padding bg-surface-page" aria-label="Order summary and checkout">
+      <section id="order-summary" className="section-padding bg-surface-page scroll-mt-32" aria-label="Order summary and checkout">
         <div className="container-width max-w-3xl mx-auto">
           <h2 className="section-title">Your Order</h2>
 
@@ -988,7 +995,7 @@ function MerchandiseContent() {
                 <p className="text-yellow-800 font-body font-semibold">Online payment cancelled</p>
                 <p className="text-yellow-700 font-body text-sm mt-1">
                   Your order is still placed, but no card payment was completed. Use the payment reference from your
-                  confirmation email for bank transfer, or contact the club if you need another payment method.
+                  order summary for bank transfer, or contact the club if you need another payment method.
                 </p>
               </div>
             </div>

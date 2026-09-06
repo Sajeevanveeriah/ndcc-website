@@ -79,7 +79,7 @@ test('generic checkout bounds JSON and reconciles all linked pending Sessions', 
   assert.match(checkout, /LEGACY_UNLINKED_HOLD_MILLISECONDS = 2 \* 60 \* 60 \* 1000/);
   assert.match(checkout, /sessionMetadata\.payment_kind === paymentKind/);
   assert.match(checkout, /sessionMetadata\.checkout_contract_version === '1'/);
-  assert.match(checkout, /existingSession\.client_reference_id === attempt\.payment_reference/);
+  assert.match(checkout, /existingSession\.client_reference_id === publicAttemptReference/);
   assert.match(checkout, /let settlementPending = false/);
   assert.ok(
     checkout.indexOf('if (settlementPending)') > checkout.indexOf('for (const attempt of previousAttempts || [])'),
@@ -162,8 +162,8 @@ test('import reconciliation requires exact balance and sends every mismatch to r
 test('paid staff notices and receipts expose payment and order\/bank identities', () => {
   assert.match(notifications, />Payment reference</);
   assert.match(notifications, />Order \/ bank reference</);
-  assert.match(receipts, /<strong>Payment reference:<\/strong>/);
-  assert.match(receipts, /<strong>Order \/ bank reference:<\/strong>/);
+  assert.match(receipts, /<strong>Order reference:<\/strong>/);
+  assert.match(receipts, /const reference = orderReference/);
   assert.match(receipts, /Bank statement reference/);
 });
 

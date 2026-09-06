@@ -59,7 +59,7 @@ function assertCheckoutMetadataParity(source, label) {
   assert.match(source, /const paymentMetadata\s*=\s*\{/u, `${label} must define one metadata object.`);
   assert.match(source, /ndcc_payment_reference:\s*[a-zA-Z]+PaymentReference|ndcc_payment_reference:\s*paymentReference/u);
   assert.match(source, /item_number:\s*[a-zA-Z]+PaymentReference|item_number:\s*paymentReference/u);
-  assert.match(source, /ndcc_reference_version:\s*'1'/u);
+  assert.match(source, /ndcc_reference_version:\s*(?:'1'|checkoutContract\.referenceVersion)/u);
   assert.match(source, /metadata:\s*paymentMetadata/u, `${label} Checkout Session metadata is missing.`);
   assert.match(
     source,
@@ -126,28 +126,28 @@ await test('generic, raffle and Dino Checkout metadata has PaymentIntent parity 
   assertCheckoutMetadataParity(genericCheckout, 'Generic order');
   assertCheckoutMetadataParity(raffleCheckout, 'Raffle');
   assertCheckoutMetadataParity(dinoCheckout, 'Dino Coach');
-  assert.match(genericCheckout, /client_reference_id:\s*paymentReference/u);
+  assert.match(genericCheckout, /client_reference_id:\s*publicPaymentReference/u);
   assert.match(raffleCheckout, /client_reference_id:\s*paymentReference/u);
   assert.match(dinoCheckout, /client_reference_id:\s*paymentReference/u);
 });
 
 await test('Stripe descriptions and product names carry the reportable payment reference', () => {
-  assert.match(genericCheckout, /description:\s*`\$\{paymentReference\} - NDCC \$\{frozenCategoryLabel\}`/u);
-  assert.match(genericCheckout, /name:\s*validation\.isPartial[\s\S]*?paymentReference/u);
+  assert.match(genericCheckout, /description:\s*`\$\{publicPaymentReference\} - NDCC \$\{frozenCategoryLabel\}`/u);
+  assert.match(genericCheckout, /name:\s*validation\.isPartial[\s\S]*?publicPaymentReference/u);
   assert.match(raffleCheckout, /name:\s*`NDCC Dinos Trailer Raffle Ticket - \$\{paymentReference\}`/u);
   assert.match(raffleCheckout, /description:\s*`\$\{paymentReference\} - NDCC raffle`/u);
   assert.match(dinoCheckout, /name:\s*`Dino Coach 2026\/2027 entry - \$\{paymentReference\}`/u);
   assert.match(dinoCheckout, /description:\s*`\$\{paymentReference\} - NDCC Dino Coach`/u);
 });
 
-await test('customer receipts require the unique canonical payment-level reference', () => {
+await test('customer receipts use the order reference and validate the internal transaction reference', () => {
   const receipts = read('lib/payment-receipts.ts');
   const raffleEmail = read('lib/raffle-email.ts');
   const dinoReceipt = read('lib/dino-coach/payment-receipt.ts');
   const webhook = read('app/api/stripe/webhook/route.ts');
   assert.match(receipts, /select\('id,amount,currency,received_at,status,method,provider,provider_reference,payment_reference,metadata'\)/u);
-  assert.match(receipts, /const reference = String\(payment\.payment_reference \|\| ''\)\.trim\(\)/u);
-  assert.match(receipts, /isCanonicalPaymentReference\(reference, category\)/u);
+  assert.match(receipts, /const transactionReference = String\(payment\.payment_reference \|\| ''\)\.trim\(\)/u);
+  assert.match(receipts, /isCanonicalPaymentReference\(transactionReference, category\)/u);
   assert.doesNotMatch(receipts, /payment\.payment_reference\s*\|\|\s*order\.payment_reference/u);
   assert.match(raffleEmail, /reference:\s*String\(order\.payment_reference\)/u);
   assert.match(dinoReceipt, /const reference = String\(entry\.payment_reference \|\| ''\)\.trim\(\)/u);

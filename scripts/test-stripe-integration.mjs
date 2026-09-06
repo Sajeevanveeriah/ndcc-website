@@ -145,10 +145,10 @@ test('open Checkout reuse validates the complete financial and reference contrac
     /existingSession\.currency\?\.toLowerCase\(\) === 'aud'/,
     /sessionMetadata\.ndcc_payment_type === paymentCategory/,
     /sessionMetadata\.ndcc_order_id === order\.id/,
-    /sessionMetadata\.ndcc_payment_reference === attempt\.payment_reference/,
+    /sessionMetadata\.ndcc_payment_reference === publicAttemptReference/,
     /sessionMetadata\.expected_amount_cents === String\(attemptAmountCents\)/,
     /sessionMetadata\.payment_kind === paymentKind/,
-    /existingSession\.client_reference_id === attempt\.payment_reference/,
+    /existingSession\.client_reference_id === publicAttemptReference/,
   ]) assert.match(checkoutRoute, pattern);
 });
 

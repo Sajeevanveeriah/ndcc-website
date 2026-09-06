@@ -162,7 +162,7 @@ export async function POST(request: Request) {
       );
     }
 
-    void sendEmail({
+    if (!isPaid) await sendEmail({
       to: sanitiseInput(email),
       subject: `Event registration confirmed - ${eventRow.title} | NDCC Dinos`,
       html: emailHtml(

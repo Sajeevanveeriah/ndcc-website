@@ -93,8 +93,8 @@ export default function OrderPaymentOptions({
 
       {paymentReference && (
         <div>
-          <p className="text-sm font-semibold text-green-900">Payment reference</p>
-          <p className="font-mono text-lg font-bold text-green-900">{paymentReference}</p>
+          <p className="text-sm font-semibold text-green-900">Order reference</p>
+          <p className="break-words font-mono text-lg font-bold text-green-900">{paymentReference}</p>
         </div>
       )}
 

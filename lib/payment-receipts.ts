@@ -1,5 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { receiptRecipients } from '@/lib/payments/receipt-recipients';
+import { buildStaffOrderNotificationContent, getStaffOrderRecipients } from '@/lib/order-notification-content';
 import { emailHtml, getTransactionalReplyTo, sendEmail } from '@/lib/email';
 import { getPaymentMetadata, mergePaymentMetadata } from '@/lib/payment-metadata';
 import { canRecordSimulatedReceiptDelivery } from '@/lib/payments/receipt-delivery-policy';
@@ -105,7 +107,7 @@ export async function sendOrderPaymentReceiptForPayment(
       .maybeSingle(),
     supabase
       .from('orders')
-      .select('id,customer_name,customer_email,items,payment_reference,bank_reference_used,order_category')
+      .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,notes,payment_reference,bank_reference_used,order_category')
       .eq('id', orderId)
       .maybeSingle(),
   ]);
@@ -126,14 +128,15 @@ export async function sendOrderPaymentReceiptForPayment(
     return { status: 'failed', reason: 'The settled payment is not recorded in AUD.' };
   }
   const category = normalisePaymentReferenceCategory(order.order_category);
-  const reference = String(payment.payment_reference || '').trim();
-  if (!isCanonicalPaymentReference(reference, category)) {
+  const transactionReference = String(payment.payment_reference || '').trim();
+  if (!isCanonicalPaymentReference(transactionReference, category)) {
     return {
       status: 'failed',
       reason: 'The settled payment does not have a canonical category payment reference.',
     };
   }
   const orderReference = String(order.payment_reference || order.id);
+  const reference = orderReference;
   const paymentMetadata = payment.metadata && typeof payment.metadata === 'object'
     ? payment.metadata as Record<string, unknown>
     : {};
@@ -181,7 +184,7 @@ export async function sendOrderPaymentReceiptForPayment(
     paymentDate: String(payment.received_at),
     issuedDate: options.issuedAt || String(payment.received_at),
     amountCents,
-    paymentType: CATEGORY_LABELS[category] || 'Club Payment',
+    paymentType: CATEGORY_LABELS[String(order.order_category)] || 'Club Payment',
     paymentMethod: PAYMENT_METHOD_LABELS[payment.method] || 'Website Payment',
     reference,
     descriptionLines: [
@@ -193,11 +196,20 @@ export async function sendOrderPaymentReceiptForPayment(
     buildPaymentReceiptPdf(receiptData),
     Promise.resolve(buildPaymentReceiptFilename(receiptData)),
   ]);
+  const department = order.order_category === 'merch' ? 'apparel'
+    : order.order_category === 'kitchen' ? 'kitchen' : null;
+  const orderDetails = department ? buildStaffOrderNotificationContent({
+    orderId, paymentReference: reference, orderReference, bankReference,
+    category: department, stage: 'paid', paymentMade: true,
+    customer: { name: order.customer_name, email: order.customer_email, phone: order.customer_phone || '' },
+    items: Array.isArray(order.items) ? order.items : [], totalAmount: Number(order.total_amount),
+  }).bodyHtml.replace('The order is now fully paid.', order.payment_status === 'paid'
+    ? 'The order is now fully paid.' : 'A part payment has been received. The remaining balance is still payable.') : `<p><strong>Purchaser:</strong> ${escapeHtml(order.customer_name)}<br><strong>Email:</strong> ${escapeHtml(order.customer_email)}</p>`;
   const result = await sendEmail({
-    to: order.customer_email,
+    ...receiptRecipients(order.customer_email, department ? getStaffOrderRecipients(department) : []),
     replyTo: getTransactionalReplyTo(),
-    subject: `Your NDCC payment receipt - ${reference}`,
-    html: emailHtml('Payment received', `<p>Hi ${escapeHtml(order.customer_name || 'there')},</p><p>Thank you. We have recorded your payment of <strong>$${(amountCents / 100).toFixed(2)} AUD</strong> for ${escapeHtml(receiptData.paymentType.toLowerCase())}.</p><p>Your payment receipt is attached as a PDF. Please keep it with your payment record.</p><p><strong>Payment reference:</strong> ${escapeHtml(reference)}<br><strong>Order / bank reference:</strong> ${escapeHtml(orderReference)}${bankReference && bankReference !== orderReference && bankReference !== reference ? `<br><strong>Bank statement reference:</strong> ${escapeHtml(bankReference)}` : ''}</p>`),
+    subject: `NDCC payment receipt - ${reference}`,
+    html: emailHtml('Payment received', `<p>Hi ${escapeHtml(order.customer_name || 'there')},</p><p>Thank you. We have recorded your payment of <strong>$${(amountCents / 100).toFixed(2)} AUD</strong> for ${escapeHtml(receiptData.paymentType.toLowerCase())}.</p><p>Your payment receipt is attached as a PDF. Please keep it with your payment record.</p><p><strong>Order reference:</strong> ${escapeHtml(reference)}${bankReference && bankReference !== orderReference && bankReference !== reference ? `<br><strong>Bank statement reference:</strong> ${escapeHtml(bankReference)}` : ''}</p>${orderDetails}${order.notes ? `<p><strong>Order notes:</strong> ${escapeHtml(order.notes)}</p>` : ''}`),
     idempotencyKey: `website-payment-receipt-${paymentId}`,
     tags: [
       { name: 'category', value: 'customer-receipt' },
@@ -234,3 +246,4 @@ export async function sendOrderPaymentReceiptForPayment(
   }
   return { ...result, filename };
 }
+

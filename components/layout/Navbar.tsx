@@ -227,8 +227,7 @@ export default function Navbar() {
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are
   // solid from the start.
-  const isHome = pathname === '/';
-  const transparent = isHome && !scrolled && !isOpen;
+  const transparent = false;
   return (
     <nav
       className={cn(
@@ -244,7 +243,7 @@ export default function Navbar() {
     >
       {/* Maroon utility bar */}
       <div className={cn('px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between transition-colors duration-300', transparent ? 'bg-maroon-950/35 backdrop-blur-sm' : 'bg-maroon-700')}>
-        <span className="hidden sm:block text-[10.5px] text-maroon-100 font-body tracking-[0.02em]">
+        <span className="hidden sm:block text-sm text-maroon-100 font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
         <div className="flex gap-4 ml-auto">
@@ -252,7 +251,7 @@ export default function Navbar() {
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10.5px] font-semibold text-sky_accent hover:text-white transition-colors font-body"
+            className="text-sm font-semibold text-sky_accent hover:text-white transition-colors font-body"
           >
             Facebook
           </a>
@@ -260,11 +259,11 @@ export default function Navbar() {
             href={settings.playhq_url || fallbackClubSettings.playhq_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10.5px] font-semibold text-sky_accent hover:text-white transition-colors font-body"
+            className="text-sm font-semibold text-sky_accent hover:text-white transition-colors font-body"
           >
             PlayHQ
           </a>
-          <Link href="/contact" className="text-[10.5px] font-semibold text-sky_accent hover:text-white transition-colors font-body">
+          <Link href="/contact" className="text-sm font-semibold text-sky_accent hover:text-white transition-colors font-body">
             Contact
           </Link>
         </div>
@@ -281,18 +280,18 @@ export default function Navbar() {
               className="rounded-full"
               priority
             />
-            <div className="hidden sm:flex lg:hidden xl:flex flex-col">
+            <div className="hidden sm:flex xl:hidden 2xl:flex flex-col">
               <span className={cn('font-display font-semibold uppercase tracking-wide text-lg leading-none block', transparent ? 'text-white' : 'text-maroon-700 dark:text-maroon-200')}>
                 {settings.club_short}
               </span>
-              <span className={cn('text-[10.5px] font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-600 dark:text-slate-400')}>
+              <span className={cn('text-sm font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-600 dark:text-slate-400')}>
                 The Dinos · Est. {settings.established_year}
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-0.5">
+          <div className="hidden xl:flex items-center gap-0.5">
             {navGroups.map((group) => group.href ? (
               <Link
                 key={`${group.href}-${group.label}`}
@@ -389,7 +388,7 @@ export default function Navbar() {
             <Link
               href={registrationNavigation?.href || '/join'}
               className={cn(
-                'ml-2 inline-flex min-h-11 max-w-[180px] items-center justify-center rounded-lg bg-maroon-700 px-3 py-2 text-center text-xs font-semibold leading-tight text-white transition-colors hover:bg-maroon-800 focus-ring',
+                'ml-2 inline-flex min-h-11 max-w-[180px] items-center justify-center rounded-lg bg-maroon-700 px-3 py-2 text-center text-sm font-semibold leading-tight text-white transition-colors hover:bg-maroon-800 focus-ring',
                 pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
               )}
               aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
@@ -401,7 +400,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={cn('lg:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
+            className={cn('xl:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
@@ -418,7 +417,7 @@ export default function Navbar() {
             <m.div
               key="mobile-menu"
               ref={menuRef}
-              className="lg:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
+              className="xl:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
               initial={reduceMotion ? false : { opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, y: -16 }}
@@ -448,7 +447,7 @@ export default function Navbar() {
             </Link>
           ) : (
             <section key={group.label} className="rounded-xl border border-edge-subtle/60 p-2">
-              <h2 className="px-2 py-1 text-xs font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.label}</h2>
+              <h2 className="px-2 py-1 text-sm font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.label}</h2>
               {group.links?.map((link) => <Link key={`${group.label}-${link.href}`} href={link.href} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
             </section>
           ))}

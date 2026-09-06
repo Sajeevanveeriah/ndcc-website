@@ -160,7 +160,7 @@ export async function POST(request: Request) {
       </tr>`
     )
     .join('');
-  void sendEmail({
+  if (rawBody.value.payment_method === 'bank_transfer') await sendEmail({
     to: sanitiseInput(customer_email),
     subject: `Kitchen order confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
@@ -188,11 +188,13 @@ export async function POST(request: Request) {
     ),
   });
 
+  if (rawBody.value.payment_method === 'bank_transfer') {
   const staffNotification = await sendStaffOrderNotificationForOrder(supabase, linkedOrder.id, 'created');
   if (staffNotification.status === 'failed') {
     console.error('Kitchen staff order notification failed:', staffNotification.reason);
   }
 
+  }
   return NextResponse.json({
     success: true,
     order_id: linkedOrder.id,
@@ -206,3 +208,4 @@ export async function POST(request: Request) {
     },
   });
 }
+

@@ -206,7 +206,7 @@ export async function POST(request: Request) {
     }
   }
 
-  void sendEmail({
+  if (totalAmount === 0) await sendEmail({
     to: sanitiseInput(email),
     subject: `Membership signup confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(

@@ -62,6 +62,7 @@ jobs:
       - run: npm run test:stripe-dispute-integrity
       - run: npm run test:payment-reference-integrity
       - run: npm run test:receipt-delivery-outbox
+      - run: node scripts/test-consolidated-receipts.mjs
       - run: npm run test:payment-receipts
       - run: npm run test:order-notifications
       - run: npm run test:player-registration
