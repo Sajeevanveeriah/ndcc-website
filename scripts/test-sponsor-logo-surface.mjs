@@ -59,7 +59,7 @@ try {
   check('light plate pinned white in both themes', light.includes('bg-white') && light.includes('dark:bg-white'));
   check('light plate has inset keyline for white-background logos', light.includes('ring-inset'));
   const dark = sponsorLogoSurfaceClass('Bennett Racing');
-  check('dark plate uses maroon gradient', dark.includes('from-maroon-950'));
+  check('dark plate stays solid maroon in both themes', dark.includes('bg-maroon-950') && dark.includes('dark:bg-maroon-950'));
   const neutral = sponsorLogoSurfaceClass('X', 'neutral');
   check('neutral plate is pale in light and theme-following in dark', neutral.includes('bg-[#f3f1ec]') && neutral.includes('dark:bg-surface-muted'));
   check('neutral plate keeps a visible dark-mode keyline', neutral.includes('dark:ring-white/15'));

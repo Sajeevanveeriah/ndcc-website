@@ -34,11 +34,11 @@ export default function SponsorsMarquee({ sponsors, durationSeconds }: { sponsor
                       surfaceMode={sponsor.logo_surface_mode}
                       paddingClassName={sponsor.logo_padding}
                       objectPosition={sponsor.logo_object_position}
-                      width={190}
-                      height={70}
-                      sizes="190px"
-                      className="h-24 w-48 rounded-2xl shadow-soft ring-1 ring-maroon-100/60 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lift group-hover:ring-2 group-hover:ring-maroon-200/70"
-                      imageClassName="max-h-14 w-auto"
+                      width={320}
+                      height={160}
+                      sizes="240px"
+                      className="h-32 w-60 rounded-2xl transition-transform duration-300 group-hover:-translate-y-0.5"
+                      imageClassName="max-h-full max-w-full w-auto h-auto"
                       fallback={brandedFallback}
                     />
                     <span className="sponsor-caption">{sponsor.name}</span>

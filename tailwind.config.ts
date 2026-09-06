@@ -80,7 +80,7 @@ const config: Config = {
       },
       fontFamily: {
         // CSS variables provided by next/font in app/layout.tsx.
-        display: ['var(--font-barlow-condensed)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       animation: {

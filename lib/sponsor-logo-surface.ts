@@ -37,7 +37,7 @@ const plateClasses: Record<Exclude<SponsorLogoSurfaceMode, 'auto'>, string> = {
   light:
     'bg-white dark:bg-white border-slate-200 dark:border-slate-200 ring-1 ring-inset ring-gray-900/[0.06] dark:ring-gray-900/[0.06]',
   dark:
-    'bg-gradient-to-br from-maroon-950 via-maroon-900 to-blue-950 border-maroon-900/30 dark:border-white/15 shadow-maroon-950/15',
+    'bg-maroon-950 dark:bg-maroon-950 border-maroon-900/30 dark:border-white/15',
   // Pale warm neutral in light; in dark the plate follows the theme but keeps
   // a clearly visible keyline so built-in rectangles never float unframed.
   neutral:
