@@ -749,7 +749,7 @@ function MerchandiseContent() {
                         </div>
                       )}
                       {sizeErrors[product.id] && (
-                        <p className="mt-1 text-xs text-red-600">{sizeErrors[product.id]}</p>
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{sizeErrors[product.id]}</p>
                       )}
                     </div>
 
@@ -819,7 +819,7 @@ function MerchandiseContent() {
                           <span>I confirm any name entered is a surname and understand that both number preferences are subject to availability and club confirmation.</span>
                         </label>
                         {personalisationErrors[product.id] && (
-                          <p className="text-xs text-red-600" role="alert">{personalisationErrors[product.id]}</p>
+                          <p className="text-xs text-red-600 dark:text-red-400" role="alert">{personalisationErrors[product.id]}</p>
                         )}
                       </div>
                     )}
@@ -893,22 +893,22 @@ function MerchandiseContent() {
           <h2 className="section-title">Your Order</h2>
 
           {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg space-y-3" role="alert">
-              <p className="text-green-800 font-body font-semibold flex items-center gap-2">
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-3" role="alert">
+              <p className="text-green-800 dark:text-green-200 font-body font-semibold flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
                 {orderConfirmation ? 'Order confirmed!' : 'Online payment submitted'}
               </p>
               {orderConfirmation?.payment_reference && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
-                  <p className="text-green-900 font-body text-sm font-semibold">Your Payment Reference:</p>
-                  <p className="text-green-900 font-mono text-lg font-bold mt-1">{orderConfirmation.payment_reference}</p>
-                  <p className="text-green-700 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
+                  <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Your order reference:</p>
+                  <p className="text-green-900 dark:text-green-200 font-mono text-lg font-bold mt-1">{orderConfirmation.payment_reference}</p>
+                  <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
                 </div>
               )}
               {orderConfirmation?.bank_details?.bsb && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
-                  <p className="text-green-900 font-body text-sm font-semibold">Bank Transfer Details:</p>
-                  <div className="mt-1 text-sm font-body text-green-800 space-y-0.5">
+                  <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Bank Transfer Details:</p>
+                  <div className="mt-1 text-sm font-body text-green-800 dark:text-green-200 space-y-0.5">
                     <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>
                     <p>BSB: <span className="font-semibold">{orderConfirmation.bank_details.bsb}</span></p>
                     <p>Account Number: <span className="font-semibold">{orderConfirmation.bank_details.account_number}</span></p>
@@ -924,8 +924,8 @@ function MerchandiseContent() {
               )}
               {capabilities.card && orderConfirmation?.order_id && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3 space-y-2">
-                  <p className="text-green-900 font-body text-sm font-semibold">Prefer to pay online?</p>
-                  <p className="text-green-800 font-body text-xs">
+                  <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Prefer to pay online?</p>
+                  <p className="text-green-800 dark:text-green-200 font-body text-xs">
                     Continue to Stripe Checkout instead of using bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
                   </p>
                   <div className="flex flex-wrap items-end gap-3">
@@ -976,11 +976,11 @@ function MerchandiseContent() {
                     )}
                   </div>
                   {cardError && (
-                    <p id="card-pay-error" className="text-red-700 font-body text-xs" role="alert">{cardError}</p>
+                    <p id="card-pay-error" className="text-red-700 dark:text-red-300 font-body text-xs" role="alert">{cardError}</p>
                   )}
                 </div>
               )}
-              <p className="text-green-700 font-body text-sm">
+              <p className="text-green-700 dark:text-green-300 font-body text-sm">
                 {orderConfirmation
                   ? 'Thank you for your order. It will be available for collection at the club once payment is confirmed.'
                   : 'Stripe has returned you to the club website. Your signed payment notification is being matched to the order before collection is approved.'}
@@ -1002,11 +1002,11 @@ function MerchandiseContent() {
           )}
 
           {submitStatus === 'error' && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
-              <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3" role="alert">
+              <XCircle className="h-5 w-5 text-red-700 dark:text-red-300 mt-0.5 shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-red-800 font-body font-semibold">Failed to submit order</p>
-                <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+                <p className="text-red-800 dark:text-red-200 font-body font-semibold">Failed to submit order</p>
+                <p className="text-red-700 dark:text-red-300 font-body text-sm mt-1">{errorMessage}</p>
               </div>
             </div>
           )}
@@ -1078,7 +1078,7 @@ function MerchandiseContent() {
                         <button
                           type="button"
                           onClick={() => handleRemoveFromCart(idx)}
-                          className="text-red-500 hover:text-red-700 transition-colors p-1"
+                          className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-1"
                           aria-label={`Remove ${item.name} from order`}
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
