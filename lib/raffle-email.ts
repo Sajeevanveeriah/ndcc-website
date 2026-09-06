@@ -1,4 +1,5 @@
 import 'server-only';
+import { receiptRecipients } from '@/lib/payments/receipt-recipients';
 import { createServerClient } from '@/lib/supabase-server';
 import { emailHtml, getTransactionalReplyTo, sendEmail } from '@/lib/email';
 import { buildPaymentReceiptFilename, buildPaymentReceiptPdf } from '@/lib/payment-receipt-pdf';
@@ -76,13 +77,13 @@ export async function sendPaidRaffleEmails(
       ...ticketAttachments,
       { filename: receiptFilename, content: receipt, contentType: 'application/pdf' },
     ];
-    const result = await sendEmail({ to: order.customer_email, replyTo: getTransactionalReplyTo(), subject: `Your Dinos raffle ticket${references.length > 1 ? 's' : ''}: ${references.join(', ')}`,
-      html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p>Stripe has confirmed your payment. Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map(escape).join('<br>')}</p><p>The raffle will be drawn on <strong>19 December 2026</strong> at the Christmas Party. Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
+    const result = await sendEmail({ ...receiptRecipients(order.customer_email, STAFF), replyTo: getTransactionalReplyTo(), subject: `NDCC raffle receipt - ${order.payment_reference}`,
+      html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Paid:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD</p><p>Stripe has confirmed your payment. Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map(escape).join('<br>')}</p><p>The raffle will be drawn on <strong>19 December 2026</strong> at the Christmas Party. Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
     if (result.status !== 'sent' && result.status !== 'simulated') return { status: 'failed', reason: result.reason };
     if (result.status === 'simulated' && !canRecordSimulatedReceiptDelivery()) {
       return { status: 'failed', reason: 'EMAIL_TEST_MODE cannot complete a raffle receipt in production.' };
     }
-    const marked = await db.from('raffle_orders').update({ customer_email_sent_at: new Date().toISOString() }).eq('id', orderId).is('customer_email_sent_at', null);
+    const marked = await db.from('raffle_orders').update({ customer_email_sent_at: new Date().toISOString(), staff_email_sent_at: new Date().toISOString() }).eq('id', orderId).is('customer_email_sent_at', null);
     if (marked.error) {
       if (result.status === 'sent') {
         return {
@@ -96,22 +97,8 @@ export async function sendPaidRaffleEmails(
     }
     customerResult = { ...result, filename: receiptFilename };
   }
-  if (!order.staff_email_sent_at) {
-    const result = await sendEmail({ to: STAFF, subject: `Paid raffle order - ${references.join(', ')}`,
-      html: emailHtml('Paid raffle order', `<p>Payment has been confirmed by Stripe.</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Quantity:</strong> ${order.quantity}<br><strong>Total:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD<br><strong>Tickets:</strong><br>${references.map(escape).join('<br>')}</p>`), idempotencyKey: `raffle-staff-paid-order-${orderId}` });
-    const recordable = result.status === 'sent'
-      || (result.status === 'simulated' && canRecordSimulatedReceiptDelivery());
-    if (!recordable) {
-      console.error(
-        `Paid raffle staff notification for order ${orderId} failed:`,
-        'reason' in result ? result.reason : 'The staff notification was not recordable.',
-      );
-    } else {
-      const marked = await db.from('raffle_orders').update({ staff_email_sent_at: new Date().toISOString() }).eq('id', orderId).is('staff_email_sent_at', null);
-      if (marked.error) console.error(`Paid raffle staff notification marker for order ${orderId} failed:`, marked.error.message);
-    }
-  }
 
   if (customerResult) return customerResult;
   return { status: 'already_sent', reason: 'Paid raffle emails were already recorded.' };
 }
+

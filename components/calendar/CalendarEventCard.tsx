@@ -38,7 +38,7 @@ export default function CalendarEventCard({ event, compact = false }: CalendarEv
           {event.title}
         </h3>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-body text-content-muted">
-          <Badge className="!text-[10px]">{CALENDAR_EVENT_TYPE_LABELS[props.eventType] ?? props.eventType}</Badge>
+          <Badge className="!text-xs">{CALENDAR_EVENT_TYPE_LABELS[props.eventType] ?? props.eventType}</Badge>
           {cancelled && <Badge variant="danger">Cancelled</Badge>}
           {postponed && <Badge variant="warning">Postponed</Badge>}
           {props.location && (

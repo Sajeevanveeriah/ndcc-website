@@ -281,7 +281,7 @@ test('webhook, manual and import paths use the same durable two-call integration
 test('provider idempotency keys use stable payment identities', () => {
   assert.match(orderReceipt, /website-payment-receipt-\$\{paymentId\}/);
   assert.match(raffleEmail, /raffle-customer-receipt-\$\{orderId\}/);
-  assert.match(raffleEmail, /raffle-staff-paid-order-\$\{orderId\}/);
+  assert.match(raffleEmail, /receiptRecipients\(order.customer_email, STAFF\)/);
   assert.doesNotMatch(raffleEmail, /raffle-(customer|staff)-\$\{eventId\}/);
   assert.match(dinoReceipt, /dino-coach-receipt-\$\{entryId\}/);
 });
@@ -290,7 +290,7 @@ test('receipt payload dates and references remain stable and canonical across re
   assert.match(orderReceipt, /issuedDate: options\.issuedAt \|\| String\(payment\.received_at\)/);
   assert.match(raffleEmail, /issuedDate: options\.issuedAt \|\| String\(order\.paid_at\)/);
   assert.match(dinoReceipt, /issuedDate: options\.issuedAt \|\| String\(entry\.paid_at\)/);
-  assert.match(orderReceipt, /isCanonicalPaymentReference\(reference, category\)/);
+  assert.match(orderReceipt, /isCanonicalPaymentReference\(transactionReference, category\)/);
   assert.match(raffleEmail, /isCanonicalPaymentReference\(order\.payment_reference, 'raffle'\)/);
   assert.match(dinoReceipt, /isCanonicalPaymentReference\(reference, 'dino_coach'\)/);
   assert.doesNotMatch(orderReceipt, /payment\.payment_reference \|\| order\.payment_reference/);

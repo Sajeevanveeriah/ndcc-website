@@ -514,7 +514,7 @@ export default function AdminCalendarPage() {
                   <span className="inline-flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: eventColour(event) }} aria-hidden="true" />
                     {event.title}
-                    {event.is_featured && <Badge variant="warning" className="!text-[10px]">Featured</Badge>}
+                    {event.is_featured && <Badge variant="warning" className="!text-xs">Featured</Badge>}
                   </span>
                 </TableCell>
                 <TableCell className="text-sm">{formatEventDateRange(event)}</TableCell>

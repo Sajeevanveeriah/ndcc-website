@@ -89,18 +89,18 @@ export default function OrderPaymentOptions({
 
   return (
     <section className="rounded-lg border border-green-300 bg-surface-card p-4 space-y-3" aria-label="Payment options">
-      <h4 className="font-display font-bold text-green-900">Payment options</h4>
+      <h4 className="font-display font-bold text-green-900 dark:text-green-200">Payment options</h4>
 
       {paymentReference && (
         <div>
-          <p className="text-sm font-semibold text-green-900">Payment reference</p>
-          <p className="font-mono text-lg font-bold text-green-900">{paymentReference}</p>
+          <p className="text-sm font-semibold text-green-900 dark:text-green-200">Order reference</p>
+          <p className="break-words font-mono text-lg font-bold text-green-900 dark:text-green-200">{paymentReference}</p>
         </div>
       )}
 
       {capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
-        <div className="text-sm text-green-800 space-y-0.5">
-          <p className="font-semibold text-green-900">Bank transfer</p>
+        <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
+          <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer</p>
           {bankDetails.account_name && <p>Account name: {bankDetails.account_name}</p>}
           <p>BSB: {bankDetails.bsb}</p>
           <p>Account number: {bankDetails.account_number}</p>
@@ -116,7 +116,7 @@ export default function OrderPaymentOptions({
       )}
 
       {cardError && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-sm text-red-700 dark:text-red-300" role="alert">
           {cardError}
         </p>
       )}

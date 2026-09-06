@@ -141,15 +141,17 @@ test('server notification reader uses canonical order data', () => {
   assert.match(serverSource, /from\('orders'\)/);
   assert.match(serverSource, /order\.payment_status !== 'paid'/);
   assert.match(serverSource, /sendPaidStaffOrderNotificationForPayment/);
-  assert.match(serverSource, /staff_paid_notification_sent_at/);
+  assert.match(serverSource, /Staff recipients are included in the queued payment receipt/);
+  const compatibilityHandler = serverSource.split('export async function sendPaidStaffOrderNotificationForPayment')[1];
+  assert.doesNotMatch(compatibilityHandler, /await sendEmail/);
 });
 
-test('apparel creation route awaits a created notification', () => {
-  assert.match(apparelRoute, /sendStaffOrderNotificationForOrder\(supabase, data\.id, 'created'\)/);
+test('apparel bank instructions include department recipients once', () => {
+  assert.match(apparelRoute, /receiptRecipients\(sanitiseInput\(customer_email\), getStaffOrderRecipients\('apparel'\)\)/);
 });
 
-test('kitchen creation route awaits a created notification', () => {
-  assert.match(kitchenRoute, /sendStaffOrderNotificationForOrder\(supabase, linkedOrder\.id, 'created'\)/);
+test('kitchen bank instructions include department recipients once', () => {
+  assert.match(kitchenRoute, /receiptRecipients\(sanitiseInput\(customer_email\), getStaffOrderRecipients\('kitchen'\)\)/);
 });
 
 test('Stripe settlement and duplicate paths dispatch best-effort through the paid marker', () => {

@@ -160,7 +160,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
                 <img src={image.src} alt="" className="h-full w-full object-cover" />
               </div>
               <div className="min-w-0 space-y-2">
-                <p className="break-all text-[11px] text-content-muted">{image.src}</p>
+                <p className="break-all text-xs text-content-muted">{image.src}</p>
                 <label className="block text-xs font-body text-content-secondary">
                   Alt text
                   <input

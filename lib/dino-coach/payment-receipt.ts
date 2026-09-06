@@ -1,4 +1,5 @@
 import 'server-only';
+import { receiptRecipients } from '@/lib/payments/receipt-recipients';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   emailHtml,
@@ -157,7 +158,7 @@ export async function sendDinoCoachPaymentReceiptForEntry(
   const filename = buildPaymentReceiptFilename(receiptData);
   const receipt = await buildPaymentReceiptPdf(receiptData);
   const result = await sendEmail({
-    to: recipient,
+    ...receiptRecipients(recipient),
     replyTo: getTransactionalReplyTo(),
     subject: `Your NDCC Dino Coach payment receipt - ${reference}`,
     html: emailHtml(
@@ -225,3 +226,4 @@ export async function sendDinoCoachPaymentReceiptForEntry(
   }
   return { ...result, filename };
 }
+

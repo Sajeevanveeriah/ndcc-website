@@ -119,10 +119,11 @@ function escapeEmailHtml(value: unknown): string {
 
 function hasUniversalReference(metadata: Record<string, string>): boolean {
   const paymentType = metadata.ndcc_payment_type as PaymentReferenceCategory;
-  return metadata.ndcc_reference_version === '1'
+  return (metadata.ndcc_reference_version === '1' || metadata.ndcc_reference_version === '2')
     && UNIVERSAL_PAYMENT_TYPES.has(paymentType)
     && UUID_PATTERN.test(metadata.ndcc_order_id || '')
-    && isCanonicalPaymentReference(metadata.ndcc_payment_reference, paymentType)
+    && isCanonicalPaymentReference(metadata.ndcc_reference_version === '2'
+      ? metadata.ndcc_transaction_reference : metadata.ndcc_payment_reference, paymentType)
     && metadata.item_number === metadata.ndcc_payment_reference;
 }
 
@@ -836,10 +837,14 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
     return NextResponse.json({ error: 'Order not found.' }, { status: 500 });
   }
   const paymentType = normalisePaymentReferenceCategory(order.order_category);
-  const modern = metadata.ndcc_reference_version === '1';
+  const orderReferenceContract = metadata.ndcc_reference_version === '2';
+  const modern = metadata.ndcc_reference_version === '1' || orderReferenceContract;
   let legacyPaymentId: string | null = null;
   if (modern) {
-    if (!isCanonicalPaymentReference(metadata.ndcc_payment_reference, paymentType)
+    if (!(orderReferenceContract
+        ? metadata.ndcc_payment_reference === (order.payment_reference || order.id)
+          && isCanonicalPaymentReference(metadata.ndcc_transaction_reference, paymentType)
+        : isCanonicalPaymentReference(metadata.ndcc_payment_reference, paymentType))
       || metadata.item_number !== metadata.ndcc_payment_reference
       || metadata.ndcc_payment_type !== paymentType
       || metadata.ndcc_order_id !== order.id
@@ -903,8 +908,11 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
     return NextResponse.json({ error: 'Payment ledger mismatch.' }, { status: 500 });
   }
   if (modern && (
-    metadata.ndcc_payment_reference !== payment.payment_reference
-    || metadata.item_number !== payment.payment_reference
+    (orderReferenceContract
+      ? metadata.ndcc_transaction_reference !== payment.payment_reference
+        || payment.metadata?.ndcc_reference_version !== '2'
+      : metadata.ndcc_payment_reference !== payment.payment_reference
+        || metadata.item_number !== payment.payment_reference)
   )) {
     return NextResponse.json({ error: 'Payment reference mismatch.' }, { status: 500 });
   }
@@ -986,3 +994,4 @@ export async function POST(request: Request) {
   if (action === 'fail') return markSessionFailed(session, event);
   return settleSession(session, event);
 }
+

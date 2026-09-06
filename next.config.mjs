@@ -44,6 +44,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'www.swlocksmiths.com.au' },
     ],
   },
+  async redirects() {
+    return [
+      { source: '/images/2026/06/rhys_bath-1781078437785.png', destination: '/images/2026/06/Rhys_Bath.png', permanent: true },
+      { source: '/images/2026/08/20260731-season-launch-rev00-1786263617170.png', destination: '/images/2026/08/20260731-season-launch-rev00-1785925011182.png', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

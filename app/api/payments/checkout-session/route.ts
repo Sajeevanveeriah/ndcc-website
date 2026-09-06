@@ -39,6 +39,7 @@ const UNLINKED_EXPIRY_GRACE_SECONDS = 5 * 60;
 const LEGACY_UNLINKED_HOLD_MILLISECONDS = 2 * 60 * 60 * 1000;
 
 type FrozenCheckoutContract = {
+  referenceVersion: '1' | '2';
   origin: string;
   returnPath: string;
   createdAtUnix: number;
@@ -119,6 +120,7 @@ function readFrozenCheckoutContract(
   }
 
   return {
+    referenceVersion: metadata.ndcc_reference_version === '2' ? '2' : '1',
     origin,
     returnPath,
     createdAtUnix,
@@ -338,6 +340,8 @@ export async function POST(request: Request) {
 
       const attemptMetadata = metadataRecord(attempt.metadata);
       const sessionMetadata = existingSession.metadata || {};
+      const publicAttemptReference = sessionMetadata.ndcc_reference_version === '2'
+        ? String(orderReference) : attempt.payment_reference;
       const checkoutCreatedAtUnix = integerMetadata(sessionMetadata.checkout_created_at_unix);
       const linkedContractValid = Boolean(
         existingSession.url
@@ -347,13 +351,16 @@ export async function POST(request: Request) {
         && existingSession.amount_total === attemptAmountCents
         && existingSession.currency?.toLowerCase() === 'aud'
         && isCanonicalPaymentReference(attempt.payment_reference, paymentCategory)
-        && sessionMetadata.ndcc_reference_version === '1'
-        && sessionMetadata.ndcc_payment_reference === attempt.payment_reference
-        && sessionMetadata.item_number === attempt.payment_reference
+        && (sessionMetadata.ndcc_reference_version === '1'
+          || (sessionMetadata.ndcc_reference_version === '2'
+            && attemptMetadata?.ndcc_reference_version === '2'
+            && sessionMetadata.ndcc_transaction_reference === attempt.payment_reference))
+        && sessionMetadata.ndcc_payment_reference === publicAttemptReference
+        && sessionMetadata.item_number === publicAttemptReference
         && sessionMetadata.ndcc_payment_type === paymentCategory
         && sessionMetadata.ndcc_order_id === order.id
         && sessionMetadata.order_id === order.id
-        && sessionMetadata.payment_reference === attempt.payment_reference
+        && sessionMetadata.payment_reference === publicAttemptReference
         && sessionMetadata.expected_amount_cents === String(attemptAmountCents)
         && sessionMetadata.payment_kind === paymentKind
         && attemptMetadata?.payment_kind === paymentKind
@@ -369,7 +376,7 @@ export async function POST(request: Request) {
         && attemptMetadata?.item_number === attempt.payment_reference
         && integerMetadata(attemptMetadata?.expected_amount_cents) === attemptAmountCents
         && sessionMetadata.checkout_expires_at_unix === String(existingSession.expires_at)
-        && existingSession.client_reference_id === attempt.payment_reference
+        && existingSession.client_reference_id === publicAttemptReference
       );
       if (!linkedContractValid) {
         verificationFailed = true;
@@ -427,7 +434,7 @@ export async function POST(request: Request) {
         success: true,
         checkout_url: reusableAttempt.checkoutUrl,
         amount: validation.amountCents / 100,
-        payment_reference: reusableAttempt.paymentReference,
+        payment_reference: orderReference,
         reused: true,
       });
     }
@@ -440,7 +447,7 @@ export async function POST(request: Request) {
       checkoutContract = reusableUnlinkedAttempt.contract;
     } else {
       paymentReference = await generateUniquePaymentReference(paymentCategory);
-      const reservation = await supabase.rpc('reserve_order_stripe_payment', {
+      const reservation = await supabase.rpc('reserve_order_stripe_payment_v2', {
         target_order_id: order.id,
         target_payment_reference: paymentReference,
         target_amount_cents: validation.amountCents,
@@ -458,6 +465,7 @@ export async function POST(request: Request) {
       }
       reservationId = reserved.payment_id;
       checkoutContract = {
+        referenceVersion: '2',
         origin: siteUrl,
         returnPath,
         createdAtUnix: expiresAtUnix - CHECKOUT_DURATION_SECONDS,
@@ -476,15 +484,18 @@ export async function POST(request: Request) {
       );
     }
     const frozenCategoryLabel = ORDER_CATEGORY_LABELS[checkoutContract.orderCategory] || 'club order';
+    const publicPaymentReference = checkoutContract.referenceVersion === '2'
+      ? checkoutContract.orderReference : paymentReference;
     const paymentMetadata = {
-      ndcc_payment_reference: paymentReference,
+      ...(checkoutContract.referenceVersion === '2' ? { ndcc_transaction_reference: paymentReference } : {}),
+      ndcc_payment_reference: publicPaymentReference,
       ndcc_payment_type: paymentCategory,
       ndcc_order_id: order.id,
-      ndcc_reference_version: '1',
-      item_number: paymentReference,
+      ndcc_reference_version: checkoutContract.referenceVersion,
+      item_number: publicPaymentReference,
       order_id: order.id,
       order_category: orderCategory,
-      payment_reference: paymentReference,
+      payment_reference: publicPaymentReference,
       payment_kind: paymentKind,
       expected_amount_cents: String(validation.amountCents),
       checkout_contract_version: '1',
@@ -498,15 +509,15 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create(
       {
         mode: 'payment',
-        client_reference_id: paymentReference,
+        client_reference_id: publicPaymentReference,
         line_items: [
           {
             price_data: {
               currency: 'aud',
               product_data: {
                 name: validation.isPartial
-                  ? `Part payment - ${paymentReference}`
-                  : `Payment - ${paymentReference}`,
+                  ? `Part payment - ${publicPaymentReference}`
+                  : `Payment - ${publicPaymentReference}`,
                 description: `Newcomb & District Cricket Club ${frozenCategoryLabel}; order ${checkoutContract.orderReference}`,
               },
               unit_amount: validation.amountCents,
@@ -524,7 +535,7 @@ export async function POST(request: Request) {
         ...(checkoutContract.customerEmail ? { customer_email: checkoutContract.customerEmail } : {}),
         metadata: paymentMetadata,
         payment_intent_data: {
-          description: `${paymentReference} - NDCC ${frozenCategoryLabel}`,
+          description: `${publicPaymentReference} - NDCC ${frozenCategoryLabel}`,
           metadata: paymentMetadata,
         },
       },
@@ -533,16 +544,18 @@ export async function POST(request: Request) {
 
     // Stripe may return an earlier Session for the same idempotency key. Its
     // metadata, not the newly reserved sequence value, is authoritative.
-    const sessionPaymentReference = session.metadata?.ndcc_payment_reference;
+    const sessionPaymentReference = checkoutContract.referenceVersion === '2'
+      ? session.metadata?.ndcc_transaction_reference : session.metadata?.ndcc_payment_reference;
     const sessionCreatedAtUnix = integerMetadata(session.metadata?.checkout_created_at_unix);
     const returnedContractInvalid = !isCanonicalPaymentReference(sessionPaymentReference, paymentCategory)
       || sessionPaymentReference !== paymentReference
-      || session.metadata?.item_number !== paymentReference
-      || session.metadata?.ndcc_reference_version !== '1'
+      || session.metadata?.ndcc_payment_reference !== publicPaymentReference
+      || session.metadata?.item_number !== publicPaymentReference
+      || session.metadata?.ndcc_reference_version !== checkoutContract.referenceVersion
       || session.metadata?.ndcc_payment_type !== paymentCategory
       || session.metadata?.ndcc_order_id !== order.id
       || session.metadata?.order_id !== order.id
-      || session.metadata?.payment_reference !== paymentReference
+      || session.metadata?.payment_reference !== publicPaymentReference
       || session.metadata?.payment_kind !== paymentKind
       || session.metadata?.expected_amount_cents !== String(validation.amountCents)
       || session.metadata?.order_category !== orderCategory
@@ -551,7 +564,7 @@ export async function POST(request: Request) {
       || session.expires_at - sessionCreatedAtUnix !== CHECKOUT_DURATION_SECONDS
       || session.metadata?.checkout_created_at_unix !== String(checkoutContract.createdAtUnix)
       || session.metadata?.checkout_expires_at_unix !== String(session.expires_at)
-      || session.client_reference_id !== paymentReference
+      || session.client_reference_id !== publicPaymentReference
       || session.amount_total !== validation.amountCents
       || session.currency?.toLowerCase() !== 'aud'
       || session.mode !== 'payment';
@@ -617,6 +630,8 @@ export async function POST(request: Request) {
         recorded_by: 'stripe-checkout',
         metadata: {
           ...paymentMetadata,
+          payment_reference: paymentReference,
+          item_number: paymentReference,
           checkout_origin: checkoutContract.origin,
           checkout_return_path: checkoutContract.returnPath,
           checkout_customer_email: checkoutContract.customerEmail,
@@ -683,10 +698,11 @@ export async function POST(request: Request) {
       success: true,
       checkout_url: session.url,
       amount: validation.amountCents / 100,
-      payment_reference: paymentReference,
+      payment_reference: publicPaymentReference,
     });
   } catch (err) {
     console.error('Checkout-session route error:', err);
     return NextResponse.json({ success: false, error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }
+

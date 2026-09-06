@@ -4,7 +4,8 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
-import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
+import { receiptRecipients } from '@/lib/payments/receipt-recipients';
+import { getStaffOrderRecipients } from '@/lib/order-notification-content';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 import {
   PUBLIC_ORDER_LIMITS,
@@ -285,15 +286,13 @@ export async function POST(request: Request) {
         );
       })
       .join('');
-    void sendEmail({
-      to: sanitiseInput(customer_email),
+    if (payment_method === 'bank_transfer') await sendEmail({
+      ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('apparel')),
       subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(sanitiseInput(customer_name))},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">${payment_method === 'stripe'
-          ? 'Your order has been received. Continue to Stripe Checkout to complete payment.'
-          : 'Your order has been received. Please complete payment using the bank transfer details below.'}</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Your order has been received. Please complete payment using the bank transfer details below.</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <thead>
             <tr style="background:#f9fafb;">
@@ -315,17 +314,11 @@ export async function POST(request: Request) {
           : personalisationRequested
             ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The surname entered has been recorded for club review.</div>`
             : ''}
-        ${payment_method === 'stripe' ? '' : bankDetailsHtml(paymentReference, serverTotal)}
+        ${bankDetailsHtml(paymentReference, serverTotal)}
         <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
 
-    if (payment_method !== 'stripe') {
-      const staffNotification = await sendStaffOrderNotificationForOrder(supabase, data.id, 'created');
-      if (staffNotification.status === 'failed') {
-        console.error('Apparel staff order notification failed:', staffNotification.reason);
-      }
-    }
 
     return NextResponse.json({
       success: true,
@@ -351,3 +344,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

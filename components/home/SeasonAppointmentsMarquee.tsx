@@ -121,7 +121,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
                         style={{ background: 'linear-gradient(to top, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.18) 55%, transparent 100%)' }}
                       />
                       <div className="absolute bottom-0 left-0 right-0 p-4 transition-transform duration-300 group-hover:-translate-y-1">
-                        <p className="text-[10.5px] font-bold tracking-[0.12em] uppercase text-sky_accent mb-1">
+                        <p className="text-xs font-bold tracking-[0.12em] uppercase text-sky_accent mb-1">
                           {appointment.role}
                         </p>
                         <p className="font-display text-lg font-bold uppercase leading-tight text-white">

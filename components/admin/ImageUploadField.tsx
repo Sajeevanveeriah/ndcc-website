@@ -192,7 +192,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
                 onError={() => setPreviewFailed(true)}
               />
             ) : (
-              <div className="h-full w-full flex items-center justify-center px-2 text-center text-[10px] text-content-muted">
+              <div className="h-full w-full flex items-center justify-center px-2 text-center text-xs text-content-muted">
                 Preview unavailable
               </div>
             )}

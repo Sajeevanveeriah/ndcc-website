@@ -11,8 +11,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
-import HeroParallax from '@/components/common/motion/HeroParallax';
-import MaskReveal from '@/components/common/motion/MaskReveal';
 import TiltCard from '@/components/common/motion/TiltCard';
 import Card, { CardContent } from '@/components/ui/Card';
 import type { LucideIcon } from 'lucide-react';
@@ -84,102 +82,26 @@ function HeroView({
   ctaUrl: string;
 }) {
   return (
-    // Compact cinematic hero. The section pulls itself up under the fixed
-    // navigation (-mt cancels the layout's nav offset) so the homepage nav can
-    // sit transparent over the imagery at the top of the page.
-    <section className="relative -mt-24 flex min-h-[clamp(34rem,68svh,42rem)] flex-col overflow-hidden text-white lg:-mt-28">
-      {/* Scroll-linked depth: the image settles on load and drifts ≤40px as the
-          hero leaves the viewport, while the scrims and ambient layers below
-          stay fixed — two planes moving at different rates. */}
-      <HeroParallax>
-        <Image
-          src="/images/Turf_Ground.jpg"
-          alt="Grinter Reserve at dusk, home of the Newcomb and District Cricket Club"
-          fill
-          className="object-cover"
-          priority
-        />
-      </HeroParallax>
-      {/* Layered maroon -> navy -> near-black cinematic scrim. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(160deg, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.55) 42%, rgba(8,13,22,0.35) 72%, rgba(8,13,22,0.15) 100%)',
-        }}
-      />
-      <div
-        className="absolute inset-x-0 bottom-0 h-2/5"
-        style={{ background: 'linear-gradient(to top, rgba(8,13,22,0.9) 0%, transparent 100%)' }}
-        aria-hidden="true"
-      />
-      {/* Abstract cricket-seam geometry: two dashed stitch arcs, desktop only. */}
-      <svg
-        className="hero-ambient absolute -right-40 top-1/2 hidden h-[130%] w-auto -translate-y-1/2 lg:block"
-        viewBox="0 0 600 900"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle cx="520" cy="450" r="400" stroke="rgba(212,160,23,0.14)" strokeWidth="1.5" />
-        <circle cx="520" cy="450" r="368" stroke="rgba(212,160,23,0.20)" strokeWidth="2" strokeDasharray="2 14" strokeLinecap="round" />
-        <circle cx="520" cy="450" r="432" stroke="rgba(212,160,23,0.16)" strokeWidth="2" strokeDasharray="2 14" strokeLinecap="round" />
-      </svg>
-      {/* Ambient light layers become visible after the image settles. */}
-      <div
-        className="hero-ambient absolute inset-0"
-        style={{ background: 'radial-gradient(900px 480px at 22% 38%, rgba(212,160,23,0.12), transparent 65%)' }}
-        aria-hidden="true"
-      />
-      <div
-        className="hero-ambient absolute inset-0"
-        style={{ background: 'radial-gradient(700px 420px at 85% 12%, rgba(22,40,69,0.35), transparent 70%)' }}
-        aria-hidden="true"
-      />
-      {/* Mobile crops put more sky behind the title; deepen the scrim so copy always sits on a dark patch. */}
-      <div className="absolute inset-0 sm:hidden bg-maroon-950/30" aria-hidden="true" />
-      <div className="container-width relative z-10 flex flex-1 items-center px-4 pb-12 pt-28 sm:items-end sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pt-36">
-        <div className="w-full text-center sm:text-left">
-          <ScrollReveal onMount delay={0.2} duration={0.8}>
-            <span className="eyebrow-gold">
-              Est. {CLUB_ESTABLISHED} &middot; {CLUB_ASSOCIATION}
-            </span>
-          </ScrollReveal>
-          <h1 className="font-display font-bold uppercase leading-[0.95] tracking-tight">
-            <MaskReveal delay={0.35}>
-              <span className="block text-4xl sm:text-5xl lg:text-6xl">{title}</span>
-            </MaskReveal>
-            <MaskReveal delay={0.5}>
-              <span className="mt-2 block text-2xl italic text-gold-200/90 sm:text-3xl lg:text-4xl">
-                Home of the {CLUB_NICKNAME}
-              </span>
-            </MaskReveal>
-          </h1>
-          <ScrollReveal onMount delay={0.7} duration={0.8}>
-            <p className="mx-auto mb-6 mt-4 max-w-2xl font-body text-base text-maroon-100 sm:mx-0 sm:text-xl">
-              {body}
-            </p>
-          </ScrollReveal>
-          <ScrollReveal onMount delay={0.85} duration={0.8}>
-            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-              <Link href={ctaUrl} className="btn-primary rounded-full px-7 py-3 text-base">
-                {ctaLabel}
-              </Link>
-              <Link href="/fixtures" className="btn-outline-white rounded-full px-7 py-3 text-base">
-                View Fixtures
-              </Link>
-            </div>
-          </ScrollReveal>
+    <section className="club-home-hero" aria-labelledby="home-title">
+      <div className="container-width grid lg:grid-cols-[1.05fr_1fr]">
+        <div className="club-home-copy">
+          <p className="club-kicker">Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
+          <h1 id="home-title" className="club-home-title">{title}</h1>
+          <p className="mt-4 font-display text-3xl font-semibold text-maroon-700 dark:text-sky_accent">Home of the {CLUB_NICKNAME}.</p>
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-content-secondary">{body}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href={ctaUrl} className="btn-primary">{ctaLabel}</Link>
+            <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
+          </div>
+          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 border-t border-edge-strong pt-5 text-base font-semibold">
+            <Link href="/calendar" className="club-text-link">Club calendar <span aria-hidden="true">↗</span></Link>
+            <Link href="/merchandise" className="club-text-link">Wear the colours <span aria-hidden="true">↗</span></Link>
+          </div>
         </div>
-      </div>
-      {/* Scroll indicator appears last in the sequence. Decorative, desktop only. */}
-      <div
-        className="hero-scroll-hint pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex"
-        aria-hidden="true"
-      >
-        <span className="font-body text-[10px] font-semibold uppercase tracking-[0.3em] text-white/60">Scroll</span>
-        <span className="flex h-9 w-5 items-start justify-center rounded-full border border-white/30 p-1.5">
-          <span className="hero-scroll-hint-wheel h-1.5 w-1.5 rounded-full bg-gold-300/80" />
-        </span>
+        <figure className="club-home-photo">
+          <Image src="/images/Turf_Ground.jpg" alt="Grinter Reserve, home of Newcomb and District Cricket Club" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" priority />
+          <figcaption className="club-ground-caption"><span className="font-display text-2xl font-semibold">Our home ground.</span><span className="text-base">Grinter Reserve, Moolap</span></figcaption>
+        </figure>
       </div>
     </section>
   );
