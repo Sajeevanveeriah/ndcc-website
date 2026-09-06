@@ -317,7 +317,7 @@
 
   /* Sponsor marquee caption beneath each logo chip. */
   .sponsor-caption {
-    @apply mt-2 block w-56 truncate text-center font-body text-xs font-semibold text-content-muted;
+    @apply mt-3 block w-60 text-center font-body text-xs font-medium leading-snug text-content-muted;
   }
 
   /* ---- Cinematic layer (additive) ------------------------------------- */
@@ -480,7 +480,7 @@ body.marquee-page-hidden .homepage-marquee-track {
   .club-home-hero { @apply border-b border-edge-strong bg-surface-page; }
   .club-home-copy { @apply px-5 py-10 sm:px-8 sm:py-14 lg:py-16 lg:pr-12; }
   .club-kicker { @apply text-sm font-semibold tracking-wide text-maroon-700 dark:text-sky_accent; }
-  .club-home-title { font-size: clamp(2.8rem, 4.8vw, 4.9rem); line-height: 1.03; letter-spacing: -.025em; text-wrap: balance; @apply mt-5 font-display font-bold text-maroon-800 dark:text-content-primary; }
+  .club-home-title { font-size: clamp(2.5rem, 4.2vw, 4rem); line-height: 1.08; letter-spacing: -.045em; text-wrap: balance; @apply mt-5 font-display font-semibold text-maroon-800 dark:text-content-primary; }
   .club-home-photo { @apply relative m-0 min-h-72 overflow-hidden border-t-4 border-sky_accent lg:min-h-full lg:border-l-4 lg:border-t-0; }
   .club-ground-caption { @apply absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-2 bg-maroon-800 px-6 py-5 text-white; }
   .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-200 underline-offset-8 transition-colors hover:decoration-maroon-700 dark:text-sky_accent; }
@@ -493,8 +493,8 @@ body.marquee-page-hidden .homepage-marquee-track {
   .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-lg border border-maroon-950 bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-lg; }
   .page-hero { background: rgb(var(--brand-maroon-surface)); border-bottom: 5px solid #ADD8E6; }
   .page-hero::after { background-image: none; }
-  .page-hero-title { font-size: clamp(2.5rem, 4.5vw, 4rem); line-height: 1.1; letter-spacing: -.01em; text-transform: none; }
-  .section-title { letter-spacing: -.01em; text-transform: none; }
+  .page-hero-title { font-size: clamp(2.4rem, 4.5vw, 4rem); line-height: 1.1; letter-spacing: -.04em; text-transform: none; text-wrap: balance; }
+  .section-title { letter-spacing: -.035em; line-height: 1.2; text-transform: none; text-wrap: balance; }
   .page-hero-subtitle { @apply text-lg leading-relaxed text-white; }
   .form-input { min-height: 48px; }
   .card-hover { transform: none; }
@@ -503,6 +503,20 @@ body.marquee-page-hidden .homepage-marquee-track {
   .prose p, .prose li { font-size: 1rem; }
   .prose a { text-decoration: underline; text-underline-offset: 3px; }
   button, a, input, select, textarea { scroll-margin-top: 8rem; }
+  .btn-primary, .btn-secondary, .btn-accent, .btn-outline-white { border-radius: 999px; }
+  .btn-secondary { border-width: 1px; }
+  .page-hero { padding-top: clamp(3rem, 6vw, 5rem); padding-bottom: clamp(3rem, 6vw, 5rem); }
+  .band-maroon { background: rgb(var(--brand-maroon-surface)); box-shadow: none; border-block: 1px solid rgb(var(--border-blue)); }
+  .band-maroon::after { background: none; }
+  .surface-panel { background: rgb(var(--surface-card)); box-shadow: none; }
+  .card-hover-sponsor { border-radius: 1.25rem; box-shadow: none; }
+  .card-hover-sponsor:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -18px rgb(var(--brand-maroon-surface) / .35); --tw-ring-shadow: 0 0 #0000; }
+  .sponsor-introduction { @apply grid items-start gap-5 md:grid-cols-[1fr_2fr] md:gap-16; }
+  .sponsor-introduction .section-title { @apply text-3xl; }
+  .sponsor-introduction p { max-width: 48rem; }
+  .sponsor-gallery { align-items: stretch; }
+  .sponsor-gallery > li { min-width: 0; }
+  .sponsor-gallery h3 { letter-spacing: -.025em; line-height: 1.4; }
   @media (prefers-reduced-motion: no-preference) {
     .club-home-photo img { animation: club-photo-enter 600ms ease-out both; }
     @keyframes club-photo-enter { from { opacity: .6; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }

@@ -202,7 +202,7 @@ export default function SponsorsPage() {
       {/* Intro */}
       <section id="current-sponsors" className="section-padding bg-surface-page scroll-mt-28">
         <div className="container-width">
-          <ScrollReveal className="max-w-3xl mx-auto text-center">
+          <ScrollReveal className="sponsor-introduction">
             <h2 className="section-title">{introTitle}</h2>
             <p className="text-content-muted font-body text-lg leading-relaxed">
               {introBody}
@@ -244,7 +244,7 @@ export default function SponsorsPage() {
                 <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
                 <h2 className="section-title mb-0">Sponsors A-Z</h2>
               </div>
-              <ScrollReveal stagger as="ul" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <ScrollReveal stagger as="ul" className="sponsor-gallery grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {sortedSponsors.map((sponsor) => {
                   const description = getSponsorDescription(sponsor);
                   const logoFallback = (
@@ -259,26 +259,26 @@ export default function SponsorsPage() {
                       href={sponsor.website || undefined}
                       target={sponsor.website ? '_blank' : undefined}
                       rel={sponsor.website ? 'noopener noreferrer' : undefined}
-                      className="block group"
+                      className="block group h-full rounded-2xl focus-ring"
                     >
                       <div className="card-hover-sponsor h-full">
-                        <CardContent className="p-5">
+                        <CardContent className="p-5 sm:p-6">
                           <LogoChip
                             name={sponsor.name}
                             src={sponsor.logo_url}
                             surfaceMode={sponsor.logo_surface_mode}
                             paddingClassName={sponsor.logo_padding}
                             objectPosition={sponsor.logo_object_position}
-                            width={220}
-                            height={96}
-                            sizes="220px"
-                            className="mb-3 h-24 rounded-xl ring-1 ring-maroon-100"
-                            imageClassName="max-h-16 max-w-[85%] w-auto drop-shadow-sm"
+                            width={640}
+                            height={320}
+                            sizes="(max-width: 639px) 90vw, (max-width: 1023px) 44vw, 380px"
+                            className="mb-5 h-48 rounded-xl"
+                            imageClassName="max-h-full max-w-full w-auto h-auto"
                             fallback={logoFallback}
                           />
                           {/* Name caption beneath the logo so a low-contrast or missing logo still
                               shows an identifiable, non-empty card. */}
-                          <h3 className="font-display font-bold text-content-primary text-lg group-hover:text-maroon-700 transition-colors mb-2">
+                          <h3 className="font-display font-semibold text-content-primary text-lg group-hover:text-maroon-700 dark:group-hover:text-maroon-200 transition-colors mb-2">
                             {sponsor.name}
                           </h3>
                           {description && (
@@ -304,7 +304,7 @@ export default function SponsorsPage() {
                         <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
                           <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 dark:bg-maroon-950 text-2xl font-bold text-maroon-700 dark:text-maroon-200 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
                           <h3 className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200">Become a Sponsor</h3>
-                          <p className="mt-1 font-body text-sm text-content-muted">Partner with the Dinos — enquire below.</p>
+                          <p className="mt-1 font-body text-sm text-content-muted">Partner with the Dinos. Enquire below.</p>
                         </CardContent>
                       </Card>
                     </Link>
