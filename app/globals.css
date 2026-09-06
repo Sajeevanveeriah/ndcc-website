@@ -488,6 +488,7 @@ body.marquee-page-hidden .homepage-marquee-track {
   .club-disclosure > summary { @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary; }
   .club-disclosure[open] > summary { @apply border-b border-edge-subtle; }
   .club-disclosure > summary::marker { color: rgb(var(--action-secondary)); }
+  .product-options button { min-height: 44px; min-width: 44px; }
   .club-disclosure .product-options { @apply space-y-5 p-4; }
   .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-lg border border-maroon-950 bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-lg; }
   .page-hero { background: rgb(var(--brand-maroon-surface)); border-bottom: 5px solid #ADD8E6; }

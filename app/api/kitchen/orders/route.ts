@@ -5,7 +5,8 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
-import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
+import { receiptRecipients } from '@/lib/payments/receipt-recipients';
+import { getStaffOrderRecipients } from '@/lib/order-notification-content';
 import {
   PUBLIC_ORDER_LIMITS,
   audAmountToCents,
@@ -161,7 +162,7 @@ export async function POST(request: Request) {
     )
     .join('');
   if (rawBody.value.payment_method === 'bank_transfer') await sendEmail({
-    to: sanitiseInput(customer_email),
+    ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('kitchen')),
     subject: `Kitchen order confirmed - Ref ${paymentReference} | NDCC Dinos`,
     html: emailHtml(
       'Kitchen Order Confirmation',
@@ -188,13 +189,6 @@ export async function POST(request: Request) {
     ),
   });
 
-  if (rawBody.value.payment_method === 'bank_transfer') {
-  const staffNotification = await sendStaffOrderNotificationForOrder(supabase, linkedOrder.id, 'created');
-  if (staffNotification.status === 'failed') {
-    console.error('Kitchen staff order notification failed:', staffNotification.reason);
-  }
-
-  }
   return NextResponse.json({
     success: true,
     order_id: linkedOrder.id,

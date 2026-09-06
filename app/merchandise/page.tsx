@@ -596,7 +596,7 @@ function MerchandiseContent() {
             </div>
           )}
           {productsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
+            <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i}>
                   <div className="h-36 bg-gray-200 animate-pulse" />
@@ -621,7 +621,7 @@ function MerchandiseContent() {
             </Card>
             )
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6">
             {!windowState.processing_open && (
               <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
                 Orders are currently outside the active merch window.
@@ -629,9 +629,9 @@ function MerchandiseContent() {
               </div>
             )}
             {Object.entries(groupedProducts).map(([category, productsInCategory]) => (
-              <div key={category} className="md:col-span-2 lg:col-span-3 xl:col-span-4">
+              <div key={category} className="md:col-span-2 lg:col-span-3">
                 <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-3">{category}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {productsInCategory.map((product) => {
                   const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
                   const iconData = PRODUCT_ICONS[product.id];
@@ -886,7 +886,7 @@ function MerchandiseContent() {
         </div>
       </section>
 
-      {cart.length > 0 && <a href="#order-summary" className="club-basket-link">Review order <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} items</span></a>}
+      {cart.length > 0 && <a href="#order-summary" className="club-basket-link">Review order <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} {cart.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'}</span></a>}
       {/* Order Summary & Form */}
       <section id="order-summary" className="section-padding bg-surface-page scroll-mt-32" aria-label="Order summary and checkout">
         <div className="container-width max-w-3xl mx-auto">
@@ -1215,7 +1215,7 @@ function MerchandiseContent() {
                         : 'After submission you will receive a payment reference for bank transfer.'}
                     </p>
                     <p className="text-content-muted font-body text-xs text-center">
-                      Example reference format: NDCC-YYYYMMDD-1234
+                      Order reference format: NDCCMER-YYYY-000001
                     </p>
                   </form>
                 </CardContent>

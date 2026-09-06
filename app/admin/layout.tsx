@@ -235,7 +235,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-28 lg:self-start lg:h-[calc(100vh-7rem)] bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href={getDefaultAdminHref(user)} className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
-          <p className="text-[10.5px] uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>
         </div>
         <div className="px-3 pt-4">
           <label className="relative block">
@@ -255,7 +255,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto" aria-label="Grouped admin navigation">
           {groupedLinks.map((group) => (
             <section key={group.title} aria-labelledby={`admin-nav-${group.title.toLowerCase()}`}>
-              <h2 id={`admin-nav-${group.title.toLowerCase()}`} className="mb-1 flex items-center gap-2 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-gold-200"><group.icon className="h-3.5 w-3.5" />{group.title}</h2>
+              <h2 id={`admin-nav-${group.title.toLowerCase()}`} className="mb-1 flex items-center gap-2 px-3 text-xs font-bold uppercase tracking-[0.14em] text-gold-200"><group.icon className="h-3.5 w-3.5" />{group.title}</h2>
               <div className="space-y-1">
                 {group.links.map((link) => {
                   const isActive = pathname === link.href || (link.href !== '/admin' && pathname.startsWith(`${link.href}/`));

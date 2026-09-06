@@ -4,7 +4,8 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
-import { sendStaffOrderNotificationForOrder } from '@/lib/order-notifications';
+import { receiptRecipients } from '@/lib/payments/receipt-recipients';
+import { getStaffOrderRecipients } from '@/lib/order-notification-content';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 import {
   PUBLIC_ORDER_LIMITS,
@@ -286,7 +287,7 @@ export async function POST(request: Request) {
       })
       .join('');
     if (payment_method === 'bank_transfer') await sendEmail({
-      to: sanitiseInput(customer_email),
+      ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('apparel')),
       subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',
@@ -318,12 +319,6 @@ export async function POST(request: Request) {
       ),
     });
 
-    if (payment_method !== 'stripe') {
-      const staffNotification = await sendStaffOrderNotificationForOrder(supabase, data.id, 'created');
-      if (staffNotification.status === 'failed') {
-        console.error('Apparel staff order notification failed:', staffNotification.reason);
-      }
-    }
 
     return NextResponse.json({
       success: true,
