@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LazyMotion, domAnimation, m, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown, UserRound } from 'lucide-react';
 import { NAV_LINKS } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
@@ -270,7 +270,7 @@ export default function Navbar() {
         </div>
       </div>
       <div className="container-width px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-[4.75rem]">
+        <div className="flex items-center justify-between gap-4 h-16 lg:h-[4.75rem]">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0" aria-label={`${settings.club_short} Home`}>
             <Image
@@ -281,7 +281,7 @@ export default function Navbar() {
               className="rounded-full"
               priority
             />
-            <div className="hidden sm:flex xl:hidden 2xl:flex flex-col">
+            <div className="hidden sm:flex xl:hidden flex-col">
               <span className={cn('font-display font-semibold uppercase tracking-wide text-lg leading-none block', transparent ? 'text-white' : 'text-maroon-700 dark:text-maroon-200')}>
                 {settings.club_short}
               </span>
@@ -292,13 +292,13 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden xl:flex items-center gap-0.5">
+          <div className="hidden xl:flex shrink-0 items-center gap-1">
             {navGroups.map((group) => group.href ? (
               <Link
                 key={`${group.href}-${group.label}`}
                 href={group.href}
                 className={cn(
-                  'px-3 py-2 text-sm font-body font-medium transition-colors rounded-lg focus-ring',
+                  'whitespace-nowrap px-2 py-1.5 text-sm font-body font-medium transition-colors rounded-md focus-ring',
                   pathname === group.href
                     ? transparent
                       ? "relative text-white font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-gold-300 after:content-['']"
@@ -323,7 +323,7 @@ export default function Navbar() {
                   aria-expanded={openGroup === group.label}
                   onClick={() => setOpenGroup((open) => (open === group.label ? null : group.label))}
                   className={cn(
-                    'flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring',
+                    'flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-1.5 text-sm font-body font-medium rounded-md transition-colors focus-ring',
                     // A group whose child route is active reads as active too,
                     // matching the top-level link treatment (hash links share
                     // their base pathname, e.g. /about#history).
@@ -355,7 +355,7 @@ export default function Navbar() {
 
             {sessionUser && (
               <div
-                className="relative group ml-2"
+                className="relative group ml-1"
                 onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setAccountOpen(false); }}
                 onKeyDown={(e) => { if (e.key === 'Escape') setAccountOpen(false); }}
               >
@@ -364,9 +364,11 @@ export default function Navbar() {
                   aria-haspopup="menu"
                   aria-expanded={accountOpen}
                   onClick={() => setAccountOpen((open) => !open)}
-                  className={cn('flex items-center gap-1 px-3 py-2 text-sm font-body font-medium rounded-lg transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
+                  aria-label={`Account: ${sessionUser.full_name}`}
+                  title={sessionUser.full_name}
+                  className={cn('flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
                 >
-                  {sessionUser.full_name} <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180', accountOpen && 'rotate-180')} aria-hidden="true" />
+                  <UserRound className="h-4 w-4" aria-hidden="true" />
                 </button>
                 <div className={cn(
                   'absolute right-0 top-full pt-1 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0',
@@ -383,18 +385,20 @@ export default function Navbar() {
               </div>
             )}
 
-            <ThemeToggle className="ml-3" />
+            <ThemeToggle className="ml-1 shrink-0" />
 
             {/* Seasonal registration replaces the existing CTA slot when published. */}
             <Link
               href={registrationNavigation?.href || '/join'}
               className={cn(
-                'ml-2 inline-flex min-h-11 max-w-[180px] items-center justify-center rounded-lg bg-maroon-700 px-3 py-2 text-center text-sm font-semibold leading-tight text-white transition-colors hover:bg-maroon-800 focus-ring',
+                'ml-1 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-maroon-700 px-3 text-center text-sm font-semibold leading-none text-white transition-colors hover:bg-maroon-800 focus-ring',
                 pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
               )}
+              aria-label={registrationNavigation?.label || 'Join the Club'}
+              title={registrationNavigation?.label || 'Join the Club'}
               aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
             >
-              {registrationNavigation?.label || 'Join the Club'}
+              {registrationNavigation ? 'Register' : 'Join the Club'}
             </Link>
           </div>
 
