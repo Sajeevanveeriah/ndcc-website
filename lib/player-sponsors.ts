@@ -72,5 +72,5 @@ export function groupPlayerSponsors(rows: PlayerSponsor[]) {
       if (!group.player_image_url && row.player_image_url) group.player_image_url = row.player_image_url;
     } else groups.set(key, { key, player_name: name, player_image_url: row.player_image_url, sponsors: [row] });
   }
-  return [...groups.values()];
+  return [...groups.values()].sort((a, b) => a.player_name.localeCompare(b.player_name, 'en-AU', { sensitivity: 'base', numeric: true }));
 }
