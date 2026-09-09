@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
-import { type PlayerSponsor, normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
+import { type PlayerSponsor, groupPlayerSponsors, normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
@@ -48,21 +48,30 @@ export default function PlayerSponsorsPage() {
   return <div>
     <Link href="/admin/sponsors" className="text-sm underline">Back to sponsors</Link>
     <div className="my-6 flex flex-wrap items-center justify-between gap-4">
-      <div><h1 className="font-display text-2xl font-bold">Player sponsors</h1><p className="mt-2 text-content-muted">Manage the player partnerships on the Player Sponsors page. Hide an entry to remove it from public view.</p></div>
+      <div><h1 className="font-display text-2xl font-bold">Player sponsors</h1><p className="mt-2 text-content-muted">Add each sponsor separately under the same player name. All visible sponsors appear together on one player card. Hide an entry to remove only that sponsor from public view.</p></div>
       <Button onClick={() => { setId(null); setForm(empty); setError(''); setOpen(true); }}>Add player sponsor</Button>
     </div>
     {!open && error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
     {message && <p role="status" className="mb-4 text-content-primary">{message}</p>}
     {loading ? <p role="status">Loading player sponsors...</p> : rows.length === 0 ? <p>No player sponsors added yet.</p> : <ul className="divide-y divide-edge-subtle">
-      {rows.map((row) => <li key={row.id} className="flex flex-wrap items-center justify-between gap-4 py-4">
-        <div><h2 className="font-semibold break-words">{row.player_name}</h2><p className="text-content-muted break-words">{row.sponsor_name} - {row.active ? 'Visible' : 'Hidden'} - Order {row.sort_order}</p></div>
-        <Button variant="secondary" aria-label={`Edit sponsor for ${row.player_name}`} onClick={() => { setId(row.id); setForm({ player_name: row.player_name, sponsor_name: row.sponsor_name, player_image_url: row.player_image_url, logo_url: row.logo_url, website: row.website, sort_order: row.sort_order, active: row.active }); setError(''); setOpen(true); }}>Edit</Button>
+      {groupPlayerSponsors(rows).map((player) => <li key={player.key} className="py-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 className="font-semibold break-words">{player.player_name}</h2><p className="text-sm text-content-muted">{player.sponsors.length} {player.sponsors.length === 1 ? 'sponsor' : 'sponsors'}</p></div>
+          <Button variant="secondary" aria-label={`Add another sponsor for ${player.player_name}`} onClick={() => { setId(null); setForm({ ...empty, player_name: player.player_name, player_image_url: player.player_image_url, sort_order: player.sponsors[0].sort_order }); setError(''); setOpen(true); }}>Add another sponsor</Button>
+        </div>
+        <ul className="mt-3 space-y-3" aria-label={`Sponsors of ${player.player_name}`}>
+          {player.sponsors.map((row) => <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded border border-edge-subtle p-3">
+            <p className="text-content-muted break-words">{row.sponsor_name} - {row.active ? 'Visible' : 'Hidden'} - Order {row.sort_order}</p>
+            <Button variant="secondary" aria-label={`Edit ${row.sponsor_name} for ${row.player_name}`} onClick={() => { setId(row.id); setForm({ player_name: row.player_name, sponsor_name: row.sponsor_name, player_image_url: row.player_image_url, logo_url: row.logo_url, website: row.website, sort_order: row.sort_order, active: row.active }); setError(''); setOpen(true); }}>Edit</Button>
+          </li>)}
+        </ul>
       </li>)}
     </ul>}
     <Modal isOpen={open} onClose={() => { if (!busy && !uploading) setOpen(false); }} title={id ? 'Edit player sponsor' : 'Add player sponsor'} size="lg">
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void save(); }}>
         {error && <p role="alert" className="text-red-600">{error}</p>}
-        <Input id="player-name" label="Player name" required maxLength={160} value={form.player_name} onChange={(event) => setForm({ ...form, player_name: event.target.value })} />
+        <Input id="player-name" list="existing-player-names" label="Player name" required maxLength={160} value={form.player_name} onChange={(event) => setForm({ ...form, player_name: event.target.value })} />
+        <datalist id="existing-player-names">{groupPlayerSponsors(rows).map((player) => <option key={player.key} value={player.player_name} />)}</datalist>
         <ImageUploadField id="player-photo" onUploadingChange={setPhotoUploading} label="Player photo (optional)" value={form.player_image_url} onChange={(value) => setForm((current) => ({ ...current, player_image_url: value }))} />
         <Input id="player-sponsor-name" label="Sponsor name" required maxLength={160} value={form.sponsor_name} onChange={(event) => setForm({ ...form, sponsor_name: event.target.value })} />
         <ImageUploadField id="player-sponsor-logo" onUploadingChange={setLogoUploading} label="Sponsor logo" value={form.logo_url} onChange={(value) => setForm((current) => ({ ...current, logo_url: value }))} helpText="Upload the sponsor's approved logo. Without a logo, the sponsor name is displayed." />
