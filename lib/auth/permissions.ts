@@ -150,6 +150,7 @@ export const RESOURCE_PERMISSIONS: Readonly<Record<string, PermissionKey>> = {
   fantasyRounds: 'fantasy.home',
   fantasyScoringRules: 'fantasy.home',
   sponsors: 'sponsors',
+  playerSponsors: 'sponsors',
   membershipPlans: 'memberships',
   membershipAddons: 'memberships',
   membershipApplications: 'memberships',

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { formatDate } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
@@ -213,6 +214,8 @@ export default function AdminSponsorsPage() {
       {feedback && (
         <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
       )}
+
+      <Link href="/admin/sponsors/players" className="btn-secondary mb-6 inline-flex">Manage player sponsors</Link>
 
       <BatchActionsBar
         selectedCount={selectedIds.length}

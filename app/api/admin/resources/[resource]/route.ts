@@ -1,3 +1,4 @@
+import { validatePlayerSponsor } from '@/lib/player-sponsors';
 import { NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
@@ -46,6 +47,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   fantasyPlayers: { table: 'fantasy_players', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['display_name', 'playhq_player_id', 'role', 'team_label', 'active'], defaultOrder: { column: 'display_name', ascending: true }, allowDelete: false },
   fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['round_number', 'name', 'deadline_at', 'status', 'season_id'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
   fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
+  playerSponsors: { table: 'player_sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['player_name', 'player_image_url', 'sponsor_name', 'logo_url', 'website', 'sort_order', 'active'], defaultOrder: { column: 'sort_order', ascending: true }, validate: validatePlayerSponsor },
   sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
@@ -116,6 +118,7 @@ const revalidationPaths: Record<string, string[]> = {
   news: ['/', '/news'],
   publications: ['/', '/publications', '/newsletters', '/match-reports'],
   sponsors: ['/', '/sponsors'],
+  playerSponsors: ['/player-sponsors'],
   galleryImages: ['/', '/gallery'],
   kitchenMenus: ['/kitchen'],
   kitchenItems: ['/kitchen'],
