@@ -11,6 +11,18 @@ export type PlayerSponsor = {
   active: boolean;
 };
 
+/** Sponsor destinations may use HTTP; image sources retain the HTTPS-only policy. */
+export function normaliseSponsorWebsite(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const candidate = value.trim();
+  if (/^http:\/\//i.test(candidate)) {
+    // Reuse all existing URL safety checks, then restore the supplied protocol.
+    const validated = normalisePublicLinkUrl(candidate.replace(/^http:/i, 'https:'));
+    return validated ? validated.replace(/^https:/, 'http:') : null;
+  }
+  return normalisePublicLinkUrl(value);
+}
+
 /** Normalise optional CMS values consistently before browser and server validation. */
 export function normalisePlayerSponsor(payload: Record<string, unknown>) {
   const result = { ...payload };
@@ -22,7 +34,8 @@ export function normalisePlayerSponsor(payload: Record<string, unknown>) {
     let value = raw.trim();
     if (field !== 'website' && /^(?:\/?public\/)?images\//.test(value)) value = '/' + value.replace(/^\/?public\//, '');
     if (field === 'website' && /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?(?:[/?#]|$)/i.test(value)) value = 'https://' + value;
-    result[field] = value ? normalisePublicLinkUrl(value) ?? value : '';
+    const normalise = field === 'website' ? normaliseSponsorWebsite : normalisePublicLinkUrl;
+    result[field] = value ? normalise(value) ?? value : '';
   }
   return result;
 }
@@ -34,9 +47,12 @@ export function validatePlayerSponsor(payload: Record<string, unknown>, isCreate
     }
   }
   for (const field of ['player_image_url', 'logo_url', 'website']) {
-    if (payload[field] !== undefined && payload[field] !== '' && !normalisePublicLinkUrl(payload[field])) {
+    const normalise = field === 'website' ? normaliseSponsorWebsite : normalisePublicLinkUrl;
+    if (payload[field] !== undefined && payload[field] !== '' && !normalise(payload[field])) {
       const label = field === 'website' ? 'Sponsor website' : field === 'logo_url' ? 'Sponsor logo' : 'Player photo';
-      return `${label}: use a valid HTTPS URL${field === 'website' ? ' or a website domain such as example.com' : ' or an image path beginning with /images/'}.`;
+      return field === 'website'
+        ? 'Sponsor website: enter an HTTP or HTTPS website address, or leave this optional field blank.'
+        : `${label}: use a valid HTTPS URL or an image path beginning with /images/.`;
     }
   }
   if ('sort_order' in payload && (!Number.isInteger(payload.sort_order) || Math.abs(Number(payload.sort_order)) > 100000)) return 'Display order must be a whole number between -100000 and 100000.';
