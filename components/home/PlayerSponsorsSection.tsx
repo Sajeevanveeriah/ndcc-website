@@ -1,5 +1,5 @@
 import { createServerClient } from '@/lib/supabase-server';
-import { groupPlayerSponsors, type PlayerSponsor } from '@/lib/player-sponsors';
+import { groupPlayerSponsors, normaliseSponsorWebsite, type PlayerSponsor } from '@/lib/player-sponsors';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 import SafeImage from '@/components/common/SafeImage';
 
@@ -26,7 +26,7 @@ export default async function PlayerSponsorsSection() {
             </div>
             <ul aria-label={`Sponsors of ${player.player_name}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {player.sponsors.map((entry) => {
-                const website = normalisePublicLinkUrl(entry.website);
+                const website = normaliseSponsorWebsite(entry.website);
                 const logo = normalisePublicLinkUrl(entry.logo_url);
                 const sponsor = <><div className="relative h-20 w-full rounded bg-white">
                   {logo && <SafeImage src={logo} alt={`${entry.sponsor_name} logo`} fill sizes="200px" className="object-contain p-3" fallback={<span className="block p-3 text-center text-sm font-semibold text-gray-900">{entry.sponsor_name}</span>} />}
