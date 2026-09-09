@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
-import { type PlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
+import { type PlayerSponsor, normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
@@ -22,13 +22,17 @@ export default function PlayerSponsorsPage() {
   const [id, setId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const uploading = photoUploading || logoUploading;
   useEffect(() => {
     fetch(endpoint, { cache: 'no-store' }).then((response) => parseApiResponse<{ data: PlayerSponsor[] }>(response))
       .then((result) => setRows(sort(result.data))).catch((err) => setError(err.message)).finally(() => setLoading(false));
   }, []);
 
   async function save() {
-    const payload = { ...form, player_name: form.player_name.trim(), sponsor_name: form.sponsor_name.trim(), website: form.website.trim(), logo_url: form.logo_url.trim(), player_image_url: form.player_image_url.trim() };
+    if (busy || uploading) return;
+    const payload = normalisePlayerSponsor({ ...form, player_name: form.player_name.trim(), sponsor_name: form.sponsor_name.trim(), website: form.website.trim(), logo_url: form.logo_url.trim(), player_image_url: form.player_image_url.trim() });
     const validation = validatePlayerSponsor(payload, true);
     if (validation) { setError(validation); return; }
     setBusy(true); setError(''); setMessage('');
@@ -55,17 +59,17 @@ export default function PlayerSponsorsPage() {
         <Button variant="secondary" aria-label={`Edit sponsor for ${row.player_name}`} onClick={() => { setId(row.id); setForm({ player_name: row.player_name, sponsor_name: row.sponsor_name, player_image_url: row.player_image_url, logo_url: row.logo_url, website: row.website, sort_order: row.sort_order, active: row.active }); setError(''); setOpen(true); }}>Edit</Button>
       </li>)}
     </ul>}
-    <Modal isOpen={open} onClose={() => { if (!busy) setOpen(false); }} title={id ? 'Edit player sponsor' : 'Add player sponsor'} size="lg">
+    <Modal isOpen={open} onClose={() => { if (!busy && !uploading) setOpen(false); }} title={id ? 'Edit player sponsor' : 'Add player sponsor'} size="lg">
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void save(); }}>
         {error && <p role="alert" className="text-red-600">{error}</p>}
         <Input id="player-name" label="Player name" required maxLength={160} value={form.player_name} onChange={(event) => setForm({ ...form, player_name: event.target.value })} />
-        <ImageUploadField id="player-photo" label="Player photo (optional)" value={form.player_image_url} onChange={(value) => setForm({ ...form, player_image_url: value })} />
+        <ImageUploadField id="player-photo" onUploadingChange={setPhotoUploading} label="Player photo (optional)" value={form.player_image_url} onChange={(value) => setForm((current) => ({ ...current, player_image_url: value }))} />
         <Input id="player-sponsor-name" label="Sponsor name" required maxLength={160} value={form.sponsor_name} onChange={(event) => setForm({ ...form, sponsor_name: event.target.value })} />
-        <ImageUploadField id="player-sponsor-logo" label="Sponsor logo" value={form.logo_url} onChange={(value) => setForm({ ...form, logo_url: value })} helpText="Upload the sponsor's approved logo. Without a logo, the sponsor name is displayed." />
-        <Input id="player-sponsor-website" label="Sponsor website (optional)" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} />
+        <ImageUploadField id="player-sponsor-logo" onUploadingChange={setLogoUploading} label="Sponsor logo" value={form.logo_url} onChange={(value) => setForm((current) => ({ ...current, logo_url: value }))} helpText="Upload the sponsor's approved logo. Without a logo, the sponsor name is displayed." />
+        <Input id="player-sponsor-website" label="Sponsor website (optional)" placeholder="example.com or https://example.com" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} />
         <Input id="player-sponsor-order" label="Display order (lower appears first)" type="number" min={-100000} max={100000} step={1} value={form.sort_order} onChange={(event) => setForm({ ...form, sort_order: Number(event.target.value) })} />
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />Show on Player Sponsors page</label>
-        <div className="flex justify-end gap-3"><Button type="button" variant="secondary" disabled={busy} onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" isLoading={busy}>Save player sponsor</Button></div>
+        <div className="flex justify-end gap-3"><Button type="button" variant="secondary" disabled={busy || uploading} onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={uploading} isLoading={busy}>{uploading ? 'Waiting for upload...' : 'Save player sponsor'}</Button></div>
       </form>
     </Modal>
   </div>;

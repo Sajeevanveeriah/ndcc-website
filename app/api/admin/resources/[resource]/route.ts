@@ -1,4 +1,4 @@
-import { validatePlayerSponsor } from '@/lib/player-sponsors';
+import { normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
 import { NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
@@ -403,7 +403,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
   }
 
   const rawPayload = await request.json();
-  const payload = sanitizePayload(config, rawPayload);
+  const sanitized = sanitizePayload(config, rawPayload);
+  const payload = config.table === 'player_sponsors' ? normalisePlayerSponsor(sanitized) : sanitized;
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
   }
@@ -478,7 +479,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
       return NextResponse.json({ success: false, error: `ids must be a non-empty array of up to ${MAX_BATCH_IDS} id strings.` }, { status: 400 });
     }
   }
-  const payload = sanitizePayload(config, rawPayload);
+  const sanitized = sanitizePayload(config, rawPayload);
+  const payload = config.table === 'player_sponsors' ? normalisePlayerSponsor(sanitized) : sanitized;
   if (Object.keys(payload).length === 0) {
     return NextResponse.json({ success: false, error: 'No writable fields provided.' }, { status: 400 });
   }

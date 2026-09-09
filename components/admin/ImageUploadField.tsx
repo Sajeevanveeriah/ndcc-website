@@ -12,6 +12,7 @@ interface ImageUploadFieldProps {
   helpText?: string;
   /** 'image' (default) or 'pdf' — switches accepted types, size limit and preview. */
   variant?: 'image' | 'pdf';
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 type UploadMetadata = {
@@ -32,7 +33,7 @@ function isValidBrowserImagePath(value: string) {
   return /^https?:\/\//i.test(trimmed) || trimmed.startsWith('/images/');
 }
 
-export default function ImageUploadField({ id, label, value, onChange, placeholder, helpText, variant = 'image' }: ImageUploadFieldProps) {
+export default function ImageUploadField({ id, label, value, onChange, placeholder, helpText, variant = 'image', onUploadingChange }: ImageUploadFieldProps) {
   const isPdf = variant === 'pdf';
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -60,6 +61,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       return;
     }
     setUploading(true);
+    onUploadingChange?.(true);
     setProgressText(isPdf ? 'Uploading document to GitHub...' : 'Uploading image to GitHub...');
 
     try {
@@ -101,6 +103,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       }
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
