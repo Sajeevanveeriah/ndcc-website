@@ -43,3 +43,18 @@ export function validatePlayerSponsor(payload: Record<string, unknown>, isCreate
   if ('active' in payload && typeof payload.active !== 'boolean') return 'Visibility must be true or false.';
   return null;
 }
+
+/** Group partnerships by player name, ignoring accidental spacing and case. */
+export function groupPlayerSponsors(rows: PlayerSponsor[]) {
+  const groups = new Map<string, { key: string; player_name: string; player_image_url: string; sponsors: PlayerSponsor[] }>();
+  for (const row of rows) {
+    const name = row.player_name.trim().replace(/\s+/g, ' ');
+    const key = name.toLocaleLowerCase('en-AU');
+    const group = groups.get(key);
+    if (group) {
+      group.sponsors.push(row);
+      if (!group.player_image_url && row.player_image_url) group.player_image_url = row.player_image_url;
+    } else groups.set(key, { key, player_name: name, player_image_url: row.player_image_url, sponsors: [row] });
+  }
+  return [...groups.values()];
+}
