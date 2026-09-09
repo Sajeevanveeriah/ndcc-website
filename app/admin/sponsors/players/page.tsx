@@ -1,0 +1,72 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { adminFetch, parseApiResponse } from '@/lib/admin-client';
+import { type PlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Modal from '@/components/ui/Modal';
+import ImageUploadField from '@/components/admin/ImageUploadField';
+
+const empty = { player_name: '', sponsor_name: '', player_image_url: '', logo_url: '', website: '', sort_order: 0, active: false };
+const endpoint = '/api/admin/resources/playerSponsors';
+const sort = (rows: PlayerSponsor[]) => [...rows].sort((a, b) => a.sort_order - b.sort_order || a.player_name.localeCompare(b.player_name));
+
+export default function PlayerSponsorsPage() {
+  const [rows, setRows] = useState<PlayerSponsor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [open, setOpen] = useState(false);
+  const [id, setId] = useState<string | null>(null);
+  const [form, setForm] = useState(empty);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    fetch(endpoint, { cache: 'no-store' }).then((response) => parseApiResponse<{ data: PlayerSponsor[] }>(response))
+      .then((result) => setRows(sort(result.data))).catch((err) => setError(err.message)).finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    const payload = { ...form, player_name: form.player_name.trim(), sponsor_name: form.sponsor_name.trim(), website: form.website.trim(), logo_url: form.logo_url.trim(), player_image_url: form.player_image_url.trim() };
+    const validation = validatePlayerSponsor(payload, true);
+    if (validation) { setError(validation); return; }
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const response = await adminFetch(endpoint, { method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(id ? { id, ...payload } : payload) });
+      const result = await parseApiResponse<{ data: PlayerSponsor }>(response);
+      setRows((previous) => sort(id ? previous.map((row) => row.id === id ? result.data : row) : [...previous, result.data]));
+      setOpen(false); setMessage('Player sponsor saved. Active entries appear on the Player Sponsors page.');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save player sponsor.'); }
+    finally { setBusy(false); }
+  }
+
+  return <div>
+    <Link href="/admin/sponsors" className="text-sm underline">Back to sponsors</Link>
+    <div className="my-6 flex flex-wrap items-center justify-between gap-4">
+      <div><h1 className="font-display text-2xl font-bold">Player sponsors</h1><p className="mt-2 text-content-muted">Manage the player partnerships on the Player Sponsors page. Hide an entry to remove it from public view.</p></div>
+      <Button onClick={() => { setId(null); setForm(empty); setError(''); setOpen(true); }}>Add player sponsor</Button>
+    </div>
+    {!open && error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
+    {message && <p role="status" className="mb-4 text-content-primary">{message}</p>}
+    {loading ? <p role="status">Loading player sponsors...</p> : rows.length === 0 ? <p>No player sponsors added yet.</p> : <ul className="divide-y divide-edge-subtle">
+      {rows.map((row) => <li key={row.id} className="flex flex-wrap items-center justify-between gap-4 py-4">
+        <div><h2 className="font-semibold break-words">{row.player_name}</h2><p className="text-content-muted break-words">{row.sponsor_name} - {row.active ? 'Visible' : 'Hidden'} - Order {row.sort_order}</p></div>
+        <Button variant="secondary" aria-label={`Edit sponsor for ${row.player_name}`} onClick={() => { setId(row.id); setForm({ player_name: row.player_name, sponsor_name: row.sponsor_name, player_image_url: row.player_image_url, logo_url: row.logo_url, website: row.website, sort_order: row.sort_order, active: row.active }); setError(''); setOpen(true); }}>Edit</Button>
+      </li>)}
+    </ul>}
+    <Modal isOpen={open} onClose={() => { if (!busy) setOpen(false); }} title={id ? 'Edit player sponsor' : 'Add player sponsor'} size="lg">
+      <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        {error && <p role="alert" className="text-red-600">{error}</p>}
+        <Input id="player-name" label="Player name" required maxLength={160} value={form.player_name} onChange={(event) => setForm({ ...form, player_name: event.target.value })} />
+        <ImageUploadField id="player-photo" label="Player photo (optional)" value={form.player_image_url} onChange={(value) => setForm({ ...form, player_image_url: value })} />
+        <Input id="player-sponsor-name" label="Sponsor name" required maxLength={160} value={form.sponsor_name} onChange={(event) => setForm({ ...form, sponsor_name: event.target.value })} />
+        <ImageUploadField id="player-sponsor-logo" label="Sponsor logo" value={form.logo_url} onChange={(value) => setForm({ ...form, logo_url: value })} helpText="Upload the sponsor's approved logo. Without a logo, the sponsor name is displayed." />
+        <Input id="player-sponsor-website" label="Sponsor website (optional)" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} />
+        <Input id="player-sponsor-order" label="Display order (lower appears first)" type="number" min={-100000} max={100000} step={1} value={form.sort_order} onChange={(event) => setForm({ ...form, sort_order: Number(event.target.value) })} />
+        <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />Show on Player Sponsors page</label>
+        <div className="flex justify-end gap-3"><Button type="button" variant="secondary" disabled={busy} onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" isLoading={busy}>Save player sponsor</Button></div>
+      </form>
+    </Modal>
+  </div>;
+}
