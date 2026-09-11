@@ -8,7 +8,6 @@ export const fetchCache = 'force-no-store';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import TiltCard from '@/components/common/motion/TiltCard';
@@ -27,6 +26,7 @@ import { formatDate, truncateText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { getPublicSeasonAppointments, type PublicSeasonAppointment } from '@/lib/public-season-appointments';
+import ClubIntro from '@/components/home/ClubIntro';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
@@ -98,10 +98,7 @@ function HeroView({
             <Link href="/merchandise" className="club-text-link">Wear the colours <span aria-hidden="true">↗</span></Link>
           </div>
         </div>
-        <figure className="club-home-photo">
-          <Image src="/images/Turf_Ground.jpg" alt="Grinter Reserve, home of Newcomb and District Cricket Club" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" priority />
-          <figcaption className="club-ground-caption"><span className="font-display text-2xl font-semibold">Our home ground.</span><span className="text-base">Grinter Reserve, Moolap</span></figcaption>
-        </figure>
+        <ClubIntro />
       </div>
     </section>
   );
@@ -775,3 +772,4 @@ export default function HomePage() {
     </>
   );
 }
+
