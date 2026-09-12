@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { LoaderCircle, Pause, Play, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const VIDEO = '/media/20260912-NDCC-Logo-Reveal-Rev00.mp4';
@@ -17,6 +18,7 @@ export default function ClubIntro() {
   const [loading, setLoading] = useState(false);
   const [shown, setShown] = useState(false);
   const [played, setPlayed] = useState(false);
+  const [ended, setEnded] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const play = useCallback(() => {
@@ -25,6 +27,7 @@ export default function ClubIntro() {
     attempted.current = true;
     setFailed(false);
     setLoading(true);
+    setEnded(false);
     if (!video.getAttribute('src')) video.src = VIDEO;
     if (video.ended) video.currentTime = 0;
     video.muted = true;
@@ -105,7 +108,8 @@ export default function ClubIntro() {
   }, [play]);
 
   return (
-    <figure className="m-0 flex flex-col justify-center border-t-4 border-sky_accent bg-[#dedede] lg:border-l-4 lg:border-t-0" aria-label="NDCC dinosaur logo reveal">
+    <figure className="m-0 flex min-w-0 flex-col overflow-hidden border-t-4 border-sky_accent bg-[#dedede] lg:border-l-4 lg:border-t-0" aria-label="NDCC dinosaur logo reveal">
+      <div className="flex flex-1 items-center">
       <div ref={frameRef} className="relative aspect-video w-full overflow-hidden">
         <Image src={POSTER} alt="Newcomb and District Cricket Club dinosaur badge" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" priority />
         <video
@@ -125,7 +129,7 @@ export default function ClubIntro() {
             try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* Playback also works with storage disabled. */ }
           }}
           onPause={() => setPlaying(false)}
-          onEnded={() => { setPlaying(false); setShown(false); }}
+          onEnded={() => { setPlaying(false); setShown(false); setEnded(true); }}
           onError={() => {
             setFailed(true);
             setLoading(false);
@@ -134,15 +138,19 @@ export default function ClubIntro() {
           }}
         />
       </div>
-      <figcaption className="flex min-h-14 items-center justify-between gap-3 px-5 py-3 text-sm text-gray-800">
-        <span>Home of the Dinos.</span>
+      </div>
+      <figcaption className="relative isolate flex min-h-32 items-center justify-between gap-5 overflow-hidden bg-maroon-800 px-6 py-6 text-white sm:px-8">
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 180 120" className="pointer-events-none absolute -right-5 bottom-0 -z-10 h-full w-44 text-sky_accent">
+          <path d="M0 0h28l62 76L152 0h28L90 112Z" fill="currentColor" />
+        </svg>
+        <span className="relative block pr-2 font-display text-[clamp(3.25rem,6vw,5rem)] font-black italic leading-none tracking-[-0.055em]">DINOS<span aria-hidden="true" className="mt-3 block h-1 w-12 bg-sky_accent" /></span>
         <span className="sr-only">A blue dinosaur walks into view and reveals the NDCC badge. This introduction has no sound.</span>
         {ready && !failed && (
-          <button type="button" className="rounded-md border border-gray-500 bg-white px-3 py-1.5 font-semibold text-gray-900 focus-ring hover:bg-gray-100 disabled:opacity-60" disabled={loading} onClick={() => playing ? videoRef.current?.pause() : play()} aria-label={playing ? 'Pause club intro' : played ? 'Replay or resume club intro' : 'Play club intro'}>
-            {loading ? 'Loading...' : playing ? 'Pause' : played ? 'Replay / resume' : 'Play intro'}
+          <button type="button" className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/70 bg-maroon-800 text-white transition-colors hover:bg-white hover:text-maroon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:opacity-60" disabled={loading} onClick={() => playing ? videoRef.current?.pause() : play()} aria-label={loading ? 'Loading club intro' : playing ? 'Pause club intro' : ended ? 'Replay club intro' : played ? 'Resume club intro' : 'Play club intro'} title={loading ? 'Loading intro' : playing ? 'Pause intro' : ended ? 'Replay intro' : played ? 'Resume intro' : 'Play intro'}>
+            {loading ? <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" /> : playing ? <Pause className="h-4 w-4" aria-hidden="true" /> : ended ? <RotateCcw className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
           </button>
         )}
-        {failed && <span role="status">Intro unavailable</span>}
+        {failed && <span role="status" className="relative max-w-24 text-sm">Intro unavailable</span>}
       </figcaption>
     </figure>
   );
