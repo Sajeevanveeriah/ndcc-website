@@ -140,7 +140,7 @@ export default function ClubIntro() {
       </div>
       </div>
       <figcaption className="relative isolate flex min-h-32 items-center justify-between gap-5 overflow-hidden bg-maroon-800 px-6 py-6 text-white sm:px-8">
-        <svg aria-hidden="true" focusable="false" viewBox="0 0 180 120" className="pointer-events-none absolute -right-5 bottom-0 -z-10 h-full w-44 text-sky_accent">
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 180 120" className="pointer-events-none absolute -right-5 bottom-0 -z-10 h-full w-28 text-sky_accent sm:w-44">
           <path d="M0 0h28l62 76L152 0h28L90 112Z" fill="currentColor" />
         </svg>
         <span className="relative block pr-2 font-display text-[clamp(3.25rem,6vw,5rem)] font-black italic leading-none tracking-[-0.055em]">DINOS<span aria-hidden="true" className="mt-3 block h-1 w-12 bg-sky_accent" /></span>
