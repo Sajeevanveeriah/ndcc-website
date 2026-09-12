@@ -18,6 +18,7 @@ import {
   FACEBOOK_URL,
   PLAYHQ_ORG_URL,
 } from '@/lib/constants';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 // One self-hosted family keeps headings clear and avoids an extra font download.
@@ -116,6 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           <Footer />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
