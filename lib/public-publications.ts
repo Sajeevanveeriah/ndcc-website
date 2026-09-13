@@ -55,6 +55,7 @@ function normalisePublicationLinks(publication: PublicPublicationRecord): Public
 export async function getPublishedPublications(options?: {
   type?: PublicationType;
   limit?: number;
+  offset?: number;
 }): Promise<PublicPublicationRecord[]> {
   try {
     const supabase = createServerClient();
@@ -68,39 +69,27 @@ export async function getPublishedPublications(options?: {
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
     if (options?.type) query = query.eq('publication_type', options.type);
-    if (options?.limit) query = query.limit(options.limit);
+    if (options?.limit) query = query.range(options.offset || 0, (options.offset || 0) + options.limit - 1);
     const { data, error } = await query;
     if (error) {
       console.error('[public-publications] list query failed:', error.message);
-      return [];
+      throw new Error('Publications temporarily unavailable');
     }
     return ((data ?? []) as PublicPublicationRecord[]).map(normalisePublicationLinks);
   } catch (error) {
     console.error('[public-publications] list query threw:', error);
-    return [];
+    throw new Error('Publications temporarily unavailable');
   }
 }
 
 /** Fetch one published publication by slug, or null. */
 export async function getPublishedPublicationBySlug(slug: string): Promise<PublicPublicationRecord | null> {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
-  try {
-    const supabase = createServerClient();
-    const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('publications')
-      .select(columns)
-      .eq('slug', slug)
-      .eq('published', true)
-      .or(`published_at.is.null,published_at.lte.${now}`)
-      .maybeSingle();
-    if (error) {
-      console.error('[public-publications] detail query failed:', error.message);
-      return null;
-    }
-    return data ? normalisePublicationLinks(data as PublicPublicationRecord) : null;
-  } catch (error) {
-    console.error('[public-publications] detail query threw:', error);
-    return null;
-  }
+  const supabase = createServerClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase.from('publications').select(columns)
+    .eq('slug', slug).eq('published', true)
+    .or(`published_at.is.null,published_at.lte.${now}`).maybeSingle();
+  if (error) throw new Error('Publication temporarily unavailable');
+  return data ? normalisePublicationLinks(data as PublicPublicationRecord) : null;
 }

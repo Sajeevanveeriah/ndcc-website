@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import NdccCalendar from '@/components/calendar/NdccCalendar';
@@ -6,11 +7,7 @@ import AddToCalendarButton from '@/components/calendar/AddToCalendarButton';
 import { getPublicCalendarEvents, getUpcomingCalendarEvents } from '@/lib/calendar/queries';
 import { toCalendarFeedEvent } from '@/lib/calendar/format';
 
-export const metadata: Metadata = {
-  title: 'Club Calendar',
-  description:
-    'The Newcomb and District Cricket Club calendar — matches, training, junior cricket, social nights and club events, all in one place.',
-};
+export const metadata: Metadata = pageMetadata("/calendar", "Club calendar", "Check the NDCC calendar for published cricket and club events. Find dates and follow event details before planning your visit.");
 
 // Request-time rendering: calendar entries are mutable CMS content, so they
 // must never be served from a build-time prerender or the ISR cache.

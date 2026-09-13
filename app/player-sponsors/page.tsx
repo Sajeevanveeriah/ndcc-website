@@ -1,14 +1,11 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import PlayerSponsorsSection from '@/components/home/PlayerSponsorsSection';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-export const metadata: Metadata = {
-  title: 'Player Sponsors',
-  description: 'Meet the businesses supporting Newcomb and District Cricket Club players.',
-  alternates: { canonical: '/player-sponsors' },
-};
+export const metadata: Metadata = pageMetadata("/player-sponsors", "Player sponsors", "Meet the businesses supporting Newcomb and District Cricket Club players.");
 
 export default function PlayerSponsorsPage() {
   return <>

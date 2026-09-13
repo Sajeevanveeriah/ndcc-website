@@ -84,7 +84,8 @@
     "test:apparel-images": "npm run prepare:apparel-assets && node scripts/test-apparel-images.mjs",
     "prepare:apparel-assets": "node scripts/generate-apparel-assets.mjs",
     "predev": "npm run prepare:apparel-assets",
-    "prebuild": "npm run prepare:apparel-assets"
+    "prebuild": "npm run prepare:apparel-assets",
+    "test:seo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-seo.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

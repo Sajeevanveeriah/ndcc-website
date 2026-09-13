@@ -1,10 +1,7 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Merchandise',
-  description:
-    'Club apparel and merchandise from the Newcomb and District Cricket Club (NDCC Dinos).',
-};
+export const metadata: Metadata = pageMetadata("/merchandise", "Club Merchandise", "Browse current NDCC apparel, sizes and prices, check ordering information and order official club merchandise.");
 
 // The page itself is a client component, so the segment config lives here.
 // Request-time rendering keeps the shared footer/site chrome (server-rendered

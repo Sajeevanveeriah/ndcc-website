@@ -109,7 +109,7 @@ const sharedPaymentControl = readFileSync(path.join(repoRoot, 'components/paymen
 const membershipRoute = readFileSync(path.join(repoRoot, 'app/api/memberships/route.ts'), 'utf8');
 const eventRoute = readFileSync(path.join(repoRoot, 'app/api/events/route.ts'), 'utf8');
 const joinPage = readFileSync(path.join(repoRoot, 'app/join/page.tsx'), 'utf8');
-const kitchenPage = readFileSync(path.join(repoRoot, 'app/kitchen/page.tsx'), 'utf8');
+const kitchenPage = readFileSync(path.join(repoRoot, 'app/kitchen/KitchenClient.tsx'), 'utf8');
 const eventPage = readFileSync(path.join(repoRoot, 'app/events/[id]/EventDetailClient.tsx'), 'utf8');
 const paymentResultPage = readFileSync(path.join(repoRoot, 'app/payment/page.tsx'), 'utf8');
 

@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
@@ -15,9 +16,7 @@ import { getInitials, normalisePublicText } from '@/lib/utils';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHistoryPremierships, getPageLinkCards } from '@/lib/structured-content';
 
-export const metadata: Metadata = {
-  title: 'About',
-};
+export const metadata: Metadata = pageMetadata("/about", "About the club", "Explore the history of Newcomb and District Cricket Club, our committee and community partnerships at Grinter Reserve, Moolap.");
 
 // Request-time rendering: committee, history, and content blocks are mutable
 // CMS content, so this page must never be served from a build-time prerender.

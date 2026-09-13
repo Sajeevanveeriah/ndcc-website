@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { ExternalLink, ShieldCheck } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -10,11 +11,7 @@ export const fetchCache = 'force-no-store';
 export async function generateMetadata(): Promise<Metadata> {
   const registration = await getPublicPlayerRegistration();
   const title = registration?.pageTitle || 'Player Registration';
-  return {
-    title,
-    description: registration?.introText || 'Player registration for Newcomb and District Cricket Club.',
-    alternates: { canonical: '/player-registration' },
-  };
+  return pageMetadata('/player-registration', title, registration?.introText || 'Player registration for Newcomb and District Cricket Club.');
 }
 
 function formatDateTime(value: string | null) {

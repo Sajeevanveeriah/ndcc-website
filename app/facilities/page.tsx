@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -9,9 +10,7 @@ import { getFacilityFeatures, getPageLinkCards } from '@/lib/structured-content'
 import { CLUB_ADDRESS, CLUB_ESTABLISHED } from '@/lib/constants';
 import { FACILITY_BOOKING_LINK } from '@/lib/public-links';
 
-export const metadata: Metadata = {
-  title: 'Facilities',
-};
+export const metadata: Metadata = pageMetadata("/facilities", "Club facilities", "Find information about NDCC facilities at Grinter Reserve in Moolap and contact the club with questions before your visit.");
 
 // Request-time rendering: facility features and content blocks are mutable
 // CMS content, so this page must never be served from a build-time prerender.

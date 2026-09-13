@@ -4,8 +4,6 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import { stripNewsGalleryContent } from '@/lib/news-gallery';
 import { getPublishedNews } from '@/lib/public-news';
-import { fallbackNews } from '@/lib/fallback-content';
-import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
 
@@ -15,18 +13,10 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-// Server-rendered live on every request. Fallback is reserved for
-// unconfigured / query-failure paths only - a successful empty result renders
-// the empty state.
+// An unavailable database is not an empty or seeded news archive.
 async function loadPosts(): Promise<NewsPost[]> {
-  if (!isServerSupabaseConfigured()) return fallbackNews;
-  try {
-    const data = await getPublishedNews({});
-    return (Array.isArray(data) ? data : []) as NewsPost[];
-  } catch (err) {
-    console.error('[news] Failed to load news; showing static fallback:', err);
-    return fallbackNews;
-  }
+  const data = await getPublishedNews({});
+  return (Array.isArray(data) ? data : []) as NewsPost[];
 }
 
 export default async function NewsPage() {
