@@ -28,7 +28,7 @@ export type PublicNewsRecord = {
 };
 
 function normalizePublicNewsRecord(record: PublicNewsRecord | null) {
-  if (!record) return null;
+  if (!record || !isPublicNewsPostAllowed(record.title)) return null;
   return {
     ...record,
     image_url: normalizeNewsImage(record.title, record.image_url),

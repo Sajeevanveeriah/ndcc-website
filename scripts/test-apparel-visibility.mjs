@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const admin = readFileSync(new URL('../app/admin/apparel/page.tsx', import.meta.url), 'utf8');
-const publicApi = readFileSync(new URL('../app/api/apparel/products/route.ts', import.meta.url), 'utf8');
+const publicApi = readFileSync(new URL('../lib/apparel/public-catalogue.ts', import.meta.url), 'utf8');
 const serverCatalogue = readFileSync(new URL('../lib/apparel/server-catalogue.ts', import.meta.url), 'utf8');
 const checks = [
   ['CMS labels the field Visible on public website', admin.includes('Visible on public website')],

@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
 
 export const metadata = {
-  title: 'Payment | NDCC Dinos',
+  title: 'Payment',
   robots: { index: false, follow: false },
 };
 

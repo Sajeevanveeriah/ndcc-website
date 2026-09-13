@@ -1,5 +1,6 @@
 'use client';
 
+import { eventVenue } from '@/lib/event-venue';
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
@@ -171,7 +172,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
                     </svg>
                     <div>
                       <p className="font-body font-semibold text-content-primary text-sm">Location</p>
-                      <p className="font-body text-content-muted text-sm">{event.location}</p>
+                      <p className="font-body text-content-muted text-sm">{event.location}{eventVenue(event.location).address && <span className="block">{eventVenue(event.location).address?.streetAddress}, {eventVenue(event.location).address?.addressLocality} VIC {eventVenue(event.location).address?.postalCode}</span>}</p>
                     </div>
                   </div>
 

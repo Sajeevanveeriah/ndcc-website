@@ -42,6 +42,7 @@ jobs:
       - run: npm run test:core-schema
       - run: node --experimental-strip-types scripts/test-dino-coach.mjs
       - run: npm run lint
+      - run: npm run test:seo
       - run: npm run check:migrations
       - run: npm run test:dino-coach-rls-hardening
       - run: npm run test:profiles-role-escalation-hardening

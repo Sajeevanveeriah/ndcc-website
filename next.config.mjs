@@ -32,9 +32,11 @@ const securityHeaders = [
 const nextConfig = {
   poweredByHeader: false,
   images: {
-    // Temporary containment for the Next.js AVIF image-optimiser advisory on
-    // the pinned 14.x release. Remove only after an approved patched upgrade.
-    unoptimized: true,
+    // Next.js 15.5.24 is the patched release for GHSA-2xp9-vwfh-vxw4.
+    // Its AVIF input protection must remain in place; output only WebP.
+    // See https://nextjs.org/blog/august-2026-security-release
+    unoptimized: false,
+    formats: ['image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: 'alduwuipmmnzorcgkcli.supabase.co' },
       { protocol: 'https', hostname: 'mbrcricket.com' },
@@ -52,6 +54,9 @@ const nextConfig = {
   },
   async headers() {
     return [
+      ...['/admin/:path*', '/committee/:path*', '/committee-calendar', '/payment', '/fantasy/login', '/fantasy/register', '/fantasy/reset-password', '/fantasy/account', '/fantasy/team', '/fantasy/squad', '/fantasy/transfers', '/fantasy/leagues'].map((source) => ({
+        source, headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      })),
       {
         source: '/:path*',
         headers: securityHeaders,

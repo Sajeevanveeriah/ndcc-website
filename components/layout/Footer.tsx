@@ -105,7 +105,7 @@ export default async function Footer() {
                 <span className="font-display font-semibold uppercase tracking-wide text-lg">{settings.club_short}</span>
               </Link>
               <p className="mb-3 font-body text-sm text-maroon-200">
-                {settings.club_name}. Proudly competing in the {settings.association_name} since {settings.established_year}.
+                {settings.club_name}. Established {settings.established_year}. Competing in the {settings.association_name}.
               </p>
               <div className="space-y-2">
                 <div className="flex items-start gap-2 text-sm text-maroon-200">

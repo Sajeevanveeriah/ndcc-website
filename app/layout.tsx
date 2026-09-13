@@ -1,3 +1,4 @@
+import { SITE_URL, ORGANIZATION_ID } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { serializeJsonLd } from '@/lib/json-ld';
 import { Suspense } from 'react';
@@ -24,11 +25,10 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-inter', display: 'swap' });
 const fontVariables = inter.variable;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
-
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SportsOrganization',
+  '@id': ORGANIZATION_ID,
   name: CLUB_NAME,
   alternateName: CLUB_NICKNAME,
   sport: 'Cricket',
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     template: '%s | NDCC Dinos',
   },
   description:
-    'Official website of the Newcomb and District Cricket Club (NDCC), the Dinos. Competing in the Geelong Cricket Association since 1972. Based at Grinter Reserve, Moolap.',
+    'Official website of the Newcomb and District Cricket Club (NDCC), the Dinos. Senior men\'s, women\'s and junior cricket at Grinter Reserve, Moolap. Serving Newcomb and the Geelong community.',
   keywords: [
     'Newcomb Cricket Club',
     'NDCC',
@@ -78,11 +78,11 @@ export const metadata: Metadata = {
     siteName: 'Newcomb and District Cricket Club',
     title: 'Newcomb and District Cricket Club | NDCC Dinos',
     description:
-      'Official website of the NDCC Dinos. Competing in the Geelong Cricket Association since 1972.',
-    images: [{ url: '/images/logo.jpg', width: 800, height: 800, alt: 'NDCC Logo' }],
+      'Official website of the NDCC Dinos. Cricket and community at Grinter Reserve, Moolap.',
+    images: [{ url: '/images/logo.jpg', width: 1184, height: 896, alt: 'NDCC Logo' }],
   },
   robots: { index: true, follow: true },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au'),
+  metadataBase: new URL(SITE_URL),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

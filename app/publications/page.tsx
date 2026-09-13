@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation';
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -16,11 +18,26 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-export const metadata: Metadata = {
-  title: 'Publications | Newcomb & District Cricket Club',
-  description:
-    'Club newsletters and weekly match reports from the Newcomb & District Cricket Club — monthly newsletters, weekly newsletters and match reports.',
-};
+type ArchiveParams = { type?: string; page?: string };
+function archivePage(value?: string) {
+  if (value === undefined) return 1;
+  if (!/^[1-9]\d*$/.test(value) || Number(value) > 10000) notFound();
+  return Number(value);
+}
+function archivePath(type: string | undefined, page: number) {
+  const params = new URLSearchParams();
+  if (type) params.set('type', type);
+  if (page > 1) params.set('page', String(page));
+  return `/publications${params.size ? `?${params}` : ''}`;
+}
+export async function generateMetadata({ searchParams }: { searchParams?: Promise<ArchiveParams> }): Promise<Metadata> {
+  const params = await searchParams;
+  const type = isPublicationType(params?.type) ? params!.type as PublicationType : undefined;
+  const page = archivePage(params?.page);
+  const title = type ? publicationTypeLabel(type) : 'Newsletters and match reports';
+  return pageMetadata(archivePath(type, page), `${title}${page > 1 ? ` - Page ${page}` : ''}`,
+    'Read NDCC newsletters and match reports, with published club news and downloadable issues.');
+}
 
 const LIST_LIMIT = 60;
 
@@ -34,14 +51,19 @@ const FILTERS: Array<{ value: 'all' | PublicationType; label: string }> = [
 export default async function PublicationsPage({
   searchParams: searchParamsPromise,
 }: {
-  searchParams?: Promise<{ type?: string }>;
+  searchParams?: Promise<ArchiveParams>;
 }) {
   const searchParams = await searchParamsPromise;
   const activeType = isPublicationType(searchParams?.type) ? searchParams!.type as PublicationType : undefined;
-  const publications = await getPublishedPublications({
+  const page = archivePage(searchParams?.page);
+  const rows = await getPublishedPublications({
     type: activeType,
-    limit: LIST_LIMIT,
+    limit: LIST_LIMIT + 1,
+    offset: (page - 1) * LIST_LIMIT,
   });
+  if (page > 1 && rows.length === 0) notFound();
+  const hasNext = rows.length > LIST_LIMIT;
+  const publications = rows.slice(0, LIST_LIMIT);
   const featured = publications.find((p) => p.featured) ?? publications[0] ?? null;
   const rest = featured ? publications.filter((p) => p.id !== featured.id) : publications;
 
@@ -58,6 +80,11 @@ export default async function PublicationsPage({
 
       <section className="section-padding">
         <div className="container-width">
+          {(page > 1 || hasNext) && <nav aria-label="Publication pages" className="flex justify-between gap-4 mb-6">
+            {page > 1 && <Link className="underline focus-ring" href={archivePath(activeType, page - 1)}>Previous page</Link>}
+            <span>Page {page}</span>
+            {hasNext && <Link className="underline focus-ring" href={archivePath(activeType, page + 1)}>Next page</Link>}
+          </nav>}
           {/* Filter tabs */}
           <nav aria-label="Filter publications" className="mb-8 flex flex-wrap gap-2">
             {FILTERS.map((filter) => {

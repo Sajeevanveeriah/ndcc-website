@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -20,11 +21,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!isValidAlbumSlug(slug)) notFound();
   const detail = await getPublicAlbumBySlug(slug);
   if (!detail) notFound();
-  return {
-    title: `${detail.album.title} | Gallery`,
-    description: detail.album.description || `Photo album from Newcomb and District Cricket Club: ${detail.album.title}.`,
-    alternates: { canonical: `/gallery/${detail.album.slug}` },
-  };
+  return pageMetadata(`/gallery/${detail.album.slug}`, `${detail.album.title} | Gallery`,
+    detail.album.description || `Photo album from Newcomb and District Cricket Club: ${detail.album.title}.`,
+    detail.album.cover_image_url || detail.photos[0]?.image_url || undefined);
 }
 
 function formatEventDate(value: string | null) {

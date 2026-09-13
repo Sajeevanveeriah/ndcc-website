@@ -1,3 +1,6 @@
+import { cache } from 'react';
+import { pageMetadata, absoluteUrl, ORGANIZATION_ID, breadcrumbJsonLd } from '@/lib/seo';
+import { eventVenue } from '@/lib/event-venue';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { serializeJsonLd } from '@/lib/json-ld';
@@ -12,42 +15,23 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-async function getEvent(id: string): Promise<Event | null> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return null;
-  }
-  try {
-    const supabase = createServerClient();
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .eq('published', true)
-      .maybeSingle();
-    if (error || !data) return null;
-    return data as Event;
-  } catch {
-    return null;
-  }
-}
+const getEvent = cache(async (id: string): Promise<Event | null> => {
+  if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) return null;
+  const { data, error } = await createServerClient().from('events').select('*')
+    .eq('id', id).eq('published', true).maybeSingle();
+  if (error) throw new Error('Event temporarily unavailable');
+  return data as Event | null;
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const event = await getEvent(id);
   if (!event) {
-    return { title: 'Event Not Found' };
+    notFound();
   }
-  const description = truncateText(event.description || `${event.title} — ${formatDateTime(event.date)}`, 160);
+  const description = truncateText(event.description || `${event.title} - ${formatDateTime(event.date)}`, 160);
   const image = normalizeEventImage(event.title, event.image_url);
-  return {
-    title: event.title,
-    description,
-    openGraph: {
-      title: event.title,
-      description,
-      images: image ? [{ url: image, alt: event.title }] : [{ url: '/images/logo.jpg', alt: 'NDCC Logo' }],
-    },
-  };
+  return pageMetadata(`/events/${event.id}`, event.title, description, image || undefined);
 }
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,16 +42,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   }
 
   const image = normalizeEventImage(event.title, event.image_url);
+  const venue = eventVenue(event.location);
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Event',
+    '@id': `${absoluteUrl(`/events/${event.id}`)}#event`,
+    url: absoluteUrl(`/events/${event.id}`),
     name: event.title,
     ...(event.description ? { description: truncateText(event.description, 200) } : {}),
     startDate: event.date,
-    ...(event.location ? { location: { '@type': 'Place', name: event.location } } : {}),
-    ...(image ? { image: [image] } : {}),
+    ...(venue.name ? { location: { '@type': 'Place', ...venue } } : {}),
+    ...(image ? { image: [absoluteUrl(image)] } : {}),
     organizer: {
       '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
       name: 'Newcomb and District Cricket Club',
     },
   };
@@ -76,7 +64,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd([jsonLd, breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Events', path: '/events' }, { name: event.title, path: `/events/${event.id}` }])]) }}
       />
       <EventDetailClient event={event} />
     </>

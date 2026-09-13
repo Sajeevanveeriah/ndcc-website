@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -6,9 +7,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import { getPublicGallery, getPublicGalleryAlbums } from '@/lib/public-data';
 import GalleryClient from './GalleryClient';
 
-export const metadata: Metadata = {
-  title: 'Gallery',
-};
+export const metadata: Metadata = pageMetadata("/gallery", "Photo gallery", "Browse NDCC photo albums, match-day photos and club memories from Newcomb and the Geelong community.");
 
 // Request-time rendering: the gallery is mutable CMS content, so it must never
 // be served from a build-time prerender or the ISR cache.
@@ -35,7 +34,7 @@ export default async function GalleryPage() {
         <div className="container-width">
           <ScrollReveal onMount delay={0}><h1 className="page-hero-title">Gallery</h1></ScrollReveal>
           <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">
-            Match day photos, team shots, and club memories, loaded server-side from published CMS records.
+            Match-day photos, team shots and memories from life at the Dinos.
           </p></ScrollReveal>
         </div>
       </section>

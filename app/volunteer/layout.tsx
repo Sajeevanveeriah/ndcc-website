@@ -1,10 +1,7 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Volunteer',
-  description:
-    'Volunteer with the Newcomb and District Cricket Club (NDCC Dinos) — current volunteer positions and how to help.',
-};
+export const metadata: Metadata = pageMetadata("/volunteer", "Volunteer with NDCC", "Help NDCC with match-day canteen support, scoring, ground setup or general assistance. Express your interest in volunteering with the club.");
 
 // The page itself is a client component, so the segment config lives here.
 // Request-time rendering keeps the shared footer/site chrome (server-rendered

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Meeting Minutes',
+  robots: { index: false, follow: false },
   description:
     'Committee meeting minutes of the Newcomb and District Cricket Club (NDCC Dinos).',
 };

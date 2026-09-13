@@ -208,7 +208,7 @@ export type PublicAlbumDetail = {
 
 /** One published album by slug with its published images, or null. */
 export async function getPublicAlbumBySlug(slug: string): Promise<PublicAlbumDetail | null> {
-  if (!isServerSupabaseConfigured()) return null;
+  if (!isServerSupabaseConfigured()) throw new Error('Gallery temporarily unavailable');
   try {
     const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
     const { data: album, error } = await supabase
@@ -217,7 +217,8 @@ export async function getPublicAlbumBySlug(slug: string): Promise<PublicAlbumDet
       .eq('published', true)
       .eq('slug', slug)
       .maybeSingle();
-    if (error || !album) return null;
+    if (error) throw new Error('Gallery temporarily unavailable');
+    if (!album) return null;
 
     const { data: photos, error: photosError } = await supabase
       .from('gallery_images')
@@ -226,10 +227,10 @@ export async function getPublicAlbumBySlug(slug: string): Promise<PublicAlbumDet
       .eq('album_id', album.id)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
-    if (photosError) return { album, photos: [] };
+    if (photosError) throw new Error('Gallery photos temporarily unavailable');
     return { album, photos: (photos ?? []) as GalleryPhoto[] };
   } catch {
-    return null;
+    throw new Error('Gallery temporarily unavailable');
   }
 }
 

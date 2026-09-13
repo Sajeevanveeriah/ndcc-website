@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -14,9 +15,7 @@ import { PLAYHQ_ORG_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Fixtures & Results',
-};
+export const metadata: Metadata = pageMetadata("/fixtures", "Fixtures and results", "Find Newcomb and District Cricket Club fixtures and results, with links to the current season on PlayHQ.");
 
 function fixtureTime(value: string | null) {
   if (!value) return 'Date TBC';

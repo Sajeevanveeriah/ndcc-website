@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
@@ -8,9 +9,7 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
 import { getPublicEvents } from '@/lib/public-data';
 
-export const metadata: Metadata = {
-  title: 'Events',
-};
+export const metadata: Metadata = pageMetadata("/events", "Club and community events", "Explore upcoming NDCC events, including social nights and community gatherings. Check each event for its date, venue and booking details.");
 
 // Request-time rendering: events are mutable CMS content, so they must never
 // be served from a build-time prerender or the ISR cache.

@@ -12,7 +12,6 @@ const NEXT_IMAGE_ONLY_PROPS = [
   'loader',
   'quality',
   'priority',
-  'loading',
   'placeholder',
   'blurDataURL',
   'unoptimized',
@@ -45,11 +44,14 @@ export default function SafeImage({ fallback, src, alt, ...props }: SafeImagePro
       // eslint-disable-next-line @next/next/no-img-element
       <img
         {...imgProps}
+        loading={props.priority ? 'eager' : props.loading || 'lazy'}
+        decoding={props.decoding || 'async'}
+        fetchPriority={props.fetchPriority || (props.priority ? 'high' : undefined)}
         src={currentSrc}
         alt={alt}
         className={fill ? `absolute inset-0 h-full w-full ${className}`.trim() : className || undefined}
-        width={!fill && typeof width === 'number' ? width : undefined}
-        height={!fill && typeof height === 'number' ? height : undefined}
+        width={!fill ? width : undefined}
+        height={!fill ? height : undefined}
         onError={(event) => {
           props.onError?.(event);
           setFailedSrc(currentSrc);

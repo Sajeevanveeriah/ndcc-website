@@ -1,3 +1,4 @@
+import { pageMetadata, absoluteUrl, authorJsonLd, ORGANIZATION_ID, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -16,17 +17,17 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au';
+const SITE_URL = 'https://www.ndcc.com.au';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const publication = await getPublishedPublicationBySlug(slug);
-  if (!publication) return { title: 'Publication not found | Newcomb & District Cricket Club' };
+  if (!publication) notFound();
   const description = publication.summary || `${publicationTypeLabel(publication.publication_type)} from the Newcomb & District Cricket Club.`;
   return {
-    title: `${publication.title} | Newcomb & District Cricket Club`,
-    description,
+    ...pageMetadata(`/publications/${publication.slug}`, publication.title, description, publication.cover_image_url || undefined),
     openGraph: {
+      ...pageMetadata(`/publications/${publication.slug}`, publication.title, description, publication.cover_image_url || undefined).openGraph,
       title: publication.title,
       description,
       type: 'article',
@@ -53,16 +54,16 @@ export default async function PublicationDetailPage({ params }: { params: Promis
     headline: publication.title,
     datePublished: publication.published_at || publication.issue_date,
     dateModified: publication.updated_at,
-    author: { '@type': 'Organization', name: publication.author || 'Newcomb & District Cricket Club' },
-    publisher: { '@type': 'Organization', name: 'Newcomb & District Cricket Club' },
+    author: authorJsonLd(publication.author),
+    publisher: { '@type': 'Organization', '@id': ORGANIZATION_ID, name: 'Newcomb & District Cricket Club' },
     url: `${SITE_URL}/publications/${publication.slug}`,
-    ...(publication.cover_image_url ? { image: publication.cover_image_url } : {}),
+    ...(publication.cover_image_url ? { image: absoluteUrl(publication.cover_image_url) } : {}),
     ...(publication.summary ? { description: publication.summary } : {}),
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd([jsonLd, breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Publications', path: '/publications' }, { name: publication.title, path: `/publications/${publication.slug}` }])]) }} />
       <section className="page-hero">
         <div className="container-width">
           <nav aria-label="Breadcrumb" className="mb-4">

@@ -1,3 +1,4 @@
+import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
@@ -19,9 +20,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-export const metadata: Metadata = {
-  title: 'Teams',
-};
+export const metadata: Metadata = pageMetadata("/teams", "Cricket teams", "Explore senior men's, women's and junior cricket at Newcomb and District Cricket Club in Geelong, with current team information and registration links.");
 
 function normaliseTeamLinks(teams: TeamInfo[]): TeamInfo[] {
   return teams.map((team) => ({
