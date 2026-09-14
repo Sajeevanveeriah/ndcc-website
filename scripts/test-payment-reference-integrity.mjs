@@ -119,7 +119,7 @@ await test('all four order-creation routes allocate their exact category', () =>
     if (category === 'kitchen') {
       assert.match(source, /rpc\('save_meal_order'/u);
       assert.match(source, /target_reference:\s*paymentReference/u);
-      const mealMigration = read('supabase/migrations/20260914223000_meal_collection_windows.sql');
+      const mealMigration = read('supabase/migrations/20260914231628_meal_collection_windows.sql');
       assert.match(mealMigration, /'pending_bank_transfer',target_reference,'kitchen'/u);
     } else {
       assert.match(source, /payment_reference:\s*paymentReference/u);

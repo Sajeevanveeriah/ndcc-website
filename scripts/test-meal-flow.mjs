@@ -56,6 +56,7 @@ const itemId = '33333333-3333-4333-8333-333333333333';
 const orderId = '11111111-1111-4111-8111-111111111111';
 let order, payments, sessions, created, expired, savedArgs;
 const emails = [];
+let kitchenPermission = true;
 function reset(window = 'juniors') {
   order = { id: orderId, total_amount: 20, amount_paid: 0, payment_status: 'pending_bank_transfer',
     order_status: 'submitted', order_category: 'kitchen', payment_reference: 'NCDDKIT-2026-000001',
@@ -67,7 +68,7 @@ reset();
 function query(table) {
   let filters = [], patch = null;
   const q = {
-    select() { return q; }, order() { return q; }, in() { return q; },
+    select() { return q; }, order() { return q; }, in() { return q; }, range() { return q; },
     eq(k,v) { filters.push([k,v]); return q; }, is(k,v) { filters.push([k,v]); return q; },
     update(value) { patch = value; return q; },
     result(single) {
@@ -109,6 +110,7 @@ const stripe = { checkout: { sessions: {
   async expire(id) { expired++; const session=sessions.get(id); if(session.status==='complete')throw new Error('Complete');session.status='expired';return session; },
 } } };
 const mocks = {
+  '@/lib/auth/guard': { requirePermission: async () => kitchenPermission ? { id: 'test-staff' } : null },
   'next/server': { NextResponse: { json: (data,init) => Response.json(data,init) } },
   '@/lib/supabase-server': { createServerClient:()=>db, isServerSupabaseConfigured:()=>true },
   '@/lib/stripe': { getStripe:()=>stripe },
@@ -124,9 +126,25 @@ const mocks = {
 const load = loader(mocks);
 const kitchen = load('app/api/kitchen/orders/route.ts');
 const checkout = load('app/api/payments/checkout-session/route.ts');
+const exportRoute = load('app/api/admin/kitchen/orders/export/route.ts');
 const request = body => new Request('http://localhost:3100/api/test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 const payload = { draft_token:token,revision:0,customer_name:'Test Customer',customer_email:'test@example.com',
   customer_phone:'0412345678',items:[{item_id:itemId,quantity:2}],submitted_at:Date.now()-5000,hp_field:'' };
+await test('CMS export requires kitchen permission and a valid Thursday; exports only the selected service', async () => {
+  kitchenPermission = false;
+  assert.equal((await exportRoute.GET(new Request('http://localhost/export?service_date=2026-09-17'))).status,403);
+  kitchenPermission = true;
+  for (const date of ['', '2026-09-16', '2026-02-30', '2026-09-17x']) {
+    assert.equal((await exportRoute.GET(new Request(`http://localhost/export?service_date=${date}`))).status,400);
+  }
+  Object.assign(order, { customer_name: 'CSV Test', items: [{ name: 'Roast', quantity: 2 }] });
+  const exported = await exportRoute.GET(new Request('http://localhost/export?service_date=2026-09-17'));
+  assert.equal(exported.status,200);
+  assert.equal(exported.headers.get('Cache-Control'),'private, no-store');
+  assert.ok((await exported.text()).includes('"CSV Test"'));
+  const otherWeek = await exportRoute.GET(new Request('http://localhost/export?service_date=2026-09-24'));
+  assert.ok(!(await otherWeek.text()).includes('"CSV Test"'));
+});
 await test('order endpoint rejects missing and manipulated collection values before saving', async()=>{
   for(const value of [undefined,null,'',[],['juniors','seniors'],{},'18:00','Juniors','seniors ']) {
     const response=await kitchen.POST(request({...payload,collection_window:value}));
