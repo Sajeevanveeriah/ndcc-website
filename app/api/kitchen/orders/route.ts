@@ -1,3 +1,5 @@
+import { isMealCollectionWindow, MEAL_COLLECTION_REQUIRED_MESSAGE, mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
+import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getKitchenOrderWindow } from '@/lib/kitchen-order-window';
@@ -21,12 +23,25 @@ function sanitiseInput(str: string): string {
 }
 
 export async function POST(request: Request) {
-  const orderingWindow = getKitchenOrderWindow();
-  if (!orderingWindow.open) return NextResponse.json({ error: orderingWindow.message, order_window: orderingWindow }, { status: 403 });
   const rawBody = await readLimitedJsonObject(request);
   if (!rawBody.ok) {
     const status = rawBody.error === 'Request body is too large.' ? 413 : 400;
     return NextResponse.json({ success: false, error: rawBody.error }, { status });
+  }
+  const token = rawBody.value.draft_token;
+  if (typeof token !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) {
+    return NextResponse.json({ error: 'A valid meal draft token is required.' }, { status: 400 });
+  }
+  if (rawBody.value.action === 'resume' || rawBody.value.action === 'edit') {
+    return resumeOrEdit(request, token, rawBody.value.action, rawBody.value.revision);
+  }
+  const orderingWindow = getKitchenOrderWindow();
+  if (!orderingWindow.open) return NextResponse.json({ error: orderingWindow.message, order_window: orderingWindow }, { status: 403 });
+  if (!isMealCollectionWindow(rawBody.value.collection_window)) {
+    return NextResponse.json({ error: MEAL_COLLECTION_REQUIRED_MESSAGE }, { status: 400 });
+  }
+  if (!Number.isInteger(rawBody.value.revision) || Number(rawBody.value.revision) < 0) {
+    return NextResponse.json({ error: 'A valid order revision is required.' }, { status: 400 });
   }
   const parsedInput = validateKitchenOrderInput(rawBody.value);
   if (!parsedInput.ok) {
@@ -97,59 +112,16 @@ export async function POST(request: Request) {
 
   const paymentReference = await generateUniquePaymentReference('kitchen');
 
-  const { data: linkedOrder, error: linkedOrderError } = await supabase
-    .from('orders')
-    .insert({
-      customer_name: sanitiseInput(customer_name),
-      customer_email: sanitiseInput(customer_email),
-      customer_phone: sanitiseInput(customer_phone),
-      items: orderItems.map((i) => ({ name: i.name, size: 'kitchen', quantity: i.quantity, price: i.price })),
-      total_amount: total,
-      payment_status: 'pending_bank_transfer',
-      payment_reference: paymentReference,
-      order_category: 'kitchen',
-      order_status: 'submitted',
-      processed: false,
-      notes: 'Kitchen order',
-    })
-    .select('id')
-    .single();
-
-  if (linkedOrderError) {
-    console.error('Supabase kitchen linked order insert error:', linkedOrderError);
-    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
-  }
-
-  const { data: kitchenOrder, error: kitchenOrderError } = await supabase
-    .from('kitchen_orders')
-    .insert({
-      customer_name: sanitiseInput(customer_name),
-      total_amount: total,
-      status: 'submitted',
-      payment_status: 'pending_bank_transfer',
-      payment_reference: paymentReference,
-      linked_order_id: linkedOrder.id,
-      processed: false,
-    })
-    .select('id')
-    .single();
-
-  if (kitchenOrderError) {
-    console.error('Supabase kitchen order insert error:', kitchenOrderError);
-    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
-  }
-
-  const { error: orderItemsError } = await supabase.from('kitchen_order_items').insert(
-    orderItems.map((i) => ({
-      order_id: kitchenOrder.id,
-      item_id: i.item_id,
-      quantity: i.quantity,
-      price: i.price,
-    }))
-  );
-  if (orderItemsError) {
-    console.error('Supabase kitchen order items insert error:', orderItemsError);
-    return NextResponse.json({ success: false, error: 'Failed to submit order.' }, { status: 500 });
+  const { data: saved, error: saveError } = await supabase.rpc('save_meal_order', {
+    target_token: token, target_revision: rawBody.value.revision,
+    target_reference: paymentReference, target_service_date: orderingWindow.serviceDate,
+    target_request: {
+      name: sanitiseInput(customer_name), email: sanitiseInput(customer_email), phone: sanitiseInput(customer_phone),
+      collection_window: rawBody.value.collection_window, items: orderItems,
+    },
+  });
+  if (saveError || !saved?.id) {
+    return NextResponse.json({ error: 'Unable to save this order. A payment may be pending or another tab changed it. Refresh and try again.' }, { status: 409 });
   }
 
   const kitchenItemListHtml = orderItems
@@ -161,13 +133,15 @@ export async function POST(request: Request) {
       </tr>`
     )
     .join('');
-  if (rawBody.value.payment_method === 'bank_transfer') await sendEmail({
+  const notification = await sendEmail({
     ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('kitchen')),
-    subject: `Kitchen order confirmed - Ref ${paymentReference} | NDCC Dinos`,
+    idempotencyKey: `meal-order-${saved.id}-${saved.meal_revision}`,
+    subject: `Kitchen order received - Ref ${saved.payment_reference} | NDCC Dinos`,
     html: emailHtml(
       'Kitchen Order Confirmation',
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(customer_name))},</p>
       <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe, or use the bank transfer details below.</p>
+      <p><strong>Collection:</strong> ${escapeEmailHtml(mealCollectionLabel(saved.meal_collection_window))}<br>${escapeEmailHtml(mealServiceLabel(saved.meal_service_date))} (Australia/Melbourne)</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <thead>
           <tr style="background:#f9fafb;">
@@ -184,22 +158,71 @@ export async function POST(request: Request) {
           </tr>
         </tfoot>
       </table>
-      ${bankDetailsHtml(paymentReference, total)}
+      ${bankDetailsHtml(saved.payment_reference, total)}
       <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
     ),
   });
 
-  return NextResponse.json({
-    success: true,
-    order_id: linkedOrder.id,
-    kitchen_order_id: kitchenOrder.id,
-    payment_reference: paymentReference,
-    total_amount: total,
-    bank_details: {
-      account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
-      bsb: process.env.NDCC_BANK_BSB || '',
-      account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '',
-    },
-  });
+  return NextResponse.json({ ...mealResponse(saved), notification_status: notification.status });
 }
 
+type SavedMeal = {
+  id: string; payment_reference: string; total_amount: number; meal_collection_window: string;
+  meal_service_date: string; meal_revision: number; meal_editing: boolean;
+  payment_status: string; meal_request: unknown;
+};
+
+function mealResponse(order: SavedMeal) {
+  return {
+    success: true, order_id: order.id, total_amount: Number(order.total_amount),
+    payment_reference: order.payment_reference, collection_window: order.meal_collection_window,
+    service_date: order.meal_service_date, revision: order.meal_revision, editing: order.meal_editing,
+    payment_status: order.payment_status, draft: order.meal_request,
+    bank_details: { account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
+      bsb: process.env.NDCC_BANK_BSB || '', account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '' },
+  };
+}
+
+async function resumeOrEdit(request: Request, token: string, action: 'resume' | 'edit', revision: unknown) {
+  if (!enforceRateLimit(`meal-draft:${getClientIp(request)}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many attempts. Please wait.' }, { status: 429 });
+  }
+  const supabase = createServerClient();
+  const { data: order, error } = await supabase.from('orders').select('*').eq('meal_draft_token', token).maybeSingle();
+  if (error) return NextResponse.json({ error: 'Unable to load order.' }, { status: 503 });
+  if (!order) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+  if (action === 'resume') return NextResponse.json(mealResponse(order), { headers: { 'Cache-Control': 'no-store' } });
+  const window = getKitchenOrderWindow();
+  if (!window.open || order.meal_service_date !== window.serviceDate) {
+    return NextResponse.json({ error: 'This meal order is outside its editing window. Contact the club for changes.' }, { status: 403 });
+  }
+  if (revision !== order.meal_revision || Number(order.amount_paid) > 0 || order.payment_status === 'paid') {
+    return NextResponse.json({ error: 'This order changed or has a payment. Refresh before editing.' }, { status: 409 });
+  }
+  const attempts = await supabase.from('order_payments').select('id,provider,provider_reference,status')
+    .eq('order_id', order.id).eq('status', 'pending');
+  if (attempts.error) return NextResponse.json({ error: 'Unable to verify existing payments.' }, { status: 503 });
+  for (const attempt of attempts.data || []) {
+    // Never unlock an order while an unverified or in-flight Checkout may be payable.
+    if (attempt.provider !== 'stripe' || !attempt.provider_reference) {
+      return NextResponse.json({ error: 'A payment is being prepared. Retry payment to recover it, then choose Edit order again.' }, { status: 409 });
+    }
+    try {
+      const stripe = getStripe();
+      let session = await stripe.checkout.sessions.retrieve(attempt.provider_reference);
+      if (session.metadata?.order_id !== order.id || session.status === 'complete') {
+        return NextResponse.json({ error: 'A payment is being confirmed. This order cannot be edited.' }, { status: 409 });
+      }
+      if (session.status === 'open') session = await stripe.checkout.sessions.expire(session.id);
+      if (session.status !== 'expired') throw new Error('Checkout not expired');
+      const released = await supabase.from('order_payments').update({ status: 'failed', recorded_by: 'meal-order-edit' })
+        .eq('id', attempt.id).eq('status', 'pending').eq('provider_reference', session.id);
+      if (released.error) throw released.error;
+    } catch {
+      return NextResponse.json({ error: 'Unable to safely cancel the existing checkout. Please retry.' }, { status: 503 });
+    }
+  }
+  const edited = await supabase.rpc('begin_meal_order_edit', { target_token: token, target_revision: revision });
+  if (edited.error || !edited.data?.id) return NextResponse.json({ error: 'A payment started or the order changed. Refresh and try again.' }, { status: 409 });
+  return NextResponse.json(mealResponse(edited.data));
+}

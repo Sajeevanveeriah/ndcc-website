@@ -66,6 +66,8 @@ jobs:
       - run: node scripts/test-consolidated-receipts.mjs
       - run: npm run test:payment-receipts
       - run: npm run test:order-notifications
+      - run: npm run test:meal-collection
+      - run: node --experimental-strip-types scripts/test-kitchen-export.mjs
       - run: npm run test:player-registration
       - run: npm run test:merch-export
       - run: npm run build

@@ -18,6 +18,8 @@ type PaymentCapabilities = {
 };
 
 type OrderPaymentOptionsProps = {
+  mealDraftToken?: string;
+  mealRevision?: number;
   orderId: string;
   totalAmount: number;
   paymentReference: string;
@@ -33,6 +35,8 @@ const DEFAULT_CAPABILITIES: PaymentCapabilities = {
 };
 
 export default function OrderPaymentOptions({
+  mealDraftToken,
+  mealRevision,
   orderId,
   totalAmount,
   paymentReference,
@@ -73,6 +77,7 @@ export default function OrderPaymentOptions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           order_id: orderId,
+          ...(mealDraftToken ? { meal_draft_token: mealDraftToken, meal_revision: mealRevision } : {}),
           return_path: returnPath,
         }),
       });

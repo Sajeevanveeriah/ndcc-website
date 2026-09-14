@@ -21,7 +21,8 @@ function moduleAt(path, dependencies = {}, suffix = '') {
 }
 const recipients = moduleAt('lib/payments/receipt-recipients.ts');
 const references = moduleAt('lib/payments/reference.ts', { '@/lib/supabase-server': {} });
-const content = moduleAt('lib/order-notification-content.ts');
+const mealCollection = moduleAt('lib/meal-collection.ts');
+const content = moduleAt('lib/order-notification-content.ts', { './meal-collection': mealCollection });
 const plain = value => JSON.parse(JSON.stringify(value));
 assert.deepEqual(plain(recipients.receiptRecipients(' NDCC.Secretary1@gmail.com ', ['ndsc.cricket@gmail.com', 'NDCC.SECRETARY1@gmail.com'])), {
   to: 'ndcc.secretary1@gmail.com', bcc: ['ndsc.cricket@gmail.com'],
@@ -44,6 +45,7 @@ const db = { from(table) { return { select() { return this; }, eq() { return thi
   async maybeSingle() { return { data: table === 'orders' ? order : table === 'order_payments' ? payment : null, error: null }; },
 }; } };
 const sender = moduleAt('lib/payment-receipts.ts', {
+  '@/lib/meal-collection': mealCollection,
   '@/lib/payments/receipt-recipients': recipients,
   '@/lib/order-notification-content': content,
   '@/lib/payments/reference': references,
@@ -118,6 +120,7 @@ for (const version of ['new', '1', '2']) {
     }; },
   };
   const route = moduleAt('app/api/payments/checkout-session/route.ts', {
+    '@/lib/meal-collection': mealCollection,
     '@/lib/club-settings': {}, 'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '@/lib/supabase-server': { createServerClient: () => checkoutDb, isServerSupabaseConfigured: () => true },
     '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async value => {

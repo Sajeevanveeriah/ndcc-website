@@ -39,7 +39,7 @@ export async function sendStaffOrderNotificationForOrder(
 ): Promise<StaffOrderNotificationResult> {
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,payment_reference,bank_reference_used,order_category')
+    .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,payment_reference,bank_reference_used,order_category,meal_collection_window,meal_service_date')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -53,6 +53,7 @@ export async function sendStaffOrderNotificationForOrder(
   }
 
   const content = buildStaffOrderNotificationContent({
+    collectionWindow: order.meal_collection_window, serviceDate: order.meal_service_date,
     orderId: order.id,
     paymentReference: paidPayment.paymentReference || order.payment_reference || order.id,
     orderReference: order.payment_reference || order.id,

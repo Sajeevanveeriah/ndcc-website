@@ -79,7 +79,7 @@ console.log('Checks:');
 await test('the category prefix map is exact, including the requested kitchen spelling', () => {
   assert.deepEqual({ ...references.PAYMENT_REFERENCE_PREFIXES }, {
     merch: 'NDCCMER',
-    kitchen: 'NCDDKIT',
+    kitchen: 'NDCCKIT',
     membership: 'NDCCMEM',
     event: 'NDCCEVT',
     raffle: 'NDCCRAF',
@@ -93,7 +93,9 @@ await test('canonical references require category prefix, Melbourne year and six
     assert.equal(references.isCanonicalPaymentReference(`${prefix}-2026-000001`, category), true);
     assert.equal(references.isCanonicalPaymentReference(`${prefix}-2026-999999`, category), true);
   }
-  assert.equal(references.isCanonicalPaymentReference('NDCCKIT-2026-000001', 'kitchen'), false);
+  assert.equal(references.isCanonicalPaymentReference('NDCCKIT-2026-000001', 'kitchen'), true);
+  assert.equal(references.isCanonicalPaymentReference('NCDDKIT-2026-000001', 'kitchen'), true);
+  assert.equal(references.isCanonicalPaymentReference('NCDDKIT-2026-000001', 'merch'), false);
   assert.equal(references.isCanonicalPaymentReference('NCDDKIT-20260830-000001', 'kitchen'), false);
   assert.equal(references.isCanonicalPaymentReference('NDCCMER-2026-1', 'merch'), false);
   assert.equal(references.isCanonicalPaymentReference('NDCCMER-2026-000001', 'event'), false);
@@ -114,7 +116,14 @@ await test('all four order-creation routes allocate their exact category', () =>
   for (const [relativePath, category] of Object.entries(expected)) {
     const source = read(relativePath);
     assert.match(source, new RegExp(`generateUniquePaymentReference\\('${category}'\\)`));
-    assert.match(source, /payment_reference:\s*paymentReference/u);
+    if (category === 'kitchen') {
+      assert.match(source, /rpc\('save_meal_order'/u);
+      assert.match(source, /target_reference:\s*paymentReference/u);
+      const mealMigration = read('supabase/migrations/20260914231628_meal_collection_windows.sql');
+      assert.match(mealMigration, /'pending_bank_transfer',target_reference,'kitchen'/u);
+    } else {
+      assert.match(source, /payment_reference:\s*paymentReference/u);
+    }
   }
 });
 
