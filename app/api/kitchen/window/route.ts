@@ -1,4 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getKitchenOrderWindow } from '@/lib/kitchen-order-window';
+import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
 export const dynamic = 'force-dynamic';
-export function GET() { return NextResponse.json({ data: getKitchenOrderWindow() }); }
+export async function GET() { return NextResponse.json({ data: await getLiveKitchenOrderWindow() }, { headers: { 'Cache-Control': 'no-store' } }); }

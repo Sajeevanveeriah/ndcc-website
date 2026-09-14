@@ -4,6 +4,7 @@ import { MEAL_COLLECTION_WINDOWS, mealCollectionLabel, mealServiceLabel, mealSer
 import { isThursdayServiceDate } from '@/lib/kitchen-export';
 
 import { useEffect, useState } from 'react';
+import KitchenOrderingControls from '@/components/admin/KitchenOrderingControls';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import ImageUploadField from '@/components/admin/ImageUploadField';
@@ -293,6 +294,8 @@ export default function AdminKitchenPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Kitchen Management</h1>
       {message && <p className="text-sm text-content-secondary bg-surface-page border rounded px-3 py-2">{message}</p>}
+
+      <KitchenOrderingControls />
 
       {/* Menus */}
       <section className="bg-surface-card rounded-xl border p-5 space-y-4">
