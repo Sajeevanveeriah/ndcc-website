@@ -79,7 +79,7 @@ console.log('Checks:');
 await test('the category prefix map is exact, including the requested kitchen spelling', () => {
   assert.deepEqual({ ...references.PAYMENT_REFERENCE_PREFIXES }, {
     merch: 'NDCCMER',
-    kitchen: 'NCDDKIT',
+    kitchen: 'NDCCKIT',
     membership: 'NDCCMEM',
     event: 'NDCCEVT',
     raffle: 'NDCCRAF',
@@ -93,7 +93,9 @@ await test('canonical references require category prefix, Melbourne year and six
     assert.equal(references.isCanonicalPaymentReference(`${prefix}-2026-000001`, category), true);
     assert.equal(references.isCanonicalPaymentReference(`${prefix}-2026-999999`, category), true);
   }
-  assert.equal(references.isCanonicalPaymentReference('NDCCKIT-2026-000001', 'kitchen'), false);
+  assert.equal(references.isCanonicalPaymentReference('NDCCKIT-2026-000001', 'kitchen'), true);
+  assert.equal(references.isCanonicalPaymentReference('NCDDKIT-2026-000001', 'kitchen'), true);
+  assert.equal(references.isCanonicalPaymentReference('NCDDKIT-2026-000001', 'merch'), false);
   assert.equal(references.isCanonicalPaymentReference('NCDDKIT-20260830-000001', 'kitchen'), false);
   assert.equal(references.isCanonicalPaymentReference('NDCCMER-2026-1', 'merch'), false);
   assert.equal(references.isCanonicalPaymentReference('NDCCMER-2026-000001', 'event'), false);

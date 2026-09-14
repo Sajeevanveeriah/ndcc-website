@@ -1,3 +1,4 @@
+import { isMealCollectionWindow, mealContractMatches, MEAL_COLLECTION_REQUIRED_MESSAGE, MEAL_COLLECTION_TIME_ZONE } from '@/lib/meal-collection';
 import { getClubSettings } from '@/lib/club-settings';
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
@@ -199,11 +200,17 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category')
+      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing')
       .eq('id', orderId)
       .maybeSingle();
     if (orderError || !order) {
       return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
+    }
+
+    if (order.order_category === 'kitchen' && (!isMealCollectionWindow(order.meal_collection_window)
+      || !order.meal_service_date || order.meal_editing || !order.meal_draft_token
+      || body.meal_draft_token !== order.meal_draft_token || body.meal_revision !== order.meal_revision)) {
+      return NextResponse.json({ success: false, error: MEAL_COLLECTION_REQUIRED_MESSAGE }, { status: 400 });
     }
 
     if (order.order_category === 'donation' && !(await getClubSettings()).donations_enabled) {
@@ -281,6 +288,7 @@ export async function POST(request: Request) {
         if (attemptAmountCents === validation.amountCents
           && isCanonicalPaymentReference(attempt.payment_reference, paymentCategory)
           && frozenContract
+          && (orderCategory !== 'kitchen' || mealContractMatches(order, metadataRecord(attempt.metadata) || {}))
           && !reusableUnlinkedAttempt) {
           reusableUnlinkedAttempt = {
             id: attempt.id,
@@ -345,6 +353,7 @@ export async function POST(request: Request) {
       const checkoutCreatedAtUnix = integerMetadata(sessionMetadata.checkout_created_at_unix);
       const linkedContractValid = Boolean(
         existingSession.url
+        && (orderCategory !== 'kitchen' || (mealContractMatches(order, sessionMetadata) && mealContractMatches(order, attemptMetadata || {})))
         && existingSession.mode === 'payment'
         && attemptAmountCents > 0
         && String(attempt.currency || '').toUpperCase() === 'AUD'
@@ -447,7 +456,8 @@ export async function POST(request: Request) {
       checkoutContract = reusableUnlinkedAttempt.contract;
     } else {
       paymentReference = await generateUniquePaymentReference(paymentCategory);
-      const reservation = await supabase.rpc('reserve_order_stripe_payment_v2', {
+      const reservation = await supabase.rpc(orderCategory === 'kitchen' ? 'reserve_meal_stripe_payment' : 'reserve_order_stripe_payment_v2', {
+        ...(orderCategory === 'kitchen' ? { target_token: body.meal_draft_token, target_revision: body.meal_revision } : {}),
         target_order_id: order.id,
         target_payment_reference: paymentReference,
         target_amount_cents: validation.amountCents,
@@ -487,6 +497,11 @@ export async function POST(request: Request) {
     const publicPaymentReference = checkoutContract.referenceVersion === '2'
       ? checkoutContract.orderReference : paymentReference;
     const paymentMetadata = {
+      ...(orderCategory === 'kitchen' ? {
+        meal_collection_window: order.meal_collection_window,
+        meal_service_date: order.meal_service_date,
+        meal_revision: String(order.meal_revision), meal_time_zone: MEAL_COLLECTION_TIME_ZONE,
+      } : {}),
       ...(checkoutContract.referenceVersion === '2' ? { ndcc_transaction_reference: paymentReference } : {}),
       ndcc_payment_reference: publicPaymentReference,
       ndcc_payment_type: paymentCategory,
@@ -547,7 +562,8 @@ export async function POST(request: Request) {
     const sessionPaymentReference = checkoutContract.referenceVersion === '2'
       ? session.metadata?.ndcc_transaction_reference : session.metadata?.ndcc_payment_reference;
     const sessionCreatedAtUnix = integerMetadata(session.metadata?.checkout_created_at_unix);
-    const returnedContractInvalid = !isCanonicalPaymentReference(sessionPaymentReference, paymentCategory)
+    const returnedContractInvalid = (orderCategory === 'kitchen' && !mealContractMatches(order, session.metadata || {}))
+      || !isCanonicalPaymentReference(sessionPaymentReference, paymentCategory)
       || sessionPaymentReference !== paymentReference
       || session.metadata?.ndcc_payment_reference !== publicPaymentReference
       || session.metadata?.item_number !== publicPaymentReference

@@ -1,5 +1,6 @@
 'use client';
 
+import { mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
@@ -14,6 +15,9 @@ import { ShoppingBag } from 'lucide-react';
 import { MANUAL_PAYMENT_LIMITS, parseAudInputToCents } from '@/lib/payments/manual-payment';
 
 type AdminOrder = Order & {
+  order_category?: string;
+  meal_collection_window?: string | null;
+  meal_service_date?: string | null;
   amount_paid?: number | null;
   balance_due?: number | null;
   payment_reference?: string | null;
@@ -446,6 +450,7 @@ export default function AdminOrdersPage() {
                     <p className="font-medium text-content-primary">{o.customer_name}</p>
                     <a href={`mailto:${o.customer_email}`} className="text-xs text-maroon-700 dark:text-maroon-200 hover:underline">{o.customer_email}</a>
                     <p className="text-xs text-gray-400">{o.customer_phone}</p>
+                    {o.order_category === 'kitchen' && <p className="text-sm"><strong>{mealCollectionLabel(o.meal_collection_window)}</strong><br />{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</p>}
                     {o.payment_reference && <p className="text-xs font-mono text-content-muted">{o.payment_reference}</p>}
                   </div>
                 </TableCell>

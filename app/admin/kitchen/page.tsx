@@ -1,5 +1,8 @@
 'use client';
 
+import { MEAL_COLLECTION_WINDOWS, mealCollectionLabel, mealServiceLabel, mealServiceDate } from '@/lib/meal-collection';
+import { isThursdayServiceDate } from '@/lib/kitchen-export';
+
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
@@ -9,14 +12,44 @@ import { parseApiResponse } from '@/lib/admin-client';
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
-type KitchenOrder = { id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string };
+type KitchenOrder = { meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string };
 
 export default function AdminKitchenPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [collectionFilter, setCollectionFilter] = useState('all');
+  const [exportDate, setExportDate] = useState(() => mealServiceDate());
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
+  const visibleOrders = orders.filter((order) => collectionFilter === 'all' || (collectionFilter === 'missing' ? !order.meal_collection_window : order.meal_collection_window === collectionFilter));
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  async function exportWeek() {
+    setExportMessage('');
+    if (!isThursdayServiceDate(exportDate)) {
+      setExportMessage('Choose a Thursday service date.');
+      return;
+    }
+    setExporting(true);
+    try {
+      const response = await fetch(`/api/admin/kitchen/orders/export?service_date=${encodeURIComponent(exportDate)}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Could not export orders. Please try again.');
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `NDCC-Kitchen-${exportDate}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setExportMessage('Weekly CSV downloaded.');
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Could not export orders.');
+    } finally {
+      setExporting(false);
+    }
+  }
   const [menuForm, setMenuForm] = useState({ name: '', is_active: true });
   const [itemForm, setItemForm] = useState({ menu_id: '', name: '', description: '', image_url: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
 
@@ -50,7 +83,7 @@ export default function AdminKitchenPage() {
 
   async function loadOrders() {
     try {
-      const res = await fetch('/api/admin/resources/kitchenOrders', { cache: 'no-store' });
+      const res = await fetch('/api/admin/kitchen/orders', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: KitchenOrder[] }>(res);
       setOrders(data.data || []);
     } catch {
@@ -393,13 +426,26 @@ export default function AdminKitchenPage() {
       {/* Kitchen Orders */}
       <section className="bg-surface-card rounded-xl border p-5 space-y-3">
         <h2 className="text-lg font-semibold">Kitchen Orders</h2>
-        {orders.length === 0 ? (
-          <p className="text-sm text-content-muted">No kitchen orders yet.</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <Input id="kitchen-export-date" label="Thursday service date" type="date" value={exportDate} onChange={(event) => setExportDate(event.target.value)} />
+          <Button type="button" onClick={exportWeek} isLoading={exporting}>Export weekly orders CSV</Button>
+        </div>
+        <p className="text-sm text-content-muted">Exports all orders for the selected Thursday, including payment status and both collection times. Historical orders without a recorded service date cannot be assigned to a week.</p>
+        <p role="status" className="text-sm">{exportMessage}</p>
+        <label className="block text-sm">Filter by collection time
+          <select className="mt-1 block rounded border p-3 bg-surface-card" value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}>
+            <option value="all">All collection times</option>
+            {MEAL_COLLECTION_WINDOWS.map((window) => <option key={window.value} value={window.value}>{window.label}</option>)}
+            <option value="missing">Collection time not recorded</option>
+          </select>
+        </label>
+        {visibleOrders.length === 0 ? (
+          <p className="text-sm text-content-muted">No kitchen orders match this filter.</p>
         ) : (
-          orders.map((o) => (
-            <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex items-center justify-between">
-              <span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}</span>
-              <div className="flex items-center gap-2">
+          visibleOrders.map((o) => (
+            <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex flex-col gap-3 lg:flex-row lg:items-center justify-between">
+              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}</span>
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex items-center gap-1 text-xs">
                   <input
                     type="checkbox"

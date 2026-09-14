@@ -1,3 +1,4 @@
+import { mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { receiptRecipients } from '@/lib/payments/receipt-recipients';
@@ -107,7 +108,7 @@ export async function sendOrderPaymentReceiptForPayment(
       .maybeSingle(),
     supabase
       .from('orders')
-      .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,notes,payment_reference,bank_reference_used,order_category')
+      .select('id,customer_name,customer_email,customer_phone,items,total_amount,payment_status,notes,payment_reference,bank_reference_used,order_category,meal_collection_window,meal_service_date')
       .eq('id', orderId)
       .maybeSingle(),
   ]);
@@ -188,6 +189,7 @@ export async function sendOrderPaymentReceiptForPayment(
     paymentMethod: PAYMENT_METHOD_LABELS[payment.method] || 'Website Payment',
     reference,
     descriptionLines: [
+      ...(order.order_category === 'kitchen' ? [mealCollectionLabel(order.meal_collection_window), `${mealServiceLabel(order.meal_service_date)} (Australia/Melbourne)`] : []),
       ...referenceDescriptions,
       ...descriptions(order.items, paymentMetadata.payment_kind),
     ],
@@ -199,6 +201,7 @@ export async function sendOrderPaymentReceiptForPayment(
   const department = order.order_category === 'merch' ? 'apparel'
     : order.order_category === 'kitchen' ? 'kitchen' : null;
   const orderDetails = department ? buildStaffOrderNotificationContent({
+    collectionWindow: order.meal_collection_window, serviceDate: order.meal_service_date,
     orderId, paymentReference: reference, orderReference, bankReference,
     category: department, stage: 'paid', paymentMade: true,
     customer: { name: order.customer_name, email: order.customer_email, phone: order.customer_phone || '' },

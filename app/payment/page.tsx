@@ -1,3 +1,4 @@
+import MealPaymentSummary from '@/components/payments/MealPaymentSummary';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -56,6 +57,7 @@ export default async function PaymentResultPage({ searchParams: searchParamsProm
                     ? 'Your donation checkout was cancelled. You can return to Sponsors whenever you are ready.'
                     : 'No card payment was completed. Your order or registration remains available for bank transfer.'}
               </p>
+              {returnPath === '/kitchen' && <MealPaymentSummary />}
               <Link href={returnPath} className="btn-primary inline-flex justify-center">
                 Return to the previous page
               </Link>

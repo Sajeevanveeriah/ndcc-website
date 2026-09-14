@@ -1,3 +1,4 @@
+import { mealContractMatches } from '@/lib/meal-collection';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
@@ -829,12 +830,17 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
   const supabase = createServerClient();
   const orderLookup = await supabase
     .from('orders')
-    .select('id,payment_reference,order_category,stripe_session_id')
+    .select('id,payment_reference,order_category,stripe_session_id,meal_collection_window,meal_service_date,meal_revision')
     .eq('id', orderId)
     .maybeSingle();
   const order = orderLookup.data;
   if (orderLookup.error || !order) {
     return NextResponse.json({ error: 'Order not found.' }, { status: 500 });
+  }
+  // Preserve legacy callbacks for historical orders with no collection contract.
+  if (order.order_category === 'kitchen' && order.meal_collection_window != null
+    && !mealContractMatches(order, metadata)) {
+    return NextResponse.json({ error: 'Meal collection contract mismatch.' }, { status: 409 });
   }
   const paymentType = normalisePaymentReferenceCategory(order.order_category);
   const orderReferenceContract = metadata.ndcc_reference_version === '2';
@@ -921,6 +927,10 @@ async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Eve
     return NextResponse.json({ error: 'Payment ledger state conflict.' }, { status: 500 });
   }
 
+  if (order.order_category === 'kitchen' && order.meal_collection_window != null
+    && !mealContractMatches(order, payment.metadata || {})) {
+    return NextResponse.json({ error: 'Meal payment ledger contract mismatch.' }, { status: 409 });
+  }
   const settledMetadata = {
     ...(payment.metadata || {}),
     payment_intent: intentId,

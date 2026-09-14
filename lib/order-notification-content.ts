@@ -1,3 +1,4 @@
+import { mealCollectionLabel, mealServiceLabel } from './meal-collection';
 export type StaffOrderCategory = 'apparel' | 'kitchen';
 export type StaffOrderNotificationStage = 'created' | 'paid';
 
@@ -13,6 +14,8 @@ export type StaffOrderItem = {
 };
 
 export type StaffOrderNotificationInput = {
+  collectionWindow?: unknown;
+  serviceDate?: unknown;
   orderId: string;
   paymentReference: string;
   orderReference?: string;
@@ -140,6 +143,7 @@ export function buildStaffOrderNotificationContent(
     bodyHtml: `<p style="font-size:15px;color:#374151;line-height:1.6;">${stageText}</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:16px 0;">
         ${referenceRows}
+        ${input.category === 'kitchen' ? `<tr><td>Collection</td><td>${escapeHtml(mealCollectionLabel(input.collectionWindow))}<br>${escapeHtml(mealServiceLabel(input.serviceDate))} (Australia/Melbourne)</td></tr>` : ''}
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Payment made</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${paymentMadeLabel}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Ordered by</td><td style="padding:6px 0;font-size:14px;">${safeName}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;font-size:14px;">${safeEmail}</td></tr>

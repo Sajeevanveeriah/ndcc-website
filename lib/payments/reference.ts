@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase-server';
 
 export const PAYMENT_REFERENCE_PREFIXES = {
   merch: 'NDCCMER',
-  kitchen: 'NCDDKIT',
+  kitchen: 'NDCCKIT',
   membership: 'NDCCMEM',
   event: 'NDCCEVT',
   raffle: 'NDCCRAF',
@@ -12,7 +12,7 @@ export const PAYMENT_REFERENCE_PREFIXES = {
 
 export type PaymentReferenceCategory = keyof typeof PAYMENT_REFERENCE_PREFIXES;
 
-const PAYMENT_REFERENCE_PATTERN = /^(?:NDCC(?:MER|MEM|EVT|RAF|DCO|PAY)|NCDDKIT)-[0-9]{4}-[0-9]{6}$/;
+const PAYMENT_REFERENCE_PATTERN = /^(?:NDCC(?:MER|KIT|MEM|EVT|RAF|DCO|PAY)|NCDDKIT)-[0-9]{4}-[0-9]{6}$/;
 
 export function normalisePaymentReferenceCategory(value: unknown): PaymentReferenceCategory {
   const category = String(value || '').trim().toLowerCase();
@@ -29,7 +29,8 @@ export function isCanonicalPaymentReference(
   category?: PaymentReferenceCategory,
 ): value is string {
   if (typeof value !== 'string' || !PAYMENT_REFERENCE_PATTERN.test(value)) return false;
-  return !category || value.startsWith(`${PAYMENT_REFERENCE_PREFIXES[category]}-`);
+  return !category || value.startsWith(`${PAYMENT_REFERENCE_PREFIXES[category]}-`)
+    || (category === 'kitchen' && value.startsWith('NCDDKIT-'));
 }
 
 export async function generateUniquePaymentReference(category: PaymentReferenceCategory) {
