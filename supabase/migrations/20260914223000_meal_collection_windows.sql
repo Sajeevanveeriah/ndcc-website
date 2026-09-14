@@ -1,4 +1,27 @@
 -- Additive: historical orders retain NULL collection and service-date values.
+CREATE TABLE IF NOT EXISTS public.orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_name TEXT NOT NULL DEFAULT '',
+  customer_email TEXT NOT NULL DEFAULT '',
+  customer_phone TEXT DEFAULT '',
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  total_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  payment_status TEXT DEFAULT 'pending',
+  stripe_session_id TEXT,
+  processed BOOLEAN DEFAULT FALSE,
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  order_status TEXT DEFAULT 'submitted',
+  payment_reference TEXT,
+  bank_reference_used TEXT,
+  confirmed_by UUID,
+  confirmed_at TIMESTAMPTZ,
+  needs_review_reason TEXT DEFAULT '',
+  order_category TEXT DEFAULT 'general',
+  merch_window_id UUID,
+  merch_window_label TEXT
+);
+
 alter table public.orders
   add column meal_collection_window text check (meal_collection_window in ('juniors', 'seniors')),
   add column meal_service_date date check (extract(isodow from meal_service_date) = 4),

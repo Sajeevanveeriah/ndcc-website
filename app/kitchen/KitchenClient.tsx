@@ -249,7 +249,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
             <CardContent className="p-6 space-y-4">
               <h3 className="text-lg font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Kitchen Order</h3>
               <p className="font-display text-lg font-bold text-content-primary">Total: {formatCurrency(total)}</p>
-              <p className={orderWindow.open ? 'text-sm text-green-700' : 'text-sm text-amber-800'}>{orderWindow.message}</p>
+              <p className={orderWindow.open ? 'text-sm text-green-700 dark:text-green-300' : 'text-sm text-amber-800 dark:text-amber-200'}>{orderWindow.message}</p>
               {storageError && <p role="alert" className="text-red-700 dark:text-red-300">{storageError}</p>}
               <p className="text-sm">Service: {mealServiceLabel(orderConfirmation?.service_date || orderWindow.serviceDate)}</p>
               <form className="space-y-3" onSubmit={submitOrder}>
@@ -277,7 +277,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
                     <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
                     <div>
                       <p className="text-green-800 font-body font-semibold">Order saved</p>
-                      <p>{mealCollectionLabel(orderConfirmation?.collection_window)} - {mealServiceLabel(orderConfirmation?.service_date)} (Australia/Melbourne)</p>
+                      <p className="text-green-900">{mealCollectionLabel(orderConfirmation?.collection_window)} - {mealServiceLabel(orderConfirmation?.service_date)} (Australia/Melbourne)</p>
                       <p className="text-green-700 font-body text-sm mt-1">{status}</p>
                     </div>
                   </div>
