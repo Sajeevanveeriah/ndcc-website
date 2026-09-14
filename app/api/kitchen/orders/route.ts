@@ -2,7 +2,7 @@ import { isMealCollectionWindow, MEAL_COLLECTION_REQUIRED_MESSAGE, mealCollectio
 import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { getKitchenOrderWindow } from '@/lib/kitchen-order-window';
+import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   if (rawBody.value.action === 'resume' || rawBody.value.action === 'edit') {
     return resumeOrEdit(request, token, rawBody.value.action, rawBody.value.revision);
   }
-  const orderingWindow = getKitchenOrderWindow();
+  const orderingWindow = await getLiveKitchenOrderWindow();
   if (!orderingWindow.open) return NextResponse.json({ error: orderingWindow.message, order_window: orderingWindow }, { status: 403 });
   if (!isMealCollectionWindow(rawBody.value.collection_window)) {
     return NextResponse.json({ error: MEAL_COLLECTION_REQUIRED_MESSAGE }, { status: 400 });
@@ -192,7 +192,7 @@ async function resumeOrEdit(request: Request, token: string, action: 'resume' | 
   if (error) return NextResponse.json({ error: 'Unable to load order.' }, { status: 503 });
   if (!order) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
   if (action === 'resume') return NextResponse.json(mealResponse(order), { headers: { 'Cache-Control': 'no-store' } });
-  const window = getKitchenOrderWindow();
+  const window = await getLiveKitchenOrderWindow();
   if (!window.open || order.meal_service_date !== window.serviceDate) {
     return NextResponse.json({ error: 'This meal order is outside its editing window. Contact the club for changes.' }, { status: 403 });
   }

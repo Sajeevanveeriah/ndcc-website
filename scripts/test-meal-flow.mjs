@@ -29,7 +29,8 @@ function loader(mocks = {}) {
 }
 const plain = loader();
 const meal = plain('lib/meal-collection.ts');
-const { getKitchenOrderWindow } = plain('lib/kitchen-order-window.ts');
+const { getKitchenOrderWindow: evaluateWindow, DEFAULT_KITCHEN_SETTINGS, validKitchenSettings } = plain('lib/kitchen-order-window.ts');
+const getKitchenOrderWindow = (now) => evaluateWindow(now, { ...DEFAULT_KITCHEN_SETTINGS, enabled: true });
 let passed = 0;
 async function test(name, run) { await run(); passed++; console.log(`PASS: ${name}`); }
 await test('AEST Thursday cutoff: 09:59 open, 10:00 closed, correct service date', () => {
@@ -57,6 +58,7 @@ const orderId = '11111111-1111-4111-8111-111111111111';
 let order, payments, sessions, created, expired, savedArgs;
 const emails = [];
 let kitchenPermission = true;
+let gateOpen = true;
 function reset(window = 'juniors') {
   order = { id: orderId, total_amount: 20, amount_paid: 0, payment_status: 'pending_bank_transfer',
     order_status: 'submitted', order_category: 'kitchen', payment_reference: 'NCDDKIT-2026-000001',
@@ -120,7 +122,7 @@ const mocks = {
   '@/lib/payments/reference': { generateUniquePaymentReference:async()=> 'NCDDKIT-2026-000002',
     isCanonicalPaymentReference:v=>/^NCDDKIT-2026-\d{6}$/.test(v), normalisePaymentReferenceCategory:v=>v },
   '@/lib/payments/site-url': { getCheckoutSiteUrl:()=> 'http://localhost:3100' },
-  '@/lib/kitchen-order-window': { getKitchenOrderWindow:()=>({open:true,serviceDate:'2026-09-17'}) },
+  '@/lib/kitchen-ordering-settings': { getLiveKitchenOrderWindow:async()=>({open:gateOpen,serviceDate:'2026-09-17',message:'Orders disabled.'}) },
   '@/lib/email': { sendEmail:async(payload)=>{emails.push(payload);return {status:'sent'};},emailHtml:(_title,body)=>body,bankDetailsHtml:()=>'',escapeEmailHtml:String },
 };
 const load = loader(mocks);
@@ -203,6 +205,45 @@ await test('resume preserves saved selection; tampered callback metadata fails c
   assert.equal(meal.mealContractMatches(order,metadata),true);
   for(const patch of [{meal_collection_window:'juniors'},{meal_service_date:'2026-09-24'},{meal_revision:'0'}]){
     assert.equal(meal.mealContractMatches(order,{...metadata,...patch}),false);
+  }
+});
+
+
+await test('manual disable wins over weekly opening; custom schedule and invalid settings fail closed', () => {
+  const now = new Date('2026-09-14T00:00:00Z');
+  assert.equal(evaluateWindow(now).open, false);
+  assert.equal(evaluateWindow(now, {...DEFAULT_KITCHEN_SETTINGS, enabled:false}).open, false);
+  assert.equal(evaluateWindow(now, {...DEFAULT_KITCHEN_SETTINGS, enabled:true, open_time:'11:00'}).open, false);
+  assert.equal(evaluateWindow(now, {...DEFAULT_KITCHEN_SETTINGS, enabled:true, open_time:'09:00'}).open, true);
+  for (const patch of [{enabled:'true'}, {open_time:'25:00'}, {open_day:0}, {close_day:5}, {open_day:4,open_time:'11:00'}]) {
+    assert.equal(validKitchenSettings({...DEFAULT_KITCHEN_SETTINGS,...patch}),false);
+  }
+});
+
+await test('disabled ordering rejects save, edit and checkout but permits read-only resume', async () => {
+  reset(); gateOpen = false;
+  assert.equal((await kitchen.POST(request({...payload, collection_window:'juniors'}))).status,403);
+  assert.equal(savedArgs,null);
+  assert.equal((await kitchen.POST(request({action:'edit',draft_token:token,revision:1}))).status,403);
+  assert.equal((await checkout.POST(request({order_id:orderId,meal_draft_token:token,meal_revision:1}))).status,403);
+  assert.equal(created,0);
+  assert.equal((await kitchen.POST(request({action:'resume',draft_token:token}))).status,200);
+  gateOpen = true;
+});
+await test('CMS settings reject unauthorised and invalid writes; valid changes persist', async () => {
+  let allowed = false, persisted = null;
+  const settingsRoute = loader({
+    '@/lib/auth/guard': { requirePermission:async()=>allowed ? {role:'admin'} : null },
+    '@/lib/kitchen-ordering-settings': { readKitchenOrderingSettings:async()=>persisted || DEFAULT_KITCHEN_SETTINGS },
+    '@/lib/supabase-server': { createServerClient:()=>({from:()=>({update:value=>{persisted=value;return {eq:()=>({select:()=>({single:async()=>({data:value,error:null})})})};}})}) },
+  })('app/api/admin/kitchen/settings/route.ts');
+  assert.equal((await settingsRoute.GET()).status,403);
+  assert.equal((await settingsRoute.PATCH(request(DEFAULT_KITCHEN_SETTINGS))).status,403);
+  assert.equal(persisted,null); allowed=true;
+  assert.equal((await settingsRoute.PATCH(request({...DEFAULT_KITCHEN_SETTINGS,enabled:'true'}))).status,400);
+  for (const enabled of [true,false]) {
+    assert.equal((await settingsRoute.PATCH(request({...DEFAULT_KITCHEN_SETTINGS,enabled}))).status,200);
+    assert.equal((await (await settingsRoute.GET()).json()).data.enabled,enabled);
   }
 });
 console.log(`${passed} meal flow checks passed. Supabase/Stripe are mocks; SQL concurrency and real payment integration are not tested.`);

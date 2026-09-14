@@ -1,3 +1,4 @@
+import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
 import { isMealCollectionWindow, mealContractMatches, MEAL_COLLECTION_REQUIRED_MESSAGE, MEAL_COLLECTION_TIME_ZONE } from '@/lib/meal-collection';
 import { getClubSettings } from '@/lib/club-settings';
 import { NextResponse } from 'next/server';
@@ -207,6 +208,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
     }
 
+    if (order.order_category === 'kitchen') {
+      const window = await getLiveKitchenOrderWindow();
+      if (!window.open || order.meal_service_date !== window.serviceDate) return NextResponse.json({ success: false, error: window.open ? 'This meal service date is closed.' : window.message }, { status: 403 });
+    }
     if (order.order_category === 'kitchen' && (!isMealCollectionWindow(order.meal_collection_window)
       || !order.meal_service_date || order.meal_editing || !order.meal_draft_token
       || body.meal_draft_token !== order.meal_draft_token || body.meal_revision !== order.meal_revision)) {

@@ -120,6 +120,7 @@ for (const version of ['new', '1', '2']) {
     }; },
   };
   const route = moduleAt('app/api/payments/checkout-session/route.ts', {
+    '@/lib/kitchen-ordering-settings': { getLiveKitchenOrderWindow: async () => { throw new Error('Merch checkout must not query kitchen settings'); } },
     '@/lib/meal-collection': mealCollection,
     '@/lib/club-settings': {}, 'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '@/lib/supabase-server': { createServerClient: () => checkoutDb, isServerSupabaseConfigured: () => true },
