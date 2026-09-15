@@ -1,3 +1,4 @@
+import AuthEmailRedirect from '@/components/AuthEmailRedirect';
 import { SITE_URL, ORGANIZATION_ID } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { serializeJsonLd } from '@/lib/json-ld';
@@ -99,6 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen flex flex-col">
         <ThemeProvider>
+          <AuthEmailRedirect />
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-maroon-700 focus:px-4 focus:py-2 focus:text-white focus:shadow-lg"

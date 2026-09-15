@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     success_url: `${siteUrl}/fantasy/account?payment=submitted&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/fantasy/account?payment=cancelled`,
     metadata: paymentMetadata,
-    payment_intent_data: { description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
+    payment_intent_data: { receipt_email: manager.email, description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
   };
   const payloadDigest = createHash('sha256')
     .update(JSON.stringify(checkoutParams))

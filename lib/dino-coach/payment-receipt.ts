@@ -158,7 +158,7 @@ export async function sendDinoCoachPaymentReceiptForEntry(
   const filename = buildPaymentReceiptFilename(receiptData);
   const receipt = await buildPaymentReceiptPdf(receiptData);
   const result = await sendEmail({
-    ...receiptRecipients(recipient),
+    ...receiptRecipients(recipient, ['sajeevanveeriah@gmail.com']),
     replyTo: getTransactionalReplyTo(),
     subject: `Your NDCC Dino Coach payment receipt - ${reference}`,
     html: emailHtml(
