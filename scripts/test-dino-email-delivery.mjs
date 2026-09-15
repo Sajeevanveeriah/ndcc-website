@@ -37,3 +37,16 @@ assert.deepEqual(payloads[1].bcc,['sajeevanveeriah@gmail.com']);
 assert.match(payloads[1].html,/&lt;Demo&gt;/);
 assert.match(payloads[1].html,/AUD 25.00/);
 console.log('PASS failed delivery retries, immutable provider key/payload, delivery marker, duplicate suppression, recipient copy and HTML escaping');
+
+const clientSource=ts.transpileModule(readFileSync('lib/fantasy-browser.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const clientModule={exports:{}};
+const deadlines=[];
+new Function('require','module','exports','process','setTimeout','clearTimeout','fetch',clientSource)(
+ ()=>({createClient:()=>null}),clientModule,clientModule.exports,{env:{}},
+ (_fn,ms)=>{deadlines.push(ms);return 1;},()=>{},async()=>({ok:true,json:async()=>({success:true})}),
+);
+await clientModule.exports.fantasyJsonFetch('/read');
+await clientModule.exports.fantasyJsonFetch('/write',{method:'POST',body:'{}'});
+await clientModule.exports.fantasyJsonFetch('/write',{method:'patch',body:'{}'});
+assert.deepEqual(deadlines,[15000,45000,45000]);
+console.log('PASS bounded read and mutation deadlines allow payment processing to finish');

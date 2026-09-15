@@ -32,7 +32,10 @@ export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}
   // Without a deadline a hung Supabase request never rejects, leaving loading
   // states spinning forever. Abort and surface a readable error instead.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
+  // Mutations include sequential eligibility checks, Stripe calls and email
+  // delivery. Do not report a timeout while those writes are still completing.
+  const isRead = !options.method || ['GET', 'HEAD'].includes(options.method.toUpperCase());
+  const timeout = setTimeout(() => controller.abort(), isRead ? 15_000 : 45_000);
   let response: Response;
   try {
     response = await fetch(url, { ...options, headers, signal: options.signal ?? controller.signal });
