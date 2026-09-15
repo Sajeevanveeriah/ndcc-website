@@ -94,6 +94,7 @@ function HeroView({
             <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
           </div>
           <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 border-t border-edge-strong pt-5 text-base font-semibold">
+            <a href="#junior-vouchers" className="club-text-link">Junior vouchers - up to $200</a>
             <Link href="/calendar" className="club-text-link">Club calendar <span aria-hidden="true">↗</span></Link>
             <Link href="/merchandise" className="club-text-link">Wear the colours <span aria-hidden="true">↗</span></Link>
           </div>
@@ -135,6 +136,42 @@ function QuickLinkIcon({ icon }: { icon: string }) {
     return <Icon className="mb-2 h-7 w-7 text-maroon-700 dark:text-maroon-300" aria-hidden="true" />;
   }
   return <span className="mb-2 block text-2xl" aria-hidden="true">{icon}</span>;
+}
+
+
+function JuniorVoucherSection() {
+  return (
+    <section id="junior-vouchers" aria-labelledby="junior-vouchers-title" className="scroll-mt-40 border-y border-edge-blue bg-surface-blue-subtle px-5 py-8 sm:px-8 sm:py-10">
+      <div className="container-width grid items-start gap-6 lg:grid-cols-[1fr_auto]">
+        <div className="max-w-3xl">
+          <p className="mb-2 font-semibold text-content-blue">Support for junior families</p>
+          <h2 id="junior-vouchers-title" className="section-title">Get Active Kids vouchers</h2>
+          <p className="text-lg leading-relaxed text-content-blue">
+            Eligible Victorian children aged 0 to 18 may receive <strong>up to $200 each</strong> towards sport membership and registration fees.
+          </p>
+          <p className="mt-3 leading-relaxed text-content-blue">
+            <strong>Round 11:</strong> 15 September to <time dateTime="2026-10-13T10:00:00+11:00">10 am on 13 October 2026</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.
+          </p>
+          <p className="mt-3 leading-relaxed text-content-blue">
+            Applying for cricket? Select <strong>Cricket Victoria</strong> as your activity provider.
+            Check the official website for full eligibility criteria and current availability.
+          </p>
+          <p className="mt-3 leading-relaxed text-content-blue">
+            Already paid? You may be eligible for reimbursement. See the official application page for details.
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-3 lg:max-w-xs lg:pt-7">
+          <a href="https://www.getactive.vic.gov.au/vouchers/" className="btn-primary w-full text-center">
+            Check eligibility and apply
+          </a>
+          <a href="https://www.getactive.vic.gov.au/vouchers/apply-for-vouchers/" className="club-text-link">
+            Voucher and reimbursement details
+          </a>
+          <Link href="/contact" className="club-text-link">Ask NDCC about junior cricket</Link>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function QuickLinksSkeleton() {
@@ -715,7 +752,9 @@ export default function HomePage() {
         <HeroSection />
       </Suspense>
 
-      {/* Compact club-stat strip directly under the cinematic hero. */}
+      <JuniorVoucherSection />
+
+      {/* Compact club-stat strip below the hero and junior support notice. */}
       <HomeStatsStrip />
 
       <CookieDoughFundraiserFeature />
