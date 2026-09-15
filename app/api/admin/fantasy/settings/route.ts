@@ -24,7 +24,7 @@ export async function PATCH(request: Request) {
       notification_recipients: Array.isArray(body.notification_recipients) ? body.notification_recipients.map(String).map((v: string) => v.trim()).filter(Boolean) : [],
       budget_dino_dollars: numeric('budget_dino_dollars', 1), initial_price_floor_dino_dollars: numeric('initial_price_floor_dino_dollars', 1),
       initial_price_ceiling_dino_dollars: numeric('initial_price_ceiling_dino_dollars', 1), price_point_value_dino_dollars: numeric('price_point_value_dino_dollars', 1),
-      price_changes_start_round: numeric('price_changes_start_round', 1), round_robin_prize_dino_dollars: numeric('round_robin_prize_dino_dollars', 0),
+      price_changes_start_round: numeric('price_changes_start_round', 1), price_change_interval_rounds: numeric('price_change_interval_rounds', 1), round_robin_prize_dino_dollars: numeric('round_robin_prize_dino_dollars', 0),
       squad_value_prize_label: String(body.squad_value_prize_label || '').trim(), squad_value_prize_description: String(body.squad_value_prize_description || '').trim() || null,
       pilot_notice: String(body.pilot_notice || '').trim(), blocked_team_name_terms: Array.isArray(body.blocked_team_name_terms) ? body.blocked_team_name_terms.map(String) : [],
       transfer_timezone: 'Australia/Melbourne', transfer_open_weekday: 1, transfer_open_minute: 540, transfer_close_weekday: 6, transfer_close_minute: 660,

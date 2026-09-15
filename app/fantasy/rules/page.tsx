@@ -57,6 +57,7 @@ export default async function FantasyRulesPage({ searchParams: searchParamsPromi
                   <p className="text-content-secondary font-body leading-relaxed mb-4">
                     Managers accept a specific rules version during registration. Material changes are communicated and recorded rather than silently changing accepted terms.
                   </p>
+                  <a href="/documents/20260915-Dino-Coach-Rules-Rev00.pdf" download className="btn-primary w-full mb-4">Download rules guide (PDF)</a>
                   <Link href="/fantasy" className="btn-secondary w-full">
                     Dino Coach home
                   </Link>

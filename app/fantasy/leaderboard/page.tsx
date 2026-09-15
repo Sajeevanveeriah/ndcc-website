@@ -53,9 +53,9 @@ export default async function FantasyLeaderboardPage({ searchParams: searchParam
       <section className="page-hero">
         <div className="container-width">
           <span className="eyebrow-gold">{CLUB_SHORT} Dino Coach</span>
-          <h1 className="page-hero-title">Player Leaderboard</h1>
+          <h1 className="page-hero-title">Player Standings</h1>
           <p className="page-hero-subtitle">
-            Published fantasy import batches only. Draft, reviewed, and rejected imports are never shown here.
+            Player Standings rank real NDCC cricketers by published base performance points. Fantasy-slot scoring and captain bonuses are excluded, so you can compare their on-field performances.
           </p>
         </div>
       </section>

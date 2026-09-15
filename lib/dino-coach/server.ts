@@ -15,6 +15,7 @@ export type DinoCoachSettings = {
   initial_price_ceiling_dino_dollars: number;
   price_point_value_dino_dollars: number;
   price_changes_start_round: number;
+  price_change_interval_rounds: number;
   transfer_timezone: string;
   transfer_open_weekday: number;
   transfer_open_minute: number;
