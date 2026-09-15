@@ -71,6 +71,20 @@ export function isCompletedFixture(fixture: Pick<PlayHQFixture, 'status'>): bool
   return ['FINAL', 'FINALISED', 'FINALIZED', 'COMPLETED', 'COMPLETE'].includes(status);
 }
 
+// Only recognised non-final states may explain an empty preseason queue.
+// Unknown states stay reviewable rather than silently hiding completed games.
+export function isPendingFixture(fixture: Pick<PlayHQFixture, 'status'>): boolean {
+  const status = (fixture.status || '').toUpperCase().replace(/[^A-Z]/g, '');
+  return ['UPCOMING', 'SCHEDULED', 'NOTSTARTED', 'INPROGRESS', 'LIVE', 'POSTPONED', 'CANCELLED', 'CANCELED', 'ABANDONED', 'BYE'].includes(status);
+}
+
+export function canRetryEmptyFixtureJob(job: { status?: string; total_games?: number; processed_games?: number; failed_games?: number; review_items?: unknown }): boolean {
+  const reviews = Array.isArray(job.review_items) ? job.review_items : [];
+  return job.status === 'needs_review' && Number(job.total_games) === 0
+    && Number(job.processed_games) === 0 && Number(job.failed_games) === 0
+    && reviews.length > 0 && reviews.every((item) => item && typeof item === 'object' && item.type === 'empty_queue');
+}
+
 export function involvesClubTeam(fixture: Pick<PlayHQFixture, 'homeTeam' | 'awayTeam'>, clubNamePattern = /newcomb/i): boolean {
   return clubNamePattern.test(fixture.homeTeam || '') || clubNamePattern.test(fixture.awayTeam || '');
 }

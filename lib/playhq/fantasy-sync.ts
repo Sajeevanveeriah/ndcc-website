@@ -17,6 +17,7 @@ import {
   extractRoundInfo,
   involvesClubTeam,
   isCompletedFixture,
+  isPendingFixture,
   normaliseGameSummaryPlayers,
   type PlayHQPlayerStatLine,
 } from './fantasy-import';
@@ -115,6 +116,9 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
   // invariant compares this with the queue length: raw entries with zero
   // queued games is never a silent success.
   let rawEntriesTotal = 0;
+  let clubFixtures = 0;
+  let awaitingResults = 0;
+  let unexplainedEntries = 0;
   for (const grade of grades) {
     let rawFixtures: unknown[];
     let fixtureSource = 'grade-endpoint';
@@ -147,16 +151,24 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       fixtureSource = `team-feeds(${clubTeams.length})`;
     }
     rawEntriesTotal += rawFixtures.length;
-    const fixtures = normaliseFixtures({ data: rawFixtures }, { id: grade.playhq_grade_id, name: grade.grade_name });
+    // Keep raw round metadata paired with its own fixture even when a row has no ID.
+    const fixtures = rawFixtures.flatMap((raw) => normaliseFixtures({ data: [raw] }, { id: grade.playhq_grade_id, name: grade.grade_name }).map((fixture) => ({ fixture, raw })));
+    unexplainedEntries += rawFixtures.length - fixtures.length;
     const queuedBefore = queue.length;
     const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
-    fixtures.forEach((fixture, index) => {
-      if (!isCompletedFixture(fixture) || !involvesClubTeam(fixture, clubPattern)) return;
+    fixtures.forEach(({ fixture, raw }) => {
+      if (!involvesClubTeam(fixture, clubPattern)) return;
+      clubFixtures += 1;
+      if (!isCompletedFixture(fixture)) {
+        if (isPendingFixture(fixture)) awaitingResults += 1;
+        else unexplainedEntries += 1;
+        return;
+      }
       // Team-feed fallback can surface the same game twice (both NDCC sides
       // of a local derby); queue every game exactly once.
       if (seenGameIds.has(fixture.id)) return;
       seenGameIds.add(fixture.id);
-      const round = extractRoundInfo(rawFixtures[index]);
+      const round = extractRoundInfo(raw);
       if (!round) {
         reviewItems.push({ type: 'ambiguous_round', gameId: fixture.id, detail: `Game ${fixture.id} (${fixture.homeTeam} v ${fixture.awayTeam}) has no exact PlayHQ round metadata; map it manually before it can be imported.` });
         return;
@@ -189,20 +201,19 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     throw new Error(`Every enabled grade's fixture endpoint failed: ${skippedGrades.map((grade) => `${grade.gradeName} (${grade.error})`).join('; ')}`);
   }
 
+  if (unexplainedEntries > 0) reviewItems.push({ type: 'fixture_payload', detail: `${unexplainedEntries} fixture entries have missing IDs or unrecognised club-game statuses.` });
+
   // Deterministic ordering keeps re-created jobs stable and auditable.
   queue.sort((a, b) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || a.gameId.localeCompare(b.gameId));
 
-  // NON-EMPTY SYNC INVARIANT: raw source entries with nothing queued is a
-  // shape/filter mismatch, never a success. The job is created as
-  // needs_review with the per-grade diagnostics (source path, entry keys,
-  // truncated samples - no credentials) so an admin can see exactly what the
-  // API returned. Zero raw entries stays a legitimate empty state (e.g. a
-  // new season PlayHQ has not published yet).
-  const emptyQueueInvariantBreached = !options.dryRun && queue.length === 0 && rawEntriesTotal > 0;
+  // An empty score queue is normal before games finish. Malformed payloads,
+  // unknown statuses and a club-filter mismatch still require review.
+  const emptyQueueInvariantBreached = queue.length === 0 && rawEntriesTotal > 0
+    && (clubFixtures === 0 || unexplainedEntries > 0 || awaitingResults !== clubFixtures);
   if (emptyQueueInvariantBreached) {
     reviewItems.push({
       type: 'empty_queue',
-      detail: `PlayHQ returned ${rawEntriesTotal} raw fixture entr${rawEntriesTotal === 1 ? 'y' : 'ies'} across ${grades.length} grade(s) but zero games were queued. `
+      detail: `PlayHQ returned ${rawEntriesTotal} raw fixture entr${rawEntriesTotal === 1 ? 'y' : 'ies'} across ${grades.length} grade(s) but zero completed games were queued and the entries were not fully explained by recognised pending club fixtures. `
         + 'Likely a payload-shape or club-filter mismatch - inspect the per-grade diagnostics on this job before trusting any "no games" result.',
     });
   }
@@ -216,7 +227,9 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       reviewItems,
       skippedGrades,
       gradeDebug,
-      emptyQueueInvariantBreached: queue.length === 0 && rawEntriesTotal > 0,
+      emptyQueueInvariantBreached,
+      awaitingResults,
+      clubFixtures,
       queuePreview: queue.slice(0, 25),
       dryRun: true as const,
     };
@@ -248,7 +261,7 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
       total_games: queue.length,
       cursor: { next: 0 },
       game_queue: queue,
-      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0, raw_entries: rawEntriesTotal, skipped_grades: skippedGrades, grade_debug: gradeDebug.slice(0, 12) },
+      counts: { created: 0, matched: 0, updated: 0, skipped: 0, warnings: reviewItems.length, failed: 0, raw_entries: rawEntriesTotal, club_fixtures: clubFixtures, awaiting_results: awaitingResults, unexplained_entries: unexplainedEntries, skipped_grades: skippedGrades, grade_debug: gradeDebug.slice(0, 12) },
       review_items: reviewItems,
       created_by: options.createdBy ?? null,
       started_at: new Date().toISOString(),
@@ -266,6 +279,8 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     skippedGrades,
     gradeDebug,
     emptyQueueInvariantBreached,
+    awaitingResults,
+    clubFixtures,
     dryRun: false as const,
   };
 }

@@ -19,6 +19,7 @@ import { escapeEmailHtml, sendEmail, getContactEmailRecipients } from '@/lib/ema
 import { getPlayHQGrades, getPlayHQSeasons, getPlayHQTeams } from './client';
 import { getPlayHQConfig, isFantasySyncEnabled } from './config';
 import { isClubTeamName, matchPlayHQSeason } from './season-match';
+import { canRetryEmptyFixtureJob } from './fantasy-import';
 import {
   DEFAULT_SYNC_BATCH_SIZE,
   processFantasySyncBatch,
@@ -340,9 +341,12 @@ async function validateAndPublish(supabase: any, season: SeasonRow, job: any): P
   if ((rowCount ?? 0) === 0) {
     // Everything already matches published data — close the empty batch
     // without publishing a no-op container.
-    await supabase.from('fantasy_import_batches').update({ status: 'rejected', notes: 'Auto-closed: no changes versus existing published data.' }).eq('id', batch.id);
+    const awaitingResults = totalGames === 0 && Number(job.counts?.awaiting_results ?? 0) > 0;
+    const reason = awaitingResults ? 'Fixtures discovered; awaiting completed games. No match stats published.' : 'No changes to publish; existing published data already current.';
+    const { error: closeError } = await supabase.from('fantasy_import_batches').update({ status: 'rejected', notes: reason }).eq('id', batch.id);
+    if (closeError) throw new Error(closeError.message);
     await setSeasonException(supabase, season.id, null);
-    return { seasonSlug: season.slug, stage: 'publish_batch', status: 'ok', detail: { batch_id: batch.id, published: false, reason: 'No changes to publish; existing published data already current.' } };
+    return { seasonSlug: season.slug, stage: 'publish_batch', status: 'ok', detail: { batch_id: batch.id, published: false, reason } };
   }
 
   const { error: publishError } = await supabase
@@ -496,14 +500,15 @@ async function advanceSeason(
       // bootstrap), then stop.
       const { data: finishedJobs } = await supabase
         .from('fantasy_sync_jobs')
-        .select('id, status, completed_at, import_batch_id')
+        .select('id, status, completed_at, import_batch_id, total_games, processed_games, failed_games, review_items, counts')
         .eq('season_id', season.id)
         .in('status', ['completed', 'needs_review'])
         .order('completed_at', { ascending: false })
         .limit(1);
       const lastFinished = finishedJobs?.[0] ?? null;
 
-      if (lastFinished?.status === 'needs_review') {
+      const retryEmptyJob = lastFinished && canRetryEmptyFixtureJob(lastFinished);
+      if (lastFinished?.status === 'needs_review' && !retryEmptyJob) {
         logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'blocked', error: 'Latest sync finished with review items; resolve them in the CMS before automation continues for this season.' });
         return finishWithHealth();
       }
@@ -519,7 +524,7 @@ async function advanceSeason(
           logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'skipped', detail: { reason: 'Historical season already has published PlayHQ data.' } });
           return finishWithHealth();
         }
-      } else if (lastFinished?.completed_at) {
+      } else if (lastFinished?.completed_at && !retryEmptyJob) {
         // Throttle current-season re-syncs to at most one full pass per 12h.
         const age = Date.now() - new Date(lastFinished.completed_at).getTime();
         if (age < 12 * 60 * 60 * 1000) {
@@ -550,11 +555,22 @@ async function advanceSeason(
         });
         return finishWithHealth();
       }
+      if (retryEmptyJob && started.reviewItems.length === 0 && started.skippedGrades.length === 0) {
+        // A fresh fetch must explain the old empty queue before retiring it.
+        // Keep its diagnostics and batch as audit evidence, never publish it.
+        const { error: recoveryError } = await supabase.from('fantasy_sync_jobs').update({
+          status: 'cancelled',
+          counts: { ...lastFinished.counts, superseded_by: jobId, resolution: 'Revalidated fixture states with preseason-aware importer.' },
+        }).eq('id', lastFinished.id).eq('status', 'needs_review');
+        if (recoveryError) throw new Error(recoveryError.message);
+        await setSeasonException(supabase, season.id, null);
+        logs.push({ seasonSlug: season.slug, stage: 'recover_job', status: 'ok', detail: { previous_job_id: lastFinished.id, replacement_job_id: jobId } });
+      }
       logs.push({
         seasonSlug: season.slug,
         stage: 'create_job',
         status: 'ok',
-        detail: { job_id: jobId, queued_games: started.queued, raw_entries: started.rawEntries, pre_queue_review_items: started.reviewItems.length, skipped_grades: started.skippedGrades, grade_debug: started.gradeDebug },
+        detail: { job_id: jobId, queued_games: started.queued, raw_entries: started.rawEntries, awaiting_results: started.awaitingResults, pre_queue_review_items: started.reviewItems.length, skipped_grades: started.skippedGrades, grade_debug: started.gradeDebug },
       });
     }
 
@@ -739,6 +755,8 @@ export async function getFantasySyncHealth() {
       players_total: playerCount ?? 0,
       players_linked: linkedPlayerCount ?? 0,
       fixtures_imported: Number(latestJob?.total_games ?? 0) > 0,
+      fixtures_discovered: Number(latestJob?.counts?.club_fixtures ?? 0),
+      awaiting_results: latestJob?.status === 'completed' && Number(latestJob?.counts?.awaiting_results ?? 0) > 0 && Number(latestJob?.total_games ?? 0) === 0,
       completed_match_stats_imported: (publishedStatCount ?? 0) > 0,
       published_stat_rows: publishedStatCount ?? 0,
       unresolved_reviews: reviewCount,

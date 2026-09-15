@@ -13,6 +13,7 @@ export type FantasySeason = {
   status: FantasySeasonStatus;
   is_current: boolean;
   is_public: boolean;
+  auto_sync_enabled?: boolean;
   allow_team_building: boolean;
   registration_open: boolean;
   team_selection_open: boolean;
