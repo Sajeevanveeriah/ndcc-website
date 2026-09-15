@@ -535,6 +535,16 @@
       "version": "20260915064324",
       "name": "dino_coach_pilot_economy",
       "localFile": "20260915070000_dino_coach_pilot_economy.sql"
+    },
+    {
+      "version": "20260915065449",
+      "name": "dino_coach_price_review_integrity",
+      "localFile": "20260915080000_dino_coach_price_review_integrity.sql"
+    },
+    {
+      "version": "20260915065550",
+      "name": "dino_coach_price_snapshot",
+      "localFile": "20260915081000_dino_coach_price_snapshot.sql"
     }
   ],
   "localOnlyApplied": []

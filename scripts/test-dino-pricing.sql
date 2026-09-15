@@ -35,7 +35,7 @@ BEGIN
  PERFORM public.settle_dino_price_windows(sid);
  SELECT price_dino_dollars INTO value FROM public.fantasy_player_prices WHERE season_id=sid AND effective_round_id=rid;
  IF value<>450123 THEN RAISE EXCEPTION 'Expected decrease from manual price to 450123, got %',value; END IF;
- INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status,round_kind,pricing_eligible) VALUES(sid,6,'Grand final',now()-interval '9 days','scored','grand_final',false) RETURNING id INTO rid;
+ INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status,round_kind,pricing_eligible) VALUES(sid,10,'Grand final',now()-interval '9 days','scored','grand_final',false) RETURNING id INTO rid;
  INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs) VALUES(sid,rid,pid,bid,current_date-9,500);
  result:=public.settle_dino_price_windows(sid);
  IF (result->>'windows')::int<>0 THEN RAISE EXCEPTION 'Final changed prices'; END IF;
@@ -43,6 +43,17 @@ BEGIN
  INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs) VALUES(sid,rid,pid,bid,current_date+10,50);
  result:=public.settle_dino_price_windows(sid);
  IF (result->>'windows')::int<>0 THEN RAISE EXCEPTION 'Price changed before cut-off'; END IF;
+ INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status) VALUES(sid,5,'Round 5',now()-interval '10 days','scored') RETURNING id INTO rid;
+ INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs) VALUES(sid,rid,pid,bid,current_date-10,0);
+ INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status) VALUES(sid,6,'Round 6',now()-interval '9 days','scored') RETURNING id INTO rid;
+ INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs) VALUES(sid,rid,pid,bid,current_date-9,0);
+ INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs) SELECT sid,id,pid,bid,current_date-30,100 FROM public.fantasy_rounds WHERE season_id=sid AND round_number=2;
+ PERFORM public.settle_dino_price_windows(sid);
+ SELECT price_dino_dollars INTO value FROM public.fantasy_player_prices WHERE season_id=sid AND effective_round_id=rid;
+ IF value<>700123 THEN RAISE EXCEPTION 'Late result was dropped; expected 700123, got %',value; END IF;
+ IF (SELECT count(*) FROM public.fantasy_priced_appearances WHERE season_id=sid)<>6 THEN RAISE EXCEPTION 'Each eligible appearance must be consumed'; END IF;
+ PERFORM public.override_dino_player_price(sid,pid,700123,'','fixture');
+ BEGIN PERFORM public.override_dino_player_price(sid,pid,710123,'','fixture'); RAISE EXCEPTION 'Blank reason accepted'; EXCEPTION WHEN raise_exception THEN IF SQLERRM='Blank reason accepted' THEN RAISE; END IF; END;
  UPDATE public.fantasy_season_players SET eligibility_exclusion='U13',selectable=true WHERE season_id=sid;
  UPDATE public.fantasy_season_players SET selectable=true WHERE season_id=sid;
  IF EXISTS(SELECT 1 FROM public.fantasy_season_players WHERE season_id=sid AND selectable) THEN RAISE EXCEPTION 'Sync reactivated excluded player'; END IF;

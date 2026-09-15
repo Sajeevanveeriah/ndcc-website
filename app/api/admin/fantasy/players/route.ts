@@ -60,7 +60,7 @@ async function playersWithPrices(supabase: ReturnType<typeof createServerClient>
   if (priceError) throw new Error(priceError.message);
   const latest = new Map<string,number>();
   for (const p of prices || []) if (!latest.has(p.player_id)) latest.set(p.player_id,Number(p.price_dino_dollars)/1000000);
-  return (members || []).map(m => ({...(Array.isArray(m.fantasy_players)?m.fantasy_players[0]:m.fantasy_players),id:m.player_id,role:m.role,team_label:m.team_label,active:m.active && m.selectable,eligibility_exclusion:m.eligibility_exclusion,price_million:latest.get(m.player_id) || 0}));
+  return (members || []).map(m => ({...(Array.isArray(m.fantasy_players)?m.fantasy_players[0]:m.fantasy_players),id:m.player_id,role:m.role,team_label:m.team_label,active:m.active,selectable:m.selectable,eligibility_exclusion:m.eligibility_exclusion,price_million:latest.get(m.player_id) || 0}));
 }
 
 async function requireFantasyPlayers() {
@@ -142,9 +142,14 @@ export async function PATCH(request: Request) {
 
     const supabase = createServerClient();
     const seasonId = await currentSeasonId(supabase);
+    if (parsed.price !== null && seasonId) {
+      const {data:current,error:priceError}=await supabase.from('fantasy_player_prices').select('price_dino_dollars').eq('season_id',seasonId).eq('player_id',body.id).not('published_at','is',null).order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if(priceError) throw new Error(priceError.message);
+      if(Number(current?.price_dino_dollars)!==Math.round(parsed.price*1000000) && String(body.price_reason || '').trim().length<5) return NextResponse.json({success:false,error:'Explain the manual price change in at least five characters.'},{status:400});
+    }
     const { data, error } = await supabase.from('fantasy_players').update(parsed.player).eq('id', body.id).select().single();
     if (error) throw new Error(error.message);
-    await upsertPrice(supabase, body.id, parsed.price, seasonId, user.id, body.price_reason || 'Manual player editor update');
+    await upsertPrice(supabase, body.id, parsed.price, seasonId, user.id, body.price_reason || '');
     await syncSeasonMembership(supabase, body.id, parsed.player, seasonId);
     revalidateFantasy();
     return NextResponse.json({ success: true, data: { ...data, price_million: parsed.price ?? 0 } });
