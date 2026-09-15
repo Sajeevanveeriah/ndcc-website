@@ -527,7 +527,8 @@ async function advanceSeason(
       } else if (lastFinished?.completed_at && !retryEmptyJob) {
         // Throttle current-season re-syncs to at most one full pass per 12h.
         const age = Date.now() - new Date(lastFinished.completed_at).getTime();
-        if (age < 12 * 60 * 60 * 1000) {
+        const manualRun = invokedBy.startsWith('admin:') || invokedBy.startsWith('release-token:');
+        if (age < 12 * 60 * 60 * 1000 && !manualRun) {
           logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'skipped', detail: { reason: 'Last completed sync is under 12 hours old.' } });
           return finishWithHealth();
         }

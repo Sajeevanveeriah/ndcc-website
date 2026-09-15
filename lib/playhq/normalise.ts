@@ -74,7 +74,7 @@ export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQF
     // isHome/homeAway marker) and scheduling under a schedule object; older
     // shapes used home/away objects. Support both.
     const competitors = Array.isArray(r.competitors) ? (r.competitors as unknown[]).map(asRecord) : [];
-    const isHomeCompetitor = (c: Record<string, unknown>) => c.isHome === true || String(c.homeAway ?? c.side ?? '').toLowerCase() === 'home';
+    const isHomeCompetitor = (c: Record<string, unknown>) => c.isHomeTeam === true || c.isHome === true || String(c.homeAway ?? c.side ?? '').toLowerCase() === 'home';
     const homeCompetitor = competitors.find((c) => isHomeCompetitor(c));
     const awayCompetitor = competitors.find((c) => !isHomeCompetitor(c));
     const home = asRecord(r.homeTeam || r.home || r.homeTeamDetails || homeCompetitor);
