@@ -90,7 +90,7 @@ export const DEFAULT_SCORING_CONFIG: DinoScoringConfig = {
   stackBowlingMilestones: false,
 };
 
-const ROLE_LABELS: Record<DinoRole, string> = { BAT: 'Batsman', AR: 'All-rounder', WK: 'Wicket keeper', BOWL: 'Bowler' };
+const ROLE_LABELS: Record<DinoRole, string> = { BAT: 'Batter', AR: 'All-rounder', WK: 'Wicket keeper', BOWL: 'Bowler' };
 const STARTER_ROLE_ORDER: DinoRole[] = ['BAT', 'AR', 'WK', 'BOWL'];
 const BENCH_ROLE_ORDER: DinoRole[] = ['WK', 'BAT', 'BOWL', 'AR'];
 

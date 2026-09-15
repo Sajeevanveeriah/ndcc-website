@@ -41,6 +41,7 @@ jobs:
       - run: npm run test:committee-auth-schema
       - run: npm run test:core-schema
       - run: node --experimental-strip-types scripts/test-dino-coach.mjs
+      - run: npm run test:dino-season-summary
       - run: npm run lint
       - run: npm run test:seo
       - run: npm run check:migrations

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const [settings, dinoSettings, players] = await Promise.all([getFantasySettings(season.id), getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id)]);
     return NextResponse.json({
       success: true, season,
-      settings: { ...settings, ...toPublicDinoCoachSettings(dinoSettings), is_registration_open: dinoSettings.registration_open, is_team_selection_open: dinoSettings.team_selection_open },
+      settings: { ...settings, ...toPublicDinoCoachSettings(dinoSettings), is_registration_open: dinoSettings.public_launch_enabled && dinoSettings.registration_open, is_team_selection_open: dinoSettings.public_launch_enabled && dinoSettings.team_selection_open },
       players,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {

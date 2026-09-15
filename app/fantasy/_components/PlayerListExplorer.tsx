@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { CRICKET_ROLE_LABELS } from '@/lib/dino-coach/season-summary';
 import Badge from '@/components/ui/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 
@@ -32,6 +33,7 @@ function formScore(player: PlayerListEntry) {
 
 export default function PlayerListExplorer({ players, hasPublishedPoints }: { players: PlayerListEntry[]; hasPublishedPoints: boolean }) {
   const [search, setSearch] = useState('');
+  const [role, setRole] = useState('all');
   const [team, setTeam] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('name');
 
@@ -43,6 +45,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
   const visible = useMemo(() => {
     const query = search.trim().toLowerCase();
     const filtered = players.filter((player) => {
+      if (role !== 'all' && player.role !== role) return false;
       if (query && !player.display_name.toLowerCase().includes(query)) return false;
       if (team !== 'all' && (player.team_label || '') !== team) return false;
       return true;
@@ -53,7 +56,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
     if (sortKey === 'points') sorted.sort((a, b) => b.total_points - a.total_points || a.display_name.localeCompare(b.display_name));
     if (sortKey === 'form') sorted.sort((a, b) => formScore(b) - formScore(a) || a.display_name.localeCompare(b.display_name));
     return sorted;
-  }, [players, search, team, sortKey]);
+  }, [players, search, team, role, sortKey]);
 
   return (
     <div className="space-y-4">
@@ -79,6 +82,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
             </select>
           </label>
         )}
+        <label className="block"><span className="sr-only">Filter by cricket role</span><select className="form-input w-full" value={role} onChange={(event) => setRole(event.target.value)}><option value="all">All cricket roles</option>{Object.entries(CRICKET_ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label className="block">
           <span className="sr-only">Sort players</span>
           <select className="form-input w-full" value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)}>
@@ -104,7 +108,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
           <TableHead>
             <TableRow>
               <TableHeader>Player</TableHeader>
-              <TableHeader>Team / grade</TableHeader>
+              <TableHeader>Cricket role</TableHeader><TableHeader>Team / grade</TableHeader>
               <TableHeader>Price</TableHeader>
               {hasPublishedPoints && <TableHeader>Points</TableHeader>}
             </TableRow>
@@ -112,7 +116,8 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
           <TableBody>
             {visible.map((player) => (
               <TableRow key={player.id}>
-                <TableCell className="font-medium">{player.display_name}</TableCell>
+                <TableCell className="font-medium">{player.display_name}{player.source_status === 'unrated' && <span className="block text-xs text-content-muted">No supplied season history</span>}</TableCell>
+                <TableCell>{CRICKET_ROLE_LABELS[player.role] || player.role}</TableCell>
                 <TableCell>{player.team_label || 'NDCC'}</TableCell>
                 <TableCell>{player.published_at ? `${player.price_dino_dollars.toLocaleString('en-AU')} Dino Dollars` : <Badge>Awaiting verified price</Badge>}</TableCell>
                 {hasPublishedPoints && (

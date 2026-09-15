@@ -23,7 +23,7 @@ function escapeHtml(value: string) {
 }
 
 function publicManagerSelect() {
-  return 'id, auth_user_id, display_name, email, team_name, is_active, team_name_status, team_name_locked, age_verified_at, rules_version_accepted';
+  return 'id, auth_user_id, display_name, email, team_name, is_active, team_name_status, team_name_locked, age_verified_at, rules_version_accepted' as const;
 }
 
 export async function GET(request: Request) {
@@ -45,7 +45,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Could not load your fantasy manager profile. Please try again or contact the club.' }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, user: { email: user.email }, manager: data ?? null });
+  const season = await resolveRequestSeason(request);
+  const entry = data && season ? await supabase.from('fantasy_entries')
+    .select('status,entry_fee_cents,currency,payment_reference,paid_at')
+    .eq('manager_id', data.id).eq('season_id', season.id).maybeSingle() : null;
+  if (entry?.error) return NextResponse.json({ success: false, error: 'Could not load your payment status.' }, { status: 503 });
+  return NextResponse.json({ success: true, user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(request: Request) {
@@ -106,7 +111,7 @@ export async function POST(request: Request) {
     team_name_status: moderation.status,
     rules_version_accepted: settings.rules_version,
     rules_accepted_at: new Date().toISOString(),
-    is_active: true,
+    is_active: existingManager ? existingManager.is_active : true,
   };
 
   const { data, error } = await supabase
@@ -128,7 +133,8 @@ export async function POST(request: Request) {
   if (isNewManager || teamName !== existingManager?.team_name) {
     await supabase.from('fantasy_team_name_moderation').insert({ manager_id: manager.id, submitted_name: teamName, resulting_name: moderation.status === 'approved' ? teamName : null, status: moderation.status, reason: moderation.matchedTerm ? 'Matched a committee-managed blocked term.' : 'Passed deterministic blocked-term checks.' });
   }
-  await supabase.from('fantasy_entries').upsert({ manager_id: manager.id, season_id: season.id, status: 'payment_required', entry_fee_cents: settings.entry_fee_cents, currency: settings.entry_fee_currency, metadata: { product: 'Dino Coach', rules_version: settings.rules_version } }, { onConflict: 'manager_id,season_id', ignoreDuplicates: true });
+  const entrySaved = await supabase.from('fantasy_entries').upsert({ manager_id: manager.id, season_id: season.id, status: 'payment_required', entry_fee_cents: settings.entry_fee_cents, currency: settings.entry_fee_currency, metadata: { product: 'Dino Coach', rules_version: settings.rules_version } }, { onConflict: 'manager_id,season_id', ignoreDuplicates: true });
+  if (entrySaved.error) return NextResponse.json({ success: false, error: 'Your profile was saved, but the entry could not be created. Please save again.' }, { status: 503 });
   let emailResult: Awaited<ReturnType<typeof sendEmail>> | null = null;
   if (isNewManager) {
     emailResult = await sendEmail({
@@ -142,8 +148,8 @@ export async function POST(request: Request) {
           <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:bold;">Your team</p>
           <p style="margin:0;font-size:16px;color:#800000;font-weight:bold;">${escapeHtml(manager.team_name)}</p>
         </div>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">Head to your squad page to start picking your players. Good luck this season!</p>
-        <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au'}/fantasy/squad" style="background:#800000;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Build Your Squad</a></p>`
+        <p style="font-size:15px;color:#374151;line-height:1.6;">Return to your account to complete payment, then pick your squad.</p>
+        <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au'}/fantasy/account" style="background:#800000;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Complete Your Entry</a></p>`
       ),
     });
     if (emailResult.status !== 'sent') {

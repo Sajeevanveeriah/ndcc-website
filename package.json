@@ -86,7 +86,8 @@
     "predev": "npm run prepare:apparel-assets",
     "prebuild": "npm run prepare:apparel-assets",
     "test:seo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-seo.mjs",
-    "test:meal-collection": "node --experimental-strip-types scripts/test-meal-collection.mjs && node scripts/test-meal-flow.mjs"
+    "test:meal-collection": "node --experimental-strip-types scripts/test-meal-collection.mjs && node scripts/test-meal-flow.mjs",
+    "test:dino-season-summary": "node scripts/test-dino-season-summary.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isAdultOnDate } from '@/lib/dino-coach/domain';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -28,6 +29,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [rulesVersion, setRulesVersion] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [entry, setEntry] = useState<any>(null);
   const [manager, setManager] = useState<any>(null);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
@@ -44,14 +46,13 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     fantasyJsonFetch<any>('/api/fantasy/players')
       .then((result) => {
         if (!cancelled) {
-          setRegistrationOpen(result?.settings?.is_registration_open !== false);
+          setRegistrationOpen(result?.settings?.is_registration_open === true);
           setRulesVersion(result?.settings?.rules_version || '');
         }
       })
       .catch(() => {
-        // If the settings lookup fails, leave registration available; the
-        // manager API still enforces the registration toggle server-side.
-        if (!cancelled) setRegistrationOpen(null);
+        // Fail closed until the current rules and registration state are known.
+        if (!cancelled) setRegistrationOpen(false);
       });
     return () => {
       cancelled = true;
@@ -84,6 +85,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       fantasyJsonFetch<any>('/api/fantasy/manager')
         .then(async (result) => {
           setManager(result.manager);
+          setEntry(result.entry);
           const metadataDisplayName = typeof data.session?.user.user_metadata?.display_name === 'string' ? data.session.user.user_metadata.display_name : '';
           const metadataTeamName = typeof data.session?.user.user_metadata?.team_name === 'string' ? data.session.user.user_metadata.team_name : '';
           const metadataDob = typeof data.session?.user.user_metadata?.date_of_birth === 'string' ? data.session.user.user_metadata.date_of_birth : '';
@@ -93,7 +95,6 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           setDisplayName(nextDisplayName);
           setTeamName(nextTeamName);
           setDateOfBirth(metadataDob);
-          setRulesVersion(metadataRules);
           setRulesAccepted(Boolean(metadataRules));
 
           if (!result.manager && metadataDisplayName && metadataTeamName && metadataDob && metadataRules) {
@@ -117,6 +118,21 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
     loadAccount().catch((err) => setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not load your Dino Coach account.' }));
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'account' || !manager) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const result = await fantasyJsonFetch<any>('/api/fantasy/manager');
+        if (!cancelled) setEntry(result.entry);
+      } catch { /* Keep the last confirmed status and allow manual refresh. */ }
+    };
+    void refresh();
+    if (entry?.status !== 'pending') return () => { cancelled = true; };
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 5000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [mode, manager, entry?.status]);
 
   const saveProfile = async () => {
     const result = await fantasyJsonFetch<any>('/api/fantasy/manager', {
@@ -184,8 +200,16 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   };
 
   const submit = async () => {
-    if (mode === 'register' && registrationOpen === false) {
+    if (mode === 'register' && registrationOpen !== true) {
       setFeedback({ type: 'error', message: 'Dino Coach registration is currently closed.' });
+      return;
+    }
+    if (mode !== 'login' && (!displayName.trim() || !teamName.trim() || !rulesAccepted || !rulesVersion || !isAdultOnDate(dateOfBirth, new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' }), 18))) {
+      setFeedback({ type: 'error', message: 'Enter your name, team name and valid date of birth, and accept the current rules. You must be at least 18.' });
+      return;
+    }
+    if (mode !== 'account' && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || password.length < 6)) {
+      setFeedback({ type: 'error', message: 'Enter a valid email address and a password of at least 6 characters.' });
       return;
     }
     setLoading(true);
@@ -231,7 +255,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     );
   }
 
-  const registrationClosed = mode === 'register' && registrationOpen === false;
+  const registrationClosed = mode === 'register' && registrationOpen !== true;
 
   return (
     <Card>
@@ -251,7 +275,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode !== 'login' && <Input id="dateOfBirth" label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} required />}
         {mode !== 'login' && <label className="flex items-start gap-3 text-sm font-body"><input className="mt-1 h-5 w-5" type="checkbox" checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} required /><span>I am at least 18 and accept the current <Link className="font-semibold text-maroon-700 hover:underline" href="/fantasy/rules">Dino Coach rules</Link>{rulesVersion ? ` (${rulesVersion})` : ''}.</span></label>}
         {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
-        {feedback && <p className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.status === 'paid' ? 'Entry paid - you can pick your team.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
+        {feedback && <p role="status" className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
           {!awaitingConfirm && (
             <Button onClick={submit} isLoading={loading} disabled={registrationClosed}>
@@ -276,7 +301,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               Sign out
             </Button>
           )}
-          {mode === 'account' && manager && <Button onClick={startPayment} isLoading={startingPayment}>Pay AUD 25.00 entry</Button>}
+          {mode === 'account' && manager && entry?.status !== 'paid' && <Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>Pay AUD 25.00 entry</Button>}
+          {mode === 'account' && entry?.status === 'paid' && <Link href="/fantasy/squad" className="btn-primary">Pick my team</Link>}
         </div>
         {mode === 'login' && !awaitingConfirm && (
           <button

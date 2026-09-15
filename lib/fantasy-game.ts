@@ -25,7 +25,7 @@ export type FantasySettings = {
 export type FantasyPlayerWithPrice = {
   id: string;
   display_name: string;
-  role: FantasyRole;
+  role: FantasyRole | 'UNASSIGNED';
   team_label: string | null;
   price_million: number;
   price_dino_dollars: number;
@@ -121,7 +121,7 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
     .map((row: any) => ({
       id: row.player_id,
       display_name: row.fantasy_players.display_name,
-      role: (row.role === 'UNASSIGNED' ? 'BAT' : row.role) as FantasyRole,
+      role: row.role as FantasyRole | 'UNASSIGNED',
       team_label: row.team_label,
       price_million: priceByPlayer.get(row.player_id)?.legacy ?? 0,
       price_dino_dollars: priceByPlayer.get(row.player_id)?.dino ?? 0,
