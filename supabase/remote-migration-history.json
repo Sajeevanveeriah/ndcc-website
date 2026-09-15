@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-09-14T23:23:30Z",
+  "capturedAt": "2026-09-15T05:15:00Z",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -521,6 +521,15 @@
     {
       "version": "20260915000000",
       "name": "kitchen_reference_prefix"
+    },
+    {
+      "version": "20260915010000",
+      "name": "kitchen_ordering_controls"
+    },
+    {
+      "version": "20260915050853",
+      "name": "dino_coach_season_summary",
+      "localFile": "20260915050244_dino_coach_season_summary.sql"
     }
   ],
   "localOnlyApplied": []

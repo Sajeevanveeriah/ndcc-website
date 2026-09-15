@@ -20,8 +20,9 @@ export const FANTASY_RULE_SECTIONS = [
   { title: 'Squad and assigned roles', items: [
     'Each manager selects exactly 15 real NDCC players: a playing XI of 4 BAT, 2 AR, 1 WK and 4 BOWL, plus a bench of 1 BAT, 1 AR, 1 WK and 1 BOWL.',
     'A real player can be assigned to any fantasy slot. Their real-world cricket role does not restrict selection; the assigned fantasy slot controls scoring.',
+    'Cricket roles are inferred from season batting and bowling contributions, with club-confirmed wicket keepers overriding the statistics. Players without enough evidence are labelled not yet classified. These labels do not restrict fantasy slots.',
     'Exactly one captain and one vice-captain are required. Both must be in the playing XI and both receive the same 2x multiplier.',
-    'Bench players score zero. The squad must fit within the published Dino Dollar budget.',
+    'Bench players score zero. The squad budget is 20,000,000 Dino Dollars.',
   ] },
   { title: 'Scoring', items: [
     'Base scoring: 1 per run, 10 per wicket, catch, run-out or stumping, 5 per maiden and a 10-point not-out bonus.',
@@ -31,9 +32,9 @@ export const FANTASY_RULE_SECTIONS = [
   ] },
   { title: 'Transfers and prices', items: [
     'Transfers are unlimited, free and carry no points penalty. The server-authoritative window is Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time.',
-    'Opening prices use a committee-authorised provisional baseline distributed deterministically across the configured price range. This baseline is not represented as verified PlayHQ history and will be replaced through the audited evidence workflow when the reviewed 2025/2026 statistics are supplied. Prices are frozen for rounds 1-4.',
-    'From round 5, rolling performance is 50% prior baseline, 25% latest qualifying appearance and 25% second-latest qualifying appearance. A non-appearance does not advance that window.',
-    'Each performance-point change moves price by 1,000 Dino Dollars. Finals score points but never affect prices.',
+    'Opening prices use the supplied 2025/2026 season totals across all seven grades: runs + 10 per wicket, catch or stumping. Each player appears once, with their grade totals combined. The top total costs 2,000,000 Dino Dollars; other prices equal 500,000 + 1,500,000 times their total divided by the top total, rounded to whole Dino Dollars. Missing historical results receive the 500,000 floor and are labelled unrated. These all-format summaries include any finals in the supplied reports and cannot support match-level bonuses. Prices are frozen for rounds 1-4.',
+    'From round 5, rolling performance is 50% prior baseline from rows with recorded match counts, 25% latest qualifying appearance and 25% second-latest qualifying appearance. A non-appearance does not advance that window.',
+    'Each performance-point change moves price by 10,000 Dino Dollars. Finals score points but never affect prices.',
   ] },
   { title: 'Team names, prizes and ties', items: [
     'Team names must be suitable for a community cricket club. Names requiring review may be replaced and locked by the league manager.',

@@ -71,11 +71,11 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
             <Card className="border-l-4 border-l-maroon-700">
               <CardContent className="p-6">
                 <ShieldCheck className="h-10 w-10 text-maroon-700 dark:text-maroon-200 mb-4" aria-hidden="true" />
-                <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Safe club scope</h2>
+                <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Your first squad</h2>
                 <ul className="space-y-3 text-sm text-content-secondary font-body leading-relaxed">
-                  <li>NDCC colours, language, and club identity only.</li>
-                  <li>No public manager data is mixed with committee admin accounts.</li>
-                  <li>Draft, reviewed, and rejected import batches stay out of public scoring views.</li>
+                  <li>20 million Dino Dollars to select 15 players.</li>
+                  <li>Opening player prices from 500,000 to 2 million Dino Dollars.</li>
+                  <li>Choose 11 starters, 4 reserves, a captain and a vice-captain.</li>
                 </ul>
               </CardContent>
             </Card>

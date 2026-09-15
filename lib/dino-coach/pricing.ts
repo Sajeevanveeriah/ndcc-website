@@ -18,6 +18,9 @@ export async function recalculateDinoCoachInitialPrices(seasonId: string) {
     supabase.from('fantasy_seasons').select('id,start_date').eq('id', seasonId).single(), getDinoCoachSettings(seasonId),
   ]);
   if (seasonError || !season) throw new Error(seasonError?.message || 'Dino Coach season not found.');
+  const summary = await supabase.from('fantasy_player_prices').select('player_id').eq('season_id', seasonId).eq('formula_version', 'dino-season-summary-v1').limit(1);
+  if (summary.error) throw new Error(summary.error.message);
+  if (summary.data?.length) return { seasonId, formulaVersion: 'dino-season-summary-v1', message: 'Opening prices use the published 2025/2026 season summary. Replace the source through a reviewed release to change this baseline.' };
   const {data:appliedBaseline,error:baselineError}=await supabase.from('fantasy_baseline_import_batches').select('id').eq('target_season_id',seasonId).eq('status','applied').order('applied_at',{ascending:false}).limit(1).maybeSingle();
   if(baselineError)throw new Error(baselineError.message);
   if(appliedBaseline)return recalculateFromAppliedBaseline(supabase,seasonId,appliedBaseline);
@@ -66,6 +69,9 @@ export async function recalculateDinoCoachInitialPrices(seasonId: string) {
 export async function publishDinoCoachInitialPrices(seasonId:string){
   const supabase=createServerClient(); const readiness=await getDinoReleaseReadiness(seasonId);
   if(!readiness||readiness.resolved_players!==readiness.selectable_players||readiness.ambiguous_identities>0||readiness.duplicate_source_links>0) throw new Error('Player identity reconciliation is incomplete. Prices were not published.');
+  const summary = await supabase.from('fantasy_player_prices').select('player_id').eq('season_id', seasonId).eq('formula_version', 'dino-season-summary-v1').limit(1);
+  if (summary.error) throw new Error(summary.error.message);
+  if (summary.data?.length && readiness.ready) return readiness;
   const {error}=await supabase.rpc('publish_dino_coach_initial_prices',{target_season_id:seasonId});
   if(error)throw new Error(error.message);
   return getDinoReleaseReadiness(seasonId);

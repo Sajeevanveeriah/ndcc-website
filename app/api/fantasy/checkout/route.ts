@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const { data: manager } = await supabase.from('fantasy_managers')
     .select('id,email,age_verified_at,team_name_status,rules_version_accepted,is_active')
     .eq('id', auth.manager.id).single();
-  if (!manager?.is_active || !manager.age_verified_at || manager.team_name_status !== 'approved' || manager.rules_version_accepted !== settings.rules_version) {
+  if (!manager?.is_active || !manager.age_verified_at || !['approved', 'replaced'].includes(manager.team_name_status) || manager.rules_version_accepted !== settings.rules_version) {
     return NextResponse.json({ success: false, error: 'Complete age, rules and team-name eligibility before payment.' }, { status: 403 });
   }
   const inserted = await supabase.from('fantasy_entries').upsert({
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
   const checkoutParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment', client_reference_id: paymentReference, customer_email: manager.email,
     line_items: [{ price_data: { currency: String(entry.currency).toLowerCase(), unit_amount: entry.entry_fee_cents,
-      product_data: { name: `Dino Coach 2026/2027 entry - ${paymentReference}`, description: 'Newcomb & District Cricket Club participation fee' } }, quantity: 1 }],
+      product_data: { name: `${season.name} entry - ${paymentReference}`, description: 'Newcomb & District Cricket Club participation fee' } }, quantity: 1 }],
     success_url: `${siteUrl}/fantasy/account?payment=submitted&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/fantasy/account?payment=cancelled`,
     metadata: paymentMetadata,
