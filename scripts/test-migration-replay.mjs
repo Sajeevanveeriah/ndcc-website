@@ -47,5 +47,7 @@ check(
 );
 psql(DB, readFileSync(new URL('./test-dino-pricing.sql', import.meta.url), 'utf8'));
 check('Dino Coach two-round pricing and manual override regressions', true);
+psql(DB, readFileSync(new URL('./test-dino-two-teams.sql', import.meta.url), 'utf8'));
+check('Two complete squads, independent saves, captains, budget and unpaid gates', true);
 dropTestDatabase(DB);
 finish('full-replay');
