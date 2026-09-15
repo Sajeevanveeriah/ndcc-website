@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       && existing.currency?.toLowerCase() === 'aud'
       && existing.client_reference_id === paymentReference
       && existingMetadata.ndcc_reference_version === '1'
+      && existingMetadata.receipt_email_version === '1'
       && existingMetadata.ndcc_payment_reference === paymentReference
       && existingMetadata.item_number === paymentReference
       && existingMetadata.ndcc_payment_type === 'dino_coach'
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
     ndcc_payment_type: 'dino_coach',
     ndcc_order_id: entry.id,
     ndcc_reference_version: '1',
+    receipt_email_version: '1',
     item_number: paymentReference,
     product: 'Dino Coach',
     manager_id: manager.id,
@@ -132,7 +134,7 @@ export async function POST(request: Request) {
     success_url: `${siteUrl}/fantasy/account?payment=submitted&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/fantasy/account?payment=cancelled`,
     metadata: paymentMetadata,
-    payment_intent_data: { description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
+    payment_intent_data: { receipt_email: manager.email, description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
   };
   const payloadDigest = createHash('sha256')
     .update(JSON.stringify(checkoutParams))
@@ -156,6 +158,7 @@ export async function POST(request: Request) {
     || session.metadata?.ndcc_payment_reference !== paymentReference
     || session.metadata?.item_number !== paymentReference
     || session.metadata?.ndcc_reference_version !== '1'
+    || session.metadata?.receipt_email_version !== '1'
     || session.metadata?.ndcc_payment_type !== 'dino_coach'
     || session.metadata?.ndcc_order_id !== entry.id
     || session.metadata?.payment_reference !== paymentReference

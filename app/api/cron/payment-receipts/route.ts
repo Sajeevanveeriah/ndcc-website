@@ -1,3 +1,4 @@
+import { retryRegistrationEmails } from '@/lib/dino-coach/registration-email';
 import { NextResponse } from 'next/server';
 import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { processPaymentReceiptJobs } from '@/lib/payments/receipt-delivery';
@@ -73,7 +74,10 @@ export async function GET(request: Request) {
         `[receipt-delivery] ${dueRemaining} due job(s) remain blocked or outside this run's budget.`,
       );
     }
+    const registrationEmails = Date.now() < deadline
+      ? await retryRegistrationEmails(supabase, deadline) : [];
     const response = {
+      registration_emails: registrationEmails,
       success: totals.completionErrors === 0,
       claimed: totals.claimed,
       delivered: totals.delivered,

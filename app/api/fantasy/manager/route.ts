@@ -5,21 +5,12 @@ import { getAuthUserFromRequest, type FantasyManagerRecord } from '@/lib/fantasy
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { isAdultOnDate, moderateTeamName } from '@/lib/dino-coach/domain';
-import { sendEmail, emailHtml } from '@/lib/email';
+import { sendRegistrationEmail } from '@/lib/dino-coach/registration-email';
 
 export const dynamic = 'force-dynamic';
 
 function cleanText(value: unknown) {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function publicManagerSelect() {
@@ -47,9 +38,10 @@ export async function GET(request: Request) {
 
   const season = await resolveRequestSeason(request);
   const entry = data && season ? await supabase.from('fantasy_entries')
-    .select('status,entry_fee_cents,currency,payment_reference,paid_at')
+    .select('id,status,entry_fee_cents,currency,payment_reference,paid_at')
     .eq('manager_id', data.id).eq('season_id', season.id).maybeSingle() : null;
   if (entry?.error) return NextResponse.json({ success: false, error: 'Could not load your payment status.' }, { status: 503 });
+  if (entry?.data?.id) await sendRegistrationEmail(supabase, entry.data.id).catch(error => console.error('[fantasy-manager] Welcome retry deferred', error.message));
   return NextResponse.json({ success: true, user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -135,27 +127,12 @@ export async function POST(request: Request) {
   }
   const entrySaved = await supabase.from('fantasy_entries').upsert({ manager_id: manager.id, season_id: season.id, status: 'payment_required', entry_fee_cents: settings.entry_fee_cents, currency: settings.entry_fee_currency, metadata: { product: 'Dino Coach', rules_version: settings.rules_version } }, { onConflict: 'manager_id,season_id', ignoreDuplicates: true });
   if (entrySaved.error) return NextResponse.json({ success: false, error: 'Your profile was saved, but the entry could not be created. Please save again.' }, { status: 503 });
-  let emailResult: Awaited<ReturnType<typeof sendEmail>> | null = null;
-  if (isNewManager) {
-    emailResult = await sendEmail({
-      to: user.email.toLowerCase(),
-      subject: 'Dino Coach registration received',
-      html: emailHtml(
-        'Dino Coach registration received',
-        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(manager.display_name)},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">Your manager details and rules acceptance have been recorded. Team selection unlocks only after your team name is approved and the AUD 25.00 entry payment is settled.</p>
-        <div style="background:#f3f4f6;border-radius:6px;padding:16px;margin:16px 0;">
-          <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:bold;">Your team</p>
-          <p style="margin:0;font-size:16px;color:#800000;font-weight:bold;">${escapeHtml(manager.team_name)}</p>
-        </div>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">Return to your account to complete payment, then pick your squad.</p>
-        <p style="margin-top:24px;"><a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ndcc.com.au'}/fantasy/account" style="background:#800000;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Complete Your Entry</a></p>`
-      ),
-    });
-    if (emailResult.status !== 'sent') {
-      console.warn('[fantasy-manager] Welcome email did not send', { userId: user.id, status: emailResult.status, reason: emailResult.reason });
-    }
-  }
+  const entryForEmail = await supabase.from('fantasy_entries').select('id').eq('manager_id', manager.id).eq('season_id', season.id).single();
+  const emailResult = entryForEmail.data
+    ? await sendRegistrationEmail(supabase, entryForEmail.data.id).catch(error => {
+      console.error('[fantasy-manager] Welcome queued for retry', error.message);
+      return { status: 'retry_scheduled' };
+    }) : { status: 'retry_scheduled' };
 
   console.info('[fantasy-manager] Manager profile saved', { userId: user.id, managerId: manager.id, created: isNewManager });
   return NextResponse.json({
