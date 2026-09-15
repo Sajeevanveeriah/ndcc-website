@@ -33,8 +33,12 @@ const sync = load('lib/playhq/fantasy-sync.ts', {
   './season-match': { isClubTeamName: name => /newcomb/i.test(name) }, './normalise': normalise, './fantasy-import': importer,
 });
 const fixture = (status = 'UPCOMING', id = 'game-1') => ({ id, status, round: { number: 1, name: 'Round 1' },
-  schedule: { date: '2026-10-10' }, competitors: [{ homeAway: 'HOME', team: { name: 'Newcomb & District' } }, { homeAway: 'AWAY', team: { name: 'Other Club' } }] });
+  schedule: { date: '2026-10-10' }, competitors: [{ isHomeTeam: true, name: 'Other Club' }, { isHomeTeam: false, name: 'Newcomb & District' }] });
 async function preview(rows) { fixtures = rows; return sync.startFantasySyncJob({ seasonId: 'season', dryRun: true }); }
+const homeAway = normalise.normaliseFixtures({ data: [fixture()] }, { id: 'grade', name: 'Test' })[0];
+assert.equal(homeAway.homeTeam, 'Other Club'); assert.equal(homeAway.awayTeam, 'Newcomb & District');
+const reversed = normalise.normaliseFixtures({ data: [{ ...fixture(), competitors: [...fixture().competitors].reverse() }] }, { id: 'grade', name: 'Test' })[0];
+assert.equal(reversed.homeTeam, 'Other Club'); assert.equal(reversed.awayTeam, 'Newcomb & District');
 let result = await preview(Array.from({ length: 56 }, (_, i) => fixture('UPCOMING', `game-${i}`)));
 assert.equal(result.queued, 0); assert.equal(result.awaitingResults, 56); assert.equal(result.emptyQueueInvariantBreached, false); assert.equal(result.reviewItems.length, 0);
 result = await sync.startFantasySyncJob({ seasonId: 'season' });
