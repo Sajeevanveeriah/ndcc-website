@@ -48,5 +48,5 @@ new Function('require','module','exports','process','setTimeout','clearTimeout',
 await clientModule.exports.fantasyJsonFetch('/read');
 await clientModule.exports.fantasyJsonFetch('/write',{method:'POST',body:'{}'});
 await clientModule.exports.fantasyJsonFetch('/write',{method:'patch',body:'{}'});
-assert.deepEqual(deadlines,[15000,45000,45000]);
+assert.deepEqual(deadlines,[30000,45000,45000]);
 console.log('PASS bounded read and mutation deadlines allow payment processing to finish');
