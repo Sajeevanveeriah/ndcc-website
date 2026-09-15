@@ -276,7 +276,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode !== 'login' && <Input id="dateOfBirth" label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} required />}
         {mode !== 'login' && <label className="flex items-start gap-3 text-sm font-body"><input className="mt-1 h-5 w-5" type="checkbox" checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} required /><span>I am at least 18 and accept the current <Link className="font-semibold text-maroon-700 hover:underline" href="/fantasy/rules">Dino Coach rules</Link>{rulesVersion ? ` (${rulesVersion})` : ''}.</span></label>}
         {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? 'Your profile is active.' : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
-        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.status === 'paid' ? 'Entry paid - you can pick your team.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
+        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.is_demo ? 'Demo access enabled - no payment required. Demo teams are not eligible for prizes.' : entry?.status === 'paid' ? 'Entry paid - you can pick your team.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
         {feedback && <p role="status" className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
           {!awaitingConfirm && (
@@ -302,8 +302,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               Sign out
             </Button>
           )}
-          {mode === 'account' && manager && entry?.status !== 'paid' && <Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>Pay AUD 25.00 entry</Button>}
-          {mode === 'account' && entry?.status === 'paid' && <Link href="/fantasy/squad" className="btn-primary">Pick my team</Link>}
+          {mode === 'account' && manager && !entry?.is_demo && entry?.status !== 'paid' && <Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>Pay AUD 25.00 entry</Button>}
+          {mode === 'account' && (entry?.is_demo || entry?.status === 'paid') && <Link href="/fantasy/squad" className="btn-primary">Pick my team</Link>}
         </div>
         {mode === 'login' && !awaitingConfirm && (
           <button

@@ -18,8 +18,13 @@ export async function GET(request: Request) {
     console.error('[fantasy/manager-leaderboard] Failed to load manager round scores:', error.message);
     return NextResponse.json({ success: false, error: 'Failed to load leaderboard.' }, { status: 500 });
   }
+  const { data: demoEntries, error: demoError } = await supabase.from('fantasy_entries')
+    .select('manager_id').eq('season_id', season.id).eq('is_demo', true);
+  if (demoError) return NextResponse.json({ success: false, error: 'Failed to load leaderboard eligibility.' }, { status: 503 });
+  const demoManagerIds = new Set((demoEntries || []).map(entry => entry.manager_id));
   const grouped = new Map<string, any>();
   for (const row of scores ?? []) {
+    if (demoManagerIds.has(row.manager_id)) continue;
     const current = grouped.get(row.manager_id) ?? {
       managerId: row.manager_id,
       displayName: (row as any).fantasy_managers?.display_name || 'Fantasy manager',

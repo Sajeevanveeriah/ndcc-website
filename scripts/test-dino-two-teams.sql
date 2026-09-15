@@ -24,6 +24,17 @@ BEGIN
   PERFORM public.save_dino_coach_squad(ma,sid,null,'submitted',1500000,picks);
   RAISE EXCEPTION 'Unpaid squad accepted';
  EXCEPTION WHEN check_violation THEN NULL; END;
+ -- An explicit administrator demo grant unlocks saving without money or receipts.
+ UPDATE public.fantasy_entries SET is_demo=true, demo_authorisation='Isolated test grant', demo_granted_at=now() WHERE manager_id=ma AND season_id=sid;
+ qa:=public.save_dino_coach_squad(ma,sid,null,'submitted',1500000,picks);
+ IF (SELECT count(*) FROM public.fantasy_squad_players WHERE squad_id=qa)<>15 THEN RAISE EXCEPTION 'Demo squad did not save'; END IF;
+ IF EXISTS(SELECT 1 FROM public.fantasy_entries WHERE season_id=sid AND (status='paid' OR paid_at IS NOT NULL)) THEN RAISE EXCEPTION 'Demo grant fabricated payment'; END IF;
+ IF EXISTS(SELECT 1 FROM public.receipt_delivery_jobs j JOIN public.fantasy_entries e ON e.id=j.dino_entry_id WHERE e.season_id=sid) THEN RAISE EXCEPTION 'Demo grant queued payment receipts'; END IF;
+ BEGIN PERFORM public.save_dino_coach_squad(mb,sid,null,'submitted',1500000,picks); RAISE EXCEPTION 'Demo grant leaked to another manager'; EXCEPTION WHEN check_violation THEN NULL; END;
+ IF has_column_privilege('authenticated','public.fantasy_entries','is_demo','UPDATE') OR has_table_privilege('authenticated','public.fantasy_entries','INSERT') THEN RAISE EXCEPTION 'Browser can grant free access'; END IF;
+ UPDATE public.fantasy_entries SET is_demo=false WHERE manager_id=ma AND season_id=sid;
+ BEGIN PERFORM public.save_dino_coach_squad(ma,sid,null,'submitted',1500000,picks); RAISE EXCEPTION 'Revoked demo access still works'; EXCEPTION WHEN check_violation THEN NULL; END;
+ DELETE FROM public.fantasy_squads WHERE id=qa;
  -- Payment eligibility is simulated only inside this rollback-only CI database.
  PERFORM public.ensure_fantasy_entry_payment_reference(id) FROM public.fantasy_entries WHERE season_id=sid;
  UPDATE public.fantasy_entries SET status='paid',paid_at=now(),stripe_payment_intent_id='pi_test_'||replace(id::text,'-','') WHERE season_id=sid;

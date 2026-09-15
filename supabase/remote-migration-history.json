@@ -550,6 +550,10 @@
       "version": "20260915083141",
       "name": "dino_registration_email_delivery",
       "localFile": "20260915090000_dino_registration_email_delivery.sql"
+    },
+    {
+      "version": "20260915092224",
+      "name": "dino_demo_access"
     }
   ],
   "localOnlyApplied": []
