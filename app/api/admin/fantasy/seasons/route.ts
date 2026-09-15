@@ -8,6 +8,8 @@ import { getPlayHQConfig } from '@/lib/playhq/config';
 
 export const dynamic = 'force-dynamic';
 
+const ADMIN_SEASON_COLUMNS = `${SEASON_COLUMNS}, auto_sync_enabled` as const;
+
 const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
 const SEASON_STATUSES = ['draft', 'upcoming', 'active', 'completed', 'archived'];
 
@@ -22,7 +24,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient();
   try {
     const [{ data: seasons, error }, { data: gradeSources, error: gradeError }] = await Promise.all([
-      supabase.from('fantasy_seasons').select(SEASON_COLUMNS).order('start_date', { ascending: false, nullsFirst: false }),
+      supabase.from('fantasy_seasons').select(ADMIN_SEASON_COLUMNS).order('start_date', { ascending: false, nullsFirst: false }),
       supabase.from('fantasy_season_grade_sources').select('id, season_id, playhq_grade_id, grade_name, enabled, team_filter'),
     ]);
     if (error) throw new Error(error.message);
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
     team_selection_open: body.teamSelectionOpen === true,
     is_current: false,
   };
-  const { data: season, error } = await supabase.from('fantasy_seasons').insert(insert).select(SEASON_COLUMNS).single();
+  const { data: season, error } = await supabase.from('fantasy_seasons').insert(insert).select(ADMIN_SEASON_COLUMNS).single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400, headers: noStore });
 
   const { error: settingsError } = await supabase.from('fantasy_settings').insert({
@@ -112,7 +114,7 @@ export async function PATCH(request: Request) {
   }
 
   if (!Object.keys(update).length) return NextResponse.json({ success: false, error: 'No supported season fields were provided.' }, { status: 400, headers: noStore });
-  const { data: season, error } = await supabase.from('fantasy_seasons').update(update).eq('id', seasonId).select(SEASON_COLUMNS).single();
+  const { data: season, error } = await supabase.from('fantasy_seasons').update(update).eq('id', seasonId).select(ADMIN_SEASON_COLUMNS).single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400, headers: noStore });
   return NextResponse.json({ success: true, season }, { headers: noStore });
 }

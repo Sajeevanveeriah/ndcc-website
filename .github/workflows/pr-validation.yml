@@ -50,6 +50,7 @@ jobs:
       - run: npm run test:security-privilege-defaults-hardening
       - run: npm run check:assets
       - run: npm run test:playhq-normalise
+      - run: node scripts/test-playhq-preseason.mjs
       - run: npm run test:fantasy-orchestrator
       - run: npm run test:fantasy-reconciliation
       - run: npm run test:fantasy-seasons

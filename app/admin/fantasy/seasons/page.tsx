@@ -41,7 +41,7 @@ export default function AdminFantasySeasonsPage() {
 
   const patchSeason = (seasonId: string, patch: Record<string, unknown>, done: string) => run(async () => {
     await parseApiResponse(await adminFetch('/api/admin/fantasy/seasons', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seasonId, ...patch }) }));
-    await load();
+    await Promise.all([load(), loadHealth()]);
   }, done);
 
   const createSeason = () => run(async () => {
@@ -172,9 +172,9 @@ export default function AdminFantasySeasonsPage() {
                         Season readiness:
                         {' '}{ready.playhq_season_linked ? '✓' : '✗'} PlayHQ linked
                         {' '}· {ready.grades_mapped > 0 ? `✓ ${ready.grades_mapped} grades` : '✗ grades'}
-                        {' '}· {ready.players_linked > 0 ? `✓ ${ready.players_linked}/${ready.players_total} players linked` : `✗ 0/${ready.players_total} players linked${ready.players_total > 0 ? ' (provisional carry-forward)' : ''}`}
-                        {' '}· {ready.fixtures_imported ? '✓' : '✗'} fixtures
-                        {' '}· {ready.completed_match_stats_imported ? `✓ ${ready.published_stat_rows} stats` : '✗ match stats'}
+                        {' '}· {ready.players_linked > 0 ? `✓ ${ready.players_linked}/${ready.players_total} players linked` : `✗ 0/${ready.players_total} players linked${ready.players_total > 0 ? ' (awaiting match identities)' : ''}`}
+                        {' '}· {ready.fixtures_discovered > 0 ? `✓ ${ready.fixtures_discovered} fixtures discovered` : 'Awaiting fixtures'}
+                        {' '}· {ready.completed_match_stats_imported ? `✓ ${ready.published_stat_rows} stats` : ready.awaiting_results ? 'Awaiting completed games - no match stats expected yet' : 'No published match stats'}
                         {' '}· {ready.unresolved_reviews > 0 ? `⚠ ${ready.unresolved_reviews} unresolved reviews` : '✓ no unresolved reviews'}
                       </p>
                     )}

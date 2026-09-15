@@ -159,12 +159,11 @@ try {
   check('admin sync exposes read-only preview action', adminSync.includes("action === 'preview'") && adminSync.includes('previewFantasySeasonSync'));
 
   // ---- 2026/27 season-readiness controls ----
-  // Non-empty sync invariant: raw entries with zero queued games must park
-  // the job as needs_review with diagnostics, never complete as an empty
-  // success.
+  // Unexplained empty queues retain review diagnostics; recognised pending
+  // fixtures are exercised by the behavioural preseason tests.
   check('sync tracks total raw entries', syncSource.includes('rawEntriesTotal += rawFixtures.length'));
   check('sync unwraps nested PlayHQ data.items fixture collections', syncSource.includes("['items', 'fixtures', 'games']") && syncSource.includes('root.data'));
-  check('sync enforces the non-empty invariant (raw>0, queued=0 -> needs_review)',
+  check('sync preserves review gating for unexplained empty queues',
     syncSource.includes('emptyQueueInvariantBreached') && syncSource.includes("'needs_review' : 'pending'"));
   check('sync stores raw_entries + grade diagnostics on the job counts',
     syncSource.includes('raw_entries: rawEntriesTotal') && syncSource.includes('grade_debug: gradeDebug.slice'));
