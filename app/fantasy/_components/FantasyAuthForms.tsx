@@ -255,11 +255,12 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     );
   }
 
-  const registrationClosed = mode === 'register' && registrationOpen !== true;
+  const registrationClosed = mode === 'register' && registrationOpen === false;
 
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
+        {mode === 'register' && registrationOpen === null && <p role="status" className="text-sm">Checking registration availability...</p>}
         {registrationClosed && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <p className="text-sm font-body text-amber-900">
@@ -279,7 +280,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {feedback && <p role="status" className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
           {!awaitingConfirm && (
-            <Button onClick={submit} isLoading={loading} disabled={registrationClosed}>
+            <Button onClick={submit} isLoading={loading} disabled={mode === 'register' && registrationOpen !== true}>
               {mode === 'login' ? 'Sign in' : mode === 'register' ? 'Register' : 'Save profile'}
             </Button>
           )}
