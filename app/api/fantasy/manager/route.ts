@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUserFromRequest, type FantasyManagerRecord } from '@/lib/fantasy-manager-auth';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
@@ -41,7 +41,10 @@ export async function GET(request: Request) {
     .select('id,status,entry_fee_cents,currency,payment_reference,paid_at')
     .eq('manager_id', data.id).eq('season_id', season.id).maybeSingle() : null;
   if (entry?.error) return NextResponse.json({ success: false, error: 'Could not load your payment status.' }, { status: 503 });
-  if (entry?.data?.id) await sendRegistrationEmail(supabase, entry.data.id).catch(error => console.error('[fantasy-manager] Welcome retry deferred', error.message));
+  if (entry?.data?.id) {
+    const entryId = entry.data.id;
+    after(() => sendRegistrationEmail(supabase, entryId).catch(error => console.error('[fantasy-manager] Welcome retry deferred', error.message)));
+  }
   return NextResponse.json({ success: true, user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
