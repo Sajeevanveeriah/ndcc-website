@@ -145,7 +145,7 @@ await test('Stripe descriptions and product names carry the reportable payment r
   assert.match(genericCheckout, /name:\s*validation\.isPartial[\s\S]*?publicPaymentReference/u);
   assert.match(raffleCheckout, /name:\s*`NDCC Dinos Trailer Raffle Ticket - \$\{paymentReference\}`/u);
   assert.match(raffleCheckout, /description:\s*`\$\{paymentReference\} - NDCC raffle`/u);
-  assert.match(dinoCheckout, /name:\s*`Dino Coach 2026\/2027 entry - \$\{paymentReference\}`/u);
+  assert.match(dinoCheckout, /name:\s*`\$\{season\.name\} entry - \$\{paymentReference\}`/u);
   assert.match(dinoCheckout, /description:\s*`\$\{paymentReference\} - NDCC Dino Coach`/u);
 });
 
