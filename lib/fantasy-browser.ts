@@ -35,7 +35,7 @@ export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}
   // Mutations include sequential eligibility checks, Stripe calls and email
   // delivery. Do not report a timeout while those writes are still completing.
   const isRead = !options.method || ['GET', 'HEAD'].includes(options.method.toUpperCase());
-  const timeout = setTimeout(() => controller.abort(), isRead ? 15_000 : 45_000);
+  const timeout = setTimeout(() => controller.abort(), isRead ? 30_000 : 45_000);
   let response: Response;
   try {
     response = await fetch(url, { ...options, headers, signal: options.signal ?? controller.signal });
