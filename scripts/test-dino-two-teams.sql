@@ -25,7 +25,10 @@ BEGIN
   RAISE EXCEPTION 'Unpaid squad accepted';
  EXCEPTION WHEN check_violation THEN NULL; END;
  -- Payment eligibility is simulated only inside this rollback-only CI database.
- UPDATE public.fantasy_entries SET status='paid' WHERE season_id=sid;
+ PERFORM public.ensure_fantasy_entry_payment_reference(id) FROM public.fantasy_entries WHERE season_id=sid;
+ UPDATE public.fantasy_entries SET status='paid',paid_at=now(),stripe_payment_intent_id='pi_test_'||replace(id::text,'-','') WHERE season_id=sid;
+ IF (SELECT count(*) FROM public.receipt_delivery_jobs j JOIN public.fantasy_entries e ON e.id=j.dino_entry_id WHERE e.season_id=sid)<>2 THEN RAISE EXCEPTION 'Each paid fixture must queue its own receipt'; END IF;
+ IF (SELECT count(*) FROM public.fantasy_registration_emails j JOIN public.fantasy_entries e ON e.id=j.entry_id WHERE e.season_id=sid)<>2 THEN RAISE EXCEPTION 'Each registration needs its own email job'; END IF;
  FOR i IN 0..14 LOOP
   item:=picks->i;
   item:=jsonb_set(item,'{player_id}',picks->(14-i)->'player_id');
