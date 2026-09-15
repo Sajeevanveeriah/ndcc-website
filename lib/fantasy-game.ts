@@ -103,7 +103,7 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
       .eq('season_id', targetSeasonId)
       .eq('active', true)
       .eq('selectable', true),
-    supabase.from('fantasy_player_prices').select('player_id, price_million, price_dino_dollars, source_status, published_at, created_at').eq('season_id', targetSeasonId).order('created_at', { ascending: false }),
+    supabase.from('fantasy_player_prices').select('player_id, price_million, price_dino_dollars, source_status, published_at, created_at').eq('season_id', targetSeasonId).not('published_at', 'is', null).order('created_at', { ascending: false }),
   ]);
   if (memberError) throw new Error(memberError.message);
   if (priceError) throw new Error(priceError.message);

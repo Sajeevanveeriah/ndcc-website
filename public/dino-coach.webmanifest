@@ -1,0 +1,39 @@
+{
+  "id": "/fantasy",
+  "name": "NDCC Dino Coach",
+  "short_name": "Dino Coach",
+  "description": "Pick your NDCC fantasy cricket squad and follow your standings.",
+  "start_url": "/fantasy",
+  "scope": "/fantasy",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#800020",
+  "icons": [
+    {
+      "src": "/icons/dino-coach-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/dino-coach-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My squad",
+      "url": "/fantasy/squad"
+    },
+    {
+      "name": "Player standings",
+      "url": "/fantasy/leaderboard"
+    },
+    {
+      "name": "Manager standings",
+      "url": "/fantasy/manager-leaderboard"
+    }
+  ]
+}

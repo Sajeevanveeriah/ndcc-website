@@ -9,7 +9,7 @@ import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Pencil, Plus, Upload, Users } from 'lucide-react';
 
-type PlayerRole = 'WK' | 'BAT' | 'AR' | 'BOWL';
+type PlayerRole = 'WK' | 'BAT' | 'AR' | 'BOWL' | 'UNASSIGNED';
 
 type FantasyPlayer = {
   id: string;
@@ -19,6 +19,7 @@ type FantasyPlayer = {
   team_label: string | null;
   active: boolean;
   price_million: number;
+  eligibility_exclusion?: string | null;
 };
 
 type PlayerForm = {
@@ -28,6 +29,7 @@ type PlayerForm = {
   team_label: string;
   active: boolean;
   price_million: string;
+  price_reason: string;
 };
 
 const emptyPlayer: PlayerForm = {
@@ -36,10 +38,12 @@ const emptyPlayer: PlayerForm = {
   role: '',
   team_label: '',
   active: true,
-  price_million: '0.0',
+  price_million: '0.1',
+  price_reason: '',
 };
 
 const roleOptions = [
+  { value: 'UNASSIGNED', label: 'Not yet classified' },
   { value: 'WK', label: 'Wicket keeper' },
   { value: 'BAT', label: 'Batter' },
   { value: 'AR', label: 'All-rounder' },
@@ -94,7 +98,8 @@ export default function AdminFantasyPlayersPage() {
       role: player.role,
       team_label: player.team_label || '',
       active: player.active,
-      price_million: player.price_million.toFixed(1),
+      price_million: String(player.price_million),
+      price_reason: '',
     });
     setFormErrors({});
     setFeedback(null);
@@ -106,7 +111,7 @@ export default function AdminFantasyPlayersPage() {
     if (!form.display_name.trim()) errors.display_name = 'Player name is required.';
     if (!form.role) errors.role = 'Role is required.';
     const price = Number(form.price_million);
-    if (!Number.isFinite(price) || price < 0 || price > 99.9) errors.price_million = 'Price must be between 0.0 and 99.9.';
+    if (!Number.isFinite(price) || price < 0.1 || price > 2) errors.price_million = 'Price must be between 0.1 and 2.0 million Dino Dollars.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -121,7 +126,8 @@ export default function AdminFantasyPlayersPage() {
       role: form.role,
       team_label: form.team_label.trim() || null,
       active: form.active,
-      price_million: Number(Number(form.price_million).toFixed(1)),
+      price_reason: form.price_reason.trim(),
+      price_million: Number(Number(form.price_million).toFixed(6)),
     };
 
     try {
@@ -251,10 +257,10 @@ export default function AdminFantasyPlayersPage() {
           <TableBody>
             {players.map((player) => (
               <TableRow key={player.id}>
-                <TableCell className="font-medium">{player.display_name}</TableCell>
+                <TableCell className="font-medium">{player.display_name}{player.eligibility_exclusion && <span className="block text-xs text-content-muted">Not selectable: {player.eligibility_exclusion}</span>}</TableCell>
                 <TableCell>{player.role}</TableCell>
                 <TableCell>{player.team_label || '—'}</TableCell>
-                <TableCell>{player.price_million.toFixed(1)}</TableCell>
+                <TableCell>{String(player.price_million)}</TableCell>
                 <TableCell>{player.playhq_player_id || '—'}</TableCell>
                 <TableCell>{player.active ? <Badge variant="success">Active</Badge> : <Badge>Inactive</Badge>}</TableCell>
                 <TableCell>
@@ -272,7 +278,8 @@ export default function AdminFantasyPlayersPage() {
         <div className="space-y-4">
           <Input id="fantasy-player-name" label="Player name" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} error={formErrors.display_name} required />
           <Select id="fantasy-player-role" label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as PlayerRole })} options={roleOptions} error={formErrors.role} required />
-          <Input id="fantasy-player-price" label="Price (million)" type="number" min="0" max="99.9" step="0.1" value={form.price_million} onChange={(e) => setForm({ ...form, price_million: e.target.value })} error={formErrors.price_million} required />
+          <Input id="fantasy-price-reason" label="Reason for manual change" value={form.price_reason} onChange={(e) => setForm({ ...form, price_reason: e.target.value })} />
+          <Input id="fantasy-player-price" label="Price (million)" type="number" min="0.1" max="2" step="0.000001" value={form.price_million} onChange={(e) => setForm({ ...form, price_million: e.target.value })} error={formErrors.price_million} required />
           <Input id="fantasy-player-team" label="Team label (optional)" value={form.team_label} onChange={(e) => setForm({ ...form, team_label: e.target.value })} />
           <Input id="fantasy-player-playhq-id" label="PlayHQ player ID (optional)" value={form.playhq_player_id} onChange={(e) => setForm({ ...form, playhq_player_id: e.target.value })} />
           <label className="inline-flex items-center gap-2 text-sm">

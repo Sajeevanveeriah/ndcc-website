@@ -3,7 +3,7 @@
 // order. This is the invariant that keeps Supabase preview branches and CI
 // bootstraps working: every file must apply cleanly to an empty database
 // (dashboard-era tables are provided by 20260331000000_prehistory_baseline).
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createTestDatabase, dropTestDatabase, applyMigrations, psql, check, finish, migrationsDir } from './lib/local-db.mjs';
 const DB = 'ndcc_full_replay';
 const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
@@ -45,5 +45,7 @@ check(
   browserWritesOnProfiles === '0',
   `${browserWritesOnProfiles} browser write privileges remain`,
 );
+psql(DB, readFileSync(new URL('./test-dino-pricing.sql', import.meta.url), 'utf8'));
+check('Dino Coach two-round pricing and manual override regressions', true);
 dropTestDatabase(DB);
 finish('full-replay');

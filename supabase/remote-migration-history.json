@@ -530,6 +530,11 @@
       "version": "20260915050853",
       "name": "dino_coach_season_summary",
       "localFile": "20260915050244_dino_coach_season_summary.sql"
+    },
+    {
+      "version": "20260915064324",
+      "name": "dino_coach_pilot_economy",
+      "localFile": "20260915070000_dino_coach_pilot_economy.sql"
     }
   ],
   "localOnlyApplied": []

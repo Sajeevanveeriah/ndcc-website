@@ -1,5 +1,10 @@
+import type { Metadata, Viewport } from 'next';
+import InstallDinoCoach from '@/components/fantasy/InstallDinoCoach';
 import { notFound } from 'next/navigation';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+
+export const metadata: Metadata = { manifest:'/dino-coach.webmanifest', appleWebApp:{capable:true,title:'Dino Coach',statusBarStyle:'default'},icons:{apple:'/icons/dino-coach-192.png'} };
+export const viewport: Viewport = { themeColor:'#800020' };
 
 export const dynamic = 'force-dynamic';
 
@@ -26,5 +31,5 @@ export default async function FantasyLayout({ children }: { children: React.Reac
     notFound();
   }
 
-  return children;
+  return <>{children}<InstallDinoCoach /></>;
 }
