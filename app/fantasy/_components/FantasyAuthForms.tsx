@@ -148,7 +148,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     try {
       const { error } = await getFantasyBrowserClient().auth.resend({ type: 'signup', email, options: { emailRedirectTo: getFantasyEmailRedirectTo() } });
       if (error) throw error;
-      setFeedback({ type: 'success', message: `Confirmation email resent to ${email}. Check your inbox and spam folder.` });
+      setFeedback({ type: 'success', message: `If this address needs verification, a confirmation email has been requested for ${email}. Check your inbox and spam folder. If you already have an NDCC account, sign in with your existing password or use Forgot password.` });
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not resend email.' });
     } finally {
@@ -232,7 +232,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           setAwaitingConfirm(true);
           setFeedback({
             type: 'success',
-            message: `Almost there! A confirmation email has been sent to ${email}. Click the link in that email to return to your Dino Coach account and complete your manager profile.`,
+            message: `If ${email} is a new account, check your inbox and spam folder for a confirmation link. Already have an NDCC account? Sign in with your existing password or use Forgot password. Existing verified accounts do not receive another sign-up confirmation.`,
           });
         }
       } else if (mode === 'login') {
@@ -260,6 +260,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
+        {mode === 'register' && !registrationClosed && <p className="text-sm font-body text-content-secondary">Already have an NDCC account? <Link href="/fantasy/login" className="font-semibold underline">Sign in with your existing account</Link>. You can use Forgot password on the sign-in page if needed.</p>}
         {mode === 'register' && registrationOpen === null && <p role="status" className="text-sm">Checking registration availability...</p>}
         {registrationClosed && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
@@ -289,7 +290,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               <Button onClick={handleResend} isLoading={resending} variant="secondary">
                 Resend confirmation email
               </Button>
-              <Link href="/fantasy/login" className="btn-primary">Sign in after confirming</Link>
+              <Link href="/fantasy/login" className="btn-primary">Sign in to your account</Link>
             </>
           )}
           {!awaitingConfirm && (

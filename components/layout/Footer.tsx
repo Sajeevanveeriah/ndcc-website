@@ -1,3 +1,5 @@
+import CookieDoughVisibility from '@/components/common/CookieDoughVisibility';
+import { isCookieDoughOpen, isCookieDoughLink } from '@/lib/cookie-dough';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
@@ -33,6 +35,9 @@ function resolveLinks(links: PageLinkCard[]) {
 }
 
 function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
+  if (isCookieDoughLink(link.href)) {
+    return <CookieDoughVisibility initialOpen={isCookieDoughOpen()}><Link href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
+  }
   const external = isExternalLink(link);
   const content = (
     <>
@@ -67,7 +72,7 @@ export default async function Footer() {
 
   const [dinoCoachEnabled, raffleEnabled] = await Promise.all([isDinoCoachPublic(), isRafflePublic()]);
   const hideDisabledFeatures = (link: PageLinkCard) =>
-    (dinoCoachEnabled || !link.href.startsWith('/fantasy')) && (raffleEnabled || !link.href.startsWith('/raffle'));
+    (isCookieDoughOpen() || !isCookieDoughLink(link.href)) && (dinoCoachEnabled || !link.href.startsWith('/fantasy')) && (raffleEnabled || !link.href.startsWith('/raffle'));
   const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledFeatures);
   const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks).filter(hideDisabledFeatures);
   const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledFeatures);
