@@ -116,7 +116,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
           <TableBody>
             {visible.map((player) => (
               <TableRow key={player.id}>
-                <TableCell className="font-medium">{player.display_name}{player.source_status === 'unrated' && <span className="block text-xs text-content-muted">No supplied season history</span>}</TableCell>
+                <TableCell className="font-medium">{player.display_name}{player.source_status === 'unrated' && <span className="block text-xs text-content-muted">No supplied season history</span>}{player.source_status === 'external_partial' && <span className="block text-xs text-content-muted">Provisional price - incomplete season statistics</span>}</TableCell>
                 <TableCell>{CRICKET_ROLE_LABELS[player.role] || player.role}</TableCell>
                 <TableCell>{player.team_label || 'NDCC'}</TableCell>
                 <TableCell>{player.published_at ? `${player.price_dino_dollars.toLocaleString('en-AU')} Dino Dollars` : <Badge>Awaiting verified price</Badge>}</TableCell>

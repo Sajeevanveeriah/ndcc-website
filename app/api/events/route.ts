@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { validateEmail, validatePhone } from '@/lib/utils';
+import { formatDateTime, validateEmail, validatePhone } from '@/lib/utils';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import {
@@ -83,12 +83,16 @@ export async function POST(request: Request) {
 
     const { data: eventRow, error: eventError } = await supabase
       .from('events')
-      .select('id,title,event_date,ticket_price,location')
+      .select('id,title,date,ticket_price,location')
       .eq('id', safeEventId)
       .eq('published', true)
       .maybeSingle();
 
-    if (eventError || !eventRow) {
+    if (eventError) {
+      console.error('Supabase event lookup error:', eventError);
+      return NextResponse.json({ success: false, error: 'Event registration is temporarily unavailable.' }, { status: 503 });
+    }
+    if (!eventRow) {
       return NextResponse.json({ success: false, error: 'Event not found.' }, { status: 404 });
     }
 
@@ -168,7 +172,7 @@ export async function POST(request: Request) {
       html: emailHtml(
         'Registration Confirmed',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(name))},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">You are registered for <strong>${escapeEmailHtml(eventRow.title)}</strong>${eventRow.event_date ? ` on ${new Date(eventRow.event_date).toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}.</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">You are registered for <strong>${escapeEmailHtml(eventRow.title)}</strong>${eventRow.date ? ` on ${formatDateTime(eventRow.date)}` : ''}.</p>
         ${eventRow.location ? `<p style="font-size:14px;color:#374151;"><strong>Location:</strong> ${escapeEmailHtml(eventRow.location)}</p>` : ''}
         <p style="font-size:14px;color:#374151;"><strong>Tickets:</strong> ${qty}</p>
         ${isPaid && paymentReference

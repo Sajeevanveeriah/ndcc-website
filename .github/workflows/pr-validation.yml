@@ -34,6 +34,7 @@ jobs:
       - run: npm run test:google-maps-embed-security
       - run: npm run test:public-link-security
       - run: npm run test:calendar-subscription
+      - run: node scripts/test-public-event-flows.mjs
       - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-committee-calendar-subscription.mjs
       - run: npm run test:email-html-security
       - run: npm run test:public-order-input-security

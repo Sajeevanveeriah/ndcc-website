@@ -3,7 +3,17 @@ import InstallDinoCoach from '@/components/fantasy/InstallDinoCoach';
 import { notFound } from 'next/navigation';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
-export const metadata: Metadata = { manifest:'/dino-coach.webmanifest', appleWebApp:{capable:true,title:'Dino Coach',statusBarStyle:'default'},icons:{apple:'/icons/dino-coach-192.png'} };
+export const metadata: Metadata = {
+  manifest: '/dino-coach.webmanifest',
+  appleWebApp: { capable: true, title: 'Dino Coach', statusBarStyle: 'default' },
+  // Nested metadata replaces the root icons, so retain the browser favicon
+  // alongside the Apple touch icon used when installing Dino Coach.
+  icons: {
+    icon: { url: '/icons/dino-coach-192.png', type: 'image/png', sizes: '192x192' },
+    shortcut: '/icons/dino-coach-192.png',
+    apple: '/icons/dino-coach-192.png',
+  },
+};
 export const viewport: Viewport = { themeColor:'#800020' };
 
 export const dynamic = 'force-dynamic';

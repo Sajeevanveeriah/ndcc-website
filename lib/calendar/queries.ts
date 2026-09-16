@@ -110,6 +110,7 @@ export async function getUpcomingCalendarEvents(options: {
 } = {}): Promise<PublicCalendarResult> {
   const nowIso = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // include events started within the last hour
   const result = await getPublicCalendarEvents({
+    from: nowIso,
     home: options.home,
     contact: options.contact,
     limit: (options.limit ?? 5) * 3,
