@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
+import { getDinoManagerStandings } from '@/lib/dino-coach/standings';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,19 +19,15 @@ async function leagueLeaderboard(leagueId: string, seasonId: string) {
     .select('manager_id, fantasy_managers(display_name, team_name), fantasy_leagues(id, name, code)')
     .eq('league_id', leagueId);
   if (error) throw new Error(error.message);
-  const ids = (data ?? []).map((row: any) => row.manager_id);
-  const { data: scores, error: scoreError } = ids.length
-    ? await supabase.from('fantasy_manager_round_scores').select('manager_id, net_points').eq('season_id', seasonId).in('manager_id', ids)
-    : { data: [], error: null } as any;
-  if (scoreError) throw new Error(scoreError.message);
-  const totals = new Map<string, number>();
-  for (const score of scores ?? []) totals.set(score.manager_id, (totals.get(score.manager_id) ?? 0) + Number(score.net_points ?? 0));
-  return (data ?? []).map((row: any) => ({
-    managerId: row.manager_id,
-    displayName: row.fantasy_managers?.display_name || 'Fantasy manager',
-    teamName: row.fantasy_managers?.team_name || 'Team',
-    totalNetPoints: totals.get(row.manager_id) ?? 0,
-  })).sort((a, b) => b.totalNetPoints - a.totalNetPoints).map((row, index) => ({ ...row, rank: index + 1 }));
+  return getDinoManagerStandings(seasonId, {
+    // Demo teams may practise privately, but never enter the public standings.
+    includeDemo: true,
+    members: (data ?? []).map((row: any) => ({
+      managerId: row.manager_id,
+      displayName: row.fantasy_managers?.display_name || 'Dino Coach manager',
+      teamName: row.fantasy_managers?.team_name || 'Team',
+    })),
+  });
 }
 
 export async function GET(request: Request) {
@@ -46,8 +43,13 @@ export async function GET(request: Request) {
     .eq('fantasy_leagues.season_id', season.id)
     .order('joined_at', { ascending: false });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues, leaderboard: await leagueLeaderboard(item.league_id, season.id) })));
-  return NextResponse.json({ success: true, season, leagues });
+  try {
+    const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues, leaderboard: await leagueLeaderboard(item.league_id, season.id) })));
+    return NextResponse.json({ success: true, season, leagues });
+  } catch (error) {
+    console.error('[fantasy/leagues] Failed to load standings:', error);
+    return NextResponse.json({ success: false, error: 'Failed to load league standings.' }, { status: 503 });
+  }
 }
 
 export async function POST(request: Request) {
