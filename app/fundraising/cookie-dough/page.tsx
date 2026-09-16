@@ -1,3 +1,6 @@
+import { notFound } from 'next/navigation';
+import CookieDoughVisibility from '@/components/common/CookieDoughVisibility';
+import { isCookieDoughOpen, COOKIE_DOUGH_DEADLINE_LABEL } from '@/lib/cookie-dough';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import {
@@ -12,6 +15,9 @@ import {
 } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { COOKIE_DOUGH_FUNDRAISER_LINK } from '@/lib/public-links';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Billy G's Cookie Dough Fundraiser",
@@ -70,8 +76,9 @@ const facts = [
 ] as const;
 
 export default function CookieDoughFundraiserPage() {
+  if (!isCookieDoughOpen()) notFound();
   return (
-    <>
+    <CookieDoughVisibility initialOpen={true}>
       <section className="overflow-hidden border-b border-edge-subtle bg-surface-card px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         <div className="container-width grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.78fr)]">
           <ScrollReveal onMount>
@@ -85,6 +92,7 @@ export default function CookieDoughFundraiserPage() {
               <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-content-secondary sm:text-lg">
                 Register as an NDCC fundraiser, share your page, or purchase cookie dough to support the club.
               </p>
+              <p className="mt-4 font-body font-semibold text-content-primary">{COOKIE_DOUGH_DEADLINE_LABEL}</p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <CampaignLink className="btn-primary min-h-11 gap-2">
                   Register &amp; Start Fundraising
@@ -229,6 +237,6 @@ export default function CookieDoughFundraiserPage() {
           </p>
         </ScrollReveal>
       </section>
-    </>
+    </CookieDoughVisibility>
   );
 }

@@ -1,3 +1,4 @@
+import { isCookieDoughOpen } from '@/lib/cookie-dough';
 import type { MetadataRoute } from 'next';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
@@ -59,7 +60,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/facilities`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/fixtures`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/events`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/calendar`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/news`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/publications`, changeFrequency: 'weekly', priority: 0.7 },
@@ -73,6 +73,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/volunteer`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.7 },
   ];
+
+  if (isCookieDoughOpen()) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });
 
   if (await isDinoCoachPublic()) {
     staticEntries.push(

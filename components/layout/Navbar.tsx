@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LazyMotion, domAnimation, m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, ChevronDown, UserRound } from 'lucide-react';
+import { useCookieDoughOpen } from '@/components/common/CookieDoughVisibility';
+import { isCookieDoughLink } from '@/lib/cookie-dough';
 import { NAV_LINKS } from '@/lib/constants';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
@@ -39,15 +41,16 @@ function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: st
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean) {
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean) {
   return PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
     : { label: group.label, href: undefined, links: (group.links || [])
-      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || link.href !== '/raffle'))
+      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || link.href !== '/raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
       .map((link) => resolveLink(navLinks, link)) });
 }
 
 export default function Navbar() {
+  const cookieDoughOpen = useCookieDoughOpen();
   const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -224,7 +227,7 @@ export default function Navbar() {
     }).catch(() => undefined);
     setSessionUser(null);
   };
-  const navGroups = resolveGroups(navLinks, dinoCoachEnabled, raffleEnabled);
+  const navGroups = resolveGroups(navLinks, dinoCoachEnabled, raffleEnabled, cookieDoughOpen);
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are
   // solid from the start.
