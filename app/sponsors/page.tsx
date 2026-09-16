@@ -11,7 +11,6 @@ import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import {
-  SPONSOR_TIERS,
   CLUB_NAME,
   CLUB_EMAIL_USER,
   CLUB_EMAIL_DOMAIN,
@@ -24,6 +23,16 @@ import type { Sponsor } from '@/lib/types';
 import { mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
 
+const SPONSORSHIP_PACKAGES = [
+  ['Social Membership', 'AUD 75'],
+  ['Match Day Ball Sponsor', 'AUD 150'],
+  ['Player Sponsorship', 'AUD 350'],
+  ['Bronze Sponsorship', 'AUD 450'],
+  ['Silver Sponsorship', 'AUD 850'],
+  ['Gold Sponsorship', 'AUD 1,150'],
+  ['Diamond Sponsorship', 'AUD 1,550'],
+  ['Platinum Sponsorship', 'AUD 2,100'],
+] as const;
 
 const SPONSOR_DESCRIPTIONS_BY_NAME: Record<string, string> = {
   'APCO': 'Australian-owned service station and convenience retailer with Geelong-region locations, including Newcomb and North Geelong.',
@@ -131,7 +140,7 @@ export default function SponsorsPage() {
     } else if (!validateEmail(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
-    if (!formData.tier_interest) errors.tier_interest = 'Please select a sponsorship tier';
+    if (!formData.tier_interest) errors.tier_interest = 'Please select a sponsorship package';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -152,7 +161,7 @@ export default function SponsorsPage() {
           name: `${formData.company_name} - ${formData.contact_name}`,
           email: formData.email,
           enquiry_type: 'sponsorship',
-          message: `Tier Interest: ${formData.tier_interest}\nPhone: ${formData.phone || 'Not provided'}\n\n${formData.message}`,
+          message: `Package Interest: ${formData.tier_interest}\nPhone: ${formData.phone || 'Not provided'}\n\n${formData.message}`,
           hp_field: formData.hp_field,
           submitted_at: formData.submitted_at,
         }),
@@ -174,7 +183,7 @@ export default function SponsorsPage() {
     }
   }
 
-  const tierOptions = SPONSOR_TIERS.map((t) => ({ value: t.value, label: t.label }));
+  const tierOptions = SPONSORSHIP_PACKAGES.map(([name, price]) => ({ value: name, label: `${name} - ${price}` }));
 
   const sortedSponsors = sortSponsorsAlphabetically(sponsors);
 
@@ -346,16 +355,7 @@ export default function SponsorsPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {[
-                      ['Social Membership', 'AUD 75'],
-                      ['Match Day Ball Sponsor', 'AUD 150'],
-                      ['Player Sponsorship', 'AUD 350'],
-                      ['Bronze Sponsorship', 'AUD 450'],
-                      ['Silver Sponsorship', 'AUD 850'],
-                      ['Gold Sponsorship', 'AUD 1,150'],
-                      ['Diamond Sponsorship', 'AUD 1,550'],
-                      ['Platinum Sponsorship', 'AUD 2,100'],
-                    ].map(([tier, price]) => (
+                    {SPONSORSHIP_PACKAGES.map(([tier, price]) => (
                       <TableRow key={tier}>
                         <TableCell className="font-semibold text-content-primary">{tier}</TableCell>
                         <TableCell className="text-right font-display font-bold text-maroon-700 dark:text-maroon-200">{price}</TableCell>
@@ -471,7 +471,7 @@ export default function SponsorsPage() {
 
             <Select
               id="tier_interest"
-              label="Sponsorship Tier Interest"
+              label="Sponsorship Package Interest"
               required
               options={[...tierOptions]}
               value={formData.tier_interest}
