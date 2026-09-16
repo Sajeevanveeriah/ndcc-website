@@ -21,9 +21,9 @@ body = styles['BodyDino']
 source = Path('lib/fantasy.ts').read_text()
 sections = [(title, re.findall(r"    '([^\n]+)',", content)) for title, content in re.findall(r"\{ title: '([^']+)', items: \[(.*?)\] \}", source, re.S)]
 assert len(sections) == 6
-path = Path('public/documents/20260915-Dino-Coach-Rules-Rev00.pdf')
+path = Path('public/documents/20260916-Dino-Coach-Rules-Rev00.pdf')
 path.parent.mkdir(parents=True, exist_ok=True)
-flow = [Image('public/images/logo.jpg', width=95, height=95*896/1184), Spacer(1, 12), Paragraph('Dino Coach', styles['TitleDino']), Paragraph('Rules and manager guide | 2026/2027', styles['HeadingDino']), Paragraph('Rules version 2026-27-rev04 | 15 September 2026', body)]
+flow = [Image('public/images/logo.jpg', width=95, height=95*896/1184), Spacer(1, 12), Paragraph('Dino Coach', styles['TitleDino']), Paragraph('Rules and manager guide | 2026/2027', styles['HeadingDino']), Paragraph('Rules version 2026-27-rev04 | 16 September 2026', body)]
 table = Table([['ENTRY', 'SQUAD BUDGET', 'WINNER'], ['AUD 25', '10 million Dino Dollars', '300 Dino Dollars']], colWidths=[90, 225, 180])
 table.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), HexColor('#800020')), ('TEXTCOLOR', (0,0), (-1,0), white), ('BACKGROUND', (0,1), (-1,1), HexColor('#FFF4D6')), ('FONTNAME', (0,0), (-1,0), 'DinoBold'), ('FONTNAME', (0,1), (-1,1), 'Dino'), ('FONTSIZE', (0,0), (-1,-1), 9), ('TOPPADDING', (0,0), (-1,-1), 10), ('BOTTOMPADDING', (0,0), (-1,-1), 10)]))
 flow += [Spacer(1, 10), table]
