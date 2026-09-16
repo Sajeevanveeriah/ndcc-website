@@ -54,6 +54,7 @@ test('calculates rolling price movement at 1000 Dino Dollars per point', () => {
 test('scales initial price from floor to the best-player ceiling', () => {
   assert.equal(calculateInitialPrice(100, 100, 50000, 200000), 200000);
   assert.equal(calculateInitialPrice(50, 100, 50000, 200000), 125000);
+  assert.equal(calculateInitialPrice(1, 3, 100000, 2000000), 734000);
   assert.equal(calculateInitialPrice(0, 100, 50000, 200000), 50000);
 });
 

@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import React from 'react';
+import * as jsx from 'react/jsx-runtime';
+import { renderToStaticMarkup } from 'react-dom/server';
+
+const player = { id: 'eligible', display_name: 'Eligible player', role: 'BAT', price_dino_dollars: 101000, published_at: '2026-09-16' };
+const slot = { key: 'XI_BAT_1', role: 'BAT', positionType: 'starter', label: 'Batter 1' };
+const pick = { slotKey: slot.key, playerId: 'excluded', displayName: 'Removed player', assignedRole: 'BAT', positionType: 'starter', purchasePriceDinoDollars: 100001 };
+const source = ts.transpileModule(readFileSync('app/fantasy/_components/SquadBuilder.tsx', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+function render(selection, readonlyMode = false) {
+  const states = [[player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false];
+  let index = 0;
+  const exports = {};
+  const div = ({ children }) => React.createElement('div', null, children);
+  const imports = {
+    react: { useState: () => [states[index++], () => {}], useEffect: () => {}, useMemo: (fn) => fn() },
+    'react/jsx-runtime': jsx,
+    '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
+    'next/link': { default: 'a' },
+    '@/components/ui/Button': { default: ({ children, disabled }) => React.createElement('button', { disabled }, children) },
+    '@/components/ui/Card': { default: div, CardContent: div },
+    '@/lib/fantasy-browser': {},
+    './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
+  };
+  vm.runInNewContext(source, { exports, require: (name) => {
+    assert(name in imports, `Unexpected import: ${name}`);
+    return imports[name];
+  } });
+  return renderToStaticMarkup(React.createElement(exports.default, { readonlyMode }));
+}
+
+const excluded = render([pick]);
+assert.match(excluded, /Removed player/);
+assert.match(excluded, /No longer eligible for this season/);
+assert.match(excluded, />Remove<\/button>/);
+assert.match(excluded, /<button disabled="">Submit squad/);
+assert.match(excluded, /<button disabled="">Save draft/);
+const eligible = render([{ ...pick, playerId: player.id }]);
+assert.doesNotMatch(eligible, /Replace ineligible players/);
+assert.match(eligible, /9,899,000 Dino Dollars/);
+assert.match(eligible, /101,000 Dino Dollars/);
+assert.match(eligible, /<button>Submit squad/);
+const historical = render([{ ...pick, playerId: player.id }], true);
+assert.match(historical, /100,001 Dino Dollars/);
+assert.doesNotMatch(historical, /Submit squad/);
+console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets use current prices, historical values are preserved');

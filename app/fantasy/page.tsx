@@ -9,6 +9,8 @@ import { getFantasySettings } from '@/lib/fantasy-game';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
+import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { formatDinoDollars } from '@/lib/dino-coach/domain';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +40,9 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   const seasonQuery = searchParams?.season ? `?season=${encodeURIComponent(searchParams.season)}` : '';
   const seasonName = await getSeasonName(seasonContext.selected?.id);
+  const dinoSettings = seasonContext.selected
+    ? await getDinoCoachSettings(seasonContext.selected.id).catch(() => null)
+    : null;
   return (
     <>
       <section className="page-hero">
@@ -73,8 +78,8 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
                 <ShieldCheck className="h-10 w-10 text-maroon-700 dark:text-maroon-200 mb-4" aria-hidden="true" />
                 <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Your first squad</h2>
                 <ul className="space-y-3 text-sm text-content-secondary font-body leading-relaxed">
-                  <li>20 million Dino Dollars to select 15 players.</li>
-                  <li>Opening player prices from 500,000 to 2 million Dino Dollars.</li>
+                  {dinoSettings && <li>{formatDinoDollars(dinoSettings.budget_dino_dollars)} to select 15 players.</li>}
+                  {dinoSettings && <li>Player prices from {formatDinoDollars(dinoSettings.initial_price_floor_dino_dollars)} to {formatDinoDollars(dinoSettings.initial_price_ceiling_dino_dollars)}.</li>}
                   <li>Choose 11 starters, 4 reserves, a captain and a vice-captain.</li>
                 </ul>
               </CardContent>
