@@ -1,6 +1,8 @@
 /* NDCC FullCalendar theme — maroon/blue primary, gold reserved for today + featured. */
 
 .ndcc-calendar {
+  --ndcc-calendar-heading: #4a0000;
+  --ndcc-calendar-date: #374151;
   --fc-border-color: #e5e7eb;
   --fc-page-bg-color: #ffffff;
   --fc-neutral-bg-color: #f8fafc;
@@ -16,6 +18,16 @@
   --fc-highlight-color: rgba(128, 0, 0, 0.08);
 }
 
+.dark .ndcc-calendar {
+  --ndcc-calendar-heading: rgb(var(--text-primary));
+  --ndcc-calendar-date: rgb(var(--text-secondary));
+  --fc-border-color: rgb(var(--border-strong));
+  --fc-page-bg-color: rgb(var(--surface-card));
+  --fc-neutral-bg-color: rgb(var(--surface-muted));
+  --fc-list-event-hover-bg-color: rgb(var(--surface-elevated));
+  --fc-highlight-color: rgba(244, 163, 163, 0.12);
+}
+
 .ndcc-calendar .fc {
   font-family: var(--font-body, Inter, sans-serif);
 }
@@ -25,7 +37,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: #4a0000;
+  color: var(--ndcc-calendar-heading);
   font-size: 1.35rem;
 }
 
@@ -64,7 +76,7 @@
 .ndcc-calendar .fc .fc-daygrid-day-number,
 .ndcc-calendar .fc .fc-list-day-text,
 .ndcc-calendar .fc .fc-list-day-side-text {
-  color: #374151;
+  color: var(--ndcc-calendar-date);
   font-weight: 600;
   text-decoration: none;
 }
@@ -110,6 +122,23 @@
   background: #f8fafc;
   color: #6b7280;
   font-size: 0.9rem;
+}
+
+.dark .ndcc-calendar .fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+
+.dark .ndcc-calendar .fc .fc-day-other .fc-daygrid-day-number {
+  color: rgb(var(--text-muted));
+}
+
+.dark .ndcc-calendar .fc .fc-list-event-title a {
+  color: rgb(var(--text-primary));
+}
+
+.dark .ndcc-calendar .fc .fc-list-empty {
+  background: rgb(var(--surface-card));
+  color: rgb(var(--text-secondary));
 }
 
 @media (max-width: 640px) {
