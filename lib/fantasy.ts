@@ -20,7 +20,7 @@ export const FANTASY_RULE_SECTIONS = [
   { title: 'Squad and assigned roles', items: [
     'Each manager selects exactly 15 real NDCC players: a playing XI of 4 BAT, 2 AR, 1 WK and 4 BOWL, plus a bench of 1 BAT, 1 AR, 1 WK and 1 BOWL.',
     'A real player can be assigned to any fantasy slot. Their real-world cricket role does not restrict selection; the assigned fantasy slot controls scoring.',
-    'Players listed in U13 in the supplied statistics are excluded, including players who also appeared in an older grade. U17 and senior players remain eligible unless excluded by the league manager.',
+    'Junior-only players are excluded. Juniors who also play senior cricket may be selected, subject to league-manager eligibility confirmation. The league manager maintains the eligible player pool for this season.',
     'Cricket roles are inferred from season batting and bowling contributions, with club-confirmed wicket keepers overriding the statistics. Players without enough evidence are labelled not yet classified. These labels do not restrict fantasy slots.',
     'Exactly one captain and one vice-captain are required. Both must be in the playing XI and both receive the same 2x multiplier.',
     'Bench players score zero. The squad budget is 10,000,000 Dino Dollars.',
@@ -37,8 +37,8 @@ export const FANTASY_RULE_SECTIONS = [
   ] },
   { title: 'Transfers and prices', items: [
     'Transfers are unlimited, free and carry no points penalty. The server-authoritative window is Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time.',
-    'Opening player prices reflect the supplied 2025/2026 statistics. The highest-ranked player starts at 2,000,000 Dino Dollars. Players without historical statistics start at 100,000 Dino Dollars.',
-    'Prices are reviewed automatically after every two regular rounds: rounds 2, 4, 6 and so on. Settlement becomes eligible on the following Monday at 09:00 Melbourne time and runs at the next daily pricing check once published results are available.',
+    'Opening player prices reflect the supplied 2025/2026 statistics and are rounded upwards to the next 1,000 Dino Dollars. The highest-ranked player starts at 2,000,000 Dino Dollars. Players without historical statistics start at 100,000 Dino Dollars.',
+    'All price reviews and manual price changes are rounded upwards to whole 1,000 Dino Dollars. Prices are reviewed automatically after every two regular rounds: rounds 2, 4, 6 and so on. Settlement becomes eligible on the following Monday at 09:00 Melbourne time and runs at the next daily pricing check once published results are available.',
     'Strong performances can increase a player price; weaker performances can reduce it. Prices stay between 100,000 and 2,000,000 Dino Dollars. A non-appearance does not count as a zero-score appearance. Finals do not change prices.',
     'Price reviews use published results available when the review runs. Late results enter a later review. Completed reviews are not charged or applied twice.',
     'The league manager can make manual price and eligibility corrections. Price overrides are recorded with the old price, new price, reason and administrator. Automatic changes resume at the next review.',

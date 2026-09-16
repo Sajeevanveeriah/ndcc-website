@@ -53,6 +53,7 @@ export async function POST(request: Request) {
   if (season.is_current && roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked.' }, { status: 403 });
 
   const priceByPlayer = new Map(players.map((player) => [player.id, player.price_dino_dollars]));
+  if (selection.some((item) => !priceByPlayer.has(item.playerId))) return NextResponse.json({ success: false, error: 'Replace players who are no longer eligible for this season before saving.' }, { status: 400 });
   const authoritativeSelection = selection.map((item) => ({ ...item, purchasePriceDinoDollars: priceByPlayer.get(item.playerId) ?? 0 }));
   const validation = validateSquadAssignments(authoritativeSelection, buildSquadSlots(settings.slot_counts), settings.budget_dino_dollars, { allowIncomplete: isDraft });
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
@@ -62,5 +63,5 @@ export async function POST(request: Request) {
     selected_players: authoritativeSelection.map((item) => ({ player_id: item.playerId, slot_key: item.slotKey, assigned_role: item.assignedRole, position_type: item.positionType, is_captain: item.isCaptain, is_vice_captain: item.isViceCaptain })),
   });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: /closed|eligibility|paid/i.test(error.message) ? 403 : 400 });
-  return NextResponse.json({ success: true, squad: { id: data, status: isDraft ? 'draft' : 'submitted' } });
+  return NextResponse.json({ success: true, squad: { id: data, status: isDraft ? 'draft' : 'submitted' }, selection: authoritativeSelection.map((item) => ({ ...item, displayName: players.find((player) => player.id === item.playerId)?.display_name })) });
 }
