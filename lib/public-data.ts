@@ -1,5 +1,5 @@
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
-import { fallbackEvents, fallbackGalleryImages, fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
+import { fallbackGalleryImages, fallbackSponsors, mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { normalizeEventImage, normalizeGalleryImage } from '@/lib/public-content-normalizers';
 import type { Event, Sponsor } from '@/lib/types';
 import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
@@ -119,7 +119,7 @@ function normaliseSponsorLinks(sponsors: Sponsor[]): Sponsor[] {
 }
 
 export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
-  const fallback = fallbackEvents as Event[];
+  const fallback: Event[] = [];
   if (!isServerSupabaseConfigured()) return fallbackResult(fallback);
 
   try {

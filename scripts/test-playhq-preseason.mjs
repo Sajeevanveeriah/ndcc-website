@@ -12,6 +12,15 @@ function load(path, imports = {}) {
 }
 const importer = load('lib/playhq/fantasy-import.ts', { 'node:crypto': crypto });
 const normalise = load('lib/playhq/normalise.ts');
+const publicSeason = load('lib/playhq/season-match.ts');
+const seasonOptions = [{ id: 'old', name: 'Summer 2025/26' }, { id: 'mapped', name: 'Senior cricket' }, { id: 'current', name: 'Summer 2026/27' }];
+assert.deepEqual(publicSeason.currentPublicSeasons(seasonOptions, '2026-27', 'mapped').map(s => s.id), ['mapped', 'current']);
+assert.deepEqual(publicSeason.currentPublicSeasons(seasonOptions, '2026-27', 'old').map(s => s.id), ['current']);
+assert.deepEqual(publicSeason.currentPublicSeasons(seasonOptions, '2026-27').map(s => s.id), ['current']);
+const clubLink = 'https://www.playhq.com/cricket-australia/org/newcomb/2c2bff9c';
+assert.equal(publicSeason.currentSeasonPlayHQUrl(`${clubLink}/summer-202526/teams/first/id`, '2026-27', clubLink), clubLink);
+assert.equal(publicSeason.currentSeasonPlayHQUrl(`${clubLink}/summer-202627/teams/first/id`, '2026-27', clubLink), `${clubLink}/summer-202627/teams/first/id`);
+assert.equal(publicSeason.currentSeasonPlayHQUrl(clubLink, '2026-27', clubLink), clubLink);
 const season = { id: 'season', name: 'Dino Coach 2026/2027', slug: '2026-27', playhq_season_id: 'phq', auto_sync_enabled: true };
 let fixtures = [];
 const inserted = {};

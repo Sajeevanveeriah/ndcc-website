@@ -30,7 +30,6 @@ import ClubIntro from '@/components/home/ClubIntro';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
-import { fallbackNews } from '@/lib/fallback-content';
 import PublicationCard from '@/components/publications/PublicationCard';
 import SponsorsMarquee from '@/components/home/SponsorsMarquee';
 import { getPublishedPublications } from '@/lib/public-publications';
@@ -51,7 +50,7 @@ type NewsItem = PublicNewsRecord & {
 
 async function getLatestNews(): Promise<NewsItem[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return fallbackNews.slice(0, 3) as NewsItem[];
+    return [];
   }
 
   try {
@@ -59,8 +58,8 @@ async function getLatestNews(): Promise<NewsItem[]> {
     if (!Array.isArray(data)) return [];
     return data as NewsItem[];
   } catch (err) {
-    console.error('[home] Failed to load published news; serving static fallback:', err);
-    return fallbackNews.slice(0, 3) as NewsItem[];
+    console.error('[home] Failed to load published news; news temporarily unavailable:', err);
+    return [];
   }
 }
 
@@ -83,18 +82,18 @@ function HeroView({
 }) {
   return (
     <section className="club-home-hero" aria-labelledby="home-title">
-      <div className="container-width grid lg:grid-cols-[1.05fr_1fr]">
+      <div className="container-width grid items-center gap-6 py-8 sm:py-12 lg:grid-cols-[1.1fr_1fr] lg:gap-14 lg:py-16">
         <div className="club-home-copy">
           <p className="club-kicker">Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
           <h1 id="home-title" className="club-home-title">{title}</h1>
           <p className="mt-4 font-display text-3xl font-semibold text-maroon-700 dark:text-sky_accent">Home of the {CLUB_NICKNAME}.</p>
-          <p className="mt-5 max-w-xl text-lg leading-relaxed text-content-secondary">{body}</p>
+          {body && !/^Home of the (Mighty )?Dinos/i.test(body) && <p className="mt-5 max-w-xl text-lg leading-relaxed text-content-secondary">{body}</p>}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href={ctaUrl} className="btn-primary">{ctaLabel}</Link>
             <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
           </div>
           <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 border-t border-edge-strong pt-5 text-base font-semibold">
-            <a href="#junior-vouchers" className="club-text-link">Junior vouchers - up to $200</a>
+            {Date.now() < Date.parse('2026-10-13T10:00:00+11:00') && <a href="#junior-vouchers" className="club-text-link">Junior vouchers - up to $200</a>}
             <Link href="/calendar" className="club-text-link">Club calendar <span aria-hidden="true">↗</span></Link>
             <Link href="/merchandise" className="club-text-link">Wear the colours <span aria-hidden="true">↗</span></Link>
           </div>
@@ -140,27 +139,24 @@ function QuickLinkIcon({ icon }: { icon: string }) {
 
 
 function JuniorVoucherSection() {
+  if (Date.now() >= Date.parse('2026-10-13T10:00:00+11:00')) return null;
   return (
-    <section id="junior-vouchers" aria-labelledby="junior-vouchers-title" className="scroll-mt-40 border-y border-edge-blue bg-surface-blue-subtle px-5 py-8 sm:px-8 sm:py-10">
+    <section id="junior-vouchers" aria-labelledby="junior-vouchers-title" className="scroll-mt-40 border-y border-edge-blue bg-surface-blue-subtle px-5 py-6 sm:px-8">
       <div className="container-width grid items-start gap-6 lg:grid-cols-[1fr_auto]">
         <div className="max-w-3xl">
-          <p className="mb-2 font-semibold text-content-blue">Support for junior families</p>
-          <h2 id="junior-vouchers-title" className="section-title">Get Active Kids vouchers</h2>
+          <p className="mb-1 text-sm font-semibold text-content-blue">Support for junior families</p>
+          <h2 id="junior-vouchers-title" className="mb-2 font-display text-2xl font-semibold text-content-primary">Get Active Kids vouchers</h2>
           <p className="text-lg leading-relaxed text-content-blue">
             Eligible Victorian children aged 0 to 18 may receive <strong>up to $200 each</strong> towards sport membership and registration fees.
           </p>
-          <p className="mt-3 leading-relaxed text-content-blue">
-            <strong>Round 11:</strong> 15 September to <time dateTime="2026-10-13T10:00:00+11:00">10 am on 13 October 2026</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.
-          </p>
-          <p className="mt-3 leading-relaxed text-content-blue">
-            Applying for cricket? Select <strong>Cricket Victoria</strong> as your activity provider.
-            Check the official website for full eligibility criteria and current availability.
-          </p>
-          <p className="mt-3 leading-relaxed text-content-blue">
-            Already paid? You may be eligible for reimbursement. See the official application page for details.
-          </p>
+          <details className="mt-3 text-sm leading-relaxed text-content-blue">
+            <summary className="cursor-pointer font-semibold underline underline-offset-4">Dates, eligibility and reimbursement</summary>
+            <p className="mt-3"><strong>Round 11:</strong> 15 September to <time dateTime="2026-10-13T10:00:00+11:00">10 am on 13 October 2026</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.</p>
+            <p className="mt-2">Applying for cricket? Select <strong>Cricket Victoria</strong> as your activity provider. Check the official website for eligibility and current availability.</p>
+            <p className="mt-2">Already paid? You may be eligible for reimbursement. See the official application page for details.</p>
+          </details>
         </div>
-        <div className="flex flex-col items-start gap-3 lg:max-w-xs lg:pt-7">
+        <div className="flex flex-col items-start gap-3 lg:max-w-xs lg:pt-2">
           <a href="https://www.getactive.vic.gov.au/vouchers/" className="btn-primary w-full text-center">
             Check eligibility and apply
           </a>
@@ -199,46 +195,28 @@ function QuickLinksSkeleton() {
 
 async function QuickLinksSection() {
   const [blocks, quickLinks] = await Promise.all([
-    getContentBlocks(['home.quicklinks']),
-    getPageLinkCards('home', 'quick_links'),
+    getContentBlocks(['home.quicklinks']), getPageLinkCards('home', 'quick_links'),
   ]);
-
   return (
-    <section className="section-padding bg-surface-card">
+    <section className="section-padding bg-surface-card" aria-labelledby="explore-club-title">
       <div className="container-width">
-        <ScrollReveal className="mb-8 text-center">
-          <span className="section-eyebrow">Quick Links</span>
-          <h2 className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
-          <p className="section-subtitle mx-auto">
-            {blocks['home.quicklinks']?.body || `Everything you need to know about the ${CLUB_NICKNAME}.`}
-          </p>
-        </ScrollReveal>
-        <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-8">
+          <span className="section-eyebrow">Around the club</span>
+          <h2 id="explore-club-title" className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3">
           {quickLinks.map((link) => (
-            <ScrollRevealItem key={link.id}>
-            {/* Hover lift lives on the Link; the tilt/spotlight surface is the
-                inner TiltCard so Framer's inline transform never fights the
-                Tailwind hover translate. The whole card stays one link. */}
-            <Link
-              href={link.href}
-              className="group block h-full rounded-xl focus-ring hover:-translate-y-1 transition-transform duration-300"
-            >
-              <TiltCard className="h-full rounded-xl">
-                <div className="flex h-full flex-col rounded-xl border border-l-4 border-edge-subtle border-l-maroon-700 bg-surface-card p-5 shadow-sm transition-shadow duration-300 group-hover:shadow-lift dark:border-slate-700 dark:border-l-maroon-500">
-                  {link.icon && <QuickLinkIcon icon={link.icon} />}
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="mb-2 font-display text-lg font-bold text-maroon-800 transition-colors group-hover:text-maroon-700 dark:text-maroon-200">
-                      {link.title}
-                    </h3>
-                    <span className="text-gray-300 text-xl group-hover:text-maroon-500 group-hover:translate-x-1 transition-all duration-200 shrink-0">→</span>
-                  </div>
-                  <p className="text-content-muted font-body text-sm">{link.description}</p>
-                </div>
-              </TiltCard>
+            <Link key={link.id} href={link.href} className="group flex items-start gap-4 border-b border-edge-subtle px-1 py-6 focus-ring sm:pr-8">
+              {link.icon && <QuickLinkIcon icon={link.icon} />}
+              <div className="min-w-0 flex-1">
+                <h3 className="mb-2 flex items-center justify-between gap-3 font-display text-xl font-semibold text-content-primary group-hover:text-maroon-700 dark:group-hover:text-sky_accent">
+                  {link.title}<span aria-hidden="true" className="text-maroon-700 dark:text-sky_accent">→</span>
+                </h3>
+                <p className="text-sm leading-relaxed text-content-muted">{link.description}</p>
+              </div>
             </Link>
-            </ScrollRevealItem>
           ))}
-        </ScrollReveal>
+        </div>
       </div>
     </section>
   );
@@ -339,7 +317,7 @@ async function ClubUpdatesSection() {
   const [blocks, news, publications] = await Promise.all([
     getContentBlocks(['home.welcome']),
     getLatestNews(),
-    getPublishedPublications({ limit: 2 }),
+    getPublishedPublications({ limit: 2 }).catch(() => null),
   ]);
 
   return (
@@ -352,13 +330,14 @@ async function ClubUpdatesSection() {
             {blocks['home.welcome']?.body || 'Stay up to date with everything happening at NDCC.'}
           </p>
         </ScrollReveal>
-        <div className={publications.length > 0 ? 'grid grid-cols-1 gap-8 xl:grid-cols-[1.7fr_1fr]' : ''}>
+        <div className={publications && publications.length > 0 ? 'grid grid-cols-1 gap-8 xl:grid-cols-[1.7fr_1fr]' : ''}>
           <div>
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Club News</h3>
               <Link href="/news" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all news</Link>
             </div>
             <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {news.length === 0 && <p className="text-content-muted">News is temporarily unavailable. <Link href="/news" className="underline">Try the news page</Link> or visit our <a href={FACEBOOK_URL} className="underline">Facebook page</a>.</p>}
               {news.map((article) => {
                 const inner = (
                   <Card hover className="h-full overflow-hidden">
@@ -400,7 +379,8 @@ async function ClubUpdatesSection() {
               })}
             </ScrollReveal>
           </div>
-          {publications.length > 0 && (
+          {publications === null && <p className="text-sm text-content-muted">Publications are temporarily unavailable. <Link href="/publications" className="underline">Try again</Link>.</p>}
+          {publications && publications.length > 0 && (
             <div>
               <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                 <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Publications</h3>

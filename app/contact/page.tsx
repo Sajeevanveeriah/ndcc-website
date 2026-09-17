@@ -370,7 +370,7 @@ export default function ContactPage() {
               {/* Google Maps */}
               <Card>
                 <div className="overflow-hidden rounded-xl">
-                  <iframe
+                  {settings.google_maps_embed_url && new URL(settings.google_maps_embed_url).searchParams.get('pb') ? <iframe
                     src={settings.google_maps_embed_url || fallbackClubSettings.google_maps_embed_url || undefined}
                     width="100%"
                     height="300"
@@ -380,7 +380,7 @@ export default function ContactPage() {
                     sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                     referrerPolicy="strict-origin-when-cross-origin"
                     title={`Map showing ${settings.ground_name}, ${settings.address}`}
-                  />
+                  /> : <div className="p-6"><h2 className="text-xl font-semibold">Find us at {settings.ground_name}</h2><p className="my-3 text-content-muted">{settings.address}</p><a className="btn-secondary" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${settings.ground_name}, ${settings.address}`)}`} target="_blank" rel="noopener noreferrer">Get directions on Google Maps</a></div>}
                 </div>
               </Card>
             </div>

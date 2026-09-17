@@ -67,6 +67,7 @@ export default function AdminDashboardPage() {
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [currentSeason, setCurrentSeason] = useState<ClubSeasonSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [canViewOperations, setCanViewOperations] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -76,10 +77,11 @@ export default function AdminDashboardPage() {
           fetch('/api/admin/dashboard', { cache: 'no-store' }),
           fetch('/api/admin/club-seasons', { cache: 'no-store' }),
         ]);
-        const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[] }>(response);
+        const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[]; canViewOperations?: boolean }>(response);
         const seasonData = await parseApiResponse<{ seasons?: ClubSeasonSummary[] }>(seasonsResponse).catch(() => ({ seasons: [] }));
 
         setStats(data.stats || emptyStats);
+        setCanViewOperations(data.canViewOperations === true);
         setHealth(data.health ?? null);
         if (Array.isArray(data.activity) && data.activity.length > 0) {
           setActivity(data.activity);
@@ -169,6 +171,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          {canViewOperations && <Link href="/admin/operations" className="btn-secondary mb-6">Website operations and email delivery</Link>}
           {/* CMS health strip */}
           {health && (
             <div className="mb-8 rounded-xl border border-edge-subtle bg-surface-card p-4 dark:border-slate-700 dark:bg-slate-800">

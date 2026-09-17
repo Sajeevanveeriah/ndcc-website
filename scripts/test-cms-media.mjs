@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import sharp from 'sharp';
+import { signUploadTicket, verifyUploadTicket, validateMedia } from '../lib/server/cms-media.ts';
+
+const secret = 'isolated-test-signing-key';
+const ticket = { path: 'owner/file', owner: 'owner', type: 'image/png', size: 100, expires: 2000 };
+const signed = signUploadTicket(ticket, secret);
+assert.deepEqual(verifyUploadTicket(signed, 'owner', secret, 1000), ticket);
+assert.equal(verifyUploadTicket(signed, 'another-owner', secret, 1000), null);
+assert.equal(verifyUploadTicket(signed, 'owner', secret, 2000), null);
+assert.equal(verifyUploadTicket(signed, 'owner', 'wrong-key', 1000), null);
+assert.equal(verifyUploadTicket(`${signed}.extra`, 'owner', secret, 1000), null);
+assert.equal(verifyUploadTicket(signUploadTicket({ ...ticket, size: 20_000_000 }, secret), 'owner', secret, 1000), null);
+const png = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#800000' } }).png().toBuffer();
+const first = await validateMedia(png, 'image/png');
+const second = await validateMedia(png, 'image/png');
+assert.equal(first.path, second.path, 'identical files must deduplicate');
+assert.equal((await sharp(first.content).metadata()).format, 'webp');
+assert.equal((await sharp(first.content).metadata()).exif, undefined, 'strip embedded metadata');
+await assert.rejects(() => validateMedia(png, 'image/jpeg'), /contents/);
+await assert.rejects(() => validateMedia(Buffer.from('<script>alert(1)</script>'), 'image/png'));
+await assert.rejects(() => validateMedia(Buffer.from('%PDF-truncated'), 'application/pdf'));
+const pdf = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(5_000_000, 32), Buffer.from('\n%%EOF')]);
+assert.equal((await validateMedia(pdf, 'application/pdf')).content.length, pdf.length, 'PDF transfer must exceed the hosting body limit safely');
+console.log('CMS upload ownership, expiry, tampering, MIME, decode, metadata, deduplication and large-PDF checks passed.');

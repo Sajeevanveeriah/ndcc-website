@@ -56,6 +56,30 @@ export function extractSeasonYears(label: string | null | undefined): [number, n
   return null;
 }
 
+/** Explicit mappings can identify a season with an unlabelled API name. A
+ * clearly conflicting year remains excluded, including stale environment IDs. */
+export function currentPublicSeasons(seasons: PlayHQSeason[], slug: string | null | undefined, configuredId?: string | null): PlayHQSeason[] {
+  const current = extractSeasonYears(slug);
+  return seasons.filter((season) => {
+    const years = extractSeasonYears(season.name) || extractSeasonYears(season.competitionName);
+    if (years && current) return years[0] === current[0] && years[1] === current[1];
+    return season.id === configuredId;
+  }).sort((a, b) => Number(b.id === configuredId) - Number(a.id === configuredId));
+}
+
+/** Keep CMS links intact, but route recognisably old PlayHQ URLs to the club. */
+export function currentSeasonPlayHQUrl(href: string, slug: string | null | undefined, fallback: string): string {
+  const current = extractSeasonYears(slug);
+  if (!current) return href;
+  try {
+    const url = new URL(href);
+    if (!/(^|\.)playhq\.com$/.test(url.hostname)) return href;
+    const yearToken = url.pathname.match(/(?:summer|winter)[-\/]?(\d{4})[-\/]?(\d{2,4})(?:\/|$)/i);
+    const years = yearToken ? extractSeasonYears(`${yearToken[1]}/${yearToken[2]}`) : null;
+    return years && (years[0] !== current[0] || years[1] !== current[1]) ? fallback : href;
+  } catch { return href; }
+}
+
 export type SeasonMatchResult =
   | { status: 'matched'; season: PlayHQSeason; evidence: string }
   | { status: 'ambiguous'; candidates: PlayHQSeason[]; evidence: string }

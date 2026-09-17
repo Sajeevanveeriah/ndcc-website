@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    if (!enforceRateLimit(`raffle:${getClientIp(request)}`, 8, 60_000)) return NextResponse.json({ error: 'Too many attempts. Please wait and try again.' }, { status: 429 });
+    if (!await enforceRateLimit(`raffle:${getClientIp(request)}`, 8, 60_000)) return NextResponse.json({ error: 'Too many attempts. Please wait and try again.' }, { status: 429 });
     if (!isCheckoutEnabled()) return NextResponse.json({ error: 'Card payments are not currently enabled.' }, { status: 503 });
     const rawBody = await readLimitedJsonObject(request, 16 * 1024);
     if (!rawBody.ok) {

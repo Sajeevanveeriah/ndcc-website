@@ -11,7 +11,7 @@
      purpose-designed near-black / charcoal / deep-navy system instead of the
      old flat slate substitutions. */
   :root {
-    --surface-page: 251 247 240;        /* page background (slate-50)        */
+    --surface-page: 255 255 255;        /* page background (slate-50)        */
     --surface-elevated: 255 255 255;    /* raised chrome: nav, menus, modals */
     --surface-card: 255 255 255;        /* cards and panels                  */
     --surface-muted: 243 244 246;       /* subdued wells, table heads        */
@@ -477,10 +477,10 @@ body.marquee-page-hidden .homepage-marquee-track {
 
 /* NDCC club identity: clear type, real photography and cricket-blue wayfinding. */
 @layer components {
-  .club-home-hero { @apply border-b border-edge-strong bg-surface-page; }
-  .club-home-copy { @apply px-5 py-10 sm:px-8 sm:py-14 lg:py-16 lg:pr-12; }
+  .club-home-hero { @apply border-b border-edge-subtle bg-surface-page; }
+  .club-home-copy { @apply min-w-0 py-2; }
   .club-kicker { @apply text-sm font-semibold tracking-wide text-maroon-700 dark:text-sky_accent; }
-  .club-home-title { font-size: clamp(2.5rem, 4.2vw, 4rem); line-height: 1.08; letter-spacing: -.045em; text-wrap: balance; @apply mt-5 font-display font-semibold text-maroon-800 dark:text-content-primary; }
+  .club-home-title { font-size: clamp(2.5rem, 4.2vw, 4rem); line-height: 1.08; letter-spacing: -.045em; text-wrap: balance; @apply mt-5 font-display font-semibold text-content-primary; }
   .club-home-photo { @apply relative m-0 min-h-72 overflow-hidden border-t-4 border-sky_accent lg:min-h-full lg:border-l-4 lg:border-t-0; }
   .club-ground-caption { @apply absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-2 bg-maroon-800 px-6 py-5 text-white; }
   .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-200 underline-offset-8 transition-colors hover:decoration-maroon-700 dark:text-sky_accent; }
@@ -503,7 +503,7 @@ body.marquee-page-hidden .homepage-marquee-track {
   .prose p, .prose li { font-size: 1rem; }
   .prose a { text-decoration: underline; text-underline-offset: 3px; }
   button, a, input, select, textarea { scroll-margin-top: 8rem; }
-  .btn-primary, .btn-secondary, .btn-accent, .btn-outline-white { border-radius: 999px; }
+  .btn-primary, .btn-secondary, .btn-accent, .btn-outline-white { border-radius: 6px; min-height: 44px; }
   .btn-secondary { border-width: 1px; }
   .page-hero { padding-top: clamp(3rem, 6vw, 5rem); padding-bottom: clamp(3rem, 6vw, 5rem); }
   .band-maroon { background: rgb(var(--brand-maroon-surface)); box-shadow: none; border-block: 1px solid rgb(var(--border-blue)); }

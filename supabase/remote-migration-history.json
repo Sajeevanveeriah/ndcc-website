@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-09-15T05:15:00Z",
+  "capturedAt": "2026-09-17T02:45:44.540339Z",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -554,6 +554,30 @@
     {
       "version": "20260915092224",
       "name": "dino_demo_access"
+    },
+    {
+      "version": "20260916062331",
+      "name": "dino_coach_whole_thousand_prices"
+    },
+    {
+      "version": "20260917024337",
+      "name": "shared_request_limits_and_publishing",
+      "localFile": "20260917022000_shared_request_limits_and_publishing.sql"
+    },
+    {
+      "version": "20260917024352",
+      "name": "cms_media_storage",
+      "localFile": "20260917022100_cms_media_storage.sql"
+    },
+    {
+      "version": "20260917024354",
+      "name": "email_delivery_observability",
+      "localFile": "20260917022200_email_delivery_observability.sql"
+    },
+    {
+      "version": "20260917024355",
+      "name": "editorial_revision_history",
+      "localFile": "20260917022300_editorial_revision_history.sql"
     }
   ],
   "localOnlyApplied": []

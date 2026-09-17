@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
+import { isFullAccessRole } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,7 @@ export async function GET() {
     const playhqConfigured = Boolean(process.env.PLAYHQ_API_KEY && process.env.PLAYHQ_ORGANISATION_ID);
 
     return adminJson({
+      canViewOperations: isFullAccessRole(user.role),
       success: true,
       stats: {
         volunteers: volunteers || 0,

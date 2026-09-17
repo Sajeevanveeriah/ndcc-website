@@ -5,9 +5,9 @@ import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { forwardRef, useState } from 'react';
 
 /* Shared inline field-error caption: icon + red text, one recipe site-wide. */
-function FieldError({ error }: { error: string }) {
+function FieldError({ error, id }: { error: string; id?: string }) {
   return (
-    <p className="mt-1 flex items-start gap-1 text-sm text-red-600 dark:text-red-400">
+    <p id={id} className="mt-1 flex items-start gap-1 text-sm text-red-600 dark:text-red-400">
       <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {error}
     </p>
@@ -32,14 +32,16 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error && id ? `${id}-error` : undefined}
           className={cn(
             'form-input',
             error && 'border-red-500 focus:ring-red-500',
             className
           )}
+          autoComplete={props.autoComplete ?? (props.type === 'email' ? 'email' : props.type === 'tel' ? 'tel' : undefined)}
           {...props}
         />
-        {error && <FieldError error={error} />}
+        {error && <FieldError error={error} id={id ? `${id}-error` : undefined} />}
       </div>
     );
   }
@@ -67,6 +69,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, 'type
             id={id}
             type={visible ? 'text' : 'password'}
             aria-invalid={error ? true : undefined}
+          aria-describedby={error && id ? `${id}-error` : undefined}
             className={cn(
               'form-input pr-11',
               error && 'border-red-500 focus:ring-red-500',
@@ -84,7 +87,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, 'type
             {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
           </button>
         </div>
-        {error && <FieldError error={error} />}
+        {error && <FieldError error={error} id={id ? `${id}-error` : undefined} />}
       </div>
     );
   }
@@ -110,6 +113,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={id}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error && id ? `${id}-error` : undefined}
           className={cn(
             'form-input min-h-[120px] resize-y',
             error && 'border-red-500 focus:ring-red-500',
@@ -117,7 +121,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           )}
           {...props}
         />
-        {error && <FieldError error={error} />}
+        {error && <FieldError error={error} id={id ? `${id}-error` : undefined} />}
       </div>
     );
   }
@@ -144,6 +148,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={id}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error && id ? `${id}-error` : undefined}
           className={cn(
             'form-input',
             error && 'border-red-500 focus:ring-red-500',
@@ -158,7 +163,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && <FieldError error={error} />}
+        {error && <FieldError error={error} id={id ? `${id}-error` : undefined} />}
       </div>
     );
   }

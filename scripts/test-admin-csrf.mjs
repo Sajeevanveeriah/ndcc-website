@@ -158,7 +158,9 @@ test('multipart upload and bodyless clients send the custom header', () => {
   const navbar = readFileSync(path.join(repoRoot, 'components/layout/Navbar.tsx'), 'utf8');
   const layout = readFileSync(path.join(repoRoot, 'app/admin/layout.tsx'), 'utf8');
   const payments = readFileSync(path.join(repoRoot, 'app/admin/payments/page.tsx'), 'utf8');
-  assert.match(upload, /['"]X-NDCC-CSRF['"]:\s*['"]1['"]/);
+  assert.match(upload, /uploadCmsMedia\(file\)/);
+  const mediaClient = readFileSync(path.join(repoRoot, 'lib/admin-media-upload.ts'), 'utf8');
+  assert.match(mediaClient, /['"]X-NDCC-CSRF['"]:\s*['"]1['"]/);
   assert.match(apparel, /['"]X-NDCC-CSRF['"]:\s*['"]1['"]/);
   assert.match(adminClient, /headers\.set\(['"]X-NDCC-CSRF['"],\s*['"]1['"]\)/);
   assert.match(navbar, /['"]X-NDCC-CSRF['"]:\s*['"]1['"]/);

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   } = parsedInput.value;
 
   const ip = getClientIp(request);
-  if (!enforceRateLimit(`kitchen:${ip}`, 8, 60_000)) {
+  if (!await enforceRateLimit(`kitchen:${ip}`, 8, 60_000)) {
     return NextResponse.json({ success: false, error: 'Too many attempts. Try again shortly.' }, { status: 429 });
   }
   if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
@@ -184,7 +184,7 @@ function mealResponse(order: SavedMeal) {
 }
 
 async function resumeOrEdit(request: Request, token: string, action: 'resume' | 'edit', revision: unknown) {
-  if (!enforceRateLimit(`meal-draft:${getClientIp(request)}`, 30, 60_000)) {
+  if (!await enforceRateLimit(`meal-draft:${getClientIp(request)}`, 30, 60_000)) {
     return NextResponse.json({ error: 'Too many attempts. Please wait.' }, { status: 429 });
   }
   const supabase = createServerClient();

@@ -108,7 +108,7 @@ export default function ClubIntro() {
   }, [play]);
 
   return (
-    <figure className="m-0 flex min-w-0 flex-col overflow-hidden border-t-4 border-sky_accent bg-[#dedede] lg:border-l-4 lg:border-t-0" aria-label="NDCC dinosaur logo reveal">
+    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-md border border-edge-subtle bg-[#dedede]" aria-label="NDCC dinosaur logo reveal">
       <div className="flex flex-1 items-center">
       <div ref={frameRef} className="relative aspect-video w-full overflow-hidden">
         <Image src={POSTER} alt="Newcomb and District Cricket Club dinosaur badge" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" priority />
@@ -139,11 +139,11 @@ export default function ClubIntro() {
         />
       </div>
       </div>
-      <figcaption className="relative isolate flex min-h-32 items-center justify-between gap-5 overflow-hidden bg-maroon-800 px-6 py-6 text-white sm:px-8">
+      <figcaption className="relative isolate flex min-h-16 items-center justify-between gap-5 overflow-hidden bg-maroon-800 px-5 py-3 text-white">
         <svg aria-hidden="true" focusable="false" viewBox="0 0 180 120" className="pointer-events-none absolute -right-5 bottom-0 -z-10 h-full w-28 text-sky_accent sm:w-44">
           <path d="M0 0h28l62 76L152 0h28L90 112Z" fill="currentColor" />
         </svg>
-        <span className="relative block pr-2 font-display text-[clamp(3.25rem,6vw,5rem)] font-black italic leading-none tracking-[-0.055em]">DINOS<span aria-hidden="true" className="mt-3 block h-1 w-12 bg-sky_accent" /></span>
+        <span className="relative block pr-2 font-display text-xl font-bold tracking-wide">DINOS<span aria-hidden="true" className="sr-only" /></span>
         <span className="sr-only">A blue dinosaur walks into view and reveals the NDCC badge. This introduction has no sound.</span>
         {ready && !failed && (
           <button type="button" className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/70 bg-maroon-800 text-white transition-colors hover:bg-white hover:text-maroon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:opacity-60" disabled={loading} onClick={() => playing ? videoRef.current?.pause() : play()} aria-label={loading ? 'Loading club intro' : playing ? 'Pause club intro' : ended ? 'Replay club intro' : played ? 'Resume club intro' : 'Play club intro'} title={loading ? 'Loading intro' : playing ? 'Pause intro' : ended ? 'Replay intro' : played ? 'Resume intro' : 'Play intro'}>

@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 
 type MediaStatus = {
+  storageReady: boolean;
   githubTokenPresent: boolean;
   repoOwnerPresent: boolean;
   repoOwnerPreview: string | null;
@@ -59,14 +60,16 @@ export default function AdminMediaDiagnosticsPage() {
       <div>
         <h1 className="text-2xl font-display font-bold text-content-primary">Media Diagnostics</h1>
         <p className="text-content-muted font-body mt-1">
-          Check the CMS image upload pipeline (GitHub commit + Vercel git auto-deploy) without exposing secret values.
+          Check validated CMS storage uploads and legacy GitHub asset controls without exposing secret values.
         </p>
       </div>
 
       {statusError && <p className="text-sm text-red-600">{statusError}</p>}
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-3">
-        <h2 className="text-lg font-semibold">Media upload configuration</h2>
+        <h2 className="text-lg font-semibold">CMS storage</h2>
+        <p>{status ? (status.storageReady ? 'Public media and private staging buckets are reachable with the expected access settings.' : 'Storage is not ready. Check the bucket configuration before uploading.') : 'Checking storage...'}</p>
+        <h2 className="text-lg font-semibold pt-4">Legacy GitHub asset configuration</h2>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <div><dt className="text-content-muted">GITHUB_CONTENTS_TOKEN</dt><dd className="font-semibold">{status?.githubTokenPresent ? 'Present' : 'Missing'}</dd></div>
           <div><dt className="text-content-muted">GITHUB_REPO_OWNER</dt><dd className="font-semibold">{status?.repoOwnerPresent ? status.repoOwnerPreview ?? 'Present' : 'Missing'}</dd></div>
@@ -76,7 +79,7 @@ export default function AdminMediaDiagnosticsPage() {
           <div><dt className="text-content-muted">Base path under public/images</dt><dd className="font-semibold">{status?.basePathResolvesUnderPublicImages ? 'Yes' : 'No'}</dd></div>
           <div><dt className="text-content-muted">GITHUB_COMMITTER_NAME</dt><dd className="font-semibold">{status?.committerNamePresent ? 'Present' : 'Missing'}</dd></div>
           <div><dt className="text-content-muted">GITHUB_COMMITTER_EMAIL</dt><dd className="font-semibold">{status?.committerEmailPresent ? 'Present' : 'Missing'}</dd></div>
-          <div><dt className="text-content-muted">Uploads ready</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — uploads will fail with a configuration error'}</dd></div>
+          <div><dt className="text-content-muted">Legacy GitHub uploads configured</dt><dd className="font-semibold">{status?.ready ? 'Yes' : 'No — uploads will fail with a configuration error'}</dd></div>
         </dl>
         {status?.basePathError && <p className="text-sm text-amber-700">{status.basePathError}</p>}
       </section>
@@ -95,9 +98,9 @@ export default function AdminMediaDiagnosticsPage() {
       <section className="bg-surface-card border rounded-xl p-5 space-y-2">
         <h2 className="text-lg font-semibold">Expected upload sequence</h2>
         <ol className="list-decimal pl-5 text-sm text-content-muted space-y-1">
-          <li>Admin uploads an image in a CMS form — the file is committed to GitHub under <code>public/images</code>.</li>
-          <li>Vercel detects the new commit and automatically starts a production deployment. No deploy hook is used — a second deployment for the same commit would race the automatic one and Vercel would cancel both.</li>
-          <li>The image URL is saved with the CMS item, but the image only becomes publicly visible after the deployment completes (about a minute).</li>
+          <li>An authorised editor uploads directly to private staging storage.</li>
+          <li>The server validates the file and publishes a content-addressed image or PDF. Images are optimised and duplicate files share one URL.</li>
+          <li>Review the preview, then save the CMS record. No website deployment is required. Existing image URLs remain valid.</li>
         </ol>
       </section>
     </div>

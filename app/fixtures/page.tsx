@@ -10,6 +10,7 @@ import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
+import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import type { PlayHQFixture, PlayHQLadderRow } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 
@@ -151,9 +152,9 @@ export default async function FixturesPage() {
           </div>
 
           {!playhq.configured ? (
-            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures will appear once PlayHQ is configured</h2><p className="mt-2 text-content-muted font-body">The site is ready for the PlayHQ Public API. No fixture data is shown until the server-only PlayHQ environment variables are set.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Check fixtures on PlayHQ</h2><p className="mt-2 text-content-muted font-body">Visit our club page on PlayHQ for published fixtures and results.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : playhq.fixtures.length === 0 ? (
-            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">No fixtures returned by PlayHQ</h2><p className="mt-2 text-content-muted font-body">Check the selected season and grade configuration in Vercel if fixtures are expected.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures are not available here yet</h2><p className="mt-2 text-content-muted font-body">Check the club on PlayHQ for the latest published fixtures. Previous seasons will not be shown as the current season.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : (
             <>
               <section>
@@ -179,7 +180,7 @@ export default async function FixturesPage() {
             {blocks['fixtures.team_links']?.body && <p className="text-content-muted font-body max-w-3xl mb-6">{renderSeasonContent(blocks['fixtures.team_links'].body, currentSeason)}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {teamLinks.map((link) => (
-                <a key={link.id} href={link.href} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
+                <a key={link.id} href={currentSeasonPlayHQUrl(link.href, currentSeason?.slug, settings.playhq_url || PLAYHQ_ORG_URL)} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
                   <Card className="h-full hover-lift">
                     <CardContent className="p-5 space-y-2">
                       <div className="flex items-center justify-between gap-3">

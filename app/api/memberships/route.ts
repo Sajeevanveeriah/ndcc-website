@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   } = parsedInput.value;
 
   const ip = getClientIp(request);
-  if (!enforceRateLimit(`membership:${ip}`, 6, 60_000)) {
+  if (!await enforceRateLimit(`membership:${ip}`, 6, 60_000)) {
     return NextResponse.json({ success: false, error: 'Too many requests. Please try again shortly.' }, { status: 429 });
   }
 

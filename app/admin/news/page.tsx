@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import EditorialHistory from '@/components/admin/EditorialHistory';
 import NewsImageUploadField from '@/components/admin/NewsImageUploadField';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
@@ -31,6 +32,7 @@ export default function AdminNewsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingRevision, setEditingRevision] = useState<number | undefined>();
   const [form, setForm] = useState(emptyNewsPost);
   const [galleryImages, setGalleryImages] = useState<NewsGalleryImage[]>([]);
   const [saving, setSaving] = useState(false);
@@ -71,6 +73,7 @@ export default function AdminNewsPage() {
     const coverImage = post.image_url || post.image || '';
 
     setEditingId(post.id);
+    setEditingRevision(post.revision);
     setForm({
       title: post.title,
       content: parsed.body,
@@ -120,7 +123,7 @@ export default function AdminNewsPage() {
         const response = await adminFetch('/api/admin/resources/news', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingId, ...payload }),
+          body: JSON.stringify({ id: editingId, revision: editingRevision, ...payload }),
         });
         const result = await parseApiResponse<{ data: NewsPost }>(response);
         setNews((prev) => prev.map((n) => (n.id === editingId ? result.data : n)));
@@ -308,6 +311,7 @@ export default function AdminNewsPage() {
         title={editingId ? 'Edit Article' : 'Write Article'}
         size="lg"
       >
+        {editingId && <EditorialHistory key={editingId} resource="news" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as NewsPost)} />}
         <div className="space-y-4">
           <Input
             id="news-title"

@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     }
 
     const ip = getClientIp(request);
-    if (!enforceRateLimit(`order:${ip}`, 6, 60_000)) {
+    if (!await enforceRateLimit(`order:${ip}`, 6, 60_000)) {
       return NextResponse.json(
         { success: false, error: 'Too many checkout attempts. Please wait and try again.' },
         { status: 429 }

@@ -2,13 +2,18 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { getGitHubMediaEnv, getMediaConfigStatus } from '@/lib/server/media-env';
 
+import { createServerClient } from '@/lib/supabase-server';
+import { MEDIA_BUCKET, STAGING_BUCKET } from '@/lib/server/cms-media';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const user = await requirePermission('diagnostics.media');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
-  return NextResponse.json({ success: true, data: getMediaConfigStatus() });
+  const client = createServerClient();
+  const [media, staging] = await Promise.all([client.storage.getBucket(MEDIA_BUCKET), client.storage.getBucket(STAGING_BUCKET)]);
+  return NextResponse.json({ success: true, data: { ...getMediaConfigStatus(), storageReady: !media.error && !staging.error && media.data?.public === true && staging.data?.public === false } });
 }
 
 async function testGitHubAccess() {
@@ -41,7 +46,7 @@ async function testGitHubAccess() {
   if (!response.ok) {
     return { ok: false, message: `GitHub API returned status ${response.status}.` };
   }
-  return { ok: true, message: 'GitHub token, repository and branch are reachable. Uploads should be able to commit.' };
+  return { ok: true, message: 'GitHub token, repository and branch are reachable. Legacy GitHub upload access is available. CMS uploads use storage.' };
 }
 
 // Uploads publish via Vercel's git auto-deploy of the CMS commit. A deploy-hook test

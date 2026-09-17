@@ -209,7 +209,7 @@ export default async function AboutPage() {
                   <p className="whitespace-pre-line font-body leading-relaxed text-content-secondary">
                     {normalisePublicText(blocks['about.affiliation']?.body) || `${CLUB_NICKNAME} is a proud member of ${CLUB_ASSOCIATION}.`}
                   </p>
-                  <p className="mt-auto pt-4 font-body text-sm text-content-muted">Affiliated since {CLUB_ESTABLISHED}</p>
+                  <p className="mt-auto pt-4 font-body text-sm text-content-muted">{Number.isFinite(gcaStartYear) ? `Affiliated since ${gcaStartYear}` : CLUB_ASSOCIATION_SHORT}</p>
                 </CardContent>
               </Card>
             </ScrollRevealItem>

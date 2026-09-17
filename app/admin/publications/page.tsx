@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import EditorialHistory from '@/components/admin/EditorialHistory';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -60,6 +61,7 @@ export default function AdminPublicationsPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingRevision, setEditingRevision] = useState<number | undefined>();
   const [form, setForm] = useState<PublicationForm>(emptyPublication);
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -126,6 +128,7 @@ export default function AdminPublicationsPage() {
 
   const openEdit = (p: Publication) => {
     setEditingId(p.id);
+    setEditingRevision(p.revision);
     setForm(formToForm(p));
     setSlugTouched(true);
     setFormErrors({});
@@ -189,7 +192,7 @@ export default function AdminPublicationsPage() {
         const response = await adminFetch('/api/admin/resources/publications', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingId, ...payload }),
+          body: JSON.stringify({ id: editingId, revision: editingRevision, ...payload }),
         });
         const result = await parseApiResponse<{ data: Publication }>(response);
         setPublications((prev) => prev.map((n) => (n.id === editingId ? result.data : n)));
@@ -217,7 +220,7 @@ export default function AdminPublicationsPage() {
       const response = await adminFetch('/api/admin/resources/publications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: p.id, published, published_at: published ? (p.published_at || new Date().toISOString()) : null }),
+        body: JSON.stringify({ id: p.id, revision: p.revision, published, published_at: published ? (p.published_at || new Date().toISOString()) : null }),
       });
       const result = await parseApiResponse<{ data: Publication }>(response);
       setPublications((prev) => prev.map((n) => (n.id === p.id ? result.data : n)));
@@ -232,7 +235,7 @@ export default function AdminPublicationsPage() {
       const response = await adminFetch('/api/admin/resources/publications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: p.id, featured }),
+        body: JSON.stringify({ id: p.id, revision: p.revision, featured }),
       });
       const result = await parseApiResponse<{ data: Publication }>(response);
       setPublications((prev) => prev.map((n) => (n.id === p.id ? result.data : n)));
@@ -459,6 +462,7 @@ export default function AdminPublicationsPage() {
         title={editingId ? 'Edit Publication' : 'New Publication'}
         size="xl"
       >
+        {editingId && <EditorialHistory key={editingId} resource="publications" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as Publication)} />}
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
