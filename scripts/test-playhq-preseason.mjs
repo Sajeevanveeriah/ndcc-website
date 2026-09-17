@@ -125,3 +125,10 @@ publicData = await publicClient.getPlayHQPublicDataUncached();
 assert.deepEqual([...publicData.fixtures.map(f => f.id)], ['senior-game']);
 assert.ok(publicData.warnings.some(w => w.includes('Fixtures')));
 console.log('Public PlayHQ feed: current competitions, team evidence, duplicate games and partial provider failures passed.');
+
+assert.equal(normalise.formatFixtureTime('2026-10-03'), '3 Oct 2026 - time TBC');
+assert.equal(normalise.formatFixtureTime('2026-10-10'), '10 Oct 2026 - time TBC');
+assert.match(normalise.formatFixtureTime('2026-10-03T03:00:00Z'), /1:00 pm/);
+assert.match(normalise.formatFixtureTime('2026-10-10T03:00:00Z'), /2:00 pm/);
+assert.equal(normalise.formatFixtureTime(null), 'Date TBC');
+console.log('Date-only fixtures never invent a start time; explicit times respect Melbourne daylight saving.');

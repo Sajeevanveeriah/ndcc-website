@@ -16,3 +16,8 @@ export function shouldCancelInitialNotice(kind: string, dueAt: string, manager: 
     || new Date(dueAt).getTime() !== new Date(manager.initial_squad_due_at).getTime()
     || (kind === 'reminder' && state === 'expired') || (kind === 'expired' && state !== 'expired');
 }
+
+// A correction to a previously locked squad must remain eligible for scoring.
+export function editableSquadStatus(status?: string): 'submitted' | 'draft' {
+  return status === 'submitted' || status === 'locked' ? 'submitted' : 'draft';
+}
