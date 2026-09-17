@@ -1,7 +1,7 @@
 -- Transaction-only fixtures, including when run against the live schema.
 BEGIN;
 DO $$
-DECLARE manual_id uuid; orphan uuid; sid uuid; mid uuid; aid uuid; rid uuid; oid uuid; paid uuid; p uuid; squad uuid;
+DECLARE manual_id uuid; replacement_id uuid; orphan uuid; sid uuid; mid uuid; aid uuid; rid uuid; oid uuid; paid uuid; p uuid; squad uuid;
   picks jsonb:='[]'; v timestamptz; initial_complete timestamptz; result jsonb; n int;
   keys text[]:=array['XI_BAT_1','XI_BAT_2','XI_BAT_3','XI_BAT_4','XI_AR_1','XI_AR_2','XI_WK_1','XI_BOWL_1','XI_BOWL_2','XI_BOWL_3','XI_BOWL_4','BENCH_BAT_1','BENCH_AR_1','BENCH_WK_1','BENCH_BOWL_1'];
 BEGIN
@@ -58,6 +58,10 @@ BEGIN
  select updated_at into v from public.fantasy_managers where id=mid;
  result:=public.admin_edit_dino_manager(mid,sid,aid,v,'{"deleted":true}',null,null,'draft',0,'Delete test');
  if not exists(select 1 from public.fantasy_managers where id=mid and deleted_at is not null and not is_active) then raise exception 'Team not deleted'; end if;
+ -- A different email/account can reuse the team name without overwriting the deleted registration.
+ replacement_id:=public.admin_register_dino_manager(gen_random_uuid(),aid,sid,gen_random_uuid()||'@example.invalid','Replacement account','Corrected team',date '2000-01-01','Approved replacement registration fixture');
+ if replacement_id=mid or not exists(select 1 from public.fantasy_managers where id=replacement_id and deleted_at is null and is_active and first_squad_completed_at is null and initial_squad_due_at=now()+interval '5 days') then raise exception 'Different-email replacement registration failed'; end if;
+ if not exists(select 1 from public.fantasy_entries where manager_id=mid and season_id=sid) or (select count(*) from public.fantasy_squad_players where squad_id=squad)<>15 then raise exception 'Deletion or replacement registration lost original entry/squad history'; end if;
  select updated_at into v from public.fantasy_managers where id=mid;
  result:=public.admin_edit_dino_manager(mid,sid,aid,v,'{"deleted":false,"is_active":true}',null,null,'draft',0,'Restore test');
  if not exists(select 1 from public.fantasy_managers where id=mid and deleted_at is null and is_active) then raise exception 'Team not restored'; end if;

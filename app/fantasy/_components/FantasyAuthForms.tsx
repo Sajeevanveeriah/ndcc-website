@@ -179,7 +179,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     }
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (redirectTo?: '/fantasy/register') => {
     setSigningOut(true);
     setFeedback(null);
     try {
@@ -189,6 +189,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       setManager(null);
       setDisplayName('');
       setTeamName('');
+      if (redirectTo) window.location.href = redirectTo;
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not sign out.' });
     } finally {
@@ -258,6 +259,15 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     );
   }
 
+  if (mode === 'account' && manager?.deleted_at) {
+    return <Card><CardContent className="p-6 space-y-4">
+      <p role="status">Your team has been deleted from play and public standings. You are still signed in as {sessionEmail}.</p>
+      <p>To use a different email, sign out and register a new account. Your previous registration and payment history remain with the old account. Contact the club if you want that team restored.</p>
+      {feedback && <p role="alert">{feedback.message}</p>}
+      <div className="flex flex-wrap gap-3"><Button onClick={()=>handleSignOut('/fantasy/register')} isLoading={signingOut}>Sign out and register with a different email</Button><Button onClick={()=>handleSignOut()} disabled={signingOut} variant="secondary">Sign out</Button></div>
+    </CardContent></Card>;
+  }
+
   const registrationClosed = mode === 'register' && registrationOpen === false;
 
   return (
@@ -304,7 +314,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               : <Link href="/fantasy/login" className="btn-secondary">Sign in</Link>
           )}
           {mode === 'account' && sessionEmail && (
-            <Button onClick={handleSignOut} isLoading={signingOut} variant="secondary">
+            <Button onClick={()=>handleSignOut()} isLoading={signingOut} variant="secondary">
               Sign out
             </Button>
           )}
