@@ -1,7 +1,7 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
-import { extractSeasonYears } from './season-match';
+import { currentPublicSeasons } from './season-match';
 import { getPlayHQConfig, LEGACY_BASE_URL } from './config';
 import { normaliseFixtures, normaliseGrades, normaliseLadder, normaliseSeasons, normaliseTeams } from './normalise';
 import type { PlayHQGrade, PlayHQPublicData } from './types';
@@ -174,12 +174,9 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
 
   try {
     const [seasons, clubSeason] = await Promise.all([getPlayHQSeasons(), getCurrentClubSeason()]);
-    const currentYears = extractSeasonYears(clubSeason?.slug);
-    const currentSeasons = seasons.filter((season) => {
-      const years = extractSeasonYears(season.name) || extractSeasonYears(season.competitionName);
-      return years && currentYears && years[0] === currentYears[0] && years[1] === currentYears[1];
-    });
-    const preferredSeasonId = currentSeasons.find((season) => season.id === (clubSeason?.playhq_season_id || config.defaultSeasonId))?.id || currentSeasons[0]?.id;
+    const configuredId = clubSeason?.playhq_season_id || config.defaultSeasonId;
+    const currentSeasons = currentPublicSeasons(seasons, clubSeason?.slug, configuredId);
+    const preferredSeasonId = currentSeasons[0]?.id;
     if (!preferredSeasonId) return { configured: true, message: `Fixtures for ${clubSeason?.name || 'the current season'} are not available here yet. Check the club on PlayHQ for the latest published information.`, fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
 
     // Organisations are often registered in several identically-named seasons

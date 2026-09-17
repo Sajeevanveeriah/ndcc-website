@@ -10,6 +10,7 @@ import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
+import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import type { PlayHQFixture, PlayHQLadderRow } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 
@@ -179,7 +180,7 @@ export default async function FixturesPage() {
             {blocks['fixtures.team_links']?.body && <p className="text-content-muted font-body max-w-3xl mb-6">{renderSeasonContent(blocks['fixtures.team_links'].body, currentSeason)}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {teamLinks.map((link) => (
-                <a key={link.id} href={link.href} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
+                <a key={link.id} href={currentSeasonPlayHQUrl(link.href, currentSeason?.slug, settings.playhq_url || PLAYHQ_ORG_URL)} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
                   <Card className="h-full hover-lift">
                     <CardContent className="p-5 space-y-2">
                       <div className="flex items-center justify-between gap-3">
