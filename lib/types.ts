@@ -51,6 +51,7 @@ export interface Contact {
 }
 
 export interface Event {
+  revision?: number;
   id: string;
   title: string;
   description: string;
@@ -78,6 +79,7 @@ export interface EventRegistration {
 }
 
 export interface Publication {
+  revision?: number;
   id: string;
   publication_type: 'monthly_newsletter' | 'weekly_newsletter' | 'weekly_match_report';
   title: string;
@@ -119,6 +121,7 @@ export interface Sponsor {
 }
 
 export interface NewsPost {
+  revision?: number;
   id: string;
   title: string;
   content: string;

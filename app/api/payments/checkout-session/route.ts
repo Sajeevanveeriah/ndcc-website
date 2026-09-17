@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     }
 
     const ip = getClientIp(request);
-    if (!enforceRateLimit(`pay-session:${ip}`, 10, 60_000)) {
+    if (!await enforceRateLimit(`pay-session:${ip}`, 10, 60_000)) {
       return NextResponse.json(
         { success: false, error: 'Too many payment attempts. Please wait and try again.' },
         { status: 429 }

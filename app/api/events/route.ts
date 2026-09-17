@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     const ip = getClientIp(request);
-    if (!enforceRateLimit(`event:${ip}`, 8, 60_000)) {
+    if (!await enforceRateLimit(`event:${ip}`, 8, 60_000)) {
       return NextResponse.json(
         { success: false, error: 'Too many requests. Please wait a moment and try again.' },
         { status: 429 }

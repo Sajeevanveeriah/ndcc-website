@@ -1,8 +1,10 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
+import { getCurrentClubSeason } from '@/lib/club-seasons';
+import { extractSeasonYears } from './season-match';
 import { getPlayHQConfig, LEGACY_BASE_URL } from './config';
 import { normaliseFixtures, normaliseGrades, normaliseLadder, normaliseSeasons, normaliseTeams } from './normalise';
-import type { PlayHQGrade, PlayHQPublicData, PlayHQSeason } from './types';
+import type { PlayHQGrade, PlayHQPublicData } from './types';
 
 const PLAYHQ_TIMEOUT_MS = 8_000;
 
@@ -163,18 +165,6 @@ export async function getPlayHQTeamFixtureRaw(teamId: string) {
   return playHQFetch(endpoints.teamFixture(teamId));
 }
 
-// Prefer the season whose date range covers today, then the most recently started
-// season, before falling back to whatever PlayHQ returned first.
-function pickCurrentSeasonId(seasons: PlayHQSeason[]): string | null {
-  const now = Date.now();
-  const startOf = (season: PlayHQSeason) => Date.parse(season.startDate || '');
-  const endOf = (season: PlayHQSeason) => Date.parse(season.endDate || '');
-  const byStartDesc = [...seasons].sort((a, b) => (startOf(b) || 0) - (startOf(a) || 0));
-  const covering = byStartDesc.find((season) => startOf(season) <= now && now <= endOf(season));
-  const mostRecentlyStarted = byStartDesc.find((season) => startOf(season) <= now);
-  return covering?.id || mostRecentlyStarted?.id || byStartDesc[0]?.id || null;
-}
-
 async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
   const config = getPlayHQConfig();
   const fetchedAt = new Date().toISOString();
@@ -183,15 +173,20 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
   }
 
   try {
-    const seasons = await getPlayHQSeasons();
-    const preferredSeasonId = config.defaultSeasonId || pickCurrentSeasonId(seasons);
-    if (!preferredSeasonId) return { configured: true, message: 'No PlayHQ seasons were returned for this organisation.', fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
+    const [seasons, clubSeason] = await Promise.all([getPlayHQSeasons(), getCurrentClubSeason()]);
+    const currentYears = extractSeasonYears(clubSeason?.slug);
+    const currentSeasons = seasons.filter((season) => {
+      const years = extractSeasonYears(season.name) || extractSeasonYears(season.competitionName);
+      return years && currentYears && years[0] === currentYears[0] && years[1] === currentYears[1];
+    });
+    const preferredSeasonId = currentSeasons.find((season) => season.id === (clubSeason?.playhq_season_id || config.defaultSeasonId))?.id || currentSeasons[0]?.id;
+    if (!preferredSeasonId) return { configured: true, message: `Fixtures for ${clubSeason?.name || 'the current season'} are not available here yet. Check the club on PlayHQ for the latest published information.`, fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
 
     // Organisations are often registered in several identically-named seasons
     // (one per competition), and only some carry grades. Probe the preferred
     // season first, then the remaining candidates newest-first, and settle on
     // the first season that actually yields grades.
-    const candidateIds = [preferredSeasonId, ...[...seasons]
+    const candidateIds = [preferredSeasonId, ...[...currentSeasons]
       .sort((a, b) => (Date.parse(b.startDate || '') || 0) - (Date.parse(a.startDate || '') || 0))
       .map((season) => season.id)
       .filter((id) => id !== preferredSeasonId)].slice(0, 5);
@@ -231,7 +226,7 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
       Promise.all(grades.map((grade) => getPlayHQGradeLadder(grade).catch(() => []))),
     ]);
 
-    return { configured: true, fetchedAt, seasons, selectedSeasonId, teams, grades, fixtures: fixturesByGrade.flat(), ladders: laddersByGrade.flat(), error: null };
+    return { configured: true, fetchedAt, seasons, selectedSeasonId, teams, grades, fixtures: fixturesByGrade.flat(), ladders: laddersByGrade.flat().filter((row) => row.teamName.trim() && row.teamName !== 'Team'), error: null };
   } catch (error) {
     return { configured: true, message: 'PlayHQ data is temporarily unavailable.', fetchedAt, seasons: [], selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: error instanceof Error ? error.message : 'Unknown PlayHQ error' };
   }
@@ -239,4 +234,4 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
 
 // unstable_cache options are fixed at module load, so read the configured TTL here
 // rather than hardcoding it; getPlayHQConfig reads straight from process.env.
-export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data'], { revalidate: getPlayHQConfig().revalidateSeconds, tags: ['playhq'] });
+export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data-current-season-v2'], { revalidate: Math.min(getPlayHQConfig().revalidateSeconds, 300), tags: ['playhq'] });

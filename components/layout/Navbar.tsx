@@ -30,7 +30,7 @@ const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Home', href: '/' },
   { label: 'Player Sponsors', href: '/player-sponsors' },
   { label: 'Cricket', links: [{ label: 'Teams', href: '/teams' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Fantasy', href: '/fantasy' }] },
-  { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'Facilities', href: '/facilities' }, { label: 'History', href: '/about#history' }] },
+  { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'Facilities', href: '/facilities' }, { label: 'History', href: '/about#club-history' }] },
   { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }, { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }, { label: 'Sponsors', href: '/sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Kitchen', href: '/kitchen' }, { label: 'Raffle', href: '/raffle' }] },
@@ -246,8 +246,8 @@ export default function Navbar() {
       aria-label="Main navigation"
     >
       {/* Maroon utility bar */}
-      <div className={cn('px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between transition-colors duration-300', transparent ? 'bg-maroon-950/35 backdrop-blur-sm' : 'bg-maroon-700')}>
-        <span className="hidden sm:block text-sm text-maroon-100 font-body tracking-[0.02em]">
+      <div className={cn('px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between transition-colors duration-300', transparent ? 'bg-maroon-950/35 backdrop-blur-sm' : 'bg-surface-blue-subtle border-b border-edge-subtle')}>
+        <span className="hidden sm:block text-xs text-content-blue font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
         <div className="flex gap-4 ml-auto">
@@ -255,7 +255,7 @@ export default function Navbar() {
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-semibold text-sky_accent hover:text-white transition-colors font-body"
+            className="text-xs font-semibold text-content-blue hover:underline transition-colors font-body"
           >
             Facebook
           </a>
@@ -263,11 +263,11 @@ export default function Navbar() {
             href={settings.playhq_url || fallbackClubSettings.playhq_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-semibold text-sky_accent hover:text-white transition-colors font-body"
+            className="text-xs font-semibold text-content-blue hover:underline transition-colors font-body"
           >
             PlayHQ
           </a>
-          <Link href="/contact" className="text-sm font-semibold text-sky_accent hover:text-white transition-colors font-body">
+          <Link href="/contact" className="text-xs font-semibold text-content-blue hover:underline transition-colors font-body">
             Contact
           </Link>
         </div>
@@ -322,14 +322,14 @@ export default function Navbar() {
               >
                 <button
                   type="button"
-                  aria-haspopup="menu"
+                  aria-haspopup="true"
                   aria-expanded={openGroup === group.label}
                   onClick={() => setOpenGroup((open) => (open === group.label ? null : group.label))}
                   className={cn(
                     'flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-1.5 text-sm font-body font-medium rounded-md transition-colors focus-ring',
                     // A group whose child route is active reads as active too,
                     // matching the top-level link treatment (hash links share
-                    // their base pathname, e.g. /about#history).
+                    // their base pathname, e.g. /about#club-history).
                     group.links?.some((link) => pathname === link.href.split('#')[0])
                       ? transparent
                         ? 'text-white font-semibold'
@@ -345,7 +345,7 @@ export default function Navbar() {
                   'absolute left-0 top-full pt-1 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0',
                   openGroup === group.label ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
                 )}>
-                  <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[190px]" role="menu">
+                  <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[190px]">
                     {group.links?.map((link) => (
                       <Link key={`${group.label}-${link.href}`} href={link.href} className={cn('block px-4 py-2 text-sm font-body transition-colors focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60')}>
                         {link.label}
@@ -364,7 +364,7 @@ export default function Navbar() {
               >
                 <button
                   type="button"
-                  aria-haspopup="menu"
+                  aria-haspopup="true"
                   aria-expanded={accountOpen}
                   onClick={() => setAccountOpen((open) => !open)}
                   aria-label={`Account: ${sessionUser.full_name}`}

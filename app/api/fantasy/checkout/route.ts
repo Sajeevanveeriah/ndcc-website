@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (!isCheckoutEnabled()) return NextResponse.json({ success: false, error: 'Card payments are not currently enabled.' }, { status: 503 });
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
-  if (!enforceRateLimit(`dino-checkout:${auth.manager.id}`, 8, 60_000)) {
+  if (!await enforceRateLimit(`dino-checkout:${auth.manager.id}`, 8, 60_000)) {
     return NextResponse.json({ success: false, error: 'Too many payment attempts. Please wait and try again.' }, { status: 429 });
   }
   const rawBody = await readLimitedJsonObject(request, 8 * 1024);

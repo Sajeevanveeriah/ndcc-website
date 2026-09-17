@@ -56,7 +56,7 @@ export default async function PlayerRegistrationPage() {
         </div>
       </section>
 
-      <main className="container-width space-y-12 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="container-width space-y-12 px-4 py-12 sm:px-6 lg:px-8">
         <section aria-labelledby="registration-choices-title">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -120,7 +120,7 @@ export default async function PlayerRegistrationPage() {
             </div>
           </section>
         )}
-      </main>
+      </div>
     </>
   );
 }

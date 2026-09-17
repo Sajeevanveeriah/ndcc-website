@@ -169,6 +169,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          <Link href="/admin/operations" className="btn-secondary mb-6">Website operations and email delivery</Link>
           {/* CMS health strip */}
           {health && (
             <div className="mb-8 rounded-xl border border-edge-subtle bg-surface-card p-4 dark:border-slate-700 dark:bg-slate-800">

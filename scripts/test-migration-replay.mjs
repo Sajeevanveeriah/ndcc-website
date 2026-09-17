@@ -3,6 +3,8 @@
 // order. This is the invariant that keeps Supabase preview branches and CI
 // bootstraps working: every file must apply cleanly to an empty database
 // (dashboard-era tables are provided by 20260331000000_prehistory_baseline).
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { readdirSync, readFileSync } from 'node:fs';
 import { createTestDatabase, dropTestDatabase, applyMigrations, psql, check, finish, migrationsDir } from './lib/local-db.mjs';
 const DB = 'ndcc_full_replay';
@@ -49,5 +51,15 @@ psql(DB, readFileSync(new URL('./test-dino-pricing.sql', import.meta.url), 'utf8
 check('Dino Coach two-round pricing and manual override regressions', true);
 psql(DB, readFileSync(new URL('./test-dino-two-teams.sql', import.meta.url), 'utf8'));
 check('Two complete squads, independent saves, captains, budget and unpaid gates', true);
+psql(DB, readFileSync(new URL('./test-website-reliability.sql', import.meta.url), 'utf8'));
+check('scheduled content RLS, private operational data, recoverable revisions and stale edit protection', true);
+const runPsql = promisify(execFile);
+const rateKey = 'a'.repeat(64);
+const calls = await Promise.all(Array.from({ length: 20 }, () => runPsql('psql', ['-X', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-d', DB, '-c', `select public.ndcc_take_rate_limit('${rateKey}',5,60000)`], {
+  env: { ...process.env, PGHOST: process.env.PGHOST || '/var/tmp/ndcc-pgsock', PGPORT: process.env.PGPORT || '5544', PGUSER: process.env.PGUSER || 'postgres' },
+})));
+check('20 concurrent callers share exactly 5 permits', calls.filter((call) => call.stdout.trim() === 't').length === 5);
+psql(DB, `update public.request_rate_limits set expires_at=now()-interval '1 second' where key_hash='${rateKey}'`);
+check('expired rate window admits a fresh request', psql(DB, `select public.ndcc_take_rate_limit('${rateKey}',5,60000)`) === 't');
 dropTestDatabase(DB);
 finish('full-replay');

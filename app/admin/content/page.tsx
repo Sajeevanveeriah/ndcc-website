@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import EditorialHistory from '@/components/admin/EditorialHistory';
 import Input, { Textarea } from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
 type Block = {
+  revision: number;
   id: string;
   block_key: string;
   page_slug: string;
@@ -176,6 +178,7 @@ export default function AdminContentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: selected.id,
+          revision: selected.revision,
           block_key: selected.block_key,
           page_slug: selected.page_slug,
           section_label: selected.section_label,
@@ -289,6 +292,7 @@ export default function AdminContentPage() {
                 Show on website
               </label>
               <div className="pt-3 border-t border-edge-subtle">
+                <EditorialHistory key={selected.id} resource="contentBlocks" id={selected.id} onSelect={(snapshot) => setSelected({ ...snapshot, id: selected.id, revision: selected.revision } as Block)} />
                 <Button onClick={saveBlock} isLoading={saving}>Save website content</Button>
               </div>
             </>

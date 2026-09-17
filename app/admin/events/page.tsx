@@ -9,6 +9,7 @@ import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import EditorialHistory from '@/components/admin/EditorialHistory';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
@@ -37,6 +38,7 @@ export default function AdminEventsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingRevision, setEditingRevision] = useState<number | undefined>();
   const [form, setForm] = useState(emptyEvent);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -84,6 +86,7 @@ export default function AdminEventsPage() {
 
   const openEdit = (event: Event) => {
     setEditingId(event.id);
+    setEditingRevision(event.revision);
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
@@ -130,7 +133,7 @@ export default function AdminEventsPage() {
         const response = await adminFetch('/api/admin/resources/events', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingId, ...payload }),
+          body: JSON.stringify({ id: editingId, revision: editingRevision, ...payload }),
         });
         const result = await parseApiResponse<{ data: Event }>(response);
         setEvents((prev) => prev.map((e) => (e.id === editingId ? result.data : e)));
@@ -408,6 +411,7 @@ export default function AdminEventsPage() {
         title={editingId ? 'Edit Event' : 'Create Event'}
         size="lg"
       >
+        {editingId && <EditorialHistory key={editingId} resource="events" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as Event)} />}
         <div className="space-y-4">
           <Input
             id="event-title"

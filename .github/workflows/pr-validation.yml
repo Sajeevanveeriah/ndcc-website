@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run test:admin-permissions
@@ -45,6 +45,8 @@ jobs:
       - run: node --experimental-strip-types scripts/test-dino-coach.mjs
       - run: node scripts/test-dino-standings.mjs
       - run: npm run test:dino-season-summary
+      - run: node --experimental-strip-types scripts/test-cms-media.mjs
+      - run: npm run test:scheduled-publishing
       - run: npm run lint
       - run: npm run test:seo
       - run: npm run check:migrations
@@ -82,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -103,7 +105,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run test:apparel-catalogue
@@ -123,10 +125,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
-      - name: Dependency audit (critical = blocking)
-        run: npm audit --audit-level=critical
-      - name: Dependency audit (high = informational)
-        run: npm audit --audit-level=high || true
+      - name: Dependency audit (high and critical = blocking)
+        run: npm audit --audit-level=high

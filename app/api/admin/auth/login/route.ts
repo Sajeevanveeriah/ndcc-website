@@ -5,7 +5,7 @@ import { createAuthCookie, generateSessionToken, hashSessionToken, sessionExpiry
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 10;
+export const maxDuration = 20;
 
 const CREDENTIAL_RPC_TIMEOUT_MS = 4_500;
 const SESSION_INSERT_TIMEOUT_MS = 4_500;
@@ -67,7 +67,8 @@ export async function POST(request: Request) {
     const ip = getClientIp(request);
     const emailKey = String(email || '').trim().toLowerCase();
 
-    if (!enforceRateLimit(`admin-login-ip:${ip}`, 8, 60_000) || !enforceRateLimit(`admin-login-email:${emailKey}`, 6, 60_000)) {
+    const permits = await Promise.all([enforceRateLimit(`admin-login-ip:${ip}`, 8, 60_000), enforceRateLimit(`admin-login-email:${emailKey}`, 6, 60_000)]);
+    if (permits.some((allowed) => !allowed)) {
       logAuthStage('request validation', { requestId: id, httpStatus: 429, elapsedMs: elapsedMs(startedAt) });
       return jsonNoStore({ success: false, error: 'Too many login attempts. Please wait and try again.', requestId: id }, 429);
     }

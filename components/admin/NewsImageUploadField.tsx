@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { uploadCmsMedia } from '@/lib/admin-media-upload';
 import type { NewsGalleryImage } from '@/lib/news-gallery';
 
 interface NewsImageUploadFieldProps {
@@ -80,22 +81,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
         const file = files[index];
         setProgressText(`Uploading image ${index + 1} of ${files.length}...`);
 
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/admin/media/upload', {
-          method: 'POST',
-          headers: { 'X-NDCC-CSRF': '1' },
-          body: formData,
-        });
-        const payload = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          throw new Error(payload?.error || `${file.name}: upload failed (${response.status}).`);
-        }
-        if (!payload?.path || typeof payload.path !== 'string') {
-          throw new Error(`${file.name}: upload returned an invalid path.`);
-        }
+        const payload = await uploadCmsMedia(file);
 
         if (!nextImages.some((image) => image.src === payload.path)) {
           nextImages.push({

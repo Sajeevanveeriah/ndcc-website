@@ -18,7 +18,11 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 export default async function EventsPage() {
-  const { data: events } = await getPublicEvents();
+  const { data: allEvents, degraded } = await getPublicEvents();
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date());
+  const eventDay = (value: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date(value));
+  const events = allEvents.filter((event) => Number.isFinite(Date.parse(event.date)) && eventDay(event.date) >= today);
+  const pastEvents = allEvents.filter((event) => Number.isFinite(Date.parse(event.date)) && eventDay(event.date) < today).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
   return (
     <>
@@ -36,8 +40,8 @@ export default async function EventsPage() {
           {events.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
-                <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No published events</h2>
-                <p className="text-content-muted font-body">Published club events, including Dino Lotto when marked published, will appear here as soon as they are available.</p>
+                <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">{degraded ? 'Events are temporarily unavailable' : 'No upcoming events published'}</h2>
+                <p className="text-content-muted font-body">Please check back for the next club event, or contact us for details.</p>
               </CardContent>
             </Card>
           ) : (
@@ -91,6 +95,10 @@ export default async function EventsPage() {
               })}
             </div>
           )}
+          {pastEvents.length > 0 && <section className="mt-12 border-t border-edge-subtle pt-8" aria-labelledby="past-events-title">
+            <h2 id="past-events-title" className="section-title">Past events</h2>
+            <ul className="mt-4 divide-y divide-edge-subtle">{pastEvents.map((event) => <li key={event.id} className="py-4"><Link href={`/events/${event.id}`} className="flex flex-wrap justify-between gap-2 font-semibold hover:underline">{event.title}<span className="text-sm font-normal text-content-muted">{formatDate(event.date)}</span></Link></li>)}</ul>
+          </section>}
         </div>
       </section>
     </>

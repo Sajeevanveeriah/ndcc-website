@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    if (!enforceRateLimit(`donation:${getClientIp(request)}`, 6, 60_000)) {
+    if (!await enforceRateLimit(`donation:${getClientIp(request)}`, 6, 60_000)) {
       return NextResponse.json({ error: 'Please wait a minute before trying again.' }, { status: 429 });
     }
     if (!(await getClubSettings()).donations_enabled) {

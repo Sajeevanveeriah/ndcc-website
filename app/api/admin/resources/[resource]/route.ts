@@ -13,6 +13,7 @@ import { normaliseGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 
 export const dynamic = 'force-dynamic';
+const EDITORIAL_TABLES = new Set(['news', 'publications', 'events', 'content_blocks']);
 
 type ResourceConfig = {
   table: string;
@@ -353,8 +354,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
 
-  const supabase = createServerClient();
+  const supabase = createServerClient({ actorId: user.id });
   const { searchParams } = new URL(request.url);
+  const historyId = searchParams.get('history');
+  if (historyId) {
+    if (!EDITORIAL_TABLES.has(config.table) || !canWrite(user.role, config)) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    const { data, error } = await supabase.from('editorial_revisions').select('id,revision,snapshot,action,changed_at')
+      .eq('resource_table', config.table).eq('record_id', historyId).order('changed_at', { ascending: false }).limit(30);
+    if (error) return NextResponse.json({ error: 'History is temporarily unavailable.' }, { status: 503 });
+    return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'no-store' } });
+  }
   const limitParam = searchParams.get('limit');
   const limit = limitParam ? Number(limitParam) : null;
   let query = supabase.from(config.table).select('*');
@@ -422,7 +431,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
   if (validationError) {
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
-  const supabase = createServerClient();
+  const supabase = createServerClient({ actorId: user.id });
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
     if (currentSeasonError || !currentSeason?.id) {
@@ -470,7 +479,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
 
-  const { id, ids, ...rawPayload } = await request.json();
+  const { id, ids, revision, ...rawPayload } = await request.json();
   if (!id && ids === undefined) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
   let batchIds: string[] | null = null;
   if (!id) {
@@ -499,7 +508,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
 
-  const supabase = createServerClient();
+  const supabase = createServerClient({ actorId: user.id });
 
   if (batchIds) {
     const { data: batchData, error: batchError } = await supabase.from(config.table).update(payload).in('id', batchIds).select('id');
@@ -513,12 +522,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
-  let { data, error } = await supabase.from(config.table).update(payload).eq('id', id).select().single();
+  const versioned = EDITORIAL_TABLES.has(config.table);
+  if (versioned && (!Number.isInteger(revision) || revision < 1)) {
+    return NextResponse.json({ success: false, error: 'Refresh this page before saving so the latest version can be checked.' }, { status: 428 });
+  }
+  let update = supabase.from(config.table).update(payload).eq('id', id);
+  if (versioned) update = update.eq('revision', revision);
+  let { data, error } = await update.select().maybeSingle();
+  if (!error && !data) return NextResponse.json({ success: false, error: 'Someone else changed or deleted this record. Copy your edits, refresh the page and review the latest version before saving.' }, { status: 409 });
   if (error && isMissingImageUrlColumnError(error.message, config.table) && 'image_url' in payload) {
     const retryPayload = { ...payload };
     delete retryPayload.image_url;
     if (Object.keys(retryPayload).length > 0) {
-      const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).select().single();
+      const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).eq('revision', revision).select().single();
       data = retry.data;
       error = retry.error;
     }
@@ -527,7 +543,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     const retryPayload = { ...payload };
     delete retryPayload.sort_order;
     if (Object.keys(retryPayload).length > 0) {
-      const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).select().single();
+      const retry = await supabase.from(config.table).update(retryPayload).eq('id', id).eq('revision', revision).select().single();
       data = retry.data;
       error = retry.error;
     }
@@ -561,7 +577,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
   const idsParam = searchParams.get('ids');
   if (!id && idsParam === null) return NextResponse.json({ success: false, error: 'id query param is required.' }, { status: 400 });
 
-  const supabase = createServerClient();
+  const supabase = createServerClient({ actorId: user.id });
 
   if (resource === 'orders') {
     if (!id) return NextResponse.json({ success: false, error: 'Orders must be deleted one at a time.' }, { status: 400 });

@@ -151,9 +151,9 @@ export default async function FixturesPage() {
           </div>
 
           {!playhq.configured ? (
-            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures will appear once PlayHQ is configured</h2><p className="mt-2 text-content-muted font-body">The site is ready for the PlayHQ Public API. No fixture data is shown until the server-only PlayHQ environment variables are set.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Check fixtures on PlayHQ</h2><p className="mt-2 text-content-muted font-body">Visit our club page on PlayHQ for published fixtures and results.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : playhq.fixtures.length === 0 ? (
-            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">No fixtures returned by PlayHQ</h2><p className="mt-2 text-content-muted font-body">Check the selected season and grade configuration in Vercel if fixtures are expected.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
+            <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures are not available here yet</h2><p className="mt-2 text-content-muted font-body">Check the club on PlayHQ for the latest published fixtures. Previous seasons will not be shown as the current season.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : (
             <>
               <section>
