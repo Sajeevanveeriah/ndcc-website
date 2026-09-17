@@ -7,6 +7,7 @@ import { getActivePlayersWithLatestPrices } from '@/lib/fantasy-game';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { buildSquadSlots, isAdultOnDate, validateSquadAssignments } from '@/lib/dino-coach/domain';
 import { initialSquadStatus } from '@/lib/dino-coach/lifecycle';
+import { defaultManagerActionReason } from '@/lib/dino-coach/admin-actions';
 import { processDinoNotifications } from '@/lib/dino-coach/notifications';
 import { sendRegistrationEmail } from '@/lib/dino-coach/registration-email';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
@@ -46,11 +47,14 @@ export async function PATCH(request:Request) {
   const user=await requirePermission('fantasy.home'); if(!user)return fail('Admin session required.',403);
   const parsed=await readLimitedJsonObject(request,32*1024); if(!parsed.ok)return fail(parsed.error);
   const body=parsed.value as any;
-  if(!body.id||!body.expectedUpdatedAt||typeof body.reason!=='string'||!body.reason.trim())return fail('Manager, current version and reason are required.');
+  if(!body.id||!body.expectedUpdatedAt)return fail('Manager and current version are required.');
   if(!body.changes||typeof body.changes!=='object'||Array.isArray(body.changes))return fail('Invalid changes.');
   for(const key of ['deleted','hidden','fee_waived','is_active','team_name_locked','reactivate'])if(key in body.changes&&typeof body.changes[key]!=='boolean')return fail(`${key} must be true or false.`);
   if(user.role!=='admin'&&('deleted' in body.changes||'fee_waived' in body.changes))return fail('Only the administrator can delete teams or waive fees.',403);
   if(body.changes.deleted===true && body.confirmation!=='DELETE TEAM')return fail('Type DELETE TEAM to confirm.');
+  if(body.reason!==undefined&&typeof body.reason!=='string')return fail('Reason must be text.');
+  const reason=body.reason?.trim()||defaultManagerActionReason(body.changes,body.selection!==undefined);
+  if(!reason)return fail('Enter a reason for this change. The manager receives it by email.');
   try {
     const season=await resolveRequestSeason(request,body);if(!season)return fail('No season available.',404);
     const db=createServerClient({actorId:user.id});let selection=null;let budget=0;
@@ -65,7 +69,7 @@ export async function PATCH(request:Request) {
       budget=validation.budgetUsedDinoDollars;
       selection=picks.map((p:any)=>({player_id:p.playerId,slot_key:p.slotKey,assigned_role:p.assignedRole,position_type:p.positionType,is_captain:p.isCaptain===true,is_vice_captain:p.isViceCaptain===true}));
     }
-    const result=await db.rpc('admin_edit_dino_manager',{p_manager:body.id,p_season:season.id,p_actor:user.id,p_expected_updated_at:body.expectedUpdatedAt,p_changes:body.changes,p_selection:selection,p_round:body.roundId||null,p_status:body.status||'draft',p_budget:budget,p_reason:body.reason.trim()});
+    const result=await db.rpc('admin_edit_dino_manager',{p_manager:body.id,p_season:season.id,p_actor:user.id,p_expected_updated_at:body.expectedUpdatedAt,p_changes:body.changes,p_selection:selection,p_round:body.roundId||null,p_status:body.status||'draft',p_budget:budget,p_reason:reason});
     if(result.error)return fail(result.error.message,result.error.code==='40001'?409:400);
     after(()=>processDinoNotifications(db).catch(error=>console.error('[dino-notification] Pending retry:',error.message)));
     return NextResponse.json({success:true,result:result.data,notification:result.data?.changed?'queued':'not_needed'},{headers:noStore});
