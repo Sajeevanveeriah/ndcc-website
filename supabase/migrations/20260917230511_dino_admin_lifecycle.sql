@@ -284,7 +284,7 @@ begin
   select * into m from public.fantasy_managers where id=p_manager for update;
   if not found then raise exception 'Manager not found.'; end if;
   if m.updated_at is distinct from p_expected_updated_at then raise exception 'This team changed since you opened it. Reload before saving.' using errcode='40001'; end if;
-  if not exists(select 1 from public.fantasy_entries where manager_id=p_manager and season_id=p_season) then raise exception 'No registration exists for this season.'; end if;
+  if (p_selection is not null or p_changes ? 'fee_waived') and not exists(select 1 from public.fantasy_entries where manager_id=p_manager and season_id=p_season) then raise exception 'No registration exists for this season.'; end if;
   before_state := jsonb_build_object('display_name',m.display_name,'team_name',m.team_name,'team_name_status',m.team_name_status,
     'team_name_locked',m.team_name_locked,'is_active',m.is_active,'hidden_at',m.hidden_at,'deleted_at',m.deleted_at,'initial_squad_due_at',m.initial_squad_due_at,
     'fee_waived',(select fee_waived from public.fantasy_entries where manager_id=p_manager and season_id=p_season));

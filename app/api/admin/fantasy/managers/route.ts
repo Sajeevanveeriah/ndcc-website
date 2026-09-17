@@ -38,7 +38,7 @@ export async function GET(request:Request) {
       db.from('fantasy_squads').select('id,manager_id,status,budget_used_dino_dollars,created_at,fantasy_squad_players(player_id)').eq('season_id',season.id).order('created_at',{ascending:false}),
     ]);
     for(const r of [managers,entries,squads])if(r.error)throw new Error(r.error.message);
-    const rows=(managers.data||[]).filter(m=>entries.data?.some(e=>e.manager_id===m.id)).map(m=>({...m,initialStatus:initialSquadStatus(m),entry:entries.data?.find(e=>e.manager_id===m.id),squad:squads.data?.find(s=>s.manager_id===m.id)||null}));
+    const rows=(managers.data||[]).map(m=>({...m,initialStatus:initialSquadStatus(m),entry:entries.data?.find(e=>e.manager_id===m.id),squad:squads.data?.find(s=>s.manager_id===m.id)||null}));
     return NextResponse.json({success:true,season,managers:rows,isAdmin:user.role==='admin'},{headers:noStore});
   } catch(error){return fail(error instanceof Error?error.message:'Could not load managers.',500);}
 }

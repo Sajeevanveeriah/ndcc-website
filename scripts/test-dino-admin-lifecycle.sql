@@ -1,7 +1,7 @@
 -- Transaction-only fixtures, including when run against the live schema.
 BEGIN;
 DO $$
-DECLARE sid uuid; mid uuid; aid uuid; rid uuid; oid uuid; paid uuid; p uuid; squad uuid;
+DECLARE manual_id uuid; orphan uuid; sid uuid; mid uuid; aid uuid; rid uuid; oid uuid; paid uuid; p uuid; squad uuid;
   picks jsonb:='[]'; v timestamptz; initial_complete timestamptz; result jsonb; n int;
   keys text[]:=array['XI_BAT_1','XI_BAT_2','XI_BAT_3','XI_BAT_4','XI_AR_1','XI_AR_2','XI_WK_1','XI_BOWL_1','XI_BOWL_2','XI_BOWL_3','XI_BOWL_4','BENCH_BAT_1','BENCH_AR_1','BENCH_WK_1','BENCH_BOWL_1'];
 BEGIN
@@ -10,6 +10,12 @@ BEGIN
  insert into public.fantasy_seasons(name,slug,is_public,auto_sync_enabled) values('Lifecycle test','lifecycle-'||gen_random_uuid(),false,false) returning id into sid;
  insert into public.fantasy_dino_settings(season_id,pilot_notice,slot_counts,scoring_config,budget_dino_dollars,public_launch_enabled,team_selection_open,rules_version,notification_recipients)
  values(sid,'Isolated test','{}','{}',10000000,true,true,'test',array['test@example.invalid']);
+ manual_id:=public.admin_register_dino_manager(gen_random_uuid(),aid,sid,gen_random_uuid()||'@example.invalid','Manual test','Complimentary test',date '2000-01-01','Approved complimentary fixture');
+ if not exists(select 1 from public.fantasy_entries where manager_id=manual_id and fee_waived and status<>'paid' and not is_demo) then raise exception 'Manual registration did not create a genuine complimentary entry'; end if;
+ if not exists(select 1 from public.fantasy_registration_emails j join public.fantasy_entries e on e.id=j.entry_id where e.manager_id=manual_id) then raise exception 'Manual registration lost its welcome email'; end if;
+ insert into public.fantasy_managers(display_name,email,team_name) values('Unregistered test',gen_random_uuid()||'@example.invalid','Unregistered test') returning id,updated_at into orphan,v;
+ result:=public.admin_edit_dino_manager(orphan,sid,aid,v,'{"deleted":true}',null,null,'draft',0,'Remove unregistered test team');
+ if not exists(select 1 from public.fantasy_managers where id=orphan and deleted_at is not null) then raise exception 'Unregistered test team cannot be removed'; end if;
  insert into public.fantasy_managers(display_name,email,team_name,age_verified_at,team_name_status,rules_version_accepted)
  values('Lifecycle test',gen_random_uuid()||'@example.invalid','Lifecycle test',now(),'approved','test') returning id,updated_at into mid,v;
  insert into public.fantasy_entries(manager_id,season_id,entry_fee_cents,fee_waived,fee_waiver_reason,fee_waived_by,fee_waived_at) values(mid,sid,2500,true,'Test waiver',aid,now());
