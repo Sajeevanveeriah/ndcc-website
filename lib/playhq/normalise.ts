@@ -129,3 +129,15 @@ export function normalisePlayHqPlayer(input: import('./types').PlayHqPlayerInput
     source,
   };
 }
+
+// A date-only provider value has no kickoff time. Do not turn UTC midnight
+// into a fictitious 10/11 am Melbourne start when displaying that date.
+export function formatFixtureTime(value: string | null) {
+  if (!value) return 'Date TBC';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Date TBC';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeZone: 'UTC' }).format(date)} - time TBC`;
+  }
+  return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Australia/Melbourne' }).format(date);
+}

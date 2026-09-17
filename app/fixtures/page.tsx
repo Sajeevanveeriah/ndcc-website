@@ -9,6 +9,7 @@ import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPageLinkCards } from '@/lib/structured-content';
+import { formatFixtureTime } from '@/lib/playhq/normalise';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import type { PlayHQFixture, PlayHQLadderRow } from '@/lib/playhq/types';
@@ -17,13 +18,6 @@ import { PLAYHQ_ORG_URL } from '@/lib/constants';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = pageMetadata("/fixtures", "Fixtures and results", "Find Newcomb and District Cricket Club fixtures and results, with links to the current season on PlayHQ.");
-
-function fixtureTime(value: string | null) {
-  if (!value) return 'Date TBC';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Australia/Melbourne' }).format(date);
-}
 
 function splitFixtures(fixtures: PlayHQFixture[]) {
   const now = Date.now();
@@ -63,7 +57,7 @@ function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; resu
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
-          <span className="text-xs text-content-muted font-body">{fixtureTime(fixture.startsAt)}</span>
+          <span className="text-xs text-content-muted font-body">{formatFixtureTime(fixture.startsAt)}</span>
         </div>
         <div>
           <p className="font-display font-bold text-content-primary">{fixture.homeTeam}</p>
