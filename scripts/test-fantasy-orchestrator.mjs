@@ -115,7 +115,7 @@ try {
   check('grade sources record their PlayHQ source season', orchestratorSource.includes('playhq_season_id: meta.playhqSeasonId'));
   check('grade names fall back to team records when grades endpoint is empty', orchestratorSource.includes('team.gradeName ?? team.gradeId'));
   const clientSource = readFileSync(join(repoRoot, 'lib/playhq/client.ts'), 'utf8');
-  check('public fixtures probe skips seasons without grades', clientSource.includes('candidateGrades.length'));
+  check('public fixtures discover all current competitions using club team evidence', clientSource.includes('Promise.all(candidateIds.map') && clientSource.includes('isClubTeamName(team.name)'));
   const syncSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-sync.ts'), 'utf8');
   check('a dead grade fixture endpoint is skipped, not fatal', syncSource.includes('skippedGrades.push'));
   check('sync only fails when every grade fixture endpoint fails', syncSource.includes('skippedGrades.length === grades.length'));
@@ -125,7 +125,7 @@ try {
   check('grade 404 falls back to per-team fixture feeds', syncSource.includes('getPlayHQTeamFixtureRaw'));
   check('team-feed fallback dedupes games by id', syncSource.includes('seenGameIds.has(fixture.id)'));
   check('fixture reads walk candidate endpoint paths', clientSource.includes('playHQFetchFirst'));
-  check('public fixtures derive grades from team records when the grades endpoint is empty', clientSource.includes('derived.set(team.gradeId'));
+  check('public fixtures derive grades from team records when the grades endpoint is empty', clientSource.includes('gradeMap.set(team.gradeId'));
   const normaliseSource = readFileSync(join(repoRoot, 'lib/playhq/normalise.ts'), 'utf8');
   check('season normaliser keeps competition name evidence', normaliseSource.includes('competitionName'));
   check('cron keeps CRON_SECRET auth', cron.includes('isAuthorizedCronRequest'));

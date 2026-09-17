@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/dino-pricing",
       "schedule": "5 23 * * *"
+    },
+    {
+      "path": "/api/cron/dino-registration",
+      "schedule": "0 22 * * *"
     }
   ]
 }

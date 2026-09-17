@@ -228,7 +228,7 @@ function safeDeleteErrorResponse(message: string) {
   if (/not explicitly marked as dummy\/test/i.test(message)) {
     return NextResponse.json({ success: false, error: 'This order is not explicitly marked as a dummy/test record and remains protected.' }, { status: 409 });
   }
-  if (/typed confirmation is incorrect/i.test(message)) {
+  if (/typed confirmation is incorrect|Type DELETE ORDER to confirm/i.test(message)) {
     return NextResponse.json({ success: false, error: 'Typed confirmation is incorrect.' }, { status: 400 });
   }
   if (/order not found/i.test(message)) {
@@ -367,6 +367,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   const limitParam = searchParams.get('limit');
   const limit = limitParam ? Number(limitParam) : null;
   let query = supabase.from(config.table).select('*');
+  if (resource === 'orders' || resource === 'kitchenOrders') {
+    if (searchParams.get('deleted') === 'only') query = query.not('deleted_at', 'is', null);
+    else if (searchParams.get('deleted') !== 'include') query = query.is('deleted_at', null);
+  }
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
     if (currentSeasonError) return NextResponse.json({ success: false, error: currentSeasonError.message }, { status: 500 });
@@ -480,6 +484,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
   }
 
   const { id, ids, revision, ...rawPayload } = await request.json();
+  if ((resource === 'orders' || resource === 'kitchenOrders') && rawPayload.restore === true) {
+    if (user.role !== 'admin' || !id) return NextResponse.json({ success: false, error: 'Administrator and order id required.' }, { status: 403 });
+    const restored = await createServerClient({ actorId: user.id }).rpc('set_order_deleted', { p_id: id, p_resource: resource, p_deleted: false, p_actor: user.id, p_confirmation: '' });
+    if (restored.error) return safeDeleteErrorResponse(restored.error.message);
+    revalidateForResource(resource,id);
+    return NextResponse.json({ success:true, data:{ id } });
+  }
   if (!id && ids === undefined) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
   let batchIds: string[] | null = null;
   if (!id) {
@@ -579,11 +590,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
 
   const supabase = createServerClient({ actorId: user.id });
 
-  if (resource === 'orders') {
+  if (resource === 'orders' || resource === 'kitchenOrders') {
     if (!id) return NextResponse.json({ success: false, error: 'Orders must be deleted one at a time.' }, { status: 400 });
     const confirmation = request.headers.get('x-delete-confirmation') || '';
-    const { data, error } = await supabase.rpc('delete_test_order_atomic', {
-      p_order_id: id,
+    const { data, error } = await supabase.rpc('set_order_deleted', {
+      p_id: id, p_resource: resource, p_deleted: true, p_actor: user.id,
       p_confirmation: confirmation,
     });
     if (error) return safeDeleteErrorResponse(error.message);

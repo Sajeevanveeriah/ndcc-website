@@ -4,10 +4,10 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import crypto from 'node:crypto';
 
-function load(path, imports = {}) {
+function load(path, imports = {}, globals = {}) {
   const exports = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText,
-    { exports, require: (name) => { if (!(name in imports)) throw Error(name); return imports[name]; }, Date, Map, Set, Number, Math, RegExp, URL, console, setTimeout });
+    { exports, require: (name) => { if (!(name in imports)) throw Error(name); return imports[name]; }, Date, Map, Set, Number, Math, RegExp, URL, console, setTimeout, clearTimeout, AbortController, ...globals });
   return exports;
 }
 const importer = load('lib/playhq/fantasy-import.ts', { 'node:crypto': crypto });
@@ -80,3 +80,48 @@ for (const enabled of [false, true]) {
   assert.equal(reloaded.seasons[0].auto_sync_enabled, enabled);
 }
 console.log('Preseason fixture classification, safe recovery eligibility, round alignment and Auto Sync save/reload checks passed.');
+
+// Exercise the actual public client against provider responses: empty grade
+// endpoints must not hide current club fixtures across multiple competitions.
+let failedTeam = false;
+const requested = [];
+const publicClient = load('lib/playhq/client.ts', {
+  'server-only': {}, 'next/cache': { unstable_cache: fn => fn },
+  '@/lib/club-seasons': { getCurrentClubSeason: async () => ({ slug: '2026-27', name: '2026/2027' }) },
+  './season-match': publicSeason, './normalise': normalise,
+  './config': { LEGACY_BASE_URL: 'https://legacy.example.invalid', getPlayHQConfig: () => ({
+    configured: true, apiKey: 'test-fixture', organisationId: 'club', tenant: 'ca',
+    baseUrl: 'https://api.example.invalid', defaultGradeIds: [], revalidateSeconds: 300,
+  }) },
+}, { fetch: async url => {
+  const path = new URL(url).pathname; requested.push(path);
+  let data;
+  if (path.endsWith('/seasons')) data = [
+    { id: 'empty', name: 'Summer 2026/27' }, { id: 'senior', name: 'Summer 2026/27' },
+    { id: 'women', name: 'Summer 2026/27' }, { id: 'old', name: 'Summer 2025/26' },
+  ];
+  else if (path === '/v1/seasons/senior/teams') data = [
+    { id: 'first', name: 'Newcomb 1st XI', gradeId: 'senior-grade', gradeName: 'First XI' },
+    { id: 'other', name: 'Other club', gradeId: 'other-grade' },
+  ];
+  else if (path === '/v1/seasons/women/teams') data = [{ id: 'women-team', name: 'NDCC women', gradeId: 'women-grade' }];
+  else if (path.endsWith('/teams') || path.endsWith('/grades')) data = [];
+  else if (path === '/v1/teams/first/fixture') data = [fixture('UPCOMING', 'senior-game'), fixture('UPCOMING', 'senior-game')];
+  else if (path === '/v1/teams/women-team/fixture') {
+    if (failedTeam) return { ok: false, status: 503 };
+    data = [fixture('UPCOMING', 'women-game')];
+  } else return { ok: false, status: 404 };
+  return { ok: true, json: async () => ({ data }) };
+} });
+let publicData = await publicClient.getPlayHQPublicDataUncached();
+assert.equal(publicData.error, null);
+assert.deepEqual([...publicData.fixtures.map(f => f.id)].sort(), ['senior-game', 'women-game']);
+assert.equal(publicData.grades.length, 2);
+assert.equal(publicData.teams.length, 2);
+assert.ok(!requested.some(p => p.includes('/old/')));
+assert.ok(publicData.warnings.some(w => w.includes('Ladder')));
+failedTeam = true;
+publicData = await publicClient.getPlayHQPublicDataUncached();
+assert.deepEqual([...publicData.fixtures.map(f => f.id)], ['senior-game']);
+assert.ok(publicData.warnings.some(w => w.includes('Fixtures')));
+console.log('Public PlayHQ feed: current competitions, team evidence, duplicate games and partial provider failures passed.');

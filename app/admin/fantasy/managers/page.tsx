@@ -1,130 +1,64 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Badge from '@/components/ui/Badge';
-import Card, { CardContent } from '@/components/ui/Card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Modal from '@/components/ui/Modal';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
-import { Users } from 'lucide-react';
+import { initialSquadStatus } from '@/lib/dino-coach/lifecycle';
 
-type ManagerRow = {
-  id: string;
-  displayName: string;
-  teamName: string;
-  registeredAt: string | null;
-  squad: {
-    status: string;
-    roundName: string;
-    budgetUsed: number;
-    playerCount: number;
-    starterCount: number;
-    captain: string | null;
-    viceCaptain: string | null;
-    updatedAt: string | null;
-  } | null;
-};
-
-function formatDate(value: string | null) {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
-}
-
-function squadStatusVariant(status: string) {
-  if (status === 'submitted') return 'success' as const;
-  if (status === 'locked') return 'info' as const;
-  return 'warning' as const;
-}
-
+const formatDate=(v:string|null)=>v?new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Melbourne',dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'-';
+const money=(v:number)=>new Intl.NumberFormat('en-AU').format(v);
+const blank={displayName:'',teamName:'',email:'',password:'',dateOfBirth:'',reason:'',rulesAccepted:false};
 export default function AdminFantasyManagersPage() {
-  const [managers, setManagers] = useState<ManagerRow[]>([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    adminFetch('/api/admin/fantasy/managers')
-      .then((response) => parseApiResponse<{ managers: ManagerRow[] }>(response))
-      .then((result) => setManagers(result.managers))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load fantasy managers.'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const query = search.trim().toLowerCase();
-  const visible = query
-    ? managers.filter((manager) => manager.displayName.toLowerCase().includes(query) || manager.teamName.toLowerCase().includes(query))
-    : managers;
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-content-primary flex items-center gap-2">
-          <Users className="h-6 w-6 text-maroon-700 dark:text-maroon-200" aria-hidden="true" />
-          Manager Review
-        </h1>
-        <p className="text-content-muted font-body mt-1">
-          Registered fantasy managers with their latest squad status, budget, and captaincy picks. Read-only.
-        </p>
-      </div>
-
-      {error && <p className="mb-4 text-sm text-red-600 font-body">{error}</p>}
-
-      <div className="mb-4 max-w-sm">
-        <label htmlFor="manager-search" className="sr-only">Search managers</label>
-        <input
-          id="manager-search"
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by manager or team name…"
-          className="w-full rounded-md border border-edge-strong px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
-        />
-      </div>
-
-      {loading ? (
-        <Card><CardContent className="p-6 font-body text-content-muted">Loading fantasy managers…</CardContent></Card>
-      ) : visible.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 font-body text-content-secondary">
-            {managers.length === 0 ? 'No fantasy managers are registered yet.' : 'No managers match the current search.'}
-          </CardContent>
-        </Card>
-      ) : (
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeader>Manager</TableHeader>
-              <TableHeader>Team</TableHeader>
-              <TableHeader>Squad status</TableHeader>
-              <TableHeader>Round</TableHeader>
-              <TableHeader>Players</TableHeader>
-              <TableHeader>Budget</TableHeader>
-              <TableHeader>Captain / Vice</TableHeader>
-              <TableHeader>Last updated</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {visible.map((manager) => (
-              <TableRow key={manager.id}>
-                <TableCell className="font-medium">{manager.displayName}</TableCell>
-                <TableCell>{manager.teamName}</TableCell>
-                <TableCell>
-                  {manager.squad ? <Badge variant={squadStatusVariant(manager.squad.status)}>{manager.squad.status}</Badge> : <Badge variant="warning">no squad</Badge>}
-                </TableCell>
-                <TableCell>{manager.squad?.roundName ?? '—'}</TableCell>
-                <TableCell>{manager.squad ? `${manager.squad.playerCount} (${manager.squad.starterCount} starters)` : '—'}</TableCell>
-                <TableCell>{manager.squad ? manager.squad.budgetUsed.toFixed(1) : '—'}</TableCell>
-                <TableCell>{manager.squad ? `${manager.squad.captain ?? '—'} / ${manager.squad.viceCaptain ?? '—'}` : '—'}</TableCell>
-                <TableCell>{formatDate(manager.squad?.updatedAt ?? manager.registeredAt)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      <p className="mt-6 font-body text-sm text-content-muted">
-        Manager round scores are calculated on the <Link href="/admin/fantasy/scores" className="text-maroon-700 dark:text-maroon-200 underline">Manager Scores</Link> page.
-      </p>
-    </div>
-  );
+  const [rows,setRows]=useState<any[]>([]),[search,setSearch]=useState(''),[filter,setFilter]=useState('active');
+  const [detail,setDetail]=useState<any>(null),[form,setForm]=useState<any>({}),[picks,setPicks]=useState<any[]>([]),[roundId,setRoundId]=useState(''),[status,setStatus]=useState('draft');
+  const [season,setSeason]=useState<any>(null),[isAdmin,setIsAdmin]=useState(false),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+  const [reason,setReason]=useState(''),[confirmation,setConfirmation]=useState(''),[createOpen,setCreateOpen]=useState(false),[registration,setRegistration]=useState(blank),[squadDirty,setSquadDirty]=useState(false);
+  const api=async(url:string,init?:RequestInit)=>parseApiResponse<any>(await adminFetch(url,init));
+  const load=async()=>{const r=await api('/api/admin/fantasy/managers');setRows(r.managers);setSeason(r.season);setIsAdmin(r.isAdmin);};
+  useEffect(()=>{load().catch(e=>setMessage(e.message)).finally(()=>setLoading(false));},[]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectSquad=(d:any,r:string)=>{
+    const s=d.squads.find((s:any)=>(s.round_id||'')===r);setRoundId(r);setStatus(s?.status==='submitted'?'submitted':'draft');setSquadDirty(false);
+    setPicks((s?.fantasy_squad_players||[]).map((p:any)=>({slotKey:p.slot_key,playerId:p.player_id,assignedRole:p.assigned_role,positionType:p.position_type,isCaptain:p.is_captain,isViceCaptain:p.is_vice_captain,purchasePriceDinoDollars:p.purchase_price_dino_dollars})));
+  };
+  const open=async(id:string)=>{setBusy(true);setMessage('');try{const d=await api(`/api/admin/fantasy/managers?id=${id}`);setDetail(d);setForm({...d.manager,hidden:Boolean(d.manager.hidden_at),fee_waived:Boolean(d.entry?.fee_waived)});setReason('');setConfirmation('');selectSquad(d,d.squads[0]?.round_id||'');}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}};
+  const mutate=async(changes:any,includeSquad=false)=>{
+    if(!reason.trim()){setMessage('Enter a reason for this change. The manager receives it by email.');return;}
+    setBusy(true);setMessage('');try{
+      const r=await api('/api/admin/fantasy/managers',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:detail.manager.id,season:season.id,expectedUpdatedAt:detail.manager.updated_at,changes,reason,confirmation,...(includeSquad?{selection:picks,roundId:roundId||null,status}:{})})});
+      await load();await open(detail.manager.id);setMessage(r.result.changed?'Saved. The manager notification is queued.':'No changes to save.');
+    }catch(e){setMessage((e as Error).message);}finally{setBusy(false);}
+  };
+  const save=()=>{const changes:any={};for(const key of ['display_name','team_name','team_name_status','team_name_locked','is_active'])if(form[key]!==detail.manager[key])changes[key]=form[key];if(form.hidden!==Boolean(detail.manager.hidden_at))changes.hidden=form.hidden;if(isAdmin&&form.fee_waived!==Boolean(detail.entry?.fee_waived))changes.fee_waived=form.fee_waived;return mutate(changes,squadDirty);};
+  const create=async()=>{setBusy(true);setMessage('');try{const r=await api('/api/admin/fantasy/managers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...registration,season:season.id})});setRegistration(blank);setCreateOpen(false);await load();await open(r.id);setMessage('Complimentary registration created. Give the participant their temporary password securely; it is not emailed.');}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}};
+  const choose=(slot:any,playerId:string)=>{setSquadDirty(true);setPicks(prev=>{const existing=prev.find(p=>p.slotKey===slot.key);return [...prev.filter(p=>p.slotKey!==slot.key),...(playerId?[{slotKey:slot.key,playerId,assignedRole:slot.role,positionType:slot.positionType,isCaptain:existing?.isCaptain||false,isViceCaptain:existing?.isViceCaptain||false,purchasePriceDinoDollars:detail.players.find((p:any)=>p.id===playerId)?.price_dino_dollars||0}]:[])];});};
+  const captain=(key:string,id:string)=>{setSquadDirty(true);setPicks(prev=>prev.map(p=>({...p,[key]:p.playerId===id,...(p.playerId===id?{[key==='isCaptain'?'isViceCaptain':'isCaptain']:false}:{})})));};
+  const visible=rows.filter(m=>(filter==='deleted'?m.deleted_at:!m.deleted_at)&&(filter!=='pending'||m.initialStatus==='pending')&&(filter!=='expired'||m.initialStatus==='expired')&&(filter!=='hidden'||m.hidden_at)&&`${m.display_name} ${m.team_name} ${m.email}`.toLowerCase().includes(search.toLowerCase()));
+  const budget=picks.reduce((sum,p)=>sum+(detail?.players.find((v:any)=>v.id===p.playerId)?.price_dino_dollars||0),0);
+  return <div className="space-y-6">
+    <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-display font-bold">Manager review</h1><p className="mt-1 text-content-muted">{season?.name} - registrations, squads and account access.</p></div>{isAdmin&&<Button onClick={()=>setCreateOpen(true)}>Create complimentary registration</Button>}</header>
+    <nav className="flex flex-wrap gap-4 text-sm underline" aria-label="Dino Coach controls"><Link href="/admin/fantasy/settings">Competition settings</Link><Link href="/admin/fantasy/players">Players and prices</Link><Link href="/admin/fantasy/rounds">Rounds</Link><Link href="/admin/fantasy/scores">Scores</Link><Link href="/admin/fantasy/seasons">Seasons and PlayHQ</Link><Link href="/admin/playhq-diagnostics">Connection diagnostics</Link></nav>
+    <div className="flex flex-wrap gap-4"><Input id="manager-search" label="Search managers" value={search} onChange={e=>setSearch(e.target.value)}/><label className="text-sm">Show<select className="form-input block mt-1" value={filter} onChange={e=>setFilter(e.target.value)}>{[['active','All teams and accounts'],['pending','Initial squad incomplete'],['expired','Needs reactivation'],['hidden','Hidden from standings'],['deleted','Deleted teams']].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div>
+    {message&&!detail&&<p role="status">{message}</p>}
+    {loading?<p role="status">Loading managers...</p>:<div className="overflow-x-auto rounded-lg border border-edge-subtle"><table className="w-full text-left text-sm"><caption className="sr-only">Registered managers and initial squad deadlines</caption><thead className="bg-surface-page"><tr>{['Manager / team','Entry','Squad','Initial registration','Action'].map(v=><th key={v} className="p-3">{v}</th>)}</tr></thead><tbody>{visible.map(m=><tr key={m.id} className="border-t border-edge-subtle"><td className="p-3"><strong>{m.display_name}</strong><br/>{m.team_name}{m.hidden_at&&<span className="block text-content-muted">Hidden</span>}</td><td className="p-3">{m.entry?.fee_waived?'Complimentary':m.entry?.is_demo?'Demo':m.entry?.status||'No current entry'}</td><td className="p-3">{m.squad?.fantasy_squad_players.length||0}/15<br/>{m.squad?.status||'No squad'}</td><td className="p-3">{m.initialStatus}<br/>{m.first_squad_completed_at?'First squad completed':formatDate(m.initial_squad_due_at)}</td><td className="p-3"><Button size="sm" disabled={busy} onClick={()=>open(m.id)}>View and edit<span className="sr-only"> {m.team_name}</span></Button></td></tr>)}</tbody></table>{!visible.length&&<p className="p-5">No registrations match this view.</p>}</div>}
+    <Modal isOpen={Boolean(detail)} onClose={()=>{if(!busy)setDetail(null);}} title={detail?`${detail.manager.team_name} - manager review`:'Manager review'} size="xl">
+      {detail&&<div className="space-y-6" aria-busy={busy}>
+        <p>{detail.manager.email} - {initialSquadStatus(detail.manager)}. {detail.manager.first_squad_completed_at?'Initial squad requirement completed permanently.':`Initial deadline: ${formatDate(detail.manager.initial_squad_due_at)}.`}</p>
+        <div className="grid gap-4 sm:grid-cols-2"><Input id="edit-manager-name" label="Manager name" value={form.display_name} onChange={e=>setForm({...form,display_name:e.target.value})}/><Input id="edit-team-name" label="Team name" value={form.team_name} onChange={e=>setForm({...form,team_name:e.target.value})}/><label>Team-name approval<select className="form-input block w-full" value={form.team_name_status} onChange={e=>setForm({...form,team_name_status:e.target.value})}>{['pending','approved','review_required','replaced'].map(v=><option key={v}>{v}</option>)}</select></label></div>
+        <div className="flex flex-wrap gap-4">{[['is_active','Account active'],['hidden','Hide from public standings'],['team_name_locked','Lock team name'],...(isAdmin&&detail.entry?[['fee_waived','Complimentary entry']]:[])].map(([key,label])=><label key={key} className="flex items-center gap-2"><input type="checkbox" checked={Boolean(form[key])} onChange={e=>setForm({...form,[key]:e.target.checked})}/>{label}</label>)}</div>
+        <section className="space-y-3"><h2 className="font-bold">Full squad</h2><div className="flex flex-wrap gap-4"><label>Round<select className="form-input block" value={roundId} onChange={e=>selectSquad(detail,e.target.value)}><option value="">Pre-season</option>{detail.rounds.map((r:any)=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label><label>Squad status<select className="form-input block" value={status} onChange={e=>{setStatus(e.target.value);setSquadDirty(true);}}><option value="draft">Draft</option><option value="submitted">Submitted</option></select></label><p>{picks.length}/15 selected<br/>{money(budget)} / {money(detail.budget)} Dino Dollars</p></div>
+        <div className="grid gap-3 sm:grid-cols-2">{detail.slots.map((slot:any)=>{const pick=picks.find(p=>p.slotKey===slot.key);return <label key={slot.key} className="text-sm">{slot.label}<select className="form-input block w-full" value={pick?.playerId||''} onChange={e=>choose(slot,e.target.value)}><option value="">Empty slot</option>{pick&&!detail.players.some((p:any)=>p.id===pick.playerId)&&<option value={pick.playerId}>Previously selected player - replace before saving</option>}{detail.players.map((p:any)=><option key={p.id} value={p.id} disabled={picks.some(x=>x.playerId===p.id&&x.slotKey!==slot.key)}>{p.display_name} - {money(p.price_dino_dollars)}</option>)}</select></label>;})}</div>
+        <div className="grid gap-4 sm:grid-cols-2">{[['isCaptain','Captain'],['isViceCaptain','Vice-captain']].map(([key,label])=><label key={key}>{label}<select className="form-input block w-full" value={picks.find(p=>p[key])?.playerId||''} onChange={e=>captain(key,e.target.value)}><option value="">Choose {label.toLowerCase()}</option>{picks.filter(p=>p.positionType==='starter').map(p=><option key={p.playerId} value={p.playerId}>{detail.players.find((v:any)=>v.id===p.playerId)?.display_name||p.playerId}</option>)}</select></label>)}</div>
+        <p className="text-sm text-content-muted">Admin edits can correct a locked round. Existing published scores are not automatically recalculated; review Manager Scores after changing a scored round.</p></section>
+        <Input id="edit-reason" label="Reason for the change - included in the manager email" value={reason} onChange={e=>setReason(e.target.value)} maxLength={1000}/>
+        {message&&<p role="status" className="rounded border border-edge-subtle p-3">{message}</p>}
+        <div className="flex flex-wrap gap-3"><Button disabled={busy} onClick={save}>Save changes and notify manager</Button>{!detail.manager.first_squad_completed_at&&!detail.manager.deleted_at&&<Button variant="secondary" disabled={busy} onClick={()=>mutate({reactivate:true,is_active:true})}>Reactivate for five days</Button>}{isAdmin&&detail.manager.deleted_at&&<Button variant="secondary" disabled={busy} onClick={()=>mutate({deleted:false,is_active:true})}>Restore team</Button>}</div>
+        {isAdmin&&!detail.manager.deleted_at&&<details className="border-t pt-4"><summary>Delete team</summary><p className="my-3 text-sm">Remove this team from play and public standings. Registration, scores and payment history remain recoverable here under Deleted teams.</p><Input id="delete-team-confirmation" label="Type DELETE TEAM" value={confirmation} onChange={e=>setConfirmation(e.target.value)}/><Button variant="danger" disabled={busy||confirmation!=='DELETE TEAM'} onClick={()=>mutate({deleted:true})}>Delete team</Button></details>}
+        <details><summary>Change history and email delivery</summary><ul className="mt-3 space-y-2 text-sm">{detail.events.map((e:any)=><li key={e.id}>{formatDate(e.created_at)} - {e.committee_users?.full_name||'CMS administrator'} - {e.action}: {e.reason}</li>)}</ul><ul className="mt-3 space-y-2 text-sm">{detail.notifications.map((n:any)=><li key={n.id}>{formatDate(n.created_at)} - {n.kind}: {n.sent_at?'Sent':n.cancelled_at?'Cancelled':n.last_error?`Retry pending: ${n.last_error}`:'Queued'}</li>)}</ul></details>
+      </div>}
+    </Modal>
+    <Modal isOpen={createOpen} onClose={()=>{if(!busy){setCreateOpen(false);setRegistration(blank);}}} title="Create complimentary registration" size="lg"><div className="space-y-4"><p>No payment is collected. This entrant can compete normally and can change their password from their account.</p>{[['displayName','Manager name','text'],['teamName','Team name','text'],['email','Email','email'],['password','Temporary password - at least 12 characters','password'],['dateOfBirth','Date of birth','date'],['reason','Reason for complimentary entry','text']].map(([key,label,type])=><Input key={key} id={`create-${key}`} label={label} type={type} value={String(registration[key as keyof typeof registration])} onChange={e=>setRegistration({...registration,[key]:e.target.value})} autoComplete={key==='password'?'new-password':'off'}/>)}<label className="flex gap-2"><input type="checkbox" checked={registration.rulesAccepted} onChange={e=>setRegistration({...registration,rulesAccepted:e.target.checked})}/>The participant has agreed to the current Dino Coach rules.</label>{message&&<p role="status">{message}</p>}<Button disabled={busy||!registration.rulesAccepted} onClick={create}>Create registration</Button></div></Modal>
+  </div>;
 }

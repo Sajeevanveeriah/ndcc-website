@@ -44,6 +44,8 @@ jobs:
       - run: npm run test:core-schema
       - run: node --experimental-strip-types scripts/test-dino-coach.mjs
       - run: node scripts/test-dino-standings.mjs
+      - run: node --experimental-strip-types scripts/test-dino-lifecycle.mjs
+      - run: node scripts/test-dino-admin-api.mjs
       - run: npm run test:dino-season-summary
       - run: node --experimental-strip-types scripts/test-cms-media.mjs
       - run: node scripts/test-email-webhook.mjs

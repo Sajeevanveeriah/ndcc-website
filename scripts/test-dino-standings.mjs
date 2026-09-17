@@ -5,6 +5,7 @@ import ts from 'typescript';
 const members = ['a', 'b', 'c', 'demo', 'empty'].map(managerId => ({ managerId, displayName: managerId, teamName: `${managerId} XI` }));
 const scores = (manager, points, season = 'current') => ({ manager_id: manager, total_points: points, net_points: points, transfer_penalty: 0, season_id: season, fantasy_managers: { display_name: manager, team_name: `${manager} XI` } });
 const tables = {
+  fantasy_managers: [],
   fantasy_manager_round_scores: [scores('a', 40), scores('a', 60), scores('b', 100), scores('c', 100), scores('demo', 999), scores('a', 999, 'old')],
   fantasy_entries: [{ manager_id: 'demo', season_id: 'current', is_demo: true }, { manager_id: 'a', season_id: 'old', is_demo: true }],
   fantasy_squads: ['a', 'b', 'c', 'demo'].map(id => ({ id, manager_id: id, season_id: 'current', status: 'submitted', created_at: '2026-09-16' })).concat([
@@ -24,6 +25,7 @@ const db = { from(table) {
   let data = [...tables[table]];
   const query = {
     select() { return query; },
+    or() { data = data.filter(row => row.hidden_at || row.deleted_at || row.is_active === false); return query; },
     eq(key, value) { data = data.filter(row => row[key] === value); return query; },
     in(key, values) { data = data.filter(row => values.includes(row[key])); return query; },
     not(key, _operator, value) { data = data.filter(row => row[key] !== value); return query; },
@@ -51,6 +53,11 @@ assert.deepEqual(league.map(row => row.managerId), ['demo', 'c', 'a', 'empty']);
 assert.equal(league.at(-1).totalPoints, 0);
 assert.deepEqual(await load('current', { members: [] }), []);
 console.log('PASS private membership scope, zero-score members and private demo practice');
+tables.fantasy_managers = [{id:'a',hidden_at:'2026-09-18',is_active:true},{id:'b',deleted_at:'2026-09-18',is_active:false}];
+assert.deepEqual((await load('current')).map(r=>r.managerId),['c']);
+assert.deepEqual((await load('current',{members,includeDemo:true})).map(r=>r.managerId),['demo','c','empty']);
+tables.fantasy_managers=[];
+console.log('PASS hidden and deleted managers excluded from public and private rankings');
 for (failTable of Object.keys(tables)) await assert.rejects(load('current'), /Read failed/);
 console.log('PASS every database read fails visibly instead of returning a misleading ranking');
 for (const path of ['app/fantasy/manager-leaderboard/page.tsx', 'app/api/fantasy/manager-leaderboard/route.ts', 'app/api/fantasy/leagues/route.ts']) {

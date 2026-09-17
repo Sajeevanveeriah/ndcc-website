@@ -29,13 +29,18 @@ async function calculateRound(roundId: string) {
 
   const { data: squads, error: squadError } = await supabase
     .from('fantasy_squads')
-    .select('id, manager_id, round_id, season_id, fantasy_managers(display_name, team_name), fantasy_squad_players(player_id, position_type, assigned_role, is_captain, is_vice_captain, fantasy_players(display_name))')
+    .select('id, manager_id, round_id, season_id, fantasy_managers!inner(display_name, team_name, is_active, deleted_at), fantasy_squad_players(player_id, position_type, assigned_role, is_captain, is_vice_captain, fantasy_players(display_name))')
     .eq('season_id', seasonId)
     .or(`round_id.eq.${roundId},round_id.is.null`)
-    .in('status', ['submitted', 'locked']);
+    .in('status', ['submitted', 'locked'])
+    .eq('fantasy_managers.is_active',true).is('fantasy_managers.deleted_at',null);
   if (squadError) throw new Error(squadError.message);
 
-  const result = (squads ?? []).map((squad: any) => {
+  const chosen = new Map<string, any>();
+  for (const squad of squads ?? []) {
+    if (!chosen.has(squad.manager_id) || squad.round_id === roundId) chosen.set(squad.manager_id,squad);
+  }
+  const result = [...chosen.values()].map((squad: any) => {
     let total = 0;
     for (const squadPlayer of squad.fantasy_squad_players ?? []) {
       if (squadPlayer.position_type !== 'starter') continue;

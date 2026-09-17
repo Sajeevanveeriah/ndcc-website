@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   // Paginate so busy weeks are not silently truncated by the database row limit.
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase.from('orders')
-      .select('customer_name,payment_reference,meal_service_date,meal_collection_window,payment_status,items')
+      .select('customer_name,payment_reference,meal_service_date,meal_collection_window,payment_status,items').is('deleted_at', null)
       .eq('order_category', 'kitchen').eq('meal_service_date', date)
       .order('id', { ascending: true }).range(offset, offset + 499);
     if (error) return NextResponse.json({ error: 'Could not export orders. Please try again.' }, { status: 500 });

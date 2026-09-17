@@ -3,7 +3,7 @@
 import { mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { parseApiResponse } from '@/lib/admin-client';
+import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import type { Order } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
@@ -15,6 +15,7 @@ import { ShoppingBag } from 'lucide-react';
 import { MANUAL_PAYMENT_LIMITS, parseAudInputToCents } from '@/lib/payments/manual-payment';
 
 type AdminOrder = Order & {
+  deleted_at?: string | null;
   order_category?: string;
   meal_collection_window?: string | null;
   meal_service_date?: string | null;
@@ -99,7 +100,7 @@ export default function AdminOrdersPage() {
   const fetchAll = async () => {
     try {
       const [ordersRes, paymentsRes, settingsRes] = await Promise.all([
-        fetch('/api/admin/resources/orders', { cache: 'no-store' }),
+        fetch('/api/admin/resources/orders?deleted=include', { cache: 'no-store' }),
         fetch('/api/admin/orders/payments', { cache: 'no-store' }),
         fetch('/api/admin/resources/merchPaymentSettings', { cache: 'no-store' }),
       ]);
@@ -245,10 +246,15 @@ export default function AdminOrdersPage() {
   };
 
   const handleDeleted = (id: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== id));
+    setOrders((prev) => prev.map((o) => o.id === id ? { ...o, deleted_at: new Date().toISOString() } : o));
   };
 
+  const restoreOrder = async (id: string) => {
+    try { await parseApiResponse(await adminFetch('/api/admin/resources/orders', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})})); await fetchAll(); setMessage('Order restored.'); } catch (error) {setMessage(error instanceof Error ? error.message : 'Restore failed.');}
+  };
   const filteredOrders = orders.filter((o) => {
+    if (filterStatus === 'deleted') return Boolean(o.deleted_at);
+    if (o.deleted_at) return false;
     if (filterStatus === 'processed' && !o.processed) return false;
     if (filterStatus === 'pending' && o.processed) return false;
     if (filterStatus === 'paid' && o.payment_status !== 'paid') return false;
@@ -259,6 +265,7 @@ export default function AdminOrdersPage() {
   });
 
   const statusOptions = [
+    { value: 'deleted', label: 'Deleted orders' },
     { value: 'pending', label: 'Unprocessed' },
     { value: 'processed', label: 'Processed' },
     { value: 'paid', label: 'Paid' },
@@ -516,7 +523,7 @@ export default function AdminOrdersPage() {
                     >
                       {isOpen ? 'Hide payments' : `Payments (${orderPayments.length})`}
                     </Button>
-                    <DeleteRecordButton
+                    {o.deleted_at ? <Button size="sm" variant="secondary" onClick={() => restoreOrder(o.id)}>Restore order</Button> : <DeleteRecordButton
                       resource="orders"
                       recordId={o.id}
                       recordLabel={`order for ${o.customer_name}`}
@@ -530,11 +537,11 @@ export default function AdminOrdersPage() {
                       ]}
                       dangerLevel={o.payment_status === 'paid' || o.processed ? 'strong' : 'normal'}
                       requireTypedConfirmation
-                      confirmationPhrase="DELETE TEST ORDER"
-                      strongWarning="Only an order explicitly marked as dummy or test can be removed. Related business records are preserved and unlinked; payment rows belonging only to the test order are removed."
+                      confirmationPhrase="DELETE ORDER"
+                      strongWarning="Processed, stale and test orders can be removed from the working list. Restore them from Deleted orders. Payments are retained; deleting does not cancel or refund a payment."
                       onDeleted={handleDeleted}
                       onSuccessMessage={setMessage}
-                    />
+                    />}
                   </div>
                 </TableCell>
               </TableRow>

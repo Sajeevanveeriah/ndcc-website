@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
-import { getActivePlayHQBaseUrl, getPlayHQPublicData } from '@/lib/playhq/client';
+import { getActivePlayHQBaseUrl, getPlayHQPublicDataUncached } from '@/lib/playhq/client';
 import { getPlayHQConfig, isFantasySyncEnabled, redactedPlayHQConfig } from '@/lib/playhq/config';
-import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +20,12 @@ function nextPlayHQCronRun(now = new Date()) {
 }
 
 async function syncMetadata() {
-  if (!supabase) return { lastSuccess: null, lastFailure: null };
+  const supabase = createServerClient();
   const [success, failure] = await Promise.all([
     supabase.from('fantasy_sync_jobs').select('completed_at, updated_at, created_at').eq('status', 'completed').order('completed_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
     supabase.from('fantasy_sync_jobs').select('error_summary, updated_at, created_at').eq('status', 'failed').order('updated_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
   ]);
+  if (success.error || failure.error) throw new Error(success.error?.message || failure.error?.message);
   return {
     lastSuccess: success.data?.completed_at || success.data?.updated_at || success.data?.created_at || null,
     lastFailure: failure.data ? `${failure.data.updated_at || failure.data.created_at}: ${failure.data.error_summary || 'failed with no summary'}` : null,
@@ -50,10 +51,10 @@ export async function GET() {
     envCheck('CRON_SECRET', Boolean(process.env.CRON_SECRET), process.env.CRON_SECRET ? 'Present. Value hidden.' : 'Missing. The scheduled cron cannot authenticate; use the admin "Run automatic sync now" action until CRON_SECRET is set in Vercel.', true),
   ];
 
-  let data = null as Awaited<ReturnType<typeof getPlayHQPublicData>> | null;
-  if (config.configured) data = await getPlayHQPublicData();
+  let data = null as Awaited<ReturnType<typeof getPlayHQPublicDataUncached>> | null;
+  if (config.configured) data = await getPlayHQPublicDataUncached();
   const sync = await syncMetadata();
-  const remediation = [] as string[];
+  const remediation = [...(data?.warnings || [])] as string[];
   const activeBaseUrl = getActivePlayHQBaseUrl();
   if (activeBaseUrl && activeBaseUrl !== config.baseUrl) remediation.push(`Requests are succeeding via ${activeBaseUrl} after falling back from the configured ${config.baseUrl}. Update PLAYHQ_API_BASE_URL to the working host.`);
   if (!config.configured) remediation.push(`Add missing required variables: ${config.missing.join(', ')}.`);
@@ -66,7 +67,7 @@ export async function GET() {
     success: !data?.error,
     config: { ...safeConfig, activeBaseUrl },
     checks,
-    connection: { status: data?.error ? 'fail' : config.configured ? 'ok' : 'fail', detail: !config.configured ? 'Not tested because required configuration is missing.' : data?.error || 'PlayHQ request completed without an API error.' },
+    connection: { status: data?.error ? 'fail' : data?.warnings?.length ? 'warn' : config.configured ? 'ok' : 'fail', detail: !config.configured ? 'Not tested because required configuration is missing.' : data?.error || (data?.warnings?.length ? 'Some PlayHQ feeds need review. See the individual messages below.' : 'PlayHQ request completed without an API error.') },
     discovery: {
       organisation: data ? `${data.seasons.length} season(s) returned for the configured organisation.` : 'Not tested.',
       season: data?.selectedSeasonId ? 'Selected season discovered. Value hidden in UI response details.' : 'No selected season discovered.',

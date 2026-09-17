@@ -4,15 +4,17 @@ import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await requirePermission('kitchen');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const supabase = createServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('kitchen_orders')
     .select('*, kitchen_order_items(quantity, price, kitchen_items(name))')
     .order('created_at', { ascending: false });
+  if(new URL(request.url).searchParams.get('deleted')!=='include')query=query.is('deleted_at',null);
+  const {data,error}=await query;
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, data: data ?? [] });

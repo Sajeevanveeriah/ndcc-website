@@ -13,17 +13,18 @@ import { parseApiResponse } from '@/lib/admin-client';
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
-type KitchenOrder = { meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string };
+type KitchenOrder = { deleted_at?: string | null; meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string };
 
 export default function AdminKitchenPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [showDeleted,setShowDeleted]=useState(false);
   const [collectionFilter, setCollectionFilter] = useState('all');
   const [exportDate, setExportDate] = useState(() => mealServiceDate());
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
-  const visibleOrders = orders.filter((order) => collectionFilter === 'all' || (collectionFilter === 'missing' ? !order.meal_collection_window : order.meal_collection_window === collectionFilter));
+  const visibleOrders = orders.filter((order) => Boolean(order.deleted_at)===showDeleted && (collectionFilter === 'all' || (collectionFilter === 'missing' ? !order.meal_collection_window : order.meal_collection_window === collectionFilter)));
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   async function exportWeek() {
@@ -84,12 +85,19 @@ export default function AdminKitchenPage() {
 
   async function loadOrders() {
     try {
-      const res = await fetch('/api/admin/kitchen/orders', { cache: 'no-store' });
+      const res = await fetch('/api/admin/kitchen/orders?deleted=include', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: KitchenOrder[] }>(res);
       setOrders(data.data || []);
-    } catch {
-      // Orders load is optional. Do not surface error if this fails.
+    } catch(error) {
+      setMessage(error instanceof Error?error.message:'Could not load kitchen orders.');
     }
+  }
+
+  async function restoreOrder(id:string) {
+    try {
+      const response=await fetch('/api/admin/resources/kitchenOrders',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})});
+      await parseApiResponse(response);await loadOrders();setMessage('Kitchen order restored.');
+    } catch(error) {setMessage(error instanceof Error?error.message:'Could not restore order.');}
   }
 
   async function updateOrder(id: string, patch: Partial<KitchenOrder>) {
@@ -442,6 +450,7 @@ export default function AdminKitchenPage() {
             <option value="missing">Collection time not recorded</option>
           </select>
         </label>
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={showDeleted} onChange={e=>setShowDeleted(e.target.checked)}/>Show deleted orders</label>
         {visibleOrders.length === 0 ? (
           <p className="text-sm text-content-muted">No kitchen orders match this filter.</p>
         ) : (
@@ -449,6 +458,7 @@ export default function AdminKitchenPage() {
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex flex-col gap-3 lg:flex-row lg:items-center justify-between">
               <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}</span>
               <div className="flex flex-wrap items-center gap-2">
+                {o.deleted_at?<Button size="sm" onClick={()=>restoreOrder(o.id)}>Restore order</Button>:<>
                 <label className="inline-flex items-center gap-1 text-xs">
                   <input
                     type="checkbox"
@@ -474,10 +484,10 @@ export default function AdminKitchenPage() {
                   ]}
                   dangerLevel={o.payment_status === 'paid' || o.processed ? 'strong' : 'normal'}
                   requireTypedConfirmation={o.payment_status === 'paid' || o.processed}
-                  strongWarning="This kitchen order is paid or processed. Permanent deletion removes order history for this record."
-                  onDeleted={(id) => setOrders((prev) => prev.filter((item) => item.id !== id))}
+                  strongWarning="This removes the order from active views. Payment history is retained and the order can be restored."
+                  onDeleted={() => {void loadOrders();}}
                   onSuccessMessage={setMessage}
-                />
+                /></>}
               </div>
             </div>
           ))
