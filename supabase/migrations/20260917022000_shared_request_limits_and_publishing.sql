@@ -34,6 +34,9 @@ $$;
 REVOKE ALL ON FUNCTION public.ndcc_take_rate_limit(text, integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.ndcc_take_rate_limit(text, integer, integer) TO service_role;
 
+-- Match hosted public read grants explicitly when replaying on a fresh database.
+GRANT SELECT ON public.news, public.publications TO anon, authenticated;
+
 ALTER POLICY news_select ON public.news
   USING (published = true AND (published_at IS NULL OR published_at <= now()));
 ALTER POLICY "Public can read published publications" ON public.publications

@@ -46,6 +46,7 @@ jobs:
       - run: node scripts/test-dino-standings.mjs
       - run: npm run test:dino-season-summary
       - run: node --experimental-strip-types scripts/test-cms-media.mjs
+      - run: node scripts/test-email-webhook.mjs
       - run: npm run test:scheduled-publishing
       - run: npm run lint
       - run: npm run test:seo
