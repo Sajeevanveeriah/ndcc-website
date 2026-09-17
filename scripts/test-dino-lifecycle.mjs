@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { initialSquadStatus,shouldCancelInitialNotice } from '../lib/dino-coach/lifecycle.ts';
+import { initialSquadStatus,shouldCancelInitialNotice,editableSquadStatus } from '../lib/dino-coach/lifecycle.ts';
 const now=new Date('2026-10-03T12:00:00Z');
 const manager={is_active:true,initial_squad_due_at:now.toISOString()};
 assert.equal(initialSquadStatus(manager,new Date(now.getTime()-1)),'pending');
@@ -13,3 +13,9 @@ assert.equal(shouldCancelInitialNotice('expired','2026-10-02T12:00:00Z',manager,
 assert.equal(shouldCancelInitialNotice('expired',manager.initial_squad_due_at,{...manager,first_squad_completed_at:now.toISOString()},now),true);
 assert.equal(initialSquadStatus({...manager,initial_squad_due_at:'2026-10-04T01:30:00+10:00'},new Date('2026-10-03T15:29:59Z')),'pending');
 console.log('PASS deadline boundary, permanent exemption, disabled/deleted state, stale reminders, reactivation and explicit timezone offsets');
+
+assert.equal(editableSquadStatus('locked'),'submitted');
+assert.equal(editableSquadStatus('submitted'),'submitted');
+assert.equal(editableSquadStatus('draft'),'draft');
+assert.equal(editableSquadStatus(),'draft');
+console.log('PASS locked squad corrections preserve scoring eligibility');

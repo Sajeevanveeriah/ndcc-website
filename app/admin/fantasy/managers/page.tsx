@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
-import { initialSquadStatus } from '@/lib/dino-coach/lifecycle';
+import { initialSquadStatus, editableSquadStatus } from '@/lib/dino-coach/lifecycle';
 
 const formatDate=(v:string|null)=>v?new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Melbourne',dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'-';
 const money=(v:number)=>new Intl.NumberFormat('en-AU').format(v);
@@ -20,7 +20,7 @@ export default function AdminFantasyManagersPage() {
   const load=async()=>{const r=await api('/api/admin/fantasy/managers');setRows(r.managers);setSeason(r.season);setIsAdmin(r.isAdmin);};
   useEffect(()=>{load().catch(e=>setMessage(e.message)).finally(()=>setLoading(false));},[]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectSquad=(d:any,r:string)=>{
-    const s=d.squads.find((s:any)=>(s.round_id||'')===r);setRoundId(r);setStatus(s?.status==='submitted'?'submitted':'draft');setSquadDirty(false);
+    const s=d.squads.find((s:any)=>(s.round_id||'')===r);setRoundId(r);setStatus(editableSquadStatus(s?.status));setSquadDirty(false);
     setPicks((s?.fantasy_squad_players||[]).map((p:any)=>({slotKey:p.slot_key,playerId:p.player_id,assignedRole:p.assigned_role,positionType:p.position_type,isCaptain:p.is_captain,isViceCaptain:p.is_vice_captain,purchasePriceDinoDollars:p.purchase_price_dino_dollars})));
   };
   const open=async(id:string)=>{setBusy(true);setMessage('');try{const d=await api(`/api/admin/fantasy/managers?id=${id}`);setDetail(d);setForm({...d.manager,hidden:Boolean(d.manager.hidden_at),fee_waived:Boolean(d.entry?.fee_waived)});setReason('');setConfirmation('');selectSquad(d,d.squads[0]?.round_id||'');}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}};
