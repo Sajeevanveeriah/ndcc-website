@@ -50,3 +50,35 @@ await clientModule.exports.fantasyJsonFetch('/write',{method:'POST',body:'{}'});
 await clientModule.exports.fantasyJsonFetch('/write',{method:'patch',body:'{}'});
 assert.deepEqual(deadlines,[30000,45000,45000]);
 console.log('PASS bounded read and mutation deadlines allow payment processing to finish');
+
+const lifecycleSource=ts.transpileModule(readFileSync('lib/dino-coach/lifecycle.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const lifecycleModule={exports:{}};new Function('exports',lifecycleSource)(lifecycleModule.exports);
+const noticeSource=ts.transpileModule(readFileSync('lib/dino-coach/notifications.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const noticeModule={exports:{}};
+let noticeFail=true, noticeSends=[];
+const noticeJob={id:'notice-test',manager_id:'manager',season_id:'season',kind:'admin_change',attempts:0,payload:{reason:'<Correction>',changes:{team_name:{after:'Updated XI'}}}};
+const noticeManager={email:'manager@example.invalid',display_name:'<Manager>',team_name:'Updated XI',is_active:true,initial_squad_due_at:'2027-01-01T00:00:00Z'};
+const noticeSettings={notification_recipients:['one@example.invalid','two@example.invalid'],initial_reminders_enabled:true};
+const noticeDb={
+ rpc:async()=>({data:noticeJob.sent_at||noticeJob.cancelled_at||Date.parse(noticeJob.next_attempt_at||'')>Date.now()?[]:[{...noticeJob,attempts:++noticeJob.attempts}],error:null}),
+ from:table=>{const q={select:()=>q,eq:()=>q,is:()=>q,single:async()=>({data:table==='fantasy_managers'?noticeManager:noticeSettings,error:null}),update:patch=>{Object.assign(noticeJob,patch);return q;},then:resolve=>resolve({error:null})};return q;},
+};
+new Function('require','module','exports',noticeSource)(id=>{
+ if(id==='server-only'||id==='@/lib/supabase-server')return {};
+ if(id==='./lifecycle')return lifecycleModule.exports;
+ if(id==='@/lib/email')return {sendEmail:async payload=>{noticeSends.push(payload);return noticeFail?{status:'failed',reason:'provider unavailable'}:{status:'sent',id:'provider-notice'};},emailHtml:(_title,body)=>body,escapeEmailHtml:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;')};
+ throw Error(id);
+},noticeModule,noticeModule.exports);
+assert.equal((await noticeModule.exports.processDinoNotifications(noticeDb)).retrying,1);
+assert.equal(noticeJob.sent_at,undefined);assert.ok(noticeJob.delivery);assert.ok(Date.parse(noticeJob.next_attempt_at)>Date.now());
+noticeManager.team_name='Changed between attempts';noticeJob.next_attempt_at=null;noticeFail=false;
+assert.equal((await noticeModule.exports.processDinoNotifications(noticeDb)).sent,1);
+assert.deepEqual(noticeSends[0],noticeSends[1]);
+assert.match(noticeSends[1].html,/&lt;Correction&gt;/);assert.match(noticeSends[1].html,/&lt;Manager&gt;/);
+assert.deepEqual(noticeSends[1].replyTo,noticeSettings.notification_recipients);
+assert.equal((await noticeModule.exports.processDinoNotifications(noticeDb)).sent,0);
+Object.assign(noticeJob,{sent_at:null,kind:'reminder',payload:{due_at:noticeManager.initial_squad_due_at}});
+noticeManager.first_squad_completed_at=new Date().toISOString();
+assert.equal((await noticeModule.exports.processDinoNotifications(noticeDb)).cancelled,1);
+assert.equal(noticeSends.length,2);
+console.log('PASS manager-change outbox: durable retry, frozen delivery, HTML escaping, reply-to contacts, no resend and completed-squad cancellation');
