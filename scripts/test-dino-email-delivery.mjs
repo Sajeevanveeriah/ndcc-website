@@ -15,7 +15,7 @@ let delivered = false, attempts = 0, sendCount = 0, fail = true, saved;
 const payloads = [];
 const supabase = {
   rpc: async () => ({ data: delivered ? [] : [{ entry_id:'demo',recipient:'sajeevanveeriah+dino-demo@gmail.com',display_name:'<Demo>',team_name:'Demo XI',entry_fee_cents:2500,attempts:++attempts }], error:null }),
-  from: () => ({ update: data => { saved=data; const chain={eq:()=>chain,is:async()=>{if(data.sent_at)delivered=true;return {error:null};}};return chain;} }),
+  from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { fee_waived:false,is_demo:false,fantasy_managers:{initial_squad_due_at:'2026-10-01T00:00:00Z'} },error:null }) }) }), update: data => { saved=data; const chain={eq:()=>chain,is:async()=>{if(data.sent_at)delivered=true;return {error:null};}};return chain;} }),
 };
 const source=ts.transpileModule(readFileSync('lib/dino-coach/registration-email.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const module={exports:{}};

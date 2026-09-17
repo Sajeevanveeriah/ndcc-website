@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient();
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('id,created_at,payment_reference,merch_window_label,merch_window_id,customer_name,customer_email,customer_phone,items,total_amount,amount_paid,balance_due,payment_status,processed,order_status,notes')
+    .select('id,created_at,payment_reference,merch_window_label,merch_window_id,customer_name,customer_email,customer_phone,items,total_amount,amount_paid,balance_due,payment_status,processed,order_status,notes').is('deleted_at', null)
     .eq('order_category', 'merch')
     .order('created_at', { ascending: false });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });

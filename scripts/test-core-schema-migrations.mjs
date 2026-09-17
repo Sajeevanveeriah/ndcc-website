@@ -67,6 +67,7 @@ const migrationFiles = fs.readdirSync(migrationsDir)
   .filter((file) => file.endsWith('.sql'))
   .sort();
 
+let ordersCreatedByEarlierMigration = false;
 for (const file of migrationFiles) {
   const fullPath = path.join(migrationsDir, file);
   const sql = read(fullPath);
@@ -76,16 +77,18 @@ for (const file of migrationFiles) {
     const before = lower.slice(0, firstOrdersReference);
     const hasOrdersCreate = /create\s+table\s+if\s+not\s+exists\s+(?:public\.)?orders\b/.test(before);
     const isGuarded = /if\s+not\s+exists[\s\S]{0,500}add\s+constraint[\s\S]{0,500}references\s+(?:public\.)?orders\s*\(\s*id\s*\)/.test(lower);
-    if (!hasOrdersCreate && !isGuarded) fail(`${file} references orders(id) before creating orders or using a guarded FK.`);
+    if (!ordersCreatedByEarlierMigration && !hasOrdersCreate && !isGuarded) fail(`${file} references orders(id) before creating orders or using a guarded FK.`);
   }
 
   const firstAlterOrders = lower.search(/alter\s+table\s+(?:public\.)?orders\b/);
   if (firstAlterOrders !== -1) {
     const before = lower.slice(0, firstAlterOrders);
-    if (!/create\s+table\s+if\s+not\s+exists\s+(?:public\.)?orders\b/.test(before)) {
+    if (!ordersCreatedByEarlierMigration && !/create\s+table\s+if\s+not\s+exists\s+(?:public\.)?orders\b/.test(before)) {
       fail(`${file} alters orders before ensuring orders exists.`);
     }
   }
+  // Later additive migrations depend on the earlier canonical table creation.
+  ordersCreatedByEarlierMigration ||= /create\s+table\s+if\s+not\s+exists\s+(?:public\.)?orders\b/.test(lower);
 }
 
 const authMigration = read(path.join(migrationsDir, '20260401000000_custom_committee_auth.sql'));

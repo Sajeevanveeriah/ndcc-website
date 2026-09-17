@@ -61,7 +61,7 @@ let kitchenPermission = true;
 let gateOpen = true;
 function reset(window = 'juniors') {
   order = { id: orderId, total_amount: 20, amount_paid: 0, payment_status: 'pending_bank_transfer',
-    order_status: 'submitted', order_category: 'kitchen', payment_reference: 'NCDDKIT-2026-000001',
+    deleted_at: null, order_status: 'submitted', order_category: 'kitchen', payment_reference: 'NCDDKIT-2026-000001',
     customer_email: 'test@example.com', meal_draft_token: token, meal_revision: 1,
     meal_collection_window: window, meal_service_date: '2026-09-17', meal_editing: false };
   payments = []; sessions = new Map(); created = 0; expired = 0; savedArgs = null;
@@ -144,6 +144,10 @@ await test('CMS export requires kitchen permission and a valid Thursday; exports
   assert.equal(exported.status,200);
   assert.equal(exported.headers.get('Cache-Control'),'private, no-store');
   assert.ok((await exported.text()).includes('"CSV Test"'));
+  order.deleted_at = new Date().toISOString();
+  const deletedExport = await exportRoute.GET(new Request('http://localhost/export?service_date=2026-09-17'));
+  assert.ok(!(await deletedExport.text()).includes('"CSV Test"'));
+  order.deleted_at = null;
   const otherWeek = await exportRoute.GET(new Request('http://localhost/export?service_date=2026-09-24'));
   assert.ok(!(await otherWeek.text()).includes('"CSV Test"'));
 });

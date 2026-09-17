@@ -1,7 +1,7 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
-import { currentPublicSeasons } from './season-match';
+import { currentPublicSeasons, isClubTeamName } from './season-match';
 import { getPlayHQConfig, LEGACY_BASE_URL } from './config';
 import { normaliseFixtures, normaliseGrades, normaliseLadder, normaliseSeasons, normaliseTeams } from './normalise';
 import type { PlayHQGrade, PlayHQPublicData } from './types';
@@ -83,7 +83,7 @@ async function playHQFetchFromHost(baseUrl: string, path: string, init: RequestI
       ...init,
       headers: { Accept: 'application/json', 'x-api-key': config.apiKey as string, 'x-phq-tenant': config.tenant, ...(init.headers || {}) },
       signal: controller.signal,
-      next: { revalidate: config.revalidateSeconds },
+      next: { revalidate: Math.min(config.revalidateSeconds,300) },
     });
     if (!response.ok) throw new Error(`PlayHQ request failed with HTTP ${response.status}`);
     return response.json() as Promise<unknown>;
@@ -165,7 +165,7 @@ export async function getPlayHQTeamFixtureRaw(teamId: string) {
   return playHQFetch(endpoints.teamFixture(teamId));
 }
 
-async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
+export async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
   const config = getPlayHQConfig();
   const fetchedAt = new Date().toISOString();
   if (!config.configured) {
@@ -180,50 +180,46 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
     if (!preferredSeasonId) return { configured: true, message: `Fixtures for ${clubSeason?.name || 'the current season'} are not available here yet. Check the club on PlayHQ for the latest published information.`, fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
 
     // Organisations are often registered in several identically-named seasons
-    // (one per competition), and only some carry grades. Probe the preferred
-    // season first, then the remaining candidates newest-first, and settle on
-    // the first season that actually yields grades.
+    // (one per competition). Discover club teams across the current season
+    // candidates so all NDCC competitions are represented.
     const candidateIds = [preferredSeasonId, ...[...currentSeasons]
       .sort((a, b) => (Date.parse(b.startDate || '') || 0) - (Date.parse(a.startDate || '') || 0))
       .map((season) => season.id)
       .filter((id) => id !== preferredSeasonId)].slice(0, 5);
 
-    let selectedSeasonId = preferredSeasonId;
-    let teams: Awaited<ReturnType<typeof getPlayHQTeams>> = [];
-    let allGrades: Awaited<ReturnType<typeof getPlayHQGrades>> = [];
-    for (const candidateId of candidateIds) {
-      const [candidateTeams, gradesFromEndpoint] = await Promise.all([
-        getPlayHQTeams(candidateId).catch(() => []),
-        getPlayHQGrades(candidateId).catch(() => []),
-      ]);
-      // Some club-scoped seasons answer the teams endpoint but return an
-      // empty grades collection; the team records still carry grade id+name,
-      // so derive the grade list from them as a fallback.
-      let candidateGrades = gradesFromEndpoint;
-      if (!candidateGrades.length && candidateTeams.length) {
-        const derived = new Map<string, PlayHQGrade>();
-        for (const team of candidateTeams) {
-          if (team.gradeId && !derived.has(team.gradeId)) {
-            derived.set(team.gradeId, { id: team.gradeId, name: team.gradeName || team.gradeId, seasonId: candidateId });
-          }
-        }
-        candidateGrades = Array.from(derived.values());
+    const warnings: string[] = [];
+    const discovered = await Promise.all(candidateIds.map(async candidateId => {
+      const [teamResult,gradeResult]=await Promise.allSettled([getPlayHQTeams(candidateId),getPlayHQGrades(candidateId)]);
+      const clubTeams=teamResult.status==='fulfilled'?teamResult.value.filter(team=>isClubTeamName(team.name)):[];
+      if(teamResult.status==='rejected') warnings.push(`Team discovery failed for a current-season competition: ${teamResult.reason instanceof Error?teamResult.reason.message:'unavailable'}`);
+      const gradeMap=new Map<string,PlayHQGrade>();
+      for(const team of clubTeams) if(team.gradeId) gradeMap.set(team.gradeId,{id:team.gradeId,name:team.gradeName||team.gradeId,seasonId:candidateId});
+      if(!gradeMap.size && gradeResult.status==='fulfilled') for(const grade of gradeResult.value) {
+        if(config.defaultGradeIds.includes(grade.id))gradeMap.set(grade.id,{...grade,seasonId:candidateId});
       }
-      if (candidateGrades.length || candidateId === candidateIds[candidateIds.length - 1]) {
-        selectedSeasonId = candidateId;
-        teams = candidateTeams;
-        allGrades = candidateGrades;
-        if (candidateGrades.length) break;
-      }
-    }
-
-    const grades = config.defaultGradeIds.length ? allGrades.filter((grade) => config.defaultGradeIds.includes(grade.id)) : allGrades;
-    const [fixturesByGrade, laddersByGrade] = await Promise.all([
-      Promise.all(grades.map((grade) => getPlayHQGradeFixtures(grade).catch(() => []))),
-      Promise.all(grades.map((grade) => getPlayHQGradeLadder(grade).catch(() => []))),
-    ]);
-
-    return { configured: true, fetchedAt, seasons, selectedSeasonId, teams, grades, fixtures: fixturesByGrade.flat(), ladders: laddersByGrade.flat().filter((row) => row.teamName.trim() && row.teamName !== 'Team'), error: null };
+      return {teams:clubTeams,grades:[...gradeMap.values()]};
+    }));
+    const teams=[...new Map(discovered.flatMap(d=>d.teams).map(team=>[team.id,team])).values()];
+    const allGrades=[...new Map(discovered.flatMap(d=>d.grades).map(grade=>[grade.id,grade])).values()];
+    const grades=config.defaultGradeIds.length?allGrades.filter(g=>config.defaultGradeIds.includes(g.id)):allGrades;
+    const fixturesByGrade=await Promise.all(grades.map(async grade=>{
+      const clubTeams=teams.filter(team=>team.gradeId===grade.id);
+      try {
+        // The importer already uses the working club team feed. Use the same
+        // source here instead of swallowing grade endpoint 404s as no fixtures.
+        const rows=clubTeams.length
+          ? (await Promise.all(clubTeams.map(async team=>normaliseFixtures(await getPlayHQTeamFixtureRaw(team.id),grade)))).flat()
+          : await getPlayHQGradeFixtures(grade);
+        return rows.filter(row=>isClubTeamName(row.homeTeam)||isClubTeamName(row.awayTeam));
+      } catch(error) {warnings.push(`Fixtures for ${grade.name}: ${error instanceof Error?error.message:'unavailable'}`);return [];}
+    }));
+    const laddersByGrade=await Promise.all(grades.map(async grade=>{
+      try {return await getPlayHQGradeLadder(grade);}
+      catch(error) {warnings.push(`Ladder for ${grade.name}: ${error instanceof Error?error.message:'unavailable'}`);return [];}
+    }));
+    return {configured:true,fetchedAt,seasons,selectedSeasonId:preferredSeasonId,teams,grades,
+      fixtures:[...new Map(fixturesByGrade.flat().map(f=>[f.id,f])).values()],
+      ladders:laddersByGrade.flat().filter(row=>row.teamName.trim()&&row.teamName!=='Team'),warnings,error:null};
   } catch (error) {
     return { configured: true, message: 'PlayHQ data is temporarily unavailable.', fetchedAt, seasons: [], selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: error instanceof Error ? error.message : 'Unknown PlayHQ error' };
   }
@@ -231,4 +227,4 @@ async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
 
 // unstable_cache options are fixed at module load, so read the configured TTL here
 // rather than hardcoding it; getPlayHQConfig reads straight from process.env.
-export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data-current-season-v2'], { revalidate: Math.min(getPlayHQConfig().revalidateSeconds, 300), tags: ['playhq'] });
+export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data-current-season-v3'], { revalidate: Math.min(getPlayHQConfig().revalidateSeconds, 300), tags: ['playhq'] });

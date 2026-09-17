@@ -9,7 +9,7 @@ export async function GET() {
   const data = await getPlayHQPublicData();
   return NextResponse.json(data, {
     headers: {
-      'Cache-Control': config.configured ? `public, s-maxage=${config.revalidateSeconds}, stale-while-revalidate=86400` : 'no-store',
+      'Cache-Control': config.configured ? `public, s-maxage=${Math.min(config.revalidateSeconds,300)}, stale-while-revalidate=300` : 'no-store',
     },
   });
 }

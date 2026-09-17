@@ -26,6 +26,7 @@ export type PlayHQPublicData = {
   fixtures: PlayHQFixture[];
   ladders: PlayHQLadderRow[];
   error?: string | null;
+  warnings?: string[];
 };
 export type PlayHqPlayerInput = {
   id?: string;

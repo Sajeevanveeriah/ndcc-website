@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     .eq('manager_id', manager.id).eq('season_id', season.id).single();
   const entry = inserted.data || entryLookup?.data;
   if (entryLookup?.error || !entry) return NextResponse.json({ success: false, error: 'Could not load Dino Coach entry.' }, { status: 500 });
-  if (entry.is_demo) {
+  if (entry.is_demo || entry.fee_waived) {
     // Retire any earlier unpaid Checkout link when demo access is enabled.
     if (entry.stripe_checkout_session_id) {
       const existing = await getStripe().checkout.sessions.retrieve(entry.stripe_checkout_session_id).catch(() => null);
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         if (expired?.status !== 'expired') return NextResponse.json({ success: false, error: 'Could not close the earlier demo checkout.' }, { status: 503 });
       }
     }
-    return NextResponse.json({ success: false, error: 'Demo access is enabled. No payment is required; you can pick your team.' }, { status: 409 });
+    return NextResponse.json({ success: false, error: 'No payment is required for this entry; you can pick your team.' }, { status: 409 });
   }
   if (!Number.isSafeInteger(entry.entry_fee_cents) || entry.entry_fee_cents <= 0
     || entry.entry_fee_cents > PUBLIC_ORDER_LIMITS.maximumOrderCents

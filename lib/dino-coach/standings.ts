@@ -29,14 +29,17 @@ export async function getDinoManagerStandings(
   ]);
   if (error) throw new Error(error.message);
   if (demoError) throw new Error(demoError.message);
+  const excluded = await supabase.from('fantasy_managers').select('id').or('hidden_at.not.is.null,deleted_at.not.is.null,is_active.eq.false');
+  if (excluded.error) throw new Error(excluded.error.message);
+  const excludedIds = new Set((excluded.data || []).map(row => row.id));
   const demoIds = new Set((demos ?? []).map(row => row.manager_id));
   const grouped = new Map<string, Omit<DinoManagerStanding, 'rank'>>();
   const emptyRow = (member: Member) => ({ ...member, totalPoints: 0, transferPenalty: 0, totalNetPoints: 0, squadValueDinoDollars: 0 });
   for (const member of options.members ?? []) {
-    if (!demoIds.has(member.managerId)) grouped.set(member.managerId, emptyRow(member));
+    if (!demoIds.has(member.managerId) && !excludedIds.has(member.managerId)) grouped.set(member.managerId, emptyRow(member));
   }
   for (const score of scores ?? []) {
-    if (demoIds.has(score.manager_id)) continue;
+    if (demoIds.has(score.manager_id) || excludedIds.has(score.manager_id)) continue;
     const joined = score.fantasy_managers;
     const manager = Array.isArray(joined) ? joined[0] : joined;
     const row = grouped.get(score.manager_id) ?? emptyRow({

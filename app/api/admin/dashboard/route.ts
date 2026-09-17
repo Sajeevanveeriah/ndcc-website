@@ -27,7 +27,7 @@ export async function GET() {
       { count: activeSponsors, error: sponsorsError },
     ] = await Promise.all([
       supabase.from('volunteers').select('id', { count: 'exact', head: true }),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('processed', false),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('processed', false).is('deleted_at', null),
       supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('responded', false),
       supabase.from('events').select('id', { count: 'exact', head: true }).eq('published', true),
       supabase.from('news').select('id', { count: 'exact', head: true }),

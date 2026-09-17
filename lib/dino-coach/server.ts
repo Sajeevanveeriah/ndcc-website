@@ -32,6 +32,7 @@ export type DinoCoachSettings = {
   international_baseline_strategy: string;
   rollover_strategy: string;
   leaderboard_tiebreaker: string;
+  initial_reminders_enabled: boolean;
   registration_open: boolean;
   team_selection_open: boolean;
   public_launch_enabled: boolean;

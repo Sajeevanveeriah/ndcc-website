@@ -17,7 +17,7 @@ assert.match(route, /Your role cannot delete this record[\s\S]*status: 403/, 'No
 assert.match(route, /canDeleteResource\(role, config, isFullAccessRole\(role\)\)/, 'Delete checks use explicit-role precedence.');
 assert.match(route, /authoriseResource\(resource\)/, 'Unauthenticated requests go through the resource permission guard.');
 assert.match(route, /delete\(\)\.eq\('id', id\)\.select\('id'\)/, 'Delete verifies selected id.');
-assert.match(route, /rpc\('delete_test_order_atomic'/, 'Order deletion delegates all dependent cleanup to one transactional RPC.');
+assert.match(route, /rpc\('set_order_deleted'/, 'Order deletion delegates recoverable deletion to one transactional RPC.');
 assert.match(route, /Record not found[\s\S]*status: 404/, 'Missing IDs return 404.');
 assert.match(route, /status: 409/, 'Foreign-key conflicts return 409.');
 assert.match(route, /data: \{ id: deleted\.id \}/, 'Successful delete returns deleted id.');
@@ -50,7 +50,7 @@ assert.match(enquiries, /setSelectedContact\(\(current\) => \(current\?\.id === 
 assert.match(volunteers, /resource="volunteerExpressions"/, 'Volunteers page can delete EOIs.');
 assert.match(orders, /resource="orders"/, 'Orders page can delete orders.');
 assert.match(orders, /requireTypedConfirmation\s/, 'Every test-order deletion requires typed confirmation.');
-assert.match(orders, /confirmationPhrase="DELETE TEST ORDER"/, 'Order deletion requires the dedicated strong confirmation phrase.');
+assert.match(orders, /confirmationPhrase="DELETE ORDER"/, 'Order deletion requires the dedicated strong confirmation phrase.');
 assert.match(events, /resource="eventRegistrations"/, 'Event registrations can be deleted.');
 assert.match(memberships, /resource="membershipApplications"/, 'Membership applications can be deleted.');
 assert.match(kitchen, /resource="kitchenOrders"/, 'Kitchen orders can be deleted.');

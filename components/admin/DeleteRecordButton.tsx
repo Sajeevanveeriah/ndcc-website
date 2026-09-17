@@ -56,6 +56,8 @@ export default function DeleteRecordButton({
   onSuccessMessage,
   className,
 }: DeleteRecordButtonProps) {
+  const recoverable = resource === 'orders' || resource === 'kitchenOrders';
+  if (recoverable) { requireTypedConfirmation = true; confirmationPhrase = 'DELETE ORDER'; }
   const [isAdmin, setIsAdmin] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -132,7 +134,7 @@ export default function DeleteRecordButton({
       <Modal isOpen={isOpen} onClose={closeModal} title={`Delete ${recordLabel}`} size="sm">
         <div className="space-y-4" aria-busy={deleting}>
           <p className="text-sm text-content-secondary">
-            This will permanently delete <strong>{recordLabel}</strong>. This action cannot be undone.
+            {recoverable ? <>Remove <strong>{recordLabel}</strong> from active orders. You can restore it from Deleted orders. Payment history is retained.</> : <>This will permanently delete <strong>{recordLabel}</strong>. This action cannot be undone.</>}
           </p>
           {recordDetails.length > 0 && (
             <dl className="rounded-lg border border-edge-subtle bg-surface-page p-3 text-sm">
@@ -166,7 +168,7 @@ export default function DeleteRecordButton({
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" size="sm" onClick={closeModal} disabled={deleting}>Cancel</Button>
             <Button variant="danger" size="sm" onClick={handleDelete} isLoading={deleting} disabled={!canConfirm}>
-              Permanently delete
+              {recoverable ? 'Delete order' : 'Permanently delete'}
             </Button>
           </div>
         </div>

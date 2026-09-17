@@ -14,7 +14,7 @@ function cleanText(value: unknown) {
 }
 
 function publicManagerSelect() {
-  return 'id, auth_user_id, display_name, email, team_name, is_active, team_name_status, team_name_locked, age_verified_at, rules_version_accepted' as const;
+  return 'id, auth_user_id, display_name, email, team_name, is_active, team_name_status, team_name_locked, age_verified_at, rules_version_accepted, date_of_birth, deleted_at, first_squad_completed_at, initial_squad_due_at' as const;
 }
 
 export async function GET(request: Request) {
@@ -38,14 +38,15 @@ export async function GET(request: Request) {
 
   const season = await resolveRequestSeason(request);
   const entry = data && season ? await supabase.from('fantasy_entries')
-    .select('id,status,is_demo,entry_fee_cents,currency,payment_reference,paid_at')
+    .select('id,status,is_demo,fee_waived,entry_fee_cents,currency,payment_reference,paid_at')
     .eq('manager_id', data.id).eq('season_id', season.id).maybeSingle() : null;
   if (entry?.error) return NextResponse.json({ success: false, error: 'Could not load your payment status.' }, { status: 503 });
   if (entry?.data?.id) {
     const entryId = entry.data.id;
     after(() => sendRegistrationEmail(supabase, entryId).catch(error => console.error('[fantasy-manager] Welcome retry deferred', error.message)));
   }
-  return NextResponse.json({ success: true, user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
+  const contacts = season ? (await getDinoCoachSettings(season.id)).notification_recipients : [];
+  return NextResponse.json({ success: true, reactivationContacts: contacts, user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(request: Request) {
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Could not check your existing fantasy manager profile.' }, { status: 500 });
   }
   const existingManager = existing.data as any;
+  if (existingManager?.deleted_at) return NextResponse.json({ success: false, error: 'Your team has been deleted. Contact the club to restore it.' }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
   const season = await resolveRequestSeason(request, body);
