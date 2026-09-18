@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { isAuthorizedCronRequest } from '@/lib/cron-auth';
+import { processDinoFeedback } from '@/lib/dino-coach/feedback-delivery';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
+export const maxDuration = 60;
 
 const NO_CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
@@ -42,7 +44,12 @@ export async function GET(request: Request) {
       return jsonNoCache({ success: false, error: error.message }, { status: 500 });
     }
 
-    return jsonNoCache({ success: true, data: data ?? [] });
+    // Together with the registration cron, retry within Resend's 24-hour window.
+    const feedback = await processDinoFeedback(supabase, Date.now() + 20_000).catch(() => {
+      console.error(JSON.stringify({ event: 'dino_feedback_retry_failed' }));
+      return { failed: true };
+    });
+    return jsonNoCache({ success: true, data: data ?? [], feedback });
   } catch (error) {
     return jsonNoCache(
       { success: false, error: error instanceof Error ? error.message : 'Unexpected error.' },
