@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-09-17T23:27:10.867279+00:00",
+  "capturedAt": "2026-09-18T00:55:48+00:00",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -583,6 +583,11 @@
       "version": "20260917232650",
       "name": "dino_admin_lifecycle",
       "localFile": "20260917230511_dino_admin_lifecycle.sql"
+    },
+    {
+      "version": "20260918005532",
+      "name": "dino_feedback_outbox",
+      "localFile": "20260918005147_dino_feedback_outbox.sql"
     }
   ],
   "localOnlyApplied": []

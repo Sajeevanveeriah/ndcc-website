@@ -9,6 +9,7 @@ import Footer from '@/components/layout/Footer';
 import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
 import RouteSettle from '@/components/common/RouteSettle';
+import SiteAnalytics from '@/components/common/SiteAnalytics';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -117,6 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           <Footer />
+          <Suspense fallback={null}><SiteAnalytics /></Suspense>
         </ThemeProvider>
       </body>
     </html>

@@ -13,6 +13,13 @@ const manager = { id: 'manager', display_name: 'Participant', team_name: 'Test X
 const detail = { manager, entry: { status: 'paid' }, squads: [], slots: [{ key: 'XI_BAT_1', label: 'Batter', role: 'BAT', positionType: 'starter' }], players: [{ id: 'player', display_name: 'Player', price_dino_dollars: 100 }], budget: 10000000, rounds: [], events: [], notifications: [] };
 let isAdmin = true, patchError = null, signOutError = null, signOuts = 0;
 const requests = [];
+const feedbackRequests = [];
+let feedbackFails = true;
+const feedbackFetch = async (url, init) => {
+  assert.equal(url, '/api/fantasy/feedback');
+  const body = JSON.parse(init.body); feedbackRequests.push(body);
+  return { ok: !feedbackFails, json: async () => feedbackFails ? { success: false, error: 'Please retry shortly.' } : { success: true, reference: body.id } };
+};
 const windowFixture = { location: { search: '', href: '/fantasy/account', origin: 'https://example.invalid' }, history: { replaceState() {} } };
 const documentFixture = { body: { style: {} }, addEventListener() {}, removeEventListener() {} };
 const overrides = {
@@ -46,7 +53,7 @@ function load(file) {
   if (modules.has(file)) return modules.get(file).exports;
   const module = { exports: {} }; modules.set(file, module);
   const code = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
-  new Function('require', 'module', 'exports', 'window', 'document', code)(id => {
+  new Function('require', 'module', 'exports', 'window', 'document', 'fetch', code)(id => {
     if (id in overrides) return overrides[id];
     if (id.startsWith('@/') || id.startsWith('.')) {
       const base = id.startsWith('@/') ? resolve(id.slice(2)) : resolve(dirname(file), id);
@@ -55,7 +62,7 @@ function load(file) {
       return load(target);
     }
     return require(id);
-  }, module, module.exports, windowFixture, documentFixture);
+  }, module, module.exports, windowFixture, documentFixture, feedbackFetch);
   return module.exports;
 }
 const Page = load('app/admin/fantasy/managers/page.tsx').default;
@@ -135,3 +142,24 @@ assert.equal(signOuts, 2);
 assert.equal(windowFixture.location.href, '/fantasy/register');
 await unmount();
 console.log('PASS real React interactions: typed confirmation, blank-reason deletion after failed edit, dirty-squad isolation, deleted filter, restoration, reactivation, custom reason, stale error, reviewer controls and deleted-account sign-out/re-registration');
+
+const Feedback = load('app/fantasy/_components/DinoFeedbackForm.tsx').default;
+await mount(React.createElement(Feedback));
+await type('feedback-name', 'Visitor');
+await type('feedback-email', 'visitor@example.invalid');
+await act(async () => view.root.findByType('textarea').props.onChange({ target: { value: 'The team page could explain this more clearly.' } }));
+const submitFeedback = () => act(async () => view.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+await submitFeedback();
+assert.match(text(view.root), /Please retry shortly/);
+assert.equal(field('feedback-name').props.value, 'Visitor', 'Failed send retains entered feedback');
+await submitFeedback();
+assert.equal(feedbackRequests[0].id, feedbackRequests[1].id, 'Retry keeps its idempotency key');
+await act(async () => view.root.findByType('textarea').props.onChange({ target: { value: 'A different feedback message after editing.' } }));
+feedbackFails = false;
+await submitFeedback();
+assert.notEqual(feedbackRequests[1].id, feedbackRequests[2].id, 'Changed feedback gets a new key');
+assert.match(text(view.root), /received your feedback/);
+assert.equal(view.root.findAllByType('form').length, 0);
+assert.ok(!('recipients' in feedbackRequests[2]));
+await unmount();
+console.log('PASS feedback form failure recovery, preserved inputs, stable retry IDs, new IDs after edits and saved confirmation');

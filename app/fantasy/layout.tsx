@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import InstallDinoCoach from '@/components/fantasy/InstallDinoCoach';
+import DinoFeedbackNotice from '@/components/fantasy/DinoFeedbackNotice';
 import { notFound } from 'next/navigation';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
@@ -41,5 +42,5 @@ export default async function FantasyLayout({ children }: { children: React.Reac
     notFound();
   }
 
-  return <>{children}<InstallDinoCoach /></>;
+  return <><DinoFeedbackNotice />{children}<InstallDinoCoach /></>;
 }

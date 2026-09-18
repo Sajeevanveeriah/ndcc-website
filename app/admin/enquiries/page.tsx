@@ -61,6 +61,7 @@ export default function AdminEnquiriesPage() {
   };
 
   const getEnquiryLabel = (value: string) => {
+    if (value === 'dino-feedback') return 'Dino Coach feedback';
     const found = ENQUIRY_TYPES.find((t) => t.value === value);
     return found ? found.label : value;
   };
@@ -72,7 +73,7 @@ export default function AdminEnquiriesPage() {
     return true;
   });
 
-  const typeOptions = ENQUIRY_TYPES.map((t) => ({ value: t.value, label: t.label }));
+  const typeOptions = [...ENQUIRY_TYPES.map((t) => ({ value: t.value, label: t.label })), { value: 'dino-feedback', label: 'Dino Coach feedback' }];
   const statusOptions = [
     { value: 'pending', label: 'Pending' },
     { value: 'responded', label: 'Responded' },
