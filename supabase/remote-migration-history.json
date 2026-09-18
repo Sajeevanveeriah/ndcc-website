@@ -528,28 +528,23 @@
     },
     {
       "version": "20260915050853",
-      "name": "dino_coach_season_summary",
-      "localFile": "20260915050244_dino_coach_season_summary.sql"
+      "name": "dino_coach_season_summary"
     },
     {
       "version": "20260915064324",
-      "name": "dino_coach_pilot_economy",
-      "localFile": "20260915070000_dino_coach_pilot_economy.sql"
+      "name": "dino_coach_pilot_economy"
     },
     {
       "version": "20260915065449",
-      "name": "dino_coach_price_review_integrity",
-      "localFile": "20260915080000_dino_coach_price_review_integrity.sql"
+      "name": "dino_coach_price_review_integrity"
     },
     {
       "version": "20260915065550",
-      "name": "dino_coach_price_snapshot",
-      "localFile": "20260915081000_dino_coach_price_snapshot.sql"
+      "name": "dino_coach_price_snapshot"
     },
     {
       "version": "20260915083141",
-      "name": "dino_registration_email_delivery",
-      "localFile": "20260915090000_dino_registration_email_delivery.sql"
+      "name": "dino_registration_email_delivery"
     },
     {
       "version": "20260915092224",
@@ -561,33 +556,27 @@
     },
     {
       "version": "20260917024337",
-      "name": "shared_request_limits_and_publishing",
-      "localFile": "20260917022000_shared_request_limits_and_publishing.sql"
+      "name": "shared_request_limits_and_publishing"
     },
     {
       "version": "20260917024352",
-      "name": "cms_media_storage",
-      "localFile": "20260917022100_cms_media_storage.sql"
+      "name": "cms_media_storage"
     },
     {
       "version": "20260917024354",
-      "name": "email_delivery_observability",
-      "localFile": "20260917022200_email_delivery_observability.sql"
+      "name": "email_delivery_observability"
     },
     {
       "version": "20260917024355",
-      "name": "editorial_revision_history",
-      "localFile": "20260917022300_editorial_revision_history.sql"
+      "name": "editorial_revision_history"
     },
     {
       "version": "20260917232650",
-      "name": "dino_admin_lifecycle",
-      "localFile": "20260917230511_dino_admin_lifecycle.sql"
+      "name": "dino_admin_lifecycle"
     },
     {
       "version": "20260918005532",
-      "name": "dino_feedback_outbox",
-      "localFile": "20260918005147_dino_feedback_outbox.sql"
+      "name": "dino_feedback_outbox"
     }
   ],
   "localOnlyApplied": []

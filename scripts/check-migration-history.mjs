@@ -6,10 +6,10 @@
 //
 // 1. Every remote-history version recorded in
 //    supabase/remote-migration-history.json resolves to a file in
-//    supabase/migrations/ — either a file whose name starts with that
-//    version, or the documented `localFile` it was applied from.
+//    supabase/migrations/ whose name starts with that exact version.
+//    Hosted Supabase deployment does not recognise manifest aliases.
 // 2. Every SQL file in supabase/migrations/ is accounted for: it matches a
-//    remote version, is listed as a documented `localFile`, is listed in
+//    remote version, is listed in
 //    `localOnlyApplied` (pre-history files already live in production), or is
 //    NEW work carrying a full 14-digit timestamp version strictly greater
 //    than the newest recorded remote version.
@@ -63,21 +63,13 @@ if (filenameVersions.some((version, index) => version !== sortedVersions[index])
 }
 
 // 1. every remote version resolves locally
-const documentedLocalFiles = new Set();
 for (const entry of manifest.versions) {
   const direct = files.find((f) => f.startsWith(`${entry.version}_`) || f === `${entry.version}.sql`);
   if (direct) continue;
-  if (entry.localFile && files.includes(entry.localFile)) {
-    documentedLocalFiles.add(entry.localFile);
-    continue;
-  }
   errors.push(
     `Remote migration ${entry.version} (${entry.name}) has no matching file in supabase/migrations/`
-    + (entry.localFile ? ` and its documented localFile ${entry.localFile} is missing.` : '.')
+    + '. Rename the existing migration to its recorded remote version; do not replay its SQL.'
   );
-}
-for (const entry of manifest.versions) {
-  if (entry.localFile) documentedLocalFiles.add(entry.localFile);
 }
 
 // 2. every local file is accounted for
@@ -89,7 +81,6 @@ for (const file of files) {
   const version = versionOf(file);
   if (!version) continue;
   if (remoteVersions.has(version)) continue;
-  if (documentedLocalFiles.has(file)) continue;
   if (localOnly.has(file)) continue;
   // New work: must be a full timestamp newer than the recorded history tip.
   if (!/^\d{14}$/.test(version)) {
