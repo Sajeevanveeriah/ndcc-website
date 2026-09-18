@@ -7,6 +7,8 @@ import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext } from '@/lib/fantasy-seasons';
 
+import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
+
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
@@ -57,7 +59,7 @@ export default async function FantasyRulesPage({ searchParams: searchParamsPromi
                   <p className="text-content-secondary font-body leading-relaxed mb-4">
                     Managers accept a specific rules version during registration. Material changes are communicated and recorded rather than silently changing accepted terms.
                   </p>
-                  <a href="/documents/20260916-Dino-Coach-Rules-Rev00.pdf" download className="btn-primary w-full mb-4">Download rules guide (PDF)</a>
+                  <a href={DINO_MANUAL_PATH} download className="btn-primary w-full mb-4">Download user manual (PDF)</a>
                   <Link href="/fantasy" className="btn-secondary w-full">
                     Dino Coach home
                   </Link>

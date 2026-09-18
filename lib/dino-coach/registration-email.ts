@@ -1,5 +1,6 @@
 import 'server-only';
 import { sendEmail, emailHtml, escapeEmailHtml, getTransactionalReplyTo } from '@/lib/email';
+import { DINO_MANUAL_FILENAME, DINO_MANUAL_URL } from './manual';
 import type { createServerClient } from '@/lib/supabase-server';
 
 type ServerClient = ReturnType<typeof createServerClient>;
@@ -19,6 +20,7 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
     bcc: job.recipient.toLowerCase() === 'sajeevanveeriah@gmail.com' ? undefined : ['sajeevanveeriah@gmail.com'],
     replyTo: getTransactionalReplyTo(),
     subject: 'Dino Coach registration received',
+    attachments: [{ filename: DINO_MANUAL_FILENAME, path: DINO_MANUAL_URL }],
     idempotencyKey: `dino-registration-${entryId}`,
     tags: [{ name: 'category', value: 'dino-registration' }],
     html: emailHtml('Dino Coach registration received',
@@ -26,6 +28,7 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
       <p>Your manager registration for <strong>${escapeEmailHtml(job.team_name)}</strong> has been recorded.</p>
       ${details.data.fee_waived ? '<p>Your complimentary entry is approved. No payment is required. Sign in using the password supplied by the administrator, then choose Change password in your account.</p>' : details.data.is_demo ? '<p>Your demo entry does not require payment.</p>' : `<p>The entry fee is AUD ${(job.entry_fee_cents / 100).toFixed(2)}. If you have already paid, your account shows your payment status. Team selection unlocks after payment settles and your team name is approved.</p>`}
       <p>Fill your first squad with 15 players within five days${deadline ? `, by ${escapeEmailHtml(deadline)}` : ''}. We will remind you while it is incomplete. After the deadline, ask Saj and Rick to reactivate your team. This requirement ends permanently when you complete your first squad.</p>
+      <p>Your Dino Coach user manual is attached. It covers registration, squad selection, scoring, transfers, competition rules and help. You can also <a href="${DINO_MANUAL_URL}">download the user manual (PDF)</a>.</p>
       <p><a href="https://www.ndcc.com.au/fantasy/account">Open your Dino Coach account</a> to complete payment or pick your squad.</p>`),
   };
   if (!job.delivery) {
