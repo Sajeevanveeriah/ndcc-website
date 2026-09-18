@@ -3,6 +3,15 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { authEmailReturnPath } from '../lib/auth/email-return.ts';
 
+const manualSource = ts.transpileModule(readFileSync('lib/dino-coach/manual.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+const manualModule = {exports:{}};
+new Function('exports',manualSource)(manualModule.exports);
+const { DINO_MANUAL_FILENAME, DINO_MANUAL_PATH, DINO_MANUAL_URL } = manualModule.exports;
+assert.ok(readFileSync(`public${DINO_MANUAL_PATH}`).subarray(0,5).equals(Buffer.from('%PDF-')));
+for (const page of ['app/fantasy/page.tsx','app/fantasy/rules/page.tsx']) {
+  assert.match(readFileSync(page,'utf8'),/href=\{DINO_MANUAL_PATH\}/);
+}
+
 const fragment = '#access_token=demo&refresh_token=demo&type=signup';
 assert.equal(authEmailReturnPath('/', fragment), '/fantasy/account');
 assert.equal(authEmailReturnPath('/', fragment.replace('signup','recovery')), '/fantasy/reset-password');
@@ -11,16 +20,17 @@ assert.equal(authEmailReturnPath('/', '#access_token=x&type=signup'), null);
 assert.equal(authEmailReturnPath('/', fragment.replace('signup','https://evil.invalid')), null);
 console.log('PASS confirmation fallback, recovery, no loop and fixed local destinations');
 
-let delivered = false, attempts = 0, sendCount = 0, fail = true, saved;
+let delivered = false, attempts = 0, sendCount = 0, fail = true, saved, frozenDelivery;
 const payloads = [];
 const supabase = {
-  rpc: async () => ({ data: delivered ? [] : [{ entry_id:'demo',recipient:'sajeevanveeriah+dino-demo@gmail.com',display_name:'<Demo>',team_name:'Demo XI',entry_fee_cents:2500,attempts:++attempts }], error:null }),
-  from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { fee_waived:false,is_demo:false,fantasy_managers:{initial_squad_due_at:'2026-10-01T00:00:00Z'} },error:null }) }) }), update: data => { saved=data; const chain={eq:()=>chain,is:async()=>{if(data.sent_at)delivered=true;return {error:null};}};return chain;} }),
+  rpc: async () => ({ data: delivered ? [] : [{ entry_id:'demo',recipient:'sajeevanveeriah+dino-demo@gmail.com',display_name:'<Demo>',team_name:'Demo XI',entry_fee_cents:2500,delivery:frozenDelivery,attempts:++attempts }], error:null }),
+  from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { fee_waived:false,is_demo:false,fantasy_managers:{initial_squad_due_at:'2026-10-01T00:00:00Z'} },error:null }) }) }), update: data => { saved=data; const chain={eq:()=>chain,is:async()=>{if(data.delivery)frozenDelivery=data.delivery;if(data.sent_at)delivered=true;return {error:null};}};return chain;} }),
 };
 const source=ts.transpileModule(readFileSync('lib/dino-coach/registration-email.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const module={exports:{}};
 new Function('require','module','exports',source)(id=>{
  if(id==='server-only')return {};
+ if(id==='./manual')return manualModule.exports;
  if(id==='@/lib/email')return {sendEmail:async p=>{sendCount++;payloads.push(p);return fail?{status:'failed',reason:'temporary provider outage'}:{status:'sent',id:'provider-demo'};},emailHtml:(t,b)=>b,escapeEmailHtml:s=>s.replaceAll('<','&lt;').replaceAll('>','&gt;'),getTransactionalReplyTo:()=> 'ndcc.secretary1@gmail.com'};
  throw Error(id);
 },module,module.exports);
@@ -36,6 +46,10 @@ assert.deepEqual(payloads[0],payloads[1]);
 assert.deepEqual(payloads[1].bcc,['sajeevanveeriah@gmail.com']);
 assert.match(payloads[1].html,/&lt;Demo&gt;/);
 assert.match(payloads[1].html,/AUD 25.00/);
+assert.deepEqual(payloads[1].attachments,[{filename:DINO_MANUAL_FILENAME,path:DINO_MANUAL_URL}]);
+assert.ok(payloads[1].html.includes(`href="${DINO_MANUAL_URL}"`));
+assert.equal(frozenDelivery,payloads[0]);
+console.log('PASS published PDF, both website links and automatic attachment retained on retry');
 console.log('PASS failed delivery retries, immutable provider key/payload, delivery marker, duplicate suppression, recipient copy and HTML escaping');
 
 const clientSource=ts.transpileModule(readFileSync('lib/fantasy-browser.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;

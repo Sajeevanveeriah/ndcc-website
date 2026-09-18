@@ -25,7 +25,10 @@ export interface EmailPayload {
   bcc?: EmailAddress;
   tags?: Tag[];
   idempotencyKey?: string;
-  attachments?: Array<{ filename: string; content: Buffer | string; contentType?: string }>;
+  attachments?: Array<{ filename: string; contentType?: string } & (
+    | { content: Buffer | string; path?: never }
+    | { path: string; content?: never }
+  )>;
 }
 
 function getResend(): Resend {

@@ -12,6 +12,8 @@ import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { formatDinoDollars } from '@/lib/dino-coach/domain';
 
+import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
+
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
@@ -68,6 +70,7 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
                 <p>Dino Coach is NDCC&apos;s 18+ fantasy competition for the 2026/2027 season. Entry is AUD 25.00; every squad price and prize shown in Dino Dollars is virtual.</p>
                 <p>Squads, assigned fantasy roles, free transfers, player scores and leaderboards use reconciled player identities and published match-stat imports.</p>
               </div>
+              <p className="mt-5 font-body"><a href={DINO_MANUAL_PATH} download className="text-maroon-700 dark:text-maroon-200 underline underline-offset-4">Download the Dino Coach user manual (PDF)</a></p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <Link href="/fantasy/register" className="btn-primary">Register / Login<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Link>
                 <Link href="/fantasy/manager-leaderboard" className="btn-secondary">Manager Leaderboard<Trophy className="ml-2 h-4 w-4" aria-hidden="true" /></Link>
