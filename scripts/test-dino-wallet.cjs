@@ -1,0 +1,34 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const ts = require('typescript');
+const cache = new Map();
+function load(file) {
+ file=path.resolve(file); if(cache.has(file)) return cache.get(file);
+ if(file.endsWith('.json')) return JSON.parse(fs.readFileSync(file,'utf8'));
+ const exports={};cache.set(file,exports);
+ const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true,target:ts.ScriptTarget.ES2022}}).outputText;
+ vm.runInNewContext(code,{exports,require:(name)=>{let target=name.startsWith('@/')?path.resolve(name.slice(2)):path.resolve(path.dirname(file),name);if(!path.extname(target))target+='.ts';return load(target);}});
+ return exports;
+}
+const {squadWallet,marketPreview}=load('lib/dino-coach/wallet.ts');
+let picks=[{playerId:'one',purchasePriceDinoDollars:800000},{playerId:'two',purchasePriceDinoDollars:100000}];
+let prices=[{id:'one',price_dino_dollars:1200000},{id:'two',price_dino_dollars:200000}];
+let wallet=squadWallet(15000000,picks,prices);
+assert.equal(wallet.remaining,14100000);assert.equal(wallet.marketValue,1400000);
+assert.equal(marketPreview(wallet.remaining,800000,1200000),13700000);
+assert.equal(squadWallet(15000000,[picks[1]],prices).remaining,14900000);
+assert.equal(squadWallet(15000000,[...picks,{playerId:'three',purchasePriceDinoDollars:2000000}],prices).remaining,12100000);
+assert.equal(squadWallet(15000000,picks,prices).remaining-squadWallet(10000000,picks,prices).remaining,5000000);
+assert.equal(marketPreview(100000,100000,200001),-1);
+assert.throws(()=>marketPreview(1,NaN,1));assert.throws(()=>marketPreview(1,-1,1));
+const {historicalPlayerStats}=load('lib/dino-coach/player-stats.ts');
+const season='75425550-0622-4ecb-87c4-69ab5ca40a53';
+assert.equal(historicalPlayerStats('unknown','Unknown',season),null);
+assert.equal(historicalPlayerStats('7b714120-e008-4dad-9b09-b34ddc2b1948','Kelsey Allan',season).runs,143);
+const external=JSON.parse(fs.readFileSync('data/dino-coach-external-baselines-20260916.json'));
+const harvey=external.players.find(p=>p.name==='Harvey Cliff');
+assert.equal(historicalPlayerStats(harvey.playerId,harvey.name,season).runs,null);
+assert.equal(historicalPlayerStats(harvey.playerId,harvey.name,'other-season'),null);
+console.log('PASS 13 wallet and statistic checks: budget uplift, buy, sell, retained cost, market value, overspend and unknown statistics');
