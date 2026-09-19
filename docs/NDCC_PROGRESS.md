@@ -343,3 +343,7 @@
 - Player cards show sourced batting, bowling and fielding totals, with periods and unknown values labelled. Website rules and future registration-email PDF point to the revised manual. Existing managers must accept rules revision 05.
 - Release: apply the wallet migration, then deploy the application. Do not send registration emails during the brief document deployment interval.
 - Rollback: redeploy the previous application and disable team selection while reviewing transactions. Retain trade offers and purchase costs. Restore prior function definitions from the preceding migration if required. Do not lower the 15 million budget automatically after managers have spent it.
+
+## Dino Coach pool-only market - 19 September 2026
+
+Inter-team trading removed at Saj’s request. The market exposes only the signed-in manager’s squad and buy/sell/replace actions. The database rejects all former trade actions and cancels pending offers without moving money or players. Historical records remain intact. Rules revision 06 and manual Rev01 describe pool-only transactions. Rollback restores the prior app/function but must not reactivate cancelled offers.

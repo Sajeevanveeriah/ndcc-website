@@ -58,7 +58,7 @@ check('Dino admin lifecycle, expiry, waivers, recovery, atomic notifications and
 psql(DB, readFileSync(new URL('./test-dino-feedback.sql', import.meta.url), 'utf8'));
 check('Dino feedback persistence, duplicate protection, delivery leases and recipient privacy', true);
 psql(DB, readFileSync(new URL('./test-dino-market.sql', import.meta.url), 'utf8'));
-check('Dino wallet purchases, sales and consent-based atomic trades', true);
+check('Dino wallet pool purchases, sales and disabled inter-team trading', true);
 const runPsql = promisify(execFile);
 const rateKey = 'a'.repeat(64);
 const calls = await Promise.all(Array.from({ length: 20 }, () => runPsql('psql', ['-X', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-d', DB, '-c', `select public.ndcc_take_rate_limit('${rateKey}',5,60000)`], {
