@@ -31,8 +31,7 @@ export default function ClubSong() {
               <Image src="/downloads/20260919-NDCC-Club-Song-Rev00.png" alt="NDCC club song poster in maroon and blue with the club crest. Full lyrics are provided alongside." width={2400} height={3400} sizes="(max-width: 1024px) 100vw, 512px" className="h-auto w-full rounded-lg shadow-card" />
             </a>
             <figcaption className="mt-4 flex flex-wrap gap-3">
-              <a href="/downloads/20260919-NDCC-Club-Song-Rev00.png" download className="btn-secondary">Download PNG</a>
-              <a href="/downloads/20260919-NDCC-Club-Song-Rev00.svg" download className="btn-secondary">Download SVG</a>
+              <a href="/downloads/20260919-NDCC-Club-Song-Rev00.png" download className="btn-secondary">Download</a>
             </figcaption>
           </figure>
         </div>
