@@ -1,3 +1,4 @@
+import ClubSong from '@/components/ClubSong';
 import { pageMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -82,6 +83,7 @@ export default async function AboutPage() {
           <a href="#club-history" className="text-maroon-700 hover:underline dark:text-maroon-200">History</a>
           <a href="#premiership-honours" className="text-maroon-700 hover:underline dark:text-maroon-200">Honours</a>
           <a href="#club-connections" className="text-maroon-700 hover:underline dark:text-maroon-200">Connections</a>
+          <a href="#club-song" className="text-maroon-700 hover:underline dark:text-maroon-200">Club Song</a>
           <a href="#committee" className="text-maroon-700 hover:underline dark:text-maroon-200">Committee</a>
         </div>
       </nav>
@@ -191,6 +193,8 @@ export default async function AboutPage() {
           </ScrollReveal>
         </div>
       </section>
+
+      <ClubSong />
 
       <section id="club-connections" className="section-padding surface-blue-band scroll-mt-28">
         <div className="container-width">
