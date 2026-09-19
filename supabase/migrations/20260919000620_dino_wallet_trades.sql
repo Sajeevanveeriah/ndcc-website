@@ -77,7 +77,7 @@ BEGIN
   END IF;
 
   SELECT id INTO prior_squad_id FROM public.fantasy_squads
-    WHERE manager_id=target_manager_id AND season_id=target_season_id ORDER BY created_at DESC LIMIT 1;
+    WHERE manager_id=target_manager_id AND season_id=target_season_id ORDER BY (round_id IS NOT DISTINCT FROM target_round_id) DESC,created_at DESC LIMIT 1;
   WITH chosen AS (SELECT (item->>'player_id')::UUID player_id FROM jsonb_array_elements(selected_players) item),
   latest AS (
     SELECT DISTINCT ON (p.player_id) p.player_id,COALESCE(owned.purchase_price_dino_dollars,p.price_dino_dollars) AS price_dino_dollars
