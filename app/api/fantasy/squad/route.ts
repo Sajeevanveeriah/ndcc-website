@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
@@ -20,7 +21,7 @@ function parseSelection(value: unknown): DinoSquadAssignment[] {
 
 async function loadSquad(managerId: string, seasonId: string) {
   const { data, error } = await createServerClient().from('fantasy_squads')
-    .select('id,manager_id,season_id,round_id,status,budget_used_dino_dollars,fantasy_squad_players(player_id,position_type,is_captain,is_vice_captain,slot_key,assigned_role,purchase_price_dino_dollars,fantasy_players(display_name))')
+    .select('id,manager_id,season_id,round_id,status,updated_at,budget_used_dino_dollars,fantasy_squad_players(player_id,position_type,is_captain,is_vice_captain,slot_key,assigned_role,purchase_price_dino_dollars,fantasy_players(display_name))')
     .eq('manager_id', managerId).eq('season_id', seasonId).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   return data;
@@ -33,7 +34,8 @@ export async function GET(request: Request) {
     const season = await resolveRequestSeason(request);
     if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
     const [settings, players, squad] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), loadSquad(auth.manager.id, season.id)]);
-    return NextResponse.json({ success: true, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players, squad }, { headers: { 'Cache-Control': 'no-store' } });
+    const stats = await getPlayerStats(season.id, players);
+    return NextResponse.json({ success: true, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not load Dino Coach squad.' }, { status: 500 });
   }
@@ -54,12 +56,15 @@ export async function POST(request: Request) {
 
   const priceByPlayer = new Map(players.map((player) => [player.id, player.price_dino_dollars]));
   if (selection.some((item) => !priceByPlayer.has(item.playerId))) return NextResponse.json({ success: false, error: 'Replace players who are no longer eligible for this season before saving.' }, { status: 400 });
-  const authoritativeSelection = selection.map((item) => ({ ...item, purchasePriceDinoDollars: priceByPlayer.get(item.playerId) ?? 0 }));
+  const previous = await loadSquad(auth.manager.id, season.id);
+  const ownedCosts = new Map((previous?.fantasy_squad_players || []).map((item) => [item.player_id, Number(item.purchase_price_dino_dollars)]));
+  const authoritativeSelection = selection.map((item) => ({ ...item, purchasePriceDinoDollars: ownedCosts.get(item.playerId) ?? priceByPlayer.get(item.playerId) ?? 0 }));
+  if (selection.some((item, index) => item.purchasePriceDinoDollars !== authoritativeSelection[index].purchasePriceDinoDollars)) return NextResponse.json({ success: false, error: 'Player prices changed. Reload before saving.' }, { status: 409 });
   const validation = validateSquadAssignments(authoritativeSelection, buildSquadSlots(settings.slot_counts), settings.budget_dino_dollars, { allowIncomplete: isDraft });
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
-  const { data, error } = await createServerClient().rpc('save_dino_coach_squad', {
+  const { data, error } = await createServerClient().rpc('save_dino_coach_squad_v2', {
     target_manager_id: auth.manager.id, target_season_id: season.id, target_round_id: season.is_current ? roundLock.roundId : null,
-    target_status: isDraft ? 'draft' : 'submitted', target_budget_dino_dollars: validation.budgetUsedDinoDollars,
+    target_status: isDraft ? 'draft' : 'submitted', expected_budget: validation.budgetUsedDinoDollars, expected_updated_at: typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt : null,
     selected_players: authoritativeSelection.map((item) => ({ player_id: item.playerId, slot_key: item.slotKey, assigned_role: item.assignedRole, position_type: item.positionType, is_captain: item.isCaptain, is_vice_captain: item.isViceCaptain })),
   });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: /closed|eligibility|paid/i.test(error.message) ? 403 : 400 });

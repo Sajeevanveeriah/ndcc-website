@@ -1,26 +1,72 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import Card, { CardContent } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Input';
-import { fantasyJsonFetch } from '@/lib/fantasy-browser';
+import { fantasyJsonFetch, fantasyBrowserClient } from '@/lib/fantasy-browser';
+import { formatDinoDollars as money } from '@/lib/dino-coach/domain';
 import { useSeasonParam } from './useSeasonParam';
+import WalletPanel from './WalletPanel';
+import { marketPreview } from '@/lib/dino-coach/wallet';
 
 export default function TransfersClient() {
-  const { season, query } = useSeasonParam();
-  const [data, setData] = useState<any>(null); const [outId, setOutId] = useState(''); const [inId, setInId] = useState(''); const [feedback, setFeedback] = useState<string | null>(null); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(true);
-  const load = () => fantasyJsonFetch<any>(`/api/fantasy/transfers${query}`).then(setData).catch((err) => setError(err.message)).finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setLoading(true); load(); }, [query]);
-  if (loading) return <Card><CardContent className="p-6"><p className="font-body text-content-secondary">Loading transfer options…</p></CardContent></Card>;
-  if (error?.includes('sign in')) return <Card><CardContent className="p-6"><p className="mb-4 font-body">Sign in to make transfers.</p><Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>;
-  if (error?.includes('manager profile')) return <Card><CardContent className="p-6"><p className="mb-4 font-body">You are signed in, but you need a fantasy manager profile before making transfers.</p><Link className="btn-primary" href="/fantasy/account">Create your fantasy manager profile</Link></CardContent></Card>;
-  const squadPlayers = data?.squad?.fantasy_squad_players ?? [];
-  const playerOptions = (data?.players ?? []).filter((player: any) => player.published_at).map((player: any) => ({ value: player.id, label: `${player.display_name} (${Number(player.price_dino_dollars).toLocaleString('en-AU')} Dino Dollars)` }));
-  const squadOptions = squadPlayers.map((item: any) => ({ value: item.player_id, label: `${item.fantasy_players?.display_name || 'Player'} (${item.slot_key})` }));
-  const transfer = async () => { setError(null); setFeedback(null); try { await fantasyJsonFetch<any>('/api/fantasy/transfers', { method: 'POST', body: JSON.stringify({ playerOutId: outId, playerInId: inId, season: season || undefined }) }); setFeedback('Free transfer saved with zero points penalty.'); setOutId(''); setInId(''); load(); } catch (err) { setError(err instanceof Error ? err.message : 'Could not save transfer.'); } };
-  return <div className="space-y-6"><Card><CardContent className="p-6 space-y-4"><p className="font-body text-content-secondary">Transfers are unlimited and free. The window is Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time.</p><p role="status" className={`font-semibold ${data?.windowOpen ? 'text-green-700' : 'text-amber-800'}`}>{data?.windowOpen ? 'Transfer window is open.' : 'Transfer window is closed.'}</p>{data && squadPlayers.length === 0 && <p className="font-body text-content-secondary">You have not submitted a squad yet, so there is nothing to transfer. <Link className="text-maroon-700 dark:text-maroon-200 font-semibold hover:underline" href="/fantasy/squad">Build your squad first</Link>.</p>}<div className="grid grid-cols-1 md:grid-cols-2 gap-4"><Select id="playerOut" label="Player out" value={outId} onChange={(e) => setOutId(e.target.value)} options={squadOptions} /><Select id="playerIn" label="Player in" value={inId} onChange={(e) => setInId(e.target.value)} options={playerOptions} /></div>{feedback && <p className="text-green-700 font-body">{feedback}</p>}{error && <p className="text-red-600 font-body">{error}</p>}<Button onClick={transfer} disabled={!data?.windowOpen || !outId || !inId}>Save free transfer</Button></CardContent></Card></div>;
+ const {query}=useSeasonParam();
+ const [data,setData]=useState<any>(null); const [out,setOut]=useState(''); const [incoming,setIncoming]=useState('');
+ const [slot,setSlot]=useState(''); const [team,setTeam]=useState(''); const [requested,setRequested]=useState('');
+ const [error,setError]=useState(''); const [feedback,setFeedback]=useState(''); const [busy,setBusy]=useState(false);
+ const load=useCallback(async()=>{try {setData(await fantasyJsonFetch<any>(`/api/fantasy/transfers${query}`));setError('');}catch(e){setError(e instanceof Error?e.message:'Market unavailable');}},[query]);
+ useEffect(()=>{void load();},[load]);
+ useEffect(()=>{
+  if(!data?.managerId||!fantasyBrowserClient) return;
+  const client=fantasyBrowserClient;
+  const channel=client.channel(`trades-${data.managerId}-${query}`)
+   .on('postgres_changes',{event:'*',schema:'public',table:'fantasy_trade_offers',filter:`proposer_id=eq.${data.managerId}`},()=>void load())
+   .on('postgres_changes',{event:'*',schema:'public',table:'fantasy_trade_offers',filter:`recipient_id=eq.${data.managerId}`},()=>void load()).subscribe();
+  const timer=setInterval(()=>{if(document.visibilityState==='visible') void load();},15000);
+  return ()=>{clearInterval(timer);void client.removeChannel(channel);};
+ },[data?.managerId,load,query]);
+ const act=async(action:string,extra:Record<string,unknown>={})=>{
+  if(busy) return; setBusy(true);setError('');setFeedback('');
+  try { await fantasyJsonFetch(`/api/fantasy/transfers${query}`,{method:'POST',body:JSON.stringify({action,playerOutId:out,playerInId:incoming,slotKey:slot,otherManagerId:team,expectedUpdatedAt:data?.squad?.updated_at,expectedPrice:Number(data?.players.find((p:any)=>p.id===incoming)?.price_dino_dollars||0),...extra})});
+   setFeedback(action==='sell'?'Player sold. Fill the empty slot and submit your squad before the deadline.':action==='buy'?'Player bought. Check leadership and submit your complete squad.':action==='propose'?'Trade offer sent. Nothing changes until the other manager accepts.':'Changes saved.');
+   setOut('');setIncoming('');setRequested('');setSlot(''); await load();
+  }catch(e){setError(e instanceof Error?e.message:'Action failed');}finally{setBusy(false);}
+ };
+ if(!data) return <div className="card p-6"><p role="status">{error||'Loading the player market...'}</p>{error&&<><Button onClick={()=>void load()}>Retry</Button><Link href="/fantasy/login">Sign in</Link></>}</div>;
+ const picks=data.squad?.fantasy_squad_players||[]; const owned=new Set(picks.map((p:any)=>p.player_id));
+ const refund=Number(picks.find((p:any)=>p.player_id===out)?.purchase_price_dino_dollars||0);
+ const cost=Number(data.players.find((p:any)=>p.id===incoming)?.price_dino_dollars||0);
+ const remaining=Number(data.settings.budget_dino_dollars)-Number(data.squad?.budget_used_dino_dollars||0);
+ const empty=data.slots.filter((s:any)=>!picks.some((p:any)=>p.slot_key===s.key));
+ const other=data.teams.find((t:any)=>t.managerId===team);
+ const name=(id:string)=>data.players.find((p:any)=>p.id===id)?.display_name||'Player no longer selectable';
+ const teamName=(id:string)=>id===data.managerId?'Your team':data.teams.find((t:any)=>t.managerId===id)?.teamName||'Other team';
+ const closed=!data.windowOpen||busy;
+ return <div className="space-y-6">
+  <WalletPanel query={query} refreshKey={data.squad?.updated_at} onExternalChange={()=>void load()}/>
+  <p role="status">{data.windowOpen?'The transfer window is open.':'The transfer window is closed.'} Monday 09:00 to before Saturday 11:00, Melbourne time. Round locks also apply.</p>
+  <p>Sales refund the original purchase cost shown below. Purchases use the current published price. Player market value is separate from available money. All transactions use virtual Dino Dollars.</p>
+  <section className="card p-5 space-y-4"><h2 className="text-xl font-display font-bold">Buy, sell or replace a player</h2>
+   {!data.squad&&<p><Link className="underline" href={`/fantasy/squad${query}`}>Build your first squad</Link> to use the market.</p>}
+   <div className="grid gap-4 md:grid-cols-2">
+    <label>Player to sell<select className="form-input mt-1 w-full" value={out} onChange={e=>setOut(e.target.value)}><option value="">Choose a player</option>{picks.map((p:any)=><option key={p.player_id} value={p.player_id}>{p.fantasy_players?.display_name} - refund {money(Number(p.purchase_price_dino_dollars))}</option>)}</select></label>
+    <label>Player to buy<select className="form-input mt-1 w-full" value={incoming} onChange={e=>setIncoming(e.target.value)}><option value="">Choose a player</option>{data.players.filter((p:any)=>!owned.has(p.id)&&p.published_at).map((p:any)=><option key={p.id} value={p.id}>{p.display_name} - {money(p.price_dino_dollars)}</option>)}</select></label>
+   </div>
+   <p aria-live="polite">Sale refund: {money(refund)}. Purchase: {money(cost)}. After replacement: {money(marketPreview(remaining,refund,cost))}.</p>
+   <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={closed||!out} onClick={()=>void act('sell')}>Sell player</Button><Button disabled={closed||!out||!incoming||remaining+refund<cost} onClick={()=>void act('swap')}>Sell and buy replacement</Button></div>
+   {empty.length>0&&<><label>Empty slot<select className="form-input mt-1 w-full" value={slot} onChange={e=>setSlot(e.target.value)}><option value="">Choose a slot</option>{empty.map((s:any)=><option key={s.key} value={s.key}>{s.label}</option>)}</select></label><Button disabled={closed||!slot||!incoming||remaining<cost} onClick={()=>void act('buy')}>Buy into empty slot</Button></>}
+   <p><Link href={`/fantasy/squad${query}`} className="underline">Open My squad</Link> to set leadership and submit after individual sales or purchases. An incomplete draft cannot be submitted.</p>
+  </section>
+  <section className="card p-5 space-y-4"><h2 className="text-xl font-display font-bold">Trade with another team</h2>
+   <p>Offer the selected outgoing player for one of another team&apos;s players. Each team receives its original purchase cost back and pays the published price of its incoming player. Both teams must remain within budget. There are no cash gifts or negotiated prices.</p>
+   <label>Team<select className="form-input mt-1 w-full" value={team} onChange={e=>{setTeam(e.target.value);setRequested('');}}><option value="">Choose a team</option>{data.teams.map((t:any)=><option key={t.managerId} value={t.managerId}>{t.teamName}</option>)}</select></label>
+   <label>Requested player<select className="form-input mt-1 w-full" value={requested} onChange={e=>setRequested(e.target.value)}><option value="">Choose their player</option>{other?.players.filter((p:any)=>!owned.has(p.playerId)).map((p:any)=><option key={p.playerId} value={p.playerId}>{p.displayName} - {money(Number(data.players.find((v:any)=>v.id===p.playerId)?.price_dino_dollars||0))}</option>)}</select></label>
+   <Button disabled={closed||!team||!requested||!out||data.squad?.status!=='submitted'} onClick={()=>void act('propose',{playerInId:requested})}>Propose trade</Button>
+   <p>Offers expire after seven days. Changed squads or prices require a new offer. Players remain available to other teams in the shared catalogue.</p>
+   <h3 className="font-semibold">Your trade offers</h3>
+   {data.offers.length===0&&<p>No offers yet.</p>}
+   {data.offers.map((o:any)=>{const pending=o.status==='pending'&&Date.parse(o.expires_at)>Date.now();const recipient=o.recipient_id===data.managerId;return <article key={o.id} className="border-t py-4 space-y-2"><p><strong>{teamName(o.proposer_id)}</strong>: {name(o.offered_player_id)} for {name(o.requested_player_id)} from <strong>{teamName(o.recipient_id)}</strong>.</p><p>{pending?'Pending':o.status==='pending'?'Expired':o.status}. Offered player&apos;s price: {money(Number(o.offered_price))}; requested player&apos;s price: {money(Number(o.requested_price))}.</p>{pending&&<div className="flex gap-3">{recipient&&<Button disabled={closed} onClick={()=>void act('accept',{offerId:o.id})}>Accept trade</Button>}<Button variant="secondary" disabled={busy} onClick={()=>void act(recipient?'decline':'cancel',{offerId:o.id})}>{recipient?'Decline':'Cancel offer'}</Button></div>}</article>;})}
+  </section>
+  <div aria-live="polite">{error&&<p role="alert" className="text-red-700">{error}</p>}{feedback&&<p>{feedback}</p>}</div>
+ </div>;
 }

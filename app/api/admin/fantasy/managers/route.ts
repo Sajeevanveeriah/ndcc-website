@@ -63,7 +63,11 @@ export async function PATCH(request:Request) {
       const [settings,players]=await Promise.all([getDinoCoachSettings(season.id),getActivePlayersWithLatestPrices(season.id)]);
       const prices=new Map(players.map(p=>[p.id,p.price_dino_dollars]));
       if(body.selection.some((p:any)=>!prices.has(p.playerId)))return fail('A selected player is no longer eligible.');
-      const picks=body.selection.map((p:any)=>({...p,purchasePriceDinoDollars:prices.get(p.playerId)}));
+      const {data:squads,error:squadError}=await db.from('fantasy_squads').select('round_id,fantasy_squad_players(player_id,purchase_price_dino_dollars)').eq('manager_id',body.id).eq('season_id',season.id).order('created_at',{ascending:false});
+      if(squadError)throw new Error(squadError.message);
+      const previous=squads?.find(s=>s.round_id===(body.roundId||null))||squads?.[0];
+      const costs=new Map((previous?.fantasy_squad_players||[]).map(p=>[p.player_id,Number(p.purchase_price_dino_dollars)]));
+      const picks=body.selection.map((p:any)=>({...p,purchasePriceDinoDollars:costs.get(p.playerId)??prices.get(p.playerId)}));
       const validation=validateSquadAssignments(picks,buildSquadSlots(settings.slot_counts),settings.budget_dino_dollars,{allowIncomplete:body.status==='draft'});
       if(!validation.valid)return fail(validation.errors.join(' '));
       budget=validation.budgetUsedDinoDollars;

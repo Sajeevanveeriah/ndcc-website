@@ -334,3 +334,12 @@
   - `npm run lint`
   - `npm run build`
 - **Commit message:** `feat(theme): apply light blue base background and align maroon palette`
+
+## Dino Coach wallets and team trades - 19 September 2026
+
+- Current-season starting budget increases to 15 million Dino Dollars. Saved player costs remain unchanged; sales refund purchase cost, and purchases use current published prices.
+- Wallet subscribes to authorised squad changes with reconnect polling; confirmed local transactions refresh it immediately.
+- Server-only, manager-locked purchase and sale functions reject stale squad versions and prices. Two-manager trades require recipient consent and commit both squads atomically. Offers expire after seven days.
+- Player cards show sourced batting, bowling and fielding totals, with periods and unknown values labelled. Website rules and future registration-email PDF point to the revised manual. Existing managers must accept rules revision 05.
+- Release: apply the wallet migration, then deploy the application. Do not send registration emails during the brief document deployment interval.
+- Rollback: redeploy the previous application and disable team selection while reviewing transactions. Retain trade offers and purchase costs. Restore prior function definitions from the preceding migration if required. Do not lower the 15 million budget automatically after managers have spent it.

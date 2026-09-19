@@ -1,5 +1,7 @@
 'use client';
 
+import PlayerStatsCard from './PlayerStatsCard';
+import type { PlayerStats } from '@/lib/dino-coach/player-stats';
 import { useMemo, useState } from 'react';
 import { CRICKET_ROLE_LABELS } from '@/lib/dino-coach/season-summary';
 import Badge from '@/components/ui/Badge';
@@ -16,6 +18,7 @@ export type PlayerListEntry = {
   published_at: string | null;
   total_points: number;
   matches_counted: number;
+  stats?: PlayerStats | null;
 };
 
 type SortKey = 'name' | 'price' | 'points' | 'form';
@@ -104,7 +107,9 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
           <p className="font-body text-content-secondary">No players match the current search and filters.</p>
         </div>
       ) : (
-        <Table>
+        <>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.map(player => <PlayerStatsCard key={player.id} player={player} />)}</div>
+        <details><summary className="cursor-pointer py-3 font-semibold">Compare prices and points in a table</summary><Table>
           <TableHead>
             <TableRow>
               <TableHeader>Player</TableHeader>
@@ -128,7 +133,8 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+        </Table></details>
+        </>
       )}
     </div>
   );

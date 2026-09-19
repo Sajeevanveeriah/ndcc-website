@@ -6,6 +6,9 @@ import React from 'react';
 import * as jsx from 'react/jsx-runtime';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+const walletExports = {};
+vm.runInNewContext(ts.transpileModule(readFileSync('lib/dino-coach/wallet.ts','utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: walletExports });
+
 const player = { id: 'eligible', display_name: 'Eligible player', role: 'BAT', price_dino_dollars: 101000, published_at: '2026-09-16' };
 const slot = { key: 'XI_BAT_1', role: 'BAT', positionType: 'starter', label: 'Batter 1' };
 const pick = { slotKey: slot.key, playerId: 'excluded', displayName: 'Removed player', assignedRole: 'BAT', positionType: 'starter', purchasePriceDinoDollars: 100001 };
@@ -25,6 +28,9 @@ function render(selection, readonlyMode = false) {
     '@/components/ui/Button': { default: ({ children, disabled }) => React.createElement('button', { disabled }, children) },
     '@/components/ui/Card': { default: div, CardContent: div },
     '@/lib/fantasy-browser': {},
+    './WalletPanel': { default: () => null },
+    './PlayerStatsCard': { default: ({ player }) => React.createElement('div', null, player.display_name) },
+    '@/lib/dino-coach/wallet': walletExports,
     './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
   };
   vm.runInNewContext(source, { exports, require: (name) => {
@@ -37,15 +43,15 @@ function render(selection, readonlyMode = false) {
 const excluded = render([pick]);
 assert.match(excluded, /Removed player/);
 assert.match(excluded, /No longer eligible for this season/);
-assert.match(excluded, />Remove<\/button>/);
+assert.match(excluded, />Sell \/ remove<\/button>/);
 assert.match(excluded, /<button disabled="">Submit squad/);
 assert.match(excluded, /<button disabled="">Save draft/);
 const eligible = render([{ ...pick, playerId: player.id }]);
 assert.doesNotMatch(eligible, /Replace ineligible players/);
-assert.match(eligible, /9,899,000 Dino Dollars/);
-assert.match(eligible, /101,000 Dino Dollars/);
+assert.match(eligible, /9,899,999 Dino Dollars/);
+assert.match(eligible, /100,001 Dino Dollars/);
 assert.match(eligible, /<button>Submit squad/);
 const historical = render([{ ...pick, playerId: player.id }], true);
 assert.match(historical, /100,001 Dino Dollars/);
-assert.doesNotMatch(historical, /Submit squad/);
-console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets use current prices, historical values are preserved');
+assert.doesNotMatch(historical, /<button[^>]*>Submit squad/);
+console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');

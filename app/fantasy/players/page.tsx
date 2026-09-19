@@ -1,3 +1,4 @@
+import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
 import type { Metadata } from 'next';
 import Card, { CardContent } from '@/components/ui/Card';
 import { getActivePlayersWithLatestPrices, type FantasyPlayerWithPrice } from '@/lib/fantasy-game';
@@ -31,9 +32,11 @@ async function getPlayers(season: FantasySeason | null): Promise<{ players: Play
     } catch (err) {
       console.error('[fantasy/players] Failed to load published points; listing roster without points:', err);
     }
+    const stats = await getPlayerStats(season.id, roster);
     return {
       players: roster.map((player) => ({
         ...player,
+        stats: stats.get(player.id) ?? null,
         total_points: pointsByPlayer.get(player.id)?.total ?? 0,
         matches_counted: pointsByPlayer.get(player.id)?.matches ?? 0,
       })),
