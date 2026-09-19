@@ -25,15 +25,13 @@ export const FANTASY_RULE_SECTIONS = [
     'Exactly one captain and one vice-captain are required. Both must be in the playing XI and both receive the same 2x multiplier.',
     'Bench players score zero. The squad budget is 15,000,000 Dino Dollars.',
   ] },
-  { title: 'Money and player trades', items: [
+  { title: 'Money and the player pool', items: [
+    'Buy players from the shared player pool and sell them back to that pool. Transfers between managers are not available. The same cricketer can appear in several teams.',
     'The starting budget is 15,000,000 Dino Dollars for existing and new teams. Existing purchase costs are preserved, giving existing teams an extra 5,000,000 available to spend.',
     'The Team wallet shows saved spending and saved money available. My squad also previews the balance as you select or remove players. Save draft or Submit squad confirms those edits.',
     'Buying charges the current published price. Selling refunds the original purchase cost displayed for that player. Price changes affect market value, not your cash balance or retained purchase costs.',
     'Use Transfers to sell a player, buy into an empty slot or sell and buy a replacement together. Individual sales and purchases leave a draft: fill all 15 slots, check captain and vice-captain and submit before the round deadline.',
-    'A trade exchanges one player from each of two submitted teams. The receiving manager must accept. Each team receives its original purchase cost back and pays the published price of its incoming player. Both teams must stay within budget and cannot receive a duplicate player.',
-    'Offers expire after seven days. Either a changed squad or a changed quoted price requires a new offer. The proposer can cancel and the recipient can decline. Acceptance applies both exchanges together; a failed trade changes neither team.',
-    'The player catalogue is shared: a cricketer can appear in several managers’ squads. Trades do not create exclusive player ownership. Cash gifts and negotiated prices are not supported.',
-    'The weekly window, season controls, account eligibility and round locks apply to sales, purchases and accepted trades. Submitted managers must make squad edits within the transfer window too.',
+    'The weekly window, season controls, account eligibility and round locks apply to sales, purchases and replacements. Submitted managers must make squad edits within the transfer window too.',
     'Player cards show recorded batting, bowling and fielding totals with their source period. Historical totals are shown until published match records exist for the selected season. Not recorded means unknown, not zero; cards do not invent ratings out of 100.',
   ] },
   { title: 'Scoring', items: [

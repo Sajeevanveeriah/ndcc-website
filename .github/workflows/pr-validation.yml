@@ -48,6 +48,7 @@ jobs:
       - run: node scripts/test-dino-admin-api.mjs
       - run: node scripts/test-dino-manager-interactions.mjs
       - run: node scripts/test-dino-wallet.cjs
+      - run: node scripts/test-dino-pool-only.cjs
       - run: node scripts/test-dino-squad-render.mjs
       - run: node scripts/test-dino-feedback.mjs
       - run: npm run test:dino-season-summary

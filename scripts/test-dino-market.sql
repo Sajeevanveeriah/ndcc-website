@@ -43,22 +43,18 @@ BEGIN
  PERFORM public.dino_market_action(ma,sid,null,'buy',null,ids[15],keys[15],av,200000);
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  PERFORM public.save_dino_coach_squad_v2(ma,sid,null,'submitted',a,av,1600000);
- offer:=public.dino_trade_action(ma,sid,null,'propose',null,mb,ids[1],ids[16]);
  BEGIN
-  PERFORM public.dino_trade_action(ma,sid,null,'accept',offer);
-  RAISE EXCEPTION 'Proposer accepted own offer';
- EXCEPTION WHEN raise_exception THEN IF SQLERRM='Proposer accepted own offer' THEN RAISE;END IF;END;
- PERFORM public.dino_trade_action(mb,sid,null,'accept',offer);
- IF NOT EXISTS(SELECT 1 FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id=ids[16] AND is_captain) OR NOT EXISTS(SELECT 1 FROM public.fantasy_squad_players WHERE squad_id=qb AND player_id=ids[1] AND is_captain) THEN RAISE EXCEPTION 'Trade did not exchange both players and retain leadership';END IF;
- BEGIN
-  PERFORM public.dino_trade_action(mb,sid,null,'accept',offer);
-  RAISE EXCEPTION 'Trade executed twice';
- EXCEPTION WHEN raise_exception THEN IF SQLERRM='Trade executed twice' THEN RAISE;END IF;END;
+  PERFORM public.dino_trade_action(ma,sid,null,'propose',null,mb,ids[1],ids[16]);
+  RAISE EXCEPTION 'Inter-team trading still enabled';
+ EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM <> 'Inter-team trades are no longer available. Sell players back to the player pool instead.' THEN RAISE; END IF;
+ END;
+ IF (SELECT count(*) FROM public.fantasy_trade_offers WHERE season_id=sid)<>0 THEN RAISE EXCEPTION 'Disabled trade created an offer'; END IF;
  BEGIN
   PERFORM public.save_dino_coach_squad_v2(ma,sid,null,'submitted',a,'2000-01-01',1600000);
   RAISE EXCEPTION 'Stale save accepted';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM='Stale save accepted' THEN RAISE;END IF;END;
  IF has_function_privilege('authenticated','public.dino_trade_action(uuid,uuid,uuid,text,uuid,uuid,uuid,uuid)','EXECUTE') THEN RAISE EXCEPTION 'Browser can bypass API authentication';END IF;
- RAISE NOTICE 'PASS market purchases, sales, preserved cost, quote checks, two-team consent, leadership, replay rejection and stale saves';
+ RAISE NOTICE 'PASS market purchases, sales, preserved cost, quote checks, disabled inter-team trading and stale saves';
 END $$;
 ROLLBACK;
