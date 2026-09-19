@@ -13,6 +13,13 @@ export default function ClubSong() {
       <div className="container-width">
         <span className="section-eyebrow">Maroon and blue</span>
         <h2 id="club-song-title" className="section-title">Our Club Song</h2>
+        <div className="mt-6 max-w-lg font-body text-content-primary">
+          <h3 id="club-song-audio-title" className="mb-3 text-lg font-bold">Listen to The Mighty Dinos</h3>
+          <audio controls preload="metadata" aria-labelledby="club-song-audio-title" className="w-full">
+            <source src="/audio/20260920-The-Mighty-Dinos-Rev00.mp3" type="audio/mpeg" />
+            Your browser does not support audio playback. <a href="/audio/20260920-The-Mighty-Dinos-Rev00.mp3">Listen to the club song</a>.
+          </audio>
+        </div>
         <div className="mt-8 grid items-start gap-10 lg:grid-cols-2">
           <div className="space-y-7 font-body text-content-primary">
             {verses.map((verse) => (
