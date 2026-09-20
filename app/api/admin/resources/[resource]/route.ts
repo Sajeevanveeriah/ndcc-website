@@ -11,6 +11,7 @@ import { isFullAccessRole, RESOURCE_PERMISSIONS } from '@/lib/auth/permissions';
 import { canDeleteResource } from '@/lib/auth/resource-delete';
 import { normaliseGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
+import { normaliseMediaUrl } from '@/lib/media-url';
 
 export const dynamic = 'force-dynamic';
 const EDITORIAL_TABLES = new Set(['news', 'publications', 'events', 'content_blocks']);
@@ -258,7 +259,8 @@ function sanitizePayload(config: ResourceConfig, raw: Record<string, unknown>) {
       && config.table === 'season_appointments'
       && (value === null || value === '')
     ) continue;
-    payload[field] = value;
+    payload[field] = typeof value === 'string' && ['image_url', 'cover_image_url', 'logo_url', 'player_image_url'].includes(field)
+      ? normaliseMediaUrl(value) : value;
   }
   return payload;
 }

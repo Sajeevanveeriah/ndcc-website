@@ -1,6 +1,7 @@
+import { cache } from 'react';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 
-export async function isDinoCoachPublic(): Promise<boolean> {
+async function isDinoCoachPublicUncached(): Promise<boolean> {
   if (!isServerSupabaseConfigured()) return false;
 
   try {
@@ -24,3 +25,6 @@ export async function isDinoCoachPublic(): Promise<boolean> {
     return false;
   }
 }
+
+// Request-scoped deduplication for navigation, footer and page sections.
+export const isDinoCoachPublic = cache(isDinoCoachPublicUncached);

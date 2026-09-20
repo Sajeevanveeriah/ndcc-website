@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getClubSettings } from '@/lib/club-settings';
 import { getContentBlocks, type ContentBlock } from '@/lib/content-blocks';
 import { getPageLinkCards, type PageLinkCard } from '@/lib/structured-content';
@@ -31,4 +32,5 @@ async function getSiteChromeDataUncached(): Promise<SiteChromeData> {
 // Uncached live read: the footer/navbar chrome must reflect admin edits at
 // request time. Caching this snapshot let a build-phase fallback render stick
 // in the Data Cache and alternate with live content in production.
-export const getSiteChromeData = getSiteChromeDataUncached;
+// React cache deduplicates this render only, never across requests.
+export const getSiteChromeData = cache(getSiteChromeDataUncached);

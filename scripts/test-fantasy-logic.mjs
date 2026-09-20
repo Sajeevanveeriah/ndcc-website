@@ -25,15 +25,17 @@ function check(label, condition) {
   }
 }
 
-function stageModule(name) {
-  const source = readFileSync(join(repoRoot, 'lib', name), 'utf8').replace(/@\/lib\/([\w-]+)/g, './$1.ts');
-  writeFileSync(join(tmpDir, name), source);
+function stageModule(name, outName = name) {
+  const source = readFileSync(join(repoRoot, 'lib', name), 'utf8').replace(/@\/lib\/([\w-]+)/g, './$1.ts')
+    .replace("from './server/timeout-fetch'", "from './timeout-fetch.ts'");
+  writeFileSync(join(tmpDir, outName), source);
 }
 
 rmSync(tmpDir, { recursive: true, force: true });
 mkdirSync(tmpDir, { recursive: true });
 
 try {
+  stageModule('server/timeout-fetch.ts', 'timeout-fetch.ts');
   for (const name of ['fantasy-scoring.ts', 'fantasy-game.ts', 'fantasy-leaderboard.ts', 'supabase-server.ts']) {
     stageModule(name);
   }

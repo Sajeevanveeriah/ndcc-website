@@ -1,34 +1,7 @@
+import { createTimeoutFetch } from './server/timeout-fetch';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_FETCH_TIMEOUT_MS = process.env.NEXT_PHASE === 'phase-production-build' ? 1000 : 7500;
-
-function createTimeoutFetch(timeoutMs = SUPABASE_FETCH_TIMEOUT_MS): typeof fetch {
-  return async (input, init = {}) => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    const upstreamSignal = init.signal;
-
-    if (upstreamSignal) {
-      if (upstreamSignal.aborted) {
-        controller.abort();
-      } else {
-        upstreamSignal.addEventListener('abort', () => controller.abort(), { once: true });
-      }
-    }
-
-    try {
-      // cache: 'no-store' is load-bearing: Next.js patches global fetch with
-      // its Data Cache, and repeated identical Supabase GETs within one
-      // invocation can otherwise return the FIRST response (observed in
-      // production on 2026-07-16: fantasy round existence checks and job
-      // state reads returned stale rows, failing 10 game imports on
-      // duplicate keys). Database API reads must never be cached.
-      return await fetch(input, { ...init, cache: 'no-store', signal: controller.signal });
-    } finally {
-      clearTimeout(timeout);
-    }
-  };
-}
 
 export type SupabaseServerReadiness = {
   nextPublicSupabaseUrlPresent: boolean;
@@ -62,7 +35,7 @@ export function isPublicSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
-export function createServerClient(options: { fetchTimeoutMs?: number | null; actorId?: string } = {}) {
+export function createServerClient(options: { fetchTimeoutMs?: number | null; actorId?: string; retryReads?: boolean } = {}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -72,7 +45,7 @@ export function createServerClient(options: { fetchTimeoutMs?: number | null; ac
     throw error;
   }
 
-  const clientOptions = options.fetchTimeoutMs === null ? {} : { fetch: createTimeoutFetch(options.fetchTimeoutMs) };
+  const clientOptions = options.fetchTimeoutMs === null ? {} : { fetch: createTimeoutFetch(options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS, options.retryReads) };
 
   return createClient(supabaseUrl, serviceRoleKey, {
     global: { ...clientOptions, ...(options.actorId ? { headers: { 'x-ndcc-actor': options.actorId } } : {}) },
@@ -95,7 +68,7 @@ export function createPublicServerClient() {
 
   return createClient(supabaseUrl, anonKey, {
     global: {
-      fetch: createTimeoutFetch(),
+      fetch: createTimeoutFetch(SUPABASE_FETCH_TIMEOUT_MS, true),
     },
     auth: {
       autoRefreshToken: false,

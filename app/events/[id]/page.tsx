@@ -17,7 +17,7 @@ export const fetchCache = 'force-no-store';
 
 const getEvent = cache(async (id: string): Promise<Event | null> => {
   if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) return null;
-  const { data, error } = await createServerClient().from('events').select('*')
+  const { data, error } = await createServerClient({ retryReads: true }).from('events').select('*')
     .eq('id', id).eq('published', true).maybeSingle();
   if (error) throw new Error('Event temporarily unavailable');
   return data as Event | null;

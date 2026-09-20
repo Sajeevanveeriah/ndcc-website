@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createPublicServerClient, isPublicSupabaseConfigured } from '@/lib/supabase-server';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import { normaliseSponsorMarqueeSpeed } from '@/lib/sponsor-marquee';
@@ -73,4 +74,5 @@ async function getClubSettingsUncached(): Promise<ClubSettings> {
 
 // Uncached live read: club settings are edited through admin, so they must be
 // queried at request time rather than served from the build/Data Cache.
-export const getClubSettings = getClubSettingsUncached;
+// React cache deduplicates this render only, never across requests.
+export const getClubSettings = cache(getClubSettingsUncached);

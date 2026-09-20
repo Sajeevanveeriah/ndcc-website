@@ -64,13 +64,14 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
+  const visibility = Promise.all([isDinoCoachPublic(), isRafflePublic()]);
   const { settings, acknowledgement: acknowledgementBlock, quickLinks: cmsQuickLinks, getInvolvedLinks: cmsGetInvolvedLinks, affiliationLinks: cmsAffiliationLinks } = await getSiteChromeData();
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const [dinoCoachEnabled, raffleEnabled] = await Promise.all([isDinoCoachPublic(), isRafflePublic()]);
+  const [dinoCoachEnabled, raffleEnabled] = await visibility;
   const hideDisabledFeatures = (link: PageLinkCard) =>
     (isCookieDoughOpen() || !isCookieDoughLink(link.href)) && (dinoCoachEnabled || !link.href.startsWith('/fantasy')) && (raffleEnabled || !link.href.startsWith('/raffle'));
   const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledFeatures);

@@ -1,7 +1,9 @@
 import { supabase } from '@/lib/supabase';
+import { prepareCmsImage } from '@/lib/prepare-cms-image';
 
 /** Bytes go directly to private storage, outside the hosting body-size limit. */
 export async function uploadCmsMedia(file: File): Promise<{ path: string }> {
+  file = await prepareCmsImage(file);
   async function request(body: Record<string, unknown>) {
     const response = await fetch('/api/admin/media/upload', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-NDCC-CSRF': '1' },

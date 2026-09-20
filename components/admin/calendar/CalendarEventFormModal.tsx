@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
@@ -84,7 +85,7 @@ type CalendarEventFormModalProps = {
   form: CalendarEventForm;
   errors: Record<string, string>;
   saving: boolean;
-  onChange: (form: CalendarEventForm) => void;
+  onChange: React.Dispatch<React.SetStateAction<CalendarEventForm>>;
   onClose: () => void;
   onSave: () => void;
 };
@@ -124,7 +125,8 @@ export default function CalendarEventFormModal({
   onClose,
   onSave,
 }: CalendarEventFormModalProps) {
-  const set = (patch: Partial<CalendarEventForm>) => onChange({ ...form, ...patch });
+  const [uploading, setUploading] = useState(false);
+  const set = (patch: Partial<CalendarEventForm>) => onChange((current) => ({ ...current, ...patch }));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editing ? 'Edit Calendar Event' : 'New Calendar Event'} size="xl">
@@ -236,6 +238,7 @@ export default function CalendarEventFormModal({
           label="Image URL (optional)"
           value={form.image_url}
           onChange={(value) => set({ image_url: value })}
+          onUploadingChange={setUploading}
           placeholder="https://example.com/event.jpg"
         />
 
@@ -296,9 +299,10 @@ export default function CalendarEventFormModal({
           />
         </div>
 
+        {form.status !== 'published' && <p className="text-sm text-content-muted">Draft and archived events are hidden from the public calendar. Choose Published to make this event visible.</p>}
         <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={onSave} isLoading={saving}>
+          <Button variant="primary" onClick={onSave} isLoading={saving} disabled={uploading}>
             {editing ? 'Update Event' : 'Create Event'}
           </Button>
         </div>
