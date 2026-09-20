@@ -2,6 +2,7 @@
 
 import { useState, type ImgHTMLAttributes, type ReactNode } from 'react';
 import Image, { type ImageProps } from 'next/image';
+import { normaliseMediaUrl } from '@/lib/media-url';
 
 type SafeImageProps = ImageProps & {
   fallback: ReactNode;
@@ -25,6 +26,7 @@ const NEXT_IMAGE_ONLY_PROPS = [
 ] as const;
 
 export default function SafeImage({ fallback, src, alt, ...props }: SafeImageProps) {
+  src = typeof src === 'string' ? normaliseMediaUrl(src) : src;
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const currentSrc = typeof src === 'string' ? src : null;
 

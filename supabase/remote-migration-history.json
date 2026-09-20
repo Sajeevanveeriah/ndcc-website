@@ -577,6 +577,18 @@
     {
       "version": "20260918005532",
       "name": "dino_feedback_outbox"
+    },
+    {
+      "version": "20260919000620",
+      "name": "dino_wallet_trades"
+    },
+    {
+      "version": "20260919013919",
+      "name": "disable_dino_team_trades"
+    },
+    {
+      "version": "20260920093908",
+      "name": "events_calendar_sync"
     }
   ],
   "localOnlyApplied": []

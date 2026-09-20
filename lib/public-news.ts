@@ -45,7 +45,7 @@ function filterPublicNews(records: PublicNewsRecord[]) {
 }
 
 async function getPublishedNewsUncached(options?: { id?: string; limit?: number }): Promise<PublicNewsRecord[] | PublicNewsRecord | null> {
-  const supabase = createServerClient();
+  const supabase = createServerClient({ retryReads: true });
   const id = options?.id;
   const limit = options?.limit;
   const now = new Date().toISOString();

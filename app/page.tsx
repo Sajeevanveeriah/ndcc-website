@@ -6,7 +6,7 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
+import { cache, Suspense } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
@@ -43,6 +43,9 @@ import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
+
+// Shared only for this render; the next request still reads live CMS content.
+const getHomeBlocks = cache(() => getContentBlocks(['home.hero', 'home.juniors', 'home.quicklinks', 'home.season_status', 'home.welcome']));
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -105,7 +108,7 @@ function HeroView({
 }
 
 async function HeroSection() {
-  const blocks = await getContentBlocks(['home.hero']);
+  const blocks = await getHomeBlocks();
   return (
     <HeroView
       title={blocks['home.hero']?.title || CLUB_NAME}
@@ -195,7 +198,7 @@ function QuickLinksSkeleton() {
 
 async function QuickLinksSection() {
   const [blocks, quickLinks] = await Promise.all([
-    getContentBlocks(['home.quicklinks']), getPageLinkCards('home', 'quick_links'),
+    getHomeBlocks(), getPageLinkCards('home', 'quick_links'),
   ]);
   return (
     <section className="section-padding bg-surface-card" aria-labelledby="explore-club-title">
@@ -272,8 +275,11 @@ const SEASON_STATUS_DEFAULT_BODY = `Follow the latest ${CLUB_NICKNAME} season up
 
 async function SeasonStatusSection() {
   const [blocks, currentSeason] = await Promise.all([
-    getContentBlocks(['home.season_status']),
-    getCurrentClubSeason(),
+    getHomeBlocks(),
+    getCurrentClubSeason().catch((error) => {
+      console.warn('[home] Season status temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
+      return null;
+    }),
   ]);
   const block = blocks['home.season_status'];
   return (
@@ -315,7 +321,7 @@ function ClubUpdatesSkeleton() {
 
 async function ClubUpdatesSection() {
   const [blocks, news, publications] = await Promise.all([
-    getContentBlocks(['home.welcome']),
+    getHomeBlocks(),
     getLatestNews(),
     getPublishedPublications({ limit: 2 }).catch(() => null),
   ]);
@@ -707,7 +713,7 @@ const JUNIORS_DEFAULT_TITLE = `Ready to join the ${CLUB_NICKNAME}?`;
 const JUNIORS_DEFAULT_BODY = 'Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.';
 
 async function JuniorsCtaSection() {
-  const blocks = await getContentBlocks(['home.juniors']);
+  const blocks = await getHomeBlocks();
   return (
     <JuniorsCtaView
       title={blocks['home.juniors']?.title || JUNIORS_DEFAULT_TITLE}

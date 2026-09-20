@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Input from '@/components/ui/Input';
 import { uploadCmsMedia } from '@/lib/admin-media-upload';
+import { normaliseMediaUrl } from '@/lib/media-url';
 
 interface ImageUploadFieldProps {
   id: string;
@@ -35,16 +36,16 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
 
   async function uploadFile(file: File) {
     setError(null);
-    const MAX_CLIENT_BYTES = (isPdf ? 10 : 4) * 1024 * 1024; // matches server limits
+    const MAX_CLIENT_BYTES = (isPdf ? 10 : file.type === 'image/gif' ? 4 : 20) * 1024 * 1024; // images are resized before the server's 4 MB limit
     if (file.size > MAX_CLIENT_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(1);
-      setError(`File is too large (${sizeMb} MB). Maximum is ${isPdf ? 10 : 4} MB. ${isPdf ? 'Compress the PDF and try again.' : 'Compress the image or export at a lower resolution and try again.'}`);
+      setError(`File is too large (${sizeMb} MB). Maximum is ${MAX_CLIENT_BYTES / 1024 / 1024} MB. Please export a smaller file and try again.`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     setUploading(true);
     onUploadingChange?.(true);
-    setProgressText('Uploading and validating file...');
+    setProgressText('Preparing, uploading and validating file...');
 
     try {
       const payload = await uploadCmsMedia(file);
@@ -65,7 +66,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
     }
   }
 
-  const trimmedValue = value.trim();
+  const trimmedValue = normaliseMediaUrl(value);
   const invalidPathWarning = trimmedValue && !isValidBrowserImagePath(trimmedValue)
     ? 'Image path should be a full https:// URL or a browser path beginning with /images/.'
     : null;
@@ -80,7 +81,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         onChange={(event) => {
           setError(null);
           setProgressText('');
-          onChange(event.target.value);
+          onChange(normaliseMediaUrl(event.target.value));
         }}
       />
       <div className="flex flex-wrap items-center gap-2">
@@ -92,7 +93,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         >
           {uploading ? 'Uploading...' : isPdf ? 'Upload PDF' : 'Upload image'}
         </button>
-        <p className="text-xs text-content-muted">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP, GIF · max 4 MB'}</p>
+        <p className="text-xs text-content-muted">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP up to 20 MB, resized automatically. GIF up to 4 MB.'}</p>
       </div>
       <input
         ref={fileInputRef}

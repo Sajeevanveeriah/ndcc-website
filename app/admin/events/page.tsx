@@ -41,6 +41,7 @@ export default function AdminEventsPage() {
   const [editingRevision, setEditingRevision] = useState<number | undefined>();
   const [form, setForm] = useState(emptyEvent);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -113,6 +114,7 @@ export default function AdminEventsPage() {
   };
 
   const handleSave = async () => {
+    if (uploading) return;
     if (!validateForm()) return;
 
     setSaving(true);
@@ -473,7 +475,8 @@ export default function AdminEventsPage() {
             id="event-image-url"
             label="Image URL (optional)"
             value={asSafeString(form.image_url)}
-            onChange={(value) => setForm({ ...form, image_url: value })}
+            onChange={(value) => setForm((current) => ({ ...current, image_url: value }))}
+            onUploadingChange={setUploading}
             placeholder="https://example.com/event-image.jpg"
           />
           <label className="flex items-center gap-2 cursor-pointer">
@@ -483,14 +486,14 @@ export default function AdminEventsPage() {
               onChange={(e) => setForm({ ...form, published: e.target.checked })}
               className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
-            <span className="text-sm font-body text-content-secondary">Published</span>
+            <span className="text-sm font-body text-content-secondary">Published (also appears in the club calendar)</span>
           </label>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSave} isLoading={saving}>
+            <Button variant="primary" onClick={handleSave} isLoading={saving} disabled={uploading}>
               {editingId ? 'Update Event' : 'Create Event'}
             </Button>
           </div>

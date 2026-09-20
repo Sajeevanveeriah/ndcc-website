@@ -117,7 +117,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <RouteSettle />
           <Navbar />
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
-          <Footer />
+          {/* Footer queries must not delay the first paint of every public page. */}
+          <Suspense fallback={null}><Footer /></Suspense>
           <Suspense fallback={null}><SiteAnalytics /></Suspense>
         </ThemeProvider>
       </body>

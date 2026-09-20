@@ -58,7 +58,7 @@ export async function getPublishedPublications(options?: {
   offset?: number;
 }): Promise<PublicPublicationRecord[]> {
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ retryReads: true });
     const now = new Date().toISOString();
     let query = supabase
       .from('publications')
@@ -85,7 +85,7 @@ export async function getPublishedPublications(options?: {
 /** Fetch one published publication by slug, or null. */
 export async function getPublishedPublicationBySlug(slug: string): Promise<PublicPublicationRecord | null> {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
-  const supabase = createServerClient();
+  const supabase = createServerClient({ retryReads: true });
   const now = new Date().toISOString();
   const { data, error } = await supabase.from('publications').select(columns)
     .eq('slug', slug).eq('published', true)

@@ -102,7 +102,10 @@ export default async function FixturesPage() {
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
     getPlayHQPublicData(),
     getPageLinkCards('fixtures', 'team_links'),
-    getCurrentClubSeason(),
+    getCurrentClubSeason().catch((error) => {
+      console.warn('[fixtures] Current season temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
+      return null;
+    }),
   ]);
   const { upcoming, results } = splitFixtures(playhq.fixtures);
   const upcomingByGrade = groupByGrade(upcoming);
