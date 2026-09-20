@@ -197,7 +197,11 @@ try {
   // Stale-read hardening (production evidence 2026-07-16: cached Supabase
   // GETs failed 10 game imports on duplicate round keys).
   const supabaseServer = readFileSync(join(repoRoot, 'lib/supabase-server.ts'), 'utf8');
-  check('supabase server fetch is never cached', supabaseServer.includes("cache: 'no-store'"));
+  const timeoutFetch = readFileSync(join(repoRoot, 'lib/server/timeout-fetch.ts'), 'utf8');
+  check('supabase server fetch is never cached',
+    supabaseServer.includes("import { createTimeoutFetch } from './server/timeout-fetch'")
+      && supabaseServer.includes('fetch: createTimeoutFetch(')
+      && timeoutFetch.includes("cache: 'no-store'"));
   check('ensureRound adopts an existing round on duplicate-key conflict',
     syncSource.includes("error.code === '23505'") && syncSource.includes('readRound'));
 
