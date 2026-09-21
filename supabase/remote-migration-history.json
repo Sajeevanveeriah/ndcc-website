@@ -589,6 +589,10 @@
     {
       "version": "20260920093908",
       "name": "events_calendar_sync"
+    },
+    {
+      "version": "20260921061157",
+      "name": "meeting_minute_documents"
     }
   ],
   "localOnlyApplied": []
