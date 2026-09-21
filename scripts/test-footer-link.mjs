@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 const source = readFileSync(resolve(process.cwd(), 'components/layout/Footer.tsx'), 'utf8');
 
 const checks = [
-  ['portfolio href', source.includes('href="https://sajeevanveeriah.github.io/"')],
+  ['portfolio href', source.includes('href="https://sv.sajeevanveeriah.workers.dev/"')],
   ['visible label', source.includes('Built by Sajeevan Veeriah')],
   ['new tab', source.includes('target="_blank"')],
   ['noopener noreferrer', source.includes('rel="noopener noreferrer"')],
