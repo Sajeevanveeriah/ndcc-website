@@ -97,7 +97,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           setDisplayName(nextDisplayName);
           setTeamName(nextTeamName);
           setDateOfBirth(result.manager?.date_of_birth || metadataDob);
-          setRulesAccepted(Boolean(metadataRules));
+          setRulesAccepted(false);
 
           if (!result.manager && metadataDisplayName && metadataTeamName && metadataDob && metadataRules) {
             setAutoCreating(true);
@@ -121,21 +121,26 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     loadAccount().catch((err) => setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not load your Dino Coach account.' }));
   }, [mode]);
 
+  const managerId = manager?.id;
   useEffect(() => {
-    if (mode !== 'account' || !manager) return;
+    if (mode !== 'account' || !managerId) return;
     let cancelled = false;
     const refresh = async () => {
       try {
         const result = await fantasyJsonFetch<any>('/api/fantasy/manager');
-        if (!cancelled) setEntry(result.entry);
+        if (!cancelled) {
+          setEntry(result.entry);
+          setManager(result.manager);
           setContacts(result.reactivationContacts || []);
+        }
       } catch { /* Keep the last confirmed status and allow manual refresh. */ }
     };
     void refresh();
-    if (entry?.status !== 'pending') return () => { cancelled = true; };
-    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 5000);
-    return () => { cancelled = true; window.clearInterval(timer); };
-  }, [mode, manager, entry?.status]);
+    const onFocus = () => { void refresh(); };
+    window.addEventListener('focus', onFocus);
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, entry?.status === 'pending' ? 5000 : 30000);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', onFocus); };
+  }, [mode, managerId, entry?.status]);
 
   const saveProfile = async () => {
     const result = await fantasyJsonFetch<any>('/api/fantasy/manager', {
@@ -291,7 +296,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode === 'account' && manager && rulesVersion && manager.rules_version_accepted !== rulesVersion && <p role="status" className="rounded-lg border p-4">Dino Coach now has a 15 million Dino Dollar budget, a live wallet and sales back to the player pool. Inter-team trades are unavailable. Read the updated rules, tick the acceptance box and save your profile before changing your team.</p>}
         {mode !== 'login' && <label className="flex items-start gap-3 text-sm font-body"><input className="mt-1 h-5 w-5" type="checkbox" checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} required /><span>I am at least 18 and accept the current <Link className="font-semibold text-maroon-700 hover:underline" href="/fantasy/rules">Dino Coach rules</Link>{rulesVersion ? ` (${rulesVersion})` : ''}.</span></label>}
         {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? (manager.deleted_at ? 'Your team is deleted. Contact the club to restore it.' : 'Your manager profile is registered.') : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
-        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.fee_waived ? 'Complimentary entry - no payment required.' : entry?.is_demo ? 'Demo access enabled - no payment required. Demo teams are not eligible for prizes.' : entry?.status === 'paid' ? 'Entry paid - you can pick your team.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
+        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.fee_waived ? 'Complimentary entry - no payment required.' : entry?.is_demo ? 'Demo access enabled - no payment required. Demo teams are not eligible for prizes.' : entry?.status === 'paid' ? 'Entry paid.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
         {mode === 'account' && manager && !manager.first_squad_completed_at && <p className="text-sm">Complete your first 15-player squad by {formatInitialDeadline(manager.initial_squad_due_at)}. {new Date(manager.initial_squad_due_at).getTime() <= Date.now() && <span>Your team needs reactivation. <a className="underline" href={`mailto:${contacts.join(',')}?subject=${encodeURIComponent('Dino Coach reactivation - '+manager.team_name)}`}>Email Saj and Rick to reactivate it</a>.</span>}</p>}
         {mode === 'account' && manager && <Link href="/fantasy/reset-password" className="underline">Change password</Link>}
         {feedback && <p role="status" className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse, after } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
@@ -14,7 +15,7 @@ import { readLimitedJsonObject } from '@/lib/order-input-validation';
 export const dynamic = 'force-dynamic';
 const noStore={'Cache-Control':'no-store',Vary:'Cookie'};
 const fail=(error:string,status=400)=>NextResponse.json({success:false,error},{status,headers:noStore});
-const managerFields='id,display_name,team_name,email,is_active,team_name_status,team_name_locked,created_at,updated_at,initial_squad_due_at,first_squad_completed_at,hidden_at,deleted_at';
+const managerFields='id,display_name,team_name,email,is_active,team_name_status,team_name_locked,created_at,updated_at,initial_squad_due_at,first_squad_completed_at,hidden_at,deleted_at,age_verified_at,rules_version_accepted';
 export async function GET(request:Request) {
   const user=await requirePermission('fantasy.home'); if(!user)return fail('Admin session required.',403);
   try {
@@ -31,7 +32,7 @@ export async function GET(request:Request) {
         db.from('fantasy_notification_jobs').select('id,kind,created_at,sent_at,cancelled_at,last_error,attempts').eq('manager_id',id).order('created_at',{ascending:false}).limit(30),
       ]);
       for(const r of [manager,entry,squads,rounds,events,jobs])if(r.error)throw new Error(r.error.message);
-      return NextResponse.json({success:true,season,manager:manager.data,entry:entry.data,squads:squads.data,players,slots:buildSquadSlots(settings.slot_counts),budget:settings.budget_dino_dollars,rounds:rounds.data,events:events.data,notifications:jobs.data,isAdmin:user.role==='admin'},{headers:noStore});
+      return NextResponse.json({success:true,season,eligibilityIssues:managerEligibilityIssues(manager.data!,entry.data,settings.rules_version),manager:manager.data,entry:entry.data,squads:squads.data,players,slots:buildSquadSlots(settings.slot_counts),budget:settings.budget_dino_dollars,rounds:rounds.data,events:events.data,notifications:jobs.data,isAdmin:user.role==='admin'},{headers:noStore});
     }
     const [managers,entries,squads]=await Promise.all([
       db.from('fantasy_managers').select(managerFields).order('created_at',{ascending:false}),

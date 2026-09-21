@@ -741,7 +741,7 @@ export default function HomePage() {
       <JuniorVoucherSection />
 
       {/* Compact club-stat strip below the hero and junior support notice. */}
-      <HomeStatsStrip />
+      <Suspense fallback={null}><HomeStatsStrip /></Suspense>
 
       <CookieDoughFundraiserFeature />
 

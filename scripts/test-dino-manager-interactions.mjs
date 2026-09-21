@@ -20,7 +20,7 @@ const feedbackFetch = async (url, init) => {
   const body = JSON.parse(init.body); feedbackRequests.push(body);
   return { ok: !feedbackFails, json: async () => feedbackFails ? { success: false, error: 'Please retry shortly.' } : { success: true, reference: body.id } };
 };
-const windowFixture = { location: { search: '', href: '/fantasy/account', origin: 'https://example.invalid' }, history: { replaceState() {} } };
+const windowFixture = { addEventListener() {}, removeEventListener() {}, setInterval() { return 1; }, clearInterval() {}, location: { search: '', href: '/fantasy/account', origin: 'https://example.invalid' }, history: { replaceState() {} } };
 const documentFixture = { body: { style: {} }, addEventListener() {}, removeEventListener() {} };
 const overrides = {
   'next/link': { __esModule: true, default: props => React.createElement('a', props) },

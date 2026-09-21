@@ -64,7 +64,7 @@ export async function requireFantasyManager(request: Request): Promise<ManagerAu
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_managers')
-    .select('id, auth_user_id, display_name, email, team_name, is_active, deleted_at, first_squad_completed_at, initial_squad_due_at')
+    .select('id, auth_user_id, display_name, email, team_name, is_active, deleted_at, first_squad_completed_at, initial_squad_due_at, age_verified_at, team_name_status, rules_version_accepted')
     .eq('auth_user_id', user.id)
     .eq('is_active', true).is('deleted_at', null)
     .maybeSingle();
@@ -87,7 +87,7 @@ export async function resolveFantasyManagerAuth(request: Request): Promise<Manag
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('fantasy_managers')
-    .select('id, auth_user_id, display_name, email, team_name, is_active, deleted_at, first_squad_completed_at, initial_squad_due_at')
+    .select('id, auth_user_id, display_name, email, team_name, is_active, deleted_at, first_squad_completed_at, initial_squad_due_at, age_verified_at, team_name_status, rules_version_accepted')
     .eq('auth_user_id', user.id)
     .eq('is_active', true).is('deleted_at', null)
     .maybeSingle();

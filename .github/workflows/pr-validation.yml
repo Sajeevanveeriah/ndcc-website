@@ -46,6 +46,7 @@ jobs:
       - run: node scripts/test-dino-standings.mjs
       - run: node --experimental-strip-types scripts/test-dino-lifecycle.mjs
       - run: node scripts/test-dino-admin-api.mjs
+      - run: node scripts/test-manager-eligibility.mjs
       - run: node scripts/test-dino-manager-interactions.mjs
       - run: node scripts/test-dino-wallet.cjs
       - run: node scripts/test-dino-pool-only.cjs
