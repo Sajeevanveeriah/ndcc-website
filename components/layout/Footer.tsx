@@ -216,7 +216,7 @@ export default async function Footer() {
             &copy; {currentYear} {settings.club_name}. All rights reserved.
           </p>
           <a
-            href="https://sajeevanveeriah.github.io/"
+            href="https://sv.sajeevanveeriah.workers.dev/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
