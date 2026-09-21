@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { parseApiResponse } from '@/lib/admin-client';
@@ -34,7 +35,6 @@ const sectionOptions = [
   { value: 'site:footer_get_involved', label: 'Footer · Get Involved Links' },
   { value: 'site:footer_affiliations', label: 'Footer · Affiliation Links' },
   { value: 'home:quick_links', label: 'Home · Quick Links' },
-  { value: 'fixtures:team_links', label: 'Fixtures · Team Links' },
   { value: 'about:articles', label: 'About · Articles' },
   { value: 'facilities:articles', label: 'Facilities · Articles' },
 ];
@@ -77,7 +77,7 @@ export default function AdminSitePagesPage() {
         parseApiResponse<{ data?: PageLinkCard[] }>(cardsRes),
         parseApiResponse<{ data?: FacilityFeature[] }>(featuresRes),
       ]);
-      setCards(cardsData.data || []);
+      setCards((cardsData.data || []).filter(card => !(card.page_slug === 'fixtures' && card.section_key === 'team_links')));
       setFeatures(featuresData.data || []);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to load page content resources.');
@@ -162,7 +162,8 @@ export default function AdminSitePagesPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Site Pages</h1>
-      <p className="text-sm text-content-muted">Manage repeatable links used by the header navigation, footer, Home, Fixtures, About, and Facilities pages.</p>
+      <p className="text-sm text-content-muted">Manage repeatable links used by the header navigation, footer, Home, About, and Facilities pages.</p>
+      <p className="text-sm text-content-muted">Manage fixture team links, team descriptions and the homepage team total in <Link href="/admin/teams" className="font-semibold underline">Teams</Link>. Active teams appear on both Teams and Fixtures.</p>
       {status && <p className="text-sm text-content-muted">{status}</p>}
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">

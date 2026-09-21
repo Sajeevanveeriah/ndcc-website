@@ -21,3 +21,6 @@ for(const approved of ['approved','replaced','review_required']) assert.equal(st
 assert.equal(status({team_name:'Old XI',team_name_status:'approved'},'New XI','review_required'),'review_required');
 console.log('PASS reactivation/rules mismatch, explicit acceptance, expiry, completion, access, moderation and payment gates');
 console.log('PASS unchanged names retain committee decisions; changed names are moderated');
+
+assert.equal(status({team_name:'Same XI',team_name_status:'pending'},'Same XI','approved'),'approved');
+assert.equal(status({team_name:'Same XI',team_name_status:'pending'},'Same XI','review_required'),'review_required');

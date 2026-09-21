@@ -25,5 +25,5 @@ export function managerEligibilityIssues(manager: EligibilityManager, entry: Eli
 }
 
 export function teamNameStatusAfterProfileSave(previous: { team_name: string; team_name_status?: string } | null, name: string, moderatedStatus: string) {
-  return previous?.team_name === name ? previous.team_name_status || moderatedStatus : moderatedStatus;
+  return previous?.team_name === name && ['approved', 'replaced', 'review_required'].includes(previous.team_name_status || '') ? previous.team_name_status! : moderatedStatus;
 }
