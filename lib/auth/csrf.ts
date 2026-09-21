@@ -94,7 +94,7 @@ function hasAllowedRequestSurface(request: AdminCsrfRequest): boolean {
     return true;
   }
   if (contentType === 'multipart/form-data') {
-    return request.pathname === MEDIA_UPLOAD_PATH && hasCustomHeader;
+    return (request.pathname === MEDIA_UPLOAD_PATH || request.pathname === '/api/meeting-minutes') && hasCustomHeader;
   }
   if (contentType) return false;
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 
-type Minute = { id: string; title: string; content: string; meeting_date: string; status: string };
+type Minute = { id: string; title: string; content: string; meeting_date: string; status: string; attachment_name?: string | null };
 
 export default function CommitteeMinuteDetailPage() {
   const params = useParams<{ id: string }>();
@@ -64,9 +64,14 @@ export default function CommitteeMinuteDetailPage() {
       <p className="text-sm text-content-muted font-body">
         {minute.meeting_date} · <span className="capitalize">{minute.status}</span>
       </p>
-      <article className="card p-6 whitespace-pre-wrap font-body text-content-primary leading-relaxed">
+      {minute.attachment_name && (
+        <a className="inline-flex rounded-lg border px-4 py-3 font-medium underline break-all focus-ring" href={`/api/meeting-minutes/${minute.id}/document`}>
+          Download {minute.attachment_name}
+        </a>
+      )}
+      {minute.content && <article className="card p-6 whitespace-pre-wrap font-body text-content-primary leading-relaxed">
         {minute.content}
-      </article>
+      </article>}
       <div className="flex gap-3 flex-wrap">
         <Button onClick={() => act('accepted')}>Accept Minutes</Button>
         <Button variant="secondary" onClick={() => act('seconded')}>Second Minutes</Button>
