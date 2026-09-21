@@ -1,3 +1,4 @@
+import { getPublicTeams } from '@/lib/public-teams';
 import AnimatedCounter from '@/components/common/AnimatedCounter';
 import ParallaxLayer from '@/components/common/motion/ParallaxLayer';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
@@ -8,10 +9,11 @@ const GCA_START_YEAR = 1995;
 
 // A compact "club at a glance" band placed directly under the hero. It breaks up the page,
 // adds depth, and surfaces the club's headline numbers. Values are static/canonical (the
-// premiership count mirrors the verified honour roll) so it never depends on a live query.
+// premiership count mirrors the verified honour roll). Team totals use the live CMS list.
 // Presentation: an editorial honour-board moment — oversized nickname watermark drifting
 // slowly behind the numbers, a gold rule that draws in, and counters that reveal once.
-export default function HomeStatsStrip() {
+export default async function HomeStatsStrip() {
+  const teams = await getPublicTeams();
   const currentYear = new Date().getFullYear();
   const seasonsInGca = Math.max(currentYear - GCA_START_YEAR, 0);
 
@@ -19,7 +21,7 @@ export default function HomeStatsStrip() {
     { label: 'Established', value: CLUB_ESTABLISHED, animate: false },
     { label: 'Premierships', value: fallbackHistoryPremierships.length, animate: true },
     { label: 'Seasons in the GCA', value: seasonsInGca, animate: true },
-    { label: 'Teams Across the Club', value: 7, animate: true },
+    { label: 'Teams Across the Club', value: teams.length, animate: false },
   ];
 
   return (

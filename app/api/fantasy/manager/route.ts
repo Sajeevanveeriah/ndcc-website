@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { teamNameStatusAfterProfileSave } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse, after } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUserFromRequest, type FantasyManagerRecord } from '@/lib/fantasy-manager-auth';
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
     team_name: teamName,
     date_of_birth: dateOfBirth,
     age_verified_at: new Date().toISOString(),
-    team_name_status: moderation.status,
+    team_name_status: teamNameStatusAfterProfileSave(existingManager, teamName, moderation.status),
     rules_version_accepted: settings.rules_version,
     rules_accepted_at: new Date().toISOString(),
     is_active: existingManager ? existingManager.is_active : true,

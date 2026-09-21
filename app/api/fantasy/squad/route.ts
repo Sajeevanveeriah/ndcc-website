@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
@@ -34,8 +35,11 @@ export async function GET(request: Request) {
     const season = await resolveRequestSeason(request);
     if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
     const [settings, players, squad] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), loadSquad(auth.manager.id, season.id)]);
+    const entry = await createServerClient().from('fantasy_entries').select('status,is_demo,fee_waived').eq('manager_id', auth.manager.id).eq('season_id', season.id).maybeSingle();
+    if (entry.error) throw new Error('Could not check your entry status. Please try again.');
+    const eligibilityIssues = managerEligibilityIssues(auth.manager, entry.data, settings.rules_version);
     const stats = await getPlayerStats(season.id, players);
-    return NextResponse.json({ success: true, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ success: true, eligibilityIssues, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not load Dino Coach squad.' }, { status: 500 });
   }
@@ -51,6 +55,10 @@ export async function POST(request: Request) {
   const selection = parseSelection(body.selection);
   const isDraft = body.mode === 'draft';
   const [settings, players, roundLock] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), getRoundLockState(season.id)]);
+  const entry = await createServerClient().from('fantasy_entries').select('status,is_demo,fee_waived').eq('manager_id', auth.manager.id).eq('season_id', season.id).maybeSingle();
+  if (entry.error) return NextResponse.json({ success: false, error: 'Could not check your entry status. Please try again.' }, { status: 503 });
+  const issues = managerEligibilityIssues(auth.manager, entry.data, settings.rules_version);
+  if (issues.length) return NextResponse.json({ success: false, error: issues.map(issue => issue.message).join(' '), eligibilityIssues: issues }, { status: 403 });
   if (!settings.public_launch_enabled || !settings.team_selection_open) return NextResponse.json({ success: false, error: 'Dino Coach team selection is currently closed.' }, { status: 403 });
   if (season.is_current && roundLock.locked) return NextResponse.json({ success: false, error: roundLock.reason || 'The current round is locked.' }, { status: 403 });
 

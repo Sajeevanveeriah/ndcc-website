@@ -8,7 +8,7 @@ import { getClubSettings } from '@/lib/club-settings';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
-import { getPageLinkCards } from '@/lib/structured-content';
+import { getPublicTeams } from '@/lib/public-teams';
 import { formatFixtureTime } from '@/lib/playhq/normalise';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
@@ -97,16 +97,17 @@ function LadderTable({ rows }: { rows: PlayHQLadderRow[] }) {
 }
 
 export default async function FixturesPage() {
-  const [settings, blocks, playhq, teamLinks, currentSeason] = await Promise.all([
+  const [settings, blocks, playhq, teams, currentSeason] = await Promise.all([
     getClubSettings(),
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
     getPlayHQPublicData(),
-    getPageLinkCards('fixtures', 'team_links'),
+    getPublicTeams(),
     getCurrentClubSeason().catch((error) => {
       console.warn('[fixtures] Current season temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
       return null;
     }),
   ]);
+  const teamLinks = teams.map(team => ({ id: team.id, title: team.name, description: team.description, badge: team.grade, href: team.playhq_url || settings.playhq_url || PLAYHQ_ORG_URL, is_external: true }));
   const { upcoming, results } = splitFixtures(playhq.fixtures);
   const upcomingByGrade = groupByGrade(upcoming);
   const resultsByGrade = groupByGrade(results.slice(0, 12));

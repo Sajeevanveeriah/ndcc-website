@@ -1,3 +1,4 @@
+import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
   if(lock.locked) return NextResponse.json({error:lock.reason},{status:403});
   const nullable=(v:unknown)=>typeof v==='string'&&v?v:null;
   const db=createServerClient();
+  const settings = await getDinoCoachSettings(season.id);
+  const entry = await db.from('fantasy_entries').select('status,is_demo,fee_waived').eq('manager_id',auth.manager.id).eq('season_id',season.id).maybeSingle();
+  if(entry.error) return NextResponse.json({error:'Could not check your entry status. Please try again.'},{status:503});
+  const issues = managerEligibilityIssues(auth.manager,entry.data,settings.rules_version);
+  if(issues.length) return NextResponse.json({error:issues.map(issue=>issue.message).join(' ')},{status:403});
   const result=await db.rpc('dino_market_action',{mid:auth.manager.id,sid:season.id,rid:lock.roundId,action,out_id:nullable(body.playerOutId),in_id:nullable(body.playerInId),slot:nullable(body.slotKey),expected_updated_at:nullable(body.expectedUpdatedAt),expected_price:Number.isSafeInteger(body.expectedPrice)?body.expectedPrice:null});
   if(result.error) return NextResponse.json({error:result.error.message},{status:400});
   return NextResponse.json({success:true,id:result.data});

@@ -6,7 +6,10 @@ let user=null,dbCalls=0,authCalls=0,rollbackCalls=0,rpcError=null,lastRpc=null;
 const db={auth:{admin:{createUser:async()=>{authCalls++;return {data:{user:{id:'new-user'}},error:null};},deleteUser:async()=>{rollbackCalls++;return {error:null};}}},rpc:async(name,args)=>{dbCalls++;lastRpc={name,args};return {data:'new-manager',error:rpcError};},from:()=>({select:()=>({eq:()=>({eq:()=>({single:async()=>({data:{id:'entry'},error:null})})})})})};
 const actions={exports:{}};
 new Function('exports',ts.transpileModule(readFileSync('lib/dino-coach/admin-actions.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(actions.exports);
+const eligibility={exports:{}};
+new Function('exports',ts.transpileModule(readFileSync('lib/dino-coach/manager-eligibility.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(eligibility.exports);
 const imports={
+ '@/lib/dino-coach/manager-eligibility':eligibility.exports,
  'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})},after:()=>{}},
  '@/lib/auth/guard':{requirePermission:async()=>user}, '@/lib/supabase-server':{createServerClient:()=>db},
  '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'})}, '@/lib/fantasy-game':{},

@@ -162,7 +162,7 @@ export default function AdminTeamsPage() {
             Teams
           </h1>
           <p className="text-content-muted font-body mt-1">
-            Manage the team cards shown on the public Teams page.
+            Manage the team cards shown on the public Teams page. Active teams also update the homepage total automatically.
           </p>
         </div>
         <Button variant="primary" onClick={openCreate}>
@@ -295,7 +295,7 @@ export default function AdminTeamsPage() {
               checked={form.is_active}
               onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
             />
-            Show this team on the public Teams page
+            Show this team publicly and include it in the homepage total
           </label>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>

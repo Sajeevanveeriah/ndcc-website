@@ -15,8 +15,8 @@ const pick = { slotKey: slot.key, playerId: 'excluded', displayName: 'Removed pl
 const source = ts.transpileModule(readFileSync('app/fantasy/_components/SquadBuilder.tsx', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-function render(selection, readonlyMode = false) {
-  const states = [[player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false];
+function render(selection, readonlyMode = false, issues = []) {
+  const states = [issues, [player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false];
   let index = 0;
   const exports = {};
   const div = ({ children }) => React.createElement('div', null, children);
@@ -55,3 +55,10 @@ const historical = render([{ ...pick, playerId: player.id }], true);
 assert.match(historical, /100,001 Dino Dollars/);
 assert.doesNotMatch(historical, /<button[^>]*>Submit squad/);
 console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');
+
+const rulesBlocked = render([], false, [{code:'rules',message:'Accept the updated rules.'}]);
+assert.match(rulesBlocked, /Accept the updated rules/);
+assert.match(rulesBlocked, /Open My account in a new tab/);
+assert.match(rulesBlocked, /Recheck account status/);
+assert.match(rulesBlocked, /<button disabled="">Save draft/);
+console.log('PASS rules recovery is visible before saving and links to account acceptance');
