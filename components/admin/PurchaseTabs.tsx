@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { purchaseGroup, purchaseGroupLabel } from '@/lib/orders/purchase-groups';
 import { parseApiResponse } from '@/lib/admin-client';
 
-export default function PurchaseTabs({ active = '', onSelect }: { active?: string; onSelect?: (group: string) => void }) {
+export default function PurchaseTabs({ active = '', onSelect, onCampaign }: { active?: string; onSelect?: (group: string) => void; onCampaign?: (id:string)=>void }) {
   const [groups, setGroups] = useState(['merch', 'kitchen', 'membership', 'donation']);
   const [campaigns, setCampaigns] = useState<Array<{id: string; name: string}>>([]);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export default function PurchaseTabs({ active = '', onSelect }: { active?: strin
   return <div className="mb-6 space-y-2"><nav aria-label="Purchase categories" className="flex flex-wrap gap-2">
     {groups.map(group => onSelect ? <button key={group} type="button" aria-pressed={active===group} className={style(active===group)} onClick={()=>onSelect(group)}>{purchaseGroupLabel(group)}</button>
       : <Link key={group} href={`/admin/orders?group=${encodeURIComponent(group)}`} className={style(active===group)}>{purchaseGroupLabel(group)}</Link>)}
-    {campaigns.map(c=><Link key={c.id} href={`/admin/raffle?campaign=${c.id}`} aria-current={active===c.id?'page':undefined} className={style(active===c.id)}>{c.name}</Link>)}
+    {campaigns.map(c=>onCampaign?<button type="button" key={c.id} aria-pressed={active===c.id} className={style(active===c.id)} onClick={()=>onCampaign(c.id)}>{c.name}</button>:<Link key={c.id} href={`/admin/raffle?campaign=${c.id}`} aria-current={active===c.id?'page':undefined} className={style(active===c.id)}>{c.name}</Link>)}
     <Link href="/admin/fantasy/managers" className={style(false)}>Dino Coach</Link>
   </nav>{error&&<p role="alert" className="text-sm text-red-700">{error}</p>}</div>;
 }
