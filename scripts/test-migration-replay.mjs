@@ -24,6 +24,8 @@ for (const f of files) {
 console.log(`All ${applied} migrations applied cleanly.`);
 psql(DB, readFileSync(new URL('./test-reverse-raffle.sql', import.meta.url), 'utf8'));
 check('Reverse raffle 201-300 capacity, paid-only allocation, duplicate-event replay and private receipt mappings', true);
+psql(DB, readFileSync(new URL('./test-apparel-reminders.sql', import.meta.url), 'utf8'));
+check('Apparel reminders include overdue unpaid and part-paid orders, skip ineligible orders and preserve sent cycles', true);
 const counts = psql(DB, `select (select count(*) from apparel_products where active), (select count(*) from apparel_product_options where active), (select count(*) from merch_payment_settings), (select count(*) from fantasy_seasons)`);
 check('fresh replay end-state sane (20 active products, 16 active options, settings row, 3 seasons)', counts === '20\t16\t1\t3', counts);
 // Production has RLS enabled on every public table; replays must match.
@@ -62,12 +64,11 @@ check('Dino feedback persistence, duplicate protection, delivery leases and reci
 psql(DB, readFileSync(new URL('./test-dino-market.sql', import.meta.url), 'utf8'));
 check('Dino wallet pool purchases, sales and disabled inter-team trading', true);
 const runPsql = promisify(execFile);
-psql(DB, `update public.raffle_campaigns set next_ticket_number=300 where code='NDCCRRO'`);
 const reservationResults = await Promise.allSettled(Array.from({length:20},()=>runPsql('psql',['-X','-t','-A','-v','ON_ERROR_STOP=1','-d',DB,'-c',
-  `insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents) select id,'Concurrency test','test@example.com',1,6000 from public.raffle_campaigns where code='NDCCRRO'`],{
+  `insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents,selected_ticket_numbers) select id,'Concurrency test','test@example.com',1,6000,array[300] from public.raffle_campaigns where code='NDCCRRO'`],{
   env:{...process.env,PGHOST:process.env.PGHOST||'/var/tmp/ndcc-pgsock',PGPORT:process.env.PGPORT||'5544',PGUSER:process.env.PGUSER||'postgres'},
 })));
-check('20 concurrent checkouts reserve the last raffle ticket exactly once',reservationResults.filter(r=>r.status==='fulfilled').length===1);
+check('20 concurrent checkouts reserve the same chosen raffle number exactly once',reservationResults.filter(r=>r.status==='fulfilled').length===1);
 const rateKey = 'a'.repeat(64);
 const calls = await Promise.all(Array.from({ length: 20 }, () => runPsql('psql', ['-X', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-d', DB, '-c', `select public.ndcc_take_rate_limit('${rateKey}',5,60000)`], {
   env: { ...process.env, PGHOST: process.env.PGHOST || '/var/tmp/ndcc-pgsock', PGPORT: process.env.PGPORT || '5544', PGUSER: process.env.PGUSER || 'postgres' },

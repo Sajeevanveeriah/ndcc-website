@@ -98,6 +98,7 @@ export default function AdminOrdersPage() {
   const [paymentForm, setPaymentForm] = useState({ method: 'bank_transfer', amount: '', notes: '' });
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const paymentOperationRef = useRef<{ signature: string; id: string } | null>(null);
 
   const fetchAll = async () => {
@@ -293,7 +294,7 @@ export default function AdminOrdersPage() {
       </div>
       <PurchaseTabs active={group} onSelect={value=>{setGroup(value);setOpenOrderId(null);window.history.replaceState(null,'',`?group=${encodeURIComponent(value)}`);}} />
       {group === 'kitchen' && <a className="block mb-4 underline" href="/admin/kitchen">Kitchen collection windows and meal exports</a>}
-      {group === 'merch' && <p className="mb-4 text-sm">Full payment is required before apparel orders can be processed or exported. Balance reminders run every three weeks from the order date. <a className="underline" href="/pay-balance" target="_blank" rel="noreferrer">Open balance payment page</a></p>}
+      {group === 'merch' && <p className="mb-4 text-sm">Full payment is required before apparel orders can be processed or included in the supplier export. Balance reminders cover unpaid and part-paid orders every three weeks from the order date. <a className="underline" href="/pay-balance" target="_blank" rel="noreferrer">Open balance payment page</a></p>}
       {message && <p className="mb-4 text-sm text-content-muted" role="status">{message}</p>}
 
       {group === 'merch' && <Button variant="secondary" size="sm" className="mb-4" onClick={async()=>{try{const result=await parseApiResponse<{sent:number;failed:number;cancelled:number}>(await adminFetch('/api/admin/orders/reminders',{method:'POST'}));setMessage(`Reminders sent: ${result.sent}. Failed: ${result.failed}. Cancelled: ${result.cancelled}.`);}catch(e){setMessage(e instanceof Error?e.message:'Could not send reminders.');}}}>Send due balance reminders</Button>}
@@ -342,15 +343,16 @@ export default function AdminOrdersPage() {
       )}
 
       {group === 'merch' && <section className="mb-6 bg-surface-card rounded-xl border border-edge-subtle p-4 space-y-3">
-        <h2 className="font-display font-bold text-content-primary">Export Merchandise Orders</h2>
+        <h2 className="font-display font-bold text-content-primary">Export Merchandise Payment Report</h2>
         <p className="text-xs text-content-muted">
           Downloads a CSV with one row per order item (products, options, sizes, personalisation, prices, payments).
-          Only fully paid, active orders are included.
+          Choose fully paid, part-paid or unpaid orders for payment tracking. Supplier exports remain fully paid only.
         </p>
         <form
           className="flex flex-wrap items-end gap-3"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
+            if (exporting) return;
             const form = e.currentTarget;
             const fd = new FormData(form);
             const params = new URLSearchParams();
@@ -358,9 +360,29 @@ export default function AdminOrdersPage() {
               const value = String(fd.get(key) || '').trim();
               if (value) params.set(key, value);
             }
-            if (fd.get('paid_in_full_only')) params.set('paid_in_full_only', '1');
-            if (!fd.get('include_part_paid')) params.set('include_part_paid', '0');
-            window.location.href = `/api/admin/orders/export${params.toString() ? `?${params}` : ''}`;
+            setExporting(true);
+            setMessage('');
+            try {
+              const response = await adminFetch(`/api/admin/orders/export?${params}`);
+              if (!response.ok) {
+                await parseApiResponse(response);
+                return;
+              }
+              const blob = await response.blob();
+              const downloadUrl = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = downloadUrl;
+              link.download = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'ndcc-merchandise-payments.csv';
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+              setMessage('Merchandise payment report downloaded.');
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : 'Unable to export the payment report.');
+            } finally {
+              setExporting(false);
+            }
           }}
         >
           <div className="w-40">
@@ -373,9 +395,9 @@ export default function AdminOrdersPage() {
           </div>
           <div className="w-44">
             <label htmlFor="export-payment-status" className="form-label text-xs">Payment status</label>
-            <select id="export-payment-status" name="payment_status" className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body bg-surface-card">
-              <option value="">Any</option>
-              <option value="paid">Paid</option>
+            <select id="export-payment-status" name="payment_status" defaultValue="paid" className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body bg-surface-card">
+              <option value="all">Any</option>
+              <option value="paid">Fully paid</option>
               <option value="part_paid">Part paid</option>
               <option value="unpaid">Unpaid</option>
               <option value="needs_review">Needs review</option>
@@ -394,8 +416,8 @@ export default function AdminOrdersPage() {
             <label htmlFor="export-product" className="form-label text-xs">Product (name/slug)</label>
             <input id="export-product" name="product" type="text" className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body bg-surface-card" placeholder="e.g. hoody" />
           </div>
-          <p className="text-sm">Paid in full only. Part-paid orders are excluded.</p>
-          <Button type="submit" size="sm" variant="secondary">Export Merchandise Orders</Button>
+          <p className="text-sm">For payment tracking only. Use the Apparel page for supplier orders.</p>
+          <Button type="submit" size="sm" variant="secondary" isLoading={exporting}>Export payment report (CSV)</Button>
         </form>
       </section>}
 

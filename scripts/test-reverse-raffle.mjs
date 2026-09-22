@@ -13,7 +13,8 @@ function load(file, dependencies) {
   });
   return exports;
 }
-const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2 };
+const selection = load('lib/reverse-raffle-selection.ts', {});
+const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2, selectedNumbers: [201, 300] };
 let selected, inserted, payload, hidden = false, soldOut = false, failure = '', released = false, expired = false;
 const db = { from() { return {
   insert(value) { inserted = value; return this; }, select() { return this; },
@@ -21,6 +22,7 @@ const db = { from() { return {
   update(value) { if(value.status === 'cancelled') released = true; return this; }, eq() { return this; }, async maybeSingle() { return failure === 'link' ? {error: new Error('link failed')} : { data: { id: 'test-order' } }; },
 }; } };
 const route = load('app/api/raffle/checkout/route.ts', {
+  '@/lib/reverse-raffle-selection': selection,
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
   '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async value => {
@@ -46,11 +48,20 @@ for (const code of ['NDCCRRO', 'NDCCRAF']) {
   assert.equal(selected, code);
   assert.equal(inserted.campaign_id, code);
   assert.equal(inserted.amount_cents, code === 'NDCCRRO' ? 12000 : 1000);
+  assert.deepEqual(inserted.selected_ticket_numbers, code === 'NDCCRRO' ? [201, 300] : undefined);
   assert.ok(payload.line_items[0].price_data.product_data.name.includes(code === 'NDCCRRO' ? 'Reverse Raffle' : 'Dinos Trailer Raffle'));
   assert.equal(payload.success_url, `https://www.ndcc.com.au/${code === 'NDCCRRO' ? 'reverse-raffle' : 'raffle'}?payment=success`);
   assert.equal(result.body.payment_reference, payload.client_reference_id);
   if (code === 'NDCCRRO') assert.equal(payload.line_items[0].price_data.product_data.description, undefined);
 }
+for (const invalid of [undefined, [], [201], [201, 201], [200, 300], [201, 301], ['201', 300]]) {
+  input.selectedNumbers = invalid;
+  inserted = payload = null;
+  assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO' })).status, 400);
+  assert.equal(inserted, null);
+  assert.equal(payload, null);
+}
+input.selectedNumbers = [201, 300];
 inserted = null; hidden = true;
 assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO' })).status, 503);
 assert.equal(inserted, null, 'Hidden campaign must not create an order');
