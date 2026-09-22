@@ -4,11 +4,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 let authorised = true, paymentFailure = false;
-const base = { id: 'paid', created_at: '2026-09-22T13:30:00Z', customer_name: 'Test', customer_email: 'test@example.com', items: [{ name: 'Shirt', quantity: 1, price: 60 }], total_amount: 60, amount_paid: 60, balance_due: 0, payment_status: 'paid', order_category: 'merch', deleted_at: null };
-let orders = [base, { ...base, id: 'part', payment_status: 'part_paid', amount_paid: 20, balance_due: 40 }, { ...base, id: 'unpaid', payment_status: 'pending_bank_transfer', amount_paid: 0, balance_due: 60 }, { ...base, id: 'event', order_category: 'event' }, { ...base, id: 'deleted', deleted_at: '2026-09-22' }];
+const base = { id: 'paid', created_at: '2026-09-22T13:30:00Z', customer_name: 'Test', customer_email: 'test@example.com', items: [{ name: 'Shirt', quantity: 1, price: 60 }], total_amount: 60, amount_paid: 60, balance_due: 0, payment_status: 'paid', order_category: 'merch', order_status: 'submitted', deleted_at: null };
+let orders = [base, { ...base, id: 'part', payment_status: 'part_paid', amount_paid: 20, balance_due: 40 }, { ...base, id: 'unpaid', payment_status: 'pending_bank_transfer', amount_paid: 0, balance_due: 60 }, { ...base, id: 'cancelled', order_status: 'cancelled' }, { ...base, id: 'event', order_category: 'event' }, { ...base, id: 'deleted', deleted_at: '2026-09-22' }];
 const db = { from(table) { let filters = [], start = 0, end = 999; const q = {
  select() { return q; }, order() { return q; },
  eq(k,v) { filters.push(r => r[k] === v); return q; }, is(k,v) { return q.eq(k,v); },
+ neq(k,v) { filters.push(r => r[k] !== v); return q; },
  lte(k,v) { filters.push(r => r[k] <= v); return q; },
  in(k,values) { filters.push(r => values.includes(r[k])); return q; },
  range(a,b) { start = a; end = b; return q; },
@@ -28,6 +29,8 @@ const get = query => route.GET(new Request('https://www.ndcc.com.au/api/admin/or
   assert.ok(csv.includes('\r\n'+id+','));
  }
  assert.equal((await get('payment_status=part_paid&paid_in_full_only=1&include_part_paid=0')).status,200,'Explicit status wins over obsolete checkbox flags');
+ assert.equal((await (await get('')).text()).trim().split('\r\n').length,2,'Omitted status remains paid only');
+ assert.equal((await (await get('payment_status=all')).text()).trim().split('\r\n').length,4,'Explicit all includes active paid, part-paid and unpaid');
  const dated = await get('payment_status=paid&date_from=2026-09-22&date_to=2026-09-22');
  assert.equal(dated.status,200,'23:30 Melbourne is included on the to date');
  assert.equal((await get('payment_status=paid&date_to=2026-09-21')).status,404);

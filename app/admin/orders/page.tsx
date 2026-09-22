@@ -396,7 +396,7 @@ export default function AdminOrdersPage() {
           <div className="w-44">
             <label htmlFor="export-payment-status" className="form-label text-xs">Payment status</label>
             <select id="export-payment-status" name="payment_status" defaultValue="paid" className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body bg-surface-card">
-              <option value="">Any</option>
+              <option value="all">Any</option>
               <option value="paid">Fully paid</option>
               <option value="part_paid">Part paid</option>
               <option value="unpaid">Unpaid</option>

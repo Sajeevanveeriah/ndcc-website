@@ -11,15 +11,16 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
+  const requestedStatus = searchParams.get('payment_status') || 'paid';
   const filters: ExportFilters = {
     windowId: searchParams.get('window_id'),
     dateFrom: searchParams.get('date_from'),
     dateTo: searchParams.get('date_to'),
-    paymentStatus: searchParams.get('payment_status'),
+    paymentStatus: requestedStatus === 'all' ? null : requestedStatus,
     processed: (searchParams.get('processed') as 'true' | 'false' | null),
     product: searchParams.get('product'),
-    paidInFullOnly: !searchParams.get('payment_status') && searchParams.get('paid_in_full_only') === '1',
-    includePartPaid: Boolean(searchParams.get('payment_status')) || searchParams.get('include_part_paid') !== '0',
+    paidInFullOnly: requestedStatus === 'paid',
+    includePartPaid: requestedStatus !== 'paid',
   };
   if (filters.paymentStatus && !['paid', 'part_paid', 'unpaid', 'needs_review', 'refunded', 'partially_refunded'].includes(filters.paymentStatus)) {
     return NextResponse.json({ success: false, error: 'Choose a valid payment status.' }, { status: 400 });
@@ -39,10 +40,10 @@ export async function GET(request: Request) {
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase.from('orders')
       .select('id,created_at,payment_reference,merch_window_label,merch_window_id,customer_name,customer_email,customer_phone,items,total_amount,amount_paid,balance_due,payment_status,processed,order_status,notes')
-      .is('deleted_at', null).eq('order_category', 'merch').lte('created_at', cutoff)
+      .is('deleted_at', null).eq('order_category', 'merch').neq('order_status', 'cancelled').lte('created_at', cutoff)
       .order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 499);
     if (error) return NextResponse.json({ success: false, error: 'Unable to load orders for export.' }, { status: 500 });
-    orders.push(...(data || []) as ExportOrder[]);
+    orders.push(...((data || []) as ExportOrder[]).filter(order => requestedStatus !== 'paid' || Number(order.balance_due) <= 0));
     if (!data || data.length < 500) break;
   }
 
