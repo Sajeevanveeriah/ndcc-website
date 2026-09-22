@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     }
     const paymentReference = await generateUniquePaymentReference('raffle');
     const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount, payment_reference: paymentReference }).select('id').single();
+    if (orderError?.message?.includes('Reverse raffle allocation unavailable')) return NextResponse.json({ error: 'There are not enough tickets available. Tickets may be sold or held by another checkout. Please reduce the quantity or try again later.' }, { status: 409 });
     if (orderError || !order) return NextResponse.json({ error: 'The raffle order could not be created.' }, { status: 500 });
     const paymentMetadata = {
       ndcc_payment_reference: paymentReference,
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
       payment_reference: paymentReference,
     };
     const session = await getStripe().checkout.sessions.create({ mode: 'payment', customer_email: email,
+      ...(campaign.code === 'NDCCRRO' ? { payment_method_types: ['card' as const], expires_at: Math.floor(Date.now() / 1000) + 35 * 60 } : {}),
       line_items: [{ price_data: { currency: 'aud', unit_amount: campaign.price_cents, product_data: { name: `NDCC ${campaign.name} Ticket - ${paymentReference}`, ...(campaign.draw_label ? { description: campaign.draw_label } : {}) } }, quantity }],
       success_url: `${site}${returnPath}?payment=success`, cancel_url: `${site}${returnPath}?payment=cancelled`, client_reference_id: paymentReference,
       metadata: paymentMetadata,
