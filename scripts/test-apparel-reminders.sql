@@ -16,12 +16,19 @@ begin
   for n in 1..4 loop
     select * into claimed from public.claim_apparel_balance_reminder();
     if claimed.id is null then raise exception 'Expected four due reminders'; end if;
-    if claimed.cycle<>2 then raise exception 'Only current cycle should be queued'; end if;
+    if claimed.cycle<>1 then raise exception 'First reminder should use cycle one'; end if;
     if not exists(select 1 from public.apparel_balance_links where order_id=claimed.order_id) then raise exception 'Missing payment link'; end if;
     update public.apparel_balance_reminders set status='sent',sent_at=now(),lease_until=null where id=claimed.id;
   end loop;
   if exists(select 1 from public.claim_apparel_balance_reminder()) then raise exception 'Repeated worker duplicated a reminder'; end if;
   if (select count(*) from public.apparel_balance_reminders)<>4 then raise exception 'Ineligible order queued'; end if;
+  -- Recurrence follows the send date, not the original order date.
+  update public.apparel_balance_reminders set sent_at=now()-interval '20 days';
+  if exists(select 1 from public.claim_apparel_balance_reminder()) then raise exception 'Reminder repeated before 21 days'; end if;
+  update public.apparel_balance_reminders set sent_at=now()-interval '21 days';
+  select * into claimed from public.claim_apparel_balance_reminder();
+  if claimed.id is null or claimed.cycle<>2 then raise exception 'Next reminder missing after 21 days'; end if;
+  if (select count(*) from public.apparel_balance_reminders where cycle=2)<>4 then raise exception 'Expected next cycle for each outstanding order'; end if;
   -- A settled order is cancelled before it can be claimed.
   select id into test_id from public.orders where customer_name='Reminder test' and payment_status='unpaid';
   update public.apparel_balance_reminders set status='queued',lease_until=null where order_id=test_id;
