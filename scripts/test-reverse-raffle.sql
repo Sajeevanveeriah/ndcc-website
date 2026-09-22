@@ -33,6 +33,19 @@ begin
   if (select count(*) from public.raffle_tickets where campaign_id=campaign)<>100 or
     (select max(ticket_number) from public.raffle_tickets where campaign_id=campaign)<>300 or
     (select next_ticket_number from public.raffle_campaigns where id=campaign)<>301 then raise exception 'Incorrect sold-out boundary'; end if;
+  begin
+    update public.raffle_orders set status='pending_payment' where id=purchase;
+    raise exception 'Paid order returned to pending';
+  exception when raise_exception then
+    if sqlerrm <> 'Reverse raffle orders cannot return to pending payment; create a new checkout.' then raise; end if;
+  end;
+  update public.raffle_orders set status='cancelled' where id=purchase;
+  begin
+    update public.raffle_orders set status='pending_payment' where id=purchase;
+    raise exception 'Cancelled order returned to pending';
+  exception when raise_exception then
+    if sqlerrm <> 'Reverse raffle orders cannot return to pending payment; create a new checkout.' then raise; end if;
+  end;
   if (select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.legacy_payment_receipt_references'::regclass and conname='legacy_payment_receipt_references_canonical_reference_check') not like '%NCDDKIT%' then raise exception 'Legacy kitchen spelling rejected'; end if;
   if has_table_privilege('anon','public.legacy_payment_receipt_references','SELECT')
     or has_table_privilege('authenticated','public.legacy_payment_receipt_references','INSERT')
