@@ -605,6 +605,10 @@
     {
       "version": "20260922061633",
       "name": "legacy_receipt_kitchen_alias"
+    },
+    {
+      "version": "20260922104834",
+      "name": "reverse_raffle_201_300"
     }
   ],
   "localOnlyApplied": []

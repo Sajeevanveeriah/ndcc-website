@@ -14,18 +14,19 @@ function load(file, dependencies) {
   return exports;
 }
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2 };
-let selected, inserted, payload, hidden = false;
+let selected, inserted, payload, hidden = false, soldOut = false, failure = '', released = false, expired = false;
 const db = { from() { return {
   insert(value) { inserted = value; return this; }, select() { return this; },
-  async single() { return { data: { id: 'test-order' } }; },
-  update() { return this; }, eq() { return this; }, async maybeSingle() { return { data: { id: 'test-order' } }; },
+  async single() { return soldOut ? { error: { message: 'Reverse raffle allocation unavailable' } } : { data: { id: 'test-order' } }; },
+  update(value) { if(value.status === 'cancelled') released = true; return this; }, eq() { return this; }, async maybeSingle() { return failure === 'link' ? {error: new Error('link failed')} : { data: { id: 'test-order' } }; },
 }; } };
 const route = load('app/api/raffle/checkout/route.ts', {
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
   '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async value => {
-    payload = value; return { ...value, id: 'cs_test', status: 'open', url: 'https://checkout.stripe.com/test' };
-  } } } }) },
+    if(failure === 'create') throw new Error('Stripe unavailable');
+    payload = value; return { ...value, id: 'cs_test', status: 'open', url: failure === 'validation' ? null : 'https://checkout.stripe.com/test' };
+  }, expire: async()=>{expired = true; return {status:'expired'};} } } }) },
   '@/lib/server/request-guards': { enforceRateLimit: async () => true, getClientIp: () => 'test' },
   '@/lib/raffle-visibility': { getPublicRaffleCampaign: async code => {
     selected = code; return hidden ? null : { id: code, code, name: code === 'NDCCRRO' ? 'Reverse Raffle' : 'Dinos Trailer Raffle',
@@ -55,15 +56,56 @@ assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checko
 assert.equal(inserted, null, 'Hidden campaign must not create an order');
 assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=OTHER' })).status, 400);
 
+hidden = false; soldOut = true; payload = null;
+assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO' })).status, 409);
+assert.equal(payload, null, 'No Stripe checkout may be created when stock is reserved or sold');
+soldOut = false;
+for (const [stage,status] of [['create',500],['validation',502],['link',503]]) {
+  failure = stage; released = expired = false;
+  assert.equal((await route.POST({url:'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO'})).status,status);
+  assert.ok(released, `${stage} failure must release its unpublished reservation`);
+  if(stage !== 'create') assert.ok(expired,'Known sessions must expire before release');
+}
+failure = '';
+const vector = load('lib/reverse-raffle-ticket.ts', {});
 const ticket = load('lib/raffle-ticket.ts', {
+  './reverse-raffle-ticket': vector,
   'node:fs/promises': { default: { readFile: async () => Buffer.from('test-logo') } },
   'node:path': { default: { join: (...parts) => parts.join('/') } },
   './server-fonts.mjs': { getServerSharp: async () => buffer => ({ png: () => ({ toBuffer: async () => buffer }) }) },
 });
-const zero = (await ticket.renderRaffleTicket('NDCCRRO-20260000')).toString();
-assert.ok(zero.includes('NDCCRRO-20260000') && zero.includes('REVERSE RAFFLE') && zero.includes('$60.00 AUD'));
+const zero = (await ticket.renderRaffleTicket('NDCCRRO-20260201')).toString();
+assert.ok(zero.includes('NDCCRRO-20260201') && zero.includes('REVERSE</text>') && zero.includes('RAFFLE</text>') && zero.includes('$60 AUD'));
+assert.ok(zero.includes('>201</text>'));
+assert.ok((await ticket.renderRaffleTicket('NDCCRRO-20260300')).toString().includes('>300</text>'));
+await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20260200'));
+await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20260301'));
 assert.ok(!zero.includes('19 DECEMBER') && !zero.includes('TRAILER'));
 assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('$5.00 AUD'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-202600000'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-2026<script>'));
-console.log('Reverse raffle: separate campaign/price/return URL, hidden and unknown rejection, zero ticket rendering, legacy ticket compatibility and invalid references passed. Database allocation and live Stripe remain untested.');
+let mail, marked = false;
+const paid = { id: 'order-test',status:'paid',currency:'aud',amount_cents:12000,quantity:2,paid_at:'2026-09-22T00:00:00Z',
+  payment_reference:'NDCCRAF-2026-000100',stripe_payment_intent_id:'pi_test',customer_email:'buyer@example.com',customer_name:'Test buyer',
+  raffle_campaigns:{name:'Reverse Raffle',price_cents:6000,draw_label:null},
+  raffle_tickets:[{ticket_reference:'NDCCRRO-20260201',ticket_number:201},{ticket_reference:'NDCCRRO-20260202',ticket_number:202}] };
+const emailDb = { from(table) { return {select(){return this;},eq(){return this;},limit(){return this;},
+  async single(){return {data:paid};},async maybeSingle(){return {data:null};},update(){return this;},async is(){marked=true; return {};}};} };
+const mailer = load('lib/raffle-email.ts', {
+  '@/lib/payments/receipt-recipients':{receiptRecipients:email=>({to:email})},
+  '@/lib/supabase-server':{createServerClient:()=>emailDb},
+  '@/lib/email':{emailHtml:(_,body)=>body,getTransactionalReplyTo:()=>undefined,sendEmail:async value=>{mail=value;return {status:'sent',id:'message-test'};}},
+  '@/lib/payment-receipt-pdf':{buildPaymentReceiptFilename:()=> 'receipt.pdf',buildPaymentReceiptPdf:async data=>{assert.ok(data.descriptionLines.includes('Raffle numbers: 201, 202'));return 'pdf';}},
+  '@/lib/raffle-ticket':{renderRaffleTicket:ticket.renderRaffleTicket},
+  '@/lib/payments/receipt-delivery-policy':{canRecordSimulatedReceiptDelivery:()=>false},
+  '@/lib/payments/reference':{isCanonicalPaymentReference:()=>true},
+});
+assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'sent');
+assert.equal(mail.attachments.length,3,'Two numbered PNG tickets and one PDF receipt');
+assert.deepEqual(Array.from(mail.attachments,a=>a.filename),['NDCCRRO-20260201.png','NDCCRRO-20260202.png','receipt.pdf']);
+assert.ok(mail.html.includes('Raffle number 201') && mail.html.includes('Raffle number 202'));
+assert.ok(marked);
+paid.status='pending_payment'; mail=null;
+assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'failed');
+assert.equal(mail,null,'Unpaid buyers cannot receive valid tickets');
+console.log('Reverse raffle: checkout stock rejection, 201/300 bounds, legacy compatibility, two PNG tickets plus PDF receipt, and unpaid delivery rejection passed.');

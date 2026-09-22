@@ -41,7 +41,8 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
         {paymentResult === 'success' && <p role="status">Checkout completed. Your numbered tickets will be emailed once payment is confirmed.</p>}
         {paymentResult === 'cancelled' && <p role="status">Checkout was cancelled. You can try again below.</p>}
         {drawLabel && <p>{drawLabel}</p>}
-        <p>Your unique numbered tickets and payment receipt will be emailed after payment is confirmed.</p>
+        <p>100 tickets, numbered 201-300. Each ticket is $60 AUD.</p>
+        <p>Your numbered ticket image and PDF payment receipt will be emailed after payment is confirmed.</p>
         <Input id="reverse-raffle-name" label="Name" required autoComplete="name" maxLength={120} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <Input id="reverse-raffle-email" label="Email" type="email" required autoComplete="email" maxLength={254} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
         <Input id="reverse-raffle-phone" label="Phone (optional)" type="tel" autoComplete="tel" maxLength={40} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />

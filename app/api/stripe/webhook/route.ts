@@ -668,6 +668,15 @@ async function handleRaffleCheckout(event: Stripe.Event): Promise<NextResponse |
   if (!orderId || !UUID_PATTERN.test(orderId)) {
     return NextResponse.json({ error: 'Invalid raffle order metadata.' }, { status: 400 });
   }
+  // Only a signed provider expiry releases stock, never a browser cancellation or clock timeout.
+  if (event.type === 'checkout.session.expired' && session.status === 'expired' && session.payment_status === 'unpaid') {
+    if (!/^cs_[a-zA-Z0-9_]+$/.test(session.id)) return NextResponse.json({ error: 'Invalid session.' }, { status: 400 });
+    const expired = await createServerClient().from('raffle_orders').update({ status: 'cancelled' })
+      .eq('id', orderId).or(`stripe_checkout_session_id.eq.${session.id},stripe_checkout_session_id.is.null`)
+      .eq('payment_reference', metadata.ndcc_payment_reference).eq('status', 'pending_payment');
+    if (expired.error) return NextResponse.json({ error: 'Raffle checkout expiry could not be recorded.' }, { status: 500 });
+    return NextResponse.json({ received: true, raffle: true, expired: true });
+  }
   if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
     return NextResponse.json({ received: true, raffle: true, pending: true });
   }
@@ -1004,4 +1013,3 @@ export async function POST(request: Request) {
   if (action === 'fail') return markSessionFailed(session, event);
   return settleSession(session, event);
 }
-
