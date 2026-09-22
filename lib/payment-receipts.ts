@@ -129,14 +129,32 @@ export async function sendOrderPaymentReceiptForPayment(
     return { status: 'failed', reason: 'The settled payment is not recorded in AUD.' };
   }
   const category = normalisePaymentReferenceCategory(order.order_category);
-  const transactionReference = String(payment.payment_reference || '').trim();
+  let transactionReference = String(payment.payment_reference || '').trim();
+  let legacyOrderReference = '';
+  if (!transactionReference) {
+    const { data: reconciled, error: reconciliationError } = await supabase
+      .from('legacy_payment_receipt_references')
+      .select('canonical_reference,legacy_order_reference')
+      .eq('payment_id', paymentId).eq('order_id', orderId).maybeSingle();
+    if (reconciliationError || !reconciled) {
+      return { status: 'failed', reason: 'This historical payment requires receipt-reference reconciliation.' };
+    }
+    transactionReference = String(reconciled.canonical_reference || '');
+    legacyOrderReference = String(reconciled.legacy_order_reference || '');
+  }
   if (!isCanonicalPaymentReference(transactionReference, category)) {
     return {
       status: 'failed',
       reason: 'The settled payment does not have a canonical category payment reference.',
     };
   }
-  const orderReference = String(order.payment_reference || order.id);
+  const orderReference = String(order.payment_reference || '').trim();
+  if (!orderReference) {
+    return { status: 'failed', reason: 'The order reference is missing. Reconcile the historical order before issuing its receipt.' };
+  }
+  if (!payment.payment_reference && transactionReference !== orderReference) {
+    return { status: 'failed', reason: 'The reconciled receipt reference does not match the order.' };
+  }
   const reference = orderReference;
   const paymentMetadata = payment.metadata && typeof payment.metadata === 'object'
     ? payment.metadata as Record<string, unknown>
@@ -175,6 +193,9 @@ export async function sendOrderPaymentReceiptForPayment(
     || providerBankReference
     || String(order.bank_reference_used || '').trim();
   const referenceDescriptions: string[] = [];
+  if (legacyOrderReference && legacyOrderReference !== orderReference) {
+    referenceDescriptions.push(`Previous order reference: ${legacyOrderReference}`);
+  }
   if (orderReference !== reference) referenceDescriptions.push(`Order / bank reference: ${orderReference}`);
   if (bankReference && bankReference !== orderReference && bankReference !== reference) {
     referenceDescriptions.push(`Bank statement reference: ${bankReference}`);
@@ -249,4 +270,3 @@ export async function sendOrderPaymentReceiptForPayment(
   }
   return { ...result, filename };
 }
-
