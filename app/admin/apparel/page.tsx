@@ -581,7 +581,7 @@ export default function AdminApparelPage() {
 
       <section className="bg-surface-card border rounded-xl p-5">
         <p className="mb-3 text-sm text-content-muted">
-          Downloads a four-sheet Excel workbook containing only apparel orders not included in an earlier apparel export.
+          Downloads a four-sheet Excel workbook containing only fully paid apparel orders not included in an earlier apparel export. Part-paid and unpaid orders are excluded until the balance is paid.
         </p>
         <Button type="button" variant="secondary" isLoading={exporting} onClick={exportNewApparelOrders}>
           Export new apparel orders (Excel)

@@ -611,6 +611,10 @@
       "name": "reverse_raffle_201_300"
     },
     {
+      "version": "20260922105308",
+      "name": "apparel_balance_reminders"
+    },
+    {
       "version": "20260922105520",
       "name": "reverse_raffle_pending_reentry_guard"
     }

@@ -201,10 +201,10 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing')
+      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,deleted_at')
       .eq('id', orderId)
       .maybeSingle();
-    if (orderError || !order) {
+    if (orderError || !order || order.deleted_at) {
       return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
     }
 
