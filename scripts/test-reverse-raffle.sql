@@ -7,8 +7,8 @@ begin
   if not exists(select 1 from public.raffle_campaigns where id=campaign and price_cents=6000 and next_ticket_number=0 and not active and public_visibility_mode='hidden') then
     raise exception 'Reverse raffle must start hidden at $60 and zero';
   end if;
-  insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents)
-    values(campaign,'Test purchaser','test@example.com',2,12000) returning id into purchase;
+  insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents,payment_reference)
+    values(campaign,'Test purchaser','test@example.com',2,12000,public.allocate_payment_reference('raffle',now())) returning id into purchase;
   if exists(select 1 from public.raffle_tickets where raffle_order_id=purchase) then raise exception 'Unpaid tickets allocated'; end if;
   perform * from public.issue_paid_raffle_tickets(purchase,'evt_reverse_test','cs_reverse_test','pi_reverse_test');
   select array_agg(ticket_reference order by ticket_number) into refs from public.raffle_tickets where raffle_order_id=purchase;

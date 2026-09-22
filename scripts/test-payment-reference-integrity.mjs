@@ -143,7 +143,7 @@ await test('generic, raffle and Dino Checkout metadata has PaymentIntent parity 
 await test('Stripe descriptions and product names carry the reportable payment reference', () => {
   assert.match(genericCheckout, /description:\s*`\$\{publicPaymentReference\} - NDCC \$\{frozenCategoryLabel\}`/u);
   assert.match(genericCheckout, /name:\s*validation\.isPartial[\s\S]*?publicPaymentReference/u);
-  assert.match(raffleCheckout, /name:\s*`NDCC Dinos Trailer Raffle Ticket - \$\{paymentReference\}`/u);
+  assert.match(raffleCheckout, /name:\s*`NDCC \$\{campaign\.name\} Ticket - \$\{paymentReference\}`/u);
   assert.match(raffleCheckout, /description:\s*`\$\{paymentReference\} - NDCC raffle`/u);
   assert.match(dinoCheckout, /name:\s*`\$\{season\.name\} entry - \$\{paymentReference\}`/u);
   assert.match(dinoCheckout, /description:\s*`\$\{paymentReference\} - NDCC Dino Coach`/u);
@@ -155,7 +155,9 @@ await test('customer receipts use the order reference and validate the internal 
   const dinoReceipt = read('lib/dino-coach/payment-receipt.ts');
   const webhook = read('app/api/stripe/webhook/route.ts');
   assert.match(receipts, /select\('id,amount,currency,received_at,status,method,provider,provider_reference,payment_reference,metadata'\)/u);
-  assert.match(receipts, /const transactionReference = String\(payment\.payment_reference \|\| ''\)\.trim\(\)/u);
+  assert.match(receipts, /let transactionReference = String\(payment\.payment_reference \|\| ''\)\.trim\(\)/u);
+  assert.match(receipts, /from\('legacy_payment_receipt_references'\)/u);
+  assert.match(receipts, /transactionReference !== orderReference/u);
   assert.match(receipts, /isCanonicalPaymentReference\(transactionReference, category\)/u);
   assert.doesNotMatch(receipts, /payment\.payment_reference\s*\|\|\s*order\.payment_reference/u);
   assert.match(raffleEmail, /reference:\s*String\(order\.payment_reference\)/u);
