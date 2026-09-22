@@ -1,5 +1,7 @@
 'use client';
 
+import PurchaseTabs from '@/components/admin/PurchaseTabs';
+import { purchaseGroup } from '@/lib/orders/purchase-groups';
 import { mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -85,6 +87,7 @@ function balanceDue(order: AdminOrder): number {
 }
 
 export default function AdminOrdersPage() {
+  const [group, setGroup] = useState('merch');
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [payments, setPayments] = useState<OrderPayment[]>([]);
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
@@ -122,7 +125,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setGroup(new URLSearchParams(window.location.search).get('group') || 'merch'); fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSetProcessed = async (id: string, processed: boolean) => {
     try {
@@ -253,6 +256,7 @@ export default function AdminOrdersPage() {
     try { await parseApiResponse(await adminFetch('/api/admin/resources/orders', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})})); await fetchAll(); setMessage('Order restored.'); } catch (error) {setMessage(error instanceof Error ? error.message : 'Restore failed.');}
   };
   const filteredOrders = orders.filter((o) => {
+    if (purchaseGroup(o) !== group) return false;
     if (filterStatus === 'deleted') return Boolean(o.deleted_at);
     if (o.deleted_at) return false;
     if (filterStatus === 'processed' && !o.processed) return false;
@@ -287,9 +291,13 @@ export default function AdminOrdersPage() {
           </p>
         </div>
       </div>
+      <PurchaseTabs active={group} onSelect={value=>{setGroup(value);setOpenOrderId(null);window.history.replaceState(null,'',`?group=${encodeURIComponent(value)}`);}} />
+      {group === 'kitchen' && <a className="block mb-4 underline" href="/admin/kitchen">Kitchen collection windows and meal exports</a>}
+      {group === 'merch' && <p className="mb-4 text-sm">Full payment is required before apparel orders can be processed or exported. Balance reminders run every three weeks from the order date. <a className="underline" href="/pay-balance" target="_blank" rel="noreferrer">Open balance payment page</a></p>}
       {message && <p className="mb-4 text-sm text-content-muted" role="status">{message}</p>}
 
-      {settings && (
+      {group === 'merch' && <Button variant="secondary" size="sm" className="mb-4" onClick={async()=>{try{const result=await parseApiResponse<{sent:number;failed:number;cancelled:number}>(await adminFetch('/api/admin/orders/reminders',{method:'POST'}));setMessage(`Reminders sent: ${result.sent}. Failed: ${result.failed}. Cancelled: ${result.cancelled}.`);}catch(e){setMessage(e instanceof Error?e.message:'Could not send reminders.');}}}>Send due balance reminders</Button>}
+      {settings && group === 'merch' && (
         <section className="mb-6 bg-surface-card rounded-xl border border-edge-subtle p-4 space-y-3">
           <h2 className="font-display font-bold text-content-primary">Payment configuration</h2>
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
@@ -333,11 +341,11 @@ export default function AdminOrdersPage() {
         </section>
       )}
 
-      <section className="mb-6 bg-surface-card rounded-xl border border-edge-subtle p-4 space-y-3">
+      {group === 'merch' && <section className="mb-6 bg-surface-card rounded-xl border border-edge-subtle p-4 space-y-3">
         <h2 className="font-display font-bold text-content-primary">Export Merchandise Orders</h2>
         <p className="text-xs text-content-muted">
           Downloads a CSV with one row per order item (products, options, sizes, personalisation, prices, payments).
-          All filters are optional.
+          Only fully paid, active orders are included.
         </p>
         <form
           className="flex flex-wrap items-end gap-3"
@@ -386,17 +394,10 @@ export default function AdminOrdersPage() {
             <label htmlFor="export-product" className="form-label text-xs">Product (name/slug)</label>
             <input id="export-product" name="product" type="text" className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body bg-surface-card" placeholder="e.g. hoody" />
           </div>
-          <label className="inline-flex items-center gap-2 text-sm pb-2">
-            <input type="checkbox" name="paid_in_full_only" />
-            Paid in full only
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm pb-2">
-            <input type="checkbox" name="include_part_paid" defaultChecked />
-            Include part-paid orders
-          </label>
+          <p className="text-sm">Paid in full only. Part-paid orders are excluded.</p>
           <Button type="submit" size="sm" variant="secondary">Export Merchandise Orders</Button>
         </form>
-      </section>
+      </section>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

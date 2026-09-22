@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     paymentStatus: searchParams.get('payment_status'),
     processed: (searchParams.get('processed') as 'true' | 'false' | null),
     product: searchParams.get('product'),
-    paidInFullOnly: searchParams.get('paid_in_full_only') === '1',
-    includePartPaid: searchParams.get('include_part_paid') !== '0',
+    paidInFullOnly: true,
+    includePartPaid: false,
   };
 
   const supabase = createServerClient();
@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     .from('orders')
     .select('id,created_at,payment_reference,merch_window_label,merch_window_id,customer_name,customer_email,customer_phone,items,total_amount,amount_paid,balance_due,payment_status,processed,order_status,notes').is('deleted_at', null)
     .eq('order_category', 'merch')
+    .eq('payment_status', 'paid').lte('balance_due', 0).neq('order_status', 'cancelled')
     .order('created_at', { ascending: false });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 

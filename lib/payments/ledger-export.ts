@@ -5,6 +5,7 @@ export type PaymentLedgerOrder = {
   id: string;
   payment_reference?: string | null;
   order_category?: string | null;
+  items?: Array<{name?: string}>;
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;

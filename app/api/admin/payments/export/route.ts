@@ -1,3 +1,4 @@
+import { purchaseGroup } from '@/lib/orders/purchase-groups';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
@@ -12,10 +13,11 @@ export const dynamic = 'force-dynamic';
 
 const EXPORT_BATCH_SIZE = 1000;
 
-export async function POST() {
+export async function POST(request: Request) {
   const user = await requirePermission('payments', ['admin']);
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
+  const group = new URL(request.url).searchParams.get('group');
   const supabase = createServerClient();
   const payments: PaymentLedgerExportRow[] = [];
   // Keep offset pagination stable if a new payment arrives during the export.
@@ -46,6 +48,7 @@ export async function POST() {
           id,
           payment_reference,
           order_category,
+          items,
           customer_name,
           customer_email,
           customer_phone,
@@ -70,7 +73,11 @@ export async function POST() {
     }
 
     const batch = (data || []) as unknown as PaymentLedgerExportRow[];
-    payments.push(...batch);
+    payments.push(...batch.filter(row=>{
+      if (!group) return true;
+      const joined = Array.isArray(row.order) ? row.order[0] : row.order;
+      return joined && purchaseGroup(joined) === group;
+    }));
     if (batch.length < EXPORT_BATCH_SIZE) break;
   }
 

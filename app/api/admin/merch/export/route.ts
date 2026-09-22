@@ -17,6 +17,10 @@ export async function POST() {
     .from('orders')
     .update({ apparel_export_batch_id: batchId, apparel_exported_at: exportedAt })
     .eq('order_category', 'merch')
+    .eq('payment_status', 'paid')
+    .lte('balance_due', 0)
+    .neq('order_status', 'cancelled')
+    .is('deleted_at', null)
     .is('apparel_export_batch_id', null)
     .select('id,customer_name,items,created_at,payment_status,payment_reference,processed')
     .order('created_at', { ascending: true });

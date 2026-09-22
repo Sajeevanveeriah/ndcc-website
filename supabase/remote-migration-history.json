@@ -609,6 +609,10 @@
     {
       "version": "20260922104834",
       "name": "reverse_raffle_201_300"
+    },
+    {
+      "version": "20260922105308",
+      "name": "apparel_balance_reminders"
     }
   ],
   "localOnlyApplied": []

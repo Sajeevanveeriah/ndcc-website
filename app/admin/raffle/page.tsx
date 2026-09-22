@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import PurchaseTabs from '@/components/admin/PurchaseTabs';
 import Link from 'next/link';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
@@ -24,7 +25,7 @@ export default function AdminRafflePage() {
   useEffect(()=>{ void Promise.all([
     adminFetch('/api/admin/resources/raffleCampaigns').then(r=>parseApiResponse<{data:Campaign[]}>(r)),
     adminFetch('/api/admin/resources/raffleOrders').then(r=>parseApiResponse<{data:Order[]}>(r)),
-  ]).then(([campaigns,raffleOrders])=>{setCampaigns(campaigns.data || []);setCampaign(campaigns.data?.find(item=>item.active)||campaigns.data?.[0]||null);setOrders(raffleOrders.data||[]);}).catch(e=>setError(e instanceof Error?e.message:'Could not load raffle administration.')); },[]);
+  ]).then(([campaigns,raffleOrders])=>{setCampaigns(campaigns.data || []);setCampaign(campaigns.data?.find(item=>item.id===new URLSearchParams(window.location.search).get('campaign'))||campaigns.data?.find(item=>item.active)||campaigns.data?.[0]||null);setOrders(raffleOrders.data||[]);}).catch(e=>setError(e instanceof Error?e.message:'Could not load raffle administration.')); },[]);
 
   async function saveVisibility() {
     if (!campaign) return;
@@ -39,7 +40,7 @@ export default function AdminRafflePage() {
 
   const currentlyVisible=campaign?.active===true&&(campaign.public_visibility_mode==='visible'||(campaign.public_visibility_mode==='scheduled'&&Boolean(campaign.public_opens_at)&&Date.now()>=new Date(campaign.public_opens_at as string).getTime()));
   return <div className="space-y-6"><div><h1 className="text-2xl font-display font-bold">Raffle</h1><p className="text-content-muted">{campaign ? `${campaign.name}: AUD ${(campaign.price_cents / 100).toFixed(2)} per ticket. ${campaign.draw_label || ''}` : 'Choose a raffle campaign.'}</p>{currentlyVisible&&<Link className="text-maroon-700 underline" href={campaign?.code === 'NDCCRRO' ? '/reverse-raffle' : '/raffle'} target="_blank">Open public raffle page</Link>}</div>
-    <label className="block"><span className="block text-sm font-semibold mb-1">Raffle campaign</span><select className="min-h-11 border rounded-md p-2 bg-surface-card" value={campaign?.id || ''} onChange={e => { setCampaign(campaigns.find(row => row.id === e.target.value) || null); setMessage(''); }}><option value="" disabled>Choose a campaign</option>{campaigns.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
+    <PurchaseTabs active={campaign?.id} /><label className="block"><span className="block text-sm font-semibold mb-1">Raffle campaign</span><select className="min-h-11 border rounded-md p-2 bg-surface-card" value={campaign?.id || ''} onChange={e => { setCampaign(campaigns.find(row => row.id === e.target.value) || null); setMessage(''); }}><option value="" disabled>Choose a campaign</option>{campaigns.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
     {error&&<p role="alert" className="text-red-700">{error}</p>}{message&&<p role="status" className="text-green-700">{message}</p>}
     <section className="rounded-lg border border-edge-subtle bg-surface-card p-5 space-y-4" aria-labelledby="raffle-visibility-title"><div><h2 id="raffle-visibility-title" className="font-display text-xl font-bold">Public visibility</h2><p className="text-sm text-content-muted">The public page, navigation, footer, sitemap and checkout all follow this setting.</p></div>
       {!campaign?<p>Loading raffle campaign...</p>:<><label className="block"><span className="mb-1 block text-sm font-semibold">Visibility mode</span><select className="min-h-11 w-full rounded-md border border-edge-subtle bg-surface-card px-3" value={campaign.public_visibility_mode} onChange={e=>setCampaign({...campaign,public_visibility_mode:e.target.value as VisibilityMode})}><option value="hidden">Hidden</option><option value="scheduled">Scheduled</option><option value="visible">Visible now</option></select></label>

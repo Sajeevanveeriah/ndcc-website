@@ -131,7 +131,7 @@ test('full CSV protects customer fields from spreadsheet formula injection', () 
 
 test('route is POST-only, ledger-based, joined, paginated and non-cacheable', () => {
   const route = readFileSync(path.join(repoRoot, 'app/api/admin/payments/export/route.ts'), 'utf8');
-  assert.match(route, /export async function POST\(\)/);
+  assert.match(route, /export async function POST\(request: Request\)/);
   assert.doesNotMatch(route, /export async function GET\(\)/);
   assert.match(route, /\.from\(['"]order_payments['"]\)/);
   assert.match(route, /order:orders!order_payments_order_id_fkey/);
@@ -144,7 +144,7 @@ test('route is POST-only, ledger-based, joined, paginated and non-cacheable', ()
 
 test('admin UI performs a CSRF-safe POST and downloads the CSV blob', () => {
   const page = readFileSync(path.join(repoRoot, 'app/admin/payments/page.tsx'), 'utf8');
-  assert.match(page, /fetch\(['"]\/api\/admin\/payments\/export['"][\s\S]*?method:\s*['"]POST['"]/);
+  assert.match(page, /fetch\(`\/api\/admin\/payments\/export\?group=\$\{encodeURIComponent\(group\)\}`,[\s\S]*?method:\s*['"]POST['"]/);
   assert.match(page, /['"]X-NDCC-CSRF['"]:\s*['"]1['"]/);
   assert.match(page, /response\.blob\(\)/);
   assert.match(page, /URL\.createObjectURL\(csv\)/);
