@@ -100,7 +100,7 @@ begin
       order by ticket.ticket_number;
     return;
   end if;
-  if campaign.next_ticket_number + target_order.quantity - 1 > case when campaign.code = 'NDCCRRO' then 300 else 9999 end then
+  if campaign.next_ticket_number + target_order.quantity - 1 > (case when campaign.code = 'NDCCRRO' then 300 else 9999 end) then
     raise exception 'Raffle ticket allocation exhausted';
   end if;
   if target_order.status = 'paid' then

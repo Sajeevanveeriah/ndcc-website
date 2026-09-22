@@ -14,18 +14,19 @@ function load(file, dependencies) {
   return exports;
 }
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2 };
-let selected, inserted, payload, hidden = false, soldOut = false;
+let selected, inserted, payload, hidden = false, soldOut = false, failure = '', released = false, expired = false;
 const db = { from() { return {
   insert(value) { inserted = value; return this; }, select() { return this; },
   async single() { return soldOut ? { error: { message: 'Reverse raffle allocation unavailable' } } : { data: { id: 'test-order' } }; },
-  update() { return this; }, eq() { return this; }, async maybeSingle() { return { data: { id: 'test-order' } }; },
+  update(value) { if(value.status === 'cancelled') released = true; return this; }, eq() { return this; }, async maybeSingle() { return failure === 'link' ? {error: new Error('link failed')} : { data: { id: 'test-order' } }; },
 }; } };
 const route = load('app/api/raffle/checkout/route.ts', {
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
   '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async value => {
-    payload = value; return { ...value, id: 'cs_test', status: 'open', url: 'https://checkout.stripe.com/test' };
-  } } } }) },
+    if(failure === 'create') throw new Error('Stripe unavailable');
+    payload = value; return { ...value, id: 'cs_test', status: 'open', url: failure === 'validation' ? null : 'https://checkout.stripe.com/test' };
+  }, expire: async()=>{expired = true; return {status:'expired'};} } } }) },
   '@/lib/server/request-guards': { enforceRateLimit: async () => true, getClientIp: () => 'test' },
   '@/lib/raffle-visibility': { getPublicRaffleCampaign: async code => {
     selected = code; return hidden ? null : { id: code, code, name: code === 'NDCCRRO' ? 'Reverse Raffle' : 'Dinos Trailer Raffle',
@@ -58,6 +59,14 @@ assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checko
 hidden = false; soldOut = true; payload = null;
 assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO' })).status, 409);
 assert.equal(payload, null, 'No Stripe checkout may be created when stock is reserved or sold');
+soldOut = false;
+for (const [stage,status] of [['create',500],['validation',502],['link',503]]) {
+  failure = stage; released = expired = false;
+  assert.equal((await route.POST({url:'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO'})).status,status);
+  assert.ok(released, `${stage} failure must release its unpublished reservation`);
+  if(stage !== 'create') assert.ok(expired,'Known sessions must expire before release');
+}
+failure = '';
 const vector = load('lib/reverse-raffle-ticket.ts', {});
 const ticket = load('lib/raffle-ticket.ts', {
   './reverse-raffle-ticket': vector,

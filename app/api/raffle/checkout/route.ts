@@ -16,6 +16,9 @@ import { validateEmail, validatePhone } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  let pendingOrderId: string | null = null;
+  let createdSessionId: string | null = null;
+  let checkoutPublished = false;
   try {
     if (!await enforceRateLimit(`raffle:${getClientIp(request)}`, 8, 60_000)) return NextResponse.json({ error: 'Too many attempts. Please wait and try again.' }, { status: 429 });
     if (!isCheckoutEnabled()) return NextResponse.json({ error: 'Card payments are not currently enabled.' }, { status: 503 });
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
     const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount, payment_reference: paymentReference }).select('id').single();
     if (orderError?.message?.includes('Reverse raffle allocation unavailable')) return NextResponse.json({ error: 'There are not enough tickets available. Tickets may be sold or held by another checkout. Please reduce the quantity or try again later.' }, { status: 409 });
     if (orderError || !order) return NextResponse.json({ error: 'The raffle order could not be created.' }, { status: 500 });
+    if (campaign.code === 'NDCCRRO') pendingOrderId = order.id;
     const paymentMetadata = {
       ndcc_payment_reference: paymentReference,
       ndcc_payment_type: 'raffle',
@@ -68,6 +72,7 @@ export async function POST(request: Request) {
       metadata: paymentMetadata,
       payment_intent_data: { description: `${paymentReference} - NDCC raffle`, metadata: paymentMetadata },
     }, { idempotencyKey: `raffle-${order.id}` });
+    createdSessionId = session.id;
     if (session.status !== 'open' || !session.url
       || session.metadata?.ndcc_payment_reference !== paymentReference
       || session.metadata?.item_number !== paymentReference
@@ -77,12 +82,30 @@ export async function POST(request: Request) {
     }
     const linked = await db.from('raffle_orders').update({ stripe_checkout_session_id: session.id }).eq('id', order.id).select('id').maybeSingle();
     if (linked.error || !linked.data) {
-      await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
       return NextResponse.json({ error: 'The raffle payment record could not be prepared.' }, { status: 503 });
     }
+    checkoutPublished = true;
     return NextResponse.json({ checkout_url: session.url, payment_reference: paymentReference });
   } catch (error) {
     console.error('Raffle checkout failed:', error);
     return NextResponse.json({ error: 'Secure checkout could not be started.' }, { status: 500 });
+  } finally {
+    // No checkout URL has reached the buyer on these setup failures. Expire a
+    // known session before releasing its reservation; preserve stock if Stripe
+    // cannot confirm expiry, so a payable session can never oversell the draw.
+    if (pendingOrderId && !checkoutPublished) {
+      try {
+        const expired = createdSessionId
+          ? await getStripe().checkout.sessions.expire(createdSessionId)
+          : null;
+        if (!createdSessionId || expired?.status === 'expired') {
+          const released = await createServerClient().from('raffle_orders')
+            .update({ status: 'cancelled' }).eq('id', pendingOrderId).eq('status', 'pending_payment');
+          if (released.error) console.error('Raffle reservation release failed:', released.error);
+        }
+      } catch (cleanupError) {
+        console.error('Raffle checkout cleanup requires reconciliation:', cleanupError);
+      }
+    }
   }
 }
