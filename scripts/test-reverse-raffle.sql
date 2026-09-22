@@ -17,6 +17,7 @@ begin
   perform * from public.issue_paid_raffle_tickets(purchase,'evt_reverse_test_replay','cs_reverse_test','pi_reverse_test');
   if (select count(*) from public.raffle_tickets where raffle_order_id=purchase)<>2
     or (select next_ticket_number from public.raffle_campaigns where id=campaign)<>2 then raise exception 'Replay allocated new tickets'; end if;
+  if (select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.legacy_payment_receipt_references'::regclass and conname='legacy_payment_receipt_references_canonical_reference_check') not like '%NCDDKIT%' then raise exception 'Legacy kitchen spelling rejected'; end if;
   if has_table_privilege('anon','public.legacy_payment_receipt_references','SELECT')
     or has_table_privilege('authenticated','public.legacy_payment_receipt_references','INSERT')
     or has_function_privilege('anon','public.payment_receipt_reference(uuid)','EXECUTE') then raise exception 'Legacy receipt mappings exposed'; end if;
