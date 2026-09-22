@@ -294,7 +294,7 @@ export default function AdminOrdersPage() {
       </div>
       <PurchaseTabs active={group} onSelect={value=>{setGroup(value);setOpenOrderId(null);window.history.replaceState(null,'',`?group=${encodeURIComponent(value)}`);}} />
       {group === 'kitchen' && <a className="block mb-4 underline" href="/admin/kitchen">Kitchen collection windows and meal exports</a>}
-      {group === 'merch' && <p className="mb-4 text-sm">Full payment is required before apparel orders can be processed or included in the supplier export. Balance reminders cover unpaid and part-paid orders every three weeks from the order date. <a className="underline" href="/pay-balance" target="_blank" rel="noreferrer">Open balance payment page</a></p>}
+      {group === 'merch' && <p className="mb-4 text-sm">Full payment is required before apparel orders can be processed or included in the supplier export. Balance reminders cover unpaid and part-paid orders. The first reminder is due three weeks after ordering; subsequent reminders are due three weeks after the previous email. <a className="underline" href="/pay-balance" target="_blank" rel="noreferrer">Open balance payment page</a></p>}
       {message && <p className="mb-4 text-sm text-content-muted" role="status">{message}</p>}
 
       {group === 'merch' && <Button variant="secondary" size="sm" className="mb-4" onClick={async()=>{try{const result=await parseApiResponse<{sent:number;failed:number;cancelled:number}>(await adminFetch('/api/admin/orders/reminders',{method:'POST'}));setMessage(`Reminders sent: ${result.sent}. Failed: ${result.failed}. Cancelled: ${result.cancelled}.`);}catch(e){setMessage(e instanceof Error?e.message:'Could not send reminders.');}}}>Send due balance reminders</Button>}
