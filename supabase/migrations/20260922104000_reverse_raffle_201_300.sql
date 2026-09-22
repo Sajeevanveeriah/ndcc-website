@@ -161,7 +161,7 @@ begin
     where ticket.raffle_order_id = target_order.id
     order by ticket.ticket_number;
 end;
-$function$
+$function$;
 
 notify pgrst,'reload schema';
 commit;
