@@ -30,7 +30,7 @@ assert.deepEqual(plain(recipients.receiptRecipients(' NDCC.Secretary1@gmail.com 
 assert.deepEqual(plain(recipients.receiptRecipients('buyer@example.com', ['joshwalker20695@gmail.com'])).bcc,
   ['ndcc.secretary1@gmail.com', 'ndsc.cricket@gmail.com', 'joshwalker20695@gmail.com']);
 
-let marker = {}, sent = [], pdfData, providerFails = false;
+let marker = {}, sent = [], pdfData, providerFails = false, legacyMapping = null;
 const order = {
   id: '05946ba5-9d34-4b4b-98a3-3591f0a4233b', payment_reference: 'NDCCMER-2026-000001',
   order_category: 'merch', customer_name: 'Test purchaser', customer_email: 'ndcc.secretary1@gmail.com',
@@ -42,7 +42,7 @@ const payment = {
   method: 'stripe', payment_reference: 'NDCCMER-2026-000002', metadata: { payment_intent: 'pi_test' },
 };
 const db = { from(table) { return { select() { return this; }, eq() { return this; }, limit() { return this; },
-  async maybeSingle() { return { data: table === 'orders' ? order : table === 'order_payments' ? payment : null, error: null }; },
+  async maybeSingle() { return { data: table === 'orders' ? order : table === 'order_payments' ? payment : table === 'legacy_payment_receipt_references' ? legacyMapping : null, error: null }; },
 }; } };
 const sender = moduleAt('lib/payment-receipts.ts', {
   '@/lib/meal-collection': mealCollection,
@@ -77,6 +77,35 @@ assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, ord
 assert.equal(sent[0].idempotencyKey, sent[1].idempotencyKey);
 assert.ok(sent[1].html.includes('A part payment has been received.'));
 assert.ok(!sent[1].html.includes('The order is now fully paid.'));
+
+marker = {}; sent = []; payment.method = 'bank_transfer'; payment.metadata = {};
+payment.provider_reference = 'BANK-ORIGINAL-REFERENCE';
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'sent');
+assert.equal(pdfData.reference, order.payment_reference, 'Bank transfer receipt must retain the checkout order reference');
+assert.ok(sent[0].subject.endsWith(order.payment_reference));
+assert.ok(!sent[0].html.includes(payment.payment_reference));
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'already_sent');
+assert.equal(sent.length, 1, 'Repeated bank confirmation must not send another receipt');
+marker = {}; sent = [];
+const savedReference = order.payment_reference; order.payment_reference = '';
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'failed');
+assert.equal(sent.length, 0, 'A missing historical reference must not be replaced with a UUID receipt');
+order.payment_reference = savedReference;
+
+marker = {}; sent = []; payment.payment_reference = null;
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'failed');
+assert.equal(sent.length, 0, 'Unreconciled legacy payments must remain unsent');
+legacyMapping = { canonical_reference: 'NDCCMER-2026-999999', legacy_order_reference: 'NDCC-20260810-0001' };
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'failed');
+assert.equal(sent.length, 0, 'A mismatched alias must not issue a receipt');
+legacyMapping.canonical_reference = order.payment_reference;
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'sent');
+assert.equal(pdfData.reference, order.payment_reference);
+assert.ok(pdfData.descriptionLines.includes('Previous order reference: NDCC-20260810-0001'));
+assert.equal(payment.payment_reference, null, 'Reconciliation must preserve the immutable ledger');
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'already_sent');
+assert.equal(sent.length, 1);
+payment.payment_reference = 'NDCCMER-2026-000002';
 
 const compatibility = moduleAt('lib/order-notifications.ts', {
   '@/lib/email': { sendEmail: () => { throw new Error('A second staff email is forbidden'); } },

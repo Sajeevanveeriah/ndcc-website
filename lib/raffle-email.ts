@@ -16,7 +16,7 @@ export async function sendPaidRaffleEmails(
   options: { issuedAt?: string } = {},
 ): Promise<PaymentReceiptSendResult> {
   const db = createServerClient();
-  const { data: order, error } = await db.from('raffle_orders').select('*,raffle_tickets(ticket_reference,ticket_number)').eq('id', orderId).single();
+  const { data: order, error } = await db.from('raffle_orders').select('*,raffle_campaigns(name,price_cents,draw_label),raffle_tickets(ticket_reference,ticket_number)').eq('id', orderId).single();
   if (error || !order || order.status !== 'paid') {
     return { status: 'failed', reason: error?.message || 'Paid raffle order could not be loaded.' };
   }
@@ -39,6 +39,12 @@ export async function sendPaidRaffleEmails(
   }
   const references = (order.raffle_tickets || []).sort((a: { ticket_number: number }, b: { ticket_number: number }) => a.ticket_number - b.ticket_number).map((t: { ticket_reference: string }) => t.ticket_reference);
   if (references.length !== order.quantity) return { status: 'failed', reason: 'Raffle ticket allocation is incomplete.' };
+  const campaign = order.raffle_campaigns;
+  if (!campaign?.name || !Number.isSafeInteger(campaign.price_cents) || campaign.price_cents <= 0) {
+    return { status: 'failed', reason: 'The raffle campaign details are missing or invalid.' };
+  }
+  // Paid unit price is frozen on the order; later campaign changes must not alter receipts.
+  const ticketDetails = { name: campaign.name, priceCents: order.amount_cents / order.quantity, drawLabel: campaign.draw_label || null };
   let customerResult: PaymentReceiptSendResult | null = null;
   if (!order.customer_email_sent_at || !order.staff_email_sent_at) {
     const pending = await db
@@ -58,7 +64,7 @@ export async function sendPaidRaffleEmails(
   }
   if (!order.customer_email_sent_at) {
     const ticketAttachments = await Promise.all(references.map(async (reference: string) => ({
-      filename: `${reference}.png`, content: (await renderRaffleTicket(reference)).toString('base64'), contentType: 'image/png',
+      filename: `${reference}.png`, content: (await renderRaffleTicket(reference, ticketDetails)).toString('base64'), contentType: 'image/png',
     })));
     const receiptData = {
       purchaserName: String(order.customer_name),
@@ -69,7 +75,7 @@ export async function sendPaidRaffleEmails(
       paymentType: 'Raffle Ticket Purchase',
       paymentMethod: 'Stripe Checkout',
       reference: String(order.payment_reference),
-      descriptionLines: [`${order.quantity} x Dinos Trailer Raffle Ticket`, `Ticket references: ${references.join(', ')}`],
+      descriptionLines: [`${order.quantity} x ${campaign.name} Ticket`, `Ticket references: ${references.join(', ')}`],
     };
     const receiptFilename = buildPaymentReceiptFilename(receiptData);
     const receipt = await buildPaymentReceiptPdf(receiptData);
@@ -78,7 +84,7 @@ export async function sendPaidRaffleEmails(
       { filename: receiptFilename, content: receipt, contentType: 'application/pdf' },
     ];
     const result = await sendEmail({ ...receiptRecipients(order.customer_email, STAFF), replyTo: getTransactionalReplyTo(), subject: `NDCC raffle receipt - ${order.payment_reference}`,
-      html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Paid:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD</p><p>Stripe has confirmed your payment. Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map(escape).join('<br>')}</p><p>The raffle will be drawn on <strong>19 December 2026</strong> at the Christmas Party. Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
+      html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Paid:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD</p><p>Stripe has confirmed your payment. Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map(escape).join('<br>')}</p>${campaign.draw_label ? `<p>${escape(campaign.draw_label)}</p>` : ''}<p>Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
     if (result.status !== 'sent' && result.status !== 'simulated') return { status: 'failed', reason: result.reason };
     if (result.status === 'simulated' && !canRecordSimulatedReceiptDelivery()) {
       return { status: 'failed', reason: 'EMAIL_TEST_MODE cannot complete a raffle receipt in production.' };

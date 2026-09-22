@@ -83,10 +83,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: `${baseUrl}/fantasy/players`, changeFrequency: 'weekly', priority: 0.5 },
     );
   }
-  const { data: raffle, error: raffleError } = await createServerClient().from('raffle_campaigns').select('active,public_visibility_mode,public_opens_at').eq('active', true).limit(1).maybeSingle();
+  const { data: raffle, error: raffleError } = await createServerClient().from('raffle_campaigns').select('code,active,public_visibility_mode,public_opens_at').eq('active', true);
   if (raffleError) throw new Error('Sitemap raffle visibility unavailable');
-  if (isRaffleVisibleAt(raffle)) {
-    staticEntries.push({ url: `${baseUrl}/raffle`, changeFrequency: 'weekly', priority: 0.8 });
+  for (const campaign of raffle || []) {
+    if (!isRaffleVisibleAt(campaign)) continue;
+    const route = campaign.code === 'NDCCRRO' ? '/reverse-raffle' : campaign.code === 'NDCCRAF' ? '/raffle' : null;
+    if (route) staticEntries.push({ url: `${baseUrl}${route}`, changeFrequency: 'weekly', priority: 0.8 });
   }
 
   const detailEntries = await getPublishedDetailEntries(baseUrl);

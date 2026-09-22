@@ -33,7 +33,7 @@ const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'Facilities', href: '/facilities' }, { label: 'History', href: '/about#club-history' }] },
   { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }, { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }, { label: 'Sponsors', href: '/sponsors' }] },
-  { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Kitchen', href: '/kitchen' }, { label: 'Raffle', href: '/raffle' }] },
+  { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Kitchen', href: '/kitchen' }, { label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }] },
   { label: 'Contact', href: '/contact' },
 ];
 
@@ -41,11 +41,11 @@ function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: st
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean) {
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean) {
   return PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
     : { label: group.label, href: undefined, links: (group.links || [])
-      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || link.href !== '/raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
+      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || link.href !== '/raffle') && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
       .map((link) => resolveLink(navLinks, link)) });
 }
 
@@ -61,6 +61,7 @@ export default function Navbar() {
   const [registrationNavigation, setRegistrationNavigation] = useState<RegistrationNavigation>(null);
   const [dinoCoachEnabled, setDinoCoachEnabled] = useState(false);
   const [raffleEnabled, setRaffleEnabled] = useState(false);
+  const [reverseRaffleEnabled, setReverseRaffleEnabled] = useState(false);
   // Which desktop dropdown group is click/keyboard-opened (hover opening is
   // handled per-group in CSS). One label at a time so opening a group can
   // never surface another group's panel.
@@ -86,8 +87,10 @@ export default function Navbar() {
         const response = await fetch('/api/public/raffle-status', { cache: 'no-store' });
         const result = await response.json();
         setRaffleEnabled(response.ok && result?.enabled === true);
+        setReverseRaffleEnabled(response.ok && result?.reverseEnabled === true);
       } catch {
         setRaffleEnabled(false);
+        setReverseRaffleEnabled(false);
       }
     };
     loadRaffleStatus();
@@ -227,7 +230,7 @@ export default function Navbar() {
     }).catch(() => undefined);
     setSessionUser(null);
   };
-  const navGroups = resolveGroups(navLinks, dinoCoachEnabled, raffleEnabled, cookieDoughOpen);
+  const navGroups = resolveGroups(navLinks, dinoCoachEnabled, raffleEnabled, cookieDoughOpen, reverseRaffleEnabled);
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are
   // solid from the start.

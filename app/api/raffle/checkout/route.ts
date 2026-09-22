@@ -35,8 +35,11 @@ export async function POST(request: Request) {
     const site = getCheckoutSiteUrl(request);
     if (!site) return NextResponse.json({ error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
     const db = createServerClient();
-    const campaign = await getPublicRaffleCampaign();
+    const campaignCode = new URL(request.url).searchParams.get('campaign') || 'NDCCRAF';
+    if (!['NDCCRAF', 'NDCCRRO'].includes(campaignCode)) return NextResponse.json({ error: 'Unknown raffle.' }, { status: 400 });
+    const campaign = await getPublicRaffleCampaign(campaignCode);
     if (!campaign) return NextResponse.json({ error: 'The raffle is not currently available.' }, { status: 503 });
+    const returnPath = campaign.code === 'NDCCRRO' ? '/reverse-raffle' : '/raffle';
     const amount = campaign.price_cents * quantity;
     if (!Number.isSafeInteger(campaign.price_cents) || campaign.price_cents <= 0
       || !Number.isSafeInteger(amount) || amount > PUBLIC_ORDER_LIMITS.maximumOrderCents) {
@@ -58,8 +61,8 @@ export async function POST(request: Request) {
       payment_reference: paymentReference,
     };
     const session = await getStripe().checkout.sessions.create({ mode: 'payment', customer_email: email,
-      line_items: [{ price_data: { currency: 'aud', unit_amount: campaign.price_cents, product_data: { name: `NDCC Dinos Trailer Raffle Ticket - ${paymentReference}`, description: 'Drawn 19 December 2026 at the Christmas Party' } }, quantity }],
-      success_url: `${site}/raffle?payment=success`, cancel_url: `${site}/raffle?payment=cancelled`, client_reference_id: paymentReference,
+      line_items: [{ price_data: { currency: 'aud', unit_amount: campaign.price_cents, product_data: { name: `NDCC ${campaign.name} Ticket - ${paymentReference}`, ...(campaign.draw_label ? { description: campaign.draw_label } : {}) } }, quantity }],
+      success_url: `${site}${returnPath}?payment=success`, cancel_url: `${site}${returnPath}?payment=cancelled`, client_reference_id: paymentReference,
       metadata: paymentMetadata,
       payment_intent_data: { description: `${paymentReference} - NDCC raffle`, metadata: paymentMetadata },
     }, { idempotencyKey: `raffle-${order.id}` });

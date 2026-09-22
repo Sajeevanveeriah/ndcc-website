@@ -560,7 +560,8 @@ export default function AdminOrdersPage() {
                                 <span className="font-mono">{formatDate(p.received_at || p.created_at)}</span>
                                 <span className="font-semibold">{formatCurrency(p.amount)}</span>
                                 <span>{p.method}</span>
-                                {p.payment_reference && <span className="font-mono text-content-muted">Transaction: {p.payment_reference}</span>}
+                                {o.payment_reference && <span className="font-mono text-content-muted">Order / receipt: {o.payment_reference}</span>}
+                                {p.payment_reference && <details className="text-content-muted"><summary className="cursor-pointer">Transaction details</summary><span className="font-mono">{p.payment_reference}</span></details>}
                                 <Badge variant={p.status === 'settled' ? 'success' : p.status === 'refunded' ? 'default' : p.status === 'void' ? 'default' : 'warning'}>
                                   {p.status}
                                 </Badge>

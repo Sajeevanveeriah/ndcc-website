@@ -22,6 +22,8 @@ for (const f of files) {
   }
 }
 console.log(`All ${applied} migrations applied cleanly.`);
+psql(DB, readFileSync(new URL('./test-reverse-raffle.sql', import.meta.url), 'utf8'));
+check('Reverse raffle starts at zero, paid-only allocation, duplicate-event replay and private receipt mappings', true);
 const counts = psql(DB, `select (select count(*) from apparel_products where active), (select count(*) from apparel_product_options where active), (select count(*) from merch_payment_settings), (select count(*) from fantasy_seasons)`);
 check('fresh replay end-state sane (20 active products, 16 active options, settings row, 3 seasons)', counts === '20\t16\t1\t3', counts);
 // Production has RLS enabled on every public table; replays must match.
