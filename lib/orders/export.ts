@@ -99,11 +99,19 @@ function aud(value: number): string {
 }
 
 const UNPAID_ALIASES = new Set(['unpaid', 'pending', 'pending_bank_transfer']);
+const melbourneDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit',
+});
 
 export function orderMatchesFilters(order: ExportOrder, filters: ExportFilters): boolean {
   if (filters.windowId && order.merch_window_id !== filters.windowId) return false;
-  if (filters.dateFrom && new Date(order.created_at) < new Date(filters.dateFrom)) return false;
-  if (filters.dateTo && new Date(order.created_at) > new Date(filters.dateTo)) return false;
+  const orderDate = new Date(order.created_at);
+  const dayParts = melbourneDay.formatToParts(orderDate);
+  const localDay = ['year', 'month', 'day'].map(type => dayParts.find(part => part.type === type)?.value).join('-');
+  if (filters.dateFrom && (/^\d{4}-\d{2}-\d{2}$/.test(filters.dateFrom)
+    ? localDay < filters.dateFrom : orderDate < new Date(filters.dateFrom))) return false;
+  if (filters.dateTo && (/^\d{4}-\d{2}-\d{2}$/.test(filters.dateTo)
+    ? localDay > filters.dateTo : orderDate > new Date(filters.dateTo))) return false;
   if (filters.paymentStatus) {
     const wanted = filters.paymentStatus;
     const actual = order.payment_status || '';

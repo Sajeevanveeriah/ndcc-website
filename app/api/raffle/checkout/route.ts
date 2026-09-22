@@ -12,6 +12,7 @@ import {
   validateRaffleCheckoutInput,
 } from '@/lib/order-input-validation';
 import { validateEmail, validatePhone } from '@/lib/utils';
+import { validReverseRaffleSelection } from '@/lib/reverse-raffle-selection';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,10 @@ export async function POST(request: Request) {
     const db = createServerClient();
     const campaignCode = new URL(request.url).searchParams.get('campaign') || 'NDCCRAF';
     if (!['NDCCRAF', 'NDCCRRO'].includes(campaignCode)) return NextResponse.json({ error: 'Unknown raffle.' }, { status: 400 });
+    const selectedNumbers = rawBody.value.selectedNumbers;
+    if (campaignCode === 'NDCCRRO' && !validReverseRaffleSelection(selectedNumbers, quantity)) {
+      return NextResponse.json({ error: 'Choose one different number between 201 and 300 for each ticket.' }, { status: 400 });
+    }
     const campaign = await getPublicRaffleCampaign(campaignCode);
     if (!campaign) return NextResponse.json({ error: 'The raffle is not currently available.' }, { status: 503 });
     const returnPath = campaign.code === 'NDCCRRO' ? '/reverse-raffle' : '/raffle';
@@ -49,7 +54,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Raffle pricing is unavailable.' }, { status: 503 });
     }
     const paymentReference = await generateUniquePaymentReference('raffle');
-    const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount, payment_reference: paymentReference }).select('id').single();
+    const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount, payment_reference: paymentReference,
+      ...(campaignCode === 'NDCCRRO' ? { selected_ticket_numbers: selectedNumbers } : {}),
+    }).select('id').single();
+    if (orderError?.message?.includes('Reverse raffle number unavailable')) return NextResponse.json({ error: 'One or more selected numbers are now sold or held by another checkout. Please choose again.' }, { status: 409 });
     if (orderError?.message?.includes('Reverse raffle allocation unavailable')) return NextResponse.json({ error: 'There are not enough tickets available. Tickets may be sold or held by another checkout. Please reduce the quantity or try again later.' }, { status: 409 });
     if (orderError || !order) return NextResponse.json({ error: 'The raffle order could not be created.' }, { status: 500 });
     if (campaign.code === 'NDCCRRO') pendingOrderId = order.id;
