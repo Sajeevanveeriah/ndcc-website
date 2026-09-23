@@ -2,6 +2,7 @@ import { normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-spon
 import { NextResponse } from 'next/server';
 import { fetchAllPages } from '@/lib/supabase-paginate';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePublicContent } from '@/lib/server/revalidate-public';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
@@ -186,7 +187,7 @@ function validatePublicationPayload(payload: Record<string, unknown>, isCreate: 
 }
 
 function revalidateForResourceBatch(resource: string, ids: string[]) {
-  if (resource === 'news' || resource === 'publications') {
+  if (resource === 'news' || resource === 'publications' || resource === 'events') {
     for (const id of ids) revalidateForResource(resource, id);
     return;
   }
@@ -208,6 +209,9 @@ function revalidateForResource(resource: string, id?: string, record?: Record<st
   if (affectsSiteChrome(resource, record)) {
     try { revalidatePath('/', 'layout'); } catch { /* best-effort */ }
   }
+  // ISR detail pages (e.g. /events/[id]) and the cached site-chrome snapshot.
+  const slug = record && typeof record.slug === 'string' ? record.slug : undefined;
+  try { revalidatePublicContent(resource, { id, slug }); } catch { /* best-effort */ }
 }
 
 function pickResource(resource: string) {

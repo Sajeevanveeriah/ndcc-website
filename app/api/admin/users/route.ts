@@ -243,6 +243,10 @@ export async function PATCH(request: Request) {
       if (isDuplicateEmail(error)) {
         return NextResponse.json({ success: false, error: 'A CMS user with that email already exists.' }, { status: 409 });
       }
+      // Database backstop (committee_users_last_admin_guard) for concurrent changes.
+      if (/At least one active administrator must remain/.test(error.message || '')) {
+        return NextResponse.json({ success: false, error: 'At least one active administrator must remain.' }, { status: 409 });
+      }
       if (isMissingAccessRpc(error)) {
         return NextResponse.json({ success: false, error: 'The granular CMS access migration has not been applied.' }, { status: 503 });
       }

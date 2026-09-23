@@ -1,14 +1,15 @@
 import 'server-only';
 // Optional Cloudflare Turnstile verification.
 //
-// Turnstile is OFF unless TURNSTILE_SECRET_KEY is set on the server. While it
+// Turnstile is OFF unless TURNSTILE_SECRET_KEY is set AND TURNSTILE_ENFORCE=true. While it
 // is unset every helper here is a no-op, so public forms behave exactly as
 // before. Once it is set, submissions must carry a Turnstile token (from the
 // client widget) in one of:
 //   - JSON body field `turnstileToken` or `cf-turnstile-response`
 //   - request header `x-turnstile-token`
-// IMPORTANT: only set TURNSTILE_SECRET_KEY after the client widget has been
-// added to the forms, otherwise every protected submission will be refused.
+// IMPORTANT: the public forms do not render the widget yet. Only set
+// TURNSTILE_ENFORCE=true once they do, otherwise every protected submission
+// will be refused.
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const VERIFY_TIMEOUT_MS = 5_000;
@@ -16,8 +17,10 @@ const MAX_TOKEN_LENGTH = 2048;
 
 export type TurnstileResult = { ok: true; skipped: boolean } | { ok: false; reason: 'missing_token' | 'invalid_token' | 'unavailable' };
 
+// Enforcement also needs TURNSTILE_ENFORCE=true, so configuring the keys alone
+// (e.g. while the client widget is being built) never blocks public forms.
 export function isTurnstileEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return Boolean(env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SECRET_KEY.trim());
+  return Boolean(env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SECRET_KEY.trim()) && env.TURNSTILE_ENFORCE === 'true';
 }
 
 export function readTurnstileToken(request: Request, body?: Record<string, unknown> | null): string | null {

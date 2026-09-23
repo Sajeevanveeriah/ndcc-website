@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Database-backed test for ndcc_register_event_attendee (migration
-// 20260923100000_event_registration_capacity_guard.sql). Replays every
+// 20260923054733_event_registration_capacity_guard.sql). Replays every
 // migration into a throwaway local database (see scripts/lib/local-db.mjs for
 // PGHOST/PGPORT setup) and never connects to a hosted project.
 import { readdirSync, readFileSync } from 'node:fs';
 import { createTestDatabase, dropTestDatabase, applyMigrations, psql, check, finish, migrationsDir } from './lib/local-db.mjs';
 
 const DB = 'ndcc_event_capacity_guard';
-const MIGRATION = '20260923100000_event_registration_capacity_guard.sql';
+const MIGRATION = '20260923054733_event_registration_capacity_guard.sql';
 const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
 
 const source = readFileSync(`${migrationsDir}/${MIGRATION}`, 'utf8').replace(/--.*$/gm, '');
