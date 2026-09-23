@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { ADMIN_BEFORE_LOGOUT_EVENT } from '@/components/admin/useDraftAutosave';
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
 const WARNING_AT_MS = 9 * 60 * 1000;
@@ -14,6 +15,16 @@ const SERVER_PING_INTERVAL_MS = 4 * 60 * 1000;
  * silently dismiss it. Active use also pings the session endpoint periodically
  * so the server-side idle window (enforced independently) stays fresh.
  */
+// Lets open editors (useDraftAutosave) write their local draft synchronously
+// before the session ends, so inactivity sign-out never loses typed work.
+function saveDraftsBeforeLogout() {
+  try {
+    window.dispatchEvent(new Event(ADMIN_BEFORE_LOGOUT_EVENT));
+  } catch {
+    // Draft saving is best-effort; sign-out must still proceed.
+  }
+}
+
 export default function InactivityGuard({ onLogout }: { onLogout: () => void }) {
   const [showWarning, setShowWarning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(60);
@@ -55,6 +66,7 @@ export default function InactivityGuard({ onLogout }: { onLogout: () => void }) 
       if (elapsed >= INACTIVITY_LIMIT_MS) {
         loggedOutRef.current = true;
         setShowWarning(false);
+        saveDraftsBeforeLogout();
         onLogout();
         return;
       }
@@ -110,6 +122,7 @@ export default function InactivityGuard({ onLogout }: { onLogout: () => void }) 
             onClick={() => {
               loggedOutRef.current = true;
               setShowWarning(false);
+              saveDraftsBeforeLogout();
               onLogout();
             }}
             className="rounded-lg border border-edge-strong px-4 py-2 text-sm font-semibold text-content-secondary transition-colors hover:bg-surface-muted focus-ring dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"

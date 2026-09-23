@@ -91,7 +91,8 @@
     "test:meal-collection": "node --experimental-strip-types scripts/test-meal-collection.mjs && node scripts/test-meal-flow.mjs",
     "test:dino-season-summary": "node scripts/test-dino-season-summary.mjs",
     "check:unused": "knip",
-    "db:dump-schema": "node scripts/dump-schema.mjs"
+    "db:dump-schema": "node scripts/dump-schema.mjs",
+    "test:admin-drafts": "node scripts/test-admin-drafts.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
