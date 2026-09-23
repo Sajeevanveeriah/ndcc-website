@@ -19,14 +19,14 @@ export async function processDinoNotifications(db: DB, deadline = Date.now()+25_
       ]);
       if(manager.error||settings.error) throw new Error(manager.error?.message||settings.error?.message);
       const m=manager.data;
-      if(['reminder','expired'].includes(job.kind) && (!settings.data.initial_reminders_enabled || shouldCancelInitialNotice(job.kind,job.payload.due_at,m))) {
+      if(['reminder','expired'].includes(job.kind) && (!settings.data.initial_reminders_enabled || shouldCancelInitialNotice(job.kind))) {
         const saved=await db.from('fantasy_notification_jobs').update({cancelled_at:new Date().toISOString(),lease_until:null}).eq('id',job.id).eq('attempts',job.attempts);
         if(saved.error) throw new Error(saved.error.message); cancelled++; continue;
       }
       const contacts: string[]=settings.data.notification_recipients || [];
       if(!contacts.length) throw new Error('Set reactivation contacts in Dino Coach settings before sending notices.');
       const esc=escapeEmailHtml;
-      let subject='Your Dino Coach team has been updated';
+      const subject='Your Dino Coach team has been updated';
       let body=`<p>Hi ${esc(m.display_name)},</p>`;
       if(job.kind==='admin_change') {
         body+=`<p>The club has updated <strong>${esc(m.team_name)}</strong>.</p><p>${esc(job.payload.reason)}</p><ul>`;
@@ -37,12 +37,6 @@ export async function processDinoNotifications(db: DB, deadline = Date.now()+25_
           body+=`<li>${esc(labels[key]||key)}: ${esc(display)}</li>`;
         }
         body+='</ul>';
-      } else if(job.kind==='expired') {
-        subject='Dino Coach: ask us to reactivate your team';
-        body+=`<p>Your five-day window to pick the first 15 players for <strong>${esc(m.team_name)}</strong> ended on ${esc(date(m.initial_squad_due_at))}.</p><p>Your team is paused. Please email Saj and Rick at ${contacts.map(esc).join(' and ')} asking us to reactivate it. You can reply to this email to reach both of us.</p>`;
-      } else {
-        subject='Dino Coach reminder: complete your first 15-player squad';
-        body+=`<p>Please fill all 15 slots for <strong>${esc(m.team_name)}</strong> by ${esc(date(m.initial_squad_due_at))}.</p><p>Once your first squad is complete, this five-day requirement will never apply to you again. The normal competition rules still apply.</p>`;
       }
       body+='<p><a href="https://www.ndcc.com.au/fantasy/account">Open your Dino Coach account</a></p><p>Thanks,<br>The NDCC Dino Coach team</p>';
       const delivery = job.delivery || {to:m.email,replyTo:contacts,subject,html:emailHtml(subject,body)};

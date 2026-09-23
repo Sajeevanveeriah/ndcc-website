@@ -35,7 +35,7 @@ assert.equal((await mod.exports.PATCH({body:{id:'m',expectedUpdatedAt:'date',rea
 assert.equal((await mod.exports.PATCH({body:{id:'m',expectedUpdatedAt:'date',reason:'test',changes:{deleted:'true'}}})).status,400);
 rpcError=null;
 const patch=body=>mod.exports.PATCH({body:{id:'m',expectedUpdatedAt:'date',...body}});
-for(const [changes,expected] of [[{deleted:true},'Team deleted by the administrator.'],[{deleted:false,is_active:true},'Team restored by the administrator.'],[{reactivate:true,is_active:true},'Initial registration reactivated for five days by the club.']]) {
+for(const [changes,expected] of [[{deleted:true},'Team deleted by the administrator.'],[{deleted:false,is_active:true},'Team restored by the administrator.'],[{reactivate:true,is_active:true},'Team reactivated by the club.']]) {
  for(const reason of [undefined,'','  ']) {
   assert.equal((await patch({changes,reason,confirmation:'DELETE TEAM'})).status,200);
   assert.equal(lastRpc.args.p_reason,expected);

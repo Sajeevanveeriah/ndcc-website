@@ -29,7 +29,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [rulesVersion, setRulesVersion] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState<string[]>([]);
+  const [, setContacts] = useState<string[]>([]);
   const [entry, setEntry] = useState<any>(null);
   const [manager, setManager] = useState<any>(null);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
@@ -297,7 +297,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         {mode !== 'login' && <label className="flex items-start gap-3 text-sm font-body"><input className="mt-1 h-5 w-5" type="checkbox" checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} required /><span>I am at least 18 and accept the current <Link className="font-semibold text-maroon-700 hover:underline" href="/fantasy/rules">Dino Coach rules</Link>{rulesVersion ? ` (${rulesVersion})` : ''}.</span></label>}
         {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? (manager.deleted_at ? 'Your team is deleted. Contact the club to restore it.' : 'Your manager profile is registered.') : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
         {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.fee_waived ? 'Complimentary entry - no payment required.' : entry?.is_demo ? 'Demo access enabled - no payment required. Demo teams are not eligible for prizes.' : entry?.status === 'paid' ? 'Entry paid.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
-        {mode === 'account' && manager && !manager.first_squad_completed_at && <p className="text-sm">Complete your first 15-player squad by {formatInitialDeadline(manager.initial_squad_due_at)}. {new Date(manager.initial_squad_due_at).getTime() <= Date.now() && <span>Your team needs reactivation. <a className="underline" href={`mailto:${contacts.join(',')}?subject=${encodeURIComponent('Dino Coach reactivation - '+manager.team_name)}`}>Email Saj and Rick to reactivate it</a>.</span>}</p>}
+        {mode === 'account' && manager && !manager.first_squad_completed_at && <p className="text-sm">Your registration does not expire. Choose and submit your 15-player squad before the round locks.</p>}
         {mode === 'account' && manager && <Link href="/fantasy/reset-password" className="underline">Change password</Link>}
         {feedback && <p role="status" className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
         <div className="flex flex-wrap gap-3">
@@ -341,5 +341,3 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     </Card>
   );
 }
-
-function formatInitialDeadline(value:string) { return value ? new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Melbourne',dateStyle:'medium',timeStyle:'short'}).format(new Date(value)) : 'the five-day deadline'; }

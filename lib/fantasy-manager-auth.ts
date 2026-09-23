@@ -1,5 +1,4 @@
 import { createClient, type User } from '@supabase/supabase-js';
-import { initialSquadStatus } from '@/lib/dino-coach/lifecycle';
 import { createServerClient } from '@/lib/supabase-server';
 
 export type ManagerAuthResult = {
@@ -23,7 +22,7 @@ export type FantasyManagerRecord = {
   is_active: boolean;
   deleted_at?: string | null;
   first_squad_completed_at?: string | null;
-  initial_squad_due_at: string;
+  initial_squad_due_at: string | null;
   team_name_status?: 'pending' | 'approved' | 'review_required' | 'replaced';
   team_name_locked?: boolean;
   age_verified_at?: string | null;
@@ -70,7 +69,6 @@ export async function requireFantasyManager(request: Request): Promise<ManagerAu
     .maybeSingle();
 
   if (error || !data) return null;
-  if (request.method !== 'GET' && initialSquadStatus(data) === 'expired') return null;
   return { user, manager: data as FantasyManagerRecord };
 }
 
@@ -93,6 +91,5 @@ export async function resolveFantasyManagerAuth(request: Request): Promise<Manag
     .maybeSingle();
 
   if (error || !data) return { auth: null, errorMessage: FANTASY_PROFILE_REQUIRED_MESSAGE, errorStatus: 403 };
-  if (request.method !== 'GET' && initialSquadStatus(data) === 'expired') return { auth: null, errorMessage: 'Your initial five-day squad deadline has passed. Open My account and email Saj and Rick to reactivate your team.', errorStatus: 403 };
   return { auth: { user, manager: data as FantasyManagerRecord }, errorMessage: null, errorStatus: null };
 }

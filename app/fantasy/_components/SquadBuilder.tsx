@@ -29,6 +29,8 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
   const [search, setSearch] = useState(''); const [sort, setSort] = useState('name'); const [selectedPlayer, setSelectedPlayer] = useState('');
   const [feedback, setFeedback] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
 
+  const [rulesAccepted, setRulesAccepted] = useState(false);
+
   useEffect(() => { setLoading(true); fantasyJsonFetch<any>(`/api/fantasy/squad${query}`).then((result) => {
     setEligibilityIssues(result.eligibilityIssues || []);
     setPlayers(result.players || []); setSlots(result.slots || []); setSettings({ ...result.settings, squadVersion: result.squad?.updated_at ?? null, managerId: result.managerId, savedSpent: Number(result.squad?.budget_used_dino_dollars || 0), costs: Object.fromEntries((result.squad?.fantasy_squad_players || []).map((p: any) => [p.player_id, Number(p.purchase_price_dino_dollars)])) });
@@ -58,6 +60,17 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
     isCaptain: kind === 'captain' ? item.slotKey === slotKey : item.slotKey === slotKey ? false : item.isCaptain,
     isViceCaptain: kind === 'vice' ? item.slotKey === slotKey : item.slotKey === slotKey ? false : item.isViceCaptain,
   })));
+  const acceptRules = async () => {
+    setSaving(true); setError('');
+    try {
+      await fantasyJsonFetch(`/api/fantasy/rules/accept${query}`, { method: 'POST', body: JSON.stringify({ rulesAccepted, rulesVersion: settings?.rules_version }) });
+      const refreshed = await fantasyJsonFetch<any>(`/api/fantasy/squad${query}`);
+      setEligibilityIssues(refreshed.eligibilityIssues || []);
+      setRulesAccepted(false);
+      setFeedback(refreshed.eligibilityIssues?.length ? 'Rules accepted. Your selections are kept. Complete the remaining account checks before saving.' : 'Rules accepted. Your selected players are still here. You can now save your team.');
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not accept the rules.'); }
+    finally { setSaving(false); }
+  };
   const save = async (mode: 'draft' | 'submit') => { setSaving(true); setError(''); try {
     const result = await fantasyJsonFetch<{ selection: Pick[] }>(`/api/fantasy/squad${query}`, { method: 'POST', body: JSON.stringify({ selection, mode, expectedUpdatedAt: settings?.squadVersion }) });
     setSelection(result.selection);
@@ -70,6 +83,12 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
   if (/sign in/i.test(error)) return <Card><CardContent className="p-6"><p className="mb-4">Sign in to manage your Dino Coach squad.</p><Link href="/fantasy/login" className="btn-primary">Sign in</Link></CardContent></Card>;
   return <div className="space-y-6">
     {!readonlyMode && eligibilityIssues.length > 0 && <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"><h2 className="font-bold">Before you save your team</h2><ul className="my-3 list-disc pl-5">{eligibilityIssues.map(issue => <li key={issue.code}>{issue.message}</li>)}</ul><Link href="/fantasy/account" target="_blank" rel="noopener noreferrer" className="underline">Open My account in a new tab</Link><Button variant="secondary" className="ml-3" disabled={saving} onClick={async () => { try { const result = await fantasyJsonFetch<any>(`/api/fantasy/squad${query}`); setEligibilityIssues(result.eligibilityIssues || []); setError(''); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not refresh account status.'); } }}>Recheck account status</Button></div>}
+    {!readonlyMode && eligibilityIssues.some(issue => issue.code === 'rules') && <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
+      <h2 className="font-bold">Accept the updated rules here</h2>
+      <p className="my-2">The budget is 15 million Dino Dollars. Players can be sold back to the pool; inter-team trades are unavailable. Your selected players will stay on this page.</p>
+      <label className="flex items-start gap-3"><input type="checkbox" checked={rulesAccepted} disabled={saving} onChange={event => setRulesAccepted(event.target.checked)} className="mt-1 h-5 w-5" /><span>I have read and accept the <Link href={`/fantasy/rules${query}`} target="_blank" rel="noopener noreferrer" className="underline">current Dino Coach rules (opens in a new tab)</Link> ({settings?.rules_version}).</span></label>
+      <Button className="mt-3" onClick={acceptRules} disabled={saving || !rulesAccepted}>Accept rules and keep my selections</Button>
+    </div>}
     {!readonlyMode && <WalletPanel query={query} refreshKey={settings?.squadVersion} previewRemaining={remaining} />}
     <Card><CardContent className="p-5"><div className="grid gap-4 sm:grid-cols-3 font-body"><div><strong>Squad</strong><br />{selection.length}/{slots.length}</div><div><strong>Budget remaining</strong><br /><span className={remaining < 0 ? 'text-red-700' : ''}>{money(remaining)}</span></div><div><strong>Captain / vice</strong><br />{selection.some((p) => p.isCaptain) ? 'Captain set' : 'Needed'} / {selection.some((p) => p.isViceCaptain) ? 'Vice set' : 'Needed'}</div></div><p className="mt-4 text-sm text-content-muted">Edits preview your balance immediately. Save draft or Submit squad confirms purchases and sales. Selling refunds the original purchase cost. Any real NDCC player can fill any fantasy slot. The slot controls scoring. The playing XI scores; the bench scores zero.</p></CardContent></Card>
     {ineligible.length > 0 && <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"><strong>Replace ineligible players.</strong> {ineligible.map((pick) => pick.displayName || pick.slotKey).join(', ')} {ineligible.length === 1 ? 'is' : 'are'} no longer in this season&apos;s player pool. Remove or replace them before saving.</div>}
@@ -78,7 +97,9 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
     <div aria-live="polite" className="min-h-6 text-sm font-body">{error ? <span className="text-red-700">{error}</span> : <span className="text-green-700">{feedback}</span>}</div>
     <section aria-labelledby="xi-title"><h2 id="xi-title" className="section-title">Playing XI</h2><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{slots.filter((s) => s.positionType === 'starter').map((slot) => <SlotBox key={slot.key} slot={slot} pick={selection.find((p) => p.slotKey === slot.key)} players={players} selectedPlayer={selectedPlayer} readonlyMode={readonlyMode || saving} onAssign={assign} onRemove={() => setSelection((items) => items.filter((p) => p.slotKey !== slot.key))} onCaptain={() => mark(slot.key, 'captain')} onVice={() => mark(slot.key, 'vice')} />)}</div></section>
     <section aria-labelledby="bench-title"><h2 id="bench-title" className="section-title">Bench - zero points</h2><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{slots.filter((s) => s.positionType === 'bench').map((slot) => <SlotBox key={slot.key} slot={slot} pick={selection.find((p) => p.slotKey === slot.key)} players={players} selectedPlayer={selectedPlayer} readonlyMode={readonlyMode || saving} onAssign={assign} onRemove={() => setSelection((items) => items.filter((p) => p.slotKey !== slot.key))} />)}</div></section>
-    {!readonlyMode && <div className="flex flex-wrap gap-3"><Button onClick={() => save('submit')} disabled={saving || eligibilityIssues.length > 0 || ineligible.length > 0 || !settings?.team_selection_open}>Submit squad</Button><Button variant="secondary" onClick={() => save('draft')} disabled={saving || eligibilityIssues.length > 0 || ineligible.length > 0 || !settings?.team_selection_open}>Save draft</Button></div>}
+    {!readonlyMode && <div className="space-y-3">
+      <div role={error ? 'alert' : 'status'} className="text-sm">{error || (eligibilityIssues.length ? eligibilityIssues.map(issue => issue.message).join(' ') : feedback)}</div>
+      <div className="flex flex-wrap gap-3"><Button onClick={() => save('submit')} disabled={saving || eligibilityIssues.length > 0 || ineligible.length > 0 || !settings?.team_selection_open}>Submit squad</Button><Button variant="secondary" onClick={() => save('draft')} disabled={saving || eligibilityIssues.length > 0 || ineligible.length > 0 || !settings?.team_selection_open}>Save draft</Button></div></div>}
   </div>;
 }
 

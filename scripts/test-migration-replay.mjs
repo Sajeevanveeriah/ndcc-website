@@ -61,6 +61,8 @@ psql(DB, readFileSync(new URL('./test-dino-admin-lifecycle.sql', import.meta.url
 check('Dino admin lifecycle, expiry, waivers, recovery, atomic notifications and permissions', true);
 psql(DB, readFileSync(new URL('./test-dino-feedback.sql', import.meta.url), 'utf8'));
 check('Dino feedback persistence, duplicate protection, delivery leases and recipient privacy', true);
+psql(DB, readFileSync(new URL('./test-dino-no-expiry.sql', import.meta.url), 'utf8'));
+check('Dino no-expiry save, consent, account and payment gates', true);
 psql(DB, readFileSync(new URL('./test-dino-market.sql', import.meta.url), 'utf8'));
 check('Dino wallet pool purchases, sales and disabled inter-team trading', true);
 const runPsql = promisify(execFile);

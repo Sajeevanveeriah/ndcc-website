@@ -107,8 +107,13 @@ await click(buttons().find(node => text(node).startsWith('View and edit')));
 await click(button('Restore team'));
 assert.deepEqual(requests.at(-1).changes, { deleted: false, is_active: true });
 assert.match(text(view.root), /Team restored/);
-await click(button('Reactivate for five days'));
-assert.match(requests.at(-1).reason, /reactivated for five days/);
+assert.ok(!button('Reactivate team'), 'Active teams do not need reactivation');
+manager.is_active = false;
+await click(buttons().find(node => node.props['aria-label'] === 'Close'));
+await act(async () => filter.props.onChange({ target: { value: 'active' } }));
+await click(buttons().find(node => text(node).startsWith('View and edit')));
+await click(button('Reactivate team'));
+assert.match(requests.at(-1).reason, /reactivated by the club/);
 // A stale-team error remains visible; no success message is shown.
 await type('delete-team-confirmation', 'DELETE TEAM');
 await type('edit-reason', 'Removing my test team');
@@ -120,10 +125,11 @@ assert.ok(button('Delete team'));
 await unmount();
 
 isAdmin = false;
+manager.is_active = false;
 await mount(React.createElement(Page));
 await click(buttons().find(node => text(node).startsWith('View and edit')));
 assert.ok(!button('Delete team') && !button('Restore team'));
-assert.ok(button('Reactivate for five days'));
+assert.ok(button('Reactivate team'));
 await unmount();
 
 manager.deleted_at = '2026-01-02T00:00:00Z';

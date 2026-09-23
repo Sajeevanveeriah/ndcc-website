@@ -9,7 +9,7 @@ const manager = {is_active:true,initial_squad_due_at:'2026-09-26T00:00:00Z',age_
 const entry = {status:'paid'};
 assert.deepEqual(issues(manager,entry,'rev06',now).map(x=>x.code), ['rules']);
 assert.deepEqual(issues({...manager,rules_version_accepted:'rev06'},entry,'rev06',now), []);
-assert.deepEqual(issues({...manager,initial_squad_due_at:'2026-09-20',rules_version_accepted:'rev06'},entry,'rev06',now).map(x=>x.code), ['expired']);
+assert.deepEqual(issues({...manager,initial_squad_due_at:'2026-09-20',rules_version_accepted:'rev06'},entry,'rev06',now).map(x=>x.code), []);
 assert.deepEqual(issues({...manager,first_squad_completed_at:'2026-09-19',initial_squad_due_at:'2026-09-20',rules_version_accepted:'rev06'},entry,'rev06',now), []);
 assert(issues({...manager,is_active:false},entry,'rev06',now).some(x=>x.code==='disabled'));
 assert(issues({...manager,deleted_at:'2026-09-20'},entry,'rev06',now).some(x=>x.code==='deleted'));
@@ -19,7 +19,7 @@ assert(issues(manager,{status:'pending'},'rev06',now).some(x=>x.code==='payment'
 for(const exception of [{is_demo:true},{fee_waived:true}]) assert(!issues(manager,{status:'expired',...exception},'rev06',now).some(x=>x.code==='payment'));
 for(const approved of ['approved','replaced','review_required']) assert.equal(status({team_name:'Same XI',team_name_status:approved},'Same XI','approved'),approved);
 assert.equal(status({team_name:'Old XI',team_name_status:'approved'},'New XI','review_required'),'review_required');
-console.log('PASS reactivation/rules mismatch, explicit acceptance, expiry, completion, access, moderation and payment gates');
+console.log('PASS reactivation/rules mismatch, explicit acceptance, no registration expiry, completion, access, moderation and payment gates');
 console.log('PASS unchanged names retain committee decisions; changed names are moderated');
 
 assert.equal(status({team_name:'Same XI',team_name_status:'pending'},'Same XI','approved'),'approved');
