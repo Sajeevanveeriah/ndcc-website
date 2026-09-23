@@ -1,14 +1,11 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
-import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { sanitiseInput } from '@/lib/utils';
+import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
 import { readLimitedJsonObject, validateContactFormInput } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 function escapeHtml(str: string): string {
   return str
@@ -56,6 +53,10 @@ export async function POST(request: Request) {
 
     if (!enforceHoneypotAndTiming(hpField, submittedAt)) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+    }
+    // Optional Cloudflare Turnstile check; a no-op unless TURNSTILE_SECRET_KEY is set.
+    if (!await enforceTurnstile(request, parsedBody.value)) {
+      return NextResponse.json({ success: false, error: 'Please complete the security check and try again.' }, { status: 403 });
     }
 
     const safeName = sanitiseInput(name);

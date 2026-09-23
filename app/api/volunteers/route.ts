@@ -1,14 +1,11 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
-import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { sanitiseInput } from '@/lib/utils';
+import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { sendEmail, emailHtml, escapeEmailHtml } from '@/lib/email';
 import { readLimitedJsonObject, validateVolunteerFormInput } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 export async function POST(request: Request) {
   try {
@@ -44,6 +41,10 @@ export async function POST(request: Request) {
 
     if (!enforceHoneypotAndTiming(hpField, submittedAt)) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+    }
+    // Optional Cloudflare Turnstile check; a no-op unless TURNSTILE_SECRET_KEY is set.
+    if (!await enforceTurnstile(request, parsedBody.value)) {
+      return NextResponse.json({ success: false, error: 'Please complete the security check and try again.' }, { status: 403 });
     }
 
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

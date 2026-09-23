@@ -4,7 +4,7 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
-import { validateEmail, validatePhone } from '@/lib/utils';
+import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import {
   PUBLIC_ORDER_LIMITS,
   audAmountToCents,
@@ -13,10 +13,6 @@ import {
 } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

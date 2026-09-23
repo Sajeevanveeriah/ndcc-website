@@ -5,7 +5,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
-import { validateEmail, validatePhone } from '@/lib/utils';
+import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import { receiptRecipients } from '@/lib/payments/receipt-recipients';
 import { getStaffOrderRecipients } from '@/lib/order-notification-content';
@@ -17,10 +17,6 @@ import {
 } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 export async function POST(request: Request) {
   const rawBody = await readLimitedJsonObject(request);

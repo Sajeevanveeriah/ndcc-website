@@ -74,6 +74,54 @@ export const PERMISSION_GROUPS = PERMISSION_GROUP_ORDER.map((group) => ({
 export const isFullAccessRole = (role: AuthRole) => FULL_ACCESS_ROLES.includes(role);
 export const canManageUsers = (role: AuthRole) => isFullAccessRole(role);
 
+export type UserAdministrationDecision =
+  | { ok: true }
+  | { ok: false; status: 403 | 409; error: string };
+
+/**
+ * Account-safety rules layered on top of canManageUsers():
+ * - only an 'admin' may create, elevate to, reset, deactivate or otherwise
+ *   change an 'admin' account (other full-access roles keep managing every
+ *   non-admin account);
+ * - nobody may change their own role or deactivate themselves;
+ * - the last active 'admin' can never be demoted or deactivated.
+ * `target` is null when a new account is being created. `activeAdminCount`
+ * is only consulted when an active admin would lose admin access.
+ */
+export function checkUserAdministrationChange(input: {
+  actor: { id: string; role: AuthRole };
+  target: { id: string; role: AuthRole; is_active: boolean } | null;
+  nextRole: AuthRole;
+  nextActive: boolean;
+  activeAdminCount?: number;
+}): UserAdministrationDecision {
+  const { actor, target, nextRole, nextActive } = input;
+  if (!canManageUsers(actor.role)) return { ok: false, status: 403, error: 'Forbidden.' };
+
+  if ((target?.role === 'admin' || nextRole === 'admin') && actor.role !== 'admin') {
+    return { ok: false, status: 403, error: 'Only an administrator can manage administrator accounts.' };
+  }
+
+  if (target && target.id === actor.id) {
+    if (nextRole !== target.role) return { ok: false, status: 403, error: 'You cannot change your own role.' };
+    if (target.is_active && !nextActive) return { ok: false, status: 403, error: 'You cannot deactivate your own account.' };
+  }
+
+  if (target && userAdministrationRemovesActiveAdmin(target, nextRole, nextActive) && (input.activeAdminCount === undefined || input.activeAdminCount <= 1)) {
+    return { ok: false, status: 409, error: 'At least one active administrator account must remain.' };
+  }
+
+  return { ok: true };
+}
+
+export function userAdministrationRemovesActiveAdmin(
+  target: { role: AuthRole; is_active: boolean },
+  nextRole: AuthRole,
+  nextActive: boolean,
+) {
+  return target.role === 'admin' && target.is_active && (nextRole !== 'admin' || !nextActive);
+}
+
 export function normaliseStoredPermissions(role: AuthRole, value: unknown): PermissionKey[] {
   if (isFullAccessRole(role) || role === 'fantasy_manager') return [];
   if (!Array.isArray(value)) throw new Error('Permissions must be an array.');

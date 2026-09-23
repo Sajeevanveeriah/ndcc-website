@@ -14,12 +14,16 @@ function load(file, dependencies) {
   return exports;
 }
 const selection = load('lib/reverse-raffle-selection.ts', {});
+const realValidation = load('lib/order-input-validation.ts', {});
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2, selectedNumbers: [201, 300] };
 let selected, inserted, payload, hidden = false, soldOut = false, failure = '', released = false, expired = false;
+let pendingHolds = [], holdQuery = null, ipTokens = 0, ipTokenLimit = Infinity, turnstileAllowed = true;
 const db = { from() { return {
-  insert(value) { inserted = value; return this; }, select() { return this; },
+  insert(value) { inserted = value; return this; }, select(columns) { if (columns === 'quantity') holdQuery = []; return this; },
+  gte(key, value) { holdQuery?.push([key, value]); return this; },
+  then(resolve, reject) { return Promise.resolve({ data: pendingHolds, error: null }).then(resolve, reject); },
   async single() { return soldOut ? { error: { message: 'Reverse raffle allocation unavailable' } } : { data: { id: 'test-order' } }; },
-  update(value) { if(value.status === 'cancelled') released = true; return this; }, eq() { return this; }, async maybeSingle() { return failure === 'link' ? {error: new Error('link failed')} : { data: { id: 'test-order' } }; },
+  update(value) { if(value.status === 'cancelled') released = true; return this; }, eq(key, value) { holdQuery?.push([key, value]); return this; }, async maybeSingle() { return failure === 'link' ? {error: new Error('link failed')} : { data: { id: 'test-order' } }; },
 }; } };
 const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/reverse-raffle-selection': selection,
@@ -29,7 +33,11 @@ const route = load('app/api/raffle/checkout/route.ts', {
     if(failure === 'create') throw new Error('Stripe unavailable');
     payload = value; return { ...value, id: 'cs_test', status: 'open', url: failure === 'validation' ? null : 'https://checkout.stripe.com/test' };
   }, expire: async()=>{expired = true; return {status:'expired'};} } } }) },
-  '@/lib/server/request-guards': { enforceRateLimit: async () => true, getClientIp: () => 'test' },
+  '@/lib/server/request-guards': {
+    enforceRateLimit: async key => { if (!key.startsWith('raffle-hold-ip:')) return true; ipTokens += 1; return ipTokens <= ipTokenLimit; },
+    enforceTurnstile: async () => turnstileAllowed,
+    getClientIp: () => 'test',
+  },
   '@/lib/raffle-visibility': { getPublicRaffleCampaign: async code => {
     selected = code; return hidden ? null : { id: code, code, name: code === 'NDCCRRO' ? 'Reverse Raffle' : 'Dinos Trailer Raffle',
       price_cents: code === 'NDCCRRO' ? 6000 : 500, draw_label: code === 'NDCCRRO' ? null : 'Christmas Party - 19 December 2026' };
@@ -37,7 +45,7 @@ const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/payments/payment-config': { isCheckoutEnabled: () => true },
   '@/lib/payments/reference': { generateUniquePaymentReference: async () => 'NDCCRAF-2026-000100' },
   '@/lib/payments/site-url': { getCheckoutSiteUrl: () => 'https://www.ndcc.com.au' },
-  '@/lib/order-input-validation': { PUBLIC_ORDER_LIMITS: { maximumOrderCents: 10000000 },
+  '@/lib/order-input-validation': { ...realValidation, PUBLIC_ORDER_LIMITS: { maximumOrderCents: 10000000 },
     readLimitedJsonObject: async () => ({ ok: true, value: input }), validateRaffleCheckoutInput: () => ({ ok: true, value: input }) },
   '@/lib/utils': { validateEmail: () => true, validatePhone: () => true },
 });
@@ -78,6 +86,35 @@ for (const [stage,status] of [['create',500],['validation',502],['link',503]]) {
   if(stage !== 'create') assert.ok(expired,'Known sessions must expire before release');
 }
 failure = '';
+
+// Hoarding caps: per-email pending holds and per-IP held numbers (F10).
+const reverseUrl = { url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO' };
+assert.equal(realValidation.REVERSE_RAFFLE_HOLD_LIMITS.checkoutExpiryMinutes, 35, 'Stripe expiry stays at 35 minutes (Stripe minimum is 30)');
+pendingHolds = []; ipTokens = 0; ipTokenLimit = Infinity; inserted = payload = null; holdQuery = null;
+assert.equal((await route.POST(reverseUrl)).status, 200);
+assert.equal(payload.expires_at - Math.floor(Date.now() / 1000) > 34 * 60, true, 'reverse raffle checkout keeps its 35 minute expiry');
+assert.deepEqual(holdQuery.filter(([key]) => ['status', 'customer_email'].includes(key)), [['status', 'pending_payment'], ['customer_email', 'buyer@example.com']]);
+assert.ok(holdQuery.some(([key]) => key === 'created_at'), 'only holds inside the checkout window count');
+assert.equal(ipTokens, 2, 'one IP hold token per requested number');
+
+pendingHolds = [{ quantity: 10 }, { quantity: 9 }]; inserted = payload = null;
+assert.equal((await route.POST(reverseUrl)).status, 429, 'pending holds + new numbers above the per-email cap are refused');
+assert.equal(inserted, null); assert.equal(payload, null);
+pendingHolds = [{ quantity: 18 }]; inserted = null;
+assert.equal((await route.POST(reverseUrl)).status, 200, 'exactly reaching the per-email cap is allowed');
+pendingHolds = []; ipTokens = 0; ipTokenLimit = 1; inserted = payload = null;
+assert.equal((await route.POST(reverseUrl)).status, 429, 'per-IP held-number cap is enforced');
+assert.equal(inserted, null); assert.equal(payload, null);
+ipTokenLimit = Infinity; ipTokens = 0;
+ipTokens = 0; inserted = null;
+assert.equal((await route.POST({ url: 'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRAF' })).status, 200);
+assert.equal(ipTokens, 0, 'the standard raffle has no number holds to cap');
+turnstileAllowed = false; inserted = null;
+assert.equal((await route.POST(reverseUrl)).status, 403, 'a failed optional Turnstile check blocks checkout');
+assert.equal(inserted, null);
+turnstileAllowed = true;
+console.log('PASS reverse raffle hold caps per email/IP, 35 minute expiry and optional Turnstile gate');
+
 const vector = load('lib/reverse-raffle-ticket.ts', {});
 const ticket = load('lib/raffle-ticket.ts', {
   './reverse-raffle-ticket': vector,

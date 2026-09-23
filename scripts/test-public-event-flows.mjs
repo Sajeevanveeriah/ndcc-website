@@ -59,23 +59,29 @@ assert.deepEqual((await calendar.getUpcomingCalendarEvents({ contact: true })).d
 console.log('PASS upcoming events survive historical rows, retain overlapping events, exclude private/draft events and honour placement/limit');
 
 const id = '11111111-1111-4111-8111-111111111111';
-let row = { id, title: 'Club event', date: '2026-10-03T09:30:00Z', ticket_price: 0, location: 'Clubrooms' };
-let readError = null, registrationError = null, writes = [], sent = [], deletions = [];
-const db = { from(table) {
+// A fixed far-future winter date keeps the Melbourne time assertion stable
+// (AEST, UTC+10) while never tripping the past-event guard.
+let row = { id, title: 'Club event', date: '2036-07-03T09:30:00Z', ticket_price: 0, location: 'Clubrooms' };
+let readError = null, registrationError = null, writes = [], sent = [], deletions = [], rpcCalls = [];
+let existingRegistrations = [], rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
+const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.resolve(rpcResult); }, from(table) {
   let selected, inserted;
   const query = {
     select(columns) { selected = columns; return query; },
     eq() { return query; },
     async maybeSingle() {
       assert.equal(table, 'events');
-      const allowed = ['id', 'title', 'date', 'ticket_price', 'location'];
+      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity'];
       assert.ok(selected.split(',').every(column => allowed.includes(column)), 'event reads must match the deployed events schema');
       return { data: row, error: readError };
     },
     insert(value) { inserted = value; writes.push({ table, value }); return query; },
     delete() { deletions.push(table); return query; },
     async single() { return { data: { id: 'order-test' }, error: null }; },
-    then(resolve, reject) { return Promise.resolve({ data: inserted, error: table === 'event_registrations' ? registrationError : null }).then(resolve, reject); },
+    then(resolve, reject) {
+      if (table === 'event_registrations' && !inserted) return Promise.resolve({ data: existingRegistrations, error: null }).then(resolve, reject);
+      return Promise.resolve({ data: inserted, error: table === 'event_registrations' ? registrationError : null }).then(resolve, reject);
+    },
   };
   return query;
 } };
@@ -97,7 +103,7 @@ assert.equal(response.status, 200);
 assert.equal((await response.json()).total_amount, 0);
 assert.equal(writes[0].table, 'event_registrations');
 assert.equal(sent.length, 1);
-assert.match(sent[0].html, /3 October 2026/);
+assert.match(sent[0].html, /3 July 2036/);
 assert.match(sent[0].html, /7:30 pm/);
 console.log('PASS free event registration uses the deployed date column and emails the Melbourne event time');
 
@@ -127,3 +133,50 @@ readError = null; row = null;
 assert.equal((await submit()).status, 404);
 assert.equal(writes.length, 0);
 console.log('PASS database failures are distinguished from missing events and cannot create orders');
+
+// Past-event and capacity guards (F14).
+writes = []; sent = []; deletions = []; rpcCalls = [];
+row = { ...row, ticket_price: 0, date: new Date(now - hour).toISOString() };
+response = await submit();
+assert.equal(response.status, 409);
+assert.match((await response.json()).error, /closed/);
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+console.log('PASS registrations for events that have started are refused before any write');
+
+row = { ...row, date: '2036-07-03T09:30:00Z', capacity: 10 };
+existingRegistrations = [
+  { quantity: 5, payment_status: 'paid' },
+  { quantity: 3, payment_status: 'pending_bank_transfer' },
+  { quantity: 7, payment_status: 'cancelled' },
+  { quantity: 4, payment_status: 'failed' },
+];
+response = await submit();
+assert.equal(response.status, 200, '8 held + 2 requested fits capacity 10 (cancelled/failed excluded)');
+existingRegistrations = [...existingRegistrations, { quantity: 1, payment_status: 'not_required' }];
+writes = []; rpcCalls = [];
+response = await submit();
+assert.equal(response.status, 409, '9 held + 2 requested exceeds capacity 10');
+assert.match((await response.json()).error, /not enough places/);
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+console.log('PASS application-level capacity check counts active registrations only');
+
+existingRegistrations = []; writes = []; rpcCalls = []; sent = [];
+rpcResult = { data: 'registration-id', error: null };
+response = await submit();
+assert.equal(response.status, 200);
+assert.equal(rpcCalls[0].name, 'ndcc_register_event_attendee');
+assert.equal(rpcCalls[0].args.p_quantity, 2);
+assert.equal(rpcCalls[0].args.p_payment_status, 'not_required');
+assert.equal(writes.some(write => write.table === 'event_registrations'), false, 'RPC path does not double insert');
+console.log('PASS atomic registration RPC is used when deployed');
+
+row = { ...row, ticket_price: 12.34 };
+writes = []; deletions = []; rpcCalls = [];
+rpcResult = { data: null, error: { code: 'P0001', message: 'Event registration capacity reached' } };
+response = await submit();
+assert.equal(response.status, 409);
+assert.deepEqual(deletions, ['orders'], 'a refused paid registration removes its pending order');
+rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
+row = { ...row, ticket_price: 0, capacity: undefined };
+console.log('PASS concurrent capacity refusal from the RPC maps to 409 and cleans up the order');
+

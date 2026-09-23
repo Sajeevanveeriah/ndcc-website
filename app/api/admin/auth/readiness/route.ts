@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, getSupabaseServerReadiness } from '@/lib/supabase-server';
 import { generateSessionToken, hashSessionToken, sessionExpiryDate } from '@/lib/auth/session';
+import { constantTimeEqual } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
 
   const expectedToken = process.env.ADMIN_DIAGNOSTIC_TOKEN;
   const suppliedToken = request.headers.get('x-diagnostic-token');
-  if (!expectedToken || suppliedToken !== expectedToken) return hidden();
+  if (!expectedToken || !suppliedToken || !constantTimeEqual(suppliedToken, expectedToken)) return hidden();
 
   const readiness = getSupabaseServerReadiness();
   const result: Record<string, unknown> = {

@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { formatDateTime, validateEmail, validatePhone } from '@/lib/utils';
+import { formatDateTime, validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import {
@@ -14,8 +14,28 @@ export const dynamic = 'force-dynamic';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
+// Registrations in these payment states no longer hold a place.
+const RELEASED_REGISTRATION_STATUSES = new Set(['cancelled', 'failed', 'refunded', 'expired']);
+const EVENT_CLOSED_MESSAGE = 'Registrations for this event have closed.';
+const EVENT_FULL_MESSAGE = 'There are not enough places left for this event. Please reduce the number of tickets or contact the club.';
+
+type SupabaseErrorLike = { code?: string; message?: string } | null | undefined;
+
+function isMissingRegistrationRpc(error: SupabaseErrorLike) {
+  const message = error?.message || '';
+  return error?.code === 'PGRST202' || error?.code === '42883' || message.includes('Could not find the function');
+}
+
+function registrationRpcRefusal(error: SupabaseErrorLike): string | null {
+  const message = error?.message || '';
+  if (message.includes('Event registration capacity reached')) return EVENT_FULL_MESSAGE;
+  if (message.includes('Event registration closed') || message.includes('Event registration unavailable')) return EVENT_CLOSED_MESSAGE;
+  return null;
+}
+
+function eventHasStarted(date: unknown, now = Date.now()) {
+  const startsAt = typeof date === 'string' ? Date.parse(date) : Number.NaN;
+  return !Number.isFinite(startsAt) || startsAt <= now;
 }
 
 export async function POST(request: Request) {
@@ -83,7 +103,7 @@ export async function POST(request: Request) {
 
     const { data: eventRow, error: eventError } = await supabase
       .from('events')
-      .select('id,title,date,ticket_price,location')
+      .select('id,title,date,ticket_price,location,capacity')
       .eq('id', safeEventId)
       .eq('published', true)
       .maybeSingle();
@@ -94,6 +114,29 @@ export async function POST(request: Request) {
     }
     if (!eventRow) {
       return NextResponse.json({ success: false, error: 'Event not found.' }, { status: 404 });
+    }
+
+    if (eventHasStarted(eventRow.date)) {
+      return NextResponse.json({ success: false, error: EVENT_CLOSED_MESSAGE }, { status: 409 });
+    }
+    const capacity = eventRow.capacity;
+    if (capacity !== null && capacity !== undefined) {
+      // Early application-level check. The ndcc_register_event_attendee RPC
+      // below repeats it atomically under a row lock when it is deployed.
+      const { data: existing, error: existingError } = await supabase
+        .from('event_registrations')
+        .select('quantity,payment_status')
+        .eq('event_id', eventRow.id);
+      if (existingError || !Array.isArray(existing)) {
+        console.error('Supabase event capacity lookup error:', existingError);
+        return NextResponse.json({ success: false, error: 'Event registration is temporarily unavailable.' }, { status: 503 });
+      }
+      const taken = existing.reduce((sum: number, registration: { quantity?: number | null; payment_status?: string | null }) => (
+        RELEASED_REGISTRATION_STATUSES.has(String(registration.payment_status || '')) ? sum : sum + (Number(registration.quantity) || 1)
+      ), 0);
+      if (typeof capacity !== 'number' || taken + qty > capacity) {
+        return NextResponse.json({ success: false, error: EVENT_FULL_MESSAGE }, { status: 409 });
+      }
     }
 
     const ticketPriceResult = audAmountToCents(eventRow.ticket_price || 0);
@@ -144,7 +187,7 @@ export async function POST(request: Request) {
       linkedOrder = order;
     }
 
-    const { error: registrationError } = await supabase.from('event_registrations').insert({
+    const registration = {
       event_id: eventRow.id,
       name: sanitiseInput(name),
       email: sanitiseInput(email),
@@ -153,11 +196,31 @@ export async function POST(request: Request) {
       payment_status: isPaid ? 'pending_bank_transfer' : 'not_required',
       payment_reference: paymentReference,
       order_id: linkedOrder?.id ?? null,
+    };
+    // Prefer the atomic, capacity-locked RPC; fall back to the plain insert
+    // (already guarded by the application-level check above) when the
+    // migration has not been applied yet.
+    let { error: registrationError } = await supabase.rpc('ndcc_register_event_attendee', {
+      p_event_id: registration.event_id,
+      p_name: registration.name,
+      p_email: registration.email,
+      p_phone: registration.phone,
+      p_quantity: registration.quantity,
+      p_payment_status: registration.payment_status,
+      p_payment_reference: registration.payment_reference,
+      p_order_id: registration.order_id,
     });
+    if (registrationError && isMissingRegistrationRpc(registrationError)) {
+      ({ error: registrationError } = await supabase.from('event_registrations').insert(registration));
+    }
 
     if (registrationError) {
       if (linkedOrder) {
         await supabase.from('orders').delete().eq('id', linkedOrder.id);
+      }
+      const refusal = registrationRpcRefusal(registrationError);
+      if (refusal) {
+        return NextResponse.json({ success: false, error: refusal }, { status: 409 });
       }
       console.error('Supabase event registration insert error:', registrationError);
       return NextResponse.json(
