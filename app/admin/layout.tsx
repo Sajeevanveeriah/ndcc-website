@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -33,7 +33,7 @@ const adminGroups: AdminGroup[] = [
   { title: 'Season', icon: ClipboardList, links: [
     { href: '/admin/season/new', label: 'Start New Season', plainLabel: 'Season setup wizard', icon: CalendarDays },
     { href: '/admin/season/registration', label: 'Player Registration', plainLabel: 'Seasonal registration page and terms', icon: ClipboardCheck },
-    { href: '/admin/club-details', label: 'Club Details', icon: Settings },
+    { href: '/admin/club-details', label: 'Club & Contact Details', plainLabel: 'Club name, contact details and settings', icon: Settings },
     { href: '/admin/teams', label: 'Teams', plainLabel: 'Teams and grades', icon: Users },
     { href: '/admin/season-appointments', label: 'Appointments', plainLabel: 'Coaches and appointments', icon: UserRoundCheck },
     { href: '/admin/calendar', label: 'Training & Calendar', icon: CalendarDays },
@@ -49,7 +49,6 @@ const adminGroups: AdminGroup[] = [
   { title: 'Club', icon: Building2, advanced: true, links: [
     { href: '/admin/history', label: 'History', icon: Newspaper },
     { href: '/admin/minutes', label: 'Minutes', icon: Newspaper },
-    { href: '/admin/club-details', label: 'Contact Details', icon: Settings },
   ] },
   { title: 'Community', icon: HeartHandshake, advanced: true, links: [
     { href: '/admin/volunteers', label: 'Volunteers', icon: Users },
@@ -62,7 +61,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
     { href: '/admin/raffle', label: 'Raffle', icon: Ticket },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
-    { href: '/admin/payments', label: 'Payments', icon: ShoppingBag },
+    { href: '/admin/payments', label: 'Payments', plainLabel: 'Payments ledger and outstanding balances', icon: CreditCard },
   ] },
   { title: 'Fantasy', icon: Trophy, advanced: true, links: [
     { href: '/admin/fantasy', label: 'Fantasy Home', icon: Trophy },
