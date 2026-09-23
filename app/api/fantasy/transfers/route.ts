@@ -6,6 +6,7 @@ import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fanta
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
 import { buildSquadSlots, isTransferWindowOpen } from '@/lib/dino-coach/domain';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
+import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
   if(squad.error) throw new Error(squad.error.message);
   const windowOpen=seasonAllowsTeamChanges(season)&&!lock.locked&&settings.public_launch_enabled&&settings.team_selection_open&&isTransferWindowOpen(new Date(),{timezone:settings.transfer_timezone,openWeekday:settings.transfer_open_weekday,openMinute:settings.transfer_open_minute,closeWeekday:settings.transfer_close_weekday,closeMinute:settings.transfer_close_minute});
   return NextResponse.json({success:true,managerId:auth.manager.id,season,settings:toPublicDinoCoachSettings(settings),slots:buildSquadSlots(settings.slot_counts),players,squad:squad.data,windowOpen},{headers:{'Cache-Control':'no-store'}});
- } catch(e) { return NextResponse.json({error:e instanceof Error?e.message:'Could not load the market.'},{status:500}); }
+ } catch(e) { logRouteError('fantasy/transfers:get',e); return NextResponse.json({error:'Could not load the market.'},{status:500}); }
 }
 export async function POST(request: Request) {
  const {auth,errorMessage,errorStatus}=await resolveFantasyManagerAuth(request);
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   const issues = managerEligibilityIssues(auth.manager,entry.data,settings.rules_version);
   if(issues.length) return NextResponse.json({error:issues.map(issue=>issue.message).join(' ')},{status:403});
   const result=await db.rpc('dino_market_action',{mid:auth.manager.id,sid:season.id,rid:lock.roundId,action,out_id:nullable(body.playerOutId),in_id:nullable(body.playerInId),slot:nullable(body.slotKey),expected_updated_at:nullable(body.expectedUpdatedAt),expected_price:Number.isSafeInteger(body.expectedPrice)?body.expectedPrice:null});
-  if(result.error) return NextResponse.json({error:result.error.message},{status:400});
+  if(result.error) { logRouteError('fantasy/transfers:rpc',result.error); return NextResponse.json({error:publicRpcErrorMessage(result.error,'Could not save the market action.')},{status:400}); }
   return NextResponse.json({success:true,id:result.data});
- } catch(e) { return NextResponse.json({error:e instanceof Error?e.message:'Could not save the market action.'},{status:400}); }
+ } catch(e) { logRouteError('fantasy/transfers:post',e); return NextResponse.json({error:'Could not save the market action.'},{status:400}); }
 }

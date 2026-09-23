@@ -5,11 +5,30 @@ import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getDinoManagerStandings } from '@/lib/dino-coach/standings';
+import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { logRouteError } from '@/lib/server/public-errors';
 
 export const dynamic = 'force-dynamic';
 
+// New invitation codes: 12 characters from an alphabet without look-alike
+// characters (no 0/O, 1/I/L). ~59 bits of entropy. Existing 8-character hex
+// codes keep working because joins accept any 4-12 character A-Z/0-9 code.
+const LEAGUE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const LEAGUE_CODE_LENGTH = 12;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function makeCode() {
-  return randomBytes(6).toString('hex').slice(0, 8).toUpperCase();
+  // Rejection sampling over cryptographic bytes avoids modulo bias.
+  const limit = 256 - (256 % LEAGUE_CODE_ALPHABET.length);
+  let code = '';
+  while (code.length < LEAGUE_CODE_LENGTH) {
+    for (const byte of randomBytes(LEAGUE_CODE_LENGTH * 2)) {
+      if (byte >= limit) continue;
+      code += LEAGUE_CODE_ALPHABET[byte % LEAGUE_CODE_ALPHABET.length];
+      if (code.length === LEAGUE_CODE_LENGTH) break;
+    }
+  }
+  return code;
 }
 
 async function leagueLeaderboard(leagueId: string, seasonId: string) {
@@ -42,7 +61,10 @@ export async function GET(request: Request) {
     .eq('manager_id', auth.manager.id)
     .eq('fantasy_leagues.season_id', season.id)
     .order('joined_at', { ascending: false });
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    logRouteError('fantasy/leagues:get', error);
+    return NextResponse.json({ success: false, error: 'Failed to load your leagues.' }, { status: 500 });
+  }
   try {
     const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues, leaderboard: await leagueLeaderboard(item.league_id, season.id) })));
     return NextResponse.json({ success: true, season, leagues });
@@ -62,24 +84,43 @@ export async function POST(request: Request) {
   const supabase = createServerClient();
 
   if (action === 'join') {
+    // Throttle code guessing per manager and per client address.
+    const ip = getClientIp(request);
+    const permits = await Promise.all([
+      enforceRateLimit(`fantasy-league-join-manager:${auth.manager.id}`, 10, 10 * 60_000),
+      enforceRateLimit(`fantasy-league-join-ip:${ip}`, 30, 10 * 60_000),
+    ]);
+    if (permits.some((allowed) => !allowed)) {
+      return NextResponse.json({ success: false, error: 'Too many league join attempts. Please wait a few minutes and try again.' }, { status: 429 });
+    }
     const code = String(body.code || '').trim().toUpperCase();
     if (!/^[A-Z0-9]{4,12}$/.test(code)) return NextResponse.json({ success: false, error: 'Enter a valid league code.' }, { status: 400 });
     const { data: league, error: leagueError } = await supabase.from('fantasy_leagues').select('id').eq('code', code).eq('season_id', season.id).maybeSingle();
-    if (leagueError || !league) return NextResponse.json({ success: false, error: leagueError?.message || 'League code was not found.' }, { status: 404 });
+    if (leagueError) {
+      logRouteError('fantasy/leagues:join-lookup', leagueError);
+      return NextResponse.json({ success: false, error: 'Could not join the league. Please try again.' }, { status: 500 });
+    }
+    if (!league) return NextResponse.json({ success: false, error: 'League code was not found.' }, { status: 404 });
     const { error } = await supabase.from('fantasy_league_members').upsert({ league_id: league.id, manager_id: auth.manager.id }, { onConflict: 'league_id,manager_id' });
-    if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (error) {
+      logRouteError('fantasy/leagues:join', error);
+      return NextResponse.json({ success: false, error: 'Could not join the league. Please try again.' }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   }
 
   if (action === 'leave') {
     const leagueId = String(body.leagueId || '').trim();
-    if (!leagueId) return NextResponse.json({ success: false, error: 'A league is required to leave.' }, { status: 400 });
+    if (!leagueId || !UUID_PATTERN.test(leagueId)) return NextResponse.json({ success: false, error: 'A league is required to leave.' }, { status: 400 });
     const { error } = await supabase
       .from('fantasy_league_members')
       .delete()
       .eq('league_id', leagueId)
       .eq('manager_id', auth.manager.id);
-    if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (error) {
+      logRouteError('fantasy/leagues:leave', error);
+      return NextResponse.json({ success: false, error: 'Could not leave the league. Please try again.' }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   }
 
@@ -92,8 +133,14 @@ export async function POST(request: Request) {
     if (!error) league = data;
     lastError = error;
   }
-  if (!league) return NextResponse.json({ success: false, error: lastError?.message || 'Could not create league code.' }, { status: 500 });
+  if (!league) {
+    if (lastError) logRouteError('fantasy/leagues:create', lastError);
+    return NextResponse.json({ success: false, error: 'Could not create league code.' }, { status: 500 });
+  }
   const { error: memberError } = await supabase.from('fantasy_league_members').insert({ league_id: league.id, manager_id: auth.manager.id });
-  if (memberError) return NextResponse.json({ success: false, error: memberError.message }, { status: 500 });
+  if (memberError) {
+    logRouteError('fantasy/leagues:create-member', memberError);
+    return NextResponse.json({ success: false, error: 'The league was created but you could not be added to it. Please try joining with its code.' }, { status: 500 });
+  }
   return NextResponse.json({ success: true, league });
 }

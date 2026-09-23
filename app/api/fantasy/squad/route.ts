@@ -8,6 +8,7 @@ import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-sea
 import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fantasy-game';
 import { buildSquadSlots, validateSquadAssignments, type DinoSquadAssignment } from '@/lib/dino-coach/domain';
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
+import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,12 +37,16 @@ export async function GET(request: Request) {
     if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
     const [settings, players, squad] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), loadSquad(auth.manager.id, season.id)]);
     const entry = await createServerClient().from('fantasy_entries').select('status,is_demo,fee_waived').eq('manager_id', auth.manager.id).eq('season_id', season.id).maybeSingle();
-    if (entry.error) throw new Error('Could not check your entry status. Please try again.');
+    if (entry.error) {
+      logRouteError('fantasy/squad:entry', entry.error);
+      return NextResponse.json({ success: false, error: 'Could not check your entry status. Please try again.' }, { status: 503 });
+    }
     const eligibilityIssues = managerEligibilityIssues(auth.manager, entry.data, settings.rules_version);
     const stats = await getPlayerStats(season.id, players);
     return NextResponse.json({ success: true, eligibilityIssues, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not load Dino Coach squad.' }, { status: 500 });
+    logRouteError('fantasy/squad:get', error);
+    return NextResponse.json({ success: false, error: 'Could not load Dino Coach squad.' }, { status: 500 });
   }
 }
 
@@ -75,6 +80,9 @@ export async function POST(request: Request) {
     target_status: isDraft ? 'draft' : 'submitted', expected_budget: validation.budgetUsedDinoDollars, expected_updated_at: typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt : null,
     selected_players: authoritativeSelection.map((item) => ({ player_id: item.playerId, slot_key: item.slotKey, assigned_role: item.assignedRole, position_type: item.positionType, is_captain: item.isCaptain, is_vice_captain: item.isViceCaptain })),
   });
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: /closed|eligibility|paid/i.test(error.message) ? 403 : 400 });
+  if (error) {
+    logRouteError('fantasy/squad:save', error);
+    return NextResponse.json({ success: false, error: publicRpcErrorMessage(error, 'Could not save your Dino Coach squad. Please reload and try again.') }, { status: /closed|eligibility|paid/i.test(error.message) ? 403 : 400 });
+  }
   return NextResponse.json({ success: true, squad: { id: data, status: isDraft ? 'draft' : 'submitted' }, selection: authoritativeSelection.map((item) => ({ ...item, displayName: players.find((player) => player.id === item.playerId)?.display_name })) });
 }

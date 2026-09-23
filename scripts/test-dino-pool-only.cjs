@@ -6,6 +6,8 @@ const calls=[];
 const eligibility={};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/dino-coach/manager-eligibility.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:eligibility});
 let acceptedRules='current';
+const publicErrors={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/server/public-errors.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:publicErrors,console});
 const imports={
  '@/lib/dino-coach/manager-eligibility':eligibility,
  'next/server':{NextResponse:{json:(body,options={})=>({body,status:options.status||200})}},
@@ -13,7 +15,8 @@ const imports={
  '@/lib/supabase-server':{createServerClient:()=>({from:()=>({select(){return this},eq(){return this},maybeSingle:async()=>({data:{status:'paid'},error:null})}),rpc:async(name,args)=>{calls.push({name,args});return {data:'saved'};}})},
  '@/lib/fantasy-game':{getRoundLockState:async()=>({locked:false,roundId:null})},
  '@/lib/dino-coach/server':{getDinoCoachSettings:async()=>({rules_version:'current'})}, '@/lib/dino-coach/domain':{},
- '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'}),seasonAllowsTeamChanges:()=>true}
+ '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'}),seasonAllowsTeamChanges:()=>true},
+ '@/lib/server/public-errors':publicErrors
 };
 const exports1={};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/api/fantasy/transfers/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:exports1,require:n=>{assert(n in imports,n);return imports[n];}});

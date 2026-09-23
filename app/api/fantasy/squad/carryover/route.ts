@@ -9,6 +9,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { resolveSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices, getFantasySettings, validateDraftSquadSelection } from '@/lib/fantasy-game';
 import { buildCarryoverPlan, type SourceSquadPlayer } from '@/lib/fantasy-carryover';
+import { logRouteError } from '@/lib/server/public-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,7 +85,8 @@ export async function GET(request: Request) {
       plan: result.plan,
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Could not build carryover preview.' }, { status: 500 });
+    logRouteError('fantasy/squad/carryover:get', err);
+    return NextResponse.json({ success: false, error: 'Could not build carryover preview.' }, { status: 500 });
   }
 }
 
@@ -110,7 +112,10 @@ export async function POST(request: Request) {
       .is('round_id', null)
       .limit(1)
       .maybeSingle();
-    if (existingError) return NextResponse.json({ success: false, error: existingError.message }, { status: 500 });
+    if (existingError) {
+      logRouteError('fantasy/squad/carryover:existing', existingError);
+      return NextResponse.json({ success: false, error: 'Could not carry the squad over.' }, { status: 500 });
+    }
     if (existing && existing.status !== 'draft') {
       return NextResponse.json({ success: false, error: 'You already have a submitted squad in the target season; carryover only writes drafts.' }, { status: 409 });
     }
@@ -127,11 +132,17 @@ export async function POST(request: Request) {
     const squadResult = existing
       ? await supabase.from('fantasy_squads').update(squadValues).eq('id', existing.id).select(squadColumns).single()
       : await supabase.from('fantasy_squads').insert(squadValues).select(squadColumns).single();
-    if (squadResult.error || !squadResult.data) return NextResponse.json({ success: false, error: squadResult.error?.message || 'Could not save draft squad.' }, { status: 500 });
+    if (squadResult.error || !squadResult.data) {
+      if (squadResult.error) logRouteError('fantasy/squad/carryover:squad', squadResult.error);
+      return NextResponse.json({ success: false, error: 'Could not save draft squad.' }, { status: 500 });
+    }
 
     const squad = squadResult.data;
     const clear = await supabase.from('fantasy_squad_players').delete().eq('squad_id', squad.id);
-    if (clear.error) return NextResponse.json({ success: false, error: clear.error.message }, { status: 500 });
+    if (clear.error) {
+      logRouteError('fantasy/squad/carryover:clear', clear.error);
+      return NextResponse.json({ success: false, error: 'Could not save draft squad.' }, { status: 500 });
+    }
     const rows = plan.selection.map((item) => ({
       squad_id: squad.id,
       player_id: item.playerId,
@@ -141,10 +152,14 @@ export async function POST(request: Request) {
       is_vice_captain: item.isViceCaptain,
     }));
     const insert = await supabase.from('fantasy_squad_players').insert(rows);
-    if (insert.error) return NextResponse.json({ success: false, error: insert.error.message }, { status: 500 });
+    if (insert.error) {
+      logRouteError('fantasy/squad/carryover:insert', insert.error);
+      return NextResponse.json({ success: false, error: 'Could not save draft squad.' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true, squad, plan });
   } catch (err) {
-    return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Could not carry the squad over.' }, { status: 500 });
+    logRouteError('fantasy/squad/carryover:post', err);
+    return NextResponse.json({ success: false, error: 'Could not carry the squad over.' }, { status: 500 });
   }
 }
