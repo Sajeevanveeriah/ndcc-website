@@ -80,6 +80,7 @@ check('page titles rely on the root "| NDCC Dinos" template and theme colours ma
     assert.ok(!/title: '[^']*\|[^']*'/.test(source) && !/pageMetadata\([^)]*'[^']*\|[^']*'/.test(source), `${file} title must not repeat branding`);
   }
   assert.match(readFileSync('app/raffle/page.tsx', 'utf8'), /pageMetadata\('\/raffle'/);
+  assert.match(readFileSync('app/raffle/page.tsx', 'utf8'), /if \(!\(await isRafflePublic\(\)\)\) return \{\};/, 'hidden raffle gets no raffle metadata');
   assert.match(readFileSync('app/fantasy/layout.tsx', 'utf8'), /themeColor: '#800000'/);
   assert.equal(JSON.parse(readFileSync('public/dino-coach.webmanifest', 'utf8')).theme_color, '#800000');
 });

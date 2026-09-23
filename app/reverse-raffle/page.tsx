@@ -6,8 +6,12 @@ import { REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 import ReverseRaffleClient from './ReverseRaffleClient';
 
 export const dynamic = 'force-dynamic';
-// The root title template appends '| NDCC Dinos'.
-export const metadata: Metadata = pageMetadata('/reverse-raffle', 'Reverse Raffle', 'Newcomb and District Cricket Club Reverse Raffle. Support your club.');
+// The root title template appends '| NDCC Dinos'. Metadata only while the
+// campaign is public, so a hidden raffle's 404 carries no raffle title.
+export async function generateMetadata(): Promise<Metadata> {
+  if (!(await getPublicRaffleCampaign(REVERSE_RAFFLE_CAMPAIGN_CODE))) return {};
+  return pageMetadata('/reverse-raffle', 'Reverse Raffle', 'Newcomb and District Cricket Club Reverse Raffle. Support your club.');
+}
 
 export default async function ReverseRafflePage() {
   const campaign = await getPublicRaffleCampaign(REVERSE_RAFFLE_CAMPAIGN_CODE);
