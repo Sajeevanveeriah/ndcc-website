@@ -14,7 +14,9 @@ import ContactForm from './ContactForm';
 
 // Used in the "email notification failed" notice when club settings carry no
 // email address.
-const URGENT_EMAIL_FALLBACK = 'ndcc.secretary1@gmail.com';
+// Urgent follow-up goes to the secretary inbox, as before the page moved to
+// server rendering (the club settings address is shown separately below).
+const URGENT_EMAIL = 'ndcc.secretary1@gmail.com';
 
 async function loadCommittee(): Promise<CommitteeMemberContent[]> {
   try {
@@ -57,7 +59,7 @@ export default async function ContactPage() {
             <div>
               <h2 className="section-title">Send Us a Message</h2>
               <p className="text-content-muted font-body mb-8">{formIntro}</p>
-              <ContactForm urgentEmail={settings.email || URGENT_EMAIL_FALLBACK} />
+              <ContactForm urgentEmail={URGENT_EMAIL} />
             </div>
 
             {/* Details Column */}
