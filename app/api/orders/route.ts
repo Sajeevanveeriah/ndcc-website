@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
-import { validateEmail, validatePhone } from '@/lib/utils';
+import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 import { receiptRecipients } from '@/lib/payments/receipt-recipients';
 import { getStaffOrderRecipients } from '@/lib/order-notification-content';
@@ -19,10 +19,6 @@ const MERCH_ITEM_LINES_LIMIT = 40;
 const MERCH_ITEM_QUANTITY_LIMIT = 50;
 const MERCH_ITEM_UNITS_LIMIT = 100;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 function escapeHtml(str: string): string {
   return str

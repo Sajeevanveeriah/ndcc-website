@@ -1,14 +1,11 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { sanitiseInput } from '@/lib/utils';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
 import { readLimitedJsonObject, validateContactFormInput } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 function escapeHtml(str: string): string {
   return str

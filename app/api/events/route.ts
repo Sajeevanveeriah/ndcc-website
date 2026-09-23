@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { formatDateTime, validateEmail, validatePhone } from '@/lib/utils';
+import { formatDateTime, validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import {
@@ -13,10 +13,6 @@ import {
 export const dynamic = 'force-dynamic';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function sanitiseInput(str: string): string {
-  return str.replace(/<[^>]*>/g, '').trim();
-}
 
 // Registrations in these payment states no longer hold a place.
 const RELEASED_REGISTRATION_STATUSES = new Set(['cancelled', 'failed', 'refunded', 'expired']);

@@ -176,11 +176,17 @@ export function normalisePublicText(input: string | null | undefined): string {
   return normalised;
 }
 
+/**
+ * Normalises free-text form input before storage. Values are stored as the
+ * user typed them (no HTML encoding or tag stripping): every renderer is
+ * responsible for escaping at output time (React JSX escapes text, emails use
+ * escapeEmailHtml / escapeHtml, CSV uses csvCell). This only trims and removes
+ * control characters other than tab/newline/carriage return, which have no
+ * legitimate use in names, contact details or notes.
+ */
 export function sanitiseInput(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
+  return String(input ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B\u2028\u2029\uFEFF]/g, '')
+    .trim();
 }

@@ -110,4 +110,17 @@ await test('reverse raffle hold helpers bound pending numbers', () => {
   assert.match(readFileSync('app/api/raffle/checkout/route.ts', 'utf8'), /expires_at: Math\.floor\(Date\.now\(\) \/ 1000\) \+ 35 \* 60/);
 });
 
+await test('public form input is stored as typed (no HTML encoding or tag stripping)', () => {
+  const utils = load('lib/utils.ts');
+  assert.equal(utils.sanitiseInput('  O\'Brien & Sons <Pty> "Ltd"  '), 'O\'Brien & Sons <Pty> "Ltd"');
+  assert.equal(utils.sanitiseInput('line one\nline two\tend'), 'line one\nline two\tend', 'newlines and tabs survive');
+  assert.equal(utils.sanitiseInput('a\u0000b\u0007c​d﻿'), 'abcd', 'control and zero-width characters are removed');
+  assert.equal(utils.sanitiseInput('I <3 cricket > football'), 'I <3 cricket > football', 'angle brackets are not treated as tags');
+  for (const file of ['app/api/contacts/route.ts', 'app/api/events/route.ts', 'app/api/kitchen/orders/route.ts', 'app/api/memberships/route.ts', 'app/api/orders/route.ts', 'app/api/volunteers/route.ts']) {
+    const source = readFileSync(file, 'utf8');
+    assert.match(source, /import \{[^}]*\bsanitiseInput\b[^}]*\} from '@\/lib\/utils'/, `${file} uses the shared sanitiser`);
+    assert.doesNotMatch(source, /function sanitiseInput/, `${file} has no local HTML-altering sanitiser`);
+  }
+});
+
 console.log(`\ntest-request-guard-hardening: ${passed} tests passed`);
