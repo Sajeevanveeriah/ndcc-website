@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
-const webhook = read('app/api/stripe/webhook/route.ts');
+const webhook = readStripeWebhookSource();
 const players = read('app/api/fantasy/players/route.ts');
 const squad = read('app/api/fantasy/squad/route.ts');
 const transfers = read('app/api/fantasy/transfers/route.ts');

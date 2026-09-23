@@ -5,6 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const stage = mkdtempSync(path.join(tmpdir(), 'ndcc-stripe-'));
@@ -98,7 +99,7 @@ test('webhook event classification covers immediate and delayed outcomes', () =>
 });
 
 const checkoutRoute = readFileSync(path.join(repoRoot, 'app/api/payments/checkout-session/route.ts'), 'utf8');
-const webhookRoute = readFileSync(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8');
+const webhookRoute = readStripeWebhookSource();
 const stripeCheckoutSource = readFileSync(path.join(repoRoot, 'lib/payments/stripe-checkout.ts'), 'utf8');
 const stripeClient = readFileSync(path.join(repoRoot, 'lib/stripe.ts'), 'utf8');
 const integrityMigration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260816025155_stripe_checkout_integrity.sql'), 'utf8');
