@@ -2,11 +2,14 @@ import 'server-only';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getServerSharp } from './server-fonts.mjs';
+import { escapeEmailHtml } from './email-html';
 import { reverseRaffleTicketSvg } from './reverse-raffle-ticket';
 import { parseRaffleReference, RAFFLE_FALLBACK_DISPLAY, REVERSE_RAFFLE_CAMPAIGN_CODE } from './raffle-constants';
 
+// SVG text escaping. &#39; (shared helper) and the former &apos; are
+// equivalent XML character references for an apostrophe.
 function esc(value: string) {
-  return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[ch] || ch));
+  return escapeEmailHtml(value);
 }
 
 /**

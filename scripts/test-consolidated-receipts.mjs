@@ -22,7 +22,8 @@ function moduleAt(path, dependencies = {}, suffix = '') {
 const recipients = moduleAt('lib/payments/receipt-recipients.ts');
 const references = moduleAt('lib/payments/reference.ts', { '@/lib/supabase-server': {} });
 const mealCollection = moduleAt('lib/meal-collection.ts');
-const content = moduleAt('lib/order-notification-content.ts', { './meal-collection': mealCollection });
+const emailHtmlModule = moduleAt('lib/email-html.ts');
+const content = moduleAt('lib/order-notification-content.ts', { './meal-collection': mealCollection, './email-html': emailHtmlModule });
 const plain = value => JSON.parse(JSON.stringify(value));
 assert.deepEqual(plain(recipients.receiptRecipients(' NDCC.Secretary1@gmail.com ', ['ndsc.cricket@gmail.com', 'NDCC.SECRETARY1@gmail.com'])), {
   to: 'ndcc.secretary1@gmail.com', bcc: ['ndsc.cricket@gmail.com'],
@@ -46,6 +47,7 @@ const db = { from(table) { return { select() { return this; }, eq() { return thi
 }; } };
 const sender = moduleAt('lib/payment-receipts.ts', {
   '@/lib/meal-collection': mealCollection,
+  '@/lib/email-html': emailHtmlModule,
   '@/lib/payments/receipt-recipients': recipients,
   '@/lib/order-notification-content': content,
   '@/lib/payments/reference': references,

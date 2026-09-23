@@ -3,18 +3,14 @@ import { NextResponse } from 'next/server';
 import { sanitiseInput } from '@/lib/utils';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
+import { escapeEmailHtml } from '@/lib/email-html';
 import { readLimitedJsonObject, validateContactFormInput } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
 
+// Shared entity escaping, plus line breaks rendered as <br> for enquiry text.
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/\n/g, '<br>');
+  return escapeEmailHtml(str).replace(/\n/g, '<br>');
 }
 
 function safeFailureReason(reason?: string) {

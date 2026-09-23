@@ -1,3 +1,4 @@
+import { escapeEmailHtml } from './email-html';
 import { mealCollectionLabel, mealServiceLabel } from './meal-collection';
 export type StaffOrderCategory = 'apparel' | 'kitchen';
 export type StaffOrderNotificationStage = 'created' | 'paid';
@@ -45,15 +46,6 @@ const SECRETARY_EMAIL = 'ndcc.secretary1@gmail.com';
 const TREASURER_EMAIL = 'ndcc.treasurer1@gmail.com';
 const APPAREL_EMAILS = [SECRETARY_EMAIL, 'joshwalker20695@gmail.com'] as const;
 
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function finiteNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -66,19 +58,19 @@ function quantity(value: unknown): number {
 function detailLines(item: StaffOrderItem): string[] {
   const lines: string[] = [];
   const size = typeof item.size === 'string' ? item.size.trim() : '';
-  if (size && size !== 'kitchen') lines.push(`Size: ${escapeHtml(size)}`);
+  if (size && size !== 'kitchen') lines.push(`Size: ${escapeEmailHtml(size)}`);
 
   if (Array.isArray(item.applied_options)) {
     for (const option of item.applied_options) {
       if (!option || typeof option !== 'object') continue;
       const group = 'group' in option ? String(option.group ?? '').trim() : '';
       const label = 'label' in option ? String(option.label ?? '').trim() : '';
-      if (group && label) lines.push(`${escapeHtml(group)}: ${escapeHtml(label)}`);
+      if (group && label) lines.push(`${escapeEmailHtml(group)}: ${escapeEmailHtml(label)}`);
     }
   }
 
   const surname = typeof item.custom_name === 'string' ? item.custom_name.trim() : '';
-  if (surname) lines.push(`Surname: ${escapeHtml(surname)}`);
+  if (surname) lines.push(`Surname: ${escapeEmailHtml(surname)}`);
 
   const numbers = [item.custom_number, item.alternate_number]
     .map((value) => finiteNumber(value, Number.NaN))
@@ -99,12 +91,12 @@ export function buildStaffOrderNotificationContent(
 ): StaffOrderNotificationContent {
   const categoryLabel = input.category === 'apparel' ? 'Apparel' : 'Kitchen';
   const paymentMadeLabel = input.paymentMade ? 'Yes' : 'No';
-  const safeReference = escapeHtml(input.paymentReference || input.orderId);
-  const safeOrderReference = escapeHtml(input.orderReference || input.paymentReference || input.orderId);
-  const safeBankReference = escapeHtml(input.bankReference || '');
-  const safeName = escapeHtml(input.customer.name);
-  const safeEmail = escapeHtml(input.customer.email);
-  const safePhone = escapeHtml(input.customer.phone || 'Not supplied');
+  const safeReference = escapeEmailHtml(input.paymentReference || input.orderId);
+  const safeOrderReference = escapeEmailHtml(input.orderReference || input.paymentReference || input.orderId);
+  const safeBankReference = escapeEmailHtml(input.bankReference || '');
+  const safeName = escapeEmailHtml(input.customer.name);
+  const safeEmail = escapeEmailHtml(input.customer.email);
+  const safePhone = escapeEmailHtml(input.customer.phone || 'Not supplied');
   const safeTotal = finiteNumber(input.totalAmount).toFixed(2);
 
   const itemRows = input.items
@@ -116,7 +108,7 @@ export function buildStaffOrderNotificationContent(
         ? `<br><span style="font-size:12px;color:#6b7280;line-height:1.5;">${details.join('<br>')}</span>`
         : '';
       return `<tr>
-        <td style="padding:8px;font-size:14px;border-bottom:1px solid #e5e7eb;">${escapeHtml(item.name || 'Item')}${detailsHtml}</td>
+        <td style="padding:8px;font-size:14px;border-bottom:1px solid #e5e7eb;">${escapeEmailHtml(item.name || 'Item')}${detailsHtml}</td>
         <td style="padding:8px;font-size:14px;text-align:center;border-bottom:1px solid #e5e7eb;">${itemQuantity}</td>
         <td style="padding:8px;font-size:14px;text-align:right;border-bottom:1px solid #e5e7eb;">$${(unitPrice * itemQuantity).toFixed(2)}</td>
       </tr>`;
@@ -143,7 +135,7 @@ export function buildStaffOrderNotificationContent(
     bodyHtml: `<p style="font-size:15px;color:#374151;line-height:1.6;">${stageText}</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:16px 0;">
         ${referenceRows}
-        ${input.category === 'kitchen' ? `<tr><td>Collection</td><td>${escapeHtml(mealCollectionLabel(input.collectionWindow))}<br>${escapeHtml(mealServiceLabel(input.serviceDate))} (Australia/Melbourne)</td></tr>` : ''}
+        ${input.category === 'kitchen' ? `<tr><td>Collection</td><td>${escapeEmailHtml(mealCollectionLabel(input.collectionWindow))}<br>${escapeEmailHtml(mealServiceLabel(input.serviceDate))} (Australia/Melbourne)</td></tr>` : ''}
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Payment made</td><td style="padding:6px 0;font-size:14px;font-weight:bold;">${paymentMadeLabel}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Ordered by</td><td style="padding:6px 0;font-size:14px;">${safeName}</td></tr>
         <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;font-size:14px;">${safeEmail}</td></tr>

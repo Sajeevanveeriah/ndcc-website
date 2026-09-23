@@ -10,7 +10,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 // Node's stripped-TypeScript runner requires an explicit extension for this new shared helper.
 const { registerHooks } = await import('node:module');
 registerHooks({ resolve(specifier, context, nextResolve) {
-  return nextResolve(specifier === './meal-collection' ? './meal-collection.ts' : specifier, context);
+  const explicit = { './meal-collection': './meal-collection.ts', './email-html': './email-html.ts' };
+  return nextResolve(explicit[specifier] || specifier, context);
 } });
 const content = await import(pathToFileURL(path.join(repoRoot, 'lib/order-notification-content.ts')).href);
 

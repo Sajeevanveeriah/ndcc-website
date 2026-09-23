@@ -138,6 +138,7 @@ console.log('PASS reverse raffle hold caps per email/IP, 35 minute expiry and op
 const constants = load('lib/raffle-constants.ts', {});
 const vector = load('lib/reverse-raffle-ticket.ts', { './raffle-constants': constants });
 const ticket = load('lib/raffle-ticket.ts', {
+  './email-html': load('lib/email-html.ts', {}),
   './reverse-raffle-ticket': vector,
   './raffle-constants': constants,
   'node:fs/promises': { default: { readFile: async () => Buffer.from('test-logo') } },

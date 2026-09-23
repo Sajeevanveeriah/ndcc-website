@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase-server';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { emailHtml, getTransactionalReplyTo, sendEmail } from '@/lib/email';
+import { escapeEmailHtml } from '@/lib/email-html';
 import { dinoEntryStatusForStripeEvent } from '@/lib/dino-coach/domain';
 import { isCanonicalPaymentReference } from '@/lib/payments/reference';
 import {
@@ -16,12 +17,6 @@ import {
 } from './shared';
 
 // Dino Coach entry-fee Checkout Sessions (metadata.product === 'Dino Coach').
-
-function escapeEmailHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[character] || character));
-}
 
 type DinoManagerContact = { display_name?: string | null; email?: string | null };
 type DinoEntryManagerJoin = {

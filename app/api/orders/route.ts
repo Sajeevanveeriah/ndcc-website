@@ -4,6 +4,7 @@ import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClient
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
+import { escapeEmailHtml } from '@/lib/email-html';
 import { receiptRecipients } from '@/lib/payments/receipt-recipients';
 import { getStaffOrderRecipients } from '@/lib/order-notification-content';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
@@ -19,15 +20,6 @@ export const dynamic = 'force-dynamic';
 const MERCH_ITEM_LINES_LIMIT = 40;
 const MERCH_ITEM_QUANTITY_LIMIT = 50;
 const MERCH_ITEM_UNITS_LIMIT = 100;
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 export async function POST(request: Request) {
   try {
@@ -271,15 +263,15 @@ export async function POST(request: Request) {
           .filter((number): number is number => typeof number === 'number')
           .join(', ');
         const selectedOptionLines = (i.applied_options || [])
-          .map((option) => `${escapeHtml(option.group)}: ${escapeHtml(option.label)}`);
+          .map((option) => `${escapeEmailHtml(option.group)}: ${escapeEmailHtml(option.label)}`);
         const itemDetailLines = [
           ...selectedOptionLines,
-          i.custom_name ? `Surname: ${escapeHtml(i.custom_name)}` : '',
-          preferences ? `Number preferences: ${escapeHtml(preferences)} (subject to availability)` : '',
+          i.custom_name ? `Surname: ${escapeEmailHtml(i.custom_name)}` : '',
+          preferences ? `Number preferences: ${escapeEmailHtml(preferences)} (subject to availability)` : '',
         ].filter(Boolean).join('<br>');
         return (
         `<tr>
-          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${escapeHtml(String(i.name || 'Item'))}${i.size && i.size !== 'kitchen' ? ` (${escapeHtml(String(i.size))})` : ''}${itemDetailLines ? `<br><span style="font-size:12px;color:#6b7280;">${itemDetailLines}</span>` : ''}</td>
+          <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;">${escapeEmailHtml(String(i.name || 'Item'))}${i.size && i.size !== 'kitchen' ? ` (${escapeEmailHtml(String(i.size))})` : ''}${itemDetailLines ? `<br><span style="font-size:12px;color:#6b7280;">${itemDetailLines}</span>` : ''}</td>
           <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;text-align:center;">${i.quantity ?? 1}</td>
           <td style="padding:6px 8px;font-size:14px;border-bottom:1px solid #f3f4f6;text-align:right;">$${((i.price ?? 0) * (i.quantity ?? 1)).toFixed(2)}</td>
         </tr>`
@@ -291,7 +283,7 @@ export async function POST(request: Request) {
       subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',
-        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeHtml(sanitiseInput(customer_name))},</p>
+        `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(customer_name))},</p>
         <p style="font-size:15px;color:#374151;line-height:1.6;">Your order has been received. Please complete payment using the bank transfer details below.</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <thead>
