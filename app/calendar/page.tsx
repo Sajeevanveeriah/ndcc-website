@@ -9,11 +9,13 @@ import { toCalendarFeedEvent } from '@/lib/calendar/format';
 
 export const metadata: Metadata = pageMetadata("/calendar", "Club calendar", "Check the NDCC calendar for published cricket and club events. Find dates and follow event details before planning your visit.");
 
-// Request-time rendering: calendar entries are mutable CMS content, so they
-// must never be served from a build-time prerender or the ISR cache.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export default async function CalendarPage() {
   // A wide window so month navigation works without refetching: 6 months back,

@@ -15,7 +15,13 @@ import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import type { PlayHQFixture, PlayHQLadderRow } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 
-export const dynamic = 'force-dynamic';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export const metadata: Metadata = pageMetadata("/fixtures", "Fixtures and results", "Find Newcomb and District Cricket Club fixtures and results, with links to the current season on PlayHQ.");
 

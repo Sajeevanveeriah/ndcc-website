@@ -11,11 +11,13 @@ import { getPublicEvents } from '@/lib/public-data';
 
 export const metadata: Metadata = pageMetadata("/events", "Club and community events", "Explore upcoming NDCC events, including social nights and community gatherings. Check each event for its date, venue and booking details.");
 
-// Request-time rendering: events are mutable CMS content, so they must never
-// be served from a build-time prerender or the ISR cache.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export default async function EventsPage() {
   const { data: allEvents, degraded } = await getPublicEvents();

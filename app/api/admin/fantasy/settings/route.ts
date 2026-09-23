@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { getDinoCoachSettings, getDinoReleaseReadiness } from '@/lib/dino-coach/server';
+import { revalidatePublicContent } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 async function currentSeason() { const { data, error } = await createServerClient().from('fantasy_seasons').select('id,name,slug').eq('is_current', true).single(); if (error) throw new Error(error.message); return data; }
@@ -40,6 +41,8 @@ export async function PATCH(request: Request) {
     if (saved.error) throw new Error(saved.error.message);
     const flags = await supabase.rpc('set_dino_coach_launch_state', { target_season_id: season.id, launch_enabled: body.public_launch_enabled === true, registration_enabled: body.registration_open === true, selection_enabled: body.team_selection_open === true });
     if (flags.error) throw new Error(flags.error.message);
+    // The public launch flag gates Dino Coach links in the cached nav/footer.
+    revalidatePublicContent('fantasySettings');
     return NextResponse.json({ success: true, settings: saved.data, readiness: await getDinoReleaseReadiness(season.id) });
   } catch (error) { return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Could not save Dino Coach settings.' }, { status: 400 }); }
 }
