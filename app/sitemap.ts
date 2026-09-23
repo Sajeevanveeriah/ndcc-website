@@ -4,6 +4,9 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
 import { RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 import { buildDetailEntries } from '@/lib/seo-sitemap';
+import { SITE_URL } from '@/lib/seo';
+import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
+import type { PublicPlayerRegistration } from '@/lib/player-registration';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -51,8 +54,20 @@ async function isDinoCoachPublic(): Promise<boolean> {
   }
 }
 
+// Same rule as the /player-registration page's "can register" state: the
+// current season's registration is open (or taking a waitlist) and has at
+// least one published option. Availability comes from getRegistrationAvailability
+// via publicRegistrationFromRow.
+function isPlayerRegistrationOpen(registration: PublicPlayerRegistration | null): boolean {
+  return Boolean(
+    registration
+    && (registration.availability === 'open' || registration.availability === 'waitlist')
+    && registration.options.length > 0,
+  );
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://www.ndcc.com.au';
+  const baseUrl = SITE_URL;
 
   const staticEntries: MetadataRoute.Sitemap = [
     { url: baseUrl, changeFrequency: 'weekly', priority: 1 },
@@ -65,7 +80,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/news`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/publications`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${baseUrl}/join`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${baseUrl}/player-registration`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/kitchen`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/merchandise`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/player-sponsors`, changeFrequency: 'weekly', priority: 0.6 },
@@ -75,6 +89,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.7 },
   ];
 
+  if (isPlayerRegistrationOpen(await getPublicPlayerRegistration())) {
+    staticEntries.push({ url: `${baseUrl}/player-registration`, changeFrequency: 'weekly', priority: 0.9 });
+  }
+
   if (isCookieDoughOpen()) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });
 
   if (await isDinoCoachPublic()) {
@@ -82,6 +100,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: `${baseUrl}/fantasy`, changeFrequency: 'monthly', priority: 0.6 },
       { url: `${baseUrl}/fantasy/rules`, changeFrequency: 'monthly', priority: 0.5 },
       { url: `${baseUrl}/fantasy/players`, changeFrequency: 'weekly', priority: 0.5 },
+      { url: `${baseUrl}/fantasy/leaderboard`, changeFrequency: 'weekly', priority: 0.5 },
     );
   }
   const { data: raffle, error: raffleError } = await createServerClient().from('raffle_campaigns').select('code,active,public_visibility_mode,public_opens_at').eq('active', true);
