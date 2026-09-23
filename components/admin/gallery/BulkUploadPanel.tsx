@@ -270,7 +270,24 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
     }
   }
 
-  async function uploadOne(item: QueueFile): Promise<'complete' | 'failed' | 'cancelled'> {
+  // Strip camera metadata (GPS, device details) server-side before the file is
+  // finalised into the public gallery. A failed clean is a failed upload.
+  async function sanitiseOne(item: QueueFile, targetAlbumId: string): Promise<string | null> {
+    try {
+      const response = await fetch('/api/admin/gallery/uploads/sanitise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId: targetAlbumId, path: item.path, mimeType: item.file.type }),
+      });
+      if (response.ok) return null;
+      const body = await response.json().catch(() => null) as { error?: string } | null;
+      return body?.error || 'The image could not be cleaned of location data. Retry the upload.';
+    } catch {
+      return 'The image could not be cleaned of location data. Retry the upload.';
+    }
+  }
+
+  async function uploadOne(item: QueueFile, targetAlbumId: string): Promise<'complete' | 'failed' | 'cancelled'> {
     if (!supabaseBrowserClient) {
       patchFile(item.clientId, { status: 'failed', error: 'Supabase is not configured in this environment.' });
       return 'failed';
@@ -285,6 +302,11 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
         .from(GALLERY_MEDIA_BUCKET)
         .uploadToSignedUrl(item.path as string, item.token as string, item.file, { contentType: item.file.type });
       if (!uploadError) {
+        const sanitiseError = await sanitiseOne(item, targetAlbumId);
+        if (sanitiseError) {
+          patchFile(item.clientId, { status: 'failed', error: sanitiseError });
+          return 'failed';
+        }
         patchFile(item.clientId, { status: 'uploaded', error: null });
         return 'complete';
       }
@@ -363,7 +385,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
         while (cursor < uploadable.length && !cancelRef.current) {
           const item = uploadable[cursor];
           cursor += 1;
-          const outcome = await uploadOne(item);
+          const outcome = await uploadOne(item, targetAlbumId);
           if (outcome === 'complete') uploadedIds.push(item.clientId);
         }
       });
@@ -389,6 +411,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
             defaults,
             entries: uploaded.map((item) => ({
               path: item.path,
+              metadataStripped: true,
               filename: item.file.name,
               mimeType: item.file.type,
               sizeBytes: item.file.size,
