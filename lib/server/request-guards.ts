@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createServerClient } from '@/lib/supabase-server';
+import { readTurnstileToken, verifyTurnstileToken } from '@/lib/server/turnstile';
 
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -17,9 +18,21 @@ export async function enforceRateLimit(key: string, maxRequests: number, windowM
     });
     if (error) throw error;
     return data === true;
-  } catch {
-    // A provider outage must not remove the login or payment abuse controls.
-    console.error(JSON.stringify({ event: 'rate_limit_unavailable', scope: key.split(':')[0] }));
+  } catch (error) {
+    // Fail closed: a provider outage must not remove the login or payment
+    // abuse controls, so the request is refused (callers answer 429).
+    // Exactly one structured line is written per failed check. Vercel log
+    // alerts / drains should match the literal prefix `[rate_limit_unavailable]`
+    // to page when the shared limiter (ndcc_take_rate_limit RPC) is down.
+    // Only the key scope is logged, never the raw IP or email in the key.
+    const detail = error && typeof error === 'object' ? error as { code?: unknown; message?: unknown; name?: unknown } : {};
+    console.error('[rate_limit_unavailable]', {
+      scope: key.split(':')[0],
+      limit: maxRequests,
+      windowMs,
+      code: typeof detail.code === 'string' ? detail.code : undefined,
+      error: typeof detail.message === 'string' ? detail.message.slice(0, 160) : typeof detail.name === 'string' ? detail.name : 'unknown',
+    });
     return false;
   }
 }
@@ -29,4 +42,14 @@ export function enforceHoneypotAndTiming(honeypot?: string, submittedAt?: number
   if (!submittedAt || Number.isNaN(submittedAt)) return false;
   const elapsed = Date.now() - submittedAt;
   return elapsed >= minMs;
+}
+
+/**
+ * Optional bot check for public forms. A no-op (always true) unless
+ * TURNSTILE_SECRET_KEY is configured; see lib/server/turnstile.ts. Call it
+ * after the honeypot/timing check with the parsed JSON body.
+ */
+export async function enforceTurnstile(request: Request, body?: Record<string, unknown> | null): Promise<boolean> {
+  const result = await verifyTurnstileToken(readTurnstileToken(request, body), getClientIp(request));
+  return result.ok;
 }

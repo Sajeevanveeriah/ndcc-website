@@ -1,6 +1,6 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
-import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
@@ -91,6 +91,10 @@ export async function POST(request: Request) {
 
     if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
       return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+    }
+    // Optional Cloudflare Turnstile check; a no-op unless TURNSTILE_SECRET_KEY is set.
+    if (!await enforceTurnstile(request, body)) {
+      return NextResponse.json({ success: false, error: 'Please complete the security check and try again.' }, { status: 403 });
     }
 
     if (!items || total_amount === undefined || total_amount === null) {
