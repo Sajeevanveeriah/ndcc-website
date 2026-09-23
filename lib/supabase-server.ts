@@ -3,7 +3,10 @@ import { createTimeoutFetch } from './server/timeout-fetch';
 import { withPublicReadCache } from './server/public-read-cache';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_FETCH_TIMEOUT_MS = process.env.NEXT_PHASE === 'phase-production-build' ? 1000 : 7500;
+// 15 s at runtime: a freshly started Vercel instance can take ~12 s before its
+// first outbound request completes, and a shorter budget failed those requests
+// (including checkout and raffle reads) instead of letting them finish.
+const SUPABASE_FETCH_TIMEOUT_MS = process.env.NEXT_PHASE === 'phase-production-build' ? 1000 : 15_000;
 
 export type SupabaseServerReadiness = {
   nextPublicSupabaseUrlPresent: boolean;
@@ -37,10 +40,12 @@ export function isPublicSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
-// Public CMS reads split their budget into two attempts: a read stuck on a
-// dead pooled connection is replayed on a fresh one within the same budget.
-function createPublicReadTimeoutFetch(totalTimeoutMs: number) {
-  return createTimeoutFetch(Math.ceil(totalTimeoutMs / 2), true, { retryAfterTimeout: true });
+// Public CMS reads get at least 10 s per attempt plus one retry. A freshly
+// started Vercel instance can take ~12 s before its first outbound request
+// completes; shorter budgets turned those first renders into error pages.
+const PUBLIC_READ_ATTEMPT_MS = 10_000;
+function createPublicReadTimeoutFetch(timeoutMs: number) {
+  return createTimeoutFetch(Math.max(timeoutMs, PUBLIC_READ_ATTEMPT_MS), true);
 }
 
 type ServerClientOptions = {

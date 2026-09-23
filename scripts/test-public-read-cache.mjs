@@ -110,24 +110,7 @@ await check('different URLs, profiles and Prefer headers are cached separately',
   assert.equal(h.calls, 4);
 });
 
-await check('the timeout fetch does not replay a read that hit its own time budget', async () => {
-  const originalFetch = globalThis.fetch;
-  let calls = 0;
-  globalThis.fetch = (input, init) => {
-    calls += 1;
-    return new Promise((_, reject) => {
-      init.signal.addEventListener('abort', () => reject(new DOMException('This operation was aborted', 'AbortError')));
-    });
-  };
-  try {
-    await assert.rejects(createTimeoutFetch(20, true)(URL_A), /aborted/);
-    assert.equal(calls, 1);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-await check('public reads replay a timed-out read once on a fresh request', async () => {
+await check('opted-in reads are replayed once after a timeout; writes never are', async () => {
   const originalFetch = globalThis.fetch;
   let calls = 0;
   globalThis.fetch = (input, init) => {
@@ -138,11 +121,11 @@ await check('public reads replay a timed-out read once on a fresh request', asyn
     });
   };
   try {
-    const response = await createTimeoutFetch(20, true, { retryAfterTimeout: true })(URL_A);
+    const response = await createTimeoutFetch(20, true)(URL_A);
     assert.deepEqual(await response.json(), { recovered: true });
     assert.equal(calls, 2);
     calls = 0;
-    await assert.rejects(createTimeoutFetch(20, true, { retryAfterTimeout: true })(URL_A, { method: 'POST', body: '{}' }), /aborted/);
+    await assert.rejects(createTimeoutFetch(20, true)(URL_A, { method: 'POST', body: '{}' }), /aborted/);
     assert.equal(calls, 1);
   } finally {
     globalThis.fetch = originalFetch;
@@ -166,11 +149,10 @@ await check('the timeout fetch still retries a read once after a network failure
   }
 });
 
-await check('only public read clients split their budget and replay after a timeout', async () => {
+await check('public read clients get at least 10 s per attempt plus a retry', async () => {
   const source = readFileSync(new URL('../lib/supabase-server.ts', import.meta.url), 'utf8');
-  assert.ok(source.includes('createTimeoutFetch(Math.ceil(totalTimeoutMs / 2), true, { retryAfterTimeout: true })'));
-  assert.ok(source.includes(': createTimeoutFetch(timeoutMs, options.retryReads)'));
-  assert.equal((source.match(/retryAfterTimeout: true/g) || []).length, 1);
+  assert.ok(source.includes('const PUBLIC_READ_ATTEMPT_MS = 10_000;'));
+  assert.ok(source.includes('createTimeoutFetch(Math.max(timeoutMs, PUBLIC_READ_ATTEMPT_MS), true)'));
 });
 
 await check('payment, checkout and availability reads do not opt into the public read cache', async () => {
