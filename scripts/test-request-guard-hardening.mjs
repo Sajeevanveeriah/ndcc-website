@@ -130,4 +130,25 @@ await test('secret-bearing server helpers are marked server-only', () => {
   }
 });
 
+await test('production CSP is enforced without unsafe-eval and keeps required hosts', async () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    const { default: config } = await import(`../next.config.mjs?csp=${Date.now()}`);
+    const rules = await config.headers();
+    const headers = rules.find((rule) => rule.source === '/:path*').headers;
+    assert.equal(headers.some((header) => header.key === 'Content-Security-Policy-Report-Only'), false);
+    const csp = headers.find((header) => header.key === 'Content-Security-Policy')?.value || '';
+    assert.doesNotMatch(csp, /unsafe-eval/);
+    assert.match(csp, /script-src 'self' 'unsafe-inline' https:\/\/js\.stripe\.com https:\/\/challenges\.cloudflare\.com/);
+    assert.match(csp, /img-src 'self' data: blob: https:(;|$)/);
+    assert.match(csp, /connect-src [^;]*wss:\/\/alduwuipmmnzorcgkcli\.supabase\.co/);
+    assert.match(csp, /frame-src [^;]*https:\/\/www\.google\.com[^;]*https:\/\/challenges\.cloudflare\.com/);
+    assert.match(csp, /frame-ancestors 'self'/);
+    assert.match(csp, /object-src 'none'/);
+  } finally {
+    process.env.NODE_ENV = previous;
+  }
+});
+
 console.log(`\ntest-request-guard-hardening: ${passed} tests passed`);

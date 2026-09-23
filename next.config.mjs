@@ -1,19 +1,29 @@
 /** @type {import('next').NextConfig} */
 
-// Content Security Policy — REPORT-ONLY for now: Stripe Checkout, Supabase,
-// the Google Maps embed and existing inline styles/scripts must be observed
-// in the browser console / reports before enforcement is switched on
-// (rename the header to Content-Security-Policy once verified clean).
-const cspReportOnly = [
+// Content Security Policy — ENFORCED.
+// - script-src keeps 'unsafe-inline' for the Next.js inline bootstrap/RSC
+//   payload scripts; 'unsafe-eval' is not needed by the production build.
+//   Stripe.js and Cloudflare Turnstile (optional bot check) are the only
+//   third-party script hosts.
+// - img-src allows any https host so CMS/sponsor images keep working when an
+//   editor pastes an external image URL; next/image output is same-origin.
+// - connect-src: Supabase REST/auth/storage and realtime (wss, used by the
+//   Dino Coach wallet panel) plus Stripe. Vercel Web Analytics v2 posts to
+//   same-origin /_vercel/insights, covered by 'self'.
+// - frame-src: Stripe, the Google Maps embed (www.google.com/maps/embed) and
+//   Turnstile challenges.
+// `next dev` (React Refresh / eval source maps) still needs 'unsafe-eval'.
+const devScriptEval = process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'";
+const csp = [
   "default-src 'self'",
-  // Next.js inline runtime + framer-motion require inline; Stripe.js is the
-  // only third-party script surface.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+  `script-src 'self' 'unsafe-inline'${devScriptEval} https://js.stripe.com https://challenges.cloudflare.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://alduwuipmmnzorcgkcli.supabase.co https://mbrcricket.com https://leopoldsporties.com https://www.blackmansbrewery.com.au https://phoenixtruckbodies.com.au https://www.swlocksmiths.com.au",
+  "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://alduwuipmmnzorcgkcli.supabase.co https://api.stripe.com",
-  "frame-src https://js.stripe.com https://checkout.stripe.com https://www.google.com",
+  "media-src 'self' blob: https://alduwuipmmnzorcgkcli.supabase.co",
+  "connect-src 'self' https://alduwuipmmnzorcgkcli.supabase.co wss://alduwuipmmnzorcgkcli.supabase.co https://*.supabase.co wss://*.supabase.co https://api.stripe.com",
+  "frame-src https://js.stripe.com https://checkout.stripe.com https://www.google.com https://challenges.cloudflare.com",
+  "worker-src 'self' blob:",
   "form-action 'self' https://checkout.stripe.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
@@ -26,7 +36,7 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com" "https://checkout.stripe.com")' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
-  { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly },
+  { key: 'Content-Security-Policy', value: csp },
 ];
 
 const nextConfig = {
