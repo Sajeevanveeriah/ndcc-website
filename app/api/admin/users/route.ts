@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requireSession } from '@/lib/auth/guard';
 import { AUTH_ROLES, type AuthRole } from '@/lib/auth/config';
-import { canManageUsers, normaliseStoredPermissions } from '@/lib/auth/permissions';
+import {
+  canManageUsers,
+  checkUserAdministrationChange,
+  normaliseStoredPermissions,
+  userAdministrationRemovesActiveAdmin,
+} from '@/lib/auth/permissions';
+import { readLimitedJsonObject } from '@/lib/order-input-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +22,27 @@ async function requireUserAdministrator() {
 function isMissingAccessRpc(error: { code?: string; message?: string }) {
   const message = error.message || '';
   return error.code === 'PGRST202' || error.code === '42883' || message.includes('Could not find the function') || message.includes('does not exist');
+}
+
+async function readUserAdministrationBody(request: Request) {
+  const parsed = await readLimitedJsonObject(request, 16 * 1024);
+  if (parsed.ok) return { ok: true as const, value: parsed.value };
+  return {
+    ok: false as const,
+    response: NextResponse.json(
+      { success: false, error: parsed.error },
+      { status: parsed.error === 'Request body is too large.' ? 413 : 400 },
+    ),
+  };
+}
+
+async function countActiveAdmins(supabase: ReturnType<typeof createServerClient>) {
+  const { count, error } = await supabase
+    .from('committee_users')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'admin')
+    .eq('is_active', true);
+  return error ? null : count ?? 0;
 }
 
 function isDuplicateEmail(error: { code?: string; message?: string }) {
@@ -45,7 +72,9 @@ export async function POST(request: Request) {
   const administrator = await requireUserAdministrator();
   if (!administrator) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
-  const { email, fullName, role, password, permissions } = await request.json();
+  const parsedBody = await readUserAdministrationBody(request);
+  if (!parsedBody.ok) return parsedBody.response;
+  const { email, fullName, role, password, permissions } = parsedBody.value;
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const normalizedFullName = String(fullName || '').trim();
   const normalizedRole = String(role || '') as AuthRole;
@@ -59,6 +88,15 @@ export async function POST(request: Request) {
   }
   if (!AUTH_ROLES.includes(normalizedRole)) {
     return NextResponse.json({ success: false, error: 'Invalid role.' }, { status: 400 });
+  }
+  const createDecision = checkUserAdministrationChange({
+    actor: administrator,
+    target: null,
+    nextRole: normalizedRole,
+    nextActive: true,
+  });
+  if (!createDecision.ok) {
+    return NextResponse.json({ success: false, error: createDecision.error }, { status: createDecision.status });
   }
   if ((normalizedRole === 'committee' || normalizedRole === 'fantasy_support') && permissions === undefined) {
     return NextResponse.json({ success: false, error: 'Explicit permissions are required for this role.' }, { status: 400 });
@@ -102,23 +140,44 @@ export async function PATCH(request: Request) {
   const administrator = await requireUserAdministrator();
   if (!administrator) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
-  const body = await request.json();
+  const parsedBody = await readUserAdministrationBody(request);
+  if (!parsedBody.ok) return parsedBody.response;
+  const body = parsedBody.value;
   const { userId, resetPassword } = body;
-  if (!userId) return NextResponse.json({ success: false, error: 'userId is required.' }, { status: 400 });
+  if (!userId || typeof userId !== 'string') return NextResponse.json({ success: false, error: 'userId is required.' }, { status: 400 });
 
   const supabase = createServerClient();
   const accessChangeRequested = ['email', 'fullName', 'role', 'permissions', 'isActive'].some((field) => body[field] !== undefined);
+  const passwordResetRequested = resetPassword !== undefined && resetPassword !== null && resetPassword !== '';
+
+  if (!accessChangeRequested && !passwordResetRequested) {
+    return NextResponse.json({ success: false, error: 'No user changes provided.' }, { status: 400 });
+  }
+
+  // Load the target for every change (including password resets) so the
+  // admin-account, self-change and last-admin rules apply uniformly.
+  const { data: current, error: currentError } = await supabase
+    .from('committee_users')
+    .select('id, email, full_name, role, is_active, cms_permissions')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (currentError) return NextResponse.json({ success: false, error: 'Failed to load CMS user.' }, { status: 500 });
+  if (!current) return NextResponse.json({ success: false, error: 'CMS user not found.' }, { status: 404 });
+
+  if (!accessChangeRequested) {
+    const resetDecision = checkUserAdministrationChange({
+      actor: administrator,
+      target: current,
+      nextRole: current.role,
+      nextActive: Boolean(current.is_active),
+    });
+    if (!resetDecision.ok) {
+      return NextResponse.json({ success: false, error: resetDecision.error }, { status: resetDecision.status });
+    }
+  }
 
   if (accessChangeRequested) {
-    const { data: current, error: currentError } = await supabase
-      .from('committee_users')
-      .select('id, email, full_name, role, is_active, cms_permissions')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (currentError) return NextResponse.json({ success: false, error: 'Failed to load CMS user.' }, { status: 500 });
-    if (!current) return NextResponse.json({ success: false, error: 'CMS user not found.' }, { status: 404 });
-
     const nextEmail = body.email === undefined ? current.email : String(body.email).trim().toLowerCase();
     const nextFullName = body.fullName === undefined ? current.full_name : String(body.fullName).trim();
     const nextRole = (body.role === undefined ? current.role : String(body.role)) as AuthRole;
@@ -135,6 +194,24 @@ export async function PATCH(request: Request) {
     }
     if (typeof nextActive !== 'boolean') {
       return NextResponse.json({ success: false, error: 'isActive must be a boolean.' }, { status: 400 });
+    }
+
+    const currentAccount = { id: current.id, role: current.role as AuthRole, is_active: Boolean(current.is_active) };
+    let activeAdminCount: number | undefined;
+    if (userAdministrationRemovesActiveAdmin(currentAccount, nextRole, nextActive)) {
+      const counted = await countActiveAdmins(supabase);
+      if (counted === null) return NextResponse.json({ success: false, error: 'Failed to load CMS user.' }, { status: 500 });
+      activeAdminCount = counted;
+    }
+    const accessDecision = checkUserAdministrationChange({
+      actor: administrator,
+      target: currentAccount,
+      nextRole,
+      nextActive,
+      activeAdminCount,
+    });
+    if (!accessDecision.ok) {
+      return NextResponse.json({ success: false, error: accessDecision.error }, { status: accessDecision.status });
     }
 
     const enteringGranularRole = body.role !== undefined
@@ -173,7 +250,7 @@ export async function PATCH(request: Request) {
     }
   }
 
-  if (resetPassword !== undefined && resetPassword !== null && resetPassword !== '') {
+  if (passwordResetRequested) {
     const normalizedResetPassword = String(resetPassword);
     if (normalizedResetPassword.length < 10) {
       return NextResponse.json({ success: false, error: 'Reset password must be 10+ characters.' }, { status: 400 });
@@ -185,10 +262,6 @@ export async function PATCH(request: Request) {
     });
     if (error) return NextResponse.json({ success: false, error: 'Failed to reset password.' }, { status: 500 });
     await supabase.from('committee_sessions').delete().eq('user_id', userId);
-  }
-
-  if (!accessChangeRequested && (resetPassword === undefined || resetPassword === null || resetPassword === '')) {
-    return NextResponse.json({ success: false, error: 'No user changes provided.' }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });
