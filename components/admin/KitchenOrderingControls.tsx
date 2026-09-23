@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react';
 import { type KitchenOrderingSettings, validKitchenSettings } from '@/lib/kitchen-order-window';
 import Button from '@/components/ui/Button';
+import { adminFetch } from '@/lib/admin-client';
 export default function KitchenOrderingControls() {
   const [settings, setSettings] = useState<KitchenOrderingSettings | null>(null);
   const [saved, setSaved] = useState<KitchenOrderingSettings | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   useEffect(() => {
-    fetch('/api/admin/kitchen/settings', { cache: 'no-store' }).then(async res => {
+    adminFetch('/api/admin/kitchen/settings', { cache: 'no-store' }).then(async res => {
       const body = await res.json();
       if (!res.ok || !validKitchenSettings(body.data)) throw new Error('Could not load ordering settings. Reload to try again.');
       setSettings(body.data); setSaved(body.data);
@@ -17,7 +18,7 @@ export default function KitchenOrderingControls() {
   async function save(value: KitchenOrderingSettings) {
     setBusy(true); setMessage('');
     try {
-      const res = await fetch('/api/admin/kitchen/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
+      const res = await adminFetch('/api/admin/kitchen/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
       const body = await res.json();
       if (!res.ok || !validKitchenSettings(body.data)) throw new Error(body.error || 'Could not save ordering settings.');
       setSettings(body.data); setSaved(body.data);

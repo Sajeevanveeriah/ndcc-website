@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { Trash2 } from 'lucide-react';
 
 type Lineage = {
@@ -63,10 +63,10 @@ export default function AdminHistoryPage() {
   const loadAll = useCallback(async function loadAll() {
     try {
       const [lineageRes, premRes, competitionsRes, committeeRes] = await Promise.all([
-        fetch('/api/admin/resources/historyLineage', { cache: 'no-store' }),
-        fetch('/api/admin/resources/historyPremierships', { cache: 'no-store' }),
-        fetch('/api/admin/resources/historyCompetitions', { cache: 'no-store' }),
-        fetch('/api/admin/resources/committeeMembers', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/historyLineage', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/historyPremierships', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/historyCompetitions', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/committeeMembers', { cache: 'no-store' }),
       ]);
 
       const [lineageData, premData, competitionsData, committeeData] = await Promise.all([
@@ -95,7 +95,7 @@ export default function AdminHistoryPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/historyLineage', {
+      const res = await adminFetch('/api/admin/resources/historyLineage', {
         method: lineageForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(lineageForm.id ? {
@@ -138,7 +138,7 @@ export default function AdminHistoryPage() {
         sort_order: Number(premForm.sort_order || 0),
         is_active: premForm.is_active,
       };
-      const res = await fetch('/api/admin/resources/historyPremierships', {
+      const res = await adminFetch('/api/admin/resources/historyPremierships', {
         method: premForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(premForm.id ? { id: premForm.id, ...payload } : payload),
@@ -159,7 +159,7 @@ export default function AdminHistoryPage() {
     setSaving(true);
     try {
       const payload = { abbreviation: competitionForm.abbreviation.trim().toUpperCase(), name: competitionForm.name.trim() };
-      const res = await fetch('/api/admin/resources/historyCompetitions', {
+      const res = await adminFetch('/api/admin/resources/historyCompetitions', {
         method: competitionForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(competitionForm.id ? { id: competitionForm.id, ...payload } : payload),
@@ -188,7 +188,7 @@ export default function AdminHistoryPage() {
         sort_order: Number(committeeForm.sort_order || 0),
         is_active: committeeForm.is_active,
       };
-      const res = await fetch('/api/admin/resources/committeeMembers', {
+      const res = await adminFetch('/api/admin/resources/committeeMembers', {
         method: committeeForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(committeeForm.id ? { id: committeeForm.id, ...payload } : payload),
@@ -206,7 +206,7 @@ export default function AdminHistoryPage() {
 
   async function deleteCommittee(id: string) {
     try {
-      const res = await fetch(`/api/admin/resources/committeeMembers?id=${id}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/admin/resources/committeeMembers?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(res);
       setCommitteeMembers((prev) => prev.filter((member) => member.id !== id));
       if (committeeForm.id === id) {

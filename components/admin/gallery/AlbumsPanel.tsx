@@ -7,7 +7,7 @@ import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { FolderOpen, Pencil, Plus, Trash2, ExternalLink } from 'lucide-react';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { slugifyAlbumTitle, isValidAlbumSlug } from '@/lib/gallery/shared';
 import { PUBLISH_CONSENT_TEXT, type AdminAlbum } from './types';
 
@@ -68,7 +68,7 @@ export default function AlbumsPanel({ onAlbumsChanged }: { onAlbumsChanged?: () 
   const loadAlbums = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/gallery/albums', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/gallery/albums', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: AdminAlbum[] }>(response);
       setAlbums(result.data ?? []);
     } catch (err) {
@@ -111,7 +111,7 @@ export default function AlbumsPanel({ onAlbumsChanged }: { onAlbumsChanged?: () 
     setSuccess('');
     try {
       const payload = { ...form, event_date: form.event_date || null, cover_image_url: form.cover_image_url || null };
-      const response = await fetch('/api/admin/gallery/albums', {
+      const response = await adminFetch('/api/admin/gallery/albums', {
         method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload),
@@ -135,7 +135,7 @@ export default function AlbumsPanel({ onAlbumsChanged }: { onAlbumsChanged?: () 
     setError('');
     setSuccess('');
     try {
-      const response = await fetch('/api/admin/gallery/albums', {
+      const response = await adminFetch('/api/admin/gallery/albums', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -163,7 +163,7 @@ export default function AlbumsPanel({ onAlbumsChanged }: { onAlbumsChanged?: () 
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`/api/admin/gallery/albums?id=${deleteTarget.id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/gallery/albums?id=${deleteTarget.id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setSuccess('Album deleted. Its images were kept and are now ungrouped; Storage files were not removed.');
       setDeleteTarget(null);

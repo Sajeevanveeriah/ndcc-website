@@ -11,6 +11,9 @@ import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import EditorialHistory from '@/components/admin/EditorialHistory';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
+import DraftRestorePrompt from '@/components/admin/DraftRestorePrompt';
+import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
+import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -46,10 +49,16 @@ export default function AdminEventsPage() {
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchBusy, setBatchBusy] = useState(false);
+  const draft = useDraftAutosave({ editor: 'events', recordId: editingId, value: form, active: modalOpen });
+  useUnsavedChangesGuard(draft.dirty);
+  const restoreDraft = () => {
+    const saved = draft.restoreDraft();
+    if (saved) setForm(saved);
+  };
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/admin/resources/events', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/events', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Event[] }>(response);
       setEvents(result.data || []);
     } catch (err) {
@@ -62,7 +71,7 @@ export default function AdminEventsPage() {
   useEffect(() => {
     const fetchRegistrations = async () => {
       try {
-        const response = await fetch('/api/admin/resources/eventRegistrations', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/eventRegistrations', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: EventRegistration[] }>(response);
         setRegistrations(result.data || []);
       } catch (err) {
@@ -148,6 +157,7 @@ export default function AdminEventsPage() {
         const result = await parseApiResponse<{ data: Event }>(response);
         if (result.data) setEvents((prev) => [result.data, ...prev]);
       }
+      draft.clearDraft();
       setFeedback({ type: 'success', message: editingId ? 'Event updated.' : 'Event created.' });
       setModalOpen(false);
     } catch (err) {
@@ -159,7 +169,7 @@ export default function AdminEventsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setEvents((prev) => prev.filter((e) => e.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -202,7 +212,7 @@ export default function AdminEventsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/events?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/events?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected events deleted.'
   );
 
@@ -413,6 +423,7 @@ export default function AdminEventsPage() {
         title={editingId ? 'Edit Event' : 'Create Event'}
         size="lg"
       >
+        {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
         {editingId && <EditorialHistory key={editingId} resource="events" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as Event)} />}
         <div className="space-y-4">
           <Input

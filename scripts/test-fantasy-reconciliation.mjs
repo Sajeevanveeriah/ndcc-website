@@ -12,16 +12,18 @@ mkdirSync(join(tmpDir, 'playhq'), { recursive: true });
 function stage(relPath) {
   const source = readFileSync(join(repoRoot, 'lib', relPath), 'utf8')
     .replace(/from '\.\/playhq\/fantasy-import'/g, "from './playhq/fantasy-import.ts'")
-    .replace(/from '\.\/types'/g, "from './types.ts'");
+    .replace(/from '\.\/types'/g, "from './types.ts'")
+    .replace(/from '\.\/csv'/g, "from './csv.ts'");
   const out = join(tmpDir, relPath.endsWith('.ts') ? relPath : `${relPath}.ts`);
   writeFileSync(out, source);
 }
 
 stage('fantasy-historical-reconciliation.ts');
 stage('playhq/fantasy-import.ts');
+stage('csv.ts');
 writeFileSync(join(tmpDir, 'playhq/types.ts'), 'export type PlayHQFixture = { id: string; gradeId: string; gradeName: string; homeTeam: string; awayTeam: string; startsAt: string | null; venue: string | null; status: string | null; homeScore?: string | null; awayScore?: string | null; playHQUrl?: string | null };\n');
 
-const { reconcileLegacyStat, summariseReconciliation, buildMigrationPreview } = await import(pathToFileURL(join(tmpDir, 'fantasy-historical-reconciliation.ts')).href);
+const { reconcileLegacyStat, summariseReconciliation, buildMigrationPreview, toCsv } = await import(pathToFileURL(join(tmpDir, 'fantasy-historical-reconciliation.ts')).href);
 
 const legacy = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -79,6 +81,10 @@ assert.equal(summary.requiresReview, 3);
 const preview = buildMigrationPreview('run-1', [exact, nameOnly]);
 assert.match(preview.sql, /classification = 'exact_match'/);
 assert.doesNotMatch(preview.sql, /22222222-2222-2222-2222-222222222222/);
+
+const csv = toCsv([{ ...exact, reviewReason: '=HYPERLINK("x")', predictedFantasyScoreDelta: -3 }]);
+assert.match(csv, /'=HYPERLINK/, 'reconciliation CSV must neutralise formula triggers');
+assert.match(csv, /,-3(,|$)/m, 'numeric deltas stay numeric');
 
 const migration = readFileSync(join(repoRoot, 'supabase/migrations/20260712090000_fantasy_historical_reconciliation.sql'), 'utf8');
 assert.match(migration, /fantasy_historical_reconciliation_rows/);

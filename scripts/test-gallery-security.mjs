@@ -107,13 +107,22 @@ assert.match(publicData, /from\('gallery_albums'\)[\s\S]{0,200}\.eq\('published'
 assert.match(publicData, /getPublicAlbumBySlug/);
 assert.match(publicData, /is\('album_id', null\)/, 'flat gallery keeps serving ungrouped images');
 
-// Existing GitHub-backed uploader remains structurally intact for CMS use.
-const legacyUploader = readFileSync('components/admin/ImageUploadField.tsx', 'utf8');
-assert.match(legacyUploader, /\/api\/admin\/media\/upload/);
-assert.match(legacyUploader, /Upload image/);
-const legacyRoute = readFileSync('app/api/admin/media/upload/route.ts', 'utf8');
-assert.match(legacyRoute, /requireSession/);
-assert.match(legacyRoute, /api\.github\.com/);
+// The CMS uploader goes through the shared Supabase Storage helper, which
+// calls the session-protected, CSRF-checked media upload route.
+const cmsUploader = readFileSync('components/admin/ImageUploadField.tsx', 'utf8');
+assert.match(cmsUploader, /uploadCmsMedia\(file\)/);
+assert.match(cmsUploader, /from '@\/lib\/admin-media-upload'/);
+assert.match(cmsUploader, /Upload image/);
+const uploadHelper = readFileSync('lib/admin-media-upload.ts', 'utf8');
+assert.match(uploadHelper, /\/api\/admin\/media\/upload/);
+assert.match(uploadHelper, /'X-NDCC-CSRF': '1'/);
+assert.match(uploadHelper, /uploadToSignedUrl/, 'bytes go to a signed storage URL, not through the route body');
+const uploadRoute = readFileSync('app/api/admin/media/upload/route.ts', 'utf8');
+assert.match(uploadRoute, /requireSession/);
+assert.match(uploadRoute, /enforceRateLimit/);
+assert.match(uploadRoute, /validateMedia/);
+assert.match(uploadRoute, /storage\.from\(MEDIA_BUCKET\)/);
+assert.doesNotMatch(uploadRoute, /api\.github\.com/, 'uploads no longer go to GitHub');
 
 // The consent text is the exact agreed wording.
 const types = readFileSync('components/admin/gallery/types.ts', 'utf8');

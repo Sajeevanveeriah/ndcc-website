@@ -142,9 +142,11 @@ test('email wrapper forwards a Resend idempotency key', () => {
   assert.match(emailSource, /emails\.send\(email, sendOptions\)/);
 });
 
-test('server notification reader uses canonical order data', () => {
-  assert.match(serverSource, /from\('orders'\)/);
-  assert.match(serverSource, /order\.payment_status !== 'paid'/);
+test('staff order notifications are consolidated into the payment receipt', () => {
+  // The legacy per-order staff email reader was removed as dead code; the
+  // receipt outbox is the single sender for customer + club recipients.
+  assert.doesNotMatch(serverSource, /sendStaffOrderNotificationForOrder/);
+  assert.doesNotMatch(serverSource, /sendEmail/);
   assert.match(serverSource, /sendPaidStaffOrderNotificationForPayment/);
   assert.match(serverSource, /Staff recipients are included in the queued payment receipt/);
   const compatibilityHandler = serverSource.split('export async function sendPaidStaffOrderNotificationForPayment')[1];

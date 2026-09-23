@@ -1,4 +1,5 @@
 import { computeSourceHash, type PlayHQPlayerStatLine } from './playhq/fantasy-import';
+import { csvCell } from './csv';
 
 export type ReconciliationClassification =
   | 'exact_match'
@@ -216,6 +217,8 @@ export function buildMigrationPreview(runId: string, rows: ReconciliationRow[]) 
 
 export function toCsv(rows: ReconciliationRow[]) {
   const headers = ['legacy_match_stat_id','player_id','classification','review_status','confidence','review_reason','match_date','opponent','playhq_game_id','playhq_fixture_id','playhq_round_number','source_hash','predicted_player_total_delta','predicted_fantasy_score_delta'];
-  const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  // Numbers cannot carry a formula, so signed deltas stay readable; every
+  // other cell goes through the shared formula-injection-safe encoder.
+  const escape = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? String(value) : csvCell(value));
   return [headers.join(','), ...rows.map((row) => headers.map((header) => escape((row as unknown as Record<string, unknown>)[header] ?? (row as unknown as Record<string, unknown>)[header.replace(/_([a-z])/g, (_, c) => c.toUpperCase())])).join(','))].join('\n');
 }

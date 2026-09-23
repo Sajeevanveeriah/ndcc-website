@@ -39,7 +39,7 @@ export default function AdminFantasyScoringPage() {
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const response = await fetch('/api/admin/resources/fantasyScoringRules', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/fantasyScoringRules', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: ScoringRule[] }>(response);
         setRules(sortRules(result.data || []));
       } catch (err) {

@@ -57,8 +57,8 @@ export default function AdminSeasonAppointmentsPage() {
     const fetchAppointments = async () => {
       try {
         const [response, settingsResponse] = await Promise.all([
-          fetch('/api/admin/resources/seasonAppointments', { cache: 'no-store' }),
-          fetch('/api/admin/season-appointments/settings', { cache: 'no-store' }),
+          adminFetch('/api/admin/resources/seasonAppointments', { cache: 'no-store' }),
+          adminFetch('/api/admin/season-appointments/settings', { cache: 'no-store' }),
         ]);
         const [result, settings] = await Promise.all([
           parseApiResponse<{ data?: SeasonAppointment[] }>(response),
@@ -170,7 +170,7 @@ export default function AdminSeasonAppointmentsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/seasonAppointments?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/seasonAppointments?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setAppointments((prev) => prev.filter((item) => item.id !== id));
       setFeedback({ type: 'success', message: 'Appointment deleted.' });

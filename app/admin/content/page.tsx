@@ -118,7 +118,7 @@ export default function AdminContentPage() {
   const loadBlocks = useCallback(async (): Promise<Block[]> => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/resources/contentBlocks', { cache: 'no-store' });
+      const res = await adminFetch('/api/admin/resources/contentBlocks', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: Block[] }>(res);
       const loaded = data.data || [];
       setBlocks(loaded);

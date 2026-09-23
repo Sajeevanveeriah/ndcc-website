@@ -7,6 +7,21 @@ export const dynamic = 'force-dynamic';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Minute statuses are draft | published | accepted | seconded (see
+// app/api/meeting-minutes/route.ts MINUTE_STATUSES). Drafts are unpublished and
+// cannot be accepted or seconded. Once published, a minute may be moved for
+// acceptance and seconded in either order, and a repeated action is recorded
+// without changing the status.
+const ACTIONABLE_MINUTE_TRANSITIONS: Record<string, ReadonlyArray<string>> = {
+  published: ['accepted', 'seconded'],
+  accepted: ['accepted', 'seconded'],
+  seconded: ['accepted', 'seconded'],
+};
+
+function isAllowedMinuteTransition(currentStatus: string, actionType: string) {
+  return ACTIONABLE_MINUTE_TRANSITIONS[currentStatus]?.includes(actionType) === true;
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requirePermission('minutes');
@@ -31,6 +46,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const safeNotes = typeof notes === 'string' ? notes.trim() : '';
 
   const supabase = createServerClient();
+  const { data: minute, error: minuteError } = await supabase
+    .from('meeting_minutes')
+    .select('id,status')
+    .eq('id', id)
+    .maybeSingle<{ id: string; status: string }>();
+  if (minuteError) {
+    console.error('Meeting minute action lookup failed', { minuteId: id, code: minuteError.code, message: minuteError.message });
+    return NextResponse.json({ success: false, error: 'Unable to record action.' }, { status: 500 });
+  }
+  // Committee members never see drafts in the listing or document routes, so
+  // a draft is reported exactly like a missing minute.
+  if (!minute || (user.role === 'committee' && minute.status === 'draft')) {
+    return NextResponse.json({ success: false, error: 'Minute not found.' }, { status: 404 });
+  }
+  if (!isAllowedMinuteTransition(minute.status, action_type)) {
+    return NextResponse.json({ success: false, error: 'This minute cannot be marked as that yet.' }, { status: 409 });
+  }
+
   const { error } = await supabase.from('meeting_minute_actions').insert({
     minute_id: id,
     action_type,
@@ -38,10 +71,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     notes: safeNotes,
   });
 
-  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  if (error) {
+    console.error('Meeting minute action insert failed', { minuteId: id, code: error.code, message: error.message });
+    return NextResponse.json({ success: false, error: 'Unable to record action.' }, { status: 500 });
+  }
 
-  if (action_type === 'accepted' || action_type === 'seconded') {
-    await supabase.from('meeting_minutes').update({ status: action_type }).eq('id', id);
+  if (minute.status !== action_type) {
+    const { error: updateError } = await supabase
+      .from('meeting_minutes')
+      .update({ status: action_type })
+      .eq('id', id)
+      .eq('status', minute.status);
+    if (updateError) {
+      console.error('Meeting minute status update failed', { minuteId: id, code: updateError.code, message: updateError.message });
+      return NextResponse.json({ success: false, error: 'The action was recorded but the minute status could not be updated.' }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ success: true });

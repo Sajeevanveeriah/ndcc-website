@@ -67,7 +67,14 @@ export async function POST(request: Request) {
     const ip = getClientIp(request);
     const emailKey = String(email || '').trim().toLowerCase();
 
-    const permits = await Promise.all([enforceRateLimit(`admin-login-ip:${ip}`, 8, 60_000), enforceRateLimit(`admin-login-email:${emailKey}`, 6, 60_000)]);
+    // Throttle per client address and per (account, address) pair. An
+    // email-only bucket would let any third party lock a named admin out by
+    // spraying bad passwords at that address, so the account bucket is keyed
+    // on the caller's IP as well.
+    const permits = await Promise.all([
+      enforceRateLimit(`admin-login-ip:${ip}`, 8, 60_000),
+      enforceRateLimit(`admin-login-email-ip:${emailKey}|${ip}`, 6, 60_000),
+    ]);
     if (permits.some((allowed) => !allowed)) {
       logAuthStage('request validation', { requestId: id, httpStatus: 429, elapsedMs: elapsedMs(startedAt) });
       return jsonNoStore({ success: false, error: 'Too many login attempts. Please wait and try again.', requestId: id }, 429);

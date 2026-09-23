@@ -19,11 +19,13 @@ import { getCommitteeMembers, getHistoryCompetitions, getHistoryLineage, getHist
 
 export const metadata: Metadata = pageMetadata("/about", "About the club", "Explore the history of Newcomb and District Cricket Club, our committee and community partnerships at Grinter Reserve, Moolap.");
 
-// Request-time rendering: committee, history, and content blocks are mutable
-// CMS content, so this page must never be served from a build-time prerender.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 300s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 300;
 
 const premiershipTeams = ['1st XI', '2nd XI', '3rd XI', '4th XI', '5th XI'];
 

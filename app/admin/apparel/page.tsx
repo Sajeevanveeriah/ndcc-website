@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
 type ApparelProduct = {
   id: string;
@@ -114,9 +114,9 @@ export default function AdminApparelPage() {
   async function loadAll() {
     try {
       const [pRes, wRes, oRes] = await Promise.all([
-        fetch('/api/admin/resources/apparelProducts', { cache: 'no-store' }),
-        fetch('/api/admin/resources/merchWindows', { cache: 'no-store' }),
-        fetch('/api/admin/resources/apparelProductOptions', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/apparelProducts', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/merchWindows', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/apparelProductOptions', { cache: 'no-store' }),
       ]);
       const [pData, wData] = await Promise.all([
         parseApiResponse<{ data?: ApparelProduct[] }>(pRes),
@@ -167,7 +167,7 @@ export default function AdminApparelPage() {
     };
 
     setSaving(true);
-    const res = await fetch('/api/admin/resources/apparelProducts', {
+    const res = await adminFetch('/api/admin/resources/apparelProducts', {
       method: editingProductId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editingProductId ? { id: editingProductId, ...payload } : payload),
@@ -212,7 +212,7 @@ export default function AdminApparelPage() {
   async function toggleProductActive(product: ApparelProduct) {
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/apparelProducts', {
+      const res = await adminFetch('/api/admin/resources/apparelProducts', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: product.id, active: !product.active }),
@@ -235,7 +235,7 @@ export default function AdminApparelPage() {
     )) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/resources/apparelProducts?id=${encodeURIComponent(product.id)}`, {
+      const res = await adminFetch(`/api/admin/resources/apparelProducts?id=${encodeURIComponent(product.id)}`, {
         method: 'DELETE',
       });
       await parseApiResponse(res);
@@ -275,7 +275,7 @@ export default function AdminApparelPage() {
     };
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/apparelProductOptions', {
+      const res = await adminFetch('/api/admin/resources/apparelProductOptions', {
         method: editingOptionId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingOptionId ? { id: editingOptionId, ...payload } : payload),
@@ -295,7 +295,7 @@ export default function AdminApparelPage() {
   async function toggleOptionActive(option: ApparelProductOption) {
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/apparelProductOptions', {
+      const res = await adminFetch('/api/admin/resources/apparelProductOptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: option.id, active: !option.active }),
@@ -313,7 +313,7 @@ export default function AdminApparelPage() {
   async function createWindow(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch('/api/admin/resources/merchWindows', {
+    const res = await adminFetch('/api/admin/resources/merchWindows', {
       method: editingWindowId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editingWindowId ? { id: editingWindowId, ...windowForm } : windowForm),

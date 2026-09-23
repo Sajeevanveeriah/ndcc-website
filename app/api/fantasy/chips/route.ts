@@ -3,6 +3,7 @@ import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { CHIP_TYPES, getFantasySettings, getRoundLockState, type ChipType } from '@/lib/fantasy-game';
 import { createServerClient } from '@/lib/supabase-server';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
+import { logRouteError } from '@/lib/server/public-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
     .insert({ manager_id: auth.manager.id, season_id: season.id, round_id: roundLock.roundId, chip_type: chipType })
     .select('id, round_id, chip_type, used_at')
     .single();
-  if (error) return NextResponse.json({ success: false, error: error.code === '23505' ? 'That chip has already been used this season.' : error.message }, { status: 400 });
+  if (error) {
+    if (error.code !== '23505') logRouteError('fantasy/chips', error);
+    return NextResponse.json({ success: false, error: error.code === '23505' ? 'That chip has already been used this season.' : 'The chip could not be played. Please try again.' }, { status: 400 });
+  }
   return NextResponse.json({ success: true, chip: data });
 }

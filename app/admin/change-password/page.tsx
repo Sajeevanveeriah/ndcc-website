@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PasswordInput } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -17,7 +17,7 @@ export default function ChangePasswordPage() {
     setSaving(true);
 
     try {
-      const res = await fetch('/api/admin/auth/change-password', {
+      const res = await adminFetch('/api/admin/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword }),

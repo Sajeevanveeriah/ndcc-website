@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin-client';
 
 type Revision = { id: string; revision: number; changed_at: string; action: string; snapshot: Record<string, unknown> };
 
@@ -12,7 +13,7 @@ export default function EditorialHistory({ resource, id, onSelect }: { resource:
   async function load() {
     setBusy(true); setMessage('');
     try {
-      const response = await fetch(`/api/admin/resources/${resource}?history=${encodeURIComponent(id)}`, { cache: 'no-store' });
+      const response = await adminFetch(`/api/admin/resources/${resource}?history=${encodeURIComponent(id)}`, { cache: 'no-store' });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'History unavailable.');
       setHistory(result.data || []); setLoaded(true);

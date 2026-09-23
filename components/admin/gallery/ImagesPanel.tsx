@@ -8,7 +8,7 @@ import Input, { Select } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Pencil, Trash2, Plus, ExternalLink } from 'lucide-react';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { AdminAlbum, AdminGalleryImage } from './types';
 
 const defaultForm = {
@@ -49,8 +49,8 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
     setLoading(true);
     try {
       const [imagesResponse, albumsResponse] = await Promise.all([
-        fetch('/api/admin/resources/galleryImages', { cache: 'no-store' }),
-        fetch('/api/admin/gallery/albums', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/galleryImages', { cache: 'no-store' }),
+        adminFetch('/api/admin/gallery/albums', { cache: 'no-store' }),
       ]);
       const imagesResult = await parseApiResponse<{ data?: AdminGalleryImage[] }>(imagesResponse);
       setItems((imagesResult.data ?? []).sort((a, b) => a.sort_order - b.sort_order));
@@ -85,7 +85,7 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
     setSuccess('');
 
     try {
-      const response = await fetch('/api/admin/resources/galleryImages', {
+      const response = await adminFetch('/api/admin/resources/galleryImages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -127,7 +127,7 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
     setSuccess('');
 
     try {
-      const response = await fetch('/api/admin/resources/galleryImages', {
+      const response = await adminFetch('/api/admin/resources/galleryImages', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingId, ...editForm, album_id: editForm.album_id || null }),
@@ -146,7 +146,7 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
 
   async function handleDelete(id: string) {
     try {
-      const response = await fetch(`/api/admin/resources/galleryImages?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/galleryImages?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setSelectedIds((prev) => prev.filter((v) => v !== id));
       setSuccess('Image record deleted. (Files in club Storage are kept; use permanent media deletion to remove them.)');
@@ -184,7 +184,7 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
   }
 
   const batchSetPublished = (published: boolean) => runBatch(
-    () => fetch('/api/admin/resources/galleryImages', {
+    () => adminFetch('/api/admin/resources/galleryImages', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: selectedIds, published }),
@@ -193,12 +193,12 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/galleryImages?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/galleryImages?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected images deleted.'
   );
 
   const batchAssignAlbum = (albumId: string | null) => runBatch(
-    () => fetch('/api/admin/resources/galleryImages', {
+    () => adminFetch('/api/admin/resources/galleryImages', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: selectedIds, album_id: albumId }),
@@ -208,7 +208,7 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
 
   async function togglePublished(item: AdminGalleryImage) {
     try {
-      const response = await fetch('/api/admin/resources/galleryImages', {
+      const response = await adminFetch('/api/admin/resources/galleryImages', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, published: !item.published }),

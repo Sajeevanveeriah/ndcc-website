@@ -6,13 +6,16 @@
 // `node --experimental-strip-types` cannot resolve without an extension.
 // Modules are copied into a temp dir with specifiers rewritten before
 // importing; sources are never modified.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptsDir, '..');
-const tmpDir = join(scriptsDir, '.calendar-logic-tmp');
+// Outside the repo so concurrent tests that walk the tree never see these
+// short-lived copies (run-all-tests.mjs runs tests in parallel).
+const tmpDir = mkdtempSync(join(tmpdir(), 'ndcc-calendar-logic-'));
 
 let failures = 0;
 function check(label, condition) {

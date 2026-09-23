@@ -1,8 +1,10 @@
 name: PR validation
 
 # Release-protection workflow: every pull request (and push to main) must
-# pass lint, deterministic test suites, database-backed migration tests,
-# the migration-history consistency check, and a production build.
+# pass lint + typecheck, the deterministic test suite (`npm test`),
+# database-backed migration tests, secret/dependency scans and a production
+# build. The jobs run in parallel; the `validate` job aggregates them so the
+# existing required status check name keeps working in branch protection.
 
 on:
   pull_request:
@@ -17,7 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  lint:
+    name: lint + typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,75 +29,31 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run test:admin-permissions
-      - run: npm run test:admin-auth
-      - run: npm run test:admin-delete
-      - run: npm run test:auth-callback-security
-      - run: node scripts/test-minute-documents.cjs
-      - run: node scripts/test-minute-editor.cjs
-      - run: npm run test:admin-csrf
-      - run: npm run test:google-maps-embed-security
-      - run: npm run test:public-link-security
-      - run: npm run test:calendar-subscription
-      - run: node scripts/test-public-event-flows.mjs
-      - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-committee-calendar-subscription.mjs
-      - run: npm run test:email-html-security
-      - run: npm run test:public-order-input-security
-      - run: npm run test:cms-navigation
-      - run: node scripts/test-cookie-dough-deadline.mjs
-      - run: npm run test:committee-auth-schema
-      - run: npm run test:core-schema
-      - run: node --experimental-strip-types scripts/test-dino-coach.mjs
-      - run: node scripts/test-dino-standings.mjs
-      - run: node --experimental-strip-types scripts/test-dino-lifecycle.mjs
-      - run: node scripts/test-dino-admin-api.mjs
-      - run: node scripts/test-manager-eligibility.mjs
-      - run: node scripts/test-dino-manager-interactions.mjs
-      - run: node scripts/test-dino-wallet.cjs
-      - run: node scripts/test-dino-pool-only.cjs
-      - run: node scripts/test-dino-squad-render.mjs
-      - run: node scripts/test-dino-feedback.mjs
-      - run: npm run test:dino-season-summary
-      - run: node --experimental-strip-types scripts/test-cms-media.mjs
-      - run: node --experimental-strip-types scripts/test-media-reliability.mjs
-      - run: node scripts/test-email-webhook.mjs
-      - run: npm run test:scheduled-publishing
       - run: npm run lint
-      - run: npm run test:seo
-      - run: npm run check:migrations
-      - run: npm run test:dino-coach-rls-hardening
-      - run: npm run test:profiles-role-escalation-hardening
-      - run: npm run test:security-privilege-defaults-hardening
-      - run: npm run check:assets
-      - run: npm run test:playhq-normalise
-      - run: node scripts/test-playhq-preseason.mjs
-      - run: npm run test:fantasy-orchestrator
-      - run: npm run test:fantasy-reconciliation
-      - run: npm run test:fantasy-seasons
-      - run: npm run smoke:fantasy
-      - run: npm run smoke:content
-      - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-news-gallery.mjs
-      - run: npm run test:apparel-pricing
-      - run: node scripts/test-apparel-balances.mjs
-      - run: node scripts/test-order-payment-export.cjs
-      - run: npm run test:payments-partial
-      - run: npm run test:payment-ledger-export
-      - run: npm run test:payment-operations-hardening
-      - run: npm run test:stripe
-      - run: npm run test:stripe-dispute-integrity
-      - run: npm run test:payment-reference-integrity
-      - run: npm run test:receipt-delivery-outbox
-      - run: node --experimental-strip-types scripts/test-dino-email-delivery.mjs
-      - run: node scripts/test-consolidated-receipts.mjs
-      - run: node scripts/test-reverse-raffle.mjs
-      - run: node --experimental-strip-types scripts/test-reverse-raffle-selection.mjs
-      - run: node scripts/test-reverse-raffle-selection-ui.cjs
-      - run: npm run test:payment-receipts
-      - run: npm run test:order-notifications
-      - run: npm run test:meal-collection
-      - run: node --experimental-strip-types scripts/test-kitchen-export.mjs
-      - run: npm run test:player-registration
-      - run: npm run test:merch-export
+      - run: npx tsc --noEmit
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Runs every test:/smoke:/check: script and the direct test scripts that
+      # need no database, secrets or network. See scripts/run-all-tests.mjs.
+      - run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - run: npm run build
 
   database-tests:
@@ -127,7 +86,12 @@ jobs:
       - run: npm ci
       - run: npm run test:apparel-catalogue
       - run: npm run test:payments-ledger
+      # Previously never run in CI; advisory until it has passed on main once,
+      # then remove continue-on-error.
+      - run: npm run test:gallery-albums
+        continue-on-error: true
       - run: npm run test:security-privilege-defaults-hardening:db
+      - run: npm run test:event-registration-capacity:db
       - run: npm run test:migration-replay
 
   security-scans:
@@ -147,3 +111,22 @@ jobs:
       - run: npm ci
       - name: Dependency audit (high and critical = blocking)
         run: npm audit --audit-level=high
+
+  # Aggregate gate. Keeps the historical `validate` check name that branch
+  # protection may require; fails unless lint, tests and build all passed.
+  validate:
+    if: always()
+    needs: [lint, tests, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require lint, tests and build to pass
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A required validation job did not succeed ($result)."
+              exit 1
+            fi
+          done

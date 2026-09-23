@@ -7,10 +7,13 @@ import { getPublicAlbumBySlug } from '@/lib/public-data';
 import { isValidAlbumSlug } from '@/lib/gallery/shared';
 import AlbumClient from './AlbumClient';
 
-// Request-time rendering, matching /gallery: album content is mutable CMS data.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 type PageProps = { params: Promise<{ slug: string }> };
 

@@ -12,9 +12,9 @@ const SEASON_APPOINTMENT_IMAGE_MAP: SeasonAppointmentImageMap = {
   'huey neild': '/images/season-appointments/2026-27/huey-neild-re-signed-2026-27.webp',
   'nathan keevil': '/images/season-appointments/2026-27/nathan-keevil-re-signed-2026-27.webp',
   'scott kirby': '/images/season-appointments/2026-27/scott-kirby-re-signed-2026-27.webp',
-  'caitlin-rose neil': '/images/2026/05/caitlin-rose-neil-1778495351649.png',
-  'jodie clark': '/images/2026/05/jodie-clark-1778495304142.png',
-  'skye green': '/images/2026/05/skye-green-1778495377710.png',
+  'caitlin-rose neil': '/images/2026/05/caitlin-rose-neil-1778495351649.webp',
+  'jodie clark': '/images/2026/05/jodie-clark-1778495304142.webp',
+  'skye green': '/images/2026/05/skye-green-1778495377710.webp',
 };
 
 const SEASON_APPOINTMENT_LEGACY_IMAGE_PATHS = new Set([
@@ -32,7 +32,8 @@ const GALLERY_LEGACY_TITLE = '2025/2026 Div. 4 1st XI Premiership';
 const GALLERY_DISPLAY_TITLE = '2025/26 Division 4 1st XI Premiership';
 const GALLERY_IMAGE_PATH = '/images/achievements/2025-26/division-4-first-xi-premiers-2025-26.webp';
 const INVALID_PUBLIC_IMAGE_PATHS = new Set([
-  '/images/events/2026/agm-2026.png',
+  '/images/events/2026/agm-2026.png', // legacy path, now redirected (optimise-images:keep-path)
+  '/images/events/2026/agm-2026.webp',
 ]);
 const EVENT_IMAGE_MAP: EventImageMap = {
   'dino lotto 2026': '/images/events/2026/dino-lotto-2026.webp',

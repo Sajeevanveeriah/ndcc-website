@@ -26,7 +26,7 @@ export default function PlayerSponsorsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const uploading = photoUploading || logoUploading;
   useEffect(() => {
-    fetch(endpoint, { cache: 'no-store' }).then((response) => parseApiResponse<{ data: PlayerSponsor[] }>(response))
+    adminFetch(endpoint, { cache: 'no-store' }).then((response) => parseApiResponse<{ data: PlayerSponsor[] }>(response))
       .then((result) => setRows(sort(result.data))).catch((err) => setError(err.message)).finally(() => setLoading(false));
   }, []);
 

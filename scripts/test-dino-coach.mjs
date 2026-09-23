@@ -162,7 +162,10 @@ test('aligns CMS-managed fantasy navigation with Dino Coach branding', () => {
 
 test('private league invitation codes use cryptographic randomness', () => {
   const source = readFileSync('app/api/fantasy/leagues/route.ts', 'utf8');
-  assert.match(source, /randomBytes\(6\)/u);
+  assert.match(source, /randomBytes\(LEAGUE_CODE_LENGTH \* 2\)/u);
+  assert.match(source, /LEAGUE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'/u, 'new codes avoid look-alike characters');
+  assert.match(source, /LEAGUE_CODE_LENGTH = 12/u);
+  assert.match(source, /\^\[A-Z0-9\]\{4,12\}\$/u, 'existing 8-character codes can still be joined');
   assert.doesNotMatch(source, /Math\.random\(\)/u);
 });
 

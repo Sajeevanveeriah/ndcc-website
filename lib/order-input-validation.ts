@@ -23,6 +23,41 @@ export const PUBLIC_ORDER_LIMITS = Object.freeze({
   maximumOrderCents: 1_000_000, // AUD 10,000
 });
 
+/**
+ * Reverse raffle number-hoarding limits. A pending checkout holds its chosen
+ * numbers until Stripe expires the session (35 minutes; Stripe's minimum is
+ * 30), so these caps bound how many of the 100 numbers one buyer can lock up
+ * without paying. The per-email cap equals the largest single checkout (20)
+ * so a genuine buyer can still purchase the maximum in one go, but cannot
+ * stack further unpaid holds. The per-IP cap is looser because households
+ * and clubrooms share one address.
+ */
+export const REVERSE_RAFFLE_HOLD_LIMITS = Object.freeze({
+  maxPendingNumbersPerEmail: 20,
+  maxHeldNumbersPerIp: 40,
+  checkoutExpiryMinutes: 35,
+  // Matches the Stripe expiry plus a small allowance for webhook delivery.
+  holdWindowMs: 40 * 60_000,
+});
+
+/** True when adding `requested` numbers keeps an email or IP within `limit`. */
+export function reverseRaffleHoldAllowed(pendingNumbers: unknown, requested: number, limit: number): boolean {
+  return typeof pendingNumbers === 'number' && Number.isSafeInteger(pendingNumbers) && pendingNumbers >= 0
+    && Number.isSafeInteger(requested) && requested > 0 && pendingNumbers + requested <= limit;
+}
+
+/** Sums `quantity` across pending orders; null when any row is malformed. */
+export function sumPendingRaffleQuantities(rows: unknown): number | null {
+  if (!Array.isArray(rows)) return null;
+  let total = 0;
+  for (const row of rows) {
+    const quantity = row && typeof row === 'object' ? (row as { quantity?: unknown }).quantity : undefined;
+    if (typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 0) return null;
+    total += quantity;
+  }
+  return total;
+}
+
 type ValidationFailure = { ok: false; error: string };
 type ValidationSuccess<T> = { ok: true; value: T };
 export type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure;

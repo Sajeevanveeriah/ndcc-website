@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ENQUIRY_TYPES } from '@/lib/constants';
 import { formatDate, truncateText } from '@/lib/utils';
 import type { Contact } from '@/lib/types';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -24,7 +24,7 @@ export default function AdminEnquiriesPage() {
   useEffect(() => {
     const fetchContacts = async () => {
       try {
-        const response = await fetch('/api/admin/resources/enquiries', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/enquiries', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: Contact[] }>(response);
         setContacts(result.data || []);
       } catch (err) {
@@ -39,7 +39,7 @@ export default function AdminEnquiriesPage() {
 
   const handleMarkResponded = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/resources/enquiries', {
+      const response = await adminFetch('/api/admin/resources/enquiries', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, responded: true }),

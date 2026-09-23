@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Input from '@/components/ui/Input';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
 type Plan = { id: string; name: string; description: string | null; price: number; is_active: boolean; sort_order: number };
 type Addon = { id: string; name: string; description: string | null; price: number; usage_limit: number | null; is_active: boolean; sort_order: number };
@@ -41,8 +41,8 @@ export default function AdminMembershipsPage() {
   const loadPricing = async () => {
     try {
       const [pRes, aRes] = await Promise.all([
-        fetch('/api/admin/resources/membershipPlans', { cache: 'no-store' }),
-        fetch('/api/admin/resources/membershipAddons', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/membershipPlans', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/membershipAddons', { cache: 'no-store' }),
       ]);
       const [p, a] = await Promise.all([
         parseApiResponse<{ data?: Plan[] }>(pRes),
@@ -58,7 +58,7 @@ export default function AdminMembershipsPage() {
   const loadApplications = async () => {
     setLoadingApplications(true);
     try {
-      const appsRes = await fetch('/api/admin/resources/membershipApplications?limit=25', { cache: 'no-store' });
+      const appsRes = await adminFetch('/api/admin/resources/membershipApplications?limit=25', { cache: 'no-store' });
       const apps = await parseApiResponse<{ data?: Application[] }>(appsRes);
       setApplications(apps.data || []);
     } catch (error) {
@@ -78,7 +78,7 @@ export default function AdminMembershipsPage() {
     setSavingKey('new-plan');
     try {
       const price = parseMoney(newPlan.price, 'Plan price');
-      const res = await fetch('/api/admin/resources/membershipPlans', {
+      const res = await adminFetch('/api/admin/resources/membershipPlans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newPlan.name, description: newPlan.description, price, is_active: true, sort_order: plans.length + 1 }),
@@ -101,7 +101,7 @@ export default function AdminMembershipsPage() {
       const price = parseMoney(newAddon.price, 'Add-on price');
       const usageLimit = newAddon.usage_limit.trim() ? Number(newAddon.usage_limit) : null;
       if (usageLimit !== null && (Number.isNaN(usageLimit) || usageLimit < 0)) throw new Error('Usage limit must be a valid non-negative number.');
-      const res = await fetch('/api/admin/resources/membershipAddons', {
+      const res = await adminFetch('/api/admin/resources/membershipAddons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newAddon, price, usage_limit: usageLimit, is_active: true, sort_order: addons.length + 1 }),
@@ -120,7 +120,7 @@ export default function AdminMembershipsPage() {
   const savePlan = async (plan: EditablePlan) => {
     setSavingKey(`plan-${plan.id}`);
     try {
-      const res = await fetch('/api/admin/resources/membershipPlans', {
+      const res = await adminFetch('/api/admin/resources/membershipPlans', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: plan.id, name: plan.name, description: plan.description || '', price: parseMoney(plan.price, 'Plan price'), is_active: plan.is_active, sort_order: parseOrder(plan.sort_order) }),
@@ -140,7 +140,7 @@ export default function AdminMembershipsPage() {
     try {
       const usageLimit = addon.usage_limit.trim() ? Number(addon.usage_limit) : null;
       if (usageLimit !== null && (Number.isNaN(usageLimit) || usageLimit < 0)) throw new Error('Usage limit must be a valid non-negative number.');
-      const res = await fetch('/api/admin/resources/membershipAddons', {
+      const res = await adminFetch('/api/admin/resources/membershipAddons', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: addon.id, name: addon.name, description: addon.description || '', price: parseMoney(addon.price, 'Add-on price'), usage_limit: usageLimit, is_active: addon.is_active, sort_order: parseOrder(addon.sort_order) }),

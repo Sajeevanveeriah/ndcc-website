@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { getNavVisibility } from '@/lib/server/nav-visibility';
 import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
 import RouteSettle from '@/components/common/RouteSettle';
@@ -24,7 +25,9 @@ import {
 import './globals.css';
 
 // One self-hosted family keeps headings clear and avoids an extra font download.
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-inter', display: 'swap' });
+// Weights match the utilities actually used: font-normal/medium/semibold/bold
+// (400-700) and font-black (900). No font-thin/extralight/light/extrabold.
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '900'], variable: '--font-inter', display: 'swap' });
 const fontVariables = inter.variable;
 
 const organizationJsonLd = {
@@ -87,7 +90,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Navigation visibility is computed once on the server from a cached (<=60s,
+  // tag-invalidated) snapshot shared with the Footer. It deliberately reads no
+  // cookies/headers so the layout never forces ISR pages into dynamic rendering.
+  const nav = await getNavVisibility();
   return (
     // suppressHydrationWarning is required by next-themes: it stamps the theme
     // class on <html> before hydration, which is an expected mismatch.
@@ -115,7 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* Renders nothing: applies the .route-settle page-enter class to
               <main> after client-side navigations commit. */}
           <RouteSettle />
-          <Navbar />
+          <Navbar nav={nav} />
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           {/* Footer queries must not delay the first paint of every public page. */}
           <Suspense fallback={null}><Footer /></Suspense>

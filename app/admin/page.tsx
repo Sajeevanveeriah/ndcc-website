@@ -6,7 +6,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import {
   Users,
   ShoppingBag,
@@ -74,8 +74,8 @@ export default function AdminDashboardPage() {
     const fetchStats = async () => {
       try {
         const [response, seasonsResponse] = await Promise.all([
-          fetch('/api/admin/dashboard', { cache: 'no-store' }),
-          fetch('/api/admin/club-seasons', { cache: 'no-store' }),
+          adminFetch('/api/admin/dashboard', { cache: 'no-store' }),
+          adminFetch('/api/admin/club-seasons', { cache: 'no-store' }),
         ]);
         const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[]; canViewOperations?: boolean }>(response);
         const seasonData = await parseApiResponse<{ seasons?: ClubSeasonSummary[] }>(seasonsResponse).catch(() => ({ seasons: [] }));

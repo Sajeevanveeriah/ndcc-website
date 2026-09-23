@@ -1,11 +1,27 @@
+import {
+  formatRaffleAud,
+  isReverseRaffleNumber,
+  parseRaffleReference,
+  RAFFLE_FALLBACK_DISPLAY,
+  REVERSE_RAFFLE_CAMPAIGN_CODE,
+  REVERSE_RAFFLE_NUMBER_RANGE_LABEL,
+} from './raffle-constants';
+
 /** Shared vector artwork for the emailed ticket and downloadable design sample. */
-export function reverseRaffleTicketSvg(reference: string, logoUri: string, sample = false): string {
-  if (!/^NDCCRRO-2026(?:02\d{2}|0300)$/.test(reference)) throw new Error('Invalid reverse raffle ticket reference.');
-  const number = Number(reference.slice(-4));
-  if (number < 201 || number > 300) throw new Error('Reverse raffle numbers must be 201-300.');
+export function reverseRaffleTicketSvg(
+  reference: string,
+  logoUri: string,
+  sample = false,
+  priceCents: number = RAFFLE_FALLBACK_DISPLAY[REVERSE_RAFFLE_CAMPAIGN_CODE].priceCents,
+): string {
+  const parsed = parseRaffleReference(reference);
+  if (!parsed || parsed.code !== REVERSE_RAFFLE_CAMPAIGN_CODE) throw new Error('Invalid reverse raffle ticket reference.');
+  const number = parsed.ticketNumber;
+  if (!isReverseRaffleNumber(number)) throw new Error(`Reverse raffle numbers must be ${REVERSE_RAFFLE_NUMBER_RANGE_LABEL}.`);
+  const price = formatRaffleAud(priceCents).replace('.00 ', ' ');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="700" viewBox="0 0 1800 700" role="img" aria-labelledby="title desc">
   <title id="title">Reverse Raffle - ticket ${number}</title>
-  <desc id="desc">Newcomb and District Cricket Club. Raffle number ${number}. $60 AUD. Reference ${reference}.${sample ? ' Design sample, not valid for entry.' : ''}</desc>
+  <desc id="desc">Newcomb and District Cricket Club. Raffle number ${number}. ${price}. Reference ${reference}.${sample ? ' Design sample, not valid for entry.' : ''}</desc>
   <rect width="1800" height="700" fill="#641D2C"/>
   <rect x="1190" width="610" height="700" fill="#ADD8E6"/>
   <path d="M1190 30V670" stroke="#641D2C" stroke-width="2" stroke-dasharray="8 12" opacity=".45"/>
@@ -19,7 +35,7 @@ export function reverseRaffleTicketSvg(reference: string, logoUri: string, sampl
     <text x="65" y="637" fill="#FAF7F0" font-size="24" letter-spacing="2">${sample ? 'DESIGN SAMPLE - NOT VALID FOR ENTRY' : 'KEEP THIS TICKET FOR THE DRAW'}</text>
     <text x="1495" y="114" text-anchor="middle" fill="#641D2C" font-size="37" font-weight="700">RAFFLE NUMBER</text>
     <text x="1495" y="383" text-anchor="middle" fill="#641D2C" font-size="235" font-weight="900" letter-spacing="-8">${number}</text>
-    <text x="1495" y="488" text-anchor="middle" fill="#641D2C" font-size="66" font-weight="700">$60 AUD</text>
+    <text x="1495" y="488" text-anchor="middle" fill="#641D2C" font-size="66" font-weight="700">${price}</text>
     <text x="1495" y="578" text-anchor="middle" fill="#641D2C" font-size="23" letter-spacing="2">TICKET REFERENCE</text>
     <text x="1495" y="626" text-anchor="middle" fill="#641D2C" font-size="31" font-weight="700">${reference}</text>
   </g>

@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
@@ -65,7 +65,7 @@ export default function AdminKitchenPage() {
 
   async function loadMenus() {
     try {
-      const res = await fetch('/api/admin/resources/kitchenMenus', { cache: 'no-store' });
+      const res = await adminFetch('/api/admin/resources/kitchenMenus', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: Menu[] }>(res);
       setMenus(data.data || []);
     } catch (error) {
@@ -75,7 +75,7 @@ export default function AdminKitchenPage() {
 
   async function loadItems() {
     try {
-      const res = await fetch('/api/admin/resources/kitchenItems', { cache: 'no-store' });
+      const res = await adminFetch('/api/admin/resources/kitchenItems', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: Item[] }>(res);
       setItems(data.data || []);
     } catch (error) {
@@ -85,7 +85,7 @@ export default function AdminKitchenPage() {
 
   async function loadOrders() {
     try {
-      const res = await fetch('/api/admin/kitchen/orders?deleted=include', { cache: 'no-store' });
+      const res = await adminFetch('/api/admin/kitchen/orders?deleted=include', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: KitchenOrder[] }>(res);
       setOrders(data.data || []);
     } catch(error) {
@@ -95,14 +95,14 @@ export default function AdminKitchenPage() {
 
   async function restoreOrder(id:string) {
     try {
-      const response=await fetch('/api/admin/resources/kitchenOrders',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})});
+      const response=await adminFetch('/api/admin/resources/kitchenOrders',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})});
       await parseApiResponse(response);await loadOrders();setMessage('Kitchen order restored.');
     } catch(error) {setMessage(error instanceof Error?error.message:'Could not restore order.');}
   }
 
   async function updateOrder(id: string, patch: Partial<KitchenOrder>) {
     try {
-      const res = await fetch('/api/admin/kitchen/orders', {
+      const res = await adminFetch('/api/admin/kitchen/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...patch }),
@@ -129,7 +129,7 @@ export default function AdminKitchenPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/kitchenMenus', {
+      const res = await adminFetch('/api/admin/resources/kitchenMenus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(menuForm),
@@ -155,7 +155,7 @@ export default function AdminKitchenPage() {
     if (!editingMenu) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/kitchenMenus', {
+      const res = await adminFetch('/api/admin/resources/kitchenMenus', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingMenu.id, name: editMenuForm.name, is_active: editMenuForm.is_active }),
@@ -174,7 +174,7 @@ export default function AdminKitchenPage() {
   async function deleteMenu(id: string) {
     if (!confirm('Delete this menu and all its items? This cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/admin/resources/kitchenMenus?id=${id}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/admin/resources/kitchenMenus?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(res);
       setMessage('Menu deleted.');
       loadAll();
@@ -195,7 +195,7 @@ export default function AdminKitchenPage() {
     }
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/kitchenItems', {
+      const res = await adminFetch('/api/admin/resources/kitchenItems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,7 +245,7 @@ export default function AdminKitchenPage() {
     }
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/kitchenItems', {
+      const res = await adminFetch('/api/admin/resources/kitchenItems', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -274,7 +274,7 @@ export default function AdminKitchenPage() {
   async function deleteItem(id: string) {
     if (!confirm('Delete this item? This cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/admin/resources/kitchenItems?id=${id}`, { method: 'DELETE' });
+      const res = await adminFetch(`/api/admin/resources/kitchenItems?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(res);
       setMessage('Item deleted.');
       loadItems();
@@ -285,7 +285,7 @@ export default function AdminKitchenPage() {
 
   async function toggleItem(item: Item, patch: Partial<Item>) {
     try {
-      const res = await fetch('/api/admin/resources/kitchenItems', {
+      const res = await adminFetch('/api/admin/resources/kitchenItems', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, ...patch }),

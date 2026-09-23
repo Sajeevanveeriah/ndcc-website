@@ -10,6 +10,7 @@ import {
 } from '@/lib/player-registration';
 import { PLAYER_REGISTRATION_SETTINGS_COLUMNS } from '@/lib/public-player-registration';
 import { createServerClient } from '@/lib/supabase-server';
+import { revalidatePublicContent } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -142,6 +143,8 @@ export async function PATCH(request: Request) {
       : NextResponse.json({ success: false, error: 'Registration settings could not be saved.' }, { status: 500, headers: noStoreHeaders });
   }
 
+  // Registration visibility feeds the navbar CTA and ISR public pages.
+  revalidatePublicContent('playerRegistration');
   return NextResponse.json(
     { success: true, settings: registrationEditorFromRow(savedRow as unknown as StoredRegistrationRow, season.name), savedBy: user.email },
     { headers: noStoreHeaders },

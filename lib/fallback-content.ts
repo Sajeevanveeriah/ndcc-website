@@ -28,7 +28,7 @@ export const fallbackContentBlocks: Record<string, ContentBlock> = {
   'home.sponsor_intro': { block_key: 'home.sponsor_intro', title: 'Our Sponsors', body: 'Thanks to all local businesses and partners supporting NDCC.', image_url: null, cta_label: null, cta_url: null },
   'home.sponsorship': { block_key: 'home.sponsorship', title: 'Our Sponsors', body: 'Thanks to all local businesses and partners supporting NDCC.', image_url: null, cta_label: null, cta_url: null },
   'home.juniors': { block_key: 'home.juniors', title: `Ready to join the ${CLUB_NICKNAME}?`, body: 'Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.', image_url: null, cta_label: null, cta_url: null },
-  'footer.acknowledgement': { block_key: 'footer.acknowledgement', title: null, body: ACKNOWLEDGEMENT, image_url: '/images/Connection_Bri_Hayes_Rev1.jpg', cta_label: null, cta_url: null },
+  'footer.acknowledgement': { block_key: 'footer.acknowledgement', title: null, body: ACKNOWLEDGEMENT, image_url: '/images/Connection_Bri_Hayes_Rev1.webp', cta_label: null, cta_url: null },
   'about.hero': { block_key: 'about.hero', title: `About the ${CLUB_NICKNAME}`, body: `A proud community cricket club in Geelong, established in ${CLUB_ESTABLISHED}.`, image_url: null, cta_label: null, cta_url: null },
   'about.history': { block_key: 'about.history', title: 'Our History', body: `${CLUB_NICKNAME} has proudly represented Newcomb since ${CLUB_ESTABLISHED}, built on generations of community involvement and cricket tradition.`, image_url: '/images/Turf_Ground.jpg', cta_label: null, cta_url: null },
   'about.affiliation': { block_key: 'about.affiliation', title: `${CLUB_ASSOCIATION_SHORT} Affiliation`, body: `NDCC is a proud member of ${CLUB_ASSOCIATION}, supporting senior and junior cricket pathways across Geelong.`, image_url: null, cta_label: null, cta_url: null },
@@ -135,7 +135,7 @@ export const fallbackSponsorLogos: Record<string, string> = {
   "Bennett": '/images/sponsors/20260906/bennett-racing.png',
   "Blackmans Brewery": '/images/sponsors/20260906/blackmans-brewery.png',
   "Blackman's Brewery": '/images/sponsors/20260906/blackmans-brewery.png',
-  "Champion Trophies": '/images/sponsors/20260906/champion-trophies.png',
+  "Champion Trophies": '/images/sponsors/20260906/champion-trophies.webp',
   "General Public Corio": '/images/sponsors/20260906/general-public.png',
   "GP": '/images/sponsors/20260906/general-public.png',
   "Mahoney Real Estate": '/images/sponsors/20260906/mahoney-real-estate.png',
@@ -231,28 +231,6 @@ export function canonicalEventKey(event: Pick<Event, 'id' | 'title'>) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
   return titleKey || String(event.id || '').trim();
-}
-
-export function mergeEventsWithFallback<T extends Partial<Event> & { id: string; title: string }>(events: T[] | null | undefined) {
-  const byCanonical = new Map<string, T | Event>();
-
-  for (const event of (events || []).filter((item) => item.title?.trim())) {
-    byCanonical.set(canonicalEventKey(event as Event), {
-      ...event,
-      image_url: normalizeEventImage(event.title, event.image_url || null),
-    });
-  }
-
-  for (const event of fallbackEvents) {
-    const key = canonicalEventKey(event);
-    if (!byCanonical.has(key)) byCanonical.set(key, event);
-  }
-
-  return Array.from(byCanonical.values()).sort((a, b) => {
-    const aTime = Date.parse(String(a.date || '')) || Number.MAX_SAFE_INTEGER;
-    const bTime = Date.parse(String(b.date || '')) || Number.MAX_SAFE_INTEGER;
-    return aTime - bTime;
-  }) as Array<T & Event>;
 }
 
 export const fallbackGalleryImages = [];

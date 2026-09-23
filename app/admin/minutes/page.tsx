@@ -5,6 +5,9 @@ import Input, { Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { MINUTE_FILE_ACCEPT, MINUTE_FILE_LIMIT, minuteFileType } from '@/lib/meeting-minute-files';
 import { parseApiResponse } from '@/lib/admin-client';
+import DraftRestorePrompt from '@/components/admin/DraftRestorePrompt';
+import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
+import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 
 type Minute = { id: string; title: string; meeting_date: string; content: string; status: string; attachment_name?: string | null };
 
@@ -18,6 +21,13 @@ export default function AdminMinutesPage() {
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const [removeAttachment, setRemoveAttachment] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Typed fields are kept as a local draft; a selected file cannot be stored.
+  const draft = useDraftAutosave({ editor: 'meeting-minutes', recordId: editingId, value: form, active: true });
+  useUnsavedChangesGuard(draft.dirty || Boolean(file));
+  const restoreDraft = () => {
+    const saved = draft.restoreDraft();
+    if (saved) setForm(saved);
+  };
   const reset = () => {
     setForm({ title: '', meeting_date: '', content: '', status: 'draft' });
     setEditingId(null);
@@ -57,6 +67,7 @@ export default function AdminMinutesPage() {
       const res = await fetch('/api/meeting-minutes', { method, headers: { 'X-NDCC-CSRF': '1' }, body });
       await parseApiResponse(res);
       setMessage(editingId ? 'Minute updated.' : 'Minute created.');
+      draft.clearDraft();
       reset();
       await load();
     } catch (error) {
@@ -70,6 +81,7 @@ export default function AdminMinutesPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-display font-bold">Meeting Minutes</h1>
       {message && <p role="status" className="text-sm text-content-muted">{message}</p>}
+      {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
       <form onSubmit={save} className="bg-surface-card border rounded-xl p-4">
         <fieldset disabled={saving} className="space-y-3">
         <Input id="title" label="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
