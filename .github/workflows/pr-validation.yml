@@ -91,6 +91,7 @@ jobs:
       - run: npm run test:gallery-albums
         continue-on-error: true
       - run: npm run test:security-privilege-defaults-hardening:db
+      - run: npm run test:event-registration-capacity:db
       - run: npm run test:migration-replay
 
   security-scans:

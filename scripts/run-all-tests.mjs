@@ -42,6 +42,7 @@ export const EXCLUDED = {
   'test:payments-ledger': 'needs PostgreSQL (CI database-tests job)',
   'test:gallery-albums': 'needs PostgreSQL (CI database-tests job)',
   'test:security-privilege-defaults-hardening:db': 'needs PostgreSQL (CI database-tests job)',
+  'test:event-registration-capacity:db': 'needs PostgreSQL (CI database-tests job)',
 };
 // Name patterns that are never test scripts (operational/production tooling).
 const EXCLUDED_PREFIXES = ['cms:', 'production:', 'admin:provision-'];
@@ -56,6 +57,7 @@ export const EXCLUDED_FILES = {
   'test-payments-ledger.mjs': EXCLUDED['test:payments-ledger'],
   'test-gallery-albums.mjs': EXCLUDED['test:gallery-albums'],
   'test-security-privilege-defaults-hardening.mjs': EXCLUDED['test:security-privilege-defaults-hardening:db'],
+  'test-event-registration-capacity-db.mjs': EXCLUDED['test:event-registration-capacity:db'],
 };
 
 // Tests without a package.json alias (previously listed directly in

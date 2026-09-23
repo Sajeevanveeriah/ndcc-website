@@ -92,7 +92,13 @@
     "test:dino-season-summary": "node scripts/test-dino-season-summary.mjs",
     "check:unused": "knip",
     "db:dump-schema": "node scripts/dump-schema.mjs",
-    "test:admin-drafts": "node scripts/test-admin-drafts.mjs"
+    "test:admin-drafts": "node scripts/test-admin-drafts.mjs",
+    "test:gallery-sanitise": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-gallery-sanitise.mjs",
+    "test:asset-redirect-mapping": "node scripts/test-asset-redirect-mapping.mjs",
+    "test:admin-account-safety": "node scripts/test-admin-account-safety.mjs",
+    "test:request-guard-hardening": "node scripts/test-request-guard-hardening.mjs",
+    "test:public-error-hygiene": "node scripts/test-public-error-hygiene.mjs",
+    "test:event-registration-capacity:db": "node scripts/test-event-registration-capacity-db.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
