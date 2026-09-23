@@ -118,7 +118,7 @@ const pricing = moduleAt('lib/apparel/pricing.ts');
 const partial = moduleAt('lib/payments/partial.ts', { '@/lib/apparel/pricing': pricing });
 const checkoutKeys = moduleAt('lib/payments/stripe-checkout.ts');
 for (const version of ['new', '1', '2']) {
-  let payload, linkedMetadata, reservations = 0;
+  let payload, payloadOptions, linkedMetadata, reservations = 0;
   const now = Math.floor(Date.now() / 1000);
   const checkoutOrder = { ...order, amount_paid: 0, payment_status: 'unpaid', order_status: 'open' };
   const internalReference = 'NDCCMER-2026-000009';
@@ -153,8 +153,8 @@ for (const version of ['new', '1', '2']) {
     '@/lib/meal-collection': mealCollection,
     '@/lib/club-settings': {}, 'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '@/lib/supabase-server': { createServerClient: () => checkoutDb, isServerSupabaseConfigured: () => true },
-    '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async value => {
-      payload = value;
+    '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async (value, options) => {
+      payload = value; payloadOptions = options;
       return { ...value, id: 'cs_test', url: 'https://checkout.stripe.com/test', status: 'open', amount_total: 5500, currency: 'aud' };
     } } } }) },
     '@/lib/server/request-guards': { getClientIp: () => 'test', enforceRateLimit: () => true },
@@ -177,5 +177,23 @@ for (const version of ['new', '1', '2']) {
   assert.equal(linkedMetadata.payment_reference, internalReference, 'Internal transaction identity remains immutable');
   assert.equal(reservations, version === 'new' ? 1 : 0);
   if (version !== '1') assert.equal(payload.metadata.ndcc_transaction_reference, internalReference);
+  // Exact Stripe create() arguments (keys, key order, values, idempotency key)
+  // as the route sent them before the shared Checkout helper (F59).
+  const expectedParams = {
+    mode: 'payment',
+    client_reference_id: expectedPublic,
+    line_items: [{ price_data: { currency: 'aud', product_data: {
+      name: `Payment - ${expectedPublic}`,
+      description: `Newcomb & District Cricket Club merchandise order; order ${order.payment_reference}`,
+    }, unit_amount: 5500 }, quantity: 1 }],
+    success_url: 'https://www.ndcc.com.au/merchandise?payment=submitted&session_id={CHECKOUT_SESSION_ID}',
+    cancel_url: 'https://www.ndcc.com.au/merchandise?payment=cancelled',
+    expires_at: now + 3600,
+    customer_email: order.customer_email,
+    metadata: payload.metadata,
+    payment_intent_data: { description: `${expectedPublic} - NDCC merchandise order`, metadata: payload.metadata },
+  };
+  assert.equal(JSON.stringify(payload), JSON.stringify(expectedParams), `v${version} Checkout create() params must be unchanged`);
+  assert.equal(JSON.stringify(payloadOptions), JSON.stringify({ idempotencyKey: `ndcc:checkout:v3:${internalReference}` }));
 }
 console.log('Actual Checkout route: new v2 public reference parity and frozen v1/v2 retry compatibility passed.');

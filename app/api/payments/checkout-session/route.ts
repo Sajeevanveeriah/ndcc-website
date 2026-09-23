@@ -7,7 +7,11 @@ import { getStripe } from '@/lib/stripe';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { validatePaymentRequest } from '@/lib/payments/partial';
-import { buildCheckoutIdempotencyKey } from '@/lib/payments/stripe-checkout';
+import {
+  buildCheckoutIdempotencyKey,
+  buildPaymentCheckoutSessionParams,
+  createPaymentCheckoutSession,
+} from '@/lib/payments/stripe-checkout';
 import {
   generateUniquePaymentReference,
   isCanonicalPaymentReference,
@@ -526,9 +530,9 @@ export async function POST(request: Request) {
     const idempotencyKey = buildCheckoutIdempotencyKey({
       paymentReference,
     });
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: 'payment',
+    const session = await createPaymentCheckoutSession(
+      stripe,
+      buildPaymentCheckoutSessionParams({
         client_reference_id: publicPaymentReference,
         line_items: [
           {
@@ -552,14 +556,15 @@ export async function POST(request: Request) {
           ? `${checkoutContract.origin}/merchandise?payment=cancelled`
           : `${checkoutContract.origin}/payment?status=cancelled&return_path=${encodeURIComponent(checkoutContract.returnPath)}`,
         expires_at: checkoutExpiresAtUnix,
-        ...(checkoutContract.customerEmail ? { customer_email: checkoutContract.customerEmail } : {}),
+        // Omitted (not sent) when empty, as before.
+        customer_email: checkoutContract.customerEmail ? checkoutContract.customerEmail : undefined,
         metadata: paymentMetadata,
         payment_intent_data: {
           description: `${publicPaymentReference} - NDCC ${frozenCategoryLabel}`,
           metadata: paymentMetadata,
         },
-      },
-      { idempotencyKey }
+      }),
+      idempotencyKey,
     );
 
     // Stripe may return an earlier Session for the same idempotency key. Its

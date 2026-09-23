@@ -31,6 +31,7 @@
     "test:payment-ledger-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payment-ledger-export.mjs",
     "test:payment-operations-hardening": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payment-operations-hardening.mjs",
     "test:stripe": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-stripe-integration.mjs",
+    "test:checkout-session-params": "node scripts/test-checkout-session-params.mjs",
     "test:stripe-dispute-integrity": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-stripe-dispute-integrity.mjs",
     "test:payment-reference-integrity": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payment-reference-integrity.mjs",
     "test:order-notifications": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-order-notifications.mjs",
