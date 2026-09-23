@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input, { PasswordInput } from '@/components/ui/Input';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { AUTH_ROLES, type AuthRole } from '@/lib/auth/config';
 import { FANTASY_PERMISSIONS, PERMISSION_GROUPS, type PermissionKey, isFullAccessRole } from '@/lib/auth/permissions';
 
@@ -111,7 +111,7 @@ export default function AdminUsersPage() {
 
   const load = async () => {
     try {
-      const res = await fetch('/api/admin/users', { cache: 'no-store', credentials: 'include' });
+      const res = await adminFetch('/api/admin/users', { cache: 'no-store', credentials: 'include' });
       const data = await parseApiResponse<{ users?: User[] }>(res);
       setUsers(data.users || []);
     } catch (error) {
@@ -138,7 +138,7 @@ export default function AdminUsersPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await adminFetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -184,7 +184,7 @@ export default function AdminUsersPage() {
 
     setEditingSaving(true);
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await adminFetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -214,7 +214,7 @@ export default function AdminUsersPage() {
 
     setEditingSaving(true);
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await adminFetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -232,7 +232,7 @@ export default function AdminUsersPage() {
 
   const toggleActive = async (user: User) => {
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await adminFetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

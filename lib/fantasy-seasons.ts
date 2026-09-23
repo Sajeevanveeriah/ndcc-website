@@ -57,20 +57,6 @@ export async function getFantasySeasons(options: { includeNonPublic?: boolean } 
   return options.includeNonPublic ? seasons : operationalSeasons(seasons);
 }
 
-export async function getCurrentSeason(): Promise<FantasySeason | null> {
-  const supabase = createServerClient();
-  const { data, error } = await supabase.from('fantasy_seasons').select(SEASON_COLUMNS).eq('is_current', true).limit(1).maybeSingle();
-  if (error) throw new Error(error.message);
-  return (data as FantasySeason | null) ?? null;
-}
-
-export async function getSeasonById(seasonId: string): Promise<FantasySeason | null> {
-  const supabase = createServerClient();
-  const { data, error } = await supabase.from('fantasy_seasons').select(SEASON_COLUMNS).eq('id', seasonId).limit(1).maybeSingle();
-  if (error) throw new Error(error.message);
-  return (data as FantasySeason | null) ?? null;
-}
-
 // Resolve the season a public page/API should show. `selector` is a slug or id
 // from the ?season= query param; missing/unknown selectors fall back to the
 // current season, then the most recent public season. Non-public seasons only

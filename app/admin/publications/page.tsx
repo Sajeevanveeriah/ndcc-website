@@ -10,6 +10,9 @@ import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import EditorialHistory from '@/components/admin/EditorialHistory';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
+import DraftRestorePrompt from '@/components/admin/DraftRestorePrompt';
+import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
+import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { BookOpen, Plus, Pencil, Trash2, Copy, Star, ExternalLink, Eye } from 'lucide-react';
@@ -71,10 +74,16 @@ export default function AdminPublicationsPage() {
   const [batchBusy, setBatchBusy] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const draft = useDraftAutosave({ editor: 'publications', recordId: editingId, value: form, active: modalOpen });
+  useUnsavedChangesGuard(draft.dirty);
+  const restoreDraft = () => {
+    const saved = draft.restoreDraft();
+    if (saved) setForm(saved);
+  };
 
   const fetchPublications = async () => {
     try {
-      const response = await fetch('/api/admin/resources/publications', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/publications', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Publication[] }>(response);
       setPublications(result.data || []);
     } catch (err) {
@@ -205,6 +214,7 @@ export default function AdminPublicationsPage() {
         const result = await parseApiResponse<{ data: Publication }>(response);
         if (result.data) setPublications((prev) => [result.data, ...prev]);
       }
+      draft.clearDraft();
       setFeedback({ type: 'success', message: editingId ? 'Publication updated.' : 'Publication created.' });
       setModalOpen(false);
     } catch (err) {
@@ -246,7 +256,7 @@ export default function AdminPublicationsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/publications?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/publications?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setPublications((prev) => prev.filter((n) => n.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -289,7 +299,7 @@ export default function AdminPublicationsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/publications?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/publications?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected publications deleted.'
   );
 
@@ -462,6 +472,7 @@ export default function AdminPublicationsPage() {
         title={editingId ? 'Edit Publication' : 'New Publication'}
         size="xl"
       >
+        {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
         {editingId && <EditorialHistory key={editingId} resource="publications" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as Publication)} />}
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

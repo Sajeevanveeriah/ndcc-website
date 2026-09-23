@@ -104,9 +104,9 @@ export default function AdminOrdersPage() {
   const fetchAll = async () => {
     try {
       const [ordersRes, paymentsRes, settingsRes] = await Promise.all([
-        fetch('/api/admin/resources/orders?deleted=include', { cache: 'no-store' }),
-        fetch('/api/admin/orders/payments', { cache: 'no-store' }),
-        fetch('/api/admin/resources/merchPaymentSettings', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/orders?deleted=include', { cache: 'no-store' }),
+        adminFetch('/api/admin/orders/payments', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/merchPaymentSettings', { cache: 'no-store' }),
       ]);
       const ordersData = await parseApiResponse<{ data?: AdminOrder[] }>(ordersRes);
       setOrders(ordersData.data || []);
@@ -130,7 +130,7 @@ export default function AdminOrdersPage() {
 
   const handleSetProcessed = async (id: string, processed: boolean) => {
     try {
-      const response = await fetch('/api/admin/resources/orders', {
+      const response = await adminFetch('/api/admin/resources/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, processed }),
@@ -169,7 +169,7 @@ export default function AdminOrdersPage() {
     paymentOperationRef.current = { signature: operationSignature, id: operationId };
     setSavingPayment(true);
     try {
-      const response = await fetch('/api/admin/orders/payments', {
+      const response = await adminFetch('/api/admin/orders/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -211,7 +211,7 @@ export default function AdminOrdersPage() {
     );
     if (!confirmed) return;
     try {
-      const response = await fetch('/api/admin/orders/payments', {
+      const response = await adminFetch('/api/admin/orders/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reverses_payment_id: payment.id }),
@@ -227,7 +227,7 @@ export default function AdminOrdersPage() {
   const handleSaveSettings = async (next: PaymentSettings) => {
     setSavingSettings(true);
     try {
-      const response = await fetch('/api/admin/resources/merchPaymentSettings', {
+      const response = await adminFetch('/api/admin/resources/merchPaymentSettings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

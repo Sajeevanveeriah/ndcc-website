@@ -12,6 +12,9 @@ import ImageUploadField from '@/components/admin/ImageUploadField';
 import EditorialHistory from '@/components/admin/EditorialHistory';
 import NewsImageUploadField from '@/components/admin/NewsImageUploadField';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
+import DraftRestorePrompt from '@/components/admin/DraftRestorePrompt';
+import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
+import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react';
@@ -40,10 +43,18 @@ export default function AdminNewsPage() {
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchBusy, setBatchBusy] = useState(false);
+  const draft = useDraftAutosave({ editor: 'news', recordId: editingId, value: { form, galleryImages }, active: modalOpen });
+  useUnsavedChangesGuard(draft.dirty);
+  const restoreDraft = () => {
+    const saved = draft.restoreDraft();
+    if (!saved) return;
+    setForm(saved.form);
+    setGalleryImages(saved.galleryImages);
+  };
 
   const fetchNews = async () => {
     try {
-      const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/news', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: NewsPost[] }>(response);
       const ordered = (result.data || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
       setNews(ordered);
@@ -136,6 +147,7 @@ export default function AdminNewsPage() {
         const result = await parseApiResponse<{ data: NewsPost }>(response);
         if (result.data) setNews((prev) => [result.data, ...prev]);
       }
+      draft.clearDraft();
       setFeedback({ type: 'success', message: editingId ? 'Article updated.' : 'Article created.' });
       setModalOpen(false);
     } catch (err) {
@@ -147,7 +159,7 @@ export default function AdminNewsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setNews((prev) => prev.filter((n) => n.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -190,7 +202,7 @@ export default function AdminNewsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/news?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/news?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected articles deleted.'
   );
 
@@ -311,6 +323,7 @@ export default function AdminNewsPage() {
         title={editingId ? 'Edit Article' : 'Write Article'}
         size="lg"
       >
+        {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
         {editingId && <EditorialHistory key={editingId} resource="news" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as NewsPost)} />}
         <div className="space-y-4">
           <Input

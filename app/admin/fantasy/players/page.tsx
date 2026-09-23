@@ -69,7 +69,7 @@ export default function AdminFantasyPlayersPage() {
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const response = await fetch('/api/admin/fantasy/players', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/fantasy/players', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: FantasyPlayer[] }>(response);
         setPlayers(sortPlayers(result.data || []));
       } catch (err) {

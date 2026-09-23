@@ -12,7 +12,7 @@ This repository contains:
 - PlayHQ-backed fixtures and fantasy cricket administration;
 - merchandise, ordering and payment workflows;
 - news, events, calendar, gallery, sponsors, publications, kitchen, membership and volunteer modules;
-- production integrations for Supabase, Vercel, Resend, Stripe and GitHub-backed media.
+- production integrations for Supabase (database, auth and Storage media), Vercel, Resend and Stripe.
 
 ## Current Operating Model
 
@@ -29,7 +29,7 @@ This repository contains:
 | Payments | Manual bank-transfer mode by default, with a separately gated Stripe Checkout path |
 | App email | Resend API through the server-only application email helper |
 | Authentication email | Supabase Auth SMTP, configured independently from app email |
-| Single CMS media | GitHub Contents API commit under `public/images`, followed by Vercel git auto-deployment |
+| Single CMS media | Validated upload to the public Supabase Storage bucket `cms-media` (via the private `cms-media-staging` bucket); no deployment required |
 | Bulk gallery media | Direct browser upload to Supabase Storage through short-lived signed upload tokens |
 | Deployment | Vercel production deployment from the configured Git branch, with scheduled cron routes |
 
@@ -52,10 +52,9 @@ flowchart LR
 
     R --> E[Resend API]
     R --> T[Stripe]
-    R --> G[GitHub Contents API]
-    G --> D[Vercel git deployment]
+    R --> ST[(Supabase Storage)]
 
-    B[Bulk gallery upload] --> ST[(Supabase Storage)]
+    B[Bulk gallery upload] --> ST
     N --> ST
 ```
 
@@ -64,8 +63,8 @@ flowchart LR
 - Supabase is the source of truth for mutable CMS and operational records.
 - `supabase/migrations` and `supabase/remote-migration-history.json` define the reconciled database migration history.
 - PlayHQ is the source of truth for fixtures and supported imported cricket statistics.
-- GitHub stores versioned application code and single-file CMS media committed under `public/images`.
-- Supabase Storage stores bulk gallery originals.
+- GitHub stores versioned application code and bundled static assets under `public/`.
+- Supabase Storage stores CMS media uploads (bucket `cms-media`) and bulk gallery originals.
 - Vercel environment variables and scheduled functions define deployment-time behaviour.
 - Resend handles application transactional email.
 - Supabase Auth SMTP handles fantasy authentication email.
@@ -75,20 +74,20 @@ flowchart LR
 
 | Layer | Package or service |
 | --- | --- |
-| Framework | Next.js `14.2.35`, App Router |
+| Framework | Next.js `15.5.x` (currently `15.5.24`), App Router |
 | UI runtime | React `18`, React DOM `18` |
 | Language | TypeScript `5` |
 | Styling | Tailwind CSS `3.4.1` |
 | Motion | Framer Motion `12.40.0` |
 | Icons | Lucide React |
 | Theme handling | `next-themes` |
-| Database and auth | Supabase Postgres, `@supabase/supabase-js` `2.99.1`, `@supabase/ssr` `0.9.0` |
+| Database and auth | Supabase Postgres, `@supabase/supabase-js` `2.99.x` |
 | Calendar | FullCalendar `6.1.21` |
 | App email | Resend `6.12.3` |
 | Payments | Stripe server SDK `22.4.0` |
-| Image processing | Sharp |
+| Image processing | Sharp `0.35.4` (runtime dependency for CMS media validation) |
 | Hosting and cron | Vercel, region `sin1` |
-| Continuous integration | GitHub Actions on Node.js `22`, with PostgreSQL `16` for database tests |
+| Continuous integration | GitHub Actions on Node.js `24`, with PostgreSQL `17` for database tests |
 
 The package is marked private and is not intended for npm publication. The repository uses `npm` with a committed lockfile.
 
@@ -96,7 +95,7 @@ The package is marked private and is not intended for npm publication. The repos
 
 ### Prerequisites
 
-- Node.js 22, matching the GitHub Actions runtime
+- Node.js 24, matching the GitHub Actions runtime
 - npm
 - access to the required Supabase project or a suitable development project
 - only the external credentials needed for the feature being tested
@@ -146,6 +145,7 @@ Only variables intentionally prefixed with `NEXT_PUBLIC_` may enter the browser 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (optional, public Turnstile site key)
 
 ### Server-only groups
 
@@ -155,10 +155,10 @@ Only variables intentionally prefixed with `NEXT_PUBLIC_` may enter the browser 
 | Payments | `PAYMENT_PROVIDER`, `PAYMENT_TEST_MODE`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Manual or Checkout selection and settlement |
 | PlayHQ | `PLAYHQ_API_BASE_URL`, `PLAYHQ_TENANT`, `PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_DEFAULT_SEASON_ID`, `PLAYHQ_DEFAULT_GRADE_IDS`, `PLAYHQ_CACHE_REVALIDATE_SECONDS` | Fixtures and PlayHQ-backed season data |
 | Scheduled operations | `CRON_SECRET`, `PLAYHQ_FANTASY_SYNC_ENABLED`, `PLAYHQ_FANTASY_SYNC_BATCH_SIZE` | Guarded fantasy sync and durable payment-receipt retry |
-| App email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM`, `RECEIPT_REPLY_TO_EMAIL`, `EMAIL_TEST_MODE` | Server-side application notifications and optional receipt reply routing |
+| App email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, `RECEIPT_REPLY_TO_EMAIL`, `EMAIL_TEST_MODE` | Server-side application notifications, delivery webhook verification and optional receipt reply routing |
 | Contact recipients | `CONTACT_TO_EMAIL`, `CONTACT_CC_EMAILS`, `CONTACT_BCC_EMAILS` | Notification routing |
 | Bank transfer | `NDCC_BANK_ACCOUNT_NAME`, `NDCC_BANK_BSB`, `NDCC_BANK_ACCOUNT_NUMBER` | Order and payment instructions |
-| CMS media | `GITHUB_CONTENTS_TOKEN`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`, `GITHUB_CONTENTS_BRANCH`, `GITHUB_MEDIA_BASE_PATH`, `GITHUB_COMMITTER_NAME`, `GITHUB_COMMITTER_EMAIL` | Single-file CMS upload commits |
+| Bot protection | `TURNSTILE_SECRET_KEY` | Optional Cloudflare Turnstile verification for public forms |
 | Admin diagnostics | `ADMIN_AUTH_READINESS_ENABLED`, `ADMIN_DIAGNOSTIC_TOKEN`, `DIAGNOSTIC_MUTATION_ENABLED` | Temporary, explicitly enabled authentication diagnostics |
 | Cookie scope | `AUTH_COOKIE_DOMAIN` | Optional bare-domain cookie scope |
 
@@ -175,7 +175,7 @@ Supabase Postgres stores CMS content, committee users and sessions, orders, paym
 - Run `npm run check:migrations` before release.
 - New migrations must use a unique full `YYYYMMDDHHMMSS` prefix.
 - Do not rename or replay historical migrations without following the reconciliation runbook.
-- `supabase/schema.sql` is a dated legacy snapshot, not the authoritative migration history.
+- `supabase/schema.sql` is a schema snapshot, not the authoritative migration history. Refresh it manually with `SUPABASE_DB_URL=... npm run db:dump-schema` (wraps `supabase db dump --schema-only`; needs the Supabase CLI and a database URL; never run in CI).
 - A brand-new environment needs the documented migration-reconciliation process because some production tables predate the current migrations folder.
 
 See [Migration History Reconciliation](docs/operations/20260716-Migration-History-Reconciliation-Rev00.md).
@@ -235,11 +235,11 @@ The admin navigation is grouped for non-technical committee users. Common module
 | Group | Main modules |
 | --- | --- |
 | Home | Dashboard |
-| Season | Start New Season, Player Registration, Club Details, Teams, Appointments, Training and Calendar |
+| Season | Start New Season, Player Registration, Club & Contact Details, Teams, Appointments, Training and Calendar |
 | Publish | News, Publications, Events, Pages and Links, Page Sections, Gallery |
 | Club | History, Minutes |
 | Community | Volunteers, Memberships, Enquiries |
-| Commercial | Sponsors, Merchandise, Kitchen, Orders, Payments |
+| Commercial | Sponsors, Merchandise, Kitchen, Raffle, Orders, Payments (including outstanding balances) |
 | Fantasy | Fantasy Home, Seasons and PlayHQ, Players, Imports, Historical Review, PlayHQ Diagnostics |
 | Administration | Users, Email Diagnostics, Media Diagnostics, Password |
 
@@ -543,21 +543,18 @@ See [Email Setup](docs/email-setup.md).
 
 ### Single CMS media file
 
-Admin image fields use the GitHub Contents API.
+Admin image and document fields upload to Supabase Storage.
 
-1. The server validates the configured repository, branch and media path.
-2. The file is committed under `public/images` or an allowed subdirectory.
-3. The CMS stores a browser path beginning with `/images/`.
-4. The Git commit triggers the configured Vercel git deployment.
-5. The image becomes public after that deployment succeeds.
+1. The browser asks `/api/admin/media/upload` to prepare an upload and receives a short-lived signed URL for the private `cms-media-staging` bucket.
+2. The file bytes go directly to staging storage, outside the hosting request-size limit.
+3. The server validates and re-encodes the file (images are optimised and stripped of metadata; PDFs are checked) and publishes it to the public `cms-media` bucket under a content-addressed path.
+4. The CMS stores the returned public URL. No deployment is required and duplicate files share one URL.
 
-Do not configure a Vercel deploy hook for this path. The Git commit already triggers deployment, and a second hook can create duplicate deployment attempts.
-
-Use `/admin/media-diagnostics` to inspect configuration presence and test repository access without committing a file.
+Use `/admin/media-diagnostics` to check that both buckets exist with the expected access settings. The legacy GitHub Contents API upload path and its `GITHUB_*` variables are retired.
 
 ### Bulk gallery upload
 
-Bulk gallery uploads use Supabase Storage rather than GitHub.
+Bulk gallery uploads also use Supabase Storage.
 
 - originals upload directly from the browser through short-lived signed tokens;
 - the Vercel function handles metadata, not image bytes;
@@ -574,8 +571,7 @@ Mutable CMS pages and public CMS APIs are request-time and no-store.
 - successful live queries are authoritative, including a successful empty result;
 - fallback content is used only when the environment is unconfigured or a live query fails;
 - fallback rows are not merged over successful live results;
-- CMS edits normally appear without a deployment;
-- GitHub-backed media is the exception because the file must first reach a successful Vercel deployment;
+- CMS edits, including uploaded media, normally appear without a deployment;
 - PlayHQ caching remains separately configurable.
 
 Do not reintroduce build-time seed content, ISR or shared cache layers for mutable CMS routes without a deliberate data-freshness review.
@@ -595,7 +591,7 @@ Key controls include:
 - idempotent payment and import paths;
 - no-store admin and mutable public responses;
 - GitHub secret scanning;
-- blocking critical dependency audit in CI;
+- blocking high and critical dependency audit in CI;
 - security headers in `next.config.mjs`.
 
 The Content Security Policy is currently report-only. Do not switch it to enforcement until Stripe, Supabase, Google embeds, Next.js runtime behaviour and current inline requirements have been verified in the real application.
@@ -624,11 +620,12 @@ lib/
   fallback-content.ts           Degraded-state fallback content
   email.ts                      Resend app email helper
 public/
-  images/                       Versioned public and CMS-uploaded assets
+  images/                       Versioned public assets (CMS uploads live in Supabase Storage)
 scripts/
   admin/                        User provisioning and administration scripts
   production/                   Explicit production scripts
   restore/                      Recovery and diagnostics scripts
+  run-all-tests.mjs             npm test runner
   test-*.mjs                    Deterministic focused tests
   smoke-*.mjs                   Route and content smoke tests
 supabase/
@@ -637,6 +634,7 @@ supabase/
   schema.sql                    Legacy snapshot
 docs/
   operations/                   Operator runbooks and incident procedures
+  archive/                      Dated session logs and completion reports (historical)
 middleware.ts                   Admin login redirect boundary
 next.config.mjs                 Images and security headers
 vercel.json                     Region and cron configuration
@@ -647,8 +645,11 @@ vercel.json                     Region and cron configuration
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start local development |
+| `npm test` | Run every test, smoke and check script that needs no database, secrets or network (see below) |
 | `npm run lint` | Run Next.js ESLint checks |
-| `npx tsc --noEmit` | Run a direct TypeScript check |
+| `npm run typecheck` | Run a direct TypeScript check (`tsc --noEmit`) |
+| `npm run check:unused` | Advisory unused files/exports/dependencies report (knip); not part of `npm test` |
+| `npm run db:dump-schema` | Refresh `supabase/schema.sql` from a database (manual; needs `SUPABASE_DB_URL`) |
 | `npm run build` | Build the production application |
 | `npm run smoke` | Smoke-test core routes |
 | `npm run smoke:content` | Smoke-test CMS-driven content routes |
@@ -670,43 +671,35 @@ vercel.json                     Region and cron configuration
 | `npm run test:fantasy-reconciliation` | Test fantasy import reconciliation |
 | `npm run test:migration-replay` | Replay database migrations against PostgreSQL |
 
-Run the focused tests for the changed behaviour, then run lint and the production build. Database tests require PostgreSQL.
+Run the focused tests for the changed behaviour, then `npm test`, lint, typecheck and the production build. Database tests require PostgreSQL.
+
+### `npm test`
+
+`scripts/run-all-tests.mjs` discovers every `test:*`, `smoke:*` and `check:*` package script plus the direct test scripts listed in the runner, runs them with limited concurrency and reports every failure at the end rather than stopping at the first. Useful options:
+
+```bash
+npm test -- --list              # show the resolved test list and exclusions
+npm test -- --only=raffle,seo   # run tests whose label contains a term
+npm test -- --verbose           # print output of passing tests too
+TEST_CONCURRENCY=1 npm test     # run sequentially
+```
+
+Scripts that need a running server, live Supabase, email credentials or PostgreSQL are excluded with a reason in the runner (`EXCLUDED`). The PostgreSQL-backed tests run in the CI `database-tests` job. A new `scripts/test-*.mjs` file that is neither wired into `npm test` nor excluded fails the run.
 
 ## Continuous Integration
 
 `.github/workflows/pr-validation.yml` runs on every pull request and every push to `main`.
 
-### `validate`
+The jobs run in parallel on Node.js 24:
 
-Uses Node.js 22 and runs:
-
-- permission, auth, CMS navigation and schema tests;
-- lint;
-- migration and asset checks;
-- PlayHQ normalisation;
-- fantasy orchestration, reconciliation, season and smoke tests;
-- content smoke tests;
-- apparel pricing;
-- payment and Stripe tests;
-- player registration;
-- merchandise export;
-- production build.
-
-### `database-tests`
-
-Uses PostgreSQL 16 and runs:
-
-- apparel catalogue database tests;
-- payments ledger tests;
-- full migration replay.
-
-### `security-scans`
-
-Runs:
-
-- Gitleaks secret scanning;
-- blocking `npm audit --audit-level=critical`;
-- informational high-severity dependency audit.
+| Job | Runs |
+| --- | --- |
+| `lint` | `npm run lint` and `npx tsc --noEmit` |
+| `tests` | `npm test` |
+| `build` | `npm run build` |
+| `validate` | Aggregate gate that passes only when `lint`, `tests` and `build` pass; keeps the historical required-check name |
+| `database-tests` | PostgreSQL 17 service: apparel catalogue, payments ledger, gallery albums (advisory), security privilege defaults and full migration replay |
+| `security-scans` | Gitleaks secret scanning and blocking `npm audit --audit-level=high` |
 
 A CI pass does not replace live Vercel, Supabase, Resend, Stripe, PlayHQ or browser acceptance where a change affects those systems.
 
@@ -720,13 +713,15 @@ Scheduled routes:
 | --- | --- | --- |
 | `/api/cron/keep-alive` | `0 5 * * *` | Daily keep-alive |
 | `/api/cron/playhq-fantasy-sync` | `30 16 * * *` | Daily bounded fantasy sync |
+| `/api/cron/payment-receipts` | `10 5 * * *` | Durable payment-receipt retry |
+| `/api/cron/dino-pricing` | `5 23 * * *` | Dino Coach pricing |
+| `/api/cron/dino-registration` | `0 22 * * *` | Dino Coach registration notices |
+| `/api/cron/apparel-reminders` | `0 10 * * *` | Apparel balance reminders |
 
 Operational rules:
 
 - environment-variable changes require a new deployment;
-- CMS content changes usually do not;
-- GitHub-backed media requires the automatic deployment triggered by its commit;
-- do not add a second deploy hook to the media path;
+- CMS content and media changes usually do not;
 - validate the actual deployment and public route before claiming a production change is complete;
 - dashboard settings in Vercel, Supabase, Resend, Stripe, GitHub and the DNS provider are not controlled by this repository.
 
@@ -753,7 +748,7 @@ Before changing the repository:
 5. Keep important event information as accessible HTML, not only inside images.
 6. Use meaningful alt text and optimise large public images.
 7. Add the smallest focused test for changed observable behaviour.
-8. Run the relevant checks, lint and build.
+8. Run the relevant checks, `npm test`, lint, typecheck and build.
 9. Prefer a small reviewable pull request.
 10. Verify the live system separately when the change affects an external service.
 
@@ -763,12 +758,17 @@ Before changing the repository:
 - Supabase Auth email depends on target-project SMTP configuration.
 - Stripe Checkout depends on matching server keys, webhook configuration, provider selection and CMS enablement.
 - Historical migration bookkeeping requires the remote-history manifest and reconciliation runbook.
-- GitHub-backed CMS media is not public until its deployment succeeds.
 - Bulk gallery originals are preserved unless explicitly cleaned up.
 - PlayHQ imports hold ambiguous records for review instead of guessing.
 - Public CMS freshness depends on retaining request-time no-store behaviour.
 - The Content Security Policy is report-only pending real-interface validation.
 - Dashboard settings and secrets must be maintained outside the repository.
+
+## Contributing
+
+- Work on a branch and open a pull request; the `PR validation` workflow runs `lint`, `tests`, `build`, `validate`, `database-tests` and `security-scans` on every pull request.
+- Direct pushes to `main` bypass pull-request checks: the workflow still runs on the push, but only after the change is already on `main` (and deployed by Vercel). Branch protection that requires the checks above cannot be configured from this repository; a repository admin must enable it in GitHub settings.
+- Dated session logs and completion reports live in `docs/archive/`; keep operator runbooks in `docs/` and `docs/operations/`.
 
 ## Licence
 

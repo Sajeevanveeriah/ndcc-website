@@ -43,13 +43,6 @@ export function nextClubSeasonDraft(current: Pick<ClubSeason, 'start_date' | 'en
   };
 }
 
-export async function getClubSeasons() {
-  const supabase = createServerClient();
-  const { data, error } = await supabase.from('club_seasons').select(CLUB_SEASON_COLUMNS).order('start_date', { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data || []) as ClubSeason[];
-}
-
 export async function getCurrentClubSeason() {
   const supabase = createServerClient();
   const { data, error } = await supabase.from('club_seasons').select(CLUB_SEASON_COLUMNS).eq('is_current', true).limit(1).maybeSingle();

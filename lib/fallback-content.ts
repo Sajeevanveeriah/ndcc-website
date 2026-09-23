@@ -233,28 +233,6 @@ export function canonicalEventKey(event: Pick<Event, 'id' | 'title'>) {
   return titleKey || String(event.id || '').trim();
 }
 
-export function mergeEventsWithFallback<T extends Partial<Event> & { id: string; title: string }>(events: T[] | null | undefined) {
-  const byCanonical = new Map<string, T | Event>();
-
-  for (const event of (events || []).filter((item) => item.title?.trim())) {
-    byCanonical.set(canonicalEventKey(event as Event), {
-      ...event,
-      image_url: normalizeEventImage(event.title, event.image_url || null),
-    });
-  }
-
-  for (const event of fallbackEvents) {
-    const key = canonicalEventKey(event);
-    if (!byCanonical.has(key)) byCanonical.set(key, event);
-  }
-
-  return Array.from(byCanonical.values()).sort((a, b) => {
-    const aTime = Date.parse(String(a.date || '')) || Number.MAX_SAFE_INTEGER;
-    const bTime = Date.parse(String(b.date || '')) || Number.MAX_SAFE_INTEGER;
-    return aTime - bTime;
-  }) as Array<T & Event>;
-}
-
 export const fallbackGalleryImages = [];
 
 

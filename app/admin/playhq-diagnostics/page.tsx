@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { adminFetch } from '@/lib/admin-client';
 
 type Diagnostics = {
   success: boolean;
@@ -29,7 +30,7 @@ export default function PlayHQDiagnosticsPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/playhq/diagnostics', { cache: 'no-store', credentials: 'include' });
+      const response = await adminFetch('/api/admin/playhq/diagnostics', { cache: 'no-store', credentials: 'include' });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || 'Diagnostics failed.');
       setData(json);

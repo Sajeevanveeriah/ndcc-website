@@ -132,7 +132,11 @@ test('the security regression is wired into package scripts and PR validation', 
   const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
   const workflow = readFileSync(path.join(repoRoot, '.github/workflows/pr-validation.yml'), 'utf8');
   assert.match(packageJson.scripts['test:public-link-security'], /test-public-link-security\.mjs/);
-  assert.match(workflow, /npm run test:public-link-security/);
+  // CI runs every test: script through `npm test` (scripts/run-all-tests.mjs).
+  assert.match(workflow, /run: npm test\b/);
+  assert.equal(packageJson.scripts.test, 'node scripts/run-all-tests.mjs');
+  const runner = readFileSync(path.join(repoRoot, 'scripts/run-all-tests.mjs'), 'utf8');
+  assert.doesNotMatch(runner.match(/export const EXCLUDED = \{[\s\S]*?\n\};/)?.[0] ?? '', /'test:public-link-security'/);
 });
 
 console.log(`Public link URL security checks passed (${passed} checks).`);

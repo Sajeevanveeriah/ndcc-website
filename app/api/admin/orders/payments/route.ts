@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { fetchAllPages } from '@/lib/supabase-paginate';
 import { requirePermission } from '@/lib/auth/guard';
 import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 import { generateUniquePaymentReference, normalisePaymentReferenceCategory } from '@/lib/payments/reference';
@@ -23,14 +24,16 @@ export async function GET(request: Request) {
   const orderId = searchParams.get('order_id');
 
   const supabase = createServerClient();
-  let query = supabase
-    .from('order_payments')
-    .select('id,order_id,payment_reference,client_operation_id,amount,currency,method,provider,provider_reference,status,received_at,recorded_by,notes,reverses_payment_id,created_at')
-    .order('created_at', { ascending: false })
-    .limit(1000);
-  if (orderId) query = query.eq('order_id', orderId);
-
-  const { data, error } = await query;
+  // Page past PostgREST's 1000-row cap so the ledger is complete.
+  const { data, error } = await fetchAllPages((from, to, stable) => {
+    let query = supabase
+      .from('order_payments')
+      .select('id,order_id,payment_reference,client_operation_id,amount,currency,method,provider,provider_reference,status,received_at,recorded_by,notes,reverses_payment_id,created_at')
+      .order('created_at', { ascending: false });
+    if (stable) query = query.order('id', { ascending: true });
+    if (orderId) query = query.eq('order_id', orderId);
+    return query.range(from, to);
+  });
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, data: data ?? [] });
 }

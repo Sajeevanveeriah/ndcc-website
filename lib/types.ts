@@ -134,14 +134,6 @@ export interface NewsPost {
   image?: string;
 }
 
-export interface Profile {
-  id: string;
-  email: string;
-  role: string;
-  display_name: string;
-  created_at: string;
-}
-
 export interface CommitteeMember {
   name: string;
   role: string;
