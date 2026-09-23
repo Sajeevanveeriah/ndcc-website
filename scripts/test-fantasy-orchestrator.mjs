@@ -199,10 +199,15 @@ try {
   // GETs failed 10 game imports on duplicate round keys).
   const supabaseServer = readFileSync(join(repoRoot, 'lib/supabase-server.ts'), 'utf8');
   const timeoutFetch = readFileSync(join(repoRoot, 'lib/server/timeout-fetch.ts'), 'utf8');
+  // The short-lived public read cache is opt-in for public CMS helpers only;
+  // the default server client and every sync/fantasy module stay uncached.
+  const syncModules = ['lib/playhq/fantasy-sync.ts', 'lib/playhq/fantasy-orchestrator.ts', 'lib/fantasy-game.ts', 'lib/fantasy-seasons.ts', 'lib/fantasy-leaderboard.ts'];
   check('supabase server fetch is never cached',
     supabaseServer.includes("import { createTimeoutFetch } from './server/timeout-fetch'")
-      && supabaseServer.includes('fetch: createTimeoutFetch(')
-      && timeoutFetch.includes("cache: 'no-store'"));
+      && supabaseServer.includes('createTimeoutFetch(options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS')
+      && supabaseServer.includes('options.publicReadCache ? withPublicReadCache(')
+      && timeoutFetch.includes("cache: 'no-store'")
+      && syncModules.every((path) => !readFileSync(join(repoRoot, path), 'utf8').includes('publicReadCache')));
   check('ensureRound adopts an existing round on duplicate-key conflict',
     syncSource.includes("error.code === '23505'") && syncSource.includes('readRound'));
 

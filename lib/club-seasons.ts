@@ -44,7 +44,7 @@ export function nextClubSeasonDraft(current: Pick<ClubSeason, 'start_date' | 'en
 }
 
 export async function getCurrentClubSeason() {
-  const supabase = createServerClient();
+  const supabase = createServerClient({ publicReadCache: true });
   const { data, error } = await supabase.from('club_seasons').select(CLUB_SEASON_COLUMNS).eq('is_current', true).limit(1).maybeSingle();
   if (error) throw new Error(error.message);
   return data as ClubSeason | null;

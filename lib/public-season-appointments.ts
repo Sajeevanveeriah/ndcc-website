@@ -33,7 +33,7 @@ export async function getPublicSeasonAppointments(): Promise<PublicSeasonAppoint
     throw new Error('Supabase server client is not configured for public season appointments.');
   }
 
-  const supabase = createServerClient();
+  const supabase = createServerClient({ publicReadCache: true });
   const currentSeason = await getCurrentClubSeason();
   if (!currentSeason || !shouldShowSeasonAppointments(currentSeason)) return [];
   const { data, error } = await supabase

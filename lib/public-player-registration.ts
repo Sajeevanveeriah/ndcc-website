@@ -20,7 +20,7 @@ export async function getPublicPlayerRegistration(): Promise<PublicPlayerRegistr
   if (!isServerSupabaseConfigured()) return null;
 
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data: season, error: seasonError } = await supabase
       .from('club_seasons')
       .select('id,name')
