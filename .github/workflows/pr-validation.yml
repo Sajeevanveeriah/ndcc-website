@@ -86,7 +86,10 @@ jobs:
       - run: npm ci
       - run: npm run test:apparel-catalogue
       - run: npm run test:payments-ledger
+      # Previously never run in CI; advisory until it has passed on main once,
+      # then remove continue-on-error.
       - run: npm run test:gallery-albums
+        continue-on-error: true
       - run: npm run test:security-privilege-defaults-hardening:db
       - run: npm run test:migration-replay
 
