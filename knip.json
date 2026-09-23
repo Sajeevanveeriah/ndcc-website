@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "scripts/**/*.{mjs,cjs,js}"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "scripts/**/*.{mjs,cjs,js}",
+    "middleware.ts"
+  ],
+  "ignoreBinaries": [
+    "psql"
+  ]
+}
