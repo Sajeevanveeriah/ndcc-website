@@ -83,7 +83,7 @@ export default function AdminPublicationsPage() {
 
   const fetchPublications = async () => {
     try {
-      const response = await fetch('/api/admin/resources/publications', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/publications', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Publication[] }>(response);
       setPublications(result.data || []);
     } catch (err) {
@@ -256,7 +256,7 @@ export default function AdminPublicationsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/publications?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/publications?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setPublications((prev) => prev.filter((n) => n.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -299,7 +299,7 @@ export default function AdminPublicationsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/publications?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/publications?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected publications deleted.'
   );
 

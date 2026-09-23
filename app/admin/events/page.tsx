@@ -58,7 +58,7 @@ export default function AdminEventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/admin/resources/events', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/events', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Event[] }>(response);
       setEvents(result.data || []);
     } catch (err) {
@@ -71,7 +71,7 @@ export default function AdminEventsPage() {
   useEffect(() => {
     const fetchRegistrations = async () => {
       try {
-        const response = await fetch('/api/admin/resources/eventRegistrations', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/eventRegistrations', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: EventRegistration[] }>(response);
         setRegistrations(result.data || []);
       } catch (err) {
@@ -169,7 +169,7 @@ export default function AdminEventsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/events?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setEvents((prev) => prev.filter((e) => e.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -212,7 +212,7 @@ export default function AdminEventsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/events?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/events?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected events deleted.'
   );
 

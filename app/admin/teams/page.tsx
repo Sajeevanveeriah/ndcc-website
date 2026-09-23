@@ -51,7 +51,7 @@ export default function AdminTeamsPage() {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const response = await fetch('/api/admin/resources/teams', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/teams', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: TeamRecord[] }>(response);
         setTeams(sortTeams(result.data || []));
       } catch (err) {
@@ -143,7 +143,7 @@ export default function AdminTeamsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/teams?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/teams?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setTeams((prev) => prev.filter((item) => item.id !== id));
       setFeedback({ type: 'success', message: 'Team deleted.' });

@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { UploadCloud, RefreshCcw, X } from 'lucide-react';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { supabase as supabaseBrowserClient } from '@/lib/supabase';
 import {
   GALLERY_MEDIA_BUCKET,
@@ -129,7 +129,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
 
   const loadAlbums = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/gallery/albums', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/gallery/albums', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: AdminAlbum[] }>(response);
       setAlbums(result.data ?? []);
     } catch (err) {
@@ -245,7 +245,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
     }
     setCreatingAlbum(true);
     try {
-      const response = await fetch('/api/admin/gallery/albums', {
+      const response = await adminFetch('/api/admin/gallery/albums', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newAlbum, event_date: newAlbum.event_date || null }),
@@ -436,7 +436,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
     setPublishBusy(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/gallery/albums', {
+      const response = await adminFetch('/api/admin/gallery/albums', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedAlbum.id, published: true, confirmPublication: true }),

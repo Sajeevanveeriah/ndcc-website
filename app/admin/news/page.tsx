@@ -54,7 +54,7 @@ export default function AdminNewsPage() {
 
   const fetchNews = async () => {
     try {
-      const response = await fetch('/api/admin/resources/news', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/news', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: NewsPost[] }>(response);
       const ordered = (result.data || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
       setNews(ordered);
@@ -159,7 +159,7 @@ export default function AdminNewsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/news?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setNews((prev) => prev.filter((n) => n.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -202,7 +202,7 @@ export default function AdminNewsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/news?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/news?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected articles deleted.'
   );
 

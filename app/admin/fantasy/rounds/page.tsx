@@ -70,7 +70,7 @@ export default function AdminFantasyRoundsPage() {
   useEffect(() => {
     const fetchRounds = async () => {
       try {
-        const response = await fetch('/api/admin/resources/fantasyRounds', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/fantasyRounds', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: FantasyRound[] }>(response);
         setRounds(sortRounds(result.data || []));
       } catch (err) {

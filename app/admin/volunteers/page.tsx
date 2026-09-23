@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate } from '@/lib/utils';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Badge from '@/components/ui/Badge';
@@ -42,7 +42,7 @@ export default function AdminVolunteersPage() {
 
   const fetchPositions = async () => {
     try {
-      const response = await fetch('/api/admin/resources/volunteerPositions', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/volunteerPositions', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: VolunteerPosition[] }>(response);
       setPositions(result.data || []);
     } catch (err) {
@@ -55,7 +55,7 @@ export default function AdminVolunteersPage() {
   useEffect(() => {
     const fetchVolunteers = async () => {
       try {
-        const response = await fetch('/api/admin/resources/volunteerExpressions', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/volunteerExpressions', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: VolunteerExpression[] }>(response);
         setVolunteers(result.data || []);
       } catch (err) {
@@ -80,7 +80,7 @@ export default function AdminVolunteersPage() {
         sort_order: Number(positionForm.sort_order || 0),
         is_active: positionForm.is_active,
       };
-      const response = await fetch('/api/admin/resources/volunteerPositions', {
+      const response = await adminFetch('/api/admin/resources/volunteerPositions', {
         method: positionForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(positionForm.id ? { id: positionForm.id, ...payload } : payload),
@@ -98,7 +98,7 @@ export default function AdminVolunteersPage() {
 
   const togglePositionActive = async (position: VolunteerPosition) => {
     try {
-      const response = await fetch('/api/admin/resources/volunteerPositions', {
+      const response = await adminFetch('/api/admin/resources/volunteerPositions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: position.id, is_active: !position.is_active }),
@@ -113,7 +113,7 @@ export default function AdminVolunteersPage() {
 
   const handleMarkContacted = async (id: string) => {
     try {
-      const response = await fetch('/api/admin/resources/volunteerExpressions', {
+      const response = await adminFetch('/api/admin/resources/volunteerExpressions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: 'contacted', contacted_at: new Date().toISOString() }),

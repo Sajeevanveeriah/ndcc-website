@@ -48,7 +48,7 @@ export default function AdminSponsorsPage() {
 
   const fetchSponsors = async () => {
     try {
-      const response = await fetch('/api/admin/resources/sponsors', { cache: 'no-store' });
+      const response = await adminFetch('/api/admin/resources/sponsors', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Sponsor[] }>(response);
       setSponsors(sortSponsorsAlphabetically(result.data || []));
     } catch (err) {
@@ -147,7 +147,7 @@ export default function AdminSponsorsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/resources/sponsors?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/admin/resources/sponsors?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setSponsors((prev) => prev.filter((s) => s.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -190,7 +190,7 @@ export default function AdminSponsorsPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`/api/admin/resources/sponsors?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`/api/admin/resources/sponsors?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected sponsors deleted.'
   );
 

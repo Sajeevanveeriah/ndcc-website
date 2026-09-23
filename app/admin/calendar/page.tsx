@@ -131,7 +131,7 @@ export default function AdminCalendarPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(RESOURCE_URL, { cache: 'no-store' });
+      const response = await adminFetch(RESOURCE_URL, { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: CalendarEvent[] }>(response);
       setEvents(result.data || []);
     } catch (err) {
@@ -252,7 +252,7 @@ export default function AdminCalendarPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`${RESOURCE_URL}?id=${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`${RESOURCE_URL}?id=${id}`, { method: 'DELETE' });
       await parseApiResponse(response);
       setEvents((prev) => prev.filter((e) => e.id !== id));
       setSelectedIds((prev) => prev.filter((v) => v !== id));
@@ -295,7 +295,7 @@ export default function AdminCalendarPage() {
   );
 
   const batchDelete = () => runBatch(
-    () => fetch(`${RESOURCE_URL}?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
+    () => adminFetch(`${RESOURCE_URL}?ids=${selectedIds.join(',')}`, { method: 'DELETE' }),
     'Selected calendar events deleted.'
   );
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { adminFetch } from '@/lib/admin-client';
 
 type ClubSeason = { id: string; name: string; is_current: boolean };
 type SeasonDraft = { name: string; slug: string; startDate: string; endDate: string };
@@ -24,7 +25,7 @@ export default function StartNewSeasonPage() {
   const summary = useMemo(() => `${form.name || 'New season'} · ${form.startDate || 'start date needed'} to ${form.endDate || 'end date needed'}`, [form]);
 
   async function load() {
-    const response = await fetch('/api/admin/club-seasons/wizard', { cache: 'no-store', credentials: 'include' });
+    const response = await adminFetch('/api/admin/club-seasons/wizard', { cache: 'no-store', credentials: 'include' });
     const json = await response.json();
     if (!response.ok || !json.success) {
       setMessage(json.error || 'Could not load season setup.');
@@ -44,7 +45,7 @@ export default function StartNewSeasonPage() {
     setMessage('');
     const idempotencyKey = `${form.name}-${form.startDate}-${form.endDate}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     try {
-      const response = await fetch('/api/admin/club-seasons/wizard', {
+      const response = await adminFetch('/api/admin/club-seasons/wizard', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -65,7 +66,7 @@ export default function StartNewSeasonPage() {
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch('/api/admin/club-seasons/wizard', {
+      const response = await adminFetch('/api/admin/club-seasons/wizard', {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

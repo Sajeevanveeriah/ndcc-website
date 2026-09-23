@@ -4,6 +4,7 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { adminFetch } from '@/lib/admin-client';
 
 type BaselinePreview = {
   rows: Array<{ rowNumber: number; playerDisplayName: string | null; submittedPlayerName: string; sourceStatus: string | null; appearances: number | null; priorAveragePoints: number | null; errors: string[] }>;
@@ -25,11 +26,11 @@ export default function FantasyReconciliationPage() {
   const [baselinePreview, setBaselinePreview] = useState<BaselinePreview | null>(null);
 
   async function load() {
-    const runRes = await fetch('/api/admin/fantasy/reconciliation', { cache: 'no-store', credentials: 'include' });
+    const runRes = await adminFetch('/api/admin/fantasy/reconciliation', { cache: 'no-store', credentials: 'include' });
     const runJson = await runRes.json();
     if (runJson.success) { setDinoPlayers(runJson.dinoPlayers || []); setReadiness(runJson.readiness); }
   }
-  async function pricing(action:'recalculate'|'publish'){setBusy(true);setMessage('');try{const res=await fetch('/api/admin/fantasy/pricing',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});const json=await res.json();if(!res.ok)throw new Error(json.error);setMessage(action==='publish'?'Dino Dollar prices published.':'Dino Dollar prices recalculated from verified evidence.');await load();}catch(err){setMessage(err instanceof Error?err.message:'Pricing action failed.');}finally{setBusy(false);}}
+  async function pricing(action:'recalculate'|'publish'){setBusy(true);setMessage('');try{const res=await adminFetch('/api/admin/fantasy/pricing',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});const json=await res.json();if(!res.ok)throw new Error(json.error);setMessage(action==='publish'?'Dino Dollar prices published.':'Dino Dollar prices recalculated from verified evidence.');await load();}catch(err){setMessage(err instanceof Error?err.message:'Pricing action failed.');}finally{setBusy(false);}}
 
   async function readBaselineFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

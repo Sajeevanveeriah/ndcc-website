@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
-import { parseApiResponse } from '@/lib/admin-client';
+import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 
 type PageLinkCard = {
   id: string;
@@ -70,8 +70,8 @@ export default function AdminSitePagesPage() {
   async function loadAll() {
     try {
       const [cardsRes, featuresRes] = await Promise.all([
-        fetch('/api/admin/resources/pageLinkCards', { cache: 'no-store' }),
-        fetch('/api/admin/resources/facilityFeatures', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/pageLinkCards', { cache: 'no-store' }),
+        adminFetch('/api/admin/resources/facilityFeatures', { cache: 'no-store' }),
       ]);
       const [cardsData, featuresData] = await Promise.all([
         parseApiResponse<{ data?: PageLinkCard[] }>(cardsRes),
@@ -104,7 +104,7 @@ export default function AdminSitePagesPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/pageLinkCards', {
+      const res = await adminFetch('/api/admin/resources/pageLinkCards', {
         method: cardForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cardForm.id ? { id: cardForm.id, ...payload } : payload),
@@ -143,7 +143,7 @@ export default function AdminSitePagesPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/resources/facilityFeatures', {
+      const res = await adminFetch('/api/admin/resources/facilityFeatures', {
         method: featureForm.id ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(featureForm.id ? { id: featureForm.id, ...payload } : payload),

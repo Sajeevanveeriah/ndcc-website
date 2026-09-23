@@ -62,7 +62,7 @@ export default function AdminClubDetailsPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/admin/resources/clubSettings', { cache: 'no-store' });
+        const response = await adminFetch('/api/admin/resources/clubSettings', { cache: 'no-store' });
         const result = await parseApiResponse<{ data?: ClubSettings[] }>(response);
         setForm(toForm(result.data?.[0] || fallbackClubSettings));
       } catch (err) {
