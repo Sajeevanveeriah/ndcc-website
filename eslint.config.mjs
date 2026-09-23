@@ -23,6 +23,9 @@ const eslintConfig = [
       '!pages/**',
       '!src/',
       '!src/**',
+      // `next build` resolves the config for this file to detect the Next.js
+      // plugin; keeping it un-ignored avoids a false "plugin not detected" warning.
+      '!eslint.config.mjs',
     ],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
