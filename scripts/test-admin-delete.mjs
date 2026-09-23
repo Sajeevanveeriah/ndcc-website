@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { canDeleteResource } from '../lib/auth/resource-delete.ts';
+import { readSplitSource } from './lib/split-source.mjs';
 
 const route = readFileSync('app/api/admin/resources/[resource]/route.ts', 'utf8');
 const button = readFileSync('components/admin/DeleteRecordButton.tsx', 'utf8');
 const enquiries = readFileSync('app/admin/enquiries/page.tsx', 'utf8');
 const volunteers = readFileSync('app/admin/volunteers/page.tsx', 'utf8');
-const orders = readFileSync('app/admin/orders/page.tsx', 'utf8');
+// The orders page was split into app/admin/orders/components/ (F64).
+const orders = readSplitSource('app/admin/orders/page.tsx', 'app/admin/orders/components');
 const events = readFileSync('app/admin/events/page.tsx', 'utf8');
 const memberships = readFileSync('app/admin/memberships/page.tsx', 'utf8');
 const kitchen = readFileSync('app/admin/kitchen/page.tsx', 'utf8');
