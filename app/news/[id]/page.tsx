@@ -8,10 +8,13 @@ import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { truncateText } from '@/lib/utils';
 import NewsDetailClient from './NewsDetailClient';
 
-// Request-time rendering: news articles are mutable CMS content.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 const getPost = cache(async (id: string): Promise<PublicNewsRecord | null> => {
   if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) return null;

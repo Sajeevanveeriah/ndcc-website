@@ -12,10 +12,13 @@ import {
 } from '@/lib/public-publications';
 import { formatDate } from '@/lib/utils';
 
-// Request-time rendering: publications are mutable CMS content.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 const SITE_URL = 'https://www.ndcc.com.au';
 

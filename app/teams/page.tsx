@@ -12,11 +12,13 @@ const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
 };
 
-// Request-time rendering: teams are mutable CMS content (and the shared footer
-// chrome must reflect admin edits), so this page is never served from the ISR cache.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export const metadata: Metadata = pageMetadata("/teams", "Cricket teams", "Explore senior men's, women's and junior cricket at Newcomb and District Cricket Club in Geelong, with current team information and registration links.");
 

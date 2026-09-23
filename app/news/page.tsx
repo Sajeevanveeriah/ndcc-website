@@ -6,21 +6,33 @@ import { stripNewsGalleryContent } from '@/lib/news-gallery';
 import { getPublishedNews } from '@/lib/public-news';
 import { NewsPost } from '@/lib/types';
 import { formatDate, truncateText } from '@/lib/utils';
+import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
+import { isBuildPrerender } from '@/lib/server/build-phase';
 
-// Request-time rendering: news is mutable CMS content, so it must never be
-// served from a build-time prerender or the ISR cache.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 // An unavailable database is not an empty or seeded news archive.
-async function loadPosts(): Promise<NewsPost[]> {
-  const data = await getPublishedNews({});
-  return (Array.isArray(data) ? data : []) as NewsPost[];
+// At runtime the error propagates (ISR keeps the last good page); only a build
+// prerender renders the honest load-error state instead of failing the build.
+async function loadPosts(): Promise<NewsPost[] | null> {
+  try {
+    const data = await getPublishedNews({});
+    return (Array.isArray(data) ? data : []) as NewsPost[];
+  } catch (error) {
+    if (isBuildPrerender()) return null;
+    throw error;
+  }
 }
 
 export default async function NewsPage() {
-  const posts = await loadPosts();
+  const loaded = await loadPosts();
+  const posts = loaded ?? [];
   const [featuredPost, ...remainingPosts] = posts;
 
   return (
@@ -39,7 +51,9 @@ export default async function NewsPage() {
       {/* News List */}
       <section className="section-padding">
         <div className="container-width">
-          {!featuredPost ? (
+          {loaded === null ? (
+            <DataLoadErrorCard title="We couldn&rsquo;t load the latest news" retryHref="/news" />
+          ) : !featuredPost ? (
             <Card>
               <CardContent className="p-6 text-center font-body text-content-muted">No published news articles yet.</CardContent>
             </Card>

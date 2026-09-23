@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import CommitteeCalendarSubscribe from '@/components/calendar/CommitteeCalendarSubscribe';
 
+// Committee surface: always rendered per request, never from the ISR cache.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Committee Calendar',
   description: 'Subscribe to the Newcomb and District Cricket Club committee calendar.',

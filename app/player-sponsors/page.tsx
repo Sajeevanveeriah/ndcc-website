@@ -3,8 +3,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import PlayerSponsorsSection from '@/components/home/PlayerSponsorsSection';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ISR: regenerated at most every 60s and on demand after admin writes
+// (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
+// which use cache: 'no-store' fetches, run during static regeneration instead
+// of opting the route into per-request rendering. This route reads no
+// cookies, headers or searchParams.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 export const metadata: Metadata = pageMetadata("/player-sponsors", "Player sponsors", "Meet the businesses supporting Newcomb and District Cricket Club players.");
 
 export default function PlayerSponsorsPage() {
