@@ -78,9 +78,11 @@ for (const [stage,status] of [['create',500],['validation',502],['link',503]]) {
   if(stage !== 'create') assert.ok(expired,'Known sessions must expire before release');
 }
 failure = '';
-const vector = load('lib/reverse-raffle-ticket.ts', {});
+const constants = load('lib/raffle-constants.ts', {});
+const vector = load('lib/reverse-raffle-ticket.ts', { './raffle-constants': constants });
 const ticket = load('lib/raffle-ticket.ts', {
   './reverse-raffle-ticket': vector,
+  './raffle-constants': constants,
   'node:fs/promises': { default: { readFile: async () => Buffer.from('test-logo') } },
   'node:path': { default: { join: (...parts) => parts.join('/') } },
   './server-fonts.mjs': { getServerSharp: async () => buffer => ({ png: () => ({ toBuffer: async () => buffer }) }) },
@@ -95,6 +97,20 @@ assert.ok(!zero.includes('19 DECEMBER') && !zero.includes('TRAILER'));
 assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('$5.00 AUD'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-202600000'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-2026<script>'));
+// References derive from campaign code + year_code: any 4-digit reverse raffle year is accepted...
+assert.ok((await ticket.renderRaffleTicket('NDCCRRO-20270250')).toString().includes('>250</text>'));
+// ...but an explicit campaign must match its year_code.
+await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20270250', undefined, { code: 'NDCCRRO', year_code: '2026' }));
+await assert.rejects(() => ticket.renderRaffleTicket('NDCCRAF-260001', undefined, { code: 'NDCCRRO', year_code: '2026' }));
+await assert.rejects(() => ticket.renderRaffleTicket('NDCCRAF-2026000'));
+// Price and draw text come from the campaign details when supplied.
+const custom = (await ticket.renderRaffleTicket('NDCCRAF-270002', { name: 'Test Raffle', priceCents: 1000, drawLabel: 'Drawn at test night' })).toString();
+assert.ok(custom.includes('TEST RAFFLE') && custom.includes('$10.00 AUD') && custom.includes('DRAWN AT TEST NIGHT'));
+assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('DRAWN 19 DECEMBER 2026 AT THE CHRISTMAS PARTY'));
+assert.ok((await ticket.renderRaffleTicket('NDCCRRO-20260201', { name: 'Reverse Raffle', priceCents: 7500, drawLabel: null })).toString().includes('$75 AUD'));
+assert.equal(constants.REVERSE_RAFFLE_MIN_NUMBER, 201);
+assert.equal(constants.REVERSE_RAFFLE_MAX_NUMBER, 300);
+assert.match(readFileSync('supabase/migrations/20260922104834_reverse_raffle_201_300.sql', 'utf8'), /201/);
 let mail, marked = false;
 const paid = { id: 'order-test',status:'paid',currency:'aud',amount_cents:12000,quantity:2,paid_at:'2026-09-22T00:00:00Z',
   payment_reference:'NDCCRAF-2026-000100',stripe_payment_intent_id:'pi_test',customer_email:'buyer@example.com',customer_name:'Test buyer',
