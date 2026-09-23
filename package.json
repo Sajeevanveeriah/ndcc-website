@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "node scripts/run-all-tests.mjs",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-routes.mjs",
@@ -123,10 +123,11 @@
     "stripe": "^22.4.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "eslint": "^8",
+    "eslint": "^9.39.5",
     "eslint-config-next": "15.5.24",
     "knip": "^6.37.0",
     "postcss": "8.5.26",
