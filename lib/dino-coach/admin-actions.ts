@@ -5,6 +5,6 @@ export function defaultManagerActionReason(changes: Record<string, unknown>, has
   const keys = Object.keys(changes);
   if (changes.deleted === true && keys.length === 1) return 'Team deleted by the administrator.';
   if (changes.deleted === false && changes.is_active === true && keys.length === 2) return 'Team restored by the administrator.';
-  if (changes.reactivate === true && changes.is_active === true && keys.length === 2) return 'Initial registration reactivated for five days by the club.';
+  if (changes.reactivate === true && changes.is_active === true && keys.length === 2) return 'Team reactivated by the club.';
   return '';
 }

@@ -23,7 +23,7 @@ export async function PATCH(request: Request) {
     const payload = {
       brand_name: String(body.brand_name || 'Dino Coach').trim(), rules_version: String(body.rules_version || '').trim(),
       entry_fee_cents: numeric('entry_fee_cents', 1), minimum_age: numeric('minimum_age', 18),
-      initial_reminders_enabled: body.initial_reminders_enabled !== false,
+      initial_reminders_enabled: false,
       notification_recipients: Array.isArray(body.notification_recipients) ? body.notification_recipients.map(String).map((v: string) => v.trim()).filter(Boolean) : [],
       budget_dino_dollars: numeric('budget_dino_dollars', 1), initial_price_floor_dino_dollars: numeric('initial_price_floor_dino_dollars', 1),
       initial_price_ceiling_dino_dollars: numeric('initial_price_ceiling_dino_dollars', 1), price_point_value_dino_dollars: numeric('price_point_value_dino_dollars', 1),

@@ -3,16 +3,16 @@ import { initialSquadStatus,shouldCancelInitialNotice,editableSquadStatus } from
 const now=new Date('2026-10-03T12:00:00Z');
 const manager={is_active:true,initial_squad_due_at:now.toISOString()};
 assert.equal(initialSquadStatus(manager,new Date(now.getTime()-1)),'pending');
-assert.equal(initialSquadStatus(manager,now),'expired');
+assert.equal(initialSquadStatus(manager,now),'pending');
 assert.equal(initialSquadStatus({...manager,first_squad_completed_at:'2026-09-28T00:00:00Z'},now),'complete');
 assert.equal(initialSquadStatus({...manager,deleted_at:now.toISOString()},now),'deleted');
 assert.equal(initialSquadStatus({...manager,is_active:false},now),'disabled');
 assert.equal(shouldCancelInitialNotice('reminder',manager.initial_squad_due_at,manager,now),true);
-assert.equal(shouldCancelInitialNotice('expired',manager.initial_squad_due_at,manager,now),false);
+assert.equal(shouldCancelInitialNotice('expired',manager.initial_squad_due_at,manager,now),true);
 assert.equal(shouldCancelInitialNotice('expired','2026-10-02T12:00:00Z',manager,now),true);
 assert.equal(shouldCancelInitialNotice('expired',manager.initial_squad_due_at,{...manager,first_squad_completed_at:now.toISOString()},now),true);
 assert.equal(initialSquadStatus({...manager,initial_squad_due_at:'2026-10-04T01:30:00+10:00'},new Date('2026-10-03T15:29:59Z')),'pending');
-console.log('PASS deadline boundary, permanent exemption, disabled/deleted state, stale reminders, reactivation and explicit timezone offsets');
+console.log('PASS no registration expiry, preserved manual account controls, cancellation of legacy reminders');
 
 assert.equal(editableSquadStatus('locked'),'submitted');
 assert.equal(editableSquadStatus('submitted'),'submitted');

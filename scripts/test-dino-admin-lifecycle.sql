@@ -31,15 +31,15 @@ BEGIN
  update public.fantasy_seasons set is_current=true where id=sid;
  update public.fantasy_managers set initial_squad_due_at=now()+interval '4 days' where id=mid;
  perform public.queue_dino_initial_reminders(); perform public.queue_dino_initial_reminders();
- if (select count(*) from public.fantasy_notification_jobs where manager_id=mid and kind='reminder')<>1 then raise exception 'Daily reminders duplicated or absent'; end if;
+ if (select count(*) from public.fantasy_notification_jobs where manager_id=mid and kind='reminder')<>0 then raise exception 'Removed reminders were queued'; end if;
  update public.fantasy_managers set initial_squad_due_at=now() where id=mid;
  perform public.queue_dino_initial_reminders(); perform public.queue_dino_initial_reminders();
- if (select count(*) from public.fantasy_notification_jobs where manager_id=mid and kind='expired')<>1 then raise exception 'Expiry notices duplicated or absent'; end if;
+ if (select count(*) from public.fantasy_notification_jobs where manager_id=mid and kind='expired')<>0 then raise exception 'Removed expiry notices were queued'; end if;
  update public.fantasy_managers set initial_squad_due_at=now()-interval '1 second' where id=mid;
- begin perform public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks); raise exception 'Expired manager saved a squad'; exception when check_violation then null; end;
+ squad:=public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
  select updated_at into v from public.fantasy_managers where id=mid;
  result:=public.admin_edit_dino_manager(mid,sid,rid,v,'{"reactivate":true}',null,null,'draft',0,'Reactivation test');
- if (select initial_squad_due_at from public.fantasy_managers where id=mid)<>now()+interval '5 days' then raise exception 'Reactivation did not grant five days'; end if;
+ if (select initial_squad_due_at from public.fantasy_managers where id=mid)<>now()-interval '1 second' then raise exception 'Reactivation changed the historical deadline'; end if;
  squad:=public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
  select first_squad_completed_at into initial_complete from public.fantasy_managers where id=mid;
  if initial_complete is null then raise exception 'Initial completion was not recorded'; end if;
@@ -60,7 +60,7 @@ BEGIN
  if not exists(select 1 from public.fantasy_managers where id=mid and deleted_at is not null and not is_active) then raise exception 'Team not deleted'; end if;
  -- A different email/account can reuse the team name without overwriting the deleted registration.
  replacement_id:=public.admin_register_dino_manager(gen_random_uuid(),aid,sid,gen_random_uuid()||'@example.invalid','Replacement account','Corrected team',date '2000-01-01','Approved replacement registration fixture');
- if replacement_id=mid or not exists(select 1 from public.fantasy_managers where id=replacement_id and deleted_at is null and is_active and first_squad_completed_at is null and initial_squad_due_at=now()+interval '5 days') then raise exception 'Different-email replacement registration failed'; end if;
+ if replacement_id=mid or not exists(select 1 from public.fantasy_managers where id=replacement_id and deleted_at is null and is_active and first_squad_completed_at is null and initial_squad_due_at is null) then raise exception 'Different-email replacement registration failed'; end if;
  if not exists(select 1 from public.fantasy_entries where manager_id=mid and season_id=sid) or (select count(*) from public.fantasy_squad_players where squad_id=squad)<>15 then raise exception 'Deletion or replacement registration lost original entry/squad history'; end if;
  select updated_at into v from public.fantasy_managers where id=mid;
  result:=public.admin_edit_dino_manager(mid,sid,aid,v,'{"deleted":false,"is_active":true}',null,null,'draft',0,'Restore test');
