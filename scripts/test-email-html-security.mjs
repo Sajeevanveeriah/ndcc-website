@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { escapeEmailHtml } from '../lib/email-html.ts';
+import { readFantasyOrchestratorSource } from './lib/fantasy-orchestrator-source.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(path.join(repoRoot, file), 'utf8');
@@ -62,7 +63,7 @@ test('public form email templates escape user and catalogue content', () => {
 
 test('admin diagnostics and fantasy alerts escape stored text', () => {
   const diagnostics = read('app/api/admin/email-diagnostics/route.ts');
-  const fantasy = read('lib/playhq/fantasy-orchestrator.ts');
+  const fantasy = readFantasyOrchestratorSource();
 
   assert.match(diagnostics, /escapeEmailHtml\(user\.full_name\)/);
   assert.match(fantasy, /escapeEmailHtml\(season\.slug\)/);

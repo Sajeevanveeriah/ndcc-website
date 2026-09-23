@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readFantasyOrchestratorSource } from './lib/fantasy-orchestrator-source.mjs';
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptsDir, '..');
@@ -89,7 +90,7 @@ try {
   check('club: rejects empty', !isClubTeamName(''));
 
   // ---- Structural checks ----
-  const orchestrator = readFileSync(join(repoRoot, 'lib/playhq/fantasy-orchestrator.ts'), 'utf8');
+  const orchestrator = readFantasyOrchestratorSource();
   check('orchestrator acquires DB lock before running', orchestrator.includes("rpc('acquire_fantasy_sync_lock'"));
   check('orchestrator releases lock in finally', /finally\s*{\s*await supabase\.rpc\('release_fantasy_sync_lock'/.test(orchestrator));
   check('orchestrator never overwrites a conflicting season id', orchestrator.includes('conflicts with stored'));
@@ -108,7 +109,7 @@ try {
   // Ambiguous identically-named seasons must be resolved with real API
   // evidence (team probe), never guessed - and stay blocked when more than
   // one candidate contains NDCC teams.
-  const orchestratorSource = readFileSync(join(repoRoot, 'lib/playhq/fantasy-orchestrator.ts'), 'utf8');
+  const orchestratorSource = readFantasyOrchestratorSource();
   check('orchestrator probes ambiguous seasons by club teams', orchestratorSource.includes('disambiguateByClubTeams'));
   check('orchestrator ingests every NDCC-containing competition (owner decision)', orchestratorSource.includes('sources: sources.map'));
   check('orchestrator blocks when no candidate contains NDCC teams', orchestratorSource.includes('None of the ') && orchestratorSource.includes('contain NDCC teams'));
