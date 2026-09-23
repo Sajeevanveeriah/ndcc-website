@@ -1,3 +1,4 @@
+import 'server-only';
 // Optional Cloudflare Turnstile verification.
 //
 // Turnstile is OFF unless TURNSTILE_SECRET_KEY is set on the server. While it

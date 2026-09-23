@@ -1,3 +1,4 @@
+import 'server-only';
 import { createHash } from 'node:crypto';
 import { createServerClient } from '@/lib/supabase-server';
 import { readTurnstileToken, verifyTurnstileToken } from '@/lib/server/turnstile';

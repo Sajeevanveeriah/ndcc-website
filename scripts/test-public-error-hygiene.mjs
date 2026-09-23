@@ -14,6 +14,7 @@ function load(filename, dependencies = {}) {
   }).outputText;
   const module = { exports: {} };
   new Function('require', 'module', 'exports', 'process', code)((name) => {
+    if (name === 'server-only') return {};
     assert.ok(name in dependencies, `Unexpected dependency ${name} from ${filename}`);
     return dependencies[name];
   }, module, module.exports, process);

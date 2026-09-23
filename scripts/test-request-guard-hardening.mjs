@@ -12,6 +12,7 @@ function load(filename, dependencies = {}) {
   }).outputText;
   const module = { exports: {} };
   new Function('require', 'module', 'exports', 'process', code)((name) => {
+    if (name === 'server-only') return {};
     assert.ok(name in dependencies, `Unexpected dependency ${name} from ${filename}`);
     return dependencies[name];
   }, module, module.exports, process);
@@ -120,6 +121,12 @@ await test('public form input is stored as typed (no HTML encoding or tag stripp
     const source = readFileSync(file, 'utf8');
     assert.match(source, /import \{[^}]*\bsanitiseInput\b[^}]*\} from '@\/lib\/utils'/, `${file} uses the shared sanitiser`);
     assert.doesNotMatch(source, /function sanitiseInput/, `${file} has no local HTML-altering sanitiser`);
+  }
+});
+
+await test('secret-bearing server helpers are marked server-only', () => {
+  for (const file of ['lib/stripe.ts', 'lib/server/request-guards.ts', 'lib/server/turnstile.ts']) {
+    assert.match(readFileSync(file, 'utf8'), /^import 'server-only';/, file);
   }
 });
 
