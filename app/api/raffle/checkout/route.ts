@@ -117,8 +117,7 @@ export async function POST(request: Request) {
       payment_reference: paymentReference,
     };
     const session = await createPaymentCheckoutSession(getStripe(), buildPaymentCheckoutSessionParams({ customer_email: email,
-      // Only the reverse raffle sets an explicit expiry; omitted (not sent) otherwise.
-      expires_at: campaign.code === 'NDCCRRO' ? Math.floor(Date.now() / 1000) + 35 * 60 : undefined,
+      ...(campaign.code === 'NDCCRRO' ? { expires_at: Math.floor(Date.now() / 1000) + 35 * 60 } : {}),
       line_items: [{ price_data: { currency: 'aud', unit_amount: campaign.price_cents, product_data: { name: `NDCC ${campaign.name} Ticket - ${paymentReference}`, ...(campaign.draw_label ? { description: campaign.draw_label } : {}) } }, quantity }],
       success_url: `${site}${returnPath}?payment=success`, cancel_url: `${site}${returnPath}?payment=cancelled`, client_reference_id: paymentReference,
       metadata: paymentMetadata,
