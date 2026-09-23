@@ -16,7 +16,7 @@ export async function getPublicTeams(): Promise<TeamInfo[]> {
   }
 
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase
       .from('teams')
       .select('id, name, grade, description, captain, playhq_url, image_url, sort_order, is_active')

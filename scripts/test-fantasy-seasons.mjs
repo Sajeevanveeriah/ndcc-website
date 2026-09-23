@@ -27,6 +27,7 @@ function stage(relPath, outName) {
     .replace(/@\/lib\/([\w-]+)/g, './$1.ts')
     .replace(/from '\.\/(types|fantasy-import)'/g, "from './$1.ts'")
     .replace("from './server/timeout-fetch'", "from './timeout-fetch.ts'")
+    .replace("from './server/public-read-cache'", "from './public-read-cache.ts'")
     .replace("import 'server-only';", '');
   writeFileSync(join(tmpDir, outName), source);
 }
@@ -41,6 +42,7 @@ try {
     ['fantasy-scoring.ts', 'fantasy-scoring.ts'],
     ['supabase-server.ts', 'supabase-server.ts'],
     ['server/timeout-fetch.ts', 'timeout-fetch.ts'],
+    ['server/public-read-cache.ts', 'public-read-cache.ts'],
     ['fantasy-game.ts', 'fantasy-game.ts'],
     ['fantasy-season-helpers.ts', 'fantasy-season-helpers.ts'],
     ['fantasy-seasons.ts', 'fantasy-seasons.ts'],

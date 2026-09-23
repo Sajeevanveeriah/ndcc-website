@@ -25,7 +25,7 @@ export async function getMembershipOptions(): Promise<{ plans: MembershipPlanOpt
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return fallback;
 
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const [{ data: plans }, { data: addons }] = await Promise.all([
       supabase.from('social_membership_plans').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
       supabase.from('social_membership_addons').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
@@ -44,7 +44,7 @@ export async function getMembershipOptions(): Promise<{ plans: MembershipPlanOpt
 export async function getVolunteerPositionTitles(): Promise<string[]> {
   if (!isServerSupabaseConfigured()) return [];
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase
       .from('volunteer_positions')
       .select('id, title, description')

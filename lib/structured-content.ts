@@ -67,7 +67,7 @@ export async function getPageLinkCards(pageSlug: string, sectionKey: string): Pr
   const fallback = sortPageLinks(normalisePageLinkCards(fallbackPageLinks(pageSlug, sectionKey)));
   if (!hasSupabaseEnv()) return fallback;
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase
       .from('page_link_cards')
       .select('*')
@@ -86,7 +86,7 @@ export async function getPageLinkCards(pageSlug: string, sectionKey: string): Pr
 export async function getFacilityFeatures(): Promise<FacilityFeature[]> {
   if (!hasSupabaseEnv()) return fallbackFacilityFeatures;
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase.from('facility_features').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public facility features query failed; using controlled fallbacks.', { error: error.message }); return fallbackFacilityFeatures; }
     return (data as FacilityFeature[]) || [];
@@ -96,7 +96,7 @@ export async function getFacilityFeatures(): Promise<FacilityFeature[]> {
 export async function getHistoryLineage(): Promise<HistoryLineageEntry[]> {
   if (!hasSupabaseEnv()) return fallbackHistoryLineage;
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase.from('history_lineage_entries').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public history lineage query failed; using controlled fallbacks.', { error: error.message }); return fallbackHistoryLineage; }
     return (data as HistoryLineageEntry[]) || [];
@@ -106,7 +106,7 @@ export async function getHistoryLineage(): Promise<HistoryLineageEntry[]> {
 export async function getHistoryPremierships(): Promise<HistoryPremiership[]> {
   if (!hasSupabaseEnv()) return fallbackHistoryPremierships;
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase.from('history_premierships').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public history premierships query failed; using controlled fallbacks.', { error: error.message }); return fallbackHistoryPremierships; }
     return (data as HistoryPremiership[]) || [];
@@ -116,7 +116,7 @@ export async function getHistoryPremierships(): Promise<HistoryPremiership[]> {
 export async function getHistoryCompetitions(): Promise<HistoryCompetition[]> {
   if (!hasSupabaseEnv()) return fallbackHistoryCompetitions;
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase.from('history_competitions').select('*').order('abbreviation', { ascending: true });
     if (error) { warnFallback('Public history competitions query failed; using controlled fallbacks.', { error: error.message }); return fallbackHistoryCompetitions; }
     return (data as HistoryCompetition[]) || [];
@@ -126,7 +126,7 @@ export async function getHistoryCompetitions(): Promise<HistoryCompetition[]> {
 export async function getCommitteeMembers(): Promise<CommitteeMemberContent[]> {
   if (!hasSupabaseEnv()) return fallbackCommitteeMembers;
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase.from('committee_members').select('*').eq('is_active', true).order('sort_order', { ascending: true });
     if (error) { warnFallback('Public committee members query failed; using controlled fallbacks.', { error: error.message }); return fallbackCommitteeMembers; }
     return (data as CommitteeMemberContent[]) || [];

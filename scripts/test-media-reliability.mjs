@@ -63,6 +63,8 @@ try {
   await assert.rejects(createTimeoutFetch(100, true)('https://example.test', { signal: controller.signal })); assert.equal(calls, 1);
   calls = 0;
   globalThis.fetch = (_input, init) => { calls += 1; return new Promise((_resolve,reject) => init.signal.addEventListener('abort', () => reject(new DOMException('timeout','AbortError')))); };
-  await assert.rejects(createTimeoutFetch(5, true)('https://example.test')); assert.equal(calls, 2);
+  // A read that exhausted its own time budget is not replayed (it would double
+  // the queued work on an overloaded upstream); gateway errors still retry once.
+  await assert.rejects(createTimeoutFetch(5, true)('https://example.test')); assert.equal(calls, 1);
 } finally { globalThis.fetch = originalFetch; }
 console.log('PASS: actual poster rejection/re-encoding, browser preparation contract, repository URLs, bounded read retry, cancellation and write non-replay.');

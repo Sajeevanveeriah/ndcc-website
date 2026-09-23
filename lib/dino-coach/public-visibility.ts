@@ -5,7 +5,7 @@ async function isDinoCoachPublicUncached(): Promise<boolean> {
   if (!isServerSupabaseConfigured()) return false;
 
   try {
-    const supabase = createServerClient({ fetchTimeoutMs: 5_000 });
+    const supabase = createServerClient({ fetchTimeoutMs: 5_000, publicReadCache: true });
     const { data: season } = await supabase
       .from('fantasy_seasons')
       .select('id')

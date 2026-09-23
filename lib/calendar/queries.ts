@@ -57,7 +57,7 @@ export async function getPublicCalendarEvents(query: PublicCalendarQuery = {}): 
   }
 
   try {
-    const supabase = createServerClient({ fetchTimeoutMs: CALENDAR_QUERY_TIMEOUT_MS });
+    const supabase = createServerClient({ fetchTimeoutMs: CALENDAR_QUERY_TIMEOUT_MS, publicReadCache: true });
     let request = supabase
       .from('calendar_events')
       .select(CALENDAR_SELECT_COLUMNS)

@@ -101,7 +101,8 @@
     "test:request-guard-hardening": "node scripts/test-request-guard-hardening.mjs",
     "test:public-error-hygiene": "node scripts/test-public-error-hygiene.mjs",
     "test:event-registration-capacity:db": "node scripts/test-event-registration-capacity-db.mjs",
-    "test:dino-rules-recovery": "node scripts/test-dino-rules-recovery.mjs"
+    "test:dino-rules-recovery": "node scripts/test-dino-rules-recovery.mjs",
+    "test:public-read-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-read-cache.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

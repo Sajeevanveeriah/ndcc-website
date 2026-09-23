@@ -54,7 +54,7 @@ const PUBLIC_QUERY_TIMEOUT_MS = 15_000;
 // build-time fallback output persist in the Data Cache and alternate with live
 // rows in production.
 async function getPublishedEventsFromSupabase() {
-  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
+  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
   const { data, error } = await supabase
     .from('events')
     .select('id,title,description,date,location,capacity,ticket_price,published,image_url')
@@ -72,7 +72,7 @@ function isMissingGallerySchemaError(message: string | null) {
 }
 
 async function getPublishedGalleryFromSupabase() {
-  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
+  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
   // Ungrouped (album_id IS NULL) published images: the legacy flat gallery.
   const { data, error } = await supabase
     .from('gallery_images')
@@ -94,7 +94,7 @@ async function getPublishedGalleryFromSupabase() {
 }
 
 async function getActiveSponsorsFromSupabase() {
-  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
+  const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
   const { data, error } = await supabase
     .from('sponsors')
     .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order,logo_surface_mode,logo_padding,logo_object_position')
@@ -163,7 +163,7 @@ export async function getPublicGallery(): Promise<PublicDataResult<GalleryPhoto[
 export async function getPublicGalleryAlbums(): Promise<PublicDataResult<GalleryAlbum[]>> {
   if (!isServerSupabaseConfigured()) return { data: [], error: null, source: 'fallback', degraded: true };
   try {
-    const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
+    const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
     const [{ data: albums, error }, { data: imageRows, error: imagesError }] = await Promise.all([
       supabase
         .from('gallery_albums')
@@ -210,7 +210,7 @@ export type PublicAlbumDetail = {
 export async function getPublicAlbumBySlug(slug: string): Promise<PublicAlbumDetail | null> {
   if (!isServerSupabaseConfigured()) throw new Error('Gallery temporarily unavailable');
   try {
-    const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS });
+    const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
     const { data: album, error } = await supabase
       .from('gallery_albums')
       .select('id,title,slug,description,event_date,season_label,cover_image_url,sort_order,allow_download,published')

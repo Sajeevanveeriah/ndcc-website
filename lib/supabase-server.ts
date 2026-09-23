@@ -1,5 +1,6 @@
 import 'server-only';
 import { createTimeoutFetch } from './server/timeout-fetch';
+import { withPublicReadCache } from './server/public-read-cache';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_FETCH_TIMEOUT_MS = process.env.NEXT_PHASE === 'phase-production-build' ? 1000 : 7500;
@@ -36,7 +37,19 @@ export function isPublicSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
-export function createServerClient(options: { fetchTimeoutMs?: number | null; actorId?: string; retryReads?: boolean } = {}) {
+type ServerClientOptions = {
+  fetchTimeoutMs?: number | null;
+  actorId?: string;
+  retryReads?: boolean;
+  /**
+   * Public CMS reads only: coalesce identical reads, reuse them for a few
+   * seconds and serve the last good response when Supabase is slow or down.
+   * Never set this for admin, payment, checkout or availability reads.
+   */
+  publicReadCache?: boolean;
+};
+
+export function createServerClient(options: ServerClientOptions = {}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -46,7 +59,9 @@ export function createServerClient(options: { fetchTimeoutMs?: number | null; ac
     throw error;
   }
 
-  const clientOptions = options.fetchTimeoutMs === null ? {} : { fetch: createTimeoutFetch(options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS, options.retryReads) };
+  const baseFetch = options.fetchTimeoutMs === null ? undefined : createTimeoutFetch(options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS, options.retryReads);
+  const fetchImpl = options.publicReadCache ? withPublicReadCache(baseFetch ?? fetch, { scope: 'service' }) : baseFetch;
+  const clientOptions = fetchImpl ? { fetch: fetchImpl } : {};
 
   return createClient(supabaseUrl, serviceRoleKey, {
     global: { ...clientOptions, ...(options.actorId ? { headers: { 'x-ndcc-actor': options.actorId } } : {}) },
@@ -69,7 +84,7 @@ export function createPublicServerClient() {
 
   return createClient(supabaseUrl, anonKey, {
     global: {
-      fetch: createTimeoutFetch(SUPABASE_FETCH_TIMEOUT_MS, true),
+      fetch: withPublicReadCache(createTimeoutFetch(SUPABASE_FETCH_TIMEOUT_MS, true), { scope: 'anon' }),
     },
     auth: {
       autoRefreshToken: false,

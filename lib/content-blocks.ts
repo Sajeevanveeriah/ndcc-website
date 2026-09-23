@@ -43,7 +43,7 @@ async function getContentBlocksUncached(keys: string[]): Promise<Record<string, 
   if (!isServerSupabaseConfigured()) return fallbackBlocksForKeys(keys);
 
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient({ publicReadCache: true });
     const { data, error } = await supabase
       .from('content_blocks')
       .select('block_key,title,body,image_url,cta_label,cta_url')
