@@ -1,5 +1,6 @@
 import { normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
 import { NextResponse } from 'next/server';
+import { fetchAllPages } from '@/lib/supabase-paginate';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
@@ -368,32 +369,45 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   }
   const limitParam = searchParams.get('limit');
   const limit = limitParam ? Number(limitParam) : null;
-  let query = supabase.from(config.table).select('*');
-  if (resource === 'orders' || resource === 'kitchenOrders') {
-    if (searchParams.get('deleted') === 'only') query = query.not('deleted_at', 'is', null);
-    else if (searchParams.get('deleted') !== 'include') query = query.is('deleted_at', null);
-  }
+  let currentSeasonId: string | null = null;
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
     if (currentSeasonError) return NextResponse.json({ success: false, error: currentSeasonError.message }, { status: 500 });
     if (!currentSeason?.id) return NextResponse.json({ success: true, data: [] });
-    query = query.eq('club_season_id', currentSeason.id);
+    currentSeasonId = currentSeason.id;
   }
-  if (Number.isInteger(limit) && limit !== null && limit > 0 && limit <= 100) {
-    query = query.limit(limit);
-  }
-  if (config.defaultOrder) {
-    query = query.order(config.defaultOrder.column, { ascending: config.defaultOrder.ascending });
-  }
-  const { data, error } = await query;
+  const buildListQuery = () => {
+    let query = supabase.from(config.table).select('*');
+    if (resource === 'orders' || resource === 'kitchenOrders') {
+      if (searchParams.get('deleted') === 'only') query = query.not('deleted_at', 'is', null);
+      else if (searchParams.get('deleted') !== 'include') query = query.is('deleted_at', null);
+    }
+    if (currentSeasonId) query = query.eq('club_season_id', currentSeasonId);
+    if (config.defaultOrder) {
+      query = query.order(config.defaultOrder.column, { ascending: config.defaultOrder.ascending });
+    }
+    return query;
+  };
+  const hasLimit = Number.isInteger(limit) && limit !== null && limit > 0 && limit <= 100;
+  // Without an explicit small limit, page past PostgREST's 1000-row cap so
+  // long admin lists are complete.
+  const { data, error } = hasLimit
+    ? await buildListQuery().limit(limit)
+    : await fetchAllPages((from, to, stable) => {
+      const query = buildListQuery();
+      return (stable ? query.order('id', { ascending: true }) : query).range(from, to);
+    });
 
   if (error) {
     if (isMissingSortOrderColumnError(error.message, config.table)) {
-      const fallback = await supabase
-        .from(config.table)
-        .select('*')
-        .order('published_at', { ascending: false })
-        .order('created_at', { ascending: false });
+      const fallback = await fetchAllPages((from, to, stable) => {
+        const query = supabase
+          .from(config.table)
+          .select('*')
+          .order('published_at', { ascending: false })
+          .order('created_at', { ascending: false });
+        return (stable ? query.order('id', { ascending: true }) : query).range(from, to);
+      });
       if (fallback.error) {
         return NextResponse.json({ success: false, error: fallback.error.message }, { status: 500 });
       }

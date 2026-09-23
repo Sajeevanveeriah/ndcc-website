@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { purchaseGroup, purchaseGroupLabel } from '@/lib/orders/purchase-groups';
-import { parseApiResponse } from '@/lib/admin-client';
+import { purchaseGroupLabel } from '@/lib/orders/purchase-groups';
+import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 
 export default function PurchaseTabs({ active = '', onSelect, onCampaign }: { active?: string; onSelect?: (group: string) => void; onCampaign?: (id:string)=>void }) {
   const [groups, setGroups] = useState(['merch', 'kitchen', 'membership', 'donation']);
@@ -10,11 +10,12 @@ export default function PurchaseTabs({ active = '', onSelect, onCampaign }: { ac
   const [error, setError] = useState('');
   useEffect(() => {
     Promise.all([
-      fetch('/api/admin/resources/orders', {cache:'no-store'}).then(r => parseApiResponse<{data:Array<{order_category?:string;items?:Array<{name?:string}>}>}>(r)),
-      fetch('/api/admin/resources/raffleCampaigns', {cache:'no-store'}).then(r => parseApiResponse<{data:Array<{id:string;name:string}>}>(r)),
-      fetch('/api/admin/resources/events', {cache:'no-store'}).then(r => parseApiResponse<{data:Array<{title:string;ticket_price:number}>}>(r)),
-    ]).then(([orders, raffles, events]) => {
-      setGroups(Array.from(new Set(['merch','kitchen','membership','donation', ...orders.data.map(purchaseGroup), ...events.data.filter(e=>Number(e.ticket_price)>0).map(e=>`event:${e.title}`)])));
+      // Distinct groups are computed server-side over every order (lightweight select).
+      adminFetch('/api/admin/orders/groups').then(r => parseApiResponse<{data:string[]}>(r)),
+      adminFetch('/api/admin/resources/raffleCampaigns').then(r => parseApiResponse<{data:Array<{id:string;name:string}>}>(r)),
+      adminFetch('/api/admin/resources/events').then(r => parseApiResponse<{data:Array<{title:string;ticket_price:number}>}>(r)),
+    ]).then(([orderGroups, raffles, events]) => {
+      setGroups(Array.from(new Set(['merch','kitchen','membership','donation', ...orderGroups.data, ...events.data.filter(e=>Number(e.ticket_price)>0).map(e=>`event:${e.title}`)])));
       setCampaigns(raffles.data);
     }).catch(()=>setError('Some purchase tabs could not be loaded. Refresh to try again.'));
   }, []);
