@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Star, Trophy, Users } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -16,10 +17,7 @@ import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Dino Coach',
-  description: 'Dino Coach - NDCC player selection, scoring, transfers and leaderboards.',
-};
+export const metadata: Metadata = pageMetadata('/fantasy', 'Dino Coach', 'Dino Coach - NDCC player selection, scoring, transfers and leaderboards.');
 
 const gameHighlights = [
   'Assign any 15 NDCC players to the 11 playing and 4 bench fantasy slots.',

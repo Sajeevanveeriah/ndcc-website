@@ -15,7 +15,8 @@ export const metadata: Metadata = {
     apple: '/icons/dino-coach-192.png',
   },
 };
-export const viewport: Viewport = { themeColor:'#800020' };
+// Same brand maroon as the root layout's theme-color.
+export const viewport: Viewport = { themeColor: '#800000' };
 
 export const dynamic = 'force-dynamic';
 

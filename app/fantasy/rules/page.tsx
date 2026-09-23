@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_SHORT } from '@/lib/constants';
@@ -11,10 +12,7 @@ import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Dino Coach Rules',
-  description: 'Current-season Dino Coach rules.',
-};
+export const metadata: Metadata = pageMetadata('/fantasy/rules', 'Dino Coach Rules', 'Current-season Dino Coach rules.');
 
 export default async function FantasyRulesPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;

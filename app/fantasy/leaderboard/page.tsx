@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
@@ -10,10 +11,7 @@ import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
 
-export const metadata: Metadata = {
-  title: 'Dino Coach Leaderboard',
-  description: 'Published-only NDCC Dino Coach player leaderboard.',
-};
+export const metadata: Metadata = pageMetadata('/fantasy/leaderboard', 'Dino Coach Leaderboard', 'Published-only NDCC Dino Coach player leaderboard.');
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

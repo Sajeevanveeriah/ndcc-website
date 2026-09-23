@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DinoFeedbackForm from '../_components/DinoFeedbackForm';
 
-export const metadata: Metadata = { title: 'Dino Coach feedback' };
+export const metadata: Metadata = pageMetadata('/fantasy/feedback', 'Dino Coach feedback', 'Report a problem or share an idea to help improve Dino Coach.');
 
 export default function DinoFeedbackPage() {
   return <section className="section-padding"><div className="container-width max-w-2xl">
