@@ -6,8 +6,17 @@ const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const USERS = [
   { key: 'saj', email: 'sajeevanveeriah@gmail.com', fullName: 'Sajeevan Veeriah', role: 'admin', passwordEnv: 'NDCC_SAJ_TEMP_PASSWORD' },
   { key: 'president', email: 'ndsc.cricket@gmail.com', fullName: 'John Elliott', role: 'president', passwordEnv: 'NDCC_PRESIDENT_TEMP_PASSWORD' },
-  { key: 'vp', email: 'ndcc.vicepres@gmail.com', fullName: 'Troy Whitworth', role: 'committee', title: 'Vice President', passwordEnv: 'NDCC_VP_TEMP_PASSWORD' },
+  { key: 'vp', email: 'ndcc.vicepres@gmail.com', fullName: 'Troy Whitworth', role: 'committee', title: 'Vice President', passwordEnv: 'NDCC_VP_TEMP_PASSWORD', passwordEnvAliases: ['NDCC_VICE_PRESIDENT_TEMP_PASSWORD'] },
 ];
+
+// A user's temporary password may be supplied under its primary env name or
+// a legacy alias (e.g. NDCC_VICE_PRESIDENT_TEMP_PASSWORD).
+function passwordFor(user) {
+  for (const key of [user.passwordEnv, ...(user.passwordEnvAliases || [])]) {
+    if (process.env[key]) return process.env[key];
+  }
+  return undefined;
+}
 
 const rawArgs = process.argv.slice(2);
 const execute = rawArgs.includes('--execute');
@@ -42,7 +51,8 @@ if (missingEnv.length) {
 }
 
 if (execute) {
-  const missingPasswords = selectedUsers.map((user) => user.passwordEnv).filter((key) => !process.env[key]);
+  const missingPasswords = selectedUsers.filter((user) => !passwordFor(user))
+    .map((user) => [user.passwordEnv, ...(user.passwordEnvAliases || [])].join(' or '));
   if (missingPasswords.length) {
     console.error(`Missing required temporary password environment variables for selected --execute users: ${missingPasswords.join(', ')}`);
     process.exit(1);
@@ -158,7 +168,7 @@ console.log('Executing targeted admin user provisioning. Passwords and secrets w
 for (const user of selectedUsers) {
   const existing = await findUser(user.email);
   const userId = existing?.id || (await createUser(user));
-  await setPassword(userId, process.env[user.passwordEnv]);
+  await setPassword(userId, passwordFor(user));
   await updateUser(userId, user);
   await clearUserSessions(userId);
   console.log(`${existing ? 'Updated' : 'Created'} ${user.email}; role=${user.role}; is_active=true; old sessions for this user cleared.`);
