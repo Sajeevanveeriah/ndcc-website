@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { mealContractMatches } from '@/lib/meal-collection';
 import { createServerClient } from '@/lib/supabase-server';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
 import {
   isCanonicalPaymentReference,
@@ -9,7 +10,6 @@ import {
 } from '@/lib/payments/reference';
 import {
   LEGACY_ORDER_CATEGORIES,
-  UUID_PATTERN,
   ensureLegacyReference,
   isCleanLegacyContract,
   paymentIntentId,
@@ -95,7 +95,7 @@ async function finishOrderSettlement(
 export async function settleSession(session: Stripe.Checkout.Session, event: Stripe.Event) {
   const metadata = (session.metadata || {}) as Record<string, string>;
   const orderId = metadata.order_id;
-  if (!orderId || !UUID_PATTERN.test(orderId)) {
+  if (!orderId || !isUuidV1ToV5(orderId)) {
     console.warn(`Webhook: Stripe session ${session.id} is not linked to a valid NDCC order; ignored.`);
     return NextResponse.json({ received: true, ignored: true });
   }

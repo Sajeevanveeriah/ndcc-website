@@ -160,6 +160,7 @@ for (const version of ['new', '1', '2']) {
     '@/lib/server/request-guards': { getClientIp: () => 'test', enforceRateLimit: () => true },
     '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({ minimum_partial_amount: 5 }), deriveCapabilities: () => ({ card: true, partial_payments: true }) },
     '@/lib/payments/partial': partial, '@/lib/payments/stripe-checkout': checkoutKeys,
+    '@/lib/validation/uuid': moduleAt('lib/validation/uuid.ts'),
     '@/lib/payments/reference': { ...references, generateUniquePaymentReference: async () => internalReference },
     '@/lib/payments/site-url': { getCheckoutSiteUrl: () => 'https://www.ndcc.com.au' },
     '@/lib/order-input-validation': { readLimitedJsonObject: async () => ({ ok: true, value: { order_id: order.id, amount: 55 } }) },

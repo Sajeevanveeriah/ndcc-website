@@ -19,10 +19,10 @@ import {
 } from '@/lib/payments/reference';
 import { getCheckoutSiteUrl } from '@/lib/payments/site-url';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ORDER_CATEGORY_LABELS: Record<string, string> = {
   donation: 'club donation',
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     const body = rawBody.value;
     const orderId = typeof body.order_id === 'string' ? body.order_id.trim() : '';
     let requestedAmount: number | null = null;
-    if (!UUID_PATTERN.test(orderId)) {
+    if (!isUuidV1ToV5(orderId)) {
       return NextResponse.json({ success: false, error: 'A valid order_id is required.' }, { status: 400 });
     }
     if (body.amount !== undefined && body.amount !== null) {

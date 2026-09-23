@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Minute statuses are draft | published | accepted | seconded (see
 // app/api/meeting-minutes/route.ts MINUTE_STATUSES). Drafts are unpublished and
@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const user = await requirePermission('minutes');
   if (!user) return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
 
-  if (!UUID_PATTERN.test(id)) {
+  if (!isUuidV1ToV5(id)) {
     return NextResponse.json({ success: false, error: 'A valid meeting minute is required.' }, { status: 400 });
   }
   const rawBody = await readLimitedJsonObject(request, 8 * 1024);

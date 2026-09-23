@@ -9,10 +9,10 @@ import {
   audAmountToCents,
   readLimitedJsonObject,
 } from '@/lib/order-input-validation';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Registrations in these payment states no longer hold a place.
 const RELEASED_REGISTRATION_STATUSES = new Set(['cancelled', 'failed', 'refunded', 'expired']);
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     const { event_id, name, email, phone, quantity, hp_field, submitted_at } = body;
 
-    if (typeof event_id !== 'string' || !UUID_PATTERN.test(event_id)
+    if (typeof event_id !== 'string' || !isUuidV1ToV5(event_id)
       || typeof name !== 'string' || !name.trim() || name.trim().length > PUBLIC_ORDER_LIMITS.nameLength
       || typeof email !== 'string' || !email.trim() || email.trim().length > PUBLIC_ORDER_LIMITS.emailLength
       || typeof phone !== 'string' || !phone.trim() || phone.trim().length > PUBLIC_ORDER_LIMITS.phoneLength

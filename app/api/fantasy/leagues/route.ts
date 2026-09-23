@@ -7,6 +7,7 @@ import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getDinoManagerStandings } from '@/lib/dino-coach/standings';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { logRouteError } from '@/lib/server/public-errors';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,6 @@ export const dynamic = 'force-dynamic';
 // codes keep working because joins accept any 4-12 character A-Z/0-9 code.
 const LEAGUE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const LEAGUE_CODE_LENGTH = 12;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function makeCode() {
   // Rejection sampling over cryptographic bytes avoids modulo bias.
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
   if (action === 'leave') {
     const leagueId = String(body.leagueId || '').trim();
-    if (!leagueId || !UUID_PATTERN.test(leagueId)) return NextResponse.json({ success: false, error: 'A league is required to leave.' }, { status: 400 });
+    if (!leagueId || !isUuidV1ToV5(leagueId)) return NextResponse.json({ success: false, error: 'A league is required to leave.' }, { status: 400 });
     const { error } = await supabase
       .from('fantasy_league_members')
       .delete()

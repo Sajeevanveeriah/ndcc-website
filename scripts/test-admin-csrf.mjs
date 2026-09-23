@@ -125,7 +125,10 @@ test('cookie-authenticated committee minutes mutations use the same origin bound
   const actionsRoute = readFileSync(path.join(repoRoot, 'app/api/meeting-minutes/[id]/actions/route.ts'), 'utf8');
   assert.match(minutesRoute, /readLimitedJsonObject\(request, 64 \* 1024\)/);
   assert.match(minutesRoute, /MINUTE_STATUSES/);
-  assert.match(minutesRoute, /UUID_PATTERN\.test\(id\)/);
+  // UUID check moved to the shared helper (same [1-5]/[89ab] pattern, F62).
+  assert.match(minutesRoute, /isUuidV1ToV5\(id\)/);
+  assert.match(readFileSync(path.join(repoRoot, 'lib/validation/uuid.ts'), 'utf8'),
+    /\/\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[1-5\]\[0-9a-f\]\{3\}-\[89ab\]\[0-9a-f\]\{3\}-\[0-9a-f\]\{12\}\$\/i/);
   assert.doesNotMatch(minutesRoute, /const \{ id, \.\.\.payload \} = await request\.json/);
   assert.match(actionsRoute, /readLimitedJsonObject\(request, 8 \* 1024\)/);
   assert.match(actionsRoute, /notes\.trim\(\)\.length > 2_000/);

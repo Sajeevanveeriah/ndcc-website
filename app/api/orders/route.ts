@@ -12,13 +12,13 @@ import {
   audAmountToCents,
   readLimitedJsonObject,
 } from '@/lib/order-input-validation';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 
 const MERCH_ITEM_LINES_LIMIT = 40;
 const MERCH_ITEM_QUANTITY_LIMIT = 50;
 const MERCH_ITEM_UNITS_LIMIT = 100;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function escapeHtml(str: string): string {
   return str
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       );
     }
     if (merch_window_id !== undefined && merch_window_id !== null && merch_window_id !== ''
-      && (typeof merch_window_id !== 'string' || !UUID_PATTERN.test(merch_window_id))) {
+      && (typeof merch_window_id !== 'string' || !isUuidV1ToV5(merch_window_id))) {
       return NextResponse.json(
         { success: false, error: 'A valid merchandise order window is required.' },
         { status: 400 },

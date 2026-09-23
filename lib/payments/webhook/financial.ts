@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase-server';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { getStripe } from '@/lib/stripe';
 import {
   isCanonicalPaymentReference,
   type PaymentReferenceCategory,
 } from '@/lib/payments/reference';
 import { bestEffortDinoEligibilityNotice } from './dino';
-import { LEGACY_ORDER_CATEGORIES, UUID_PATTERN, type FinancialRpcResult } from './shared';
+import { LEGACY_ORDER_CATEGORIES, type FinancialRpcResult } from './shared';
 
 // Signed refund and dispute events (charge.refunded, charge.dispute.*).
 
@@ -65,7 +66,7 @@ function hasUniversalReference(metadata: Record<string, string>): boolean {
   const paymentType = metadata.ndcc_payment_type as PaymentReferenceCategory;
   return (metadata.ndcc_reference_version === '1' || metadata.ndcc_reference_version === '2')
     && UNIVERSAL_PAYMENT_TYPES.has(paymentType)
-    && UUID_PATTERN.test(metadata.ndcc_order_id || '')
+    && isUuidV1ToV5(metadata.ndcc_order_id || '')
     && isCanonicalPaymentReference(metadata.ndcc_reference_version === '2'
       ? metadata.ndcc_transaction_reference : metadata.ndcc_payment_reference, paymentType)
     && metadata.item_number === metadata.ndcc_payment_reference;
@@ -76,24 +77,24 @@ function isPositiveIntegerMetadata(value: string | undefined): boolean {
 }
 
 function looksLikeLegacyNdccMetadata(metadata: Record<string, string>): boolean {
-  if (metadata.order_id && UUID_PATTERN.test(metadata.order_id)
+  if (metadata.order_id && isUuidV1ToV5(metadata.order_id)
     && LEGACY_ORDER_CATEGORIES.has(metadata.order_category)
     && ['partial', 'balance'].includes(metadata.payment_kind)
     && Boolean(metadata.payment_reference)
     && isPositiveIntegerMetadata(metadata.expected_amount_cents)) return true;
   if (metadata.product === 'NDCC Raffle' && metadata.raffle_order_id
-    && UUID_PATTERN.test(metadata.raffle_order_id)
+    && isUuidV1ToV5(metadata.raffle_order_id)
     && isPositiveIntegerMetadata(metadata.expected_amount_cents)
     && isPositiveIntegerMetadata(metadata.quantity)) return true;
   return metadata.product === 'Dino Coach'
-    && UUID_PATTERN.test(metadata.entry_id || '')
-    && UUID_PATTERN.test(metadata.manager_id || '')
-    && UUID_PATTERN.test(metadata.season_id || '')
+    && isUuidV1ToV5(metadata.entry_id || '')
+    && isUuidV1ToV5(metadata.manager_id || '')
+    && isUuidV1ToV5(metadata.season_id || '')
     && isPositiveIntegerMetadata(metadata.expected_amount_cents);
 }
 
 function hasLegacyOrderPaymentIntentHint(metadata: Record<string, string>): boolean {
-  return UUID_PATTERN.test(metadata.order_id || '')
+  return isUuidV1ToV5(metadata.order_id || '')
     && LEGACY_ORDER_CATEGORIES.has(metadata.order_category)
     && Boolean(metadata.payment_reference);
 }

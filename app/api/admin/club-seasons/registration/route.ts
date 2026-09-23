@@ -11,13 +11,13 @@ import {
 import { PLAYER_REGISTRATION_SETTINGS_COLUMNS } from '@/lib/public-player-registration';
 import { createServerClient } from '@/lib/supabase-server';
 import { revalidatePublicContent } from '@/lib/server/revalidate-public';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 const noStoreHeaders = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SEASON_COLUMNS = 'id,name,slug,status,is_current,source_season_id,start_date,end_date';
 
 type SeasonSummary = {
@@ -105,7 +105,7 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const seasonId = typeof body.seasonId === 'string' ? body.seasonId.trim() : '';
-  if (!UUID_PATTERN.test(seasonId)) {
+  if (!isUuidV1ToV5(seasonId)) {
     return NextResponse.json({ success: false, error: 'A valid club season is required.' }, { status: 400, headers: noStoreHeaders });
   }
 

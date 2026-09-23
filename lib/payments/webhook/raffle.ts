@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase-server';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { isCanonicalPaymentReference } from '@/lib/payments/reference';
 import {
-  UUID_PATTERN,
   ensureLegacyReference,
   isCleanLegacyContract,
   paymentIntentId,
@@ -20,7 +20,7 @@ export async function handleRaffleCheckout(event: Stripe.Event): Promise<NextRes
   const metadata = (session.metadata || {}) as Record<string, string>;
   if (metadata.product !== 'NDCC Raffle') return null;
   const orderId = metadata.raffle_order_id;
-  if (!orderId || !UUID_PATTERN.test(orderId)) {
+  if (!orderId || !isUuidV1ToV5(orderId)) {
     return NextResponse.json({ error: 'Invalid raffle order metadata.' }, { status: 400 });
   }
   // Only a signed provider expiry releases stock, never a browser cancellation or clock timeout.

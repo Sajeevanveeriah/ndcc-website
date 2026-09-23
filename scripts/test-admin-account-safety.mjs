@@ -173,6 +173,7 @@ function loadActions(user, minute, log) {
     '@/lib/supabase-server': { createServerClient: () => minutesDb(minute, log) },
     '@/lib/auth/guard': { requirePermission: async () => user },
     '@/lib/order-input-validation': validation,
+    '@/lib/validation/uuid': load('lib/validation/uuid.ts'),
   });
 }
 
