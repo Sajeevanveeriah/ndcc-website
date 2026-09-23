@@ -5,6 +5,7 @@ import { mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -154,7 +155,7 @@ await test('customer receipts use the order reference and validate the internal 
   const receipts = read('lib/payment-receipts.ts');
   const raffleEmail = read('lib/raffle-email.ts');
   const dinoReceipt = read('lib/dino-coach/payment-receipt.ts');
-  const webhook = read('app/api/stripe/webhook/route.ts');
+  const webhook = readStripeWebhookSource();
   assert.match(receipts, /select\('id,amount,currency,received_at,status,method,provider,provider_reference,payment_reference,metadata'\)/u);
   assert.match(receipts, /let transactionReference = String\(payment\.payment_reference \|\| ''\)\.trim\(\)/u);
   assert.match(receipts, /from\('legacy_payment_receipt_references'\)/u);
@@ -168,7 +169,8 @@ await test('customer receipts use the order reference and validate the internal 
 });
 
 await test('direct Payment Links remain disabled and legacy checkout is gone', () => {
-  const apiSources = listFiles(path.join(repoRoot, 'app/api'))
+  // The webhook handlers moved from app/api/stripe/webhook to lib/payments/webhook.
+  const apiSources = [...listFiles(path.join(repoRoot, 'app/api')), ...listFiles(path.join(repoRoot, 'lib/payments/webhook'))]
     .filter((absolute) => /\.(?:ts|tsx|js|mjs)$/u.test(absolute))
     .map((absolute) => readFileSync(absolute, 'utf8'))
     .join('\n');
@@ -207,7 +209,7 @@ await test('checkout return origins fail closed in production and stay usable in
 });
 
 await test('signed refund and dispute evidence is normalised before Checkout handling', () => {
-  const webhook = read('app/api/stripe/webhook/route.ts');
+  const webhook = readStripeWebhookSource();
   for (const eventType of [
     'charge.refunded',
     'charge.dispute.created',

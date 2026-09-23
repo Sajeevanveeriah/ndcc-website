@@ -32,6 +32,7 @@ const imports = {
   '@/lib/auth/guard': { requirePermission: async (_p, roles) => user && (!roles || roles.includes(user.role)) ? user : null },
   '@/lib/supabase-server': { createServerClient: () => client },
   '@/lib/order-input-validation': { readLimitedJsonObject: async request => ({ ok: true, value: await request.json() }) },
+  '@/lib/validation/uuid': load('lib/validation/uuid.ts'),
 };
 const route = load('app/api/meeting-minutes/route.ts', imports);
 const document = load('app/api/meeting-minutes/[id]/document/route.ts', imports);

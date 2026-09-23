@@ -176,6 +176,7 @@ Supabase Postgres stores CMS content, committee users and sessions, orders, paym
 - New migrations must use a unique full `YYYYMMDDHHMMSS` prefix.
 - Do not rename or replay historical migrations without following the reconciliation runbook.
 - `supabase/schema.sql` is a schema snapshot, not the authoritative migration history. Refresh it manually with `SUPABASE_DB_URL=... npm run db:dump-schema` (wraps `supabase db dump --schema-only`; needs the Supabase CLI and a database URL; never run in CI).
+- Database TypeScript types can be generated into `lib/database.types.ts` with `SUPABASE_PROJECT_ID=<project-ref> npm run db:generate-types` (wraps `supabase gen types typescript --project-id ...`; needs the Supabase CLI logged in with project access; `-- --dry-run` prints the command; never run in CI). The Supabase clients are not typed against it yet.
 - A brand-new environment needs the documented migration-reconciliation process because some production tables predate the current migrations folder.
 
 See [Migration History Reconciliation](docs/operations/20260716-Migration-History-Reconciliation-Rev00.md).

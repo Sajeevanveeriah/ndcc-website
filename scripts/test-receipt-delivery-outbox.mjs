@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isAuthorizedCronRequest } from '../lib/cron-auth.ts';
 import { canRecordSimulatedReceiptDelivery } from '../lib/payments/receipt-delivery-policy.ts';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const [
@@ -32,7 +33,7 @@ const [
   readFile(path.join(root, 'vercel.json'), 'utf8'),
   readFile(path.join(root, '.env.example'), 'utf8'),
   readFile(path.join(root, 'README.md'), 'utf8'),
-  readFile(path.join(root, 'app/api/stripe/webhook/route.ts'), 'utf8'),
+  Promise.resolve(readStripeWebhookSource()),
   readFile(path.join(root, 'app/api/admin/orders/payments/route.ts'), 'utf8'),
   readFile(path.join(root, 'app/api/admin/payments/reconcile/route.ts'), 'utf8'),
   readFile(path.join(root, 'app/api/admin/payments/ambiguous/route.ts'), 'utf8'),

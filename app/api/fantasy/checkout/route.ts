@@ -9,6 +9,7 @@ import { getStripe } from '@/lib/stripe';
 import { isCheckoutEnabled } from '@/lib/payments/payment-config';
 import { isCanonicalPaymentReference } from '@/lib/payments/reference';
 import { getCheckoutSiteUrl } from '@/lib/payments/site-url';
+import { buildPaymentCheckoutSessionParams, createPaymentCheckoutSession } from '@/lib/payments/stripe-checkout';
 import { enforceRateLimit } from '@/lib/server/request-guards';
 import { PUBLIC_ORDER_LIMITS, readLimitedJsonObject } from '@/lib/order-input-validation';
 
@@ -139,32 +140,36 @@ export async function POST(request: Request) {
     expected_amount_cents: String(entry.entry_fee_cents),
     payment_reference: paymentReference,
   };
-  const checkoutParams: Stripe.Checkout.SessionCreateParams = {
-    mode: 'payment', client_reference_id: paymentReference, customer_email: manager.email,
+  const checkoutParams: Stripe.Checkout.SessionCreateParams = buildPaymentCheckoutSessionParams({
+    client_reference_id: paymentReference, customer_email: manager.email,
     line_items: [{ price_data: { currency: String(entry.currency).toLowerCase(), unit_amount: entry.entry_fee_cents,
       product_data: { name: `${season.name} entry - ${paymentReference}`, description: 'Newcomb & District Cricket Club participation fee' } }, quantity: 1 }],
     success_url: `${siteUrl}/fantasy/account?payment=submitted&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/fantasy/account?payment=cancelled`,
     metadata: paymentMetadata,
     payment_intent_data: { receipt_email: manager.email, description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
-  };
+  });
   const payloadDigest = createHash('sha256')
     .update(JSON.stringify(checkoutParams))
     .digest('hex')
     .slice(0, 32);
   const predecessorSession = entry.stripe_checkout_session_id || 'first';
   const stripe = getStripe();
-  let session = await stripe.checkout.sessions.create(checkoutParams, {
-    idempotencyKey: `ndcc:dino:v2:${entry.id}:${predecessorSession}:${payloadDigest}`,
-  });
+  let session = await createPaymentCheckoutSession(
+    stripe,
+    checkoutParams,
+    `ndcc:dino:v2:${entry.id}:${predecessorSession}:${payloadDigest}`,
+  );
   // A previous response may have been lost after its Session was subsequently
   // expired during ledger-link cleanup. Reusing the original key correctly
   // returns that expired Session; scope one recovery attempt to its immutable
   // ID so the replacement request remains deterministic as well.
   if (session.status === 'expired') {
-    session = await stripe.checkout.sessions.create(checkoutParams, {
-      idempotencyKey: `ndcc:dino:v2:${entry.id}:${session.id}:${payloadDigest}`,
-    });
+    session = await createPaymentCheckoutSession(
+      stripe,
+      checkoutParams,
+      `ndcc:dino:v2:${entry.id}:${session.id}:${payloadDigest}`,
+    );
   }
   if (session.status !== 'open' || !session.url
     || session.metadata?.ndcc_payment_reference !== paymentReference

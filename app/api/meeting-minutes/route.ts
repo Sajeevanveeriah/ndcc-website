@@ -4,10 +4,10 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
+import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 
 export const dynamic = 'force-dynamic';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MINUTE_STATUSES = new Set(['draft', 'published', 'accepted', 'seconded']);
 
 function parseMinutePayload(body: Record<string, unknown>) {
@@ -60,7 +60,7 @@ async function saveMinute(request: Request, editing: boolean) {
     }
     const payload = parseMinutePayload(body);
     const id = editing ? body.id : randomUUID();
-    if (!payload || typeof id !== 'string' || !UUID_PATTERN.test(id)) {
+    if (!payload || typeof id !== 'string' || !isUuidV1ToV5(id)) {
       return NextResponse.json({ success: false, error: 'Meeting minute details are invalid.' }, { status: 400 });
     }
     let existing: { attachment_path: string | null } | null = null;

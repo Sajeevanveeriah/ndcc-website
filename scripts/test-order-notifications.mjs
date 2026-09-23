@@ -4,12 +4,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Node's stripped-TypeScript runner requires an explicit extension for this new shared helper.
 const { registerHooks } = await import('node:module');
 registerHooks({ resolve(specifier, context, nextResolve) {
-  return nextResolve(specifier === './meal-collection' ? './meal-collection.ts' : specifier, context);
+  const explicit = { './meal-collection': './meal-collection.ts', './email-html': './email-html.ts' };
+  return nextResolve(explicit[specifier] || specifier, context);
 } });
 const content = await import(pathToFileURL(path.join(repoRoot, 'lib/order-notification-content.ts')).href);
 
@@ -126,7 +128,7 @@ const emailSource = readFileSync(path.join(repoRoot, 'lib/email.ts'), 'utf8');
 const serverSource = readFileSync(path.join(repoRoot, 'lib/order-notifications.ts'), 'utf8');
 const apparelRoute = readFileSync(path.join(repoRoot, 'app/api/orders/route.ts'), 'utf8');
 const kitchenRoute = readFileSync(path.join(repoRoot, 'app/api/kitchen/orders/route.ts'), 'utf8');
-const webhookRoute = readFileSync(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8');
+const webhookRoute = readStripeWebhookSource();
 const adminPaymentsRoute = readFileSync(path.join(repoRoot, 'app/api/admin/orders/payments/route.ts'), 'utf8');
 
 function exposesInternalPaymentStatus(source) {

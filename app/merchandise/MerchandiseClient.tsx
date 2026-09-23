@@ -2,122 +2,29 @@
 
 import { Suspense, useState, useEffect, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, XCircle, ImageOff } from 'lucide-react';
-import Card, { CardContent, CardFooter } from '@/components/ui/Card';
-import SafeImage from '@/components/common/SafeImage';
+import { AlertTriangle, XCircle } from 'lucide-react';
+import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal from '@/components/common/ScrollReveal';
-import Button from '@/components/ui/Button';
-import Input, { Textarea } from '@/components/ui/Input';
-import Badge from '@/components/ui/Badge';
 import { CLUB_NAME } from '@/lib/constants';
-import { formatCurrency, validateEmail, validatePhone, cn } from '@/lib/utils';
-import { OrderItem } from '@/lib/types';
-import { computeUnitPrice, type CatalogueOption } from '@/lib/apparel/pricing';
+import { validateEmail, validatePhone } from '@/lib/utils';
+import { computeUnitPrice } from '@/lib/apparel/pricing';
 import { validatePersonalisation } from '@/lib/apparel/personalisation';
-import SizingGuides from '@/components/merchandise/SizingGuides';
+import CartSummary from './components/CartSummary';
+import CheckoutForm from './components/CheckoutForm';
+import OrderConfirmationPanel from './components/OrderConfirmationPanel';
+import ProductCatalogue from './components/ProductCatalogue';
+import type {
+  ApiProduct,
+  CartItem,
+  DisplayProduct,
+  MerchandiseWindow,
+  OrderConfirmation,
+  PaymentCapabilities,
+  ProductSelectionState,
+} from './components/types';
 
-interface CartItem extends OrderItem {
-  id: string;
-  options?: Record<string, string>;
-  option_labels?: string[];
-}
+export type { ApiProduct } from './components/types';
 
-type MerchandiseWindow = {
-  id: string;
-  label: string;
-  open_date: string;
-  close_date: string;
-  allow_queue_after_close: boolean;
-};
-
-type DisplayProduct = {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  sizes: string[];
-  image: string;
-  imageAlt: string;
-  customisable?: boolean;
-  category?: string;
-  payment_mode?: string | null;
-  options: CatalogueOption[];
-};
-
-export type ApiProduct = {
-  slug: string;
-  name: string;
-  description: string;
-  price: number;
-  sizes: string[];
-  image_url: string;
-  customisable: boolean;
-  category?: string;
-  display_order?: number;
-  order_guidance?: string | null;
-  size_guidance?: string | null;
-  // Payment-readiness fields (may be absent until the migration is applied).
-  payment_mode?: string | null;
-  stripe_price_id?: string | null;
-  checkout_enabled?: boolean | null;
-  fulfilment_notes?: string | null;
-  order_email?: string | null;
-  image_alt?: string | null;
-  options?: CatalogueOption[] | null;
-};
-
-const PRODUCT_GRADIENTS: Record<string, string> = {
-  'playing-shirt': 'from-gray-100 to-gray-300',
-  'playing-trousers': 'from-gray-50 to-gray-200',
-  'club-hoodie': 'from-maroon-700 to-maroon-900',
-  'training-tee': 'from-maroon-600 to-maroon-800',
-  'club-polo': 'from-maroon-600 to-maroon-800',
-  'club-cap': 'from-maroon-700 to-maroon-950',
-  'training-singlet': 'from-maroon-500 to-maroon-700',
-  'cricket-socks': 'from-maroon-400 to-maroon-600',
-};
-
-const PRODUCT_ICONS: Record<string, { path: string; textColor: string }> = {
-  'playing-shirt': {
-    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-maroon-800 dark:text-maroon-200',
-  },
-  'playing-trousers': {
-    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-maroon-800 dark:text-maroon-200',
-  },
-  'club-hoodie': {
-    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-white/70',
-  },
-  'training-tee': {
-    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-white/70',
-  },
-  'club-polo': {
-    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-white/70',
-  },
-  'club-cap': {
-    path: 'M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z',
-    textColor: 'text-white/70',
-  },
-  'training-singlet': {
-    path: 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
-    textColor: 'text-white/70',
-  },
-  'cricket-socks': {
-    path: 'M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25',
-    textColor: 'text-white/70',
-  },
-};
-
-type PaymentCapabilities = {
-  bank_transfer: boolean;
-  card: boolean;
-  partial_payments: boolean;
-  minimum_partial_amount: number;
-};
 
 // Until the server says otherwise, only bank transfer is offered. Card
 // availability comes from /api/payments/capabilities (CMS switch + server
@@ -179,14 +86,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [orderConfirmation, setOrderConfirmation] = useState<{
-    order_id: string;
-    total_amount: number;
-    payment_reference: string;
-    personalisation_requested: boolean;
-    number_requested: boolean;
-    bank_details: { account_name: string; bsb: string; account_number: string };
-  } | null>(null);
+  const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'stripe'>('bank_transfer');
   const [cardAmount, setCardAmount] = useState('');
@@ -559,6 +459,13 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
     }
   }
 
+  const selection: ProductSelectionState = {
+    selectedOptions, setSelectedOptions, selectedSizes, setSelectedSizes, sizeErrors, setSizeErrors,
+    quantities, setQuantities, customNames, setCustomNames, customNumbers, setCustomNumbers,
+    alternateNumbers, setAlternateNumbers, personalisationConfirmed, setPersonalisationConfirmed,
+    personalisationErrors, setPersonalisationErrors,
+  };
+
   return (
     <>
       {/* Hero */}
@@ -571,322 +478,18 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
         </div>
       </section>
 
-      {/* Products Grid */}
-      <section className="section-padding surface-blue-band">
-        <div className="container-width">
-          <h2 className="section-title mb-2">Products</h2>
-          {heroContent.orderBody && (
-            <div className="mb-6 panel-blue-subtle p-4">
-              <h3 className="font-display font-bold text-maroon-800 dark:text-maroon-200">{heroContent.orderTitle}</h3>
-              <p className="mt-2 text-sm text-content-secondary whitespace-pre-line">{heroContent.orderBody}</p>
-            </div>
-          )}
-          <details className="club-disclosure mb-8"><summary>Find your fit - apparel sizing guides</summary><SizingGuides /></details>
-          {liveProductsFailed && !productsLoading && (
-            <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-4 flex flex-wrap items-center justify-between gap-3" role="alert">
-              <p className="font-body text-sm text-amber-900 dark:text-amber-100">
-                The live product catalogue is temporarily unavailable, so products and prices cannot be shown right now.
-                Please try again in a moment.
-              </p>
-              <button
-                type="button"
-                onClick={() => setProductsReloadKey((key) => key + 1)}
-                className="focus-ring inline-flex items-center rounded-lg border border-maroon-300 px-3 py-1.5 font-body text-sm font-semibold text-maroon-700 dark:text-maroon-200 transition-colors hover:bg-maroon-50 dark:hover:bg-maroon-900/40"
-              >
-                Try again
-              </button>
-            </div>
-          )}
-          {productsLoading ? (
-            <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i}>
-                  <div className="h-36 bg-gray-200 animate-pulse" />
-                  <CardContent className="space-y-3">
-                    <div className="h-5 w-3/4 rounded bg-gray-200 animate-pulse" />
-                    <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
-                    <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse" />
-                    <div className="h-9 w-full rounded bg-gray-200 animate-pulse" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            liveProductsFailed ? null : (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="font-body font-semibold text-content-secondary">No products currently available</p>
-                <p className="font-body text-sm text-content-muted mt-1">
-                  Check back soon — new club merchandise will appear here when it goes on sale.
-                </p>
-              </CardContent>
-            </Card>
-            )
-          ) : (
-          <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {!windowState.processing_open && (
-              <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm">
-                Orders are currently outside the active merch window.
-                {windowState.queue_allowed ? ' New orders will be queued for the next window.' : ' Ordering is temporarily unavailable.'}
-              </div>
-            )}
-            {Object.entries(groupedProducts).map(([category, productsInCategory]) => (
-              <div key={category} className="md:col-span-2 lg:col-span-3">
-                <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-3">{category}</h3>
-                <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {productsInCategory.map((product) => {
-                  const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
-                  const iconData = PRODUCT_ICONS[product.id];
-                  return (
-                    <Card key={product.id} className="product-card hover-lift">
-                  {product.image ? (
-                    <div className="relative h-56 bg-surface-page">
-                      <SafeImage
-                        src={product.image}
-                        alt={product.imageAlt || product.name}
-                        fill
-                        className="object-contain"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        fallback={<div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} aria-hidden="true" />}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className={`h-36 bg-gradient-to-br ${gradient} flex flex-col items-center justify-center gap-2 px-4 text-center`}
-                      role="img"
-                      aria-label={product.imageAlt || `Product image unavailable for ${product.name}`}
-                    >
-                      {iconData ? (
-                        <svg className={`w-12 h-12 ${iconData.textColor}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d={iconData.path} />
-                        </svg>
-                      ) : (
-                        <ImageOff className="h-8 w-8 text-white/80" aria-hidden="true" />
-                      )}
-                      <span className="text-xs font-body font-semibold text-white">Product image unavailable</span>
-                    </div>
-                  )}
-                  <CardContent className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display font-bold text-content-primary text-2xl leading-tight">
-                        {product.name}
-                      </h3>
-                      <Badge variant="default" className="flex-shrink-0">{formatCurrency(displayUnitPrice(product))}</Badge>
-                    </div>
-                    <p className="font-body text-content-muted text-xs">{product.description}</p>
-
-                    {product.customisable && (
-                      <Badge variant="info" className="text-xs">Customisable</Badge>
-                    )}
-
-                    <details className="club-disclosure"><summary>Choose options for {product.name}</summary><div className="product-options">
-                    {/* Option selectors (colour, sleeve length, style, ...) */}
-                    {Array.from(new Set(product.options.map((o) => o.option_group))).map((group) => {
-                      const values = product.options
-                        .filter((o) => o.option_group === group)
-                        .sort((a, b) => a.display_order - b.display_order);
-                      const current = selectedOptions[product.id]?.[group]
-                        ?? values.find((v) => v.is_default)?.option_value
-                        ?? values[0]?.option_value;
-                      return (
-                        <fieldset key={group}>
-                          <legend className="form-label text-xs">{group}</legend>
-                          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={`${product.name} ${group}`}>
-                            {values.map((value) => (
-                              <button
-                                key={value.option_value}
-                                type="button"
-                                role="radio"
-                                aria-checked={current === value.option_value}
-                                className={cn(
-                                  'focus-ring px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
-                                  current === value.option_value
-                                    ? 'border-maroon-700 bg-maroon-700 text-white'
-                                    : 'border-edge-strong text-content-secondary hover:border-maroon-400'
-                                )}
-                                onClick={() =>
-                                  setSelectedOptions((prev) => ({
-                                    ...prev,
-                                    [product.id]: { ...(prev[product.id] || {}), [group]: value.option_value },
-                                  }))
-                                }
-                              >
-                                {value.option_label}
-                                {Number(value.price_delta) > 0 && (
-                                  <span className="ml-1 opacity-80">+{formatCurrency(Number(value.price_delta))}</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </fieldset>
-                      );
-                    })}
-
-                    {/* Size Selector */}
-                    <div>
-                      <p className="form-label text-xs">Size</p>
-                      {product.sizes.length === 0 ? (
-                        <p className="text-xs text-content-muted">No size selection required.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {product.sizes.map((size) => (
-                            <button
-                              key={size}
-                              type="button"
-                              className={cn(
-                                'px-2.5 py-1 rounded-lg border text-xs font-body font-medium transition-colors',
-                                selectedSizes[product.id] === size
-                                  ? 'border-maroon-700 bg-maroon-700 text-white'
-                                  : 'border-edge-strong text-content-secondary hover:border-maroon-400'
-                              )}
-                              onClick={() => {
-                                setSelectedSizes((prev) => ({ ...prev, [product.id]: size }));
-                                setSizeErrors((prev) => ({ ...prev, [product.id]: '' }));
-                              }}
-                              aria-pressed={selectedSizes[product.id] === size}
-                            >
-                              {size}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {sizeErrors[product.id] && (
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{sizeErrors[product.id]}</p>
-                      )}
-                    </div>
-
-                    {/* Surname and number preferences for customisable products */}
-                    {product.customisable && (
-                      <div className="space-y-2">
-                        <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-                          Surname only. Nicknames will not be accepted. Both number preferences are requests and remain subject to availability and club confirmation.
-                        </p>
-                        <div>
-                          <label htmlFor={`custom-name-${product.id}`} className="form-label text-xs">Surname (optional)</label>
-                          <input
-                            id={`custom-name-${product.id}`}
-                            type="text"
-                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
-                            placeholder="e.g. SMITH"
-                            maxLength={40}
-                            value={customNames[product.id] || ''}
-                            onChange={(e) => {
-                              setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }));
-                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor={`custom-number-${product.id}`} className="form-label text-xs">First number preference (optional)</label>
-                          <input
-                            id={`custom-number-${product.id}`}
-                            type="number"
-                            min={1}
-                            max={99}
-                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
-                            placeholder="1-99"
-                            value={customNumbers[product.id] || ''}
-                            onChange={(e) => {
-                              setCustomNumbers((prev) => ({ ...prev, [product.id]: e.target.value }));
-                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor={`alternate-number-${product.id}`} className="form-label text-xs">Second number preference (optional)</label>
-                          <input
-                            id={`alternate-number-${product.id}`}
-                            type="number"
-                            min={1}
-                            max={99}
-                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
-                            placeholder="1-99"
-                            value={alternateNumbers[product.id] || ''}
-                            onChange={(e) => {
-                              setAlternateNumbers((prev) => ({ ...prev, [product.id]: e.target.value }));
-                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
-                            }}
-                          />
-                        </div>
-                        <label className="flex items-start gap-2 text-xs text-content-secondary">
-                          <input
-                            type="checkbox"
-                            className="mt-0.5"
-                            checked={personalisationConfirmed[product.id] || false}
-                            onChange={(e) => {
-                              setPersonalisationConfirmed((prev) => ({ ...prev, [product.id]: e.target.checked }));
-                              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
-                            }}
-                          />
-                          <span>I confirm any name entered is a surname and understand that both number preferences are subject to availability and club confirmation.</span>
-                        </label>
-                        {personalisationErrors[product.id] && (
-                          <p className="text-xs text-red-600 dark:text-red-400" role="alert">{personalisationErrors[product.id]}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Quantity Selector */}
-                    <div>
-                      <p className="form-label text-xs">Quantity</p>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          className="h-11 w-11 rounded-lg border border-edge-strong flex items-center justify-center text-content-secondary hover:bg-surface-muted transition-colors text-base focus-ring"
-                          onClick={() =>
-                            setQuantities((prev) => ({
-                              ...prev,
-                              [product.id]: Math.max(1, (prev[product.id] || 1) - 1),
-                            }))
-                          }
-                          aria-label="Decrease quantity"
-                        >
-                          -
-                        </button>
-                        <span className="font-body font-semibold text-content-primary w-6 text-center text-sm">
-                          {quantities[product.id] || 1}
-                        </span>
-                        <button
-                          type="button"
-                          className="h-11 w-11 rounded-lg border border-edge-strong flex items-center justify-center text-content-secondary hover:bg-surface-muted transition-colors text-base focus-ring"
-                          onClick={() =>
-                            setQuantities((prev) => ({
-                              ...prev,
-                              [product.id]: Math.min(10, (prev[product.id] || 1) + 1),
-                            }))
-                          }
-                          aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    </div></details>
-                  </CardContent>
-                  <CardFooter className="space-y-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={(event) => {
-                        const options = event.currentTarget.closest('.product-card')?.querySelector('details');
-                        if (options) options.open = true;
-                        handleAddToOrder(product.id);
-                      }}
-                      className="w-full"
-                    >
-                      Add to Order
-                    </Button>
-                  </CardFooter>
-                    </Card>
-                  );
-                })}
-                </div>
-              </div>
-            ))}
-          </div>
-          )}
-        </div>
-      </section>
+      <ProductCatalogue
+        heroContent={heroContent}
+        liveProductsFailed={liveProductsFailed}
+        productsLoading={productsLoading}
+        setProductsReloadKey={setProductsReloadKey}
+        products={products}
+        groupedProducts={groupedProducts}
+        windowState={windowState}
+        selection={selection}
+        displayUnitPrice={displayUnitPrice}
+        handleAddToOrder={handleAddToOrder}
+      />
 
       {cart.length > 0 && <a href="#order-summary" className="club-basket-link">Review order <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} {cart.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'}</span></a>}
       {/* Order Summary & Form */}
@@ -895,99 +498,16 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
           <h2 className="section-title">Your Order</h2>
 
           {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-3" role="alert">
-              <p className="text-green-800 dark:text-green-200 font-body font-semibold flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
-                {orderConfirmation ? 'Order confirmed!' : 'Online payment submitted'}
-              </p>
-              {orderConfirmation?.payment_reference && (
-                <div className="bg-surface-card border border-green-300 rounded-lg p-3">
-                  <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Your order reference:</p>
-                  <p className="text-green-900 dark:text-green-200 font-mono text-lg font-bold mt-1">{orderConfirmation.payment_reference}</p>
-                  <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
-                </div>
-              )}
-              {orderConfirmation?.bank_details?.bsb && (
-                <div className="bg-surface-card border border-green-300 rounded-lg p-3">
-                  <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Bank Transfer Details:</p>
-                  <div className="mt-1 text-sm font-body text-green-800 dark:text-green-200 space-y-0.5">
-                    <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>
-                    <p>BSB: <span className="font-semibold">{orderConfirmation.bank_details.bsb}</span></p>
-                    <p>Account Number: <span className="font-semibold">{orderConfirmation.bank_details.account_number}</span></p>
-                  </div>
-                </div>
-              )}
-              {orderConfirmation?.personalisation_requested && (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                  {orderConfirmation.number_requested
-                    ? 'Your surname and number preferences have been recorded for club review. The club will confirm the final number by email, subject to availability.'
-                    : 'Your surname has been recorded for club review.'}
-                </div>
-              )}
-              {capabilities.card && orderConfirmation?.order_id && (
-                <div className="bg-surface-card border border-green-300 rounded-lg p-3 space-y-2">
-                  <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Prefer to pay online?</p>
-                  <p className="text-green-800 dark:text-green-200 font-body text-xs">
-                    Continue to Stripe Checkout instead of using bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
-                  </p>
-                  <div className="flex flex-wrap items-end gap-3">
-                    <Button
-                      type="button"
-                      size="sm"
-                      isLoading={cardPaying}
-                      onClick={() => startCardPayment(null)}
-                    >
-                      Pay full amount online
-                    </Button>
-                    {capabilities.partial_payments && (
-                      <div className="flex items-end gap-2">
-                        <div>
-                          <label htmlFor="card-part-amount" className="form-label text-xs">
-                            Part payment (min {formatCurrency(capabilities.minimum_partial_amount)})
-                          </label>
-                          <input
-                            id="card-part-amount"
-                            type="number"
-                            inputMode="decimal"
-                            min={capabilities.minimum_partial_amount}
-                            max={orderConfirmation.total_amount}
-                            step="0.01"
-                            className="w-32 px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
-                            value={cardAmount}
-                            onChange={(e) => setCardAmount(e.target.value)}
-                            aria-describedby={cardError ? 'card-pay-error' : undefined}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          isLoading={cardPaying}
-                          onClick={() => {
-                            const amount = Number(cardAmount);
-                            if (!Number.isFinite(amount) || amount <= 0) {
-                              setCardError('Enter a valid part-payment amount.');
-                              return;
-                            }
-                            startCardPayment(amount);
-                          }}
-                        >
-                          Pay part online
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {cardError && (
-                    <p id="card-pay-error" className="text-red-700 dark:text-red-300 font-body text-xs" role="alert">{cardError}</p>
-                  )}
-                </div>
-              )}
-              <p className="text-green-700 dark:text-green-300 font-body text-sm">
-                {orderConfirmation
-                  ? 'Thank you for your order. It will be available for collection at the club once payment is confirmed.'
-                  : 'Stripe has returned you to the club website. Your signed payment notification is being matched to the order before collection is approved.'}
-              </p>
-            </div>
+            <OrderConfirmationPanel
+              orderConfirmation={orderConfirmation}
+              capabilities={capabilities}
+              cardPaying={cardPaying}
+              cardAmount={cardAmount}
+              setCardAmount={setCardAmount}
+              cardError={cardError}
+              setCardError={setCardError}
+              startCardPayment={startCardPayment}
+            />
           )}
 
           {submitStatus === 'cancelled' && (
@@ -1031,197 +551,25 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
           ) : cart.length > 0 ? (
             <>
               {/* Cart Items */}
-              <Card className="mb-8">
-                <div className="divide-y divide-edge-subtle">
-                  {cart.map((item, idx) => (
-                    <div key={`${item.id}-${item.size}-${item.custom_name || ''}-${idx}`} className="px-6 py-4 flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-body font-semibold text-content-primary">{item.name}</p>
-                        <p className="font-body text-sm text-content-muted">
-                          Size: {item.size} · {formatCurrency(item.price)} each
-                        </p>
-                        {item.option_labels?.map((label) => (
-                          <p key={label} className="font-body text-xs text-content-muted">{label}</p>
-                        ))}
-                        {item.custom_name && (
-                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Surname: {item.custom_name}</p>
-                        )}
-                        {item.custom_number !== undefined && (
-                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">
-                            Number preferences: {item.custom_number}{item.alternate_number !== undefined ? `, ${item.alternate_number}` : ''} (subject to availability)
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            className="w-7 h-7 rounded border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
-                            onClick={() => updateCartQuantity(idx, -1)}
-                            aria-label={`Decrease ${item.name} quantity`}
-                          >
-                            -
-                          </button>
-                          <span className="font-body font-semibold w-6 text-center text-sm">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            className="w-7 h-7 rounded border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
-                            onClick={() => updateCartQuantity(idx, 1)}
-                            aria-label={`Increase ${item.name} quantity`}
-                          >
-                            +
-                          </button>
-                        </div>
-                        <span className="font-body font-semibold text-content-primary w-20 text-right">
-                          {formatCurrency(item.price * item.quantity)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFromCart(idx)}
-                          className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-1"
-                          aria-label={`Remove ${item.name} from order`}
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="px-6 py-4 bg-maroon-50 dark:bg-maroon-950 border-t border-maroon-100 flex items-center justify-between">
-                  <span className="font-display font-bold text-maroon-800 dark:text-maroon-200 text-lg">Total</span>
-                  <span className="font-display font-bold text-maroon-800 dark:text-maroon-200 text-xl">
-                    {formatCurrency(cartTotal)}
-                  </span>
-                </div>
-              </Card>
+              <CartSummary
+                cart={cart}
+                cartTotal={cartTotal}
+                updateCartQuantity={updateCartQuantity}
+                handleRemoveFromCart={handleRemoveFromCart}
+              />
 
               {/* Customer Details Form */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-display font-bold text-content-primary text-lg mb-4">
-                    Your Details
-                  </h3>
-                  <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                    <input
-                      type="text"
-                      name="website"
-                      value={formData.hp_field}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
-                      className="hidden"
-                      tabIndex={-1}
-                      autoComplete="off"
-                    />
-                    <Input
-                      id="merch_name"
-                      label="Full Name"
-                      type="text"
-                      required
-                      placeholder="e.g. Jane Smith"
-                      value={formData.name}
-                      error={formErrors.name}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input
-                        id="merch_email"
-                        label="Email Address"
-                        type="email"
-                        required
-                        placeholder="e.g. jane@example.com"
-                        value={formData.email}
-                        error={formErrors.email}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, email: e.target.value }))
-                        }
-                      />
-
-                      <Input
-                        id="merch_phone"
-                        label="Phone Number"
-                        type="tel"
-                        required
-                        placeholder="e.g. 0412 345 678"
-                        value={formData.phone}
-                        error={formErrors.phone}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                        }
-                      />
-                    </div>
-
-                    <Textarea
-                      id="merch_notes"
-                      label="Notes (optional)"
-                      placeholder="Any special requests or notes..."
-                      rows={3}
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                      }
-                    />
-
-                    {capabilities.card && (
-                      <fieldset className="space-y-2">
-                        <legend className="form-label">Payment method</legend>
-                        <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
-                          <input
-                            type="radio"
-                            name="payment_method"
-                            value="bank_transfer"
-                            checked={paymentMethod === 'bank_transfer'}
-                            onChange={() => setPaymentMethod('bank_transfer')}
-                          />
-                          Bank transfer
-                        </label>
-                        <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
-                          <input
-                            type="radio"
-                            name="payment_method"
-                            value="stripe"
-                            checked={paymentMethod === 'stripe'}
-                            onChange={() => setPaymentMethod('stripe')}
-                          />
-                          Pay securely by card with Stripe
-                        </label>
-                      </fieldset>
-                    )}
-
-                    <Button
-                      type="submit"
-                      isLoading={isSubmitting}
-                      size="lg"
-                      className="w-full"
-                      disabled={!windowState.processing_open && !windowState.queue_allowed}
-                    >
-                      {isSubmitting
-                        ? 'Submitting order...'
-                        : !windowState.processing_open && !windowState.queue_allowed
-                          ? 'Ordering Closed'
-                          : !windowState.processing_open
-                            ? 'Queue Order for Next Window'
-                            : paymentMethod === 'stripe'
-                              ? 'Place Order and Pay by Card'
-                              : 'Place Order (Bank Transfer)'}
-                    </Button>
-
-                    <p className="text-content-muted font-body text-xs text-center">
-                      {paymentMethod === 'stripe'
-                        ? 'After submission you will continue to Stripe Checkout.'
-                        : 'After submission you will receive a payment reference for bank transfer.'}
-                    </p>
-                    <p className="text-content-muted font-body text-xs text-center">
-                      Order reference format: NDCCMER-YYYY-000001
-                    </p>
-                  </form>
-                </CardContent>
-              </Card>
+              <CheckoutForm
+                formData={formData}
+                setFormData={setFormData}
+                formErrors={formErrors}
+                handleSubmit={handleSubmit}
+                capabilities={capabilities}
+                paymentMethod={paymentMethod}
+                setPaymentMethod={setPaymentMethod}
+                isSubmitting={isSubmitting}
+                windowState={windowState}
+              />
             </>
           ) : null}
         </div>

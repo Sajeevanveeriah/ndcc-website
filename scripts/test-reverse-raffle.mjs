@@ -17,7 +17,7 @@ const raffleConstants = load('lib/raffle-constants.ts', {});
 const selection = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-constants': raffleConstants });
 const realValidation = load('lib/order-input-validation.ts', {});
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2, selectedNumbers: [201, 300] };
-let selected, inserted, payload, hidden = false, soldOut = false, failure = '', released = false, expired = false;
+let selected, inserted, payload, payloadOptions, hidden = false, soldOut = false, failure = '', released = false, expired = false;
 let pendingHolds = [], holdQuery = null, ipTokens = 0, ipTokenLimit = Infinity, turnstileAllowed = true;
 const db = { from() { return {
   insert(value) { inserted = value; return this; }, select(columns) { if (columns === 'quantity') holdQuery = []; return this; },
@@ -30,9 +30,9 @@ const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/reverse-raffle-selection': selection,
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
-  '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async value => {
+  '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async (value, options) => {
     if(failure === 'create') throw new Error('Stripe unavailable');
-    payload = value; return { ...value, id: 'cs_test', status: 'open', url: failure === 'validation' ? null : 'https://checkout.stripe.com/test' };
+    payload = value; payloadOptions = options; return { ...value, id: 'cs_test', status: 'open', url: failure === 'validation' ? null : 'https://checkout.stripe.com/test' };
   }, expire: async()=>{expired = true; return {status:'expired'};} } } }) },
   '@/lib/server/request-guards': {
     enforceRateLimit: async key => { if (!key.startsWith('raffle-hold-ip:')) return true; ipTokens += 1; return ipTokens <= ipTokenLimit; },
@@ -46,6 +46,7 @@ const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/payments/payment-config': { isCheckoutEnabled: () => true },
   '@/lib/payments/reference': { generateUniquePaymentReference: async () => 'NDCCRAF-2026-000100' },
   '@/lib/payments/site-url': { getCheckoutSiteUrl: () => 'https://www.ndcc.com.au' },
+  '@/lib/payments/stripe-checkout': load('lib/payments/stripe-checkout.ts', {}),
   '@/lib/order-input-validation': { ...realValidation, PUBLIC_ORDER_LIMITS: { maximumOrderCents: 10000000 },
     readLimitedJsonObject: async () => ({ ok: true, value: input }), validateRaffleCheckoutInput: () => ({ ok: true, value: input }) },
   '@/lib/utils': { validateEmail: () => true, validatePhone: () => true },
@@ -62,6 +63,25 @@ for (const code of ['NDCCRRO', 'NDCCRAF']) {
   assert.equal(payload.success_url, `https://www.ndcc.com.au/${code === 'NDCCRRO' ? 'reverse-raffle' : 'raffle'}?payment=success`);
   assert.equal(result.body.payment_reference, payload.client_reference_id);
   if (code === 'NDCCRRO') assert.equal(payload.line_items[0].price_data.product_data.description, undefined);
+  // Exact Stripe create() arguments (keys, key order, values, idempotency key)
+  // as the route sent them before the shared Checkout helper (F59).
+  const reference = 'NDCCRAF-2026-000100';
+  const metadata = { ndcc_payment_reference: reference, ndcc_payment_type: 'raffle', ndcc_order_id: 'test-order',
+    ndcc_reference_version: '1', item_number: reference, product: 'NDCC Raffle', raffle_order_id: 'test-order',
+    expected_amount_cents: code === 'NDCCRRO' ? '12000' : '1000', quantity: '2', payment_reference: reference };
+  const returnPath = code === 'NDCCRRO' ? '/reverse-raffle' : '/raffle';
+  const expectedParams = { mode: 'payment', customer_email: 'buyer@example.com',
+    ...(code === 'NDCCRRO' ? { expires_at: payload.expires_at } : {}),
+    line_items: [{ price_data: { currency: 'aud', unit_amount: code === 'NDCCRRO' ? 6000 : 500, product_data: {
+      name: `NDCC ${code === 'NDCCRRO' ? 'Reverse Raffle' : 'Dinos Trailer Raffle'} Ticket - ${reference}`,
+      ...(code === 'NDCCRRO' ? {} : { description: 'Christmas Party - 19 December 2026' }) } }, quantity: 2 }],
+    success_url: `https://www.ndcc.com.au${returnPath}?payment=success`, cancel_url: `https://www.ndcc.com.au${returnPath}?payment=cancelled`,
+    client_reference_id: reference, metadata,
+    payment_intent_data: { description: `${reference} - NDCC raffle`, metadata } };
+  assert.equal(JSON.stringify(payload), JSON.stringify(expectedParams), `${code} Checkout create() params must be unchanged`);
+  assert.equal(JSON.stringify(payloadOptions), JSON.stringify({ idempotencyKey: 'raffle-test-order' }));
+  if (code === 'NDCCRRO') assert.ok(Math.abs(payload.expires_at - (Math.floor(Date.now() / 1000) + 35 * 60)) <= 2);
+  else assert.equal(Object.hasOwn(payload, 'expires_at'), false, 'the standard raffle sends no expires_at');
 }
 for (const invalid of [undefined, [], [201], [201, 201], [200, 300], [201, 301], ['201', 300]]) {
   input.selectedNumbers = invalid;
@@ -119,6 +139,7 @@ console.log('PASS reverse raffle hold caps per email/IP, 35 minute expiry and op
 const constants = load('lib/raffle-constants.ts', {});
 const vector = load('lib/reverse-raffle-ticket.ts', { './raffle-constants': constants });
 const ticket = load('lib/raffle-ticket.ts', {
+  './email-html': load('lib/email-html.ts', {}),
   './reverse-raffle-ticket': vector,
   './raffle-constants': constants,
   'node:fs/promises': { default: { readFile: async () => Buffer.from('test-logo') } },
