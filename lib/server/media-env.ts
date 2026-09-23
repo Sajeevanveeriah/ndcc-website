@@ -16,5 +16,3 @@ export function getMediaConfigStatus() {
     ready: supabaseUrlPresent && serviceRoleKeyPresent,
   };
 }
-
-export type MediaConfigStatus = ReturnType<typeof getMediaConfigStatus>;

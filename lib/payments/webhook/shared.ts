@@ -96,7 +96,7 @@ export async function queueAndAttemptReceipt(
   return { ok: true };
 }
 
-export function universalPaymentMetadata(
+function universalPaymentMetadata(
   paymentReference: string,
   paymentType: PaymentReferenceCategory,
   recordId: string,

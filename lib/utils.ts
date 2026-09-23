@@ -119,18 +119,6 @@ export function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength).trim() + '...';
 }
 
-export function generateSlug(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
-
-export function obfuscateEmail(email: string): string {
-  const [user, domain] = email.split('@');
-  return `${user}[at]${domain}`;
-}
-
 export function assembleEmail(user: string, domain: string): string {
   return `${user}@${domain}`;
 }
