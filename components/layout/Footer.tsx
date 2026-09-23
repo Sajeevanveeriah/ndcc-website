@@ -5,10 +5,8 @@ import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { type PageLinkCard } from '@/lib/structured-content';
-import { getSiteChromeData } from '@/lib/site-chrome';
 import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
-import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
-import { isRafflePublic } from '@/lib/raffle-visibility';
+import { getSiteChromeSnapshot } from '@/lib/server/nav-visibility';
 
 function isExternalLink(link: PageLinkCard) {
   // Only real http(s) URLs open in a new tab — a local route mis-flagged
@@ -64,16 +62,21 @@ function FooterLink({ link, className }: { link: PageLinkCard; className: string
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-  const visibility = Promise.all([isDinoCoachPublic(), isRafflePublic()]);
-  const { settings, acknowledgement: acknowledgementBlock, quickLinks: cmsQuickLinks, getInvolvedLinks: cmsGetInvolvedLinks, affiliationLinks: cmsAffiliationLinks } = await getSiteChromeData();
+  // One shared, cached (≤60s, tag-invalidated) snapshot with the Navbar: the
+  // footer no longer queries Supabase on every request.
+  const { chrome, nav } = await getSiteChromeSnapshot();
+  const { settings, acknowledgement: acknowledgementBlock, quickLinks: cmsQuickLinks, getInvolvedLinks: cmsGetInvolvedLinks, affiliationLinks: cmsAffiliationLinks } = chrome;
   const emailHref = settings.email ? `mailto:${settings.email}` : undefined;
   const phoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const [dinoCoachEnabled, raffleEnabled] = await visibility;
+  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled } = nav;
   const hideDisabledFeatures = (link: PageLinkCard) =>
-    (isCookieDoughOpen() || !isCookieDoughLink(link.href)) && (dinoCoachEnabled || !link.href.startsWith('/fantasy')) && (raffleEnabled || !link.href.startsWith('/raffle'));
+    (isCookieDoughOpen() || !isCookieDoughLink(link.href))
+    && (dinoCoachEnabled || !link.href.startsWith('/fantasy'))
+    && (raffleEnabled || !link.href.startsWith('/raffle'))
+    && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'));
   const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledFeatures);
   const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks).filter(hideDisabledFeatures);
   const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledFeatures);

@@ -11,8 +11,13 @@ assert.equal(isRaffleVisibleAt({ ...scheduled, public_visibility_mode: 'visible'
 assert.equal(isRaffleVisibleAt({ ...scheduled, active: false }, new Date('2026-12-01T00:00:00Z')), false);
 
 const requiredGates = [
-  ['components/layout/Navbar.tsx', '/api/public/raffle-status'],
-  ['components/layout/Footer.tsx', 'isRafflePublic'],
+  // Navbar and Footer share one server-computed visibility snapshot.
+  ['lib/server/nav-visibility.ts', 'isRafflePublic()'],
+  ['lib/server/nav-visibility.ts', "isRafflePublic('NDCCRRO')"],
+  ['components/layout/Navbar.tsx', 'nav.rafflePublic'],
+  ['components/layout/Navbar.tsx', 'nav.reverseRafflePublic'],
+  ['components/layout/Footer.tsx', 'rafflePublic: raffleEnabled'],
+  ['components/layout/Footer.tsx', "!link.href.startsWith('/reverse-raffle')"],
   ['app/raffle/page.tsx', 'notFound'],
   ['app/reverse-raffle/page.tsx', "getPublicRaffleCampaign('NDCCRRO')"],
   ['app/api/raffle/checkout/route.ts', 'getPublicRaffleCampaign'],

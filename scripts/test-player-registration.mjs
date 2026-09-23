@@ -18,6 +18,8 @@ const publicReader = readFileSync('lib/public-player-registration.ts', 'utf8');
 const adminApi = readFileSync('app/api/admin/club-seasons/registration/route.ts', 'utf8');
 const authConfig = readFileSync('lib/auth/config.ts', 'utf8');
 const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
+// Navigation visibility is computed on the server and passed to the Navbar.
+const navVisibility = readFileSync('lib/server/nav-visibility.ts', 'utf8');
 const joinPage = readFileSync('app/join/page.tsx', 'utf8');
 const sitemap = readFileSync('app/sitemap.ts', 'utf8');
 const smokeRoutes = readFileSync('scripts/smoke-routes.mjs', 'utf8');
@@ -151,9 +153,9 @@ assert.doesNotMatch(adminApi, /FANTASY_ADMIN_ROLES|CLUB_ADMIN_ROLES/);
 assert.match(adminApi, /validateRegistrationSettings/);
 assert.match(adminApi, /\.upsert\(/);
 
-assert.match(navbar, /\/api\/public\/player-registration/);
+assert.match(navVisibility, /getPublicPlayerRegistration\(\)/);
 assert.match(navbar, /registrationNavigation\?\.label/);
-assert.match(navbar, /registration\.availability !== 'closed'/);
+assert.match(navVisibility, /registration\.availability !== 'closed'/);
 assert.equal(joinPage.split('href="/player-registration"').length - 1, 2);
 assert.doesNotMatch(joinPage, /PLAYHQ_ORG_URL/);
 assert.match(joinPage, /OrderPaymentOptions/);
