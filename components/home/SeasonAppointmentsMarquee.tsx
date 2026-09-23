@@ -154,7 +154,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
         <div className="mt-6 flex flex-col items-center gap-2 text-center">
           <Link href="/about#committee" className="btn-secondary">View all appointments</Link>
           <p className="text-content-muted font-body text-sm">
-            Season appointments are managed in the CMS. Follow us on{' '}
+            Follow us on{' '}
             <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
               Facebook
             </Link>{' '}
