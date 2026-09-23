@@ -3,17 +3,6 @@
 // No I/O - unit tested in scripts/test-fantasy-orchestrator.mjs.
 import type { PlayHQSeason } from './types';
 
-/** Centralised, testable club identity aliases. Deliberately narrow: every
- *  alias contains the distinctive token "newcomb" (or the exact acronym) so a
- *  broad match can never capture another club. */
-export const CLUB_TEAM_ALIASES = [
-  'newcomb',
-  'newcomb and district',
-  'newcomb & district',
-  'newcomb district',
-  'ndcc',
-] as const;
-
 export function normaliseClubText(value: string | null | undefined): string {
   return String(value ?? '')
     .toLowerCase()

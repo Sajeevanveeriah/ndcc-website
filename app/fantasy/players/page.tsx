@@ -1,5 +1,6 @@
 import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Card, { CardContent } from '@/components/ui/Card';
 import { getActivePlayersWithLatestPrices, type FantasyPlayerWithPrice } from '@/lib/fantasy-game';
 import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
@@ -12,10 +13,7 @@ import { getSeasonPageContext, seasonStatusLabel, type FantasySeason } from '@/l
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Dino Coach Player Catalogue',
-  description: 'Search NDCC players and published Dino Dollar prices.',
-};
+export const metadata: Metadata = pageMetadata('/fantasy/players', 'Dino Coach Player Catalogue', 'Search NDCC players and published Dino Dollar prices.');
 
 
 async function getPlayers(season: FantasySeason | null): Promise<{ players: PlayerListEntry[]; hasPublishedPoints: boolean; loadFailed: boolean }> {

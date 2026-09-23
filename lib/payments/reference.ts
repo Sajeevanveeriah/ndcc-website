@@ -1,11 +1,12 @@
 import { createServerClient } from '@/lib/supabase-server';
+import { RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 
 export const PAYMENT_REFERENCE_PREFIXES = {
   merch: 'NDCCMER',
   kitchen: 'NDCCKIT',
   membership: 'NDCCMEM',
   event: 'NDCCEVT',
-  raffle: 'NDCCRAF',
+  raffle: RAFFLE_CAMPAIGN_CODE,
   dino_coach: 'NDCCDCO',
   general: 'NDCCPAY',
 } as const;

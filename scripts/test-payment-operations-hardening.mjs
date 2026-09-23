@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readSplitSource } from './lib/split-source.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -57,7 +58,8 @@ test('bank matching uses exact remaining balance, not original total', () => {
 
 const checkout = read('app/api/payments/checkout-session/route.ts');
 const manualRoute = read('app/api/admin/orders/payments/route.ts');
-const manualUi = read('app/admin/orders/page.tsx');
+// The orders page was split into app/admin/orders/components/ (F64).
+const manualUi = readSplitSource('app/admin/orders/page.tsx', 'app/admin/orders/components');
 const reconcile = read('app/api/admin/payments/reconcile/route.ts');
 const ambiguous = read('app/api/admin/payments/ambiguous/route.ts');
 const migration = read('supabase/migrations/20260830130818_payment_reference_integrity.sql');

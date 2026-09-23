@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPublicRaffleCampaign } from '@/lib/raffle-visibility';
+import { REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const headers = { 'Cache-Control': 'no-store' };
   try {
-    const campaign = await getPublicRaffleCampaign('NDCCRRO');
+    const campaign = await getPublicRaffleCampaign(REVERSE_RAFFLE_CAMPAIGN_CODE);
     if (!campaign) return NextResponse.json({ error: 'The raffle is not currently available.' }, { status: 503, headers });
     const { data, error } = await createServerClient().rpc('reverse_raffle_unavailable_numbers');
     if (error || !Array.isArray(data)) throw new Error('Number availability unavailable');

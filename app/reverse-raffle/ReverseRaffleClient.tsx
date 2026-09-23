@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { REVERSE_RAFFLE_NUMBERS, validReverseRaffleSelection } from '@/lib/reverse-raffle-selection';
+import { REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_NUMBER_RANGE_LABEL, isReverseRaffleNumber } from '@/lib/raffle-constants';
 
 export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCents: number; drawLabel: string | null }) {
   const paymentResult = useSearchParams().get('payment');
@@ -20,7 +21,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
       const response = await fetch('/api/raffle/numbers', { cache: 'no-store' });
       const data = await response.json();
       if (!response.ok || !Array.isArray(data.unavailable)
-        || !data.unavailable.every((n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 201 && n <= 300)) {
+        || !data.unavailable.every((n: unknown) => typeof n === 'number' && isReverseRaffleNumber(n))) {
         throw new Error('Ticket availability could not be loaded. Please try again.');
       }
       setUnavailable(data.unavailable);
@@ -46,7 +47,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
     if (busy || !canCheckout) return;
     setBusy(true); setError('');
     try {
-      const response = await fetch('/api/raffle/checkout?campaign=NDCCRRO', {
+      const response = await fetch(`/api/raffle/checkout?campaign=${REVERSE_RAFFLE_CAMPAIGN_CODE}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, selectedNumbers }),
       });
       const result = await response.json();
@@ -72,7 +73,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
         {paymentResult === 'success' && <p role="status">Checkout completed. Your numbered tickets will be emailed once payment is confirmed.</p>}
         {paymentResult === 'cancelled' && <p role="status">Checkout was cancelled. You can try again below.</p>}
         {drawLabel && <p>{drawLabel}</p>}
-        <p>100 tickets, numbered 201-300. Each ticket is $60 AUD.</p>
+        <p>{`${REVERSE_RAFFLE_NUMBERS.length} tickets, numbered ${REVERSE_RAFFLE_NUMBER_RANGE_LABEL}. Each ticket is $60 AUD.`}</p>
         <p>Your numbered ticket image and PDF payment receipt will be emailed after payment is confirmed.</p>
         <Input id="reverse-raffle-name" label="Name" required autoComplete="name" maxLength={120} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <Input id="reverse-raffle-email" label="Email" type="email" required autoComplete="email" maxLength={254} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
@@ -103,7 +104,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
           </div>
           <p className="text-sm mt-3" role="status">{selectedNumbers.length} of {validQuantity ? form.quantity : 0} selected{selectedNumbers.length > 0 ? `: ${[...selectedNumbers].sort((a, b) => a - b).join(', ')}` : ''}</p>
           {!selectionAvailable && <p role="alert">A selected number is now unavailable. Deselect it and choose another number.</p>}
-          {availabilityReady && unavailable.length === 100 && <p role="status">All numbers are sold or currently held by other checkouts.</p>}
+          {availabilityReady && unavailable.length === REVERSE_RAFFLE_NUMBERS.length && <p role="status">All numbers are sold or currently held by other checkouts.</p>}
         </fieldset>
         <p className="font-bold" aria-live="polite">{validQuantity ? `Total: $${(form.quantity * priceCents / 100).toFixed(2)} AUD` : 'Choose between 1 and 20 tickets.'}</p>
         {error && <p className="text-red-700" role="alert">{error}</p>}

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 import {
   buildPaymentReceiptFilename,
   buildPaymentReceiptPdf,
@@ -53,7 +54,7 @@ if (process.env.RECEIPT_TEST_OUTPUT) {
 }
 
 const [webhook, receipts, delivery, dinoReceipt, raffle, raffleTicket, generator, fontConfig, bundledFont] = await Promise.all([
-  readFile(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8'),
+  Promise.resolve(readStripeWebhookSource()),
   readFile(path.join(repoRoot, 'lib/payment-receipts.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/payments/receipt-delivery.ts'), 'utf8'),
   readFile(path.join(repoRoot, 'lib/dino-coach/payment-receipt.ts'), 'utf8'),

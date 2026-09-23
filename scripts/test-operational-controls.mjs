@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readFantasyOrchestratorSource } from './lib/fantasy-orchestrator-source.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
-const orchestrator = read('lib/playhq/fantasy-orchestrator.ts');
+const orchestrator = readFantasyOrchestratorSource();
 const seasonsApi = read('app/api/admin/fantasy/seasons/route.ts');
 const logsApi = read('app/api/admin/fantasy/logs/route.ts');
 const ordersApi = read('app/api/admin/resources/[resource]/route.ts');

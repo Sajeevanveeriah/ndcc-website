@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => readFileSync(path.join(root, file), 'utf8');
 const migration = read('supabase/migrations/20260830130824_stripe_financial_event_integrity.sql');
-const webhook = read('app/api/stripe/webhook/route.ts');
+const webhook = readStripeWebhookSource();
 const dinoDomain = read('lib/dino-coach/domain.ts');
 
 let passed = 0;

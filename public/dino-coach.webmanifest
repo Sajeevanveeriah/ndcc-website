@@ -7,7 +7,7 @@
   "scope": "/fantasy",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#800020",
+  "theme_color": "#800000",
   "icons": [
     {
       "src": "/icons/dino-coach-192.png",

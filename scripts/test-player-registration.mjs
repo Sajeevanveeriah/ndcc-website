@@ -21,6 +21,8 @@ const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
 // Navigation visibility is computed on the server and passed to the Navbar.
 const navVisibility = readFileSync('lib/server/nav-visibility.ts', 'utf8');
 const joinPage = readFileSync('app/join/page.tsx', 'utf8');
+// The application form is a client island rendered by the join page.
+const joinForm = readFileSync('app/join/SocialMembershipForm.tsx', 'utf8');
 const sitemap = readFileSync('app/sitemap.ts', 'utf8');
 const smokeRoutes = readFileSync('scripts/smoke-routes.mjs', 'utf8');
 
@@ -158,9 +160,10 @@ assert.match(navbar, /registrationNavigation\?\.label/);
 assert.match(navVisibility, /registration\.availability !== 'closed'/);
 assert.equal(joinPage.split('href="/player-registration"').length - 1, 2);
 assert.doesNotMatch(joinPage, /PLAYHQ_ORG_URL/);
-assert.match(joinPage, /OrderPaymentOptions/);
-assert.match(joinPage, /returnPath="\/join"/);
-assert.match(joinPage, /Submit Social Membership/);
+assert.match(joinPage, /<SocialMembershipForm /);
+assert.match(joinForm, /OrderPaymentOptions/);
+assert.match(joinForm, /returnPath="\/join"/);
+assert.match(joinForm, /Submit Social Membership/);
 for (const source of [sitemap, smokeRoutes]) assert.match(source, /\/player-registration/);
 
 function walk(directory) {

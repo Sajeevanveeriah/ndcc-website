@@ -11,6 +11,10 @@
     "middleware.ts"
   ],
   "ignoreBinaries": [
-    "psql"
+    "psql",
+    "supabase"
+  ],
+  "ignoreDependencies": [
+    "eslint-config-next"
   ]
 }

@@ -5,8 +5,15 @@ import { resolve } from 'node:path';
 import { buildDetailEntries } from '../lib/seo-sitemap.ts';
 import { pageMetadata, authorJsonLd, breadcrumbJsonLd } from '../lib/seo.ts';
 import { eventVenue } from '../lib/event-venue.ts';
-import robots from '../app/robots.ts';
 import config from '../next.config.mjs';
+
+// app/robots.ts imports SITE_URL through the '@/' alias; resolve it for this import.
+const aliasHooks = registerHooks({ resolve(specifier, context, next) {
+  if (specifier.startsWith('@/')) return next(pathToFileURL(resolve(specifier.slice(2) + '.ts')).href, context);
+  return next(specifier, context);
+}});
+const { default: robots } = await import('../app/robots.ts');
+aliasHooks.deregister();
 
 let checks = 0;
 const check = (name, fn) => { fn(); checks++; console.log(`PASS ${name}`); };
@@ -62,9 +69,20 @@ check('robots keeps private APIs blocked and allows only named public exceptions
   const rule = robots().rules[0];
   assert.ok(rule.disallow.includes('/api/'));
   assert.ok(rule.disallow.includes('/admin/'));
-  assert.ok(rule.allow.includes('/admin/login$'));
+  assert.ok(!rule.allow.some(x => x.startsWith('/admin')), 'admin (including login) is not allow-listed');
   assert.ok(rule.allow.includes('/api/apparel/products$'));
   assert.ok(!rule.allow.includes('/api/'));
+});
+const { readFileSync } = await import('node:fs');
+check('page titles rely on the root "| NDCC Dinos" template and theme colours match', () => {
+  for (const file of ['app/reverse-raffle/page.tsx', 'app/sponsors/donate/page.tsx', 'app/raffle/page.tsx']) {
+    const source = readFileSync(file, 'utf8');
+    assert.ok(!/title: '[^']*\|[^']*'/.test(source) && !/pageMetadata\([^)]*'[^']*\|[^']*'/.test(source), `${file} title must not repeat branding`);
+  }
+  assert.match(readFileSync('app/raffle/page.tsx', 'utf8'), /pageMetadata\('\/raffle'/);
+  assert.match(readFileSync('app/raffle/page.tsx', 'utf8'), /if \(!\(await isRafflePublic\(\)\)\) return \{\};/, 'hidden raffle gets no raffle metadata');
+  assert.match(readFileSync('app/fantasy/layout.tsx', 'utf8'), /themeColor: '#800000'/);
+  assert.equal(JSON.parse(readFileSync('public/dino-coach.webmanifest', 'utf8')).theme_color, '#800000');
 });
 const headers = await config.headers();
 check('login, private and payment responses get restrictive headers', () => {
@@ -97,6 +115,7 @@ const stub = 'data:text/javascript,' + encodeURIComponent(`export const createSe
 const hooks = registerHooks({ resolve(specifier, context, next) {
   if (specifier === 'next/server') return { url: 'data:text/javascript,' + encodeURIComponent(`export class NextResponse extends Response { static json(body, init) { return Response.json(body, init); } }`), shortCircuit: true };
   if (specifier === '@/lib/supabase-server') return { url: stub, shortCircuit: true };
+  if (specifier === 'server-only') return { url: 'data:text/javascript,', shortCircuit: true };
   if (specifier.startsWith('@/')) return next(pathToFileURL(resolve(specifier.slice(2) + '.ts')).href, context);
   return next(specifier, context);
 }});
@@ -108,6 +127,28 @@ check('real sitemap excludes utility routes and includes gallery', () => {
   assert.ok(!map.some(x => x.url.includes('/committee/')));
   assert.ok(map.filter(x => !x.url.includes('/publications/')).every(x => !x.lastModified));
 });
+check('sitemap lists player registration and the Dino Coach leaderboard only when available', () => {
+  assert.ok(!map.some(x => x.url.endsWith('/player-registration')), 'no open registration: not listed');
+  assert.ok(!map.some(x => x.url.includes('/fantasy')), 'Dino Coach not public: no fantasy entries');
+  assert.ok(map.every(x => x.url.startsWith('https://www.ndcc.com.au')), 'shared SITE_URL base');
+});
+tables.club_seasons = [{ id: 'season-1', name: 'Test season', is_current: true, status: 'active' }];
+tables.club_season_registration_settings = [{ club_season_id: 'season-1', status: 'open', opens_at: null, closes_at: null, show_in_navigation: true,
+  registration_options: [{ audience_key: 'seniors', label: 'Test option', registration_url: 'https://www.playhq.com/cricket-australia/register/test', is_active: true }] }];
+tables.fantasy_seasons = [{ id: 'fantasy-1', is_current: true }];
+tables.fantasy_dino_settings = [{ season_id: 'fantasy-1', public_launch_enabled: true }];
+const openMap = await sitemap();
+check('sitemap adds open player registration and public Dino Coach leaderboard', () => {
+  assert.ok(openMap.some(x => x.url === 'https://www.ndcc.com.au/player-registration'));
+  for (const path of ['/fantasy', '/fantasy/rules', '/fantasy/players', '/fantasy/leaderboard'])
+    assert.ok(openMap.some(x => x.url === `https://www.ndcc.com.au${path}`), path);
+});
+tables.club_season_registration_settings[0].status = 'closed';
+const closedMap = await sitemap();
+check('closed player registration drops out of the sitemap', () => {
+  assert.ok(!closedMap.some(x => x.url.endsWith('/player-registration')));
+});
+tables.club_seasons = []; tables.club_season_registration_settings = []; tables.fantasy_seasons = []; tables.fantasy_dino_settings = [];
 failTable = 'events';
 await assert.rejects(sitemap(), /unavailable/); checks++; console.log('PASS sitemap outage rejects instead of emitting a partial map');
 failTable = null; configured = false;

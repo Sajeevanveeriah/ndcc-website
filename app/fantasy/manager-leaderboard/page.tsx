@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
@@ -9,7 +10,7 @@ import { getDinoManagerStandings, type DinoManagerStanding } from '@/lib/dino-co
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Dino Coach Manager Leaderboard' };
+export const metadata: Metadata = pageMetadata('/fantasy/manager-leaderboard', 'Dino Coach Manager Leaderboard', 'Manager Standings rank the people playing Dino Coach by the points earned by their selected playing XI.');
 
 export default async function FantasyManagerLeaderboardPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;

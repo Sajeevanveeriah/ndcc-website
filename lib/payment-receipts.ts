@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { receiptRecipients } from '@/lib/payments/receipt-recipients';
 import { buildStaffOrderNotificationContent, getStaffOrderRecipients } from '@/lib/order-notification-content';
 import { emailHtml, getTransactionalReplyTo, sendEmail } from '@/lib/email';
+import { escapeEmailHtml } from '@/lib/email-html';
 import { getPaymentMetadata, mergePaymentMetadata } from '@/lib/payment-metadata';
 import { canRecordSimulatedReceiptDelivery } from '@/lib/payments/receipt-delivery-policy';
 import {
@@ -47,12 +48,6 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: 'Cash',
   other: 'Other',
 };
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[character] || character));
-}
 
 function itemDescription(item: OrderItem): string {
   const quantity = Math.max(1, Math.round(Number(item.quantity) || 1));
@@ -228,12 +223,12 @@ export async function sendOrderPaymentReceiptForPayment(
     customer: { name: order.customer_name, email: order.customer_email, phone: order.customer_phone || '' },
     items: Array.isArray(order.items) ? order.items : [], totalAmount: Number(order.total_amount),
   }).bodyHtml.replace('The order is now fully paid.', order.payment_status === 'paid'
-    ? 'The order is now fully paid.' : 'A part payment has been received. The remaining balance is still payable.') : `<p><strong>Purchaser:</strong> ${escapeHtml(order.customer_name)}<br><strong>Email:</strong> ${escapeHtml(order.customer_email)}</p>`;
+    ? 'The order is now fully paid.' : 'A part payment has been received. The remaining balance is still payable.') : `<p><strong>Purchaser:</strong> ${escapeEmailHtml(order.customer_name)}<br><strong>Email:</strong> ${escapeEmailHtml(order.customer_email)}</p>`;
   const result = await sendEmail({
     ...receiptRecipients(order.customer_email, department ? getStaffOrderRecipients(department) : []),
     replyTo: getTransactionalReplyTo(),
     subject: `NDCC payment receipt - ${reference}`,
-    html: emailHtml('Payment received', `<p>Hi ${escapeHtml(order.customer_name || 'there')},</p><p>Thank you. We have recorded your payment of <strong>$${(amountCents / 100).toFixed(2)} AUD</strong> for ${escapeHtml(receiptData.paymentType.toLowerCase())}.</p><p>Your payment receipt is attached as a PDF. Please keep it with your payment record.</p><p><strong>Order reference:</strong> ${escapeHtml(reference)}${bankReference && bankReference !== orderReference && bankReference !== reference ? `<br><strong>Bank statement reference:</strong> ${escapeHtml(bankReference)}` : ''}</p>${orderDetails}${order.notes ? `<p><strong>Order notes:</strong> ${escapeHtml(order.notes)}</p>` : ''}`),
+    html: emailHtml('Payment received', `<p>Hi ${escapeEmailHtml(order.customer_name || 'there')},</p><p>Thank you. We have recorded your payment of <strong>$${(amountCents / 100).toFixed(2)} AUD</strong> for ${escapeEmailHtml(receiptData.paymentType.toLowerCase())}.</p><p>Your payment receipt is attached as a PDF. Please keep it with your payment record.</p><p><strong>Order reference:</strong> ${escapeEmailHtml(reference)}${bankReference && bankReference !== orderReference && bankReference !== reference ? `<br><strong>Bank statement reference:</strong> ${escapeEmailHtml(bankReference)}` : ''}</p>${orderDetails}${order.notes ? `<p><strong>Order notes:</strong> ${escapeEmailHtml(order.notes)}</p>` : ''}`),
     idempotencyKey: `website-payment-receipt-${paymentId}`,
     tags: [
       { name: 'category', value: 'customer-receipt' },

@@ -93,6 +93,7 @@ const route = load('app/api/events/route.ts', {
   '@/lib/payments/reference': { generateUniquePaymentReference: async () => 'TEST-EVENT-1' },
   '@/lib/email': { sendEmail: async message => sent.push(message), emailHtml: (_, html) => html, bankDetailsHtml: () => '', escapeEmailHtml: value => value },
   '@/lib/order-input-validation': load('lib/order-input-validation.ts'),
+  '@/lib/validation/uuid': load('lib/validation/uuid.ts'),
 }, { NEXT_PUBLIC_SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'isolated-test' });
 const submit = () => route.POST(new Request('https://example.invalid/api/events', {
   method: 'POST', body: JSON.stringify({ event_id: id, name: 'Test registrant', email: 'test@example.com',

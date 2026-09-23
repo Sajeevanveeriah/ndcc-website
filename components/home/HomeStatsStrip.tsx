@@ -3,23 +3,25 @@ import AnimatedCounter from '@/components/common/AnimatedCounter';
 import ParallaxLayer from '@/components/common/motion/ParallaxLayer';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { CLUB_ESTABLISHED, CLUB_NICKNAME } from '@/lib/constants';
-import { fallbackHistoryPremierships } from '@/lib/fallback-content';
+import { getHistoryPremierships } from '@/lib/structured-content';
 
 const GCA_START_YEAR = 1995;
 
 // A compact "club at a glance" band placed directly under the hero. It breaks up the page,
-// adds depth, and surfaces the club's headline numbers. Values are static/canonical (the
-// premiership count mirrors the verified honour roll). Team totals use the live CMS list.
+// adds depth, and surfaces the club's headline numbers. The premiership count is the
+// number of active entries in the CMS honour roll (history_premierships, the same list
+// the About page's honour board and "Premierships Won" count use; controlled fallbacks
+// apply only when that read fails). Team totals use the live CMS list.
 // Presentation: an editorial honour-board moment — oversized nickname watermark drifting
 // slowly behind the numbers, a gold rule that draws in, and counters that reveal once.
 export default async function HomeStatsStrip() {
-  const teams = await getPublicTeams();
+  const [teams, premierships] = await Promise.all([getPublicTeams(), getHistoryPremierships()]);
   const currentYear = new Date().getFullYear();
   const seasonsInGca = Math.max(currentYear - GCA_START_YEAR, 0);
 
   const stats: { label: string; value: number; animate: boolean }[] = [
     { label: 'Established', value: CLUB_ESTABLISHED, animate: false },
-    { label: 'Premierships', value: fallbackHistoryPremierships.length, animate: true },
+    { label: 'Premierships', value: premierships.length, animate: true },
     { label: 'Seasons in the GCA', value: seasonsInGca, animate: true },
     { label: 'Teams Across the Club', value: teams.length, animate: false },
   ];

@@ -42,6 +42,7 @@ try {
     ['supabase-server.ts', 'supabase-server.ts'],
     ['server/timeout-fetch.ts', 'timeout-fetch.ts'],
     ['fantasy-game.ts', 'fantasy-game.ts'],
+    ['fantasy-season-helpers.ts', 'fantasy-season-helpers.ts'],
     ['fantasy-seasons.ts', 'fantasy-seasons.ts'],
     ['fantasy-carryover.ts', 'fantasy-carryover.ts'],
     ['cron-auth.ts', 'cron-auth.ts'],

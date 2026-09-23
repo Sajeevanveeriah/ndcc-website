@@ -1,14 +1,8 @@
-'use client';
-
-import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import DonationInvitation from '@/components/donations/DonationInvitation';
-import { CheckCircle2, XCircle } from 'lucide-react';
 import LogoChip from '@/components/common/LogoChip';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
-import Button from '@/components/ui/Button';
-import Input, { Textarea, Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import {
   CLUB_NAME,
@@ -17,11 +11,20 @@ import {
   CLUB_PHONE,
   SEED_SPONSOR_DESCRIPTIONS,
 } from '@/lib/constants';
-import { sponsorshipDownloads2026_27 } from '@/lib/assets';
-import { getInitials, validateEmail } from '@/lib/utils';
+import { formatDownloadSize, sponsorshipDownloads2026_27 } from '@/lib/assets';
+import { getInitials } from '@/lib/utils';
 import type { Sponsor } from '@/lib/types';
 import { mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
+import { getPublicSponsors } from '@/lib/public-data';
+import { getContentBlocks } from '@/lib/content-blocks';
+import { getCurrentClubSeason } from '@/lib/club-seasons';
+import SponsorEnquiryForm from './SponsorEnquiryForm';
+
+// Server component: sponsors, CMS copy and the current season name are read
+// server-side (same sources as /api/public/sponsors, /api/content-blocks and
+// /api/public/club-season), so sponsor names are in the server HTML. ISR is
+// configured in ./layout.tsx. Only the enquiry form is a client island.
 
 const SPONSORSHIP_PACKAGES = [
   ['Social Membership', 'AUD 75'],
@@ -50,138 +53,44 @@ function getSponsorDescription(sponsor: Sponsor) {
   return SEED_SPONSOR_DESCRIPTIONS[sponsor.id] || SPONSOR_DESCRIPTIONS_BY_NAME[sponsor.name] || '';
 }
 
-export default function SponsorsPage() {
+async function loadSponsors(): Promise<Sponsor[]> {
+  try {
+    const result = await getPublicSponsors();
+    // A successful response is live truth, including an empty list; never
+    // substitute the static seed sponsors for real CMS data. The merge only
+    // backfills missing logo/website fields on live rows.
+    const rows = Array.isArray(result.data) ? result.data : [];
+    return rows.length > 0 ? mergeSponsorsWithFallback(rows) : [];
+  } catch {
+    // Show the static fallback (real sponsors) instead of a diagnostic so the
+    // grid is never empty or broken.
+    return mergeSponsorsWithFallback([]);
+  }
+}
+
+async function loadCurrentSeasonName(): Promise<string> {
+  try {
+    const season = await getCurrentClubSeason();
+    if (season?.name) return String(season.name);
+  } catch {
+    // The neutral fallback avoids publishing a stale year.
+  }
+  return 'Current Season';
+}
+
+export default async function SponsorsPage() {
   const clubEmail = `${CLUB_EMAIL_USER}@${CLUB_EMAIL_DOMAIN}`;
   const clubPhoneHref = `tel:${CLUB_PHONE.replace(/\s+/g, '')}`;
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    company_name: '',
-    contact_name: '',
-    email: '',
-    phone: '',
-    tier_interest: '',
-    message: '',
-    hp_field: '',
-    submitted_at: Date.now(),
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [heroTitle, setHeroTitle] = useState('Our Sponsors');
-  const [heroBody, setHeroBody] = useState('The generous support of our sponsors helps keep cricket thriving in the Newcomb and Geelong community. We are grateful for every partnership.');
-  const [introTitle, setIntroTitle] = useState('Community Support');
-  const [introBody, setIntroBody] = useState(
-    `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`
-  );
-  const [currentSeasonName, setCurrentSeasonName] = useState('Current Season');
-
-  useEffect(() => {
-    document.title = 'Our Sponsors | NDCC Dinos';
-
-    async function fetchSponsors() {
-      try {
-        const res = await fetch('/api/public/sponsors', { cache: 'no-store' });
-        const json = await res.json();
-
-        if (!res.ok || json.success === false) throw new Error(json.error || 'Failed to load sponsors');
-        // A successful response is live truth, including an empty list — never
-        // substitute the static seed sponsors for real CMS data. The merge only
-        // backfills missing logo/website fields on live rows.
-        const rows = Array.isArray(json.data) ? (json.data as Sponsor[]) : [];
-        setSponsors(rows.length > 0 ? mergeSponsorsWithFallback(rows) : []);
-      } catch {
-        // On a Supabase cold start the API aborts; show the static fallback (real sponsors)
-        // instead of a diagnostic so the grid is never empty or broken.
-        setSponsors(mergeSponsorsWithFallback([]));
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    async function fetchContentBlock() {
-      try {
-        const res = await fetch('/api/content-blocks?keys=sponsors.hero,sponsors.intro', { cache: 'no-store' });
-        const data = await res.json();
-        const blocks = (data.data || []) as Array<{ block_key: string; title?: string; body?: string }>;
-        const hero = blocks.find((b) => b.block_key === 'sponsors.hero');
-        const intro = blocks.find((b) => b.block_key === 'sponsors.intro');
-        if (hero?.title) setHeroTitle(hero.title);
-        if (hero?.body) setHeroBody(hero.body);
-        if (intro?.title) setIntroTitle(intro.title);
-        if (intro?.body) setIntroBody(intro.body);
-      } catch {
-        // fallback copy
-      }
-    }
-
-    async function fetchCurrentSeason() {
-      try {
-        const response = await fetch('/api/public/club-season', { cache: 'no-store' });
-        const json = await response.json();
-        if (response.ok && json.season?.name) setCurrentSeasonName(String(json.season.name));
-      } catch {
-        // The neutral fallback avoids publishing a stale year.
-      }
-    }
-
-    fetchSponsors();
-    fetchContentBlock();
-    fetchCurrentSeason();
-  }, []);
-
-  function validateForm(): boolean {
-    const errors: Record<string, string> = {};
-    if (!formData.company_name.trim()) errors.company_name = 'Company name is required';
-    if (!formData.contact_name.trim()) errors.contact_name = 'Contact name is required';
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-    if (!formData.tier_interest) errors.tier_interest = 'Please select a sponsorship package';
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
-    setErrorMessage('');
-
-    try {
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${formData.company_name} - ${formData.contact_name}`,
-          email: formData.email,
-          enquiry_type: 'sponsorship',
-          message: `Package Interest: ${formData.tier_interest}\nPhone: ${formData.phone || 'Not provided'}\n\n${formData.message}`,
-          hp_field: formData.hp_field,
-          submitted_at: formData.submitted_at,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.error || 'Something went wrong. Please try again.');
-      }
-
-      setSubmitStatus('success');
-      setFormData({ company_name: '', contact_name: '', email: '', phone: '', tier_interest: '', message: '', hp_field: '', submitted_at: Date.now() });
-      setFormErrors({});
-    } catch (err) {
-      setSubmitStatus('error');
-      setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+  const [sponsors, blocks, currentSeasonName] = await Promise.all([
+    loadSponsors(),
+    getContentBlocks(['sponsors.hero', 'sponsors.intro']),
+    loadCurrentSeasonName(),
+  ]);
+  const heroTitle = blocks['sponsors.hero']?.title || 'Our Sponsors';
+  const heroBody = blocks['sponsors.hero']?.body || 'The generous support of our sponsors helps keep cricket thriving in the Newcomb and Geelong community. We are grateful for every partnership.';
+  const introTitle = blocks['sponsors.intro']?.title || 'Community Support';
+  const introBody = blocks['sponsors.intro']?.body
+    || `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`;
 
   const tierOptions = SPONSORSHIP_PACKAGES.map(([name, price]) => ({ value: name, label: `${name} - ${price}` }));
 
@@ -221,21 +130,7 @@ export default function SponsorsPage() {
       </section>
 
       {/* One maintainable A-Z sponsor list. */}
-      {loading ? (
-        <section className="section-padding">
-          <div className="container-width">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-surface-card rounded-xl border border-edge-subtle p-6 animate-pulse">
-                  <div className="h-20 bg-gray-200 rounded mb-4" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : (
-        sortedSponsors.length === 0 ? (
+      {sortedSponsors.length === 0 ? (
           <section className="section-padding">
             <div className="container-width">
               <Card>
@@ -321,8 +216,7 @@ export default function SponsorsPage() {
               </ScrollReveal>
             </div>
           </section>
-        )
-      )}
+        )}
 
       {/* Become a Sponsor */}
       <section className="band-maroon section-padding">
@@ -367,7 +261,8 @@ export default function SponsorsPage() {
               <div className="space-y-2">
                 {sponsorshipDownloads2026_27.map((download) => (
                   <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 hover:underline font-body">
-                    {download.title}
+                    {download.title}{' '}
+                    <span className="text-sm text-content-muted">(PDF, {formatDownloadSize(download.bytes)})</span>
                   </a>
                 ))}
               </div>
@@ -396,102 +291,7 @@ export default function SponsorsPage() {
             Fill out the form below and our sponsorship coordinator will be in touch.
           </p>
 
-          {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
-              <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="text-green-800 font-body font-semibold">Enquiry sent successfully!</p>
-                <p className="text-green-700 font-body text-sm mt-1">
-                  Thank you for your interest in sponsoring {CLUB_NAME}. A committee member will be in
-                  touch shortly to discuss partnership opportunities.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {submitStatus === 'error' && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
-              <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="text-red-800 font-body font-semibold">Failed to send enquiry</p>
-                <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-            <input
-              type="text"
-              name="website"
-              value={formData.hp_field}
-              onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
-              className="hidden"
-              tabIndex={-1}
-              autoComplete="off"
-            />
-            <Input
-              id="company_name"
-              label="Company Name"
-              type="text"
-              required
-              value={formData.company_name}
-              error={formErrors.company_name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, company_name: e.target.value }))}
-            />
-
-            <Input
-              id="contact_name"
-              label="Contact Name"
-              type="text"
-              required
-              value={formData.contact_name}
-              error={formErrors.contact_name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Input
-                id="sponsor_email"
-                label="Email Address"
-                type="email"
-                required
-                value={formData.email}
-                error={formErrors.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-              />
-
-              <Input
-                id="sponsor_phone"
-                label="Phone (optional)"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-              />
-            </div>
-
-            <Select
-              id="tier_interest"
-              label="Sponsorship Package Interest"
-              required
-              options={[...tierOptions]}
-              value={formData.tier_interest}
-              error={formErrors.tier_interest}
-              onChange={(e) => setFormData((prev) => ({ ...prev, tier_interest: e.target.value }))}
-            />
-
-            <Textarea
-              id="sponsor_message"
-              label="Message (optional)"
-              placeholder="Tell us about your business and what you are looking for in a sponsorship..."
-              rows={4}
-              value={formData.message}
-              onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
-            />
-
-            <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full sm:w-auto">
-              {isSubmitting ? 'Sending...' : 'Submit Enquiry'}
-            </Button>
-          </form>
+          <SponsorEnquiryForm tierOptions={tierOptions} />
         </div>
       </section>
     </>

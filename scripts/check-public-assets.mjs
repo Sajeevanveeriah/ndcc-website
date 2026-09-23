@@ -35,8 +35,23 @@ const large = publicFiles
   .filter((file) => statSync(`public${file}`).size > LARGE_LIMIT);
 for (const file of large) failures.push(`Raster image over 1 MB (run scripts/optimise-public-images.mjs): ${file}`);
 
+// Sponsorship downloads: each listed file must exist and its published size
+// label must match the real file, and link text must be a human title rather
+// than the raw source filename.
+const assetsSource = readFileSync('lib/assets.ts', 'utf8');
+const downloadsBlock = assetsSource.slice(assetsSource.indexOf('export const sponsorshipDownloads2026_27'));
+const downloadEntries = [...downloadsBlock.matchAll(/title: '([^']+)',\s*href: '([^']+)',\s*sourceFile: '([^']+)',\s*bytes: (\d+),/g)];
+if (downloadEntries.length === 0) failures.push('No sponsorship downloads found in lib/assets.ts');
+for (const [, title, href, sourceFile, bytes] of downloadEntries) {
+  const file = `public${href}`;
+  if (!existsSync(file)) { failures.push(`Download missing from public/: ${href}`); continue; }
+  const actual = statSync(file).size;
+  if (actual !== Number(bytes)) failures.push(`Download size for ${href} is ${actual} bytes but lib/assets.ts says ${bytes}`);
+  if (title === sourceFile.replace(/\.pdf$/i, '') || /\bRev\d+\b/i.test(title)) failures.push(`Download title must be human-readable, not a filename: ${title}`);
+}
+
 if (failures.length) {
   for (const failure of failures) console.error(failure);
   process.exit(1);
 }
-console.log(`Public asset check passed for ${sponsors.length} sponsor logo reference(s), ${Object.keys(redirects).length} asset redirect(s) and ${large.length} raster image(s) over 1 MB outside public/downloads.`);
+console.log(`Public asset check passed for ${sponsors.length} sponsor logo reference(s), ${downloadEntries.length} sponsorship download(s), ${Object.keys(redirects).length} asset redirect(s) and ${large.length} raster image(s) over 1 MB outside public/downloads.`);

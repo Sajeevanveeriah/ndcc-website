@@ -1,4 +1,4 @@
-import { pageMetadata, absoluteUrl, authorJsonLd, ORGANIZATION_ID, breadcrumbJsonLd } from '@/lib/seo';
+import { pageMetadata, absoluteUrl, authorJsonLd, ORGANIZATION_ID, ORGANIZATION_NAME, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const publication = await getPublishedPublicationBySlug(slug);
   if (!publication) notFound();
-  const description = publication.summary || `${publicationTypeLabel(publication.publication_type)} from the Newcomb & District Cricket Club.`;
+  const description = publication.summary || `${publicationTypeLabel(publication.publication_type)} from Newcomb and District Cricket Club.`;
   return {
     ...pageMetadata(`/publications/${publication.slug}`, publication.title, description, publication.cover_image_url || undefined),
     openGraph: {
@@ -58,7 +58,7 @@ export default async function PublicationDetailPage({ params }: { params: Promis
     datePublished: publication.published_at || publication.issue_date,
     dateModified: publication.updated_at,
     author: authorJsonLd(publication.author),
-    publisher: { '@type': 'Organization', '@id': ORGANIZATION_ID, name: 'Newcomb & District Cricket Club' },
+    publisher: { '@type': 'Organization', '@id': ORGANIZATION_ID, name: ORGANIZATION_NAME },
     url: `${SITE_URL}/publications/${publication.slug}`,
     ...(publication.cover_image_url ? { image: absoluteUrl(publication.cover_image_url) } : {}),
     ...(publication.summary ? { description: publication.summary } : {}),

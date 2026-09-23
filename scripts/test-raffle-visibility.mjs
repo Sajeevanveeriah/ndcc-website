@@ -19,7 +19,7 @@ const requiredGates = [
   ['components/layout/Footer.tsx', 'rafflePublic: raffleEnabled'],
   ['components/layout/Footer.tsx', "!link.href.startsWith('/reverse-raffle')"],
   ['app/raffle/page.tsx', 'notFound'],
-  ['app/reverse-raffle/page.tsx', "getPublicRaffleCampaign('NDCCRRO')"],
+  ['app/reverse-raffle/page.tsx', 'getPublicRaffleCampaign(REVERSE_RAFFLE_CAMPAIGN_CODE)'],
   ['app/api/raffle/checkout/route.ts', 'getPublicRaffleCampaign'],
   ['app/sitemap.ts', 'isRaffleVisibleAt'],
 ];

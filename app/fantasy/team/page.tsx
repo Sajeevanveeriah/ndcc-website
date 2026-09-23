@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import SquadBuilder from '../_components/SquadBuilder';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext } from '@/lib/fantasy-seasons';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'My Dino Coach Team' };
+export const metadata: Metadata = pageMetadata('/fantasy/team', 'My Dino Coach Team', 'Review your submitted squad, captain, vice-captain and bench order.');
 export default async function FantasyTeamPage({ searchParams }: { searchParams?: Promise<{ season?: string }> }) { const resolvedSearchParams = await searchParams; const seasonContext = await getSeasonPageContext(resolvedSearchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] })); return <section className="section-padding"><div className="container-width"><FantasyBackLink /><h1 className="section-title">My Team</h1><p className="font-body text-content-secondary mb-6">Review your submitted squad, captain, vice-captain and bench order.</p><div className="mb-6"><SeasonSelector seasons={seasonContext.options} selectedSlug={seasonContext.selected?.slug || ''} /></div><SquadBuilder readonlyMode /></div></section>; }

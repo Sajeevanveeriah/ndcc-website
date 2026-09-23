@@ -75,6 +75,13 @@ export default async function PublicationsPage({
           <p className="page-hero-subtitle">
             Club newsletters and weekly match reports — everything the Dinos put in writing, in one place.
           </p>
+          <p className="mt-3 max-w-2xl font-body text-sm text-maroon-100 sm:text-base">
+            Looking for club announcements and updates?{' '}
+            <Link href="/news" className="font-semibold text-white underline underline-offset-4 hover:text-gold-200">
+              Read the latest club news
+            </Link>
+            .
+          </p>
         </div>
       </section>
 

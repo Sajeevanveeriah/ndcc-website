@@ -145,9 +145,6 @@ export function getTransactionalReplyTo(): string {
   return EMAIL_PATTERN.test(contact) ? contact : DEFAULT_CONTACT_EMAIL;
 }
 
-// Backwards-compatible alias for older internal callers.
-export const getContactEmailConfig = getContactEmailRecipients;
-
 export function getEmailConfigStatus() {
   const sender = getFromAddress();
   const contact = getContactEmailRecipients();

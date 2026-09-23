@@ -44,6 +44,7 @@ import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
+import { JUNIOR_GET_ACTIVE_VOUCHERS as VOUCHERS, isPromotionActive } from '@/lib/home-promotions';
 
 // Shared only for this render; the next request still reads live CMS content.
 const getHomeBlocks = cache(() => getContentBlocks(['home.hero', 'home.juniors', 'home.quicklinks', 'home.season_status', 'home.welcome']));
@@ -97,7 +98,7 @@ function HeroView({
             <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
           </div>
           <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 border-t border-edge-strong pt-5 text-base font-semibold">
-            {Date.now() < Date.parse('2026-10-13T10:00:00+11:00') && <a href="#junior-vouchers" className="club-text-link">Junior vouchers - up to $200</a>}
+            {isPromotionActive(VOUCHERS) && <a href={`#${VOUCHERS.anchorId}`} className="club-text-link">{VOUCHERS.heroLinkLabel}</a>}
             <Link href="/calendar" className="club-text-link">Club calendar <span aria-hidden="true">↗</span></Link>
             <Link href="/merchandise" className="club-text-link">Wear the colours <span aria-hidden="true">↗</span></Link>
           </div>
@@ -115,7 +116,7 @@ async function HeroSection() {
       title={blocks['home.hero']?.title || CLUB_NAME}
       body={blocks['home.hero']?.body || HERO_DEFAULT_BODY}
       ctaLabel={blocks['home.hero']?.cta_label || 'Join the Club'}
-      ctaUrl={blocks['home.hero']?.cta_url || '/contact'}
+      ctaUrl={blocks['home.hero']?.cta_url || '/join'}
     />
   );
 }
@@ -143,9 +144,9 @@ function QuickLinkIcon({ icon }: { icon: string }) {
 
 
 function JuniorVoucherSection() {
-  if (Date.now() >= Date.parse('2026-10-13T10:00:00+11:00')) return null;
+  if (!isPromotionActive(VOUCHERS)) return null;
   return (
-    <section id="junior-vouchers" aria-labelledby="junior-vouchers-title" className="scroll-mt-40 border-y border-edge-blue bg-surface-blue-subtle px-5 py-6 sm:px-8">
+    <section id={VOUCHERS.anchorId} aria-labelledby="junior-vouchers-title" className="scroll-mt-40 border-y border-edge-blue bg-surface-blue-subtle px-5 py-6 sm:px-8">
       <div className="container-width grid items-start gap-6 lg:grid-cols-[1fr_auto]">
         <div className="max-w-3xl">
           <p className="mb-1 text-sm font-semibold text-content-blue">Support for junior families</p>
@@ -155,16 +156,16 @@ function JuniorVoucherSection() {
           </p>
           <details className="mt-3 text-sm leading-relaxed text-content-blue">
             <summary className="cursor-pointer font-semibold underline underline-offset-4">Dates, eligibility and reimbursement</summary>
-            <p className="mt-3"><strong>Round 11:</strong> 15 September to <time dateTime="2026-10-13T10:00:00+11:00">10 am on 13 October 2026</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.</p>
+            <p className="mt-3"><strong>{VOUCHERS.roundLabel}:</strong> {VOUCHERS.startLabel} to <time dateTime={VOUCHERS.endsAt}>{VOUCHERS.endLabel}</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.</p>
             <p className="mt-2">Applying for cricket? Select <strong>Cricket Victoria</strong> as your activity provider. Check the official website for eligibility and current availability.</p>
             <p className="mt-2">Already paid? You may be eligible for reimbursement. See the official application page for details.</p>
           </details>
         </div>
         <div className="flex flex-col items-start gap-3 lg:max-w-xs lg:pt-2">
-          <a href="https://www.getactive.vic.gov.au/vouchers/" className="btn-primary w-full text-center">
+          <a href={VOUCHERS.eligibilityUrl} className="btn-primary w-full text-center">
             Check eligibility and apply
           </a>
-          <a href="https://www.getactive.vic.gov.au/vouchers/apply-for-vouchers/" className="club-text-link">
+          <a href={VOUCHERS.applicationDetailsUrl} className="club-text-link">
             Voucher and reimbursement details
           </a>
           <Link href="/contact" className="club-text-link">Ask NDCC about junior cricket</Link>
@@ -180,15 +181,15 @@ function QuickLinksSkeleton() {
       <div className="container-width">
         <div className="mb-8 text-center">
           <span className="section-eyebrow">Quick Links</span>
-          <div className="mx-auto h-9 w-64 max-w-full rounded bg-gray-200 animate-pulse mb-3" />
-          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse" />
+          <div className="mx-auto h-9 w-64 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[0, 1, 2].map((index) => (
             <div key={index} className="h-full rounded-xl border border-l-4 border-edge-subtle border-l-maroon-700 bg-surface-card p-5 shadow-sm">
-              <div className="h-8 w-8 rounded bg-gray-200 animate-pulse mb-3" />
-              <div className="h-6 w-2/3 rounded bg-gray-200 animate-pulse mb-3" />
-              <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
+              <div className="h-8 w-8 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+              <div className="h-6 w-2/3 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+              <div className="h-4 w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
             </div>
           ))}
         </div>
@@ -299,18 +300,18 @@ function ClubUpdatesSkeleton() {
       <div className="container-width">
         <div className="mb-8 text-center">
           <span className="section-eyebrow">Club Updates</span>
-          <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse mb-3" />
-          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse" />
+          <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[0, 1, 2].map((index) => (
             <Card key={index} className="h-full overflow-hidden">
-              <div className="aspect-video w-full bg-gray-200 animate-pulse" />
+              <div className="aspect-video w-full bg-gray-200 animate-pulse dark:bg-slate-700" />
               <CardContent className="p-5">
-                <div className="h-4 w-28 rounded bg-gray-200 animate-pulse mb-3" />
-                <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse mb-3" />
-                <div className="h-4 w-full rounded bg-gray-200 animate-pulse mb-2" />
-                <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse" />
+                <div className="h-4 w-28 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+                <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+                <div className="h-4 w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-2" />
+                <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
               </CardContent>
             </Card>
           ))}
@@ -368,7 +369,7 @@ async function ClubUpdatesSection() {
                           {formatDate(article.published_at)}
                         </p>
                       )}
-                      <h4 className="mb-2 font-display text-lg font-bold text-content-primary transition-colors group-hover:text-maroon-700">
+                      <h4 className="mb-2 font-display text-lg font-bold text-content-primary transition-colors group-hover:text-maroon-700 dark:group-hover:text-maroon-200">
                         {article.title}
                       </h4>
                       <p className="font-body text-sm text-content-muted">{truncateText(article.content, 90)}</p>
@@ -536,13 +537,13 @@ function SeasonAppointmentsSkeleton() {
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="rounded-2xl bg-gray-200 animate-pulse"
+              className="rounded-2xl bg-gray-200 animate-pulse dark:bg-slate-700"
               style={{ aspectRatio: '3/4' }}
             />
           ))}
         </div>
         <p className="mt-6 text-center font-body text-sm text-content-muted">
-          Season appointments are managed in the CMS. Follow us on{' '}
+          Follow us on{' '}
           <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
             Facebook
           </Link>{' '}
@@ -567,31 +568,40 @@ async function SeasonAppointmentsSection() {
 }
 
 
+function SponsorLinks() {
+  return (
+    <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <Link href="/sponsors" className="btn-secondary">
+        View all sponsors
+      </Link>
+      <Link href="/sponsors#enquiry-form" className="btn-primary">
+        Become a sponsor
+      </Link>
+    </div>
+  );
+}
+
 function SponsorsSkeleton() {
   return (
     <section className="section-padding surface-blue-band">
       <div className="container-width">
         <div className="mb-8 text-center">
           <span className="section-eyebrow">Community Partners</span>
-          <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse mb-3" />
-          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse" />
+          <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
             <Card key={index} className="h-full border border-edge-blue/60">
               <CardContent className="flex h-full flex-col items-center p-5 text-center">
-                <div className="mb-4 h-24 w-full animate-pulse rounded-lg bg-gray-200" />
-                <div className="h-5 w-40 rounded bg-gray-200 animate-pulse mb-3" />
-                <div className="h-4 w-24 rounded bg-gray-200 animate-pulse" />
+                <div className="mb-4 h-24 w-full animate-pulse rounded-lg bg-gray-200 dark:bg-slate-700" />
+                <div className="h-5 w-40 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
+                <div className="h-4 w-24 rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <div className="mt-6 text-center">
-          <Link href="/sponsors" className="btn-secondary">
-            View All Sponsors
-          </Link>
-        </div>
+        <SponsorLinks />
       </div>
     </section>
   );
@@ -627,6 +637,7 @@ async function SponsorsSection() {
         <ScrollReveal>
           <SponsorsMarquee sponsors={sponsors} durationSeconds={sponsorMarqueeDurationSeconds(clubSettings.sponsor_marquee_speed, sponsors.length)} />
         </ScrollReveal>
+        <SponsorLinks />
       </div>
     </section>
   );
@@ -697,8 +708,11 @@ function JuniorsCtaView({ title, body }: { title: string; body: string }) {
         <p className="mx-auto mb-6 max-w-xl font-body text-base text-maroon-100 sm:text-lg">
           {body}
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/contact" className="btn-accent px-7 py-3 text-base">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+          <Link href="/join" className="btn-accent px-7 py-3 text-base">
+            Join the Club
+          </Link>
+          <Link href="/contact" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
             Get in Touch
           </Link>
           <Link href="/volunteer" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
@@ -732,7 +746,7 @@ export default function HomePage() {
             title={CLUB_NAME}
             body={HERO_DEFAULT_BODY}
             ctaLabel="Join the Club"
-            ctaUrl="/contact"
+            ctaUrl="/join"
           />
         }
       >
@@ -764,10 +778,6 @@ export default function HomePage() {
         <SeasonStatusSection />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <FantasyTeaserSection />
-      </Suspense>
-
       <Suspense fallback={<ClubUpdatesSkeleton />}>
         <ClubUpdatesSection />
       </Suspense>
@@ -782,6 +792,11 @@ export default function HomePage() {
 
       <Suspense fallback={<SponsorsSkeleton />}>
         <SponsorsSection />
+      </Suspense>
+
+      {/* Dino Coach sits after the core club news, events and sponsors. */}
+      <Suspense fallback={null}>
+        <FantasyTeaserSection />
       </Suspense>
 
       <Suspense fallback={null}>

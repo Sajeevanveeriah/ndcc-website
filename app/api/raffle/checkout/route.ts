@@ -6,6 +6,7 @@ import { getPublicRaffleCampaign } from '@/lib/raffle-visibility';
 import { isCheckoutEnabled } from '@/lib/payments/payment-config';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { getCheckoutSiteUrl } from '@/lib/payments/site-url';
+import { buildPaymentCheckoutSessionParams, createPaymentCheckoutSession } from '@/lib/payments/stripe-checkout';
 import {
   PUBLIC_ORDER_LIMITS,
   REVERSE_RAFFLE_HOLD_LIMITS,
@@ -115,13 +116,13 @@ export async function POST(request: Request) {
       quantity: String(quantity),
       payment_reference: paymentReference,
     };
-    const session = await getStripe().checkout.sessions.create({ mode: 'payment', customer_email: email,
+    const session = await createPaymentCheckoutSession(getStripe(), buildPaymentCheckoutSessionParams({ customer_email: email,
       ...(campaign.code === 'NDCCRRO' ? { expires_at: Math.floor(Date.now() / 1000) + 35 * 60 } : {}),
       line_items: [{ price_data: { currency: 'aud', unit_amount: campaign.price_cents, product_data: { name: `NDCC ${campaign.name} Ticket - ${paymentReference}`, ...(campaign.draw_label ? { description: campaign.draw_label } : {}) } }, quantity }],
       success_url: `${site}${returnPath}?payment=success`, cancel_url: `${site}${returnPath}?payment=cancelled`, client_reference_id: paymentReference,
       metadata: paymentMetadata,
       payment_intent_data: { description: `${paymentReference} - NDCC raffle`, metadata: paymentMetadata },
-    }, { idempotencyKey: `raffle-${order.id}` });
+    }), `raffle-${order.id}`);
     createdSessionId = session.id;
     if (session.status !== 'open' || !session.url
       || session.metadata?.ndcc_payment_reference !== paymentReference

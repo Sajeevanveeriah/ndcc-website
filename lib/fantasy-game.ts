@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { calculateFantasyPoints, type FantasyScoringRule, type FantasyStatLine } from '@/lib/fantasy-scoring';
+import type { FantasyStatLine } from '@/lib/fantasy-scoring';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const ROLE_LIMITS = { WK: 2, BAT: 5, AR: 3, BOWL: 5 } as const;
@@ -193,11 +193,6 @@ export async function getCurrentRound(seasonId?: string | null): Promise<Fantasy
   return (fallback.data as FantasyRoundInfo | null) ?? null;
 }
 
-export async function getCurrentRoundId(seasonId?: string | null) {
-  const round = await getCurrentRound(seasonId);
-  return round?.id ?? null;
-}
-
 // Pure deadline/lock evaluation so the rule is deterministic and unit-testable
 // (scripts/test-fantasy-logic.mjs) independent of the Supabase read.
 export function evaluateRoundLock(round: FantasyRoundInfo | null, nowMs: number = Date.now()): RoundLockState {
@@ -290,13 +285,6 @@ export function validateDraftSquadSelection(selection: SquadSelection[], players
   return { valid: errors.length === 0, errors, budgetUsed: Number(budgetUsed.toFixed(1)) };
 }
 
-export async function getEnabledScoringRules() {
-  const supabase = createServerClient();
-  const { data, error } = await supabase.from('fantasy_scoring_rules').select('key, points, enabled').eq('enabled', true);
-  if (error) throw new Error(error.message);
-  return (data ?? []) as FantasyScoringRule[];
-}
-
 export function statLineFromRecord(row: any): FantasyStatLine {
   return {
     round_number: Number(row.fantasy_rounds?.round_number ?? 0),
@@ -313,8 +301,4 @@ export function statLineFromRecord(row: any): FantasyStatLine {
     not_out: row.not_out === true,
     player_of_match: row.player_of_match === true,
   };
-}
-
-export function calculatePlayerStatPoints(row: any, rules: FantasyScoringRule[]) {
-  return calculateFantasyPoints(statLineFromRecord(row), rules);
 }

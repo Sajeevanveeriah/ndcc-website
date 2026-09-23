@@ -141,7 +141,7 @@ export default async function Footer() {
                   href={settings.facebook_url || FACEBOOK_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="Newcomb & District Cricket Club on Facebook"
+                  aria-label="Newcomb and District Cricket Club on Facebook"
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
                 >
                   <Facebook className="h-4 w-4" />
@@ -150,7 +150,7 @@ export default async function Footer() {
                   href={settings.instagram_url || INSTAGRAM_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="Newcomb & District Cricket Club on Instagram"
+                  aria-label="Newcomb and District Cricket Club on Instagram"
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
                 >
                   <Instagram className="h-4 w-4" />

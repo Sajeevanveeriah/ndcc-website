@@ -27,7 +27,8 @@ function check(label, condition) {
 
 function stageModule(name, outName = name) {
   const source = readFileSync(join(repoRoot, 'lib', name), 'utf8').replace(/@\/lib\/([\w-]+)/g, './$1.ts')
-    .replace("from './server/timeout-fetch'", "from './timeout-fetch.ts'");
+    .replace("from './server/timeout-fetch'", "from './timeout-fetch.ts'")
+    .replace("import 'server-only';", '');
   writeFileSync(join(tmpDir, outName), source);
 }
 

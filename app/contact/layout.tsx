@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = pageMetadata("/contact", "Contact NDCC", "Contact Newcomb and District Cricket Club at Grinter Reserve, Moolap, with questions about playing, visiting or supporting the club.");
 
-// The page itself is a client component, so the segment config lives here.
+// Segment config for this route (the page is a server component with a small
+// client form island).
 // ISR: regenerated at most every 60s and on demand after admin writes
 // (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
 // which use cache: 'no-store' fetches, run during static regeneration instead

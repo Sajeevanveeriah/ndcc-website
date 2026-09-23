@@ -5,6 +5,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const stage = mkdtempSync(path.join(tmpdir(), 'ndcc-stripe-'));
@@ -98,7 +99,7 @@ test('webhook event classification covers immediate and delayed outcomes', () =>
 });
 
 const checkoutRoute = readFileSync(path.join(repoRoot, 'app/api/payments/checkout-session/route.ts'), 'utf8');
-const webhookRoute = readFileSync(path.join(repoRoot, 'app/api/stripe/webhook/route.ts'), 'utf8');
+const webhookRoute = readStripeWebhookSource();
 const stripeCheckoutSource = readFileSync(path.join(repoRoot, 'lib/payments/stripe-checkout.ts'), 'utf8');
 const stripeClient = readFileSync(path.join(repoRoot, 'lib/stripe.ts'), 'utf8');
 const integrityMigration = readFileSync(path.join(repoRoot, 'supabase/migrations/20260816025155_stripe_checkout_integrity.sql'), 'utf8');
@@ -108,7 +109,8 @@ const dinoCheckoutRoute = readFileSync(path.join(repoRoot, 'app/api/fantasy/chec
 const sharedPaymentControl = readFileSync(path.join(repoRoot, 'components/payments/OrderPaymentOptions.tsx'), 'utf8');
 const membershipRoute = readFileSync(path.join(repoRoot, 'app/api/memberships/route.ts'), 'utf8');
 const eventRoute = readFileSync(path.join(repoRoot, 'app/api/events/route.ts'), 'utf8');
-const joinPage = readFileSync(path.join(repoRoot, 'app/join/page.tsx'), 'utf8');
+// The membership form (and its payment options) is a client island of /join.
+const joinPage = readFileSync(path.join(repoRoot, 'app/join/SocialMembershipForm.tsx'), 'utf8');
 const kitchenPage = readFileSync(path.join(repoRoot, 'app/kitchen/KitchenClient.tsx'), 'utf8');
 const eventPage = readFileSync(path.join(repoRoot, 'app/events/[id]/EventDetailClient.tsx'), 'utf8');
 const paymentResultPage = readFileSync(path.join(repoRoot, 'app/payment/page.tsx'), 'utf8');

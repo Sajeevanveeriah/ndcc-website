@@ -446,7 +446,7 @@ export default function Navbar({ nav }: NavbarProps) {
                   <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[180px]">
                     <Link href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
                     <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
-                      Logout
+                      Log out
                     </button>
                   </div>
                 </div>
@@ -537,7 +537,7 @@ export default function Navbar({ nav }: NavbarProps) {
                 {sessionUser.full_name} ({sessionUser.role})
               </Link>
               <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
-                Logout
+                Log out
               </button>
             </>
           )}

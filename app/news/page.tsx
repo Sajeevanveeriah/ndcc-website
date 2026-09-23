@@ -45,6 +45,13 @@ export default async function NewsPage() {
             Stay up to date with the latest from the Dinos - match reports, club updates,
             community news, and more.
           </p>
+          <p className="mt-3 max-w-2xl font-body text-sm text-maroon-100 sm:text-base">
+            Looking for club newsletters or weekly match reports?{' '}
+            <Link href="/publications" className="font-semibold text-white underline underline-offset-4 hover:text-gold-200">
+              Browse newsletters and match reports
+            </Link>
+            .
+          </p>
         </div>
       </section>
 
