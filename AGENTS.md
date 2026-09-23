@@ -5,7 +5,8 @@ Preflight guardrails for safe staged updates to the Newcomb and District Cricket
 
 ## Validation workflow
 - If `package-lock.json` exists, run `npm ci` before validation.
-- Run `npm run lint` and `npm run build` before claiming implementation completion.
+- Run `npm test`, `npm run lint`, `npx tsc --noEmit` and `npm run build` before claiming implementation completion.
+- `npm test` runs every test/smoke/check script that needs no database, secrets or network; add new test scripts to package.json (or the runner's exclusion list with a reason).
 - Report validation commands and exact results.
 - Report a rollback path for every change.
 

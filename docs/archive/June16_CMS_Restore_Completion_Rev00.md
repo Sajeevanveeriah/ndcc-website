@@ -14,7 +14,7 @@ Created `data/recovery/cms-restore-20260616.json` from repository-backed evidenc
 - `supabase/migrations/20260408_admin_cms_expansion.sql`
 - `supabase/migrations/20260510_club_settings.sql`
 
-`NDCC_Website_16062026.zip` or an extracted June 16 CMS export was not present in this working tree. Missing sections are documented in `docs/fixes/June16_CMS_Restore_Missing_Evidence_Rev00.md`.
+`NDCC_Website_16062026.zip` or an extracted June 16 CMS export was not present in this working tree. Missing sections are documented in `docs/archive/June16_CMS_Restore_Missing_Evidence_Rev00.md`.
 
 ## Records prepared
 
@@ -33,11 +33,11 @@ Diagnostics could not connect because this environment does not contain producti
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-The captured output is in `docs/fixes/June16_CMS_Diagnostics_Output_Rev00.md`.
+The captured output is in `docs/archive/June16_CMS_Diagnostics_Output_Rev00.md`.
 
 ## Dry-run/apply output
 
-Dry-run could not connect for the same missing Supabase environment variables. Captured output is in `docs/fixes/June16_CMS_Restore_Dry_Run_Output_Rev00.md`.
+Dry-run could not connect for the same missing Supabase environment variables. Captured output is in `docs/archive/June16_CMS_Restore_Dry_Run_Output_Rev00.md`.
 
 Apply was not executed and was not faked.
 
