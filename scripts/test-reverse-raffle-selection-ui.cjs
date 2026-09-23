@@ -15,7 +15,8 @@ function load(path, dependencies, globals = {}) {
   } });
   return exports;
 }
-const selection = load('lib/reverse-raffle-selection.ts', {});
+const raffleConstants = load('lib/raffle-constants.ts', {});
+const selection = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-constants': raffleConstants });
 let unavailable = [202], availabilityFails = false, checkoutBody;
 const windowStub = { setInterval: () => 1, clearInterval() {}, addEventListener() {}, removeEventListener() {}, location: {} };
 const component = load('app/reverse-raffle/ReverseRaffleClient.tsx', {
@@ -26,6 +27,7 @@ const component = load('app/reverse-raffle/ReverseRaffleClient.tsx', {
   '@/components/ui/Button': { default: ({ isLoading, ...props }) => React.createElement('button', { ...props, disabled: props.disabled || isLoading }) },
   '@/components/ui/Input': { default: props => React.createElement('input', props) },
   '@/lib/reverse-raffle-selection': selection,
+  '@/lib/raffle-constants': raffleConstants,
 }, {
   window: windowStub,
   fetch: async (url, options) => {

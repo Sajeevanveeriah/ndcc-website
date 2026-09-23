@@ -2,6 +2,7 @@ import { isCookieDoughOpen } from '@/lib/cookie-dough';
 import type { MetadataRoute } from 'next';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
+import { RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 import { buildDetailEntries } from '@/lib/seo-sitemap';
 
 export const dynamic = 'force-dynamic';
@@ -87,7 +88,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (raffleError) throw new Error('Sitemap raffle visibility unavailable');
   for (const campaign of raffle || []) {
     if (!isRaffleVisibleAt(campaign)) continue;
-    const route = campaign.code === 'NDCCRRO' ? '/reverse-raffle' : campaign.code === 'NDCCRAF' ? '/raffle' : null;
+    const route = campaign.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : campaign.code === RAFFLE_CAMPAIGN_CODE ? '/raffle' : null;
     if (route) staticEntries.push({ url: `${baseUrl}${route}`, changeFrequency: 'weekly', priority: 0.8 });
   }
 

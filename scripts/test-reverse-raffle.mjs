@@ -13,7 +13,8 @@ function load(file, dependencies) {
   });
   return exports;
 }
-const selection = load('lib/reverse-raffle-selection.ts', {});
+const raffleConstants = load('lib/raffle-constants.ts', {});
+const selection = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-constants': raffleConstants });
 const realValidation = load('lib/order-input-validation.ts', {});
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2, selectedNumbers: [201, 300] };
 let selected, inserted, payload, hidden = false, soldOut = false, failure = '', released = false, expired = false;
@@ -163,6 +164,7 @@ const mailer = load('lib/raffle-email.ts', {
   '@/lib/raffle-ticket':{renderRaffleTicket:ticket.renderRaffleTicket},
   '@/lib/payments/receipt-delivery-policy':{canRecordSimulatedReceiptDelivery:()=>false},
   '@/lib/payments/reference':{isCanonicalPaymentReference:()=>true},
+  '@/lib/raffle-constants':raffleConstants,
 });
 assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'sent');
 assert.equal(mail.attachments.length,3,'Two numbered PNG tickets and one PDF receipt');

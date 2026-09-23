@@ -16,8 +16,9 @@ writeFileSync(
   referenceSource.replace(
     "import { createServerClient } from '@/lib/supabase-server';",
     'const createServerClient = () => { throw new Error("database access is not used by this test"); };',
-  ),
+  ).replace("from '@/lib/raffle-constants';", "from './raffle-constants.ts';"),
 );
+writeFileSync(path.join(stage, 'raffle-constants.ts'), read('lib/raffle-constants.ts'));
 writeFileSync(
   path.join(stage, 'site-url.ts'),
   read('lib/payments/site-url.ts').replace("import 'server-only';", ''),

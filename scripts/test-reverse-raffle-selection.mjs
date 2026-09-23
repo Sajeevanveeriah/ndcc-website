@@ -1,5 +1,20 @@
 import assert from 'node:assert/strict';
-import { REVERSE_RAFFLE_NUMBERS, validReverseRaffleSelection } from '../lib/reverse-raffle-selection.ts';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+
+// The selection helpers import the shared raffle constants through the '@/'
+// path alias, so load both through the TypeScript transpiler with an explicit
+// dependency map instead of a native ESM import.
+function load(file, dependencies) {
+  const exports = {};
+  vm.runInNewContext(ts.transpileModule(readFileSync(file, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText, { exports, require(name) { assert.ok(name in dependencies, `Unexpected dependency: ${name}`); return dependencies[name]; } });
+  return exports;
+}
+const raffleConstants = load('lib/raffle-constants.ts', {});
+const { REVERSE_RAFFLE_NUMBERS, validReverseRaffleSelection } = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-constants': raffleConstants });
 
 assert.equal(REVERSE_RAFFLE_NUMBERS.length, 100);
 assert.equal(REVERSE_RAFFLE_NUMBERS[0], 201);

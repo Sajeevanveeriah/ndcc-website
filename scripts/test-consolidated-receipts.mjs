@@ -20,7 +20,8 @@ function moduleAt(path, dependencies = {}, suffix = '') {
   return exports;
 }
 const recipients = moduleAt('lib/payments/receipt-recipients.ts');
-const references = moduleAt('lib/payments/reference.ts', { '@/lib/supabase-server': {} });
+const raffleConstants = moduleAt('lib/raffle-constants.ts');
+const references = moduleAt('lib/payments/reference.ts', { '@/lib/supabase-server': {}, '@/lib/raffle-constants': raffleConstants });
 const mealCollection = moduleAt('lib/meal-collection.ts');
 const content = moduleAt('lib/order-notification-content.ts', { './meal-collection': mealCollection });
 const plain = value => JSON.parse(JSON.stringify(value));
