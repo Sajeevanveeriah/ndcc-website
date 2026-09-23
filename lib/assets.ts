@@ -168,26 +168,35 @@ export const sponsorImageAssets2026_27 = [
   },
 ] as const satisfies readonly NdccImageAsset[];
 
+// Public download list. `title` is the human-readable link text; `bytes` is
+// the size of the file under public/ (checked against the real file by
+// scripts/check-public-assets.mjs, so it cannot drift from the download).
 export const sponsorshipDownloads2026_27 = [
   {
-    title: 'NDCC Sponsor Packages 2026 2027 Rev02',
+    title: 'Sponsor packages 2026-27',
     href: '/downloads/sponsorship/ndcc-sponsor-packages-2026-2027-rev02.pdf',
     sourceFile: 'NDCC Sponsor Packages 2026 2027 Rev02.pdf',
     bytes: 205630,
   },
   {
-    title: 'NDCC Sponsorship Cover Letter 2026 2027 Rev02',
+    title: 'Sponsorship cover letter 2026-27',
     href: '/downloads/sponsorship/ndcc-sponsorship-cover-letter-2026-2027-rev02.pdf',
     sourceFile: 'NDCC Sponsorship Cover Letter 2026 2027 Rev02.pdf',
     bytes: 99528,
   },
   {
-    title: 'NDCC Sponsorship Proposal 2026 2027 Rev04',
+    title: 'Sponsorship proposal 2026-27',
     href: '/downloads/sponsorship/ndcc-sponsorship-proposal-2026-2027-rev04.pdf',
     sourceFile: 'NDCC Sponsorship Proposal 2026 2027 Rev04.pdf',
     bytes: 213943,
   },
 ] as const satisfies readonly NdccDownloadAsset[];
+
+// "201 KB" style label for a download's file size (1 KB = 1024 bytes).
+export function formatDownloadSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
 
 export const ndccAssets = {
   seasonAppointments2026_27: seasonAppointmentAssets2026_27,

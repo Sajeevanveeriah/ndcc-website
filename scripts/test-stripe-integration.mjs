@@ -108,7 +108,8 @@ const dinoCheckoutRoute = readFileSync(path.join(repoRoot, 'app/api/fantasy/chec
 const sharedPaymentControl = readFileSync(path.join(repoRoot, 'components/payments/OrderPaymentOptions.tsx'), 'utf8');
 const membershipRoute = readFileSync(path.join(repoRoot, 'app/api/memberships/route.ts'), 'utf8');
 const eventRoute = readFileSync(path.join(repoRoot, 'app/api/events/route.ts'), 'utf8');
-const joinPage = readFileSync(path.join(repoRoot, 'app/join/page.tsx'), 'utf8');
+// The membership form (and its payment options) is a client island of /join.
+const joinPage = readFileSync(path.join(repoRoot, 'app/join/SocialMembershipForm.tsx'), 'utf8');
 const kitchenPage = readFileSync(path.join(repoRoot, 'app/kitchen/KitchenClient.tsx'), 'utf8');
 const eventPage = readFileSync(path.join(repoRoot, 'app/events/[id]/EventDetailClient.tsx'), 'utf8');
 const paymentResultPage = readFileSync(path.join(repoRoot, 'app/payment/page.tsx'), 'utf8');
