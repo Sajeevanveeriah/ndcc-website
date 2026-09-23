@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readStripeWebhookSource } from './lib/stripe-webhook-source.mjs';
+import { readSplitSource } from './lib/split-source.mjs';
 
 const orderRoute = readFileSync('app/api/orders/route.ts', 'utf8');
-const merchandise = readFileSync('app/merchandise/MerchandiseClient.tsx', 'utf8');
+// MerchandiseClient was split into app/merchandise/components/ (F64).
+const merchandise = readSplitSource('app/merchandise/MerchandiseClient.tsx', 'app/merchandise/components');
 const webhook = readStripeWebhookSource();
 
 assert.match(orderRoute, /payment_method !== 'stripe'/, 'Stripe orders suppress the initial unpaid staff email.');
