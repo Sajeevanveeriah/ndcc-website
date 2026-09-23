@@ -93,6 +93,7 @@
     "test:dino-season-summary": "node scripts/test-dino-season-summary.mjs",
     "check:unused": "knip",
     "db:dump-schema": "node scripts/dump-schema.mjs",
+    "db:generate-types": "node scripts/generate-db-types.mjs",
     "test:admin-drafts": "node scripts/test-admin-drafts.mjs",
     "test:gallery-sanitise": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-gallery-sanitise.mjs",
     "test:asset-redirect-mapping": "node scripts/test-asset-redirect-mapping.mjs",
