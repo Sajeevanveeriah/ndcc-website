@@ -12,7 +12,9 @@ assert.equal(normaliseMediaUrl('https://github.com/example/assets/blob/main/post
 assert.equal(normaliseMediaUrl('https://github.com.evil.example/a/b/blob/main/x'), 'https://github.com.evil.example/a/b/blob/main/x');
 assert.equal(normaliseMediaUrl('/images/unchanged.webp'), '/images/unchanged.webp');
 
-const actualPoster = readFileSync(new URL('../public/images/2026/09/20260913-ndcc-practice-match-rev02.png', import.meta.url));
+// The original 9000 x 11250 practice-match PNG upload has been replaced by its
+// WebP (the old path redirects), so reproduce an upload of the same pixel size.
+const actualPoster = await sharp({ create: { width: 9000, height: 11250, channels: 3, background: '#800020' } }).png().toBuffer();
 await assert.rejects(validateMedia(actualPoster, 'image/png'), /pixel limit/);
 const preparedPoster = readFileSync(new URL('../public/images/2026/09/20260913-ndcc-practice-match-rev02.webp', import.meta.url));
 const valid = await validateMedia(preparedPoster, 'image/webp');
