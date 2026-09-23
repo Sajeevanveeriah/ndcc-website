@@ -15,6 +15,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 type FinalizeEntry = GalleryUploadFileMeta & {
+  metadataStripped?: unknown;
   path?: unknown;
   title?: unknown;
   caption?: unknown;
@@ -145,6 +146,8 @@ export async function POST(request: Request) {
       height: typeof entry.height === 'number' ? entry.height : null,
       content_hash: hash,
       uploaded_at: new Date().toISOString(),
+      // The client cleans each file via /uploads/sanitise before finalising.
+      metadata_stripped_at: entry.metadataStripped === true ? new Date().toISOString() : null,
     });
     if (hash) existingHashes.add(hash);
   }
