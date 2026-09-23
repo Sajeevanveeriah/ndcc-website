@@ -47,10 +47,12 @@ const nextConfig = {
     ],
   },
   async redirects() {
-    return [
-      { source: '/images/2026/06/rhys_bath-1781078437785.png', destination: '/images/2026/06/Rhys_Bath.png', permanent: true },
-      { source: '/images/2026/08/20260731-season-launch-rev00-1786263617170.png', destination: '/images/2026/08/20260731-season-launch-rev00-1785925011182.png', permanent: true },
-    ];
+    // Renamed, optimised (WebP) and de-duplicated public assets. The map is
+    // maintained by scripts/optimise-public-images.mjs and validated by
+    // scripts/check-public-assets.mjs; redirects run before public files.
+    const { readFileSync } = await import('node:fs');
+    const assetRedirects = JSON.parse(readFileSync(new URL('./lib/asset-redirects.json', import.meta.url), 'utf8'));
+    return Object.entries(assetRedirects).map(([source, destination]) => ({ source, destination, permanent: true }));
   },
   async headers() {
     return [

@@ -64,7 +64,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
       <p className="page-hero-subtitle">${(priceCents / 100).toFixed(2)} AUD per ticket. Support your club.</p>
     </div></section>
     <main className="section-padding"><div className="container-width max-w-5xl grid gap-8 md:grid-cols-2 items-start">
-      <Image src="/images/20260922-NDCC-Reverse-Raffle-Rev00.png" width={1600} height={2000}
+      <Image src="/images/20260922-NDCC-Reverse-Raffle-Rev00.webp" width={1600} height={2000}
         sizes="(max-width: 768px) 100vw, 480px" alt="Newcomb and District Cricket Club Reverse Raffle. $60 AUD per ticket. Support your club."
         className="w-full h-auto" priority />
       <form onSubmit={checkout} className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-4">
