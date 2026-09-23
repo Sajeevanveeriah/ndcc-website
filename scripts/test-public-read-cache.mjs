@@ -127,6 +127,28 @@ await check('the timeout fetch does not replay a read that hit its own time budg
   }
 });
 
+await check('public reads replay a timed-out read once on a fresh request', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (input, init) => {
+    calls += 1;
+    if (calls === 2) return Promise.resolve(json({ recovered: true }));
+    return new Promise((_, reject) => {
+      init.signal.addEventListener('abort', () => reject(new DOMException('This operation was aborted', 'AbortError')));
+    });
+  };
+  try {
+    const response = await createTimeoutFetch(20, true, { retryAfterTimeout: true })(URL_A);
+    assert.deepEqual(await response.json(), { recovered: true });
+    assert.equal(calls, 2);
+    calls = 0;
+    await assert.rejects(createTimeoutFetch(20, true, { retryAfterTimeout: true })(URL_A, { method: 'POST', body: '{}' }), /aborted/);
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 await check('the timeout fetch still retries a read once after a network failure', async () => {
   const originalFetch = globalThis.fetch;
   let calls = 0;
@@ -142,6 +164,13 @@ await check('the timeout fetch still retries a read once after a network failure
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+await check('only public read clients split their budget and replay after a timeout', async () => {
+  const source = readFileSync(new URL('../lib/supabase-server.ts', import.meta.url), 'utf8');
+  assert.ok(source.includes('createTimeoutFetch(Math.ceil(totalTimeoutMs / 2), true, { retryAfterTimeout: true })'));
+  assert.ok(source.includes(': createTimeoutFetch(timeoutMs, options.retryReads)'));
+  assert.equal((source.match(/retryAfterTimeout: true/g) || []).length, 1);
 });
 
 await check('payment, checkout and availability reads do not opt into the public read cache', async () => {
