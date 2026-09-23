@@ -11,7 +11,10 @@ type ScrollRevealProps = {
   className?: string;
   /** Delay in seconds before the reveal starts. */
   delay?: number;
-  /** Animate immediately on mount instead of waiting for viewport entry (hero content). */
+  /**
+   * Above-the-fold hero content: rendered visible from the server (no hidden
+   * SSR state, no entrance animation) instead of waiting for viewport entry.
+   */
   onMount?: boolean;
   /** Stagger direct children (use with <ScrollRevealItem> wrappers). */
   stagger?: boolean;
@@ -101,10 +104,15 @@ export default function ScrollReveal({
         className={className}
         {...rest}
         variants={variants}
-        initial="hidden"
+        // onMount wraps above-the-fold hero content (page h1s). It must never
+        // server-render hidden: the inline opacity:0 kept the LCP heading
+        // invisible until hydration (and forever without JS). `initial={false}`
+        // renders the visible state on the server and the client alike, so
+        // there is no hydration mismatch and no entrance animation for hero
+        // text. Below-the-fold in-view reveals keep their animation.
         {...(onMount
-          ? { animate: 'visible' }
-          : { whileInView: 'visible', viewport: { once: true, margin: viewportMargin } })}
+          ? { initial: false as const, animate: 'visible' }
+          : { initial: 'hidden', whileInView: 'visible', viewport: { once: true, margin: viewportMargin } })}
       >
         {children}
       </Tag>

@@ -49,9 +49,13 @@ export default function AnimatedCounter({
     return () => clearInterval(timer);
   }, [armed, inView, to, duration, reduceMotion]);
 
+  // Screen readers get only the final value (the sr-only copy); the ticking
+  // number is decorative and hidden from assistive technology so it is never
+  // announced mid-count. Both copies server-render the final value.
   return (
     <span ref={ref} className={className}>
-      {prefix}{value}{suffix}
+      <span className="sr-only">{prefix}{to}{suffix}</span>
+      <span aria-hidden="true">{prefix}{value}{suffix}</span>
     </span>
   );
 }
