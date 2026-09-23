@@ -172,7 +172,11 @@ test('the security regression is wired into package scripts and PR validation', 
   const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
   const workflow = readFileSync(path.join(repoRoot, '.github/workflows/pr-validation.yml'), 'utf8');
   assert.match(packageJson.scripts['test:admin-csrf'], /test-admin-csrf\.mjs/);
-  assert.match(workflow, /npm run test:admin-csrf/);
+  // CI runs every test: script through `npm test` (scripts/run-all-tests.mjs).
+  assert.match(workflow, /run: npm test\b/);
+  assert.equal(packageJson.scripts.test, 'node scripts/run-all-tests.mjs');
+  const runner = readFileSync(path.join(repoRoot, 'scripts/run-all-tests.mjs'), 'utf8');
+  assert.doesNotMatch(runner.match(/export const EXCLUDED = \{[\s\S]*?\n\};/)?.[0] ?? '', /'test:admin-csrf'/);
 });
 
 console.log(`Admin CSRF and unsafe-export security tests passed (${passed} checks).`);

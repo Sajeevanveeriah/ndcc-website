@@ -156,7 +156,11 @@ test('test is wired into package scripts and PR validation', () => {
   const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
   const workflow = readFileSync(path.join(repoRoot, '.github/workflows/pr-validation.yml'), 'utf8');
   assert.match(packageJson.scripts['test:payment-ledger-export'], /test-payment-ledger-export\.mjs/);
-  assert.match(workflow, /npm run test:payment-ledger-export/);
+  // CI runs every test: script through `npm test` (scripts/run-all-tests.mjs).
+  assert.match(workflow, /run: npm test\b/);
+  assert.equal(packageJson.scripts.test, 'node scripts/run-all-tests.mjs');
+  const runner = readFileSync(path.join(repoRoot, 'scripts/run-all-tests.mjs'), 'utf8');
+  assert.doesNotMatch(runner.match(/export const EXCLUDED = \{[\s\S]*?\n\};/)?.[0] ?? '', /'test:payment-ledger-export'/);
 });
 
 console.log(`Payment ledger export tests passed (${passed} checks).`);
