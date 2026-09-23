@@ -1,3 +1,4 @@
+import 'server-only';
 import { createTimeoutFetch } from './server/timeout-fetch';
 import { createClient } from '@supabase/supabase-js';
 

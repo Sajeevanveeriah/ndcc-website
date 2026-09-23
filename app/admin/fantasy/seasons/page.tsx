@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
-import { categoriseAdminSeasons } from '@/lib/fantasy-seasons';
+import { categoriseAdminSeasons } from '@/lib/fantasy-season-helpers';
 
 const STATUSES = ['draft', 'upcoming', 'active', 'completed', 'archived'];
 
