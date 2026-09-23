@@ -37,6 +37,12 @@ export function isPublicSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
+// Public CMS reads split their budget into two attempts: a read stuck on a
+// dead pooled connection is replayed on a fresh one within the same budget.
+function createPublicReadTimeoutFetch(totalTimeoutMs: number) {
+  return createTimeoutFetch(Math.ceil(totalTimeoutMs / 2), true, { retryAfterTimeout: true });
+}
+
 type ServerClientOptions = {
   fetchTimeoutMs?: number | null;
   actorId?: string;
@@ -59,7 +65,10 @@ export function createServerClient(options: ServerClientOptions = {}) {
     throw error;
   }
 
-  const baseFetch = options.fetchTimeoutMs === null ? undefined : createTimeoutFetch(options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS, options.retryReads);
+  const timeoutMs = options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS;
+  const baseFetch = options.fetchTimeoutMs === null ? undefined : options.publicReadCache
+    ? createPublicReadTimeoutFetch(timeoutMs)
+    : createTimeoutFetch(timeoutMs, options.retryReads);
   const fetchImpl = options.publicReadCache ? withPublicReadCache(baseFetch ?? fetch, { scope: 'service' }) : baseFetch;
   const clientOptions = fetchImpl ? { fetch: fetchImpl } : {};
 
@@ -84,7 +93,7 @@ export function createPublicServerClient() {
 
   return createClient(supabaseUrl, anonKey, {
     global: {
-      fetch: withPublicReadCache(createTimeoutFetch(SUPABASE_FETCH_TIMEOUT_MS, true), { scope: 'anon' }),
+      fetch: withPublicReadCache(createPublicReadTimeoutFetch(SUPABASE_FETCH_TIMEOUT_MS), { scope: 'anon' }),
     },
     auth: {
       autoRefreshToken: false,
