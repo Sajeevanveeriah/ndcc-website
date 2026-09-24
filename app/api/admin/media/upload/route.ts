@@ -7,7 +7,9 @@ import { enforceRateLimit } from '@/lib/server/request-guards';
 import { MEDIA_BUCKET, STAGING_BUCKET, MEDIA_TYPES, mediaLimit, signUploadTicket, verifyUploadTicket, validateMedia } from '@/lib/server/cms-media';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+// Session validation, rate limiting and three bounded storage calls run in
+// sequence. Keep the host deadline above their combined cold-start budget.
+export const maxDuration = 120;
 
 export async function POST(request: Request) {
   const user = await requireSession();
