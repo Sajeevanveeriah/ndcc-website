@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
  const {auth,errorMessage,errorStatus}=await resolveFantasyManagerAuth(request);
  if(!auth) return NextResponse.json({error:errorMessage},{status:errorStatus});
  try {
-  const body=await request.json(); const season=await resolveRequestSeason(request,body);
+  const input = await readFantasyMutation(request, auth.manager.id, 'transfers');
+  if ('response' in input) return input.response;
+  const body = input.body; const season=await resolveRequestSeason(request,body);
   if(!season||!seasonAllowsTeamChanges(season)) return NextResponse.json({error:'Team changes are closed.'},{status:403});
   const action=typeof body.action==='string'?body.action:'swap';
   if(!['buy','sell','swap'].includes(action)) return NextResponse.json({error:'Unknown market action.'},{status:400});

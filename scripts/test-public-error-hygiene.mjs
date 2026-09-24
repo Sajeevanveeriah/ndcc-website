@@ -101,6 +101,7 @@ await test('league codes are 12 unambiguous characters and joins are throttled',
     return q;
   } };
   const route = load('app/api/fantasy/leagues/route.ts', {
+  '@/lib/server/fantasy-mutation': { readFantasyMutation: async request => ({ body: await request.json() }) },
     'node:crypto': nodeCrypto,
     'next/server': nextServer,
     '@/lib/fantasy-manager-auth': { resolveFantasyManagerAuth: async () => ({ auth: { manager: { id: 'manager-1' } } }) },

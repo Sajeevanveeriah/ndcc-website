@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
@@ -53,7 +54,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
-  const body = await request.json().catch(() => ({}));
+  const input = await readFantasyMutation(request, auth.manager.id, 'squad');
+  if ('response' in input) return input.response;
+  const body = input.body;
+  if (!Array.isArray(body.selection) || body.selection.length > 100 || body.selection.some(item => !item || typeof item !== 'object' || Array.isArray(item))) {
+    return NextResponse.json({ success: false, error: 'Send a valid squad selection.' }, { status: 400 });
+  }
   const season = await resolveRequestSeason(request, body);
   if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
   if (!seasonAllowsTeamChanges(season)) return NextResponse.json({ success: false, error: 'Team building is not open for this season.' }, { status: 403 });

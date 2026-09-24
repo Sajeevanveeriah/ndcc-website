@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { teamNameStatusAfterProfileSave } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse, after } from 'next/server';
@@ -57,6 +58,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Sign in is required before creating a fantasy manager profile.' }, { status: 401 });
   }
 
+  const input = await readFantasyMutation(request, user.id, 'profile');
+  if ('response' in input) return input.response;
+  const body = input.body;
+
   const supabase = createServerClient();
   const existing = await supabase
     .from('fantasy_managers')
@@ -71,7 +76,6 @@ export async function POST(request: Request) {
   const existingManager = existing.data as any;
   if (existingManager?.deleted_at) return NextResponse.json({ success: false, error: 'Your team has been deleted. Contact the club to restore it.' }, { status: 403 });
 
-  const body = await request.json().catch(() => ({}));
   const season = await resolveRequestSeason(request, body);
   if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
   const settings = await getDinoCoachSettings(season.id);
