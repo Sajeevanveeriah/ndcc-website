@@ -136,12 +136,15 @@ const handoverRoute=load('app/api/admin/raffle/cash-collections/route.ts',{
  'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
  '@/lib/auth/guard':{requirePermissionResult:async permission=>{assert.equal(permission,'raffle');return reconciliationAuth;}},
  '@/lib/order-input-validation':inputValidation,
- '@/lib/supabase-server':{createServerClient:()=>({from:()=>{const chain={update:record=>{handoverWrites.push(record);return chain;},eq:(...args)=>{handoverFilters.push(args);return chain;},is:(...args)=>{handoverFilters.push(args);return chain;},select:()=>chain,maybeSingle:async()=>({data:{id:'sale'},error:null})};return chain;}})},
+ '@/lib/supabase-server':{createServerClient:()=>({from:()=>{const chain={update:record=>{handoverWrites.push(record);return chain;},eq:(...args)=>{handoverFilters.push(args);return chain;},is:(...args)=>{handoverFilters.push(args);return chain;},not:(...args)=>{handoverFilters.push(args);return chain;},order:()=>chain,range:async()=>({data:[],error:null}),select:()=>chain,maybeSingle:async()=>({data:{id:'sale'},error:null})};return chain;}})},
 });
 const handoverRequest=()=>new Request('https://example.invalid/api/admin/raffle/cash-collections',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:cashBody.saleKey,cashReceived:true,cash_handed_in_by:'forged'})});
 assert.equal((await handoverRoute.PATCH(handoverRequest())).status,401);
 reconciliationAuth={user:{id:'raffle-staff'},status:200};
 assert.equal((await handoverRoute.PATCH(handoverRequest())).status,200);
 assert.equal(handoverWrites[0].cash_handed_in_by,'raffle-staff');
-assert.deepEqual(handoverFilters,[['id',cashBody.saleKey],['payment_method','cash'],['status','paid'],['cash_handed_in_at',null]]);
-console.log('PASS cash handover requires raffle staff and only updates unreconciled paid cash sales');
+assert.deepEqual(handoverFilters,[['id',cashBody.saleKey],['payment_method','cash'],['status','paid'],['cash_received_by_member','is',null],['cash_handed_in_at',null]]);
+handoverFilters=[];
+assert.equal((await handoverRoute.GET()).status,200);
+assert.deepEqual(handoverFilters,[['payment_method','cash'],['status','paid'],['cash_received_by_member','is',null]]);
+console.log('PASS cash handover requires raffle staff, lists only member collections and excludes existing committee receipts');
