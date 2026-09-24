@@ -52,12 +52,24 @@ globalThis.fetch = async (url, options) => {
   calls.push({ url, options });
   const reply = replies.shift();
   assert.ok(reply, 'No unexpected request/retry');
+  if (reply instanceof Error) throw reply;
   return reply;
 };
 try {
   calls = []; replies = [response(503), response(200, { data: [1] })];
   assert.deepEqual(await (await client.adminFetch('/api/admin/resources/sponsors')).json(), { data: [1] });
   assert.equal(calls.length, 2);
+  for (const method of ['GET', 'HEAD']) {
+    calls = []; replies = [new TypeError('Failed to fetch'), response(200)];
+    assert.equal((await client.adminFetch('/api/admin/resources/sponsors', { method })).status, 200);
+    assert.equal(calls.length, 2);
+  }
+  calls = []; replies = [new TypeError('Failed to fetch'), response(503)];
+  assert.equal((await client.adminFetch('/api/admin/resources/sponsors')).status, 503);
+  assert.equal(calls.length, 2, 'a network retry does not add a second status retry');
+  calls = []; replies = [new DOMException('Aborted', 'AbortError')];
+  await assert.rejects(client.adminFetch('/api/admin/resources/sponsors'), /timed out/);
+  assert.equal(calls.length, 1, 'aborted requests are not replayed');
   calls = []; replies = [response(403), response(200, { authenticated: true }), response(200)];
   assert.equal((await client.adminFetch('/api/admin/resources/sponsors')).status, 200);
   assert.equal(calls[1].url, '/api/admin/auth/session');
@@ -73,6 +85,9 @@ try {
     assert.equal(calls.length, 1, 'writes are never replayed');
     assert.equal(calls[0].options.headers.get('X-NDCC-CSRF'), '1');
     assert.equal(calls[0].options.credentials, 'include');
+    calls = []; replies = [new TypeError('Failed to fetch')];
+    await assert.rejects(client.adminFetch('/api/admin/resources/playerSponsors', { method, body: '{}' }), /Failed to fetch/);
+    assert.equal(calls.length, 1, 'network failures never replay writes');
   }
 } finally { globalThis.fetch = originalFetch; }
 console.log('PASS bounded read recovery, permission failure, expired session and no mutation replay');

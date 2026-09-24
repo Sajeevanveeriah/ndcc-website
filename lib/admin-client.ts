@@ -12,8 +12,17 @@ export async function adminFetch(url: string, options: RequestInit = {}): Promis
   }
   try {
     const request = () => fetch(url, { cache: 'no-store', credentials: 'include', ...options, headers, signal: controller.signal });
-    let response = await request();
-    if (['GET', 'HEAD'].includes(method) && [502, 503, 504].includes(response.status)) {
+    const isRead = ['GET', 'HEAD'].includes(method);
+    let retried = false;
+    let response: Response;
+    try {
+      response = await request();
+    } catch (error) {
+      if (!isRead || controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) throw error;
+      retried = true;
+      response = await request();
+    }
+    if (isRead && !retried && [502, 503, 504].includes(response.status)) {
       await response.body?.cancel();
       response = await request();
     }
