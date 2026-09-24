@@ -2,9 +2,10 @@
 -- Does not change squad selections, purchase costs, scores or manager balances.
 BEGIN;
 DO $research$
-DECLARE sid uuid; item jsonb; old public.fantasy_player_prices%rowtype; membership public.fantasy_season_players%rowtype; baseline numeric; next_price bigint; evidence jsonb;
+DECLARE sid uuid; item jsonb; old public.fantasy_player_prices%rowtype; membership public.fantasy_season_players%rowtype; baseline numeric; next_price bigint; evidence jsonb; costs_before text; costs_after text;
 BEGIN
  SELECT id INTO STRICT sid FROM public.fantasy_seasons WHERE slug='2026-27';
+ SELECT md5(coalesce(string_agg(squad_id::text||':'||player_id::text||':'||coalesce(purchase_price_dino_dollars::text,'null'),',' order by squad_id,player_id),'')) INTO costs_before FROM public.fantasy_squad_players;
  PERFORM pg_advisory_xact_lock(hashtextextended('dino-prices:'||sid::text,0));
  IF EXISTS(SELECT 1 FROM public.fantasy_price_windows WHERE season_id=sid) THEN RAISE EXCEPTION 'Season price windows exist; review instead of replacing opening baselines'; END IF;
  FOR item IN SELECT * FROM jsonb_array_elements($data$[{"playerId": "dd52959e-e008-4f78-8b2c-ecd3494b23c9", "name": "Freddie Norridge", "season": "2026", "scope": "Cherwell Cricket League Division 2A, Shipton-under-Wychwood 1", "sourceUrl": "https://cherwellcricketleague.com/live_player.php?PlayerID=56005284", "sourceProvider": "cherwell_cricket_league", "sourcePlayerId": "56005284", "matches": 17, "runs": 382, "wickets": 0, "catches": 4, "stumpings": 0, "runouts": null, "maidens": null, "role": "BAT", "completeness": "complete", "previousPriceDinoDollars": 1296000, "notes": "Official 2026 league table, 9 May to 5 September; all 17 match rows have zero wickets. Replaces the older 2025 baseline.", "scorecardIds": [18311, 18320, 18325, 18329, 18335, 18338, 18343, 18347, 18352, 18356, 18365, 18370, 18374, 18380, 18383, 18388, 18397], "knownPoints": 422, "priceDinoDollars": 1194000}, {"playerId": "8bc3ca26-e9bb-4b2c-8b91-764fdae8e79c", "name": "Jodie Clark", "season": "2025/26", "scope": "Cricket Australia, Summer 2025/26, North Geelong, all formats", "sourceUrl": "https://play.cricket.com.au/player/cd05eaa6-4210-44ff-bfcf-49a340d7ea28/jodie-clark", "sourceProvider": "cricket_australia", "sourcePlayerId": "cd05eaa6-4210-44ff-bfcf-49a340d7ea28", "matches": 16, "runs": 341, "wickets": 13, "catches": 5, "stumpings": 0, "runouts": 3, "maidens": 1, "role": "AR", "completeness": "complete", "previousPriceDinoDollars": 100000, "identityEvidenceUrl": "https://www.facebook.com/NewcombDistrictCricketClub/posts/1255620953227261/", "notes": "NDCC signing announcement dated 7 May for season 26/27 explicitly names North Geelong and independently matches 341 runs, 13 wickets, 5 catches and 3 run-outs. Official player search links North Geelong and Alexander Thomson. No merger with Jodie Jones.", "knownPoints": 521, "priceDinoDollars": 1356000}]$data$::jsonb) LOOP
@@ -22,5 +23,7 @@ BEGIN
   INSERT INTO public.fantasy_price_calculations(season_id,player_id,effective_round_id,formula_version,prior_baseline_points,recent_points,previous_rolling_performance_points,rolling_performance_points,previous_price_dino_dollars,price_change_dino_dollars,new_price_dino_dollars,source_status,evidence,published_at)
   VALUES(sid,membership.player_id,null,'dino-research-20260924',baseline,'{}',old.rolling_performance_points,baseline,old.price_dino_dollars,next_price-old.price_dino_dollars,next_price,'external_summary',evidence,now());
  END LOOP;
+ SELECT md5(coalesce(string_agg(squad_id::text||':'||player_id::text||':'||coalesce(purchase_price_dino_dollars::text,'null'),',' order by squad_id,player_id),'')) INTO costs_after FROM public.fantasy_squad_players;
+ IF costs_before IS DISTINCT FROM costs_after THEN RAISE EXCEPTION 'Squad selections changed during price review; retry after checking concurrent activity'; END IF;
 END $research$;
 COMMIT;
