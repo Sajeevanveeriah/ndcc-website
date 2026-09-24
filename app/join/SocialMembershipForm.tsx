@@ -32,9 +32,9 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
   const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === 'pot_club_2026_27';
   const total = useMemo(() => {
     const planPrice = plans.find((p) => p.id === selectedPlan)?.price || 0;
-    const addonTotal = addons.filter((a) => selectedAddons[a.id]).reduce((sum, a) => sum + a.price, 0);
+    const addonTotal = isPotClub ? 0 : addons.filter((a) => selectedAddons[a.id]).reduce((sum, a) => sum + a.price, 0);
     return planPrice + addonTotal;
-  }, [plans, addons, selectedPlan, selectedAddons]);
+  }, [plans, addons, selectedPlan, selectedAddons, isPotClub]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +47,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
     const payload = {
       ...formData,
       membership_plan_id: selectedPlan,
-      addons: Object.keys(selectedAddons).filter((id) => selectedAddons[id]).map((addon_id) => ({ addon_id, quantity: 1 })),
+      addons: isPotClub ? [] : Object.keys(selectedAddons).filter((id) => selectedAddons[id]).map((addon_id) => ({ addon_id, quantity: 1 })),
     };
 
     try {
@@ -92,14 +92,14 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
 
           <div>
             <label htmlFor="membership_plan" className="form-label">Membership Plan</label>
-            <select id="membership_plan" className="form-input" value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)}>
+            <select id="membership_plan" className="form-input" value={selectedPlan} onChange={(e) => { setSelectedPlan(e.target.value); setSelectedAddons({}); }}>
               {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} - {formatCurrency(plan.price)}</option>)}
             </select>
           </div>
 
           <div className="space-y-2">
-            {addons.length > 0 && <p className="form-label">Optional Add-ons</p>}
-            {addons.map((addon) => (
+            {!isPotClub && addons.length > 0 && <p className="form-label">Optional Add-ons</p>}
+            {(isPotClub ? [] : addons).map((addon) => (
               <label key={addon.id} className="flex items-center justify-between gap-3 border border-edge-strong rounded-lg px-4 py-3 font-body text-content-primary cursor-pointer transition-colors hover:border-maroon-300 has-[:checked]:border-maroon-500 has-[:checked]:bg-maroon-50/50 dark:border-slate-600 dark:text-slate-100">
                 <span>{addon.name} {addon.usage_limit ? `(limit ${addon.usage_limit})` : ''}</span>
                 <span className="flex items-center gap-3">
