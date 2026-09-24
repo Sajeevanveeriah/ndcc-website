@@ -23,3 +23,13 @@ export async function POST(request:Request){
  if(error)return reply({success:false,error:'The member record could not be added.'},503);
  return reply({success:true});
 }
+
+export async function PATCH(request:Request){
+ const auth=await requirePermissionResult('memberships');if(!auth.user)return reply({success:false,error:auth.error},auth.status);
+ const body=await readLimitedJsonObject(request);
+ if(!body.ok||typeof body.value.id!=='string'||!['pending','active','inactive'].includes(String(body.value.status)))return reply({success:false,error:'Choose a valid club record and status.'},400);
+ const {data,error}=await createServerClient().from('club_members').update({membership_status:body.value.status,reviewed_by:auth.user.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',body.value.id).select('id').maybeSingle();
+ if(error)return reply({success:false,error:'The status could not be saved.'},503);
+ if(!data)return reply({success:false,error:'Club record not found.'},404);
+ return reply({success:true});
+}

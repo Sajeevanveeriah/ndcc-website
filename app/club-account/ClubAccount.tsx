@@ -19,7 +19,7 @@ export default function ClubAccount() {
    const client=getFantasyBrowserClient(); const code=new URLSearchParams(window.location.search).get('code');
    if(code){ const result=await client.auth.exchangeCodeForSession(code); if(result.error)throw result.error; window.history.replaceState({},'', '/club-account'); }
    const {data}=await client.auth.getSession(); setSignedIn(Boolean(data.session));
-   if(data.session){const result=await fantasyJsonFetch<{profile:Profile|null;email:string}>('/api/club-account');setEmail(result.email);if(result.profile)setProfile(result.profile);setProfileLoaded(true);}
+   if(data.session){const result=await fantasyJsonFetch<{profile:Profile|null;email:string}>('/api/club-account');setEmail(result.email);setProfile(result.profile||{full_name:'',email:result.email,phone:'',member_type:'social',membership_status:'pending'});setAccepted(false);setProfileLoaded(true);}
   }catch(reason){setError(reason instanceof Error?reason.message:'Unable to load account.');}finally{setReady(true);}
  },[]);
  useEffect(()=>{void load();},[load]);

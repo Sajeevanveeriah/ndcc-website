@@ -10,6 +10,8 @@ create table public.club_members (
  membership_status text not null default 'pending' check(membership_status in ('pending','active','inactive')),
  privacy_accepted_at timestamptz,
  created_by uuid references public.committee_users(id),
+ reviewed_by uuid references public.committee_users(id),
+ reviewed_at timestamptz,
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now()
 );
@@ -17,6 +19,7 @@ alter table public.club_members enable row level security;
 revoke all on public.club_members from public,anon,authenticated;
 grant all on public.club_members to service_role;
 create index club_members_email_idx on public.club_members(lower(email));
+create index club_members_reviewed_by_idx on public.club_members(reviewed_by);
 create index club_members_created_by_idx on public.club_members(created_by);
 -- Source records remain distinct: a shared family email is not an identity match.
 -- Existing and future applications appear immediately without copying private data.
