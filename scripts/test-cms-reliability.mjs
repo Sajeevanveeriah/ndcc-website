@@ -166,6 +166,14 @@ operationReplies.push(response(503, { error: 'Operational checks are temporarily
 await act(async () => refreshOperations());
 assert.match(text(operationsView.root), /temporarily unavailable/);
 assert.match(text(operationsView.root), /12.0 MB/, 'previous health remains available after a failed refresh');
+let finishRefresh;
+operationReplies.push(new Promise(resolve => { finishRefresh = resolve; }));
+let pendingRefresh;
+await act(async () => { pendingRefresh = refreshOperations(); });
+const processReceipts = operationsView.root.findAllByType('button').find(node => text(node) === 'Process due receipts');
+assert.equal(processReceipts.props.disabled, true, 'receipt processing is disabled during a health refresh');
+await act(async () => processReceipts.props.onClick());
+await act(async () => { finishRefresh(response(200, health)); await pendingRefresh; });
 assert.ok(operationRequests.every(request => request.method === 'GET'), 'refresh must never process or send receipts');
 await act(async () => operationsView.unmount());
 console.log('PASS operations malformed response, refresh recovery and no receipt processing');
