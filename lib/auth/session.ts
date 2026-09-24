@@ -26,7 +26,9 @@ export type SessionResolution =
       reason: 'timeout' | 'database_error' | 'network_error';
     };
 
-const SESSION_VALIDATION_TIMEOUT_MS = 5_000;
+// Match the runtime database budget. A cold connection can take ~12 seconds;
+// a five-second check incorrectly denied valid sessions during that window.
+const SESSION_VALIDATION_TIMEOUT_MS = 15_000;
 
 function classifySessionError(error: unknown): SessionResolution {
   if (error instanceof DOMException && error.name === 'AbortError') {
@@ -90,7 +92,7 @@ export function clearAuthCookie() {
 export async function resolveSessionFromToken(token?: string | null): Promise<SessionResolution> {
   if (!token) return { status: 'unauthenticated', reason: 'missing_token' };
 
-  const supabase = createServerClient({ fetchTimeoutMs: SESSION_VALIDATION_TIMEOUT_MS });
+  const supabase = createServerClient({ fetchTimeoutMs: SESSION_VALIDATION_TIMEOUT_MS, retryReads: true });
   const tokenHash = hashSessionToken(token);
 
   try {

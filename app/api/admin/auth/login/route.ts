@@ -5,7 +5,7 @@ import { createAuthCookie, generateSessionToken, hashSessionToken, sessionExpiry
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 20;
+export const maxDuration = 60;
 
 const CREDENTIAL_RPC_TIMEOUT_MS = 4_500;
 const SESSION_INSERT_TIMEOUT_MS = 4_500;

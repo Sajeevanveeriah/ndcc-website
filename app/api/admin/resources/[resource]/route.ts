@@ -4,7 +4,7 @@ import { fetchAllPages } from '@/lib/supabase-paginate';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { revalidatePublicContent } from '@/lib/server/revalidate-public';
 import { createServerClient } from '@/lib/supabase-server';
-import { requirePermission } from '@/lib/auth/guard';
+import { requirePermissionResult } from '@/lib/auth/guard';
 import { datetimeLocalToClubIso } from '@/lib/utils';
 import { validateCalendarEventPayload } from '@/lib/calendar/format';
 import { PUBLICATION_TYPES } from '@/lib/public-publications';
@@ -347,8 +347,8 @@ function isMissingSortOrderColumnError(errorMessage: string, table: string) {
 
 async function authoriseResource(resource: string) {
   const permission = RESOURCE_PERMISSIONS[resource];
-  if (!permission) return null;
-  return requirePermission(permission);
+  if (!permission) return { user: null, status: 403 as const, error: 'Unknown permission.' };
+  return requirePermissionResult(permission);
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
@@ -356,7 +356,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(resource);
+  const access = await authoriseResource(resource);
+  if (!access.user) return NextResponse.json({ success: false, error: access.error }, {
+    status: access.status, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' },
+  });
+  const user = access.user;
   if (!user || !canRead(user.role, config.readRoles)) {
     return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
@@ -430,7 +434,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
   const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(resource);
+  const access = await authoriseResource(resource);
+  if (!access.user) return NextResponse.json({ success: false, error: access.error }, {
+    status: access.status, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' },
+  });
+  const user = access.user;
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
@@ -498,7 +506,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
   const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(resource);
+  const access = await authoriseResource(resource);
+  if (!access.user) return NextResponse.json({ success: false, error: access.error }, {
+    status: access.status, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' },
+  });
+  const user = access.user;
   if (!user || !canWrite(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot edit this section.' }, { status: 403 });
   }
@@ -595,7 +607,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
   const config = pickResource(resource);
   if (!config) return NextResponse.json({ success: false, error: 'Unknown resource.' }, { status: 404 });
 
-  const user = await authoriseResource(resource);
+  const access = await authoriseResource(resource);
+  if (!access.user) return NextResponse.json({ success: false, error: access.error }, {
+    status: access.status, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' },
+  });
+  const user = access.user;
   if (!user || !canDelete(user.role, config)) {
     return NextResponse.json({ success: false, error: 'Your role cannot delete this record.' }, { status: 403 });
   }

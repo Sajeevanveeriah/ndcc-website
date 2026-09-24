@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Input, { PasswordInput } from '@/components/ui/Input';
 import { validateEmail } from '@/lib/utils';
 
-const LOGIN_TIMEOUT_MS = 12_000;
+const LOGIN_TIMEOUT_MS = 60_000;
 
 async function readLoginResponse(response: Response) {
   try {

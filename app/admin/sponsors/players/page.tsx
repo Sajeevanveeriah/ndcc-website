@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import { type PlayerSponsor, groupPlayerSponsors, normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
@@ -9,7 +9,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 
-const empty = { player_name: '', sponsor_name: '', player_image_url: '', logo_url: '', website: '', sort_order: 0, active: false };
+const empty = { player_name: '', sponsor_name: '', player_image_url: '', logo_url: '', website: '', sort_order: 0, active: true };
 const endpoint = '/api/admin/resources/playerSponsors';
 const sort = (rows: PlayerSponsor[]) => [...rows].sort((a, b) => a.sort_order - b.sort_order || a.player_name.localeCompare(b.player_name));
 
@@ -17,6 +17,7 @@ export default function PlayerSponsorsPage() {
   const [rows, setRows] = useState<PlayerSponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [message, setMessage] = useState('');
   const [open, setOpen] = useState(false);
   const [id, setId] = useState<string | null>(null);
@@ -25,10 +26,15 @@ export default function PlayerSponsorsPage() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const uploading = photoUploading || logoUploading;
-  useEffect(() => {
-    adminFetch(endpoint, { cache: 'no-store' }).then((response) => parseApiResponse<{ data: PlayerSponsor[] }>(response))
-      .then((result) => setRows(sort(result.data))).catch((err) => setError(err.message)).finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    setLoading(true); setLoadError('');
+    try {
+      const result = await parseApiResponse<{ data: PlayerSponsor[] }>(await adminFetch(endpoint, { cache: 'no-store' }));
+      setRows(sort(result.data));
+    } catch (err) { setLoadError(err instanceof Error ? err.message : 'Unable to load player sponsors.'); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
   async function save() {
     if (busy || uploading) return;
@@ -40,7 +46,9 @@ export default function PlayerSponsorsPage() {
       const response = await adminFetch(endpoint, { method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(id ? { id, ...payload } : payload) });
       const result = await parseApiResponse<{ data: PlayerSponsor }>(response);
       setRows((previous) => sort(id ? previous.map((row) => row.id === id ? result.data : row) : [...previous, result.data]));
-      setOpen(false); setMessage('Player sponsor saved. Active entries appear on the Player Sponsors page.');
+      setOpen(false); setMessage(result.data.active
+        ? 'Player sponsor saved and published on the Player Sponsors page.'
+        : 'Player sponsor saved as hidden. It will not appear on the public Player Sponsors page.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save player sponsor.'); }
     finally { setBusy(false); }
   }
@@ -52,8 +60,8 @@ export default function PlayerSponsorsPage() {
       <Button onClick={() => { setId(null); setForm(empty); setError(''); setOpen(true); }}>Add player sponsor</Button>
     </div>
     {!open && error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
-    {message && <p role="status" className="mb-4 text-content-primary">{message}</p>}
-    {loading ? <p role="status">Loading player sponsors...</p> : rows.length === 0 ? <p>No player sponsors added yet.</p> : <ul className="divide-y divide-edge-subtle">
+    {message && <p role="status" className="mb-4 text-content-primary">{message} <Link href="/player-sponsors" target="_blank" rel="noopener noreferrer" className="underline">View public page</Link></p>}
+    {loading ? <p role="status">Loading player sponsors...</p> : loadError ? <div role="alert" className="mb-4"><p>{loadError}</p><Button variant="secondary" onClick={() => void load()}>Retry loading player sponsors</Button></div> : rows.length === 0 ? <p>No player sponsors added yet.</p> : <ul className="divide-y divide-edge-subtle">
       {groupPlayerSponsors(rows).map((player) => <li key={player.key} className="py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="font-semibold break-words">{player.player_name}</h2><p className="text-sm text-content-muted">{player.sponsors.length} {player.sponsors.length === 1 ? 'sponsor' : 'sponsors'}</p></div>

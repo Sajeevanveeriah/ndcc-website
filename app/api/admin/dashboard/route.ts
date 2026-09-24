@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { requirePermission } from '@/lib/auth/guard';
+import { requirePermissionResult } from '@/lib/auth/guard';
 import { isFullAccessRole } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_DASHBOARD_TIMEOUT_MS = 5_000;
+const ADMIN_DASHBOARD_TIMEOUT_MS = 15_000;
 
 function adminJson(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store', Vary: 'Cookie' } });
 }
 
 export async function GET() {
-  const user = await requirePermission('dashboard');
-  if (!user) return adminJson({ success: false, error: 'Forbidden.' }, 403);
+  const access = await requirePermissionResult('dashboard');
+  if (!access.user) return adminJson({ success: false, error: access.error }, access.status);
+  const user = access.user;
 
   try {
     const supabase = createServerClient({ fetchTimeoutMs: ADMIN_DASHBOARD_TIMEOUT_MS });
