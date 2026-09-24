@@ -251,6 +251,7 @@ export default function Navbar({ nav }: NavbarProps) {
   // solid from the start.
   const transparent = false;
   return (
+    <>
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
@@ -268,7 +269,11 @@ export default function Navbar({ nav }: NavbarProps) {
         <span className="hidden sm:block text-xs text-content-blue font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
-        <div className="flex gap-4 ml-auto">
+        <div className="flex items-center gap-4 ml-auto">
+          <Link href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-semibold text-content-blue hover:underline font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
+            <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+            My Account
+          </Link>
           <a
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
@@ -477,18 +482,23 @@ export default function Navbar({ nav }: NavbarProps) {
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
+            aria-controls="mobile-site-menu"
           >
             {isOpen ? <X className={cn('h-6 w-6', transparent ? 'text-white' : 'text-content-secondary dark:text-slate-200')} /> : <Menu className={cn('h-6 w-6', transparent ? 'text-white' : 'text-content-secondary dark:text-slate-200')} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Navigation: full-screen overlay with focus trap + scroll lock */}
+    </nav>
+
+      {/* Keep the viewport overlay outside the header: backdrop-filter on the
+          scrolled header creates a containing block that clips fixed children. */}
       <LazyMotion features={domAnimation} strict>
         <AnimatePresence initial={false}>
           {isOpen && (
             <m.div
               key="mobile-menu"
+              id="mobile-site-menu"
               ref={menuRef}
               className="lg:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
               initial={reduceMotion ? false : { opacity: 0, y: -16 }}
@@ -499,7 +509,7 @@ export default function Navbar({ nav }: NavbarProps) {
               aria-modal="true"
               aria-label="Site menu"
             >
-              <div className="flex items-center justify-between border-b border-edge-subtle px-4 py-4">
+              <div className="flex shrink-0 items-center justify-between border-b border-edge-subtle px-4 py-4">
                 <span className="flex items-center gap-3">
                   <Image src="/images/logo.jpg" alt="NDCC Logo" width={40} height={40} className="rounded-full" />
                   <span className="font-display text-lg font-semibold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{settings.club_short}</span>
@@ -513,7 +523,10 @@ export default function Navbar({ nav }: NavbarProps) {
                   <X className="h-6 w-6 text-content-secondary" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto bg-surface-nav px-4 py-4 space-y-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-nav px-4 py-4 space-y-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                <Link href="/club-account" onClick={() => setIsOpen(false)} className="flex items-center gap-2 rounded-xl px-4 py-3 text-base font-body font-semibold text-content-blue focus-ring">
+                  <UserRound className="h-5 w-5" aria-hidden="true" />My Account
+                </Link>
           {navGroups.map((group) => group.href ? (
             <Link key={`${group.href}-${group.label}`} href={group.href} aria-current={pathname === group.href ? 'page' : undefined} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
               {group.label}
@@ -550,6 +563,6 @@ export default function Navbar({ nav }: NavbarProps) {
           )}
         </AnimatePresence>
       </LazyMotion>
-    </nav>
+    </>
   );
 }

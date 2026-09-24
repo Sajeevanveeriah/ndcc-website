@@ -107,7 +107,9 @@
     "test:public-read-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-read-cache.mjs",
     "test:dino-recovery": "node scripts/test-dino-recovery.mjs",
     "test:club-services": "node scripts/test-club-services.mjs",
-    "test:club-services-ui": "node scripts/test-club-services-ui.cjs"
+    "test:club-services-ui": "node scripts/test-club-services-ui.cjs",
+    "test:catalogue-export": "node scripts/test-catalogue-export.cjs",
+    "test:mobile-navigation": "node scripts/test-mobile-navigation.cjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
