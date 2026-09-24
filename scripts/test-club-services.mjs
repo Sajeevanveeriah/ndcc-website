@@ -36,3 +36,25 @@ assert.equal(writes.length,1);assert.equal(writes[0].auth_user_id,'owner');asser
 for(const field of ['id','membership_status','created_by'])assert.equal(writes[0][field],undefined);
 limit=false;assert.equal((await route.POST(request())).status,429);assert.equal(writes.length,1);
 console.log('PASS confirmed account ownership, private reads, server-selected identity, no permission escalation, rate limits and new/legacy raffle references');
+const pricing=JSON.parse(readFileSync('data/dino-coach-researched-baselines-20260924.json','utf8'));
+for(const player of pricing.players){assert.equal(player.knownPoints,player.runs+10*(player.wickets+player.catches+player.stumpings));assert.equal(player.priceDinoDollars,Math.ceil((500000+Math.min(player.knownPoints/913,1)*1500000)/1000)*1000);}
+const inputValidation=load('lib/order-input-validation.ts');const utilities=load('lib/utils.ts');
+let cashAuth={user:null,status:401,error:'Sign in'};let cashCalls=[];let cashDeliveryFails=true;
+const cashRoute=load('app/api/admin/raffle/cash/route.ts',{
+ 'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
+ '@/lib/auth/guard':{requirePermissionResult:async permission=>{assert.equal(permission,'raffle');return cashAuth;}},
+ '@/lib/supabase-server':{createServerClient:()=>({rpc:async(name,args)=>{cashCalls.push({name,args});return {data:{orderId:'saved',ticketReferences:['NDCCTRO-20260001'],amountCents:500,paymentReference:'NDCCRAF-2026-000001'},error:null};}})},
+ '@/lib/order-input-validation':inputValidation,'@/lib/utils':utilities,
+ '@/lib/server/request-guards':{enforceRateLimit:async()=>true},
+ '@/lib/payments/receipt-delivery':{enqueuePaymentReceiptJob:async()=>{if(cashDeliveryFails)throw new Error('Provider unavailable');return {ok:true,jobId:'job'};},attemptPaymentReceiptDelivery:async()=>({status:'delivered'})},
+});
+const cashBody={name:'Buyer',email:'buyer@example.invalid',phone:'',quantity:1,cashReceived:true,saleKey:'00000000-0000-4000-8000-000000000001',priceCents:500,actor_id:'forged'};
+const cashRequest=(body=cashBody)=>new Request('https://example.invalid/api/admin/raffle/cash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+assert.equal((await cashRoute.POST(cashRequest())).status,401);assert.equal(cashCalls.length,0);
+cashAuth={user:{id:'actual-staff'},status:200};
+for(const body of [{...cashBody,cashReceived:false},{...cashBody,priceCents:'500'},{...cashBody,saleKey:'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'},{...cashBody,email:'invalid'}])assert.equal((await cashRoute.POST(cashRequest(body))).status,400);
+assert.equal(cashCalls.length,0);
+const queued=await cashRoute.POST(cashRequest());assert.equal(queued.status,200);assert.equal((await queued.json()).deliveryStatus,'queued','Delivery failure must not claim the saved sale failed');
+assert.equal(cashCalls[0].args.actor_id,'actual-staff');assert.equal(cashCalls[0].args.sale_key,cashBody.saleKey);
+cashDeliveryFails=false;assert.equal((await (await cashRoute.POST(cashRequest())).json()).deliveryStatus,'delivered');assert.deepEqual(cashCalls[0],cashCalls[1],'Retries use the same atomic operation and sale reference');
+console.log('PASS reviewed pricing arithmetic and cash API permission, input validation, staff identity, retry and delivery-failure recovery');

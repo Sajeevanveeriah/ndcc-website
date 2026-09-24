@@ -1,4 +1,127 @@
 begin;
+-- Match the existing CMS Raffle permission registry; this permits assignment
+-- without granting new access to any account.
+ALTER TABLE public.committee_users DROP CONSTRAINT IF EXISTS committee_users_role_check;
+ALTER TABLE public.committee_users ADD CONSTRAINT committee_users_role_check CHECK (role IN (
+  'admin',
+  'president',
+  'secretary',
+  'vice_president',
+  'treasurer',
+  'committee',
+  'fantasy_manager',
+  'fantasy_support'
+));
+
+-- Preserve the effective module visibility existing Committee users had before
+-- granular access was introduced. Users can be reduced explicitly after rollout.
+UPDATE public.committee_users
+SET cms_permissions = ARRAY[
+  'dashboard',
+  'season.setup',
+  'season.registration',
+  'club.details',
+  'teams',
+  'appointments',
+  'calendar',
+  'news',
+  'publications',
+  'events',
+  'pages',
+  'content',
+  'gallery',
+  'history',
+  'minutes',
+  'volunteers',
+  'memberships',
+  'enquiries',
+  'sponsors',
+  'merchandise',
+  'kitchen',
+  'orders',
+  'payments',
+  'fantasy.home',
+  'fantasy.seasons',
+  'fantasy.players',
+  'fantasy.imports',
+  'fantasy.review',
+  'fantasy.diagnostics',
+  'diagnostics.email',
+  'diagnostics.media'
+]::TEXT[]
+WHERE role = 'committee'
+  AND cardinality(cms_permissions) = 0;
+
+CREATE OR REPLACE FUNCTION public.ndcc_cms_permissions_are_unique(p_permissions TEXT[])
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog
+AS $$
+  SELECT COALESCE(cardinality(p_permissions), 0) = (
+    SELECT count(DISTINCT permission)
+    FROM unnest(COALESCE(p_permissions, ARRAY[]::TEXT[])) AS p(permission)
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.ndcc_cms_permissions_are_unique(TEXT[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ndcc_cms_permissions_are_unique(TEXT[]) TO service_role;
+
+ALTER TABLE public.committee_users DROP CONSTRAINT IF EXISTS committee_users_cms_permissions_check;
+ALTER TABLE public.committee_users ADD CONSTRAINT committee_users_cms_permissions_check CHECK (
+  public.ndcc_cms_permissions_are_unique(cms_permissions)
+  AND cms_permissions <@ ARRAY[
+    'dashboard',
+    'season.setup',
+    'season.registration',
+    'club.details',
+    'teams',
+    'appointments',
+    'calendar',
+    'news',
+    'publications',
+    'events',
+    'pages',
+    'content',
+    'gallery',
+    'history',
+    'minutes',
+    'volunteers',
+    'memberships',
+    'enquiries',
+    'sponsors',
+    'merchandise',
+    'kitchen',
+    'raffle',
+    'orders',
+    'payments',
+    'fantasy.home',
+    'fantasy.seasons',
+    'fantasy.players',
+    'fantasy.imports',
+    'fantasy.review',
+    'fantasy.diagnostics',
+    'diagnostics.email',
+    'diagnostics.media'
+  ]::TEXT[]
+  AND (
+    role <> 'fantasy_support'
+    OR cms_permissions <@ ARRAY[
+      'fantasy.home',
+      'fantasy.seasons',
+      'fantasy.players',
+      'fantasy.imports',
+      'fantasy.review',
+      'fantasy.diagnostics'
+    ]::TEXT[]
+  )
+  AND (
+    role IN ('committee', 'fantasy_support')
+    OR cardinality(cms_permissions) = 0
+  )
+);
+
+
 alter table public.raffle_orders
  add column payment_method text not null default 'stripe' check(payment_method in ('stripe','cash')),
  add column cash_received_by uuid references public.committee_users(id),

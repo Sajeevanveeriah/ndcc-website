@@ -154,6 +154,9 @@ await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20260200'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20260301'));
 assert.ok(!zero.includes('19 DECEMBER') && !zero.includes('TRAILER'));
 assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('$5.00 AUD'));
+const trailer2026=(await ticket.renderRaffleTicket('NDCCTRO-20260001')).toString();
+assert.ok(trailer2026.includes('NDCCTRO-20260001')&&trailer2026.includes('$5.00 AUD')&&trailer2026.includes('TRAILER'));
+await assert.rejects(()=>ticket.renderRaffleTicket('NDCCTRO-20260001',undefined,{code:'NDCCRRO',year_code:'2026'}));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-202600000'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-2026<script>'));
 // References derive from campaign code + year_code: any 4-digit reverse raffle year is accepted...

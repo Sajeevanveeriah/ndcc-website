@@ -38,6 +38,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || orderConfirmation) return;
     setLoading(true);
     setSubmitStatus('idle');
     setMessage('');
@@ -66,8 +67,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
           payment_reference: data.payment_reference || '',
           bank_details: data.bank_details || null,
         });
-        setFormData({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
-        setSelectedAddons({});
+
       } else {
         setSubmitStatus('error');
         setMessage(data.error || 'Unable to submit membership application.');
@@ -84,6 +84,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
     <Card>
       <CardContent className="p-6">
         <form onSubmit={submit} className="space-y-5">
+          <fieldset disabled={loading || Boolean(orderConfirmation)} className="space-y-5">
           <input type="text" className="hidden" value={formData.hp_field} onChange={(e) => setFormData((p) => ({ ...p, hp_field: e.target.value }))} />
           <Input id="full_name" label="Full name" value={formData.full_name} onChange={(e) => setFormData((p) => ({ ...p, full_name: e.target.value }))} required />
           <Input id="email" label="Email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} required />
@@ -111,6 +112,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
 
           <Textarea id="notes" label={isPotClub ? "Engraving preference / notes (optional)" : "Notes"} value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
           <p className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200 border-t border-edge-subtle pt-4">Estimated Total: {formatCurrency(total)}</p>
+          </fieldset>
           <p className="text-sm">Your details are used to process this application and payment. Read our <Link href="/privacy" className="underline">privacy statement</Link>.</p>
           <Button type="submit" isLoading={loading} disabled={plans.length === 0 || Boolean(orderConfirmation)}>{loading ? 'Submitting...' : isPotClub ? 'Order Pot Club pot' : 'Submit Social Membership'}</Button>
           {submitStatus === 'success' && (
