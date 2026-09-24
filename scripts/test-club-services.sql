@@ -58,7 +58,13 @@ begin
  update public.raffle_campaigns set active=true,public_visibility_mode='visible',draw_at=now()+interval '30 days' where code='NDCCRAF';
  select next_ticket_number into before_n from public.raffle_campaigns where code='NDCCRAF';
  if before_n<>200 then raise exception 'Trailer sequence must begin at 200 in a fresh replay'; end if;
- -- Pending membership does not require an administrator to approve selling.
+ -- Self-registration alone must never be enough to issue paid draw entries.
+ begin
+  perform public.record_member_cash_trailer_sale(k,mid,'Buyer','buyer@example.invalid','',2,500);
+  raise exception 'Pending member accepted';
+ exception when raise_exception then if sqlerrm='Pending member accepted' then raise; end if; end;
+ if (select next_ticket_number from public.raffle_campaigns where code='NDCCRAF')<>200 then raise exception 'Pending signup consumed tickets'; end if;
+ update public.club_members set membership_status='active' where id=mid;
  sale:=public.record_member_cash_trailer_sale(k,mid,'Buyer','buyer@example.invalid','',2,500);oid:=(sale->>'orderId')::uuid;
  replay:=public.record_member_cash_trailer_sale(k,mid,'Buyer','buyer@example.invalid','',2,500);
  if sale<>replay then raise exception 'Member sale retry changed result'; end if;
@@ -77,7 +83,7 @@ begin
   perform public.record_member_cash_trailer_sale(gen_random_uuid(),mid,'Buyer','buyer@example.invalid','',1,500);
   raise exception 'Inactive member accepted';
  exception when raise_exception then if sqlerrm='Inactive member accepted' then raise; end if; end;
- update public.club_members set membership_status='pending' where id=mid;
+ update public.club_members set membership_status='active' where id=mid;
  update auth.users set email_confirmed_at=null where id=uid;
  begin
   perform public.record_member_cash_trailer_sale(gen_random_uuid(),mid,'Buyer','buyer@example.invalid','',1,500);

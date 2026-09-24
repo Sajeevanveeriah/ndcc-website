@@ -119,7 +119,10 @@ assert.equal((await memberGet()).status,401);
 memberUser.email_confirmed_at='2026-09-24';
 assert.equal((await memberRoute.POST(cashRequest())).status,403,'Profile completion is required');
 memberProfile={id:'actual-member',full_name:'Member',privacy_accepted_at:'2026-09-24',membership_status:'pending'};
-assert.equal((await memberRoute.POST(cashRequest())).status,200,'Pending club records do not require committee approval to sell');
+assert.equal((await memberRoute.POST(cashRequest())).status,403,'Self-registered pending accounts cannot issue tickets');
+assert.equal(memberCalls.length,0);
+memberProfile.membership_status='active';
+assert.equal((await memberRoute.POST(cashRequest())).status,200,'Active ordinary members can sell without committee access');
 assert.equal(memberCalls[0].name,'record_member_cash_trailer_sale');
 assert.equal(memberCalls[0].args.actor_id,'actual-member');
 assert.equal(memberCalls[0].args.sale_key,cashBody.saleKey);
@@ -130,7 +133,7 @@ memberVisible=false;assert.equal((await (await memberGet()).json()).campaign.act
 memberProfile.membership_status='inactive';assert.equal((await memberRoute.POST(cashRequest())).status,403);
 memberProfile.membership_status='active';memberLimit=false;assert.equal((await memberRoute.POST(cashRequest())).status,429);
 assert.equal(memberCalls.length,1);
-console.log('PASS member cash sale sign-in, confirmed email, profile gate, pending-member access, collector identity, private recovery and rate limits');
+console.log('PASS member cash sale sign-in, confirmed email, profile gate, pending-member rejection and ordinary active-member access, collector identity, private recovery and rate limits');
 let reconciliationAuth={user:null,status:401,error:'Sign in'},handoverWrites=[],handoverFilters=[];
 const handoverRoute=load('app/api/admin/raffle/cash-collections/route.ts',{
  'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},

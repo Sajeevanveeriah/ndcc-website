@@ -21,7 +21,7 @@ async function memberCollector(request:Request){
  const {data,error}=await createServerClient().from('club_members').select('id,full_name,membership_status,privacy_accepted_at').eq('auth_user_id',user.id).maybeSingle();
  if(error)return {member:null,error:'Your club details could not be checked. Please retry.',status:503};
  if(!data||!data.privacy_accepted_at)return {member:null,error:'Save your name and accept the privacy statement in My Account before recording cash sales.',status:403};
- if(data.membership_status==='inactive')return {member:null,error:'This club account is inactive. Please contact the club.',status:403};
+ if(data.membership_status!=='active')return {member:null,error:'Your club membership must be confirmed as active before you can record cash sales. Please contact the club to confirm your membership.',status:403};
  return {member:data,error:null,status:200};
 }
 export async function GET(request:Request){
