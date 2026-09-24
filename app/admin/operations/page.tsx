@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { adminFetch } from '@/lib/admin-client';
+import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 
 type Health = { observedAt: string; databaseBytes: number; receiptQueue: Record<string, number>; emailOutcomes: Record<string, number>; lastEmailEvent: string | null; expiredSessions: number };
 
@@ -9,13 +9,22 @@ export default function OperationsPage() {
   const [health, setHealth] = useState<Health | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const refresh = useCallback(async () => {
-    const response = await fetch('/api/admin/operations', { cache: 'no-store' });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Checks unavailable.');
-    setHealth(result);
+    setLoading(true); setLoadError('');
+    try {
+      const response = await adminFetch('/api/admin/operations', { cache: 'no-store' });
+      const result = await parseApiResponse<Health>(response);
+      if (typeof result.observedAt !== 'string' || typeof result.databaseBytes !== 'number' || !result.receiptQueue || !result.emailOutcomes) {
+        throw new Error('Operational checks returned an invalid response. Please retry.');
+      }
+      setHealth(result);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Operational checks are temporarily unavailable. Please retry.');
+    } finally { setLoading(false); }
   }, []);
-  useEffect(() => { refresh().catch((error) => setMessage(error.message)); }, [refresh]);
+  useEffect(() => { void refresh(); }, [refresh]);
   async function retry() {
     setBusy(true); setMessage('');
     try {
@@ -30,6 +39,8 @@ export default function OperationsPage() {
   return <div className="space-y-8">
     <div><h1 className="text-3xl font-display font-bold">Website operations</h1><p className="mt-2 text-content-muted">Measured health, delivery evidence and account controls.</p></div>
     {message && <p role="status" className="rounded border border-edge-subtle p-4">{message}</p>}
+    {loadError && <p role="alert" className="rounded border border-edge-subtle p-4">{loadError}</p>}
+    <button className="btn-secondary" disabled={loading || busy} onClick={() => void refresh()}>{loading ? 'Loading checks...' : 'Refresh checks'}</button>
     {health && <>
       <p className="text-sm text-content-muted">Checked {new Date(health.observedAt).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })} (Melbourne time).</p>
       <div className="grid gap-6 md:grid-cols-2">

@@ -138,3 +138,34 @@ assert.equal(saved.active, false, 'intentional hidden entries remain possible');
 assert.match(text(view.root), /saved as hidden/);
 await act(async () => view.unmount());
 console.log('PASS player-sponsor load failure, retry, visible create and intentional hidden create');
+
+const operationRequests = [];
+const operationReplies = [new Response('<html>Unexpected upstream response</html>')];
+const health = { observedAt: '2026-09-24T00:00:00Z', databaseBytes: 12000000, receiptQueue: {}, emailOutcomes: {}, lastEmailEvent: null, expiredSessions: 0 };
+const Operations = load('app/admin/operations/page.tsx', {
+  react: React, 'react/jsx-runtime': jsx,
+  '@/lib/admin-client': {
+    parseApiResponse: client.parseApiResponse,
+    adminFetch: async (url, options) => {
+      operationRequests.push({ url, method: options?.method || 'GET' });
+      assert.ok(operationReplies.length, 'No unexpected operations request');
+      return operationReplies.shift();
+    },
+  },
+}).default;
+let operationsView;
+await act(async () => { operationsView = TestRenderer.create(React.createElement(Operations)); });
+assert.match(text(operationsView.root), /invalid response.*retry/i);
+assert.doesNotMatch(text(operationsView.root), /Unexpected token|NaN/);
+const refreshOperations = () => operationsView.root.findAllByType('button').find(node => text(node) === 'Refresh checks').props.onClick();
+operationReplies.push(response(200, health));
+await act(async () => refreshOperations());
+assert.match(text(operationsView.root), /12.0 MB/);
+assert.equal(operationsView.root.findAllByProps({ role: 'alert' }).length, 0);
+operationReplies.push(response(503, { error: 'Operational checks are temporarily unavailable.' }));
+await act(async () => refreshOperations());
+assert.match(text(operationsView.root), /temporarily unavailable/);
+assert.match(text(operationsView.root), /12.0 MB/, 'previous health remains available after a failed refresh');
+assert.ok(operationRequests.every(request => request.method === 'GET'), 'refresh must never process or send receipts');
+await act(async () => operationsView.unmount());
+console.log('PASS operations malformed response, refresh recovery and no receipt processing');
