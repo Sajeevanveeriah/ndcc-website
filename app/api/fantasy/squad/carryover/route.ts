@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Carry a prior-season squad into a new-season draft.
 // GET  ?source=<slug|id>&target=<slug|id>  -> preview plan, no writes.
@@ -93,7 +94,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
-  const body = await request.json().catch(() => ({}));
+  const input = await readFantasyMutation(request, auth.manager.id, 'carryover');
+  if ('response' in input) return input.response;
+  const body = input.body;
   try {
     const result = await buildPlan(request, auth.manager.id, body);
     if ('error' in result) return NextResponse.json({ success: false, error: result.error }, { status: result.status });

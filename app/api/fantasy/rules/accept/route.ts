@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
@@ -7,7 +8,9 @@ import { createServerClient } from '@/lib/supabase-server';
 export async function POST(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
-  const body = await request.json().catch(() => ({}));
+  const input = await readFantasyMutation(request, auth.manager.id, 'rules');
+  if ('response' in input) return input.response;
+  const body = input.body;
   const season = await resolveRequestSeason(request, body);
   if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
   const settings = await getDinoCoachSettings(season.id);

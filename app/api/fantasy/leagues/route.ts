@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
@@ -77,8 +78,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
-  const body = await request.json().catch(() => ({}));
+  const input = await readFantasyMutation(request, auth.manager.id, 'leagues');
+  if ('response' in input) return input.response;
+  const body = input.body;
   const action = String(body.action || 'create');
+  if (!['create', 'join', 'leave'].includes(action)) return NextResponse.json({ success: false, error: 'Unknown league action.' }, { status: 400 });
   const season = await resolveRequestSeason(request, body);
   if (!season) return NextResponse.json({ success: false, error: 'No fantasy season is available.' }, { status: 404 });
   const supabase = createServerClient();

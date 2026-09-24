@@ -10,6 +10,7 @@ const publicErrors={};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/server/public-errors.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:publicErrors,console});
 const imports={
  '@/lib/dino-coach/manager-eligibility':eligibility,
+  '@/lib/server/fantasy-mutation': { readFantasyMutation: async request => ({ body: await request.json() }) },
  'next/server':{NextResponse:{json:(body,options={})=>({body,status:options.status||200})}},
  '@/lib/fantasy-manager-auth':{resolveFantasyManagerAuth:async()=>({auth:{manager:{id:'owner',is_active:true,initial_squad_due_at:'2099-01-01',age_verified_at:'2026-01-01',team_name_status:'approved',rules_version_accepted:acceptedRules}}})},
  '@/lib/supabase-server':{createServerClient:()=>({from:()=>({select(){return this},eq(){return this},maybeSingle:async()=>({data:{status:'paid'},error:null})}),rpc:async(name,args)=>{calls.push({name,args});return {data:'saved'};}})},

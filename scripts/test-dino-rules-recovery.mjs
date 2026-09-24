@@ -14,6 +14,7 @@ function load(file, imports) {
 let authenticated = true, updateError = false, writes = [], filters = [];
 const chain = { eq: (...args) => { filters.push(args); return chain; }, is: (...args) => { filters.push(args); return chain; }, select: () => chain, maybeSingle: async () => ({ data: updateError ? null : { id: 'owner' }, error: null }) };
 const endpoint = load('app/api/fantasy/rules/accept/route.ts', {
+  '@/lib/server/fantasy-mutation': { readFantasyMutation: async request => ({ body: await request.json() }) },
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/fantasy-manager-auth': { resolveFantasyManagerAuth: async () => authenticated ? { auth: { manager: { id: 'owner' } } } : { auth: null, errorStatus: 401 } },
   '@/lib/fantasy-seasons': { resolveRequestSeason: async () => ({ id: 'season' }) },

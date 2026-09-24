@@ -1,3 +1,4 @@
+import { readFantasyMutation } from '@/lib/server/fantasy-mutation';
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { CHIP_TYPES, getFantasySettings, getRoundLockState, type ChipType } from '@/lib/fantasy-game';
@@ -10,7 +11,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
-  const body = await request.json().catch(() => ({}));
+  const input = await readFantasyMutation(request, auth.manager.id, 'chips');
+  if ('response' in input) return input.response;
+  const body = input.body;
   const chipType = String(body.chipType || '') as ChipType;
   if (!CHIP_TYPES.includes(chipType)) return NextResponse.json({ success: false, error: 'Unknown chip type.' }, { status: 400 });
   const season = await resolveRequestSeason(request, body);
