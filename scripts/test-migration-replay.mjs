@@ -26,6 +26,8 @@ psql(DB, readFileSync(new URL('./test-reverse-raffle.sql', import.meta.url), 'ut
 check('Reverse raffle 201-300 capacity, paid-only allocation, duplicate-event replay and private receipt mappings', true);
 psql(DB, readFileSync(new URL('./test-apparel-reminders.sql', import.meta.url), 'utf8'));
 check('Apparel reminders include overdue unpaid and part-paid orders, skip ineligible orders and preserve sent cycles', true);
+psql(DB, readFileSync(new URL('./test-club-services.sql', import.meta.url), 'utf8'));
+check('Cash sale authorisation, exact price, idempotent tickets, receipt queue and member privacy', true);
 const counts = psql(DB, `select (select count(*) from apparel_products where active), (select count(*) from apparel_product_options where active), (select count(*) from merch_payment_settings), (select count(*) from fantasy_seasons)`);
 check('fresh replay end-state sane (20 active products, 16 active options, settings row, 3 seasons)', counts === '20\t16\t1\t3', counts);
 // Production has RLS enabled on every public table; replays must match.

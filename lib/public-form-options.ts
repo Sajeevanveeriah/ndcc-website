@@ -7,14 +7,14 @@ import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallbac
 // /api/volunteer-positions (same tables, filters, ordering and fallbacks) so
 // the server-rendered pages show exactly what the client used to fetch.
 
-export type MembershipPlanOption = { id: string; name: string; description: string; price: number };
+export type MembershipPlanOption = { product_code?: string | null; id: string; name: string; description: string; price: number };
 export type MembershipAddonOption = { id: string; name: string; description: string; price: number; usage_limit: number | null };
 
-type MembershipRow = { id: string; name: string; description: string; price: number; usage_limit?: number | null };
+type MembershipRow = { product_code?: string | null; id: string; name: string; description: string; price: number; usage_limit?: number | null };
 
 // Only the fields the join form renders are passed to the client island.
 function toPlan(row: MembershipRow): MembershipPlanOption {
-  return { id: row.id, name: row.name, description: row.description, price: row.price };
+  return { id: row.id, name: row.name, description: row.description, price: row.price, product_code: row.product_code };
 }
 function toAddon(row: MembershipRow): MembershipAddonOption {
   return { id: row.id, name: row.name, description: row.description, price: row.price, usage_limit: row.usage_limit ?? null };

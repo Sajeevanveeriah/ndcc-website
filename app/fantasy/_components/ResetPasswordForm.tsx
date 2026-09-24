@@ -91,7 +91,8 @@ export default function ResetPasswordForm() {
             This page needs a valid password reset link. Open the most recent reset email on this device, or request a new link from the sign-in page.
           </p>
           {error && <p className="text-sm font-body text-red-600">{error}</p>}
-          <Link href="/fantasy/login" className="btn-primary">Go to sign in</Link>
+          <Link href="/club-account" className="btn-secondary">My club account</Link>
+            <Link href="/fantasy/login" className="btn-primary">Go to sign in</Link>
         </CardContent>
       </Card>
     );
@@ -101,8 +102,9 @@ export default function ResetPasswordForm() {
     return (
       <Card>
         <CardContent className="p-6 space-y-4">
-          <p className="font-body text-green-700">Your password has been updated. You can now use it to sign in to your Dino Coach account.</p>
+          <p className="font-body text-green-700">Your password has been updated. You can now use it to sign in to your club or Dino Coach account.</p>
           <div className="flex flex-wrap gap-3">
+            <Link href="/club-account" className="btn-secondary">My club account</Link>
             <Link href="/fantasy/login" className="btn-primary">Go to sign in</Link>
             <Link href="/fantasy/account" className="btn-secondary">My Dino Coach account</Link>
           </div>

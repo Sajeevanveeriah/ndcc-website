@@ -2,7 +2,7 @@
 -- the Dino wallet migration applied. Never run on production.
 BEGIN;
 DO $$
-DECLARE sid uuid; ma uuid; mb uuid; pid uuid; qa uuid; qb uuid; offer uuid; a jsonb:='[]'; b jsonb:='[]'; ids uuid[]:='{}'; i int; av timestamptz; bv timestamptz; before_cost bigint;
+DECLARE sid uuid; ma uuid; mb uuid; late_manager uuid; late_squad uuid; pid uuid; qa uuid; qb uuid; offer uuid; a jsonb:='[]'; b jsonb:='[]'; ids uuid[]:='{}'; i int; av timestamptz; bv timestamptz; before_cost bigint;
  keys text[]:=ARRAY['XI_BAT_1','XI_BAT_2','XI_BAT_3','XI_BAT_4','XI_AR_1','XI_AR_2','XI_WK_1','XI_BOWL_1','XI_BOWL_2','XI_BOWL_3','XI_BOWL_4','BENCH_BAT_1','BENCH_AR_1','BENCH_WK_1','BENCH_BOWL_1'];
  item jsonb;
 BEGIN
@@ -30,6 +30,17 @@ BEGIN
  SELECT updated_at INTO bv FROM public.fantasy_squads WHERE id=qb;
  -- A price rise must not reprice a retained player or reduce wallet cash.
  UPDATE public.fantasy_player_prices SET price_dino_dollars=200000,price_million=.2 WHERE season_id=sid AND player_id=ids[15];
+ -- A late entrant buys the same player at the new price in the same league.
+ INSERT INTO public.fantasy_managers(display_name,email,team_name,age_verified_at,team_name_status,rules_version_accepted)
+ VALUES('Late entrant',gen_random_uuid()||'@example.invalid','Late entrant',now(),'approved','test') RETURNING id INTO late_manager;
+ INSERT INTO public.fantasy_entries(manager_id,season_id,status,entry_fee_cents,is_demo,demo_authorisation,demo_granted_at)
+ VALUES(late_manager,sid,'payment_required',2500,true,'Isolated late-entry regression',now());
+ BEGIN
+  PERFORM public.save_dino_coach_squad_v2(late_manager,sid,null,'submitted',a,null,1500000);
+  RAISE EXCEPTION 'Late entrant used opening price';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM='Late entrant used opening price' THEN RAISE; END IF; END;
+ late_squad:=public.save_dino_coach_squad_v2(late_manager,sid,null,'submitted',a,null,1600000);
+ IF NOT EXISTS(SELECT 1 FROM public.fantasy_squads WHERE id=late_squad AND season_id=sid AND budget_used_dino_dollars=1600000) THEN RAISE EXCEPTION 'Late entrant not in same season at current prices'; END IF;
  PERFORM public.save_dino_coach_squad_v2(ma,sid,null,'submitted',a,av,1500000);
  IF (SELECT budget_used_dino_dollars FROM public.fantasy_squads WHERE id=qa)<>1500000 THEN RAISE EXCEPTION 'Retained cost changed';END IF;
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;

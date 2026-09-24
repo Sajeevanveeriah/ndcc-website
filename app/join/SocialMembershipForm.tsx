@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -28,6 +29,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
   const [loading, setLoading] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
 
+  const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === 'pot_club_2026_27';
   const total = useMemo(() => {
     const planPrice = plans.find((p) => p.id === selectedPlan)?.price || 0;
     const addonTotal = addons.filter((a) => selectedAddons[a.id]).reduce((sum, a) => sum + a.price, 0);
@@ -57,7 +59,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
 
       if (res.ok) {
         setSubmitStatus('success');
-        setMessage('Your social membership application has been submitted.');
+        setMessage(isPotClub ? 'Your Pot Club order has been submitted. Choose your payment option below.' : 'Your social membership application has been submitted.');
         setOrderConfirmation({
           order_id: data.order_id || '',
           total_amount: Number(data.total_amount || 0),
@@ -95,7 +97,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
           </div>
 
           <div className="space-y-2">
-            <p className="form-label">Optional Add-ons</p>
+            {addons.length > 0 && <p className="form-label">Optional Add-ons</p>}
             {addons.map((addon) => (
               <label key={addon.id} className="flex items-center justify-between gap-3 border border-edge-strong rounded-lg px-4 py-3 font-body text-content-primary cursor-pointer transition-colors hover:border-maroon-300 has-[:checked]:border-maroon-500 has-[:checked]:bg-maroon-50/50 dark:border-slate-600 dark:text-slate-100">
                 <span>{addon.name} {addon.usage_limit ? `(limit ${addon.usage_limit})` : ''}</span>
@@ -107,9 +109,10 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
             ))}
           </div>
 
-          <Textarea id="notes" label="Notes" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+          <Textarea id="notes" label={isPotClub ? "Engraving preference / notes (optional)" : "Notes"} value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
           <p className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200 border-t border-edge-subtle pt-4">Estimated Total: {formatCurrency(total)}</p>
-          <Button type="submit" isLoading={loading}>{loading ? 'Submitting...' : 'Submit Social Membership'}</Button>
+          <p className="text-sm">Your details are used to process this application and payment. Read our <Link href="/privacy" className="underline">privacy statement</Link>.</p>
+          <Button type="submit" isLoading={loading} disabled={plans.length === 0 || Boolean(orderConfirmation)}>{loading ? 'Submitting...' : isPotClub ? 'Order Pot Club pot' : 'Submit Social Membership'}</Button>
           {submitStatus === 'success' && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3" role="alert">
               <div className="flex items-start gap-3">

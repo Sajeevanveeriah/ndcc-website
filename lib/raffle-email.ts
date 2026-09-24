@@ -32,7 +32,8 @@ export async function sendPaidRaffleEmails(
     return { status: 'failed', reason: 'The paid raffle payment reference is not canonical.' };
   }
   const paymentIntent = String(order.stripe_payment_intent_id || '').trim();
-  if (!/^pi_[A-Za-z0-9_]+$/.test(paymentIntent)) {
+  const cashPayment = order.payment_method === 'cash' && Boolean(order.cash_received_by && order.cash_received_at && order.cash_sale_key) && !order.stripe_payment_intent_id && !order.stripe_checkout_session_id;
+  if ((order.payment_method === 'cash' && !cashPayment) || (!cashPayment && !/^pi_[A-Za-z0-9_]+$/.test(paymentIntent))) {
     return { status: 'failed', reason: 'The paid raffle payment intent is missing or invalid.' };
   }
   if (!String(order.customer_email || '').trim()) {
@@ -47,7 +48,7 @@ export async function sendPaidRaffleEmails(
   // Paid unit price is frozen on the order; later campaign changes must not alter receipts.
   const ticketDetails = { name: campaign.name, priceCents: order.amount_cents / order.quantity, drawLabel: campaign.draw_label || null };
   let customerResult: PaymentReceiptSendResult | null = null;
-  if (!order.customer_email_sent_at || !order.staff_email_sent_at) {
+  if (!cashPayment && (!order.customer_email_sent_at || !order.staff_email_sent_at)) {
     const pending = await db
       .from('stripe_payment_events')
       .select('provider_event_id')
@@ -74,7 +75,7 @@ export async function sendPaidRaffleEmails(
       issuedDate: options.issuedAt || String(order.paid_at),
       amountCents: Number(order.amount_cents),
       paymentType: 'Raffle Ticket Purchase',
-      paymentMethod: 'Stripe Checkout',
+      paymentMethod: cashPayment ? 'Cash - received by NDCC' : 'Stripe Checkout',
       reference: String(order.payment_reference),
       descriptionLines: [`${order.quantity} x ${campaign.name} Ticket`, `Ticket references: ${references.join(', ')}`, ...(references[0]?.startsWith(`${REVERSE_RAFFLE_CAMPAIGN_CODE}-`) ? [`Raffle numbers: ${references.map((ref: string) => Number(ref.slice(-4))).join(', ')}`] : [])],
     };
@@ -85,7 +86,7 @@ export async function sendPaidRaffleEmails(
       { filename: receiptFilename, content: receipt, contentType: 'application/pdf' },
     ];
     const result = await sendEmail({ ...receiptRecipients(order.customer_email, STAFF), replyTo: getTransactionalReplyTo(), subject: `NDCC raffle receipt - ${order.payment_reference}`,
-      html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Paid:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD</p><p>Stripe has confirmed your payment. Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map((ref: string) => ref.startsWith(`${REVERSE_RAFFLE_CAMPAIGN_CODE}-`) ? `Raffle number ${Number(ref.slice(-4))} - ${escape(ref)}` : escape(ref)).join('<br>')}</p>${campaign.draw_label ? `<p>${escape(campaign.draw_label)}</p>` : ''}<p>Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
+      html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Paid:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD</p><p>${cashPayment ? 'NDCC has recorded your cash payment.' : 'Stripe has confirmed your payment.'} Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map((ref: string) => ref.startsWith(`${REVERSE_RAFFLE_CAMPAIGN_CODE}-`) ? `Raffle number ${Number(ref.slice(-4))} - ${escape(ref)}` : escape(ref)).join('<br>')}</p>${campaign.draw_label ? `<p>${escape(campaign.draw_label)}</p>` : ''}<p>Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
     if (result.status !== 'sent' && result.status !== 'simulated') return { status: 'failed', reason: result.reason };
     if (result.status === 'simulated' && !canRecordSimulatedReceiptDelivery()) {
       return { status: 'failed', reason: 'EMAIL_TEST_MODE cannot complete a raffle receipt in production.' };

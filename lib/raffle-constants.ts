@@ -36,7 +36,7 @@ export const RAFFLE_FALLBACK_DISPLAY: Record<RaffleCampaignCode, RaffleCampaignD
   [REVERSE_RAFFLE_CAMPAIGN_CODE]: { name: 'Reverse Raffle', priceCents: 6000, drawLabel: '' },
 };
 // Example reference shown on the public trailer-raffle page (year code 26).
-export const RAFFLE_SAMPLE_REFERENCE = `${RAFFLE_CAMPAIGN_CODE}-26XXXX`;
+export const RAFFLE_SAMPLE_REFERENCE = 'NDCCTRO-2026XXXX';
 
 export type ParsedRaffleReference = { code: RaffleCampaignCode; yearCode: string; ticketNumber: number };
 
@@ -46,6 +46,11 @@ export type ParsedRaffleReference = { code: RaffleCampaignCode; yearCode: string
  * accepted for a known campaign code.
  */
 export function parseRaffleReference(reference: string, campaign?: { code: string; year_code?: string | null }): ParsedRaffleReference | null {
+  // New trailer ticket references coexist with legacy issued NDCCRAF tickets.
+  if (/^NDCCTRO-20[0-9]{6}$/.test(reference)) {
+    if (campaign && (campaign.code !== RAFFLE_CAMPAIGN_CODE || (campaign.year_code && campaign.year_code !== reference.slice(10, 12)))) return null;
+    return { code: RAFFLE_CAMPAIGN_CODE, yearCode: reference.slice(10, 12), ticketNumber: Number(reference.slice(-4)) };
+  }
   const match = /^([A-Z]+)-(\d+)$/.exec(reference);
   if (!match) return null;
   const code = match[1] as RaffleCampaignCode;

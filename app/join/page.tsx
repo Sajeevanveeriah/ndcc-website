@@ -82,6 +82,7 @@ export default async function JoinPage() {
           />
         </ScrollReveal>
 
+        <div className="flex flex-wrap gap-4"><Link href="/club-account" className="btn-secondary">Create or manage your club account</Link><Link href="/pot-club" className="btn-primary">Order a Pot Club pot</Link></div>
         <SocialMembershipForm plans={plans} addons={addons} />
       </div>
     </>

@@ -1,7 +1,7 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import PurchaseTabs from '@/components/admin/PurchaseTabs';
-import Link from 'next/link';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -10,7 +10,7 @@ import { RAFFLE_SAMPLE_REFERENCE, REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_M
 
 type VisibilityMode = 'hidden' | 'scheduled' | 'visible';
 type Campaign = { id:string; code:string; year_code?:string|null; price_cents:number; draw_label:string|null; name:string; active:boolean; public_visibility_mode:VisibilityMode; public_opens_at:string|null };
-type Order = { id:string; campaign_id:string; payment_reference:string|null; customer_name:string; customer_email:string; quantity:number; amount_cents:number; status:string; created_at:string; customer_email_sent_at:string|null; staff_email_sent_at:string|null };
+type Order = { payment_method?:string; cash_received_at?:string|null; id:string; campaign_id:string; payment_reference:string|null; customer_name:string; customer_email:string; quantity:number; amount_cents:number; status:string; created_at:string; customer_email_sent_at:string|null; staff_email_sent_at:string|null };
 
 function ticketReferenceRule(campaign: Campaign | null) {
   if (!campaign?.year_code) return campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? REVERSE_RAFFLE_NUMBER_RANGE_LABEL : RAFFLE_SAMPLE_REFERENCE;
@@ -19,7 +19,7 @@ function ticketReferenceRule(campaign: Campaign | null) {
     const pad = (n: number) => String(n).padStart(4, '0');
     return `${REVERSE_RAFFLE_NUMBER_RANGE_LABEL} (${prefix}${pad(REVERSE_RAFFLE_MIN_NUMBER)} to ${prefix}${pad(REVERSE_RAFFLE_MAX_NUMBER)})`;
   }
-  return `${prefix}XXXX`;
+  return campaign?.code === 'NDCCRAF' ? `NDCCTRO-20${campaign.year_code}XXXX (legacy tickets remain valid)` : `${prefix}XXXX`;
 }
 
 function toLocalDateTime(value: string | null) {
@@ -50,14 +50,14 @@ export default function AdminRafflePage() {
   }
 
   const currentlyVisible=campaign?.active===true&&(campaign.public_visibility_mode==='visible'||(campaign.public_visibility_mode==='scheduled'&&Boolean(campaign.public_opens_at)&&Date.now()>=new Date(campaign.public_opens_at as string).getTime()));
-  return <div className="space-y-6"><div><h1 className="text-2xl font-display font-bold">Raffle</h1><p className="text-content-muted">{campaign ? `${campaign.name}: AUD ${(campaign.price_cents / 100).toFixed(2)} per ticket. ${campaign.draw_label || ''}` : 'Choose a raffle campaign.'}</p>{currentlyVisible&&<Link className="text-maroon-700 underline" href={campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : '/raffle'} target="_blank">Open public raffle page</Link>}</div>
+  return <div className="space-y-6"><div><Link href="/admin/raffle/cash" className="btn-primary">Record trailer raffle cash sale</Link><h1 className="text-2xl font-display font-bold">Raffle</h1><p className="text-content-muted">{campaign ? `${campaign.name}: AUD ${(campaign.price_cents / 100).toFixed(2)} per ticket. ${campaign.draw_label || ''}` : 'Choose a raffle campaign.'}</p>{currentlyVisible&&<Link className="text-maroon-700 underline" href={campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : '/raffle'} target="_blank">Open public raffle page</Link>}</div>
     <PurchaseTabs active={campaign?.id} onCampaign={id=>{setCampaign(campaigns.find(c=>c.id===id)||null);setMessage('');window.history.replaceState(null,'',`?campaign=${id}`);}} /><label className="block"><span className="block text-sm font-semibold mb-1">Raffle campaign</span><select className="min-h-11 border rounded-md p-2 bg-surface-card" value={campaign?.id || ''} onChange={e => { setCampaign(campaigns.find(row => row.id === e.target.value) || null); setMessage(''); }}><option value="" disabled>Choose a campaign</option>{campaigns.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
     {error&&<p role="alert" className="text-red-700">{error}</p>}{message&&<p role="status" className="text-green-700">{message}</p>}
     <section className="rounded-lg border border-edge-subtle bg-surface-card p-5 space-y-4" aria-labelledby="raffle-visibility-title"><div><h2 id="raffle-visibility-title" className="font-display text-xl font-bold">Public visibility</h2><p className="text-sm text-content-muted">The public page, navigation, footer, sitemap and checkout all follow this setting.</p></div>
       {!campaign?<p>Loading raffle campaign...</p>:<><label className="block"><span className="mb-1 block text-sm font-semibold">Visibility mode</span><select className="min-h-11 w-full rounded-md border border-edge-subtle bg-surface-card px-3" value={campaign.public_visibility_mode} onChange={e=>setCampaign({...campaign,public_visibility_mode:e.target.value as VisibilityMode})}><option value="hidden">Hidden</option><option value="scheduled">Scheduled</option><option value="visible">Visible now</option></select></label>
         {campaign.public_visibility_mode==='scheduled'&&<Input id="raffle-public-opens-at" type="datetime-local" label="Automatically opens at - Melbourne time" value={toLocalDateTime(campaign.public_opens_at)} onChange={e=>setCampaign({...campaign,public_opens_at:e.target.value?new Date(e.target.value).toISOString():null})}/>}<p className="text-sm font-semibold">Current public state: {currentlyVisible?'Visible':'Hidden'}</p><Button onClick={saveVisibility} isLoading={saving}>Save visibility settings</Button></>}
     </section>
-    <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created only after Stripe confirms payment. Staff notifications go to the club, vice-president and secretary raffle recipients.</p></div>
-    <Table><TableHead><TableRow><TableHeader>Purchaser</TableHeader><TableHeader>Quantity</TableHeader><TableHeader>Total</TableHeader><TableHeader>Status</TableHeader><TableHeader>Emails</TableHeader><TableHeader>Created</TableHeader></TableRow></TableHead><TableBody>{orders.filter(o => o.campaign_id === campaign?.id).map(o=><TableRow key={o.id}><TableCell><strong>{o.customer_name}</strong><br/><span className="font-mono text-xs">{o.payment_reference}</span><br/><span className="text-xs">{o.customer_email}</span></TableCell><TableCell>{o.quantity}</TableCell><TableCell>${(o.amount_cents/100).toFixed(2)}</TableCell><TableCell>{o.status}</TableCell><TableCell>{o.customer_email_sent_at?'Customer sent':'Customer pending'}<br/>{o.staff_email_sent_at?'Staff sent':'Staff pending'}</TableCell><TableCell>{new Date(o.created_at).toLocaleString('en-AU')}</TableCell></TableRow>)}</TableBody></Table>
+    <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created after confirmed card payment or an authorised cash receipt. Staff notifications go to the club, vice-president and secretary raffle recipients.</p></div>
+    <Table><TableHead><TableRow><TableHeader>Purchaser</TableHeader><TableHeader>Quantity</TableHeader><TableHeader>Total</TableHeader><TableHeader>Status</TableHeader><TableHeader>Emails</TableHeader><TableHeader>Created</TableHeader></TableRow></TableHead><TableBody>{orders.filter(o => o.campaign_id === campaign?.id).map(o=><TableRow key={o.id}><TableCell><strong>{o.customer_name}</strong><br/><span className="font-mono text-xs">{o.payment_reference}</span><br/><span className="text-xs">{o.customer_email}</span></TableCell><TableCell>{o.quantity}</TableCell><TableCell>${(o.amount_cents/100).toFixed(2)}</TableCell><TableCell>{o.status}<br/>{o.payment_method === 'cash' ? 'Cash received' : 'Card payment'}</TableCell><TableCell>{o.customer_email_sent_at?'Customer sent':'Customer pending'}<br/>{o.staff_email_sent_at?'Staff sent':'Staff pending'}</TableCell><TableCell>{new Date(o.created_at).toLocaleString('en-AU')}</TableCell></TableRow>)}</TableBody></Table>
   </div>;
 }
