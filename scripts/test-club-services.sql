@@ -48,3 +48,56 @@ begin
  if not exists(select 1 from public.social_membership_plans where product_code='pot_club_2026_27' and price=100 and is_active) then raise exception 'Pot Club product not available at approved price'; end if;
 end $$;
 rollback;
+begin;
+do $$
+declare uid uuid:=gen_random_uuid(); mid uuid; other_mid uuid; sale jsonb; replay jsonb; k uuid:=gen_random_uuid(); oid uuid; jid uuid; worker uuid:=gen_random_uuid(); before_n integer;
+begin
+ insert into auth.users(id,email,email_confirmed_at) values(uid,'collector@example.invalid',now());
+ insert into public.club_members(auth_user_id,full_name,email,member_type,privacy_accepted_at) values(uid,'Member collector','collector@example.invalid','social',now()) returning id into mid;
+ insert into public.club_members(full_name,email,member_type) values('Other collector','other@example.invalid','player') returning id into other_mid;
+ update public.raffle_campaigns set active=true,public_visibility_mode='visible',draw_at=now()+interval '30 days' where code='NDCCRAF';
+ select next_ticket_number into before_n from public.raffle_campaigns where code='NDCCRAF';
+ if before_n<>200 then raise exception 'Trailer sequence must begin at 200 in a fresh replay'; end if;
+ -- Self-registration alone must never be enough to issue paid draw entries.
+ begin
+  perform public.record_member_cash_trailer_sale(k,mid,'Buyer','buyer@example.invalid','',2,500);
+  raise exception 'Pending member accepted';
+ exception when raise_exception then if sqlerrm='Pending member accepted' then raise; end if; end;
+ if (select next_ticket_number from public.raffle_campaigns where code='NDCCRAF')<>200 then raise exception 'Pending signup consumed tickets'; end if;
+ update public.club_members set membership_status='active' where id=mid;
+ sale:=public.record_member_cash_trailer_sale(k,mid,'Buyer','buyer@example.invalid','',2,500);oid:=(sale->>'orderId')::uuid;
+ replay:=public.record_member_cash_trailer_sale(k,mid,'Buyer','buyer@example.invalid','',2,500);
+ if sale<>replay then raise exception 'Member sale retry changed result'; end if;
+ if sale->'ticketReferences' <> '["NDCCTRO-20260200","NDCCTRO-20260201"]'::jsonb then raise exception 'Wrong member starting tickets: %',sale; end if;
+ if not exists(select 1 from public.raffle_orders where id=oid and cash_received_by_member=mid and cash_received_by is null and cash_handed_in_at is null and status='paid' and public.raffle_has_payment_evidence(raffle_orders)) then raise exception 'Member collection evidence missing'; end if;
+ select id into strict jid from public.receipt_delivery_jobs where raffle_order_id=oid;
+ update public.receipt_delivery_jobs set next_attempt_at=now() where id=jid;
+ perform * from public.claim_payment_receipt_job(jid,worker,300);
+ if not (select eligible from public.preflight_payment_receipt_job(jid,worker)) then raise exception 'Member ticket email preflight rejected'; end if;
+ begin
+  perform public.record_member_cash_trailer_sale(k,other_mid,'Buyer','buyer@example.invalid','',2,500);
+  raise exception 'Different member recovered sale';
+ exception when raise_exception then if sqlerrm='Different member recovered sale' then raise; end if; end;
+ update public.club_members set membership_status='inactive' where id=mid;
+ begin
+  perform public.record_member_cash_trailer_sale(gen_random_uuid(),mid,'Buyer','buyer@example.invalid','',1,500);
+  raise exception 'Inactive member accepted';
+ exception when raise_exception then if sqlerrm='Inactive member accepted' then raise; end if; end;
+ update public.club_members set membership_status='active' where id=mid;
+ update auth.users set email_confirmed_at=null where id=uid;
+ begin
+  perform public.record_member_cash_trailer_sale(gen_random_uuid(),mid,'Buyer','buyer@example.invalid','',1,500);
+  raise exception 'Unconfirmed member accepted';
+ exception when raise_exception then if sqlerrm='Unconfirmed member accepted' then raise; end if; end;
+ update auth.users set email_confirmed_at=now() where id=uid;
+ update public.raffle_campaigns set public_visibility_mode='hidden' where code='NDCCRAF';
+ begin
+  perform public.record_member_cash_trailer_sale(gen_random_uuid(),mid,'Buyer','buyer@example.invalid','',1,500);
+  raise exception 'Hidden raffle accepted member sale';
+ exception when raise_exception then if sqlerrm='Hidden raffle accepted member sale' then raise; end if; end;
+ if (select next_ticket_number from public.raffle_campaigns where code='NDCCRAF')<>202 then raise exception 'Rejected member sales consumed numbers'; end if;
+ if has_function_privilege('authenticated','public.record_member_cash_trailer_sale(uuid,uuid,text,text,text,integer,integer)','EXECUTE')
+ or has_function_privilege('anon','public.record_member_cash_trailer_sale(uuid,uuid,text,text,text,integer,integer)','EXECUTE')
+ or has_function_privilege('service_role','public.record_trailer_cash_sale_for_collector(uuid,uuid,text,text,text,text,integer,integer)','EXECUTE') then raise exception 'Collector checks exposed for direct calls'; end if;
+end $$;
+rollback;

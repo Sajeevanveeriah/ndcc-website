@@ -16,7 +16,7 @@ export function getFantasyBrowserClient() {
   return fantasyBrowserClient;
 }
 
-export async function fantasyAuthHeaders() {
+export async function fantasyAuthHeaders(): Promise<Record<string, string>> {
   if (!fantasyBrowserClient) return {};
   const { data } = await fantasyBrowserClient.auth.getSession();
   const token = data.session?.access_token;

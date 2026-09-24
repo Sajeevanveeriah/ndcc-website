@@ -212,11 +212,6 @@ export default async function Footer() {
         </div>
       </div>
 
-      <nav aria-label="Member services" className="container-width flex flex-wrap gap-5 px-4 py-4 text-sm text-maroon-100">
-        <Link href="/club-account" className="underline">My club account</Link>
-        <Link href="/pot-club" className="underline">Order a Pot Club pot</Link>
-        <Link href="/privacy" className="underline">Privacy</Link>
-      </nav>
       {/* Bottom Bar */}
       <div className="border-t border-maroon-700 px-4 py-4 sm:px-6 lg:px-8">
         <div className="container-width flex flex-col items-center justify-between gap-2 sm:flex-row">

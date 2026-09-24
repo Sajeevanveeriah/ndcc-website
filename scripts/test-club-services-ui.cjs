@@ -81,7 +81,7 @@ const change = (tree, id, value) => act(async () => tree.root.findByProps({ id }
   let location = { href: `https://example.invalid/admin/raffle/cash?sale=${firstKey}` };
   const windowStub = { location, history: { replaceState(_state, _title, url) { location.href = String(url); } } };
   let sale = null, failPost = true, postBodies = [], reads = 0;
-  const Cash = load('app/admin/raffle/cash/page.tsx', common, {
+  const Cash = load('components/raffle/CashSaleForm.tsx', { ...common, '@/lib/fantasy-browser': { fantasyAuthHeaders: async () => ({ Authorization: 'Bearer test-member' }) } }, {
     window: windowStub, crypto: { randomUUID: () => '00000000-0000-4000-8000-000000000002' },
     fetch: async (_url, options) => {
       if (options?.method === 'POST') {
@@ -124,6 +124,10 @@ const change = (tree, id, value) => act(async () => tree.root.findByProps({ id }
   assert.equal(cash.root.findByProps({ id: 'cash-name' }).props.value, '');
   assert.notEqual(new URL(location.href).searchParams.get('sale'), firstKey);
   assert.equal(button(cash, 'Accept cash and issue tickets').props.disabled, true);
+  await act(async () => cash.unmount());
+  await act(async () => { cash = create(React.createElement(Cash, { member: true })); });
+  assert.match(text(cash), /Each sale is recorded against your account/);
+  assert.ok(cash.root.findAllByProps({ href: '/raffle' }).length);
   await act(async () => cash.unmount());
   console.log('PASS club account signup/login, load recovery, privacy/save, account isolation; cash confirmation, stable retries, reload, delivery refresh and next-sale reset');
 })().catch(error => { console.error(error); process.exitCode = 1; });

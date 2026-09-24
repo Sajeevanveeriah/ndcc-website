@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import CashCollections from '@/components/raffle/CashCollections';
 import { useEffect, useState } from 'react';
 import PurchaseTabs from '@/components/admin/PurchaseTabs';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
@@ -58,6 +59,7 @@ export default function AdminRafflePage() {
         {campaign.public_visibility_mode==='scheduled'&&<Input id="raffle-public-opens-at" type="datetime-local" label="Automatically opens at - Melbourne time" value={toLocalDateTime(campaign.public_opens_at)} onChange={e=>setCampaign({...campaign,public_opens_at:e.target.value?new Date(e.target.value).toISOString():null})}/>}<p className="text-sm font-semibold">Current public state: {currentlyVisible?'Visible':'Hidden'}</p><Button onClick={saveVisibility} isLoading={saving}>Save visibility settings</Button></>}
     </section>
     <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created after confirmed card payment or an authorised cash receipt. Staff notifications go to the club, vice-president and secretary raffle recipients.</p></div>
+    {campaign?.code==='NDCCRAF'&&<CashCollections />}
     <Table><TableHead><TableRow><TableHeader>Purchaser</TableHeader><TableHeader>Quantity</TableHeader><TableHeader>Total</TableHeader><TableHeader>Status</TableHeader><TableHeader>Emails</TableHeader><TableHeader>Created</TableHeader></TableRow></TableHead><TableBody>{orders.filter(o => o.campaign_id === campaign?.id).map(o=><TableRow key={o.id}><TableCell><strong>{o.customer_name}</strong><br/><span className="font-mono text-xs">{o.payment_reference}</span><br/><span className="text-xs">{o.customer_email}</span></TableCell><TableCell>{o.quantity}</TableCell><TableCell>${(o.amount_cents/100).toFixed(2)}</TableCell><TableCell>{o.status}<br/>{o.payment_method === 'cash' ? 'Cash received' : 'Card payment'}</TableCell><TableCell>{o.customer_email_sent_at?'Customer sent':'Customer pending'}<br/>{o.staff_email_sent_at?'Staff sent':'Staff pending'}</TableCell><TableCell>{new Date(o.created_at).toLocaleString('en-AU')}</TableCell></TableRow>)}</TableBody></Table>
   </div>;
 }

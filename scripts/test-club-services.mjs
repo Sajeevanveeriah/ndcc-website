@@ -97,3 +97,57 @@ assert.equal(recoveryFilters.some(filter=>filter[0]==='receipt_delivery_jobs'),f
 cashAuth={user:null,status:401,error:'Sign in'};
 assert.equal((await recover()).status,401);
 console.log('PASS cash sale recovery, staff ownership and accurate persisted delivery states');
+
+// Member access uses a confirmed Supabase identity and an owned club profile,
+// never a committee role or caller-supplied collector ID.
+let memberUser=null,memberProfile=null,memberLimit=true,memberVisible=true;
+const memberFilters=[],memberCalls=[];
+const memberDb={from(table){const chain={select:()=>chain,eq:(...args)=>{memberFilters.push([table,...args]);return chain;},single:async()=>({data:{name:'Trailer',active:true,price_cents:500,draw_at:'2099-01-01'},error:null}),maybeSingle:async()=>({data:table==='club_members'?memberProfile:table==='raffle_orders'?{id:'owned-order',amount_cents:500,payment_reference:'ref',raffle_tickets:[{ticket_number:200,ticket_reference:'NDCCTRO-20260200'}]}:{status:'delivered'},error:null})};return chain;},rpc:async(name,args)=>{memberCalls.push({name,args});return {data:{orderId:'owned-order',ticketReferences:['NDCCTRO-20260200'],amountCents:500,paymentReference:'ref'},error:null};}};
+const memberRoute=load('app/api/raffle/cash/route.ts',{
+ 'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
+ '@/lib/fantasy-manager-auth':{getAuthUserFromRequest:async()=>memberUser},
+ '@/lib/raffle-visibility':{isRafflePublic:async()=>memberVisible},
+ '@/lib/supabase-server':{createServerClient:()=>memberDb},
+ '@/lib/order-input-validation':inputValidation,'@/lib/utils':utilities,
+ '@/lib/server/request-guards':{enforceRateLimit:async()=>memberLimit},
+ '@/lib/payments/receipt-delivery':{enqueuePaymentReceiptJob:async()=>({ok:true,jobId:'job'}),attemptPaymentReceiptDelivery:async()=>({status:'delivered'})},
+});
+const memberGet=()=>memberRoute.GET(new Request(`https://example.invalid/api/raffle/cash?sale=${cashBody.saleKey}`));
+assert.equal((await memberRoute.POST(cashRequest())).status,401);
+memberUser={id:'confirmed-user',email:'member@example.invalid'};
+assert.equal((await memberGet()).status,401);
+memberUser.email_confirmed_at='2026-09-24';
+assert.equal((await memberRoute.POST(cashRequest())).status,403,'Profile completion is required');
+memberProfile={id:'actual-member',full_name:'Member',privacy_accepted_at:'2026-09-24',membership_status:'pending'};
+assert.equal((await memberRoute.POST(cashRequest())).status,403,'Self-registered pending accounts cannot issue tickets');
+assert.equal(memberCalls.length,0);
+memberProfile.membership_status='active';
+assert.equal((await memberRoute.POST(cashRequest())).status,200,'Active ordinary members can sell without committee access');
+assert.equal(memberCalls[0].name,'record_member_cash_trailer_sale');
+assert.equal(memberCalls[0].args.actor_id,'actual-member');
+assert.equal(memberCalls[0].args.sale_key,cashBody.saleKey);
+assert.equal((await (await memberGet()).json()).sale.deliveryStatus,'delivered');
+assert.ok(memberFilters.some(row=>JSON.stringify(row)===JSON.stringify(['club_members','auth_user_id','confirmed-user'])));
+assert.ok(memberFilters.some(row=>JSON.stringify(row)===JSON.stringify(['raffle_orders','cash_received_by_member','actual-member'])));
+memberVisible=false;assert.equal((await (await memberGet()).json()).campaign.active,false,'Closed public sales do not block owned ticket recovery');
+memberProfile.membership_status='inactive';assert.equal((await memberRoute.POST(cashRequest())).status,403);
+memberProfile.membership_status='active';memberLimit=false;assert.equal((await memberRoute.POST(cashRequest())).status,429);
+assert.equal(memberCalls.length,1);
+console.log('PASS member cash sale sign-in, confirmed email, profile gate, pending-member rejection and ordinary active-member access, collector identity, private recovery and rate limits');
+let reconciliationAuth={user:null,status:401,error:'Sign in'},handoverWrites=[],handoverFilters=[];
+const handoverRoute=load('app/api/admin/raffle/cash-collections/route.ts',{
+ 'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
+ '@/lib/auth/guard':{requirePermissionResult:async permission=>{assert.equal(permission,'raffle');return reconciliationAuth;}},
+ '@/lib/order-input-validation':inputValidation,
+ '@/lib/supabase-server':{createServerClient:()=>({from:()=>{const chain={update:record=>{handoverWrites.push(record);return chain;},eq:(...args)=>{handoverFilters.push(args);return chain;},is:(...args)=>{handoverFilters.push(args);return chain;},not:(...args)=>{handoverFilters.push(args);return chain;},order:()=>chain,range:async()=>({data:[],error:null}),select:()=>chain,maybeSingle:async()=>({data:{id:'sale'},error:null})};return chain;}})},
+});
+const handoverRequest=()=>new Request('https://example.invalid/api/admin/raffle/cash-collections',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:cashBody.saleKey,cashReceived:true,cash_handed_in_by:'forged'})});
+assert.equal((await handoverRoute.PATCH(handoverRequest())).status,401);
+reconciliationAuth={user:{id:'raffle-staff'},status:200};
+assert.equal((await handoverRoute.PATCH(handoverRequest())).status,200);
+assert.equal(handoverWrites[0].cash_handed_in_by,'raffle-staff');
+assert.deepEqual(handoverFilters,[['id',cashBody.saleKey],['payment_method','cash'],['status','paid'],['cash_received_by_member','is',null],['cash_handed_in_at',null]]);
+handoverFilters=[];
+assert.equal((await handoverRoute.GET()).status,200);
+assert.deepEqual(handoverFilters,[['payment_method','cash'],['status','paid'],['cash_received_by_member','is',null]]);
+console.log('PASS cash handover requires raffle staff, lists only member collections and excludes existing committee receipts');
