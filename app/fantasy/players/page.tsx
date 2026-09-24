@@ -69,6 +69,20 @@ export default async function FantasyPlayersPage({ searchParams: searchParamsPro
           )}
         </div>
 
+        {!loadFailed && players.length > 0 && seasonContext.selected && (
+          <div className="mb-6">
+            <a
+              href={`/api/fantasy/players/export?season=${encodeURIComponent(seasonContext.selected.slug)}`}
+              download
+              className="inline-flex items-center rounded-lg bg-maroon-700 px-4 py-2.5 font-body font-semibold text-white hover:bg-maroon-800 focus-ring"
+            >
+              Export full catalogue (CSV)
+            </a>
+            <p className="mt-2 text-sm font-body text-content-muted">
+              All players in the selected season, with latest published prices, available stats and sources. Search filters do not limit the export. Missing data is left blank.
+            </p>
+          </div>
+        )}
         {loadFailed ? (
           <DataLoadErrorCard
             title="We couldn&rsquo;t load the player list"
