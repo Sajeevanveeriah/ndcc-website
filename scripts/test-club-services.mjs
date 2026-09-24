@@ -39,14 +39,14 @@ console.log('PASS confirmed account ownership, private reads, server-selected id
 const pricing=JSON.parse(readFileSync('data/dino-coach-researched-baselines-20260924.json','utf8'));
 for(const player of pricing.players){assert.equal(player.knownPoints,player.runs+10*(player.wickets+player.catches+player.stumpings));assert.equal(player.priceDinoDollars,Math.ceil((500000+Math.min(player.knownPoints/913,1)*1500000)/1000)*1000);}
 const inputValidation=load('lib/order-input-validation.ts');const utilities=load('lib/utils.ts');
-let cashAuth={user:null,status:401,error:'Sign in'};let cashCalls=[];let cashDeliveryFails=true;
+let cashAuth={user:null,status:401,error:'Sign in'};let cashCalls=[];let cashDeliveryFails=true;let immediateStatus='delivered';
 const cashRoute=load('app/api/admin/raffle/cash/route.ts',{
  'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
  '@/lib/auth/guard':{requirePermissionResult:async permission=>{assert.equal(permission,'raffle');return cashAuth;}},
- '@/lib/supabase-server':{createServerClient:()=>({rpc:async(name,args)=>{cashCalls.push({name,args});return {data:{orderId:'saved',ticketReferences:['NDCCTRO-20260001'],amountCents:500,paymentReference:'NDCCRAF-2026-000001'},error:null};}})},
+ '@/lib/supabase-server':{createServerClient:()=>({rpc:async(name,args)=>{cashCalls.push({name,args});return {data:{orderId:'saved',ticketReferences:['NDCCTRO-20260001'],amountCents:500,paymentReference:'NDCCRAF-2026-000001'},error:null};},from(table){assert.equal(table,'receipt_delivery_jobs');const chain={select:()=>chain,eq:(field,value)=>{assert.equal(field,'raffle_order_id');assert.equal(value,'saved');return chain;},maybeSingle:async()=>({data:{status:'delivered'},error:null})};return chain;}})},
  '@/lib/order-input-validation':inputValidation,'@/lib/utils':utilities,
  '@/lib/server/request-guards':{enforceRateLimit:async()=>true},
- '@/lib/payments/receipt-delivery':{enqueuePaymentReceiptJob:async()=>{if(cashDeliveryFails)throw new Error('Provider unavailable');return {ok:true,jobId:'job'};},attemptPaymentReceiptDelivery:async()=>({status:'delivered'})},
+ '@/lib/payments/receipt-delivery':{enqueuePaymentReceiptJob:async()=>{if(cashDeliveryFails)throw new Error('Provider unavailable');return {ok:true,jobId:'job'};},attemptPaymentReceiptDelivery:async()=>({status:immediateStatus})},
 });
 const cashBody={name:'Buyer',email:'buyer@example.invalid',phone:'',quantity:1,cashReceived:true,saleKey:'00000000-0000-4000-8000-000000000001',priceCents:500,actor_id:'forged'};
 const cashRequest=(body=cashBody)=>new Request('https://example.invalid/api/admin/raffle/cash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -57,4 +57,43 @@ assert.equal(cashCalls.length,0);
 const queued=await cashRoute.POST(cashRequest());assert.equal(queued.status,200);assert.equal((await queued.json()).deliveryStatus,'queued','Delivery failure must not claim the saved sale failed');
 assert.equal(cashCalls[0].args.actor_id,'actual-staff');assert.equal(cashCalls[0].args.sale_key,cashBody.saleKey);
 cashDeliveryFails=false;assert.equal((await (await cashRoute.POST(cashRequest())).json()).deliveryStatus,'delivered');assert.deepEqual(cashCalls[0],cashCalls[1],'Retries use the same atomic operation and sale reference');
+immediateStatus='not_claimed';
+assert.equal((await (await cashRoute.POST(cashRequest())).json()).deliveryStatus,'delivered','Replayed delivery reports the existing completed job');
 console.log('PASS reviewed pricing arithmetic and cash API permission, input validation, staff identity, retry and delivery-failure recovery');
+
+// Reopening the bookmarked sale must report persisted delivery, not invent
+// a queued state. Only the staff member who recorded it may recover it.
+let recoveredStatus='delivered';let recoveryError=false;let recoveredSale=true;
+const recoveryFilters=[];
+const recoveryRoute=load('app/api/admin/raffle/cash/route.ts',{
+ 'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
+ '@/lib/auth/guard':{requirePermissionResult:async()=>cashAuth},
+ '@/lib/supabase-server':{createServerClient:()=>({from(table){
+  const chain={select:()=>chain,eq:(...args)=>{recoveryFilters.push([table,...args]);return chain;},
+   single:async()=>({data:{name:'Trailer',active:true,price_cents:500,draw_at:'2099-01-01'},error:null}),
+   maybeSingle:async()=>table==='raffle_orders'?{data:recoveredSale?{id:'saved',amount_cents:1000,payment_reference:'reference',raffle_tickets:[{ticket_number:2,ticket_reference:'NDCCTRO-20260002'},{ticket_number:1,ticket_reference:'NDCCTRO-20260001'}]}:null,error:null}:{data:recoveredStatus?{status:recoveredStatus}:null,error:recoveryError?{message:'unavailable'}:null}};
+  return chain;
+ }})},
+ '@/lib/order-input-validation':inputValidation,'@/lib/utils':utilities,
+ '@/lib/server/request-guards':{enforceRateLimit:async()=>true},
+ '@/lib/payments/receipt-delivery':{enqueuePaymentReceiptJob:async()=>{throw new Error('GET must not queue a receipt');},attemptPaymentReceiptDelivery:async()=>{throw new Error('GET must not send a receipt');}},
+});
+const recover=()=>recoveryRoute.GET(new Request(`https://example.invalid/api/admin/raffle/cash?sale=${cashBody.saleKey}`));
+for(const status of ['delivered','queued','processing','retry','dead_letter','cancelled']){
+ recoveredStatus=status;
+ const response=await recover();assert.equal(response.status,200);
+ const result=await response.json();assert.equal(result.sale.deliveryStatus,status);
+ assert.deepEqual(result.sale.ticketReferences,['NDCCTRO-20260001','NDCCTRO-20260002']);
+}
+assert.ok(recoveryFilters.some(filter=>JSON.stringify(filter)===JSON.stringify(['raffle_orders','cash_received_by','actual-staff'])));
+assert.ok(recoveryFilters.some(filter=>JSON.stringify(filter)===JSON.stringify(['receipt_delivery_jobs','raffle_order_id','saved'])));
+recoveryError=true;
+assert.equal((await (await recover()).json()).sale.deliveryStatus,'unknown','Saved sale survives a delivery-status outage');
+recoveryError=false;recoveredStatus=null;
+assert.equal((await (await recover()).json()).sale.deliveryStatus,'unknown','Missing delivery evidence is not queued');
+recoveredSale=false;recoveryFilters.length=0;
+assert.equal((await (await recover()).json()).sale,null);
+assert.equal(recoveryFilters.some(filter=>filter[0]==='receipt_delivery_jobs'),false,'No receipt lookup before ownership succeeds');
+cashAuth={user:null,status:401,error:'Sign in'};
+assert.equal((await recover()).status,401);
+console.log('PASS cash sale recovery, staff ownership and accurate persisted delivery states');
