@@ -138,3 +138,46 @@ assert.equal(button('Register').props.disabled, false);
 assert.match(text(view.root), /rev06/);
 await act(async () => view.unmount());
 console.log('PASS registration outage is retryable and does not masquerade as a club closure');
+
+let configured = true, launch = true, seasonExists = true, failTable = '', reloads = 0;
+const Unavailable = load('components/fantasy/DinoServiceUnavailable.tsx', shared, {
+  window: { location: { reload: () => { reloads++; } } },
+}).default;
+const Layout = load('app/fantasy/layout.tsx', {
+  'react/jsx-runtime': jsx,
+  '@/components/fantasy/InstallDinoCoach': { default: () => null },
+  '@/components/fantasy/DinoFeedbackNotice': { default: () => null },
+  '@/components/fantasy/DinoServiceUnavailable': { default: Unavailable },
+  'next/navigation': { notFound: () => { throw new Error('NOT_FOUND'); } },
+  '@/lib/supabase-server': {
+    isServerSupabaseConfigured: () => configured,
+    createServerClient: () => ({ from: table => {
+      const chain = { select: () => chain, eq: () => chain, limit: () => chain, maybeSingle: async () => ({
+        data: table === 'fantasy_seasons' ? (seasonExists ? { id: 'season' } : null) : { public_launch_enabled: launch },
+        error: failTable === table ? { message: 'Database unavailable' } : null,
+      }) }; return chain;
+    } }),
+  },
+}).default;
+for (failTable of ['fantasy_seasons', 'fantasy_dino_settings']) {
+  await act(async () => { view = TestRenderer.create(await Layout({ children: 'PRIVATE GAME CONTENT' })); });
+  assert.match(text(view.root), /temporarily unavailable/);
+  assert.doesNotMatch(text(view.root), /PRIVATE GAME CONTENT/);
+  await click('Try again');
+  await act(async () => view.unmount());
+}
+assert.equal(reloads, 2, 'Retry reloads the current route');
+failTable = ''; launch = false;
+await assert.rejects(Layout({ children: 'game' }), /NOT_FOUND/);
+launch = true; seasonExists = false;
+await assert.rejects(Layout({ children: 'game' }), /NOT_FOUND/);
+seasonExists = true;
+await act(async () => { view = TestRenderer.create(await Layout({ children: 'OPEN GAME CONTENT' })); });
+assert.match(text(view.root), /OPEN GAME CONTENT/);
+await act(async () => view.unmount());
+configured = false;
+await act(async () => { view = TestRenderer.create(await Layout({ children: 'PRIVATE GAME CONTENT' })); });
+assert.match(text(view.root), /temporarily unavailable/);
+assert.doesNotMatch(text(view.root), /PRIVATE GAME CONTENT/);
+await act(async () => view.unmount());
+console.log('PASS failed launch checks show retry without exposing game content; confirmed disabled/missing seasons still return not found');
