@@ -39,3 +39,13 @@ Preserve club records, sold tickets, payment evidence and delivery jobs. Disable
 A price rollback must use the retained `previous_import_state` and an audited price operation; do not rewrite existing squad purchase costs. Stop and review if season prices have subsequently settled.
 
 Financial and private-account mutations are verified with isolated fixtures, not fake production cash, real charges or outbound test messages. Public production checks cannot prove inbox delivery or every authenticated member journey. Search coverage does not establish that every web source or every player statistic is available.
+
+## Follow-up recovery checks
+
+- Fixed cash-sale recovery reporting every receipt as queued. Reopened sales now use the saved receipt job status; replayed submissions recover completed delivery rather than reporting an unclaimed job as pending.
+- Added a read-only email-status refresh. Failed, cancelled and unavailable delivery states direct staff to email diagnostics while preserving the saved sale and ticket numbers.
+- Added isolated component journeys for club signup confirmation, login, profile-load failure/retry, privacy acceptance, saving, sign-out/account isolation, cash confirmation, uncertain-result retries, reload recovery and next-sale reset. These execute the real components with test auth/API adapters, not production accounts or payments.
+- Live follow-up evidence: the sender domain is verified with sending enabled; recent signup, Dino Coach and payment messages have provider-delivered status; all 34 receipt jobs are delivered. The checked production deployment had no 5xx entries in the preceding hour.
+- Supabase organisation lookup confirms the Free plan. Provider documentation restricts leaked-password protection to Pro and above. Enabling it therefore requires a separately authorised paid plan change and access to Auth settings; no billing change was made.
+
+Rollback for this follow-up: revert only the cash-status API/UI change if required. No database migration or record mutation is involved; retain the PR252 cash-sale and ticket-format support.
