@@ -28,7 +28,7 @@ const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }] },
   { label: 'Sponsors', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pot Club', href: '/pot-club' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }] },
-  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }] },
+  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Record cash sales', href: '/raffle/cash' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }] },
   { label: 'Contact', href: '/contact' },
 ];
 
@@ -40,7 +40,7 @@ function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffle
   return PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
     : { label: group.label, href: undefined, links: (group.links || [])
-      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || link.href !== '/raffle') && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
+      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || (link.href !== '/raffle' && link.href !== '/raffle/cash')) && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
       .map((link) => resolveLink(navLinks, link)) })
     // A dropdown with no visible links (e.g. Raffles while both are hidden) is omitted.
     .filter((group) => group.href || (group.links && group.links.length > 0));
@@ -266,14 +266,15 @@ export default function Navbar({ nav }: NavbarProps) {
     >
       {/* Maroon utility bar */}
       <div className={cn('px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between transition-colors duration-300', transparent ? 'bg-maroon-950/35 backdrop-blur-sm' : 'bg-surface-blue-subtle border-b border-edge-subtle')}>
-        <span className="hidden sm:block text-xs text-content-blue font-body tracking-[0.02em]">
+        <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-blue font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
-        <div className="flex items-center gap-4 ml-auto">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4 ml-auto">
           <Link href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-semibold text-content-blue hover:underline font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
             <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
             My Account
           </Link>
+          <Link href="/privacy" className="text-xs font-semibold text-content-blue hover:underline font-body focus-ring" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy</Link>
           <a
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { isRafflePublic } from '@/lib/raffle-visibility';
 import RaffleClient from './RaffleClient';
@@ -17,5 +18,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RafflePage() {
   if (!(await isRafflePublic())) notFound();
-  return <RaffleClient />;
+  return <><div className="container-width px-4 pt-6"><Link href="/raffle/cash" className="btn-secondary">Record cash sales - club members</Link></div><RaffleClient /></>;
 }

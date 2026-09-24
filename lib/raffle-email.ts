@@ -32,7 +32,7 @@ export async function sendPaidRaffleEmails(
     return { status: 'failed', reason: 'The paid raffle payment reference is not canonical.' };
   }
   const paymentIntent = String(order.stripe_payment_intent_id || '').trim();
-  const cashPayment = order.payment_method === 'cash' && Boolean(order.cash_received_by && order.cash_received_at && order.cash_sale_key) && !order.stripe_payment_intent_id && !order.stripe_checkout_session_id;
+  const cashPayment = order.payment_method === 'cash' && Boolean((Boolean(order.cash_received_by) !== Boolean(order.cash_received_by_member)) && order.cash_received_at && order.cash_sale_key) && !order.stripe_payment_intent_id && !order.stripe_checkout_session_id;
   if ((order.payment_method === 'cash' && !cashPayment) || (!cashPayment && !/^pi_[A-Za-z0-9_]+$/.test(paymentIntent))) {
     return { status: 'failed', reason: 'The paid raffle payment intent is missing or invalid.' };
   }
@@ -75,7 +75,7 @@ export async function sendPaidRaffleEmails(
       issuedDate: options.issuedAt || String(order.paid_at),
       amountCents: Number(order.amount_cents),
       paymentType: 'Raffle Ticket Purchase',
-      paymentMethod: cashPayment ? 'Cash - received by NDCC' : 'Stripe Checkout',
+      paymentMethod: cashPayment ? (order.cash_received_by_member ? 'Cash - collected for NDCC' : 'Cash - received by NDCC') : 'Stripe Checkout',
       reference: String(order.payment_reference),
       descriptionLines: [`${order.quantity} x ${campaign.name} Ticket`, `Ticket references: ${references.join(', ')}`, ...(references[0]?.startsWith(`${REVERSE_RAFFLE_CAMPAIGN_CODE}-`) ? [`Raffle numbers: ${references.map((ref: string) => Number(ref.slice(-4))).join(', ')}`] : [])],
     };

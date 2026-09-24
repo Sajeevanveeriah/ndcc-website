@@ -141,6 +141,7 @@ const vector = load('lib/reverse-raffle-ticket.ts', { './raffle-constants': cons
 const ticket = load('lib/raffle-ticket.ts', {
   './email-html': load('lib/email-html.ts', {}),
   './reverse-raffle-ticket': vector,
+  './trailer-raffle-ticket': load('lib/trailer-raffle-ticket.ts', { './raffle-constants': constants, './email-html': load('lib/email-html.ts', {}) }),
   './raffle-constants': constants,
   'node:fs/promises': { default: { readFile: async () => Buffer.from('test-logo') } },
   'node:path': { default: { join: (...parts) => parts.join('/') } },
@@ -153,9 +154,11 @@ assert.ok((await ticket.renderRaffleTicket('NDCCRRO-20260300')).toString().inclu
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20260200'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-20260301'));
 assert.ok(!zero.includes('19 DECEMBER') && !zero.includes('TRAILER'));
-assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('$5.00 AUD'));
+assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('$5 AUD'));
 const trailer2026=(await ticket.renderRaffleTicket('NDCCTRO-20260001')).toString();
-assert.ok(trailer2026.includes('NDCCTRO-20260001')&&trailer2026.includes('$5.00 AUD')&&trailer2026.includes('TRAILER'));
+const trailer200=(await ticket.renderRaffleTicket('NDCCTRO-20260200')).toString();
+assert.ok(trailer200.includes('>200</text>')&&trailer200.includes('NDCCTRO-20260200')&&trailer200.includes('TRAILER</text>'));
+assert.ok(trailer2026.includes('NDCCTRO-20260001')&&trailer2026.includes('$5 AUD')&&trailer2026.includes('TRAILER'));
 await assert.rejects(()=>ticket.renderRaffleTicket('NDCCTRO-20260001',undefined,{code:'NDCCRRO',year_code:'2026'}));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-202600000'));
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRRO-2026<script>'));
@@ -167,7 +170,7 @@ await assert.rejects(() => ticket.renderRaffleTicket('NDCCRAF-260001', undefined
 await assert.rejects(() => ticket.renderRaffleTicket('NDCCRAF-2026000'));
 // Price and draw text come from the campaign details when supplied.
 const custom = (await ticket.renderRaffleTicket('NDCCRAF-270002', { name: 'Test Raffle', priceCents: 1000, drawLabel: 'Drawn at test night' })).toString();
-assert.ok(custom.includes('TEST RAFFLE') && custom.includes('$10.00 AUD') && custom.includes('DRAWN AT TEST NIGHT'));
+assert.ok(custom.includes('TEST RAFFLE') && custom.includes('$10 AUD') && custom.includes('DRAWN AT TEST NIGHT'));
 assert.ok((await ticket.renderRaffleTicket('NDCCRAF-260001')).toString().includes('DRAWN 19 DECEMBER 2026 AT THE CHRISTMAS PARTY'));
 assert.ok((await ticket.renderRaffleTicket('NDCCRRO-20260201', { name: 'Reverse Raffle', priceCents: 7500, drawLabel: null })).toString().includes('$75 AUD'));
 assert.equal(constants.REVERSE_RAFFLE_MIN_NUMBER, 201);
@@ -184,7 +187,7 @@ const mailer = load('lib/raffle-email.ts', {
   '@/lib/payments/receipt-recipients':{receiptRecipients:email=>({to:email})},
   '@/lib/supabase-server':{createServerClient:()=>emailDb},
   '@/lib/email':{emailHtml:(_,body)=>body,getTransactionalReplyTo:()=>undefined,sendEmail:async value=>{mail=value;return {status:'sent',id:'message-test'};}},
-  '@/lib/payment-receipt-pdf':{buildPaymentReceiptFilename:()=> 'receipt.pdf',buildPaymentReceiptPdf:async data=>{assert.ok(data.descriptionLines.includes('Raffle numbers: 201, 202'));return 'pdf';}},
+  '@/lib/payment-receipt-pdf':{buildPaymentReceiptFilename:()=> 'receipt.pdf',buildPaymentReceiptPdf:async data=>{if(paid.raffle_tickets[0].ticket_reference.startsWith('NDCCRRO'))assert.ok(data.descriptionLines.includes('Raffle numbers: 201, 202'));return 'pdf';}},
   '@/lib/raffle-ticket':{renderRaffleTicket:ticket.renderRaffleTicket},
   '@/lib/payments/receipt-delivery-policy':{canRecordSimulatedReceiptDelivery:()=>false},
   '@/lib/payments/reference':{isCanonicalPaymentReference:()=>true},
@@ -199,3 +202,15 @@ paid.status='pending_payment'; mail=null;
 assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'failed');
 assert.equal(mail,null,'Unpaid buyers cannot receive valid tickets');
 console.log('Reverse raffle: checkout stock rejection, 201/300 bounds, legacy compatibility, two PNG tickets plus PDF receipt, and unpaid delivery rejection passed.');
+
+// Member cash evidence produces the same buyer PNG ticket and PDF receipt.
+Object.assign(paid,{status:'paid',payment_method:'cash',stripe_payment_intent_id:null,cash_received_by:null,cash_received_by_member:'member',cash_received_at:'2026-09-24',cash_sale_key:'key',quantity:1,amount_cents:500,raffle_campaigns:{name:'Dinos Trailer Raffle',price_cents:500,draw_label:null},raffle_tickets:[{ticket_reference:'NDCCTRO-20260200',ticket_number:200}]});
+mail=null;
+assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'sent');
+assert.deepEqual(Array.from(mail.attachments,a=>a.filename),['NDCCTRO-20260200.png','receipt.pdf']);
+assert.ok(mail.html.includes('NDCCTRO-20260200'));
+assert.ok(Buffer.from(mail.attachments[0].content,'base64').toString().includes('>200</text>'));
+paid.cash_received_by='staff';mail=null;
+assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'failed','Two collector identities must not count as valid payment evidence');
+assert.equal(mail,null);
+console.log('PASS trailer design number 200, member cash receipt attachments and ambiguous cash-evidence rejection');
