@@ -105,7 +105,8 @@
     "test:dino-rules-recovery": "node scripts/test-dino-rules-recovery.mjs",
     "test:cms-reliability": "node scripts/test-cms-reliability.mjs",
     "test:public-read-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-read-cache.mjs",
-    "test:dino-recovery": "node scripts/test-dino-recovery.mjs"
+    "test:dino-recovery": "node scripts/test-dino-recovery.mjs",
+    "test:club-services": "node scripts/test-club-services.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

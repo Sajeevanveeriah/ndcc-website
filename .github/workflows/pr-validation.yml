@@ -113,13 +113,13 @@ jobs:
         run: npm audit --audit-level=high
 
   # Aggregate gate. Keeps the historical `validate` check name that branch
-  # protection may require; fails unless lint, tests and build all passed.
+  # protection may require; every release gate must pass.
   validate:
     if: always()
-    needs: [lint, tests, build]
+    needs: [lint, tests, build, database-tests, security-scans]
     runs-on: ubuntu-latest
     steps:
-      - name: Require lint, tests and build to pass
+      - name: Require all release checks to pass
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |

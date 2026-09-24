@@ -66,7 +66,7 @@ const shared = {
 const Builder = load('app/fantasy/_components/SquadBuilder.tsx', {
   ...shared, './WalletPanel': { default: () => null }, './PlayerStatsCard': { default: ({ player }) => React.createElement('p', null, player.display_name) },
   './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
-  '@/lib/dino-coach/wallet': { squadWallet: () => ({ remaining: 14900000 }) },
+  '@/lib/dino-coach/wallet': load('lib/dino-coach/wallet.ts', {}),
   '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
   '@/lib/fantasy-browser': { fantasyJsonFetch: async (url, init) => {
     if (init?.method === 'POST') {
@@ -116,6 +116,18 @@ assert.equal(posted.at(-1).selection[0].playerId, 'one');
 await click('Save draft');
 assert.equal(posted.at(-1).expectedUpdatedAt, 'version-3');
 assert.equal(posted.at(-1).selection[0].playerId, 'two', 'New version must carry the same snapshot selections, not overwrite another tab');
+await act(async () => view.unmount());
+current = snapshot(); current.settings.budget_dino_dollars = 99000;
+await act(async () => { view = TestRenderer.create(React.createElement(Builder)); });
+await act(async () => view.root.findAllByType('select')[1].props.onChange({ target: { value: 'one' } }));
+await click('Assign selected player');
+assert.match(text(view.root), /Budget exceeded by 1,000 Dino Dollars/);
+assert.equal(button('Submit squad').props.disabled, true);
+assert.equal(button('Save draft').props.disabled, true);
+assert.equal(button('Sell / remove').props.disabled, false);
+await click('Sell / remove');
+assert.equal(button('Save draft').props.disabled, false);
+assert.doesNotMatch(text(view.root), /Budget exceeded/);
 await act(async () => view.unmount());
 console.log('PASS failed initial load retry, retained edits on validation failure, confirmed saves despite refresh failure, read-only recovery and consistent concurrent snapshots');
 

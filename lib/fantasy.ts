@@ -14,6 +14,7 @@ export const FANTASY_MODULES: FantasyModule[] = [
 export const FANTASY_RULE_SECTIONS = [
   { title: 'Entry and pilot', items: [
     'Dino Coach is the Newcomb and District Cricket Club fantasy competition for the 2026/2027 season.',
+    'Registration remains open throughout the season. Late entrants compete in the same season-long league, buy at current published prices and earn points from their first eligible locked round. Earlier rounds are not backdated.',
     'Entry costs AUD 25.00. Managers must be at least 18, accept the current rules and have an approved team name before payment eligibility can unlock team selection.',
     'Dino Coach is running as a pilot for the 2026/2027 season. Feedback and suggestions are welcome. If a scoring defect, data issue, technical fault or unintended rules outcome is identified, the league manager may make a reasonable adjustment to protect the fairness and operation of the competition. Material changes will be communicated to participants and recorded. Changes will not be applied secretly.',
   ] },

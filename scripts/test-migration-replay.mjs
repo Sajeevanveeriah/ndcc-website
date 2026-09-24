@@ -26,6 +26,22 @@ psql(DB, readFileSync(new URL('./test-reverse-raffle.sql', import.meta.url), 'ut
 check('Reverse raffle 201-300 capacity, paid-only allocation, duplicate-event replay and private receipt mappings', true);
 psql(DB, readFileSync(new URL('./test-apparel-reminders.sql', import.meta.url), 'utf8'));
 check('Apparel reminders include overdue unpaid and part-paid orders, skip ineligible orders and preserve sent cycles', true);
+psql(DB, readFileSync(new URL('./test-club-services.sql', import.meta.url), 'utf8'));
+check('Cash sale authorisation, exact price, idempotent tickets, receipt queue and member privacy', true);
+// Seed only the two reviewed identities in this disposable database, then
+// execute the exact data operation intended for release.
+const research=JSON.parse(readFileSync(new URL('../data/dino-coach-researched-baselines-20260924.json',import.meta.url),'utf8'));
+for(const player of research.players){
+ psql(DB, `insert into public.fantasy_players(id,display_name,role) values ('${player.playerId}','${player.name}','BAT');
+ insert into public.fantasy_season_players(season_id,player_id,role) select id,'${player.playerId}','BAT' from public.fantasy_seasons where slug='2026-27';
+ insert into public.fantasy_player_prices(season_id,player_id,price_dino_dollars,price_million,published_at) select id,'${player.playerId}',${player.previousPriceDinoDollars},${player.previousPriceDinoDollars}/1000000.0,now() from public.fantasy_seasons where slug='2026-27';`);
+}
+psql(DB,readFileSync(new URL('../supabase/operations/20260924_player_research.sql',import.meta.url),'utf8'));
+for(const player of research.players){
+ check(`Verified price and audit for ${player.name}`,psql(DB,`select p.price_dino_dollars=${player.priceDinoDollars} and exists(select 1 from public.fantasy_manual_price_audit a where a.player_id=p.player_id and a.old_price=${player.previousPriceDinoDollars} and a.new_price=${player.priceDinoDollars}) from public.fantasy_player_prices p where p.player_id='${player.playerId}'`) === 't');
+}
+const repeatedResearch=psql(DB,readFileSync(new URL('../supabase/operations/20260924_player_research.sql',import.meta.url),'utf8'),{expectFailure:true});
+check('Replaying price operation rejects a changed baseline',repeatedResearch.failed===true&&/Price changed since review/.test(repeatedResearch.message));
 const counts = psql(DB, `select (select count(*) from apparel_products where active), (select count(*) from apparel_product_options where active), (select count(*) from merch_payment_settings), (select count(*) from fantasy_seasons)`);
 check('fresh replay end-state sane (20 active products, 16 active options, settings row, 3 seasons)', counts === '20\t16\t1\t3', counts);
 // Production has RLS enabled on every public table; replays must match.

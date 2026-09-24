@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
@@ -158,7 +159,7 @@ export default function AdminMembershipsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-display font-bold">Social Memberships</h1>
+        <Link href="/admin/memberships/directory" className="btn-primary mb-4">Club member directory</Link><h1 className="text-2xl font-display font-bold">Social Memberships</h1>
         <p className="text-sm text-content-muted mt-1">Edit public membership plans and add-ons without changing signup, payment, or email behaviour.</p>
       </div>
       {message && <p className="rounded-lg border border-edge-blue/70 bg-surface-blue-subtle px-4 py-3 text-sm text-content-secondary">{message}</p>}

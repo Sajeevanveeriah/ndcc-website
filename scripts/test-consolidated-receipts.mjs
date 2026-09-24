@@ -201,3 +201,28 @@ for (const version of ['new', '1', '2']) {
   assert.equal(JSON.stringify(payloadOptions), JSON.stringify({ idempotencyKey: `ndcc:checkout:v3:${internalReference}` }));
 }
 console.log('Actual Checkout route: new v2 public reference parity and frozen v1/v2 retry compatibility passed.');
+
+const cashOrder={id:'cash-fixture',status:'paid',currency:'AUD',amount_cents:1000,quantity:2,paid_at:'2026-09-24T10:00:00Z',payment_reference:'NDCCRAF-2026-000123',payment_method:'cash',cash_received_by:'staff-fixture',cash_received_at:'2026-09-24T10:00:00Z',cash_sale_key:'sale-fixture',stripe_payment_intent_id:null,stripe_checkout_session_id:null,customer_name:'Cash <buyer>',customer_email:'cash@example.invalid',raffle_campaigns:{name:'Trailer raffle',price_cents:500,draw_label:null},raffle_tickets:[{ticket_reference:'NDCCTRO-20260001',ticket_number:1},{ticket_reference:'NDCCTRO-20260002',ticket_number:2}]};
+const cashDb={from(table){assert.equal(table,'raffle_orders','Cash receipts must not require a Stripe event');let patch;return {select(){return this;},eq(){return this;},single:async()=>({data:cashOrder}),update(value){patch=value;return this;},async is(){Object.assign(cashOrder,patch);return {error:null};}};}};
+let cashMessages=[],cashPdf;
+const cashSender=moduleAt('lib/raffle-email.ts',{
+ '@/lib/supabase-server':{createServerClient:()=>cashDb},
+ '@/lib/payments/receipt-recipients':recipients,
+ '@/lib/email':{emailHtml:(_,body)=>body,getTransactionalReplyTo:()=>undefined,sendEmail:async payload=>{cashMessages.push(payload);return {status:'sent',id:'mock-message'};}},
+ '@/lib/payment-receipt-pdf':{buildPaymentReceiptFilename:data=>`${data.reference}.pdf`,buildPaymentReceiptPdf:async data=>{cashPdf=data;return 'mock-pdf';}},
+ '@/lib/raffle-ticket':{renderRaffleTicket:async reference=>({buffer:'mock-image',filename:`${reference}.png`})},
+ '@/lib/payments/receipt-delivery-policy':{canRecordSimulatedReceiptDelivery:()=>false},
+ '@/lib/payments/reference':references,'@/lib/raffle-constants':raffleConstants,
+});
+assert.equal((await cashSender.sendPaidRaffleEmails(cashOrder.id)).status,'sent');
+assert.equal(cashMessages.length,1);assert.equal(cashMessages[0].attachments.length,3);
+assert.equal(cashPdf.paymentMethod,'Cash - received by NDCC');
+assert.ok(cashMessages[0].html.includes('recorded your cash payment'));
+assert.ok(!cashMessages[0].html.includes('Stripe has confirmed'));
+assert.ok(!cashMessages[0].html.includes('Cash <buyer>'));
+assert.equal((await cashSender.sendPaidRaffleEmails(cashOrder.id)).status,'already_sent');
+assert.equal(cashMessages.length,1);
+for(const field of ['cash_received_by','cash_received_at','cash_sale_key']){const saved=cashOrder[field];cashOrder[field]=null;assert.equal((await cashSender.sendPaidRaffleEmails(cashOrder.id)).status,'failed');cashOrder[field]=saved;}
+cashOrder.stripe_payment_intent_id='pi_mixed';assert.equal((await cashSender.sendPaidRaffleEmails(cashOrder.id)).status,'failed');
+assert.equal(cashMessages.length,1);
+console.log('Cash raffle email: payment evidence, two tickets plus receipt, cash wording, escaping and replay passed with isolated adapters.');

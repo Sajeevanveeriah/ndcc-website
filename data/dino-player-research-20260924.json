@@ -1,0 +1,779 @@
+{
+  "retrievedAt": "2026-09-24",
+  "players": [
+    {
+      "id": "e43f0e00-828e-43ce-9a91-a3b913f3a3d0",
+      "display_name": "Aaron Bangar",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "8b78778e-3ad9-4240-a6f6-43b359052df8",
+      "display_name": "Aaron Chinn",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "97fc5b66-4136-4efb-9f47-919264e2e029",
+      "display_name": "Aaron Cox",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "b5399a51-1ea5-4980-8066-d849d0fa084f",
+      "display_name": "Aaron Morgan",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "022ede29-7b48-47fc-af02-29cfb5ecb7fb",
+      "display_name": "Adrian Edgerton",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "6e7ee06f-9c49-401d-8e0d-d10cbd429b25",
+      "display_name": "Andrew Cherry",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "e9c6de1d-3ffb-4d4c-a4ba-0fc6ddfab76d",
+      "display_name": "Andrew Doyle",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "627035e0-0e3b-4377-a23d-392b05807c09",
+      "display_name": "Andrew Fothergill",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "71e1f303-47e6-42e5-9717-550a5e5c2340",
+      "display_name": "Anthony Quarrell",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "a4f97cd1-d2bf-4770-b917-52e8729298b7",
+      "display_name": "Archie Chinn",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "2d463db3-96c6-4a8f-a894-a9077f4b9d9c",
+      "display_name": "Ben Miles",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "9d8f3f49-b1a1-46c4-b691-84ee8475c664",
+      "display_name": "Blake Ritchie",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "08608835-2844-48d5-9bae-63f838dbbc54",
+      "display_name": "Brad Robertson",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "dd1ca470-df8e-40a9-9049-adc85b24cc94",
+      "display_name": "Brayden Paley",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "8382c5da-8788-4d75-aea9-fb78080ab54a",
+      "display_name": "Caitlin-Rose Neil",
+      "stats_status": "unrated",
+      "source_url": "https://www.cricx.com/player/caitlin-rose-neil/",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "614e45a2-e511-4c83-b64b-eb52ea327844",
+      "display_name": "Cam Brady",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "2cc3c08e-0827-43f2-8ac0-ba62e6c2b042",
+      "display_name": "Cam Egan",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "e8b43105-8c52-4592-b453-1c7e8a937bff",
+      "display_name": "Cam MacBryde",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "5f91aeea-ba6e-445b-8b77-1e7f593a0f30",
+      "display_name": "Campbell Miles",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "6ccef387-273c-4aeb-8da5-e4cd7abb2011",
+      "display_name": "Carly Hillgrove",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "0b2ea84c-aea0-4e38-be1a-f85f490fb793",
+      "display_name": "Chloe Hillgrove",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "6696fc07-e6d3-43e7-ac86-b1e825176b6a",
+      "display_name": "Chloe-Anne Barry",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "339e1a73-39dc-43b3-96e2-d4cad591035b",
+      "display_name": "Cooper Giuricin-Webb",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "a39b682c-6290-4fd6-b66d-3c1a586cdf58",
+      "display_name": "Craig Hillgrove",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "fc7b8d01-e5f5-4a77-88b9-f7da7561952e",
+      "display_name": "D Whitworth",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "851b5358-b345-4007-9604-e27cf3bb2a67",
+      "display_name": "Dave O\u2019Leary",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "2bf9c919-620c-473e-933d-bf70f7162ea9",
+      "display_name": "Devlin Wootton",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "83e61733-db47-49af-a1d2-4d0473e197bc",
+      "display_name": "Dylan Baker",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "0ff2686f-7acc-40f7-9745-bfa4e332e40c",
+      "display_name": "Elliot Ridgway",
+      "stats_status": "external_partial",
+      "source_url": "https://www.cricx.com/player/elliot-ridgway/",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "9c33bb22-860f-4ae5-9076-8ac47d001668",
+      "display_name": "Elysha Fox",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "2bb544fa-4505-431f-9b66-b9ce451a6213",
+      "display_name": "Emma Jones",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "dd173ebc-2d3a-41d6-b894-038aee8a1be5",
+      "display_name": "Enrique Biyik",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "dd52959e-e008-4f78-8b2c-ecd3494b23c9",
+      "display_name": "Freddie Norridge",
+      "stats_status": "external_summary",
+      "source_url": "https://www.cherwellcricketleague.com/player_dashboard.php?PlayerID=56005284",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Update from verified season statistics.",
+      "evidence": {
+        "playerId": "dd52959e-e008-4f78-8b2c-ecd3494b23c9",
+        "name": "Freddie Norridge",
+        "season": "2026",
+        "scope": "Cherwell Cricket League Division 2A, Shipton-under-Wychwood 1",
+        "sourceUrl": "https://cherwellcricketleague.com/live_player.php?PlayerID=56005284",
+        "sourceProvider": "cherwell_cricket_league",
+        "sourcePlayerId": "56005284",
+        "matches": 17,
+        "runs": 382,
+        "wickets": 0,
+        "catches": 4,
+        "stumpings": 0,
+        "runouts": null,
+        "maidens": null,
+        "role": "BAT",
+        "completeness": "complete",
+        "previousPriceDinoDollars": 1296000,
+        "notes": "Official 2026 league table, 9 May to 5 September; all 17 match rows have zero wickets. Replaces the older 2025 baseline.",
+        "scorecardIds": [
+          18311,
+          18320,
+          18325,
+          18329,
+          18335,
+          18338,
+          18343,
+          18347,
+          18352,
+          18356,
+          18365,
+          18370,
+          18374,
+          18380,
+          18383,
+          18388,
+          18397
+        ],
+        "knownPoints": 422,
+        "priceDinoDollars": 1194000
+      }
+    },
+    {
+      "id": "28ef1c80-db9f-4078-981a-031fbfe72c99",
+      "display_name": "Garth Ballantine",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "2b4bcb31-2772-4ce9-8fe6-01cd745fd727",
+      "display_name": "Gautham Ranjith",
+      "stats_status": "external_summary",
+      "source_url": "https://play.cricket.com.au/player/59bd4edd-fd5e-4e08-bc87-ecacf437718c/gautham-ranjith",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "a78170e0-57f1-4459-a0bc-23f014f748ac",
+      "display_name": "Gina Mamizic",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "36cb4525-ef1e-4815-9516-b754dfef0959",
+      "display_name": "Grace Elliott",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "68326931-5263-4dc2-881a-03e2e665df98",
+      "display_name": "Gracie Whitworth",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "c928fc73-2c37-430b-99f9-d5edba97625d",
+      "display_name": "Harro Harrison",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "e02f9f60-a88b-4791-ab11-5c0489418c82",
+      "display_name": "Harvey Cliff",
+      "stats_status": "external_partial",
+      "source_url": "https://www.cricx.com/player/harvey-cliff/",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "af015dc9-cb2c-4bb0-8085-6d2a3f1aae64",
+      "display_name": "Hayden Butler",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "0b22087a-a21b-439a-9ada-c539b9320df7",
+      "display_name": "Huey Nield",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "723ff938-5a21-4363-bb37-16e931f1f3db",
+      "display_name": "Jack Halliday",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "db729a2b-8b7e-4682-8eb0-a5fac4b72a00",
+      "display_name": "Jackson Brown",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "be7fcb27-583f-4f67-b049-0b855fd008fb",
+      "display_name": "Jake Baker",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "b681ac7d-64c8-4d41-a1e2-6b53b05c4152",
+      "display_name": "James Menzies",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "bc4f6799-305d-48f4-93fc-7a4241c33028",
+      "display_name": "Jason Robertson",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "828a2cc0-b73b-4d48-9beb-a12743800100",
+      "display_name": "Jayde Smith",
+      "stats_status": "external_summary",
+      "source_url": "https://play.cricket.com.au/playhq-player/80dc4ed4-7733-4bd6-a104-644f16ed6baf",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "af39252a-a7f5-49ef-a3ff-d09b08f07f4b",
+      "display_name": "Jaykeb Paley",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "7afc9792-a7d6-4960-89c3-82cfb41b5b7e",
+      "display_name": "Jazz Priest",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "8bc3ca26-e9bb-4b2c-8b91-764fdae8e79c",
+      "display_name": "Jodie Clark",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Update from verified season statistics.",
+      "evidence": {
+        "playerId": "8bc3ca26-e9bb-4b2c-8b91-764fdae8e79c",
+        "name": "Jodie Clark",
+        "season": "2025/26",
+        "scope": "Cricket Australia, Summer 2025/26, North Geelong, all formats",
+        "sourceUrl": "https://play.cricket.com.au/player/cd05eaa6-4210-44ff-bfcf-49a340d7ea28/jodie-clark",
+        "sourceProvider": "cricket_australia",
+        "sourcePlayerId": "cd05eaa6-4210-44ff-bfcf-49a340d7ea28",
+        "matches": 16,
+        "runs": 341,
+        "wickets": 13,
+        "catches": 5,
+        "stumpings": 0,
+        "runouts": 3,
+        "maidens": 1,
+        "role": "AR",
+        "completeness": "complete",
+        "previousPriceDinoDollars": 100000,
+        "identityEvidenceUrl": "https://www.facebook.com/NewcombDistrictCricketClub/posts/1255620953227261/",
+        "notes": "NDCC signing announcement dated 7 May for season 26/27 explicitly names North Geelong and independently matches 341 runs, 13 wickets, 5 catches and 3 run-outs. Official player search links North Geelong and Alexander Thomson. No merger with Jodie Jones.",
+        "knownPoints": 521,
+        "priceDinoDollars": 1356000
+      }
+    },
+    {
+      "id": "c3299de6-825a-41b3-85a7-1f2eb1d793d0",
+      "display_name": "John Elliott",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "9e3ec798-91ee-49cc-9511-81ec04667f8d",
+      "display_name": "Josh Fothergill",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "028ae1f1-feb7-4729-9026-61eebd6612bd",
+      "display_name": "Josh Ritchie",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "9bfa484c-fbb7-49c4-ab80-4cfa4b76ab99",
+      "display_name": "Josh Walker",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "fa78ba75-7e98-43f4-ba0a-c609c6164ef9",
+      "display_name": "Katie Appleyard",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "7b714120-e008-4dad-9b09-b34ddc2b1948",
+      "display_name": "Kelsey Allan",
+      "stats_status": "external_summary",
+      "source_url": "https://play.cricket.com.au/playhq-player/a70d2357-9390-40e7-b071-79f0cad60af2",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "f17d8820-408a-4f75-a75a-97125239fca1",
+      "display_name": "Laura Hudson",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "7830ef21-5047-4923-a32f-816ea0cfab7f",
+      "display_name": "Leisha Appleyard",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "4c8159ce-51f1-4edf-a664-8e0c752a5b0f",
+      "display_name": "Mani Veduruveda",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "8caa43ce-6755-493b-8518-e0245a4884d0",
+      "display_name": "Manu Sehajpal",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "ff57ef89-685a-4f4d-8283-e2009ea5a23c",
+      "display_name": "Marcus Pearson",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "4b8b8db5-a2bb-41ec-85f8-5f94e317da37",
+      "display_name": "Matthew Grills",
+      "stats_status": "unrated",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain minimum price; usable identity-matched senior season totals not verified."
+    },
+    {
+      "id": "d6995123-00d9-4848-ba25-5b6c2531a967",
+      "display_name": "Matty Penman",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "0f11bd21-2a76-42df-b7c2-cc8ed9402a89",
+      "display_name": "Max Troop",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "46a5ebeb-8feb-4559-80b6-699ba20f467e",
+      "display_name": "Michael Begg",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "a940fbf9-a3d2-4171-9874-e351ea940e0c",
+      "display_name": "Nathan Keevil",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Official 2025/26 profile confirms existing 17 matches, 60 runs, 30 wickets, 4 catches and 0 stumpings; price unchanged.",
+      "verifiedSource": "https://play.cricket.com.au/player/f8444135-c471-49ea-91b5-aa4f1baed694/nathan-keevil"
+    },
+    {
+      "id": "261d7101-8b92-4b76-b539-5d815e3eb389",
+      "display_name": "Nathan Laffy",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "f791a73b-858f-4de9-a316-0e57168b32ad",
+      "display_name": "Noah Evans",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "1c8e867a-c997-4989-92c5-0783635db417",
+      "display_name": "Rhys Bath",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "e92ce2f3-e243-440c-b17a-d4561fd351aa",
+      "display_name": "Rick McHutchison",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "4ec843e6-248e-4db3-959d-875109e8454d",
+      "display_name": "Rob Bell",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "6a561afa-3ac0-4ea9-9f2f-266b83da4266",
+      "display_name": "Ruby Moreland",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "8cf2c282-6f94-46c7-8170-6eb224f71cec",
+      "display_name": "Rueben Brady",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "47f29066-d8ec-4ad5-8ceb-0b5f03770155",
+      "display_name": "Saj Veeriah",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "e23ee8e6-77a7-45cc-8389-56d894d5784d",
+      "display_name": "Sam Barnes",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "b3051baf-a548-4344-8c47-60d40199062b",
+      "display_name": "Samantha Barry",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "516f268d-2be7-4b0d-bc47-ee839c749d2f",
+      "display_name": "Sammy Harrison",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "d8cd5eb8-1716-4a59-9b10-61935e0e32c4",
+      "display_name": "Scaff Scaffidi",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "4e38785d-e138-4ec4-865b-2e0c377d356d",
+      "display_name": "Scott Evans",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "4f69787d-ef1d-4886-9607-ee4db12e2bd6",
+      "display_name": "Scott Kirby",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "49201556-88c9-4d0c-86bb-7a89fc7123b5",
+      "display_name": "Shane Baker",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "528ee3fa-f587-4fa9-ad5b-22e63e0c7b3e",
+      "display_name": "Siva Madanon Pillai",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "570f697e-565e-4c12-b01e-682e22e6515d",
+      "display_name": "Skye Green",
+      "stats_status": "external_partial",
+      "source_url": "https://www.cricx.com/player/skye-green/",
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "9702f262-d31b-43e5-bde8-aa5a692eba02",
+      "display_name": "Troy Whitworth",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "862dd294-b980-4ac9-9e56-7049ba1720ae",
+      "display_name": "Tyler O\u2019Neill",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "8a3fb87b-b575-4b03-87a7-209fd4b8fa32",
+      "display_name": "Tyson Henry",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    },
+    {
+      "id": "d07b8b7a-2cad-4859-9539-58ba269ca58b",
+      "display_name": "Von Willman",
+      "stats_status": "season_summary",
+      "source_url": null,
+      "search": "Individual name plus cricket/Newcomb/club statistics",
+      "decision": "Retain existing sourced price; no verified replacement season total located in this sweep."
+    }
+  ],
+  "coverage": "Individual public web searches for all 88 active selectable players, compared with the supplied senior club summary and existing external baselines. Focused official Cricket Australia, Cherwell and CricX checks where identity links were available. This is not an exhaustive index of every website or a claim that every player has complete statistics.",
+  "decisions": {
+    "updated": 2,
+    "unchanged": 86
+  }
+}
