@@ -36,14 +36,23 @@ function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: st
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean) {
-  return PUBLIC_NAV_GROUPS.map((group) => group.href
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean, manageRaffles = false) {
+  const groups = PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
     : { label: group.label, href: undefined, links: (group.links || [])
       .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || (link.href !== '/raffle' && link.href !== '/raffle/cash')) && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
-      .map((link) => resolveLink(navLinks, link)) })
-    // A dropdown with no visible links (e.g. Raffles while both are hidden) is omitted.
-    .filter((group) => group.href || (group.links && group.links.length > 0));
+      .map((link) => resolveLink(navLinks, link)) });
+  // Management access follows the authenticated permission, never public sales
+  // visibility. Staff use their committee session rather than a member login.
+  const raffles = groups.find((group) => group.label === 'Raffles');
+  if (manageRaffles && raffles?.links) {
+    raffles.links = [
+      { label: 'Raffle administration', href: '/admin/raffle' },
+      { label: 'Record cash sales', href: '/admin/raffle/cash' },
+      ...raffles.links.filter((link) => link.href !== '/raffle/cash'),
+    ];
+  }
+  return groups.filter((group) => group.href || (group.links && group.links.length > 0));
 }
 
 // The admin session cookie is httpOnly, so the client cannot see it. Rather
@@ -141,7 +150,8 @@ export default function Navbar({ nav }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string } | null>(null);
+  const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string; permissions?: string[] } | null>(null);
+  const [raffleVisibility, setRaffleVisibility] = useState({ enabled: nav.rafflePublic, reverseEnabled: nav.reverseRafflePublic });
   const settings = nav.settings;
   const navLinks = nav.headerLinks;
   const registrationNavigation = nav.registration;
@@ -208,6 +218,21 @@ export default function Navbar({ nav }: NavbarProps) {
     };
   }, [isOpen]);
   useEffect(() => {
+    setRaffleVisibility({ enabled: nav.rafflePublic, reverseEnabled: nav.reverseRafflePublic });
+    if (!isAdminSurface(pathname)) return;
+    let cancelled = false;
+    // Admin pages can retain a prerendered layout snapshot. Refresh only these
+    // surfaces so a stale public visibility value cannot hide an open raffle.
+    void fetch('/api/public/raffle-status', { cache: 'no-store' }).then(async (response) => {
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!cancelled && typeof data.enabled === 'boolean' && typeof data.reverseEnabled === 'boolean') {
+        setRaffleVisibility({ enabled: data.enabled, reverseEnabled: data.reverseEnabled });
+      }
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [pathname, nav.rafflePublic, nav.reverseRafflePublic]);
+  useEffect(() => {
     // Public visitors never trigger a session request (see ADMIN_SESSION_HINT_KEY).
     if (!isAdminSurface(pathname) && !readAdminHint()) {
       setSessionUser(null);
@@ -244,7 +269,8 @@ export default function Navbar({ nav }: NavbarProps) {
     writeAdminHint(false);
     setSessionUser(null);
   };
-  const navGroups = resolveGroups(navLinks, nav.dinoCoachPublic, nav.rafflePublic, cookieDoughOpen, nav.reverseRafflePublic);
+  const manageRaffles = sessionUser?.permissions?.includes('raffle') === true;
+  const navGroups = resolveGroups(navLinks, nav.dinoCoachPublic, raffleVisibility.enabled, cookieDoughOpen, raffleVisibility.reverseEnabled, manageRaffles);
   const accountExpanded = accountOpen || accountHover;
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are

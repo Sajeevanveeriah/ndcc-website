@@ -109,7 +109,8 @@
     "test:club-services": "node scripts/test-club-services.mjs",
     "test:club-services-ui": "node scripts/test-club-services-ui.cjs",
     "test:catalogue-export": "node scripts/test-catalogue-export.cjs",
-    "test:mobile-navigation": "node scripts/test-mobile-navigation.cjs"
+    "test:mobile-navigation": "node scripts/test-mobile-navigation.cjs",
+    "test:raffle-report": "node scripts/test-raffle-report.cjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
