@@ -5,7 +5,7 @@ import SafeImage from '@/components/common/SafeImage';
 
 export default async function PlayerSponsorsSection() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return <p className="container-width py-12 text-content-muted">Player sponsorships are currently unavailable. Please check back soon.</p>;
-  const { data, error } = await createServerClient().from('player_sponsors')
+  const { data, error } = await createServerClient({ retryReads: true }).from('player_sponsors')
     .select('id,player_name,player_image_url,sponsor_name,logo_url,website,sort_order,active')
     .eq('active', true).order('sort_order').order('player_name');
   if (error) {

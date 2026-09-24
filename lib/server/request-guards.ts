@@ -12,7 +12,9 @@ export function getClientIp(request: Request): string {
 /** One atomic counter shared by all function instances; never persist raw IPs or emails. */
 export async function enforceRateLimit(key: string, maxRequests: number, windowMs: number): Promise<boolean> {
   try {
-    const { data, error } = await createServerClient({ fetchTimeoutMs: 2500 }).rpc('ndcc_take_rate_limit', {
+    // The atomic RPC is a write: allow cold connections to finish, but never
+    // replay it or bypass the limiter when the service is unavailable.
+    const { data, error } = await createServerClient({ fetchTimeoutMs: 15_000 }).rpc('ndcc_take_rate_limit', {
       p_key: createHash('sha256').update(key).digest('hex'),
       p_limit: maxRequests,
       p_window_ms: windowMs,

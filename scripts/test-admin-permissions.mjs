@@ -90,6 +90,7 @@ for (const filename of collectRouteFiles('app/api/admin')) {
   const source = readFileSync(filename, 'utf8');
   const isSharedMediaUpload = filename === 'app/api/admin/media/upload/route.ts';
   const permissionProtected = source.includes('requirePermission(')
+    || source.includes('requirePermissionResult(')
     || source.includes('requireAnyPermission(')
     || (isSharedMediaUpload && source.includes('MEDIA_UPLOAD_PERMISSIONS') && source.includes('hasPermission'));
   assert.equal(permissionProtected, true, `${filename} must enforce a server-side CMS permission.`);

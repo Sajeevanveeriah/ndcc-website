@@ -35,6 +35,7 @@ const asString = (value: unknown) => (typeof value === 'string' ? value : '');
 export default function AdminSponsorsPage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,12 +48,14 @@ export default function AdminSponsorsPage() {
   const [batchBusy, setBatchBusy] = useState(false);
 
   const fetchSponsors = async () => {
+    setLoading(true);
+    setLoadError('');
     try {
       const response = await adminFetch('/api/admin/resources/sponsors', { cache: 'no-store' });
       const result = await parseApiResponse<{ data?: Sponsor[] }>(response);
       setSponsors(sortSponsorsAlphabetically(result.data || []));
     } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to fetch sponsors.' });
+      setLoadError(err instanceof Error ? err.message : 'Failed to fetch sponsors.');
     } finally {
       setLoading(false);
     }
@@ -203,7 +206,7 @@ export default function AdminSponsorsPage() {
             Sponsors
           </h1>
           <p className="text-content-muted font-body mt-1">
-            {sponsors.length} sponsor{sponsors.length !== 1 ? 's' : ''}, automatically ordered A-Z
+            {loading ? 'Loading sponsors...' : loadError ? 'Sponsor list unavailable' : `${sponsors.length} sponsor${sponsors.length !== 1 ? 's' : ''}, automatically ordered A-Z`}
           </p>
         </div>
         <Button variant="primary" onClick={openCreate}>
@@ -234,6 +237,11 @@ export default function AdminSponsorsPage() {
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-full mb-4" />
           <div className="h-4 bg-gray-200 rounded w-3/4" />
+        </div>
+      ) : loadError ? (
+        <div role="alert" className="bg-surface-card rounded-xl border border-edge-subtle p-8">
+          <p className="mb-4 text-red-600">{loadError}</p>
+          <Button variant="secondary" onClick={() => void fetchSponsors()}>Retry loading sponsors</Button>
         </div>
       ) : sponsors.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">

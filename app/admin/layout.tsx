@@ -12,7 +12,7 @@ import InactivityGuard from '@/components/admin/InactivityGuard';
 import type { AuthRole } from '@/lib/auth/config';
 import { canManageUsers, getDefaultAdminHref, hasPermission, isFullAccessRole, permissionForAdminPath, type PermissionKey } from '@/lib/auth/permissions';
 
-const SESSION_CHECK_TIMEOUT_MS = 8_000;
+const SESSION_CHECK_TIMEOUT_MS = 50_000;
 const SESSION_RETRY_DELAYS_MS = [10_000, 30_000, 60_000] as const;
 
 type SessionUser = {
