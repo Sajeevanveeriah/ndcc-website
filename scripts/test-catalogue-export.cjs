@@ -71,5 +71,40 @@ const { GET } = load('app/api/fantasy/players/export/route.ts', {
   assert.equal(result.status, 503); assert.doesNotMatch(await result.text(), /secret database error/);
   resolved = null; result = await GET(new Request('https://example.invalid/api/fantasy/players/export'));
   assert.equal(result.status, 404);
+  // Real shared aggregation must include rows beyond PostgREST's default cap.
+  let statRows = [], ranges = [], failSecondPage = false;
+  const leaderboardModule = load('lib/fantasy-leaderboard.ts', {
+    '@/lib/fantasy-scoring': { calculateFantasyPoints: line => line.runs },
+    '@/lib/supabase-server': { isServerSupabaseConfigured: () => true, createServerClient: () => ({
+      from(table) {
+        const query = {
+          select() { return this; }, eq() { return this; }, in() { return this; },
+          order() { return this; },
+          range(start, end) {
+            ranges.push([start, end]);
+            return Promise.resolve(failSecondPage && start > 0
+              ? { data: null, error: { message: 'Later page unavailable' } }
+              : { data: statRows.slice(start, end + 1), error: null });
+          },
+          then(resolve) { return Promise.resolve({ data: table === 'fantasy_import_batches' ? [{ id: 'batch' }] : [], error: null }).then(resolve); },
+        };
+        return query;
+      },
+    }) },
+  });
+  for (const count of [0, 1001, 2000]) {
+    ranges = [];
+    statRows = Array.from({ length: count }, (_, i) => ({ id: String(i), player_id: 'p1', runs: 1, fantasy_players: { display_name: 'Test player', role: 'BAT' } }));
+    const board = await leaderboardModule.getPublishedFantasyLeaderboard(null, 'season-1');
+    if (count) {
+      assert.equal(board.rows[0].matchesCounted, count);
+      assert.equal(board.rows[0].totalFantasyPoints, count);
+      const complete = parse(serializer.catalogueCsv(season, players, stats, new Map(board.rows.map(row => [row.playerId, { total: row.totalFantasyPoints, matches: row.matchesCounted }])), 'now'));
+      assert.equal(complete[1][headers.indexOf('Published season points')], String(count));
+    } else assert.equal(board.rows.length, 0);
+    assert.equal(ranges.length, Math.floor(count / 1000) + 1);
+  }
+  failSecondPage = true;
+  await assert.rejects(leaderboardModule.getPublishedFantasyLeaderboard(null, 'season-1'), /Later page unavailable/);
   console.log('PASS catalogue CSV escaping, blanks versus zero, public fields, season scoping, fresh prices, download headers and failure responses');
 })().catch(error => { console.error(error); process.exitCode = 1; });

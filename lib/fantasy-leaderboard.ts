@@ -163,15 +163,23 @@ async function getStatsForBatches(batchIds: string[]) {
   if (batchIds.length === 0) return [];
 
   const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from('fantasy_match_stats')
-    .select('id, import_batch_id, round_id, player_id, match_date, opponent, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_players(display_name, role), fantasy_rounds(id, round_number, name)')
-    .in('import_batch_id', batchIds)
-    .order('match_date', { ascending: true })
-    .order('created_at', { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as StatRecord[];
+  const stats: StatRecord[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from('fantasy_match_stats')
+      .select('id, import_batch_id, round_id, player_id, match_date, opponent, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_players(display_name, role), fantasy_rounds(id, round_number, name)')
+      .in('import_batch_id', batchIds)
+      .order('match_date', { ascending: true })
+      .order('created_at', { ascending: true })
+      // Unique tie-breaker keeps page boundaries stable for imported matches.
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    stats.push(...((data ?? []) as unknown as StatRecord[]));
+    if (!data || data.length < pageSize) break;
+  }
+  return stats;
 }
 
 export async function getFantasyImportBatches(): Promise<FantasyImportBatchSummary[]> {
