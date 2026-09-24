@@ -36,9 +36,34 @@ export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}
   // delivery. Do not report a timeout while those writes are still completing.
   const isRead = !options.method || ['GET', 'HEAD'].includes(options.method.toUpperCase());
   const timeout = setTimeout(() => controller.abort(), isRead ? 30_000 : 45_000);
-  let response: Response;
+  const abort = () => controller.abort();
+  if (options.signal?.aborted) controller.abort();
+  else options.signal?.addEventListener('abort', abort, { once: true });
   try {
-    response = await fetch(url, { ...options, headers, signal: options.signal ?? controller.signal });
+    const request = () => fetch(url, { cache: 'no-store', ...options, headers, signal: controller.signal });
+    let response: Response;
+    let retried = false;
+    try {
+      response = await request();
+    } catch (error) {
+      if (!isRead || controller.signal.aborted) throw error;
+      retried = true;
+      response = await request();
+    }
+    if (isRead && !retried && [502, 503, 504].includes(response.status)) {
+      await response.body?.cancel();
+      response = await request();
+    }
+    const body: unknown = await response.json().catch(error => {
+      if (controller.signal.aborted) throw error;
+      return null;
+    });
+    const object = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : null;
+    if (!response.ok || object?.success === false) {
+      throw new Error(typeof object?.error === 'string' ? object.error : `Request failed (${response.status})`);
+    }
+    if (!object) throw new Error('Dino Coach returned an unreadable response. Please reload to check your latest saved changes.');
+    return object as T;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error('The fantasy service is taking too long to respond. Please try again shortly.');
@@ -46,8 +71,6 @@ export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}
     throw error;
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abort);
   }
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `Request failed (${response.status})`);
-  return body as T;
 }

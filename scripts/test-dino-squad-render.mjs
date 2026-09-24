@@ -21,7 +21,7 @@ function render(selection, readonlyMode = false, issues = []) {
   const exports = {};
   const div = ({ children }) => React.createElement('div', null, children);
   const imports = {
-    react: { useState: () => [states[index++], () => {}], useEffect: () => {}, useMemo: (fn) => fn() },
+    react: { useState: () => [states[index++], () => {}], useEffect: () => {}, useCallback: (fn) => fn, useMemo: (fn) => fn() },
     'react/jsx-runtime': jsx,
     '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
     'next/link': { default: 'a' },

@@ -40,10 +40,14 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [sendingReset, setSendingReset] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [startingPayment, setStartingPayment] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(false);
+  const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
 
   useEffect(() => {
     if (mode === 'login') return;
     let cancelled = false;
+    setAvailabilityError(false);
+    setRegistrationOpen(null);
     fantasyJsonFetch<any>('/api/fantasy/players')
       .then((result) => {
         if (!cancelled) {
@@ -53,12 +57,12 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       })
       .catch(() => {
         // Fail closed until the current rules and registration state are known.
-        if (!cancelled) setRegistrationOpen(false);
+        if (!cancelled) setAvailabilityError(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, availabilityAttempt]);
 
   useEffect(() => {
     if (mode !== 'account') return;
@@ -260,7 +264,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   if (mode === 'account' && !sessionEmail) {
     return (
-      <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">Sign in to manage your Dino Coach account.</p><Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>
+      <Card><CardContent className="p-6"><p className="font-body text-content-secondary mb-4">Sign in to manage your Dino Coach account.</p>{feedback && <p role="alert" className="mb-4">{feedback.message}</p>}<Link className="btn-primary" href="/fantasy/login">Sign in</Link></CardContent></Card>
     );
   }
 
@@ -279,7 +283,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     <Card>
       <CardContent className="p-6 space-y-4">
         {mode === 'register' && !registrationClosed && <p className="text-sm font-body text-content-secondary">Already have an NDCC account? <Link href="/fantasy/login" className="font-semibold underline">Sign in with your existing account</Link>. You can use Forgot password on the sign-in page if needed.</p>}
-        {mode === 'register' && registrationOpen === null && <p role="status" className="text-sm">Checking registration availability...</p>}
+        {mode === 'register' && registrationOpen === null && !availabilityError && <p role="status" className="text-sm">Checking registration availability...</p>}
+        {availabilityError && <div role="alert" className="space-y-3"><p>Could not check registration availability and the current rules. Please retry.</p><Button variant="secondary" onClick={() => setAvailabilityAttempt(attempt => attempt + 1)}>Retry registration check</Button></div>}
         {registrationClosed && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <p className="text-sm font-body text-amber-900">
