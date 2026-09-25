@@ -1,17 +1,16 @@
 'use client';
 import Link from 'next/link';
 import CashCollections from '@/components/raffle/CashCollections';
+import RaffleSales from '@/components/raffle/RaffleSales';
 import { useEffect, useState } from 'react';
 import PurchaseTabs from '@/components/admin/PurchaseTabs';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { RAFFLE_SAMPLE_REFERENCE, REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_MAX_NUMBER, REVERSE_RAFFLE_MIN_NUMBER, REVERSE_RAFFLE_NUMBER_RANGE_LABEL } from '@/lib/raffle-constants';
 
 type VisibilityMode = 'hidden' | 'scheduled' | 'visible';
 type Campaign = { id:string; code:string; year_code?:string|null; price_cents:number; draw_label:string|null; name:string; active:boolean; public_visibility_mode:VisibilityMode; public_opens_at:string|null };
-type Order = { payment_method?:string; cash_received_at?:string|null; id:string; campaign_id:string; payment_reference:string|null; customer_name:string; customer_email:string; quantity:number; amount_cents:number; status:string; created_at:string; customer_email_sent_at:string|null; staff_email_sent_at:string|null };
 
 function ticketReferenceRule(campaign: Campaign | null) {
   if (!campaign?.year_code) return campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? REVERSE_RAFFLE_NUMBER_RANGE_LABEL : RAFFLE_SAMPLE_REFERENCE;
@@ -32,12 +31,13 @@ function toLocalDateTime(value: string | null) {
 
 export default function AdminRafflePage() {
   const [campaigns,setCampaigns]=useState<Campaign[]>([]);
-  const [campaign,setCampaign]=useState<Campaign|null>(null); const [orders,setOrders]=useState<Order[]>([]);
+  const [campaign,setCampaign]=useState<Campaign|null>(null);
+  const [salesRevision,setSalesRevision]=useState(0);
   const [error,setError]=useState(''); const [message,setMessage]=useState(''); const [saving,setSaving]=useState(false);
-  useEffect(()=>{ void Promise.all([
-    adminFetch('/api/admin/resources/raffleCampaigns').then(r=>parseApiResponse<{data:Campaign[]}>(r)),
-    adminFetch('/api/admin/resources/raffleOrders').then(r=>parseApiResponse<{data:Order[]}>(r)),
-  ]).then(([campaigns,raffleOrders])=>{setCampaigns(campaigns.data || []);setCampaign(campaigns.data?.find(item=>item.id===new URLSearchParams(window.location.search).get('campaign'))||campaigns.data?.find(item=>item.active)||campaigns.data?.[0]||null);setOrders(raffleOrders.data||[]);}).catch(e=>setError(e instanceof Error?e.message:'Could not load raffle administration.')); },[]);
+  useEffect(()=>{ void adminFetch('/api/admin/resources/raffleCampaigns')
+    .then(r=>parseApiResponse<{data:Campaign[]}>(r))
+    .then(result=>{setCampaigns(result.data || []);setCampaign(result.data?.find(item=>item.id===new URLSearchParams(window.location.search).get('campaign'))||result.data?.find(item=>item.active)||result.data?.[0]||null);})
+    .catch(e=>setError(e instanceof Error?e.message:'Could not load raffle administration.')); },[]);
 
   async function saveVisibility() {
     if (!campaign) return;
@@ -59,7 +59,7 @@ export default function AdminRafflePage() {
         {campaign.public_visibility_mode==='scheduled'&&<Input id="raffle-public-opens-at" type="datetime-local" label="Automatically opens at - Melbourne time" value={toLocalDateTime(campaign.public_opens_at)} onChange={e=>setCampaign({...campaign,public_opens_at:e.target.value?new Date(e.target.value).toISOString():null})}/>}<p className="text-sm font-semibold">Current public state: {currentlyVisible?'Visible':'Hidden'}</p><Button onClick={saveVisibility} isLoading={saving}>Save visibility settings</Button></>}
     </section>
     <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created after confirmed card payment or an authorised cash receipt. Staff notifications go to the club, vice-president and secretary raffle recipients.</p></div>
-    {campaign?.code==='NDCCRAF'&&<CashCollections />}
-    <Table><TableHead><TableRow><TableHeader>Purchaser</TableHeader><TableHeader>Quantity</TableHeader><TableHeader>Total</TableHeader><TableHeader>Status</TableHeader><TableHeader>Emails</TableHeader><TableHeader>Created</TableHeader></TableRow></TableHead><TableBody>{orders.filter(o => o.campaign_id === campaign?.id).map(o=><TableRow key={o.id}><TableCell><strong>{o.customer_name}</strong><br/><span className="font-mono text-xs">{o.payment_reference}</span><br/><span className="text-xs">{o.customer_email}</span></TableCell><TableCell>{o.quantity}</TableCell><TableCell>${(o.amount_cents/100).toFixed(2)}</TableCell><TableCell>{o.status}<br/>{o.payment_method === 'cash' ? 'Cash received' : 'Card payment'}</TableCell><TableCell>{o.customer_email_sent_at?'Customer sent':'Customer pending'}<br/>{o.staff_email_sent_at?'Staff sent':'Staff pending'}</TableCell><TableCell>{new Date(o.created_at).toLocaleString('en-AU')}</TableCell></TableRow>)}</TableBody></Table>
+    {campaign?.code==='NDCCRAF'&&<CashCollections onReconciled={()=>setSalesRevision(value=>value+1)} />}
+    <RaffleSales campaign={campaign} refreshKey={salesRevision} />
   </div>;
 }

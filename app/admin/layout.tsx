@@ -29,6 +29,7 @@ type AdminGroup = { title: string; icon: typeof LayoutDashboard; links: AdminLin
 const adminGroups: AdminGroup[] = [
   { title: 'Home', icon: Home, links: [
     { href: '/admin', label: 'Dashboard', plainLabel: 'Home dashboard', icon: LayoutDashboard },
+    { href: '/admin/raffle', label: 'Raffles & Cash Sales', plainLabel: 'Trailer and reverse raffle tickets and collections', icon: Ticket },
   ] },
   { title: 'Season', icon: ClipboardList, links: [
     { href: '/admin/season/new', label: 'Start New Season', plainLabel: 'Season setup wizard', icon: CalendarDays },
@@ -59,7 +60,6 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
     { href: '/admin/apparel', label: 'Merchandise', icon: Shirt },
     { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
-    { href: '/admin/raffle', label: 'Raffle', icon: Ticket },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/payments', label: 'Payments', plainLabel: 'Payments ledger and outstanding balances', icon: CreditCard },
   ] },
