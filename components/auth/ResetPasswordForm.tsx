@@ -9,7 +9,10 @@ import { getFantasyBrowserClient, isFantasySupabaseConfigured } from '@/lib/fant
 
 type Status = 'checking' | 'ready' | 'no-session' | 'done';
 
-export default function ResetPasswordForm() {
+export default function ResetPasswordForm({ context = 'fantasy' }: { context?: 'club' | 'fantasy' }) {
+  const isClub = context === 'club';
+  const resetPath = isClub ? '/club-account/reset-password' : '/fantasy/reset-password';
+  const signInPath = isClub ? '/club-account' : '/fantasy/login';
   const [status, setStatus] = useState<Status>('checking');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,7 +22,7 @@ export default function ResetPasswordForm() {
   useEffect(() => {
     if (!isFantasySupabaseConfigured) {
       setStatus('no-session');
-      setError('Dino Coach sign-in is not configured yet.');
+      setError('Account sign-in is not configured yet.');
       return;
     }
 
@@ -41,7 +44,7 @@ export default function ResetPasswordForm() {
           setError(`This password reset link could not be completed: ${exchangeError.message}`);
           return;
         }
-        window.history.replaceState({}, '', '/fantasy/reset-password');
+        window.history.replaceState({}, '', resetPath);
       }
       const { data } = await client.auth.getSession();
       setStatus((current) => (current === 'done' || current === 'ready' ? current : data.session ? 'ready' : 'no-session'));
@@ -53,7 +56,7 @@ export default function ResetPasswordForm() {
     });
 
     return () => subscription.subscription.unsubscribe();
-  }, []);
+  }, [resetPath]);
 
   const savePassword = async () => {
     setError(null);
@@ -91,8 +94,7 @@ export default function ResetPasswordForm() {
             This page needs a valid password reset link. Open the most recent reset email on this device, or request a new link from the sign-in page.
           </p>
           {error && <p className="text-sm font-body text-red-600">{error}</p>}
-          <Link href="/club-account" className="btn-secondary">My club account</Link>
-            <Link href="/fantasy/login" className="btn-primary">Go to sign in</Link>
+          <Link href={signInPath} className="btn-primary">{isClub ? 'Back to my club account' : 'Go to sign in'}</Link>
         </CardContent>
       </Card>
     );
@@ -102,11 +104,9 @@ export default function ResetPasswordForm() {
     return (
       <Card>
         <CardContent className="p-6 space-y-4">
-          <p className="font-body text-green-700">Your password has been updated. You can now use it to sign in to your club or Dino Coach account.</p>
+          <p className="font-body text-green-700">Your password has been updated. You can now return to your {isClub ? 'club' : 'Dino Coach'} account.</p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/club-account" className="btn-secondary">My club account</Link>
-            <Link href="/fantasy/login" className="btn-primary">Go to sign in</Link>
-            <Link href="/fantasy/account" className="btn-secondary">My Dino Coach account</Link>
+            <Link href={isClub ? '/club-account' : '/fantasy/account'} className="btn-primary">{isClub ? 'My club account' : 'My Dino Coach account'}</Link>
           </div>
         </CardContent>
       </Card>
@@ -116,8 +116,8 @@ export default function ResetPasswordForm() {
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
-        <Input id="newPassword" label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-        <Input id="confirmPassword" label="Confirm new password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+        <Input id="newPassword" label="New password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <Input id="confirmPassword" label="Confirm new password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
         {error && <p className="text-sm font-body text-red-600">{error}</p>}
         <Button onClick={savePassword} isLoading={saving}>Set new password</Button>
       </CardContent>

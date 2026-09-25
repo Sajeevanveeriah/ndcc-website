@@ -5,7 +5,7 @@ export function authEmailReturnPath(pathname: string, hash: string): string | nu
   const values = new URLSearchParams(hash.replace(/^#/, ''));
   if (!values.get('access_token') || !values.get('refresh_token')) return null;
   const type = values.get('type');
-  if (type === 'recovery') return '/fantasy/reset-password';
-  if (type === 'signup' || type === 'magiclink' || type === 'email_change') return '/fantasy/account';
+  if (type === 'recovery') return '/club-account/reset-password';
+  if (type === 'signup' || type === 'magiclink' || type === 'email_change') return '/club-account';
   return null;
 }
