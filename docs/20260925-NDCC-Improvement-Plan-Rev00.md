@@ -230,7 +230,12 @@ Bank details also fall back to blanks:
 
 **Tasks**
 1. Add `isBankTransferConfigured()`, which returns true only when all three `NDCC_BANK_*` variables are non-empty.
-2. In each of the four routes, load `deriveCapabilities(await loadMerchPaymentSettings(db))`. Reject `bank_transfer` with 400 when it is disabled or not configured. Reject `stripe` with 400 when card is not armed.
+2. Load `deriveCapabilities(await loadMerchPaymentSettings(db))` in each of the four routes.
+   - **`/api/orders`** is the only route that receives a `payment_method`. Reject `bank_transfer` with 400 when it is disabled or not configured, and reject `stripe` with 400 when card is not armed.
+   - **Memberships, events and kitchen** (`app/api/memberships/route.ts`, `app/api/events/route.ts`, `app/api/kitchen/orders/route.ts`) receive no payment method. They create a pending order first; card checkout is then offered afterwards through `OrderPaymentOptions` and `/api/payments/checkout-session`.
+     - Do **not** treat their `pending_bank_transfer` status as a bank-transfer choice. Doing so would reject every card-only order whenever bank transfer is switched off.
+     - Allow order creation whenever at least one payment path is available (card armed, or bank transfer enabled and configured). Return 503 only when neither is available.
+     - Include bank details in the response or email only when bank transfer is enabled and configured.
 3. Never render the bank-details block, in email or JSON, unless it is configured. Remove the `'NDCC'` default.
 4. Tests for each rejection path.
 
@@ -251,7 +256,11 @@ Bank details also fall back to blanks:
 
 **Tasks** (once decided)
 1. Add an `adminOnlyWrite` flag that is checked before the full-access shortcut, or derive the resource roles from `lib/auth/permissions.ts` so there is one source of truth.
-2. Remove `payment_status` and raffle `status` from the generic `allowedFields`. Money state should change only through the ledger RPCs and the dedicated admin payment routes.
+2. Move payment-state writes off the generic endpoint, **but only after a replacement exists**:
+   - Event registrations have no dedicated payment route today. The "Mark Paid / Mark Unpaid" button in `app/admin/events/page.tsx` (around lines 221 and 381) PATCHes `payment_status` through `/api/admin/resources/eventRegistrations`.
+   - First add a dedicated admin route for event-registration payments that records through the payment ledger, and point the button at it.
+   - Only then remove `payment_status` (events and kitchen) and raffle `status` from the generic `allowedFields`.
+   - Check every admin page that PATCHes these fields before removing them (`grep -rn "payment_status\|resources/raffleOrders" app/admin`).
 3. Extend `test:admin-permissions` to cover these cases.
 
 **Rollback:** revert the PR.
@@ -489,14 +498,25 @@ Acceptance: screenshots at 390px and 1440px, light and dark, show the gutter fix
   - replace the bare "Loading..." / "Redirecting..." text with a skeleton
 
 ### WP-18 (P2) Images and performance
-1. Run the existing `scripts/optimise-public-images.mjs` over the public images larger than 300 KB. Largest first:
+1. Recompress the public images larger than 300 KB. The existing `scripts/optimise-public-images.mjs` covers only part of this list:
+   - It converts only PNG/JPEG to WebP. It does not recompress existing WebP files.
+   - It skips `/downloads/`.
+   - It deliberately keeps `/images/logo.jpg` and `/images/reverse-raffle-logo.png`, because receipt and raffle-ticket PDFs embed them. **Do not convert or rename these two files.**
+
+   So:
+   - Run the script for the PNG/JPEG images.
+   - Extend it (or add a companion script) to recompress existing WebP files in place with `sharp`, at the same quality setting.
+   - Leave `/downloads/` files in their published format. Recompressing the Club Song PNG losslessly is optional.
+   - Handle the logo only through the new favicon and OG files in WP-12.
+
+   The images, largest first:
    - `images/events/2026/dino-lotto-2026.webp` (1.0 MB)
    - `Turf.jpg` (848 KB)
    - `division-4-first-xi-premiers-2025-26.webp` (775 KB)
    - `Womens_Teams_2.jpg` (748 KB)
    - the Club Song PNG download (737 KB)
    - `apparel-sponsorship-2026-27.webp` (722 KB)
-   - `logo.jpg` (367 KB)
+   - `logo.jpg` (367 KB): do not convert (PDF dependency, see above); addressed through WP-12
    - player portraits between 360 and 555 KB
 
    Keep the old URLs working through `lib/asset-redirects.json`.
