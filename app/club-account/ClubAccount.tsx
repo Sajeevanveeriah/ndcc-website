@@ -1,14 +1,16 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fantasyJsonFetch, getFantasyBrowserClient, isFantasySupabaseConfigured } from '@/lib/fantasy-browser';
+import { getFantasyBrowserClient, isFantasySupabaseConfigured } from '@/lib/fantasy-browser';
+import { clubAccountJsonFetch } from '@/lib/club-account/browser';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import MemberDashboard from '@/components/club-account/MemberDashboard';
 import type { ClubMemberInput } from '@/lib/club-members';
 type Profile = ClubMemberInput & { membership_status: string };
 export default function ClubAccount() {
  const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [signedIn,setSignedIn]=useState(false);
- const [profileLoaded,setProfileLoaded]=useState(false);
+ const [profileLoaded,setProfileLoaded]=useState(false); const [profileSaved,setProfileSaved]=useState(false);
  const [register,setRegister]=useState(false); const [busy,setBusy]=useState(false); const [ready,setReady]=useState(false);
  const [message,setMessage]=useState(''); const [error,setError]=useState(''); const [accepted,setAccepted]=useState(false);
  const [retryLoad,setRetryLoad]=useState(false);
@@ -20,7 +22,7 @@ export default function ClubAccount() {
    const client=getFantasyBrowserClient(); const code=new URLSearchParams(window.location.search).get('code');
    if(code){ const result=await client.auth.exchangeCodeForSession(code); if(result.error)throw result.error; window.history.replaceState({},'', '/club-account'); }
    const {data,error:sessionError}=await client.auth.getSession(); if(sessionError)throw sessionError; setSignedIn(Boolean(data.session));
-   if(data.session){const result=await fantasyJsonFetch<{profile:Profile|null;email:string}>('/api/club-account');setEmail(result.email);setProfile(result.profile||{full_name:'',email:result.email,phone:'',member_type:'social',membership_status:'pending'});setAccepted(false);setProfileLoaded(true);}
+   if(data.session){const result=await clubAccountJsonFetch<{profile:Profile|null;email:string}>('/api/club-account');setEmail(result.email);setProfileSaved(Boolean(result.profile));setProfile(result.profile||{full_name:'',email:result.email,phone:'',member_type:'social',membership_status:'pending'});setAccepted(false);setProfileLoaded(true);}
   }catch(reason){setRetryLoad(true);setError(reason instanceof Error?reason.message:'Unable to load account.');}finally{setReady(true);}
  },[]);
  useEffect(()=>{void load();},[load]);
@@ -39,7 +41,7 @@ export default function ClubAccount() {
   }catch(reason){setError(reason instanceof Error?reason.message:'Unable to sign in.');}finally{setBusy(false);}
  };
  const save=async(event:React.FormEvent)=>{event.preventDefault();if(!profileLoaded)return;setBusy(true);setError('');setMessage('');try{
-  const result=await fantasyJsonFetch<{profile:Profile}>('/api/club-account',{method:'POST',body:JSON.stringify({...profile,privacyAccepted:accepted})});setProfile(result.profile);setMessage('Your details are saved. Membership and playing registration are confirmed separately by the club.');
+  const result=await clubAccountJsonFetch<{profile:Profile}>('/api/club-account',{method:'POST',body:JSON.stringify({...profile,privacyAccepted:accepted})});setProfile(result.profile);setProfileSaved(true);setMessage('Your details are saved. Membership and playing registration are confirmed separately by the club.');
  }catch(reason){setError(reason instanceof Error?reason.message:'Unable to save.');}finally{setBusy(false);}};
  const reset=async(event:React.MouseEvent<HTMLButtonElement>)=>{
   const emailInput=event.currentTarget.form?.elements.namedItem('email') as HTMLInputElement|null;
@@ -57,11 +59,11 @@ export default function ClubAccount() {
  <Input id="club-password" name="password" type="password" label="Password" autoComplete={register?'new-password':'current-password'} minLength={register?8:undefined} value={password} onChange={e=>setPassword(e.target.value)} required />
  {register&&<p className="text-sm">Read our <Link className="underline" href="/privacy">privacy statement</Link> before creating an account.</p>}
  <div className="flex flex-wrap gap-3"><Button type="submit" isLoading={busy}>{register?'Create account':'Sign in'}</Button><Button type="button" variant="secondary" disabled={busy} onClick={()=>{setRegister(!register);setError('');setRetryLoad(false);setMessage('');}}>{register?'Already have an account?':'Create an account'}</Button><Button type="button" variant="secondary" disabled={busy} onClick={reset}>Reset password</Button></div>{busy&&<p role="status">Contacting the account service...</p>}</form>:
- <><form onSubmit={save} className="space-y-4"><p>Signed in as {email}</p><Input id="club-name" label="Full name" maxLength={120} value={profile.full_name} onChange={e=>setProfile({...profile,full_name:e.target.value})} required /><Input id="club-phone" type="tel" label="Phone (optional)" maxLength={40} value={profile.phone} onChange={e=>setProfile({...profile,phone:e.target.value})} />
+ <><MemberDashboard key={email} email={email} name={profile.full_name} status={profile.membership_status} profileComplete={profileSaved}><form onSubmit={save} className="space-y-4"><p>Signed in as {email}</p><Input id="club-name" label="Full name" maxLength={120} value={profile.full_name} onChange={e=>setProfile({...profile,full_name:e.target.value})} required /><Input id="club-phone" type="tel" label="Phone (optional)" maxLength={40} value={profile.phone} onChange={e=>setProfile({...profile,phone:e.target.value})} />
  <label className="block">I am interested in<select className="form-input mt-1 w-full" value={profile.member_type} onChange={e=>setProfile({...profile,member_type:e.target.value as Profile['member_type']})}><option value="player">Playing</option><option value="social">Social membership</option><option value="both">Playing and social membership</option></select></label>
  <p>Club record: {profile.membership_status}. This account does not replace PlayHQ player registration or membership payment.</p>
  <label className="flex gap-3"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)} required /><span>I have read the <Link href="/privacy" className="underline">privacy statement</Link> and understand how the club uses these details.</span></label><Button disabled={busy||!accepted||!profileLoaded}>Save my details</Button></form>
- <nav aria-label="Club services" className="grid gap-3 sm:grid-cols-2">{[['/news','Club news'],['/calendar','Club calendar'],['/player-registration','Player registration'],['/join','Social membership'],['/pot-club','Pot Club'],['/fantasy/account','Dino Coach'],['/raffle/cash','Record trailer raffle cash sales']].map(([href,label])=><Link className="btn-secondary" key={href} href={href}>{label}</Link>)}</nav>
+ </MemberDashboard>
  <Button variant="secondary" disabled={busy} onClick={async()=>{setBusy(true);try{const {error}=await getFantasyBrowserClient().auth.signOut();if(error)throw error;setSignedIn(false);setMessage('Signed out.');}catch(reason){setError(reason instanceof Error?reason.message:'Sign out failed.');}finally{setBusy(false);}}}>Sign out</Button></>}
  </div>;
 }

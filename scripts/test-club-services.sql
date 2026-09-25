@@ -100,4 +100,28 @@ begin
  or has_function_privilege('anon','public.record_member_cash_trailer_sale(uuid,uuid,text,text,text,integer,integer)','EXECUTE')
  or has_function_privilege('service_role','public.record_trailer_cash_sale_for_collector(uuid,uuid,text,text,text,text,integer,integer)','EXECUTE') then raise exception 'Collector checks exposed for direct calls'; end if;
 end $$;
+do $$
+declare mid uuid;
+begin
+ if has_table_privilege('anon','public.club_account_preferences','SELECT')
+ or has_table_privilege('authenticated','public.club_account_preferences','UPDATE')
+ or not has_table_privilege('service_role','public.club_account_preferences','INSERT') then
+  raise exception 'Member preference table grants are unsafe';
+ end if;
+ if not (select relrowsecurity from pg_class where oid='public.club_account_preferences'::regclass) then raise exception 'Preference RLS missing'; end if;
+ insert into public.club_members(full_name,email,member_type) values('Preference test','preferences@example.invalid','social') returning id into mid;
+ insert into public.club_account_preferences(member_id) values(mid);
+ if (select email_updates from public.club_account_preferences where member_id=mid) then raise exception 'Email consent must default to false'; end if;
+ update public.club_account_preferences set interests=array['club_news'],volunteering=array['events'],email_updates=true where member_id=mid;
+ begin
+  update public.club_account_preferences set interests=array['admin'] where member_id=mid;
+  raise exception 'Invalid preference accepted';
+ exception when check_violation then null; end;
+ begin
+  update public.club_account_preferences set volunteering=array[null]::text[] where member_id=mid;
+  raise exception 'Null volunteering choice accepted';
+ exception when check_violation then null; end;
+ delete from public.club_members where id=mid;
+ if exists(select 1 from public.club_account_preferences where member_id=mid) then raise exception 'Orphan preferences remain'; end if;
+end $$;
 rollback;
