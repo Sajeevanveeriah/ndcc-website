@@ -25,17 +25,22 @@ const common = {
 const button = (tree, text) => tree.root.findAllByType('button').find(node => node.children.includes(text));
 const text = tree => JSON.stringify(tree.toJSON());
 const change = (tree, id, value) => act(async () => tree.root.findByProps({ id }).props.onChange({ target: { value } }));
+const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByType('form').props.onSubmit({
+  preventDefault() {}, currentTarget: { elements: { namedItem(name) {
+    return { value: fields[name] ?? tree.root.findByProps({ id: `club-${name}` }).props.value };
+  } } },
+}));
 
 (async () => {
   // Execute the real component with isolated auth/API adapters, never live credentials.
-  let session = null, accountProfile = null, profileFails = false, saved;
+  let session = null, accountProfile = null, profileFails = false, authFails = false, saved, resetEmail;
   const authCalls = [];
   const auth = {
     getSession: async () => ({ data: { session } }),
-    signInWithPassword: async input => { authCalls.push(input); session = { user: { email: input.email } }; return { data: { session } }; },
+    signInWithPassword: async input => { authCalls.push(input); if(authFails)return {error:new Error('Invalid login credentials')}; session = { user: { email: input.email } }; return { data: { session } }; },
     signUp: async input => { authCalls.push(input); return { data: { session: null } }; },
     signOut: async () => { session = null; return {}; },
-    resetPasswordForEmail: async () => ({}),
+    resetPasswordForEmail: async email => { resetEmail=email; return {}; },
   };
   const Account = load('app/club-account/ClubAccount.tsx', { ...common,
     '@/lib/fantasy-browser': {
@@ -52,13 +57,19 @@ const change = (tree, id, value) => act(async () => tree.root.findByProps({ id }
   await act(async () => button(account, 'Create an account').props.onClick());
   await change(account, 'club-email', 'member@example.invalid');
   await change(account, 'club-password', 'isolated-test-password');
-  await act(async () => account.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  await submitAccount(account,{email:' SIGNUP@EXAMPLE.INVALID ',password:'autofilled-signup-password'});
   assert.match(text(account), /Check your email to confirm/);
   assert.equal(authCalls[0].options.emailRedirectTo, 'https://example.invalid/club-account');
+  assert.equal(authCalls[0].email, 'signup@example.invalid');
+  assert.equal(authCalls[0].password, 'autofilled-signup-password');
   assert.equal(account.root.findByProps({ id: 'club-password' }).props.value, '');
   await act(async () => button(account, 'Already have an account?').props.onClick());
   profileFails = true;
-  await act(async () => account.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  // Password managers can populate the form without updating React state.
+  // Submit must use the visible controls, including meaningful password spaces.
+  await submitAccount(account, { email: ' AUTOFILLED@EXAMPLE.INVALID ', password: '  filled-password  ' });
+  assert.equal(authCalls[1].email, 'autofilled@example.invalid');
+  assert.equal(authCalls[1].password, '  filled-password  ');
   assert.match(text(account), /Profile unavailable/);
   assert.equal(button(account, 'Save my details').props.disabled, true);
   profileFails = false;
@@ -66,15 +77,27 @@ const change = (tree, id, value) => act(async () => tree.root.findByProps({ id }
   await change(account, 'club-name', 'Test Member');
   await act(async () => account.root.findByProps({ type: 'checkbox' }).props.onChange({ target: { checked: true } }));
   assert.equal(button(account, 'Save my details').props.disabled, false);
-  await act(async () => account.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  await submitAccount(account);
   assert.equal(saved.full_name, 'Test Member'); assert.equal(saved.privacyAccepted, true);
   assert.match(text(account), /Your details are saved/);
   await act(async () => button(account, 'Sign out').props.onClick());
   accountProfile = null;
   await change(account, 'club-email', 'second@example.invalid');
-  await act(async () => account.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  await submitAccount(account);
   assert.equal(account.root.findByProps({ id: 'club-name' }).props.value, '', 'A different account must not inherit the previous profile');
   assert.equal(account.root.findByProps({ type: 'checkbox' }).props.checked, false);
+  await act(async () => button(account, 'Sign out').props.onClick());
+  authFails=true;
+  await submitAccount(account,{email:'correct@example.invalid',password:'current-password'});
+  assert.match(text(account),/Invalid login credentials/);
+  assert.equal(button(account,'Retry loading account'),undefined,'A rejected password must not offer a profile-loading retry');
+  assert.equal(button(account,'Sign in').props.isLoading,false,'A rejected request releases the busy state');
+  assert.equal(account.root.findByProps({id:'club-password'}).props.value,'current-password');
+  await change(account,'club-email','');
+  assert.equal(button(account,'Reset password').props.disabled,false,'Autofilled email can be present when React state is empty');
+  await act(async()=>button(account,'Reset password').props.onClick({currentTarget:{form:{elements:{namedItem:()=>({value:' RESET@EXAMPLE.INVALID ',reportValidity:()=>true})}}}}));
+  assert.equal(resetEmail,'reset@example.invalid');
+  assert.match(text(account),/password reset email has been sent/);
   await act(async () => account.unmount());
 
   const firstKey = '00000000-0000-4000-8000-000000000001';
