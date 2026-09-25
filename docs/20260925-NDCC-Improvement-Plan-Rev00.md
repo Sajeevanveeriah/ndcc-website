@@ -121,7 +121,12 @@ Nothing was changed in any connected service.
 These were verified as working well. Do not weaken them while making changes.
 
 **Payments**
-- Only the Stripe webhook marks anything as paid. The browser redirect never does.
+- For card payments, only the Stripe webhook marks anything as paid. The browser redirect never does.
+- Staff can also mark payments manually (for bank transfers and cash), and these paths must keep working:
+  - The event admin page PATCHes `eventRegistrations.payment_status` through `/api/admin/resources/[resource]` (see WP-04).
+  - The kitchen admin page sends `payment_status` to `/api/admin/kitchen/orders`. Its PATCH handler writes the value straight to the database (`app/api/admin/kitchen/orders/route.ts:27-31`).
+  - Bank transfers imported from the bank are confirmed through `/api/admin/payments/ambiguous` using `confirm_imported_order_payment`.
+  - Committee members and club members record cash raffle sales through the cash-sale RPCs.
 - Amounts are always recomputed on the server.
 - Settlement is idempotent through RPCs.
 - Refunds and disputes that arrive early are stored and replayed.
@@ -193,7 +198,8 @@ These were verified as working well. Do not weaken them while making changes.
 
 **Acceptance**
 - Over 7 days, the Vercel runtime error clusters for AbortError on public routes fall by at least 80%.
-- No public page renders an error boundary because of a Supabase read.
+- No dynamic public page, and no ISR page that has rendered successfully before, shows an error boundary because of a Supabase read. Pages that were already rendered keep serving their last good version.
+- The only exception: the first render of a detail page with nothing cached yet, while Supabase is failing. That render may show the route's friendly `error.tsx` page, but never a raw error.
 - `npm test` passes, including `test:public-read-cache` and `test:cms-reliability`.
 
 **Rollback:** revert the PR. No schema change.
@@ -225,7 +231,10 @@ These were verified as working well. Do not weaken them while making changes.
 
 **Acceptance:** tests prove that a held number is released on async failure and by the sweep, and that a paid order is never cancelled.
 
-**Rollback:** revert the PR. No schema change is expected. If one is added, it must be additive only.
+**Rollback:**
+- **Code:** revert the PR.
+- **Database:** the additive `raffle_orders.sweep_checked_at` column and the sweep RPC stay in place after a code revert, and they are harmless there because nothing reads them.
+- To remove them completely, add a forward migration: `DROP FUNCTION IF EXISTS public.<sweep_rpc>(...)`, then `ALTER TABLE public.raffle_orders DROP COLUMN IF EXISTS sweep_checked_at`.
 
 ---
 
@@ -299,8 +308,8 @@ Bank details also fall back to blanks:
 - Stripe retries for about 3 days and then gives up. The money has been captured, but there is no ledger row and at most a `console.error`.
 
 **Tasks**
-1. Add a migration creating `stripe_unmatched_settlements` with these columns: event id (unique), session id, payment intent, amount, reason, `created_at` and `resolved_at`. Enable RLS with no policies (service-role only).
-2. On a deterministic mismatch, insert a row and log `[stripe_settlement_unmatched]`. Keep the current non-2xx response until the resolution path in item 4 has shipped; only then switch to returning 200. Keep retryable failures (a database outage) on 5xx.
+1. Add a migration creating `stripe_unmatched_settlements` with these columns: event id (unique), session id, payment intent, amount, reason, `created_at`, `last_seen_at`, `delivery_count` and `resolved_at`. Enable RLS with no policies (service-role only).
+2. On a deterministic mismatch, record the row idempotently with `INSERT ... ON CONFLICT (event_id) DO UPDATE`. Update only `last_seen_at` and a delivery count, and never overwrite `resolved_at` or any resolution fields. Stripe redelivers the same event id while the handler still answers non-2xx, and a plain insert would fail on that redelivery. Then log `[stripe_settlement_unmatched]`. Keep the current non-2xx response until the resolution path in item 4 has shipped; only then switch to returning 200. Keep retryable failures (a database outage) on 5xx.
 3. Show unresolved rows in the existing `/api/admin/payments/ambiguous` view. **This alone is not enough:** that route's POST only settles `imported_transactions` through `confirm_imported_order_payment`, so it cannot settle a Stripe row.
 4. Build a resolution path **before** switching the webhook to return 200. Once the webhook answers 200, Stripe stops retrying, so without this path a captured payment would stay unapplied forever.
    - Add an admin-only "Reprocess" action, for staff to use after they have repaired the ledger row or the metadata.
