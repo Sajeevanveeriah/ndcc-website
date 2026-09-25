@@ -141,7 +141,7 @@ test('uses Dino Coach branding on current participant surfaces', () => {
     'app/fantasy/leaderboard/page.tsx',
     'app/fantasy/manager-leaderboard/page.tsx',
     'app/fantasy/_components/FantasyAuthForms.tsx',
-    'app/fantasy/_components/ResetPasswordForm.tsx',
+    'components/auth/ResetPasswordForm.tsx',
     'app/admin/fantasy/page.tsx',
     'app/admin/fantasy/import/page.tsx',
     'components/fantasy/FantasyBackLink.tsx',

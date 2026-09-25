@@ -33,14 +33,14 @@ const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByTyp
 
 (async () => {
   // Execute the real component with isolated auth/API adapters, never live credentials.
-  let session = null, accountProfile = null, profileFails = false, authFails = false, saved, resetEmail;
+  let session = null, accountProfile = null, profileFails = false, authFails = false, saved, resetEmail, resetOptions;
   const authCalls = [];
   const auth = {
     getSession: async () => ({ data: { session } }),
     signInWithPassword: async input => { authCalls.push(input); if(authFails)return {error:new Error('Invalid login credentials')}; session = { user: { email: input.email } }; return { data: { session } }; },
     signUp: async input => { authCalls.push(input); return { data: { session: null } }; },
     signOut: async () => { session = null; return {}; },
-    resetPasswordForEmail: async email => { resetEmail=email; return {}; },
+    resetPasswordForEmail: async (email, options) => { resetEmail=email; resetOptions=options; return {}; },
   };
   const Account = load('app/club-account/ClubAccount.tsx', { ...common,
     '@/lib/fantasy-browser': {
@@ -97,8 +97,47 @@ const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByTyp
   assert.equal(button(account,'Reset password').props.disabled,false,'Autofilled email can be present when React state is empty');
   await act(async()=>button(account,'Reset password').props.onClick({currentTarget:{form:{elements:{namedItem:()=>({value:' RESET@EXAMPLE.INVALID ',reportValidity:()=>true})}}}}));
   assert.equal(resetEmail,'reset@example.invalid');
+  assert.equal(resetOptions.redirectTo,'https://example.invalid/club-account/reset-password');
   assert.match(text(account),/password reset email has been sent/);
   await act(async () => account.unmount());
+
+  let recoverySession = null, updatedPassword, cleanedPath;
+  const Reset = load('components/auth/ResetPasswordForm.tsx', { ...common,
+    '@/components/ui/Card': { default: props => React.createElement('div', props), CardContent: props => React.createElement('div', props) },
+    '@/lib/fantasy-browser': { isFantasySupabaseConfigured: true, getFantasyBrowserClient: () => ({ auth: {
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      getSession: async () => ({ data: { session: recoverySession } }),
+      exchangeCodeForSession: async () => ({ error: null }),
+      updateUser: async ({ password }) => { updatedPassword = password; return { error: null }; },
+    } }) },
+  }, { window: { location: { search: '?code=isolated-test-code' }, history: { replaceState(_state, _title, path) { cleanedPath = path; } } } });
+  let reset;
+  await act(async () => { reset = create(React.createElement(Reset, { context: 'club' })); });
+  assert.equal(cleanedPath, '/club-account/reset-password');
+  assert.deepEqual(reset.root.findAllByType('a').map(node => node.props.href), ['/club-account']);
+  assert.doesNotMatch(text(reset), /Dino Coach|fantasy/);
+  await act(async () => reset.unmount());
+  recoverySession = { user: { id: 'isolated-member' } };
+  await act(async () => { reset = create(React.createElement(Reset, { context: 'club' })); });
+  await change(reset, 'newPassword', 'isolated-new-password');
+  await change(reset, 'confirmPassword', 'different-password');
+  await act(async () => button(reset, 'Set new password').props.onClick());
+  assert.equal(updatedPassword, undefined);
+  assert.match(text(reset), /do not match/);
+  await change(reset, 'confirmPassword', 'isolated-new-password');
+  await act(async () => button(reset, 'Set new password').props.onClick());
+  assert.equal(updatedPassword, 'isolated-new-password');
+  assert.match(text(reset), /Your password has been updated/);
+  assert.deepEqual(reset.root.findAllByType('a').map(node => node.props.href), ['/club-account']);
+  assert.doesNotMatch(text(reset), /Dino Coach|fantasy/);
+  await act(async () => reset.unmount());
+  await act(async () => { reset = create(React.createElement(Reset)); });
+  assert.equal(cleanedPath, '/fantasy/reset-password');
+  await change(reset, 'newPassword', 'isolated-new-password');
+  await change(reset, 'confirmPassword', 'isolated-new-password');
+  await act(async () => button(reset, 'Set new password').props.onClick());
+  assert.deepEqual(reset.root.findAllByType('a').map(node => node.props.href), ['/fantasy/account']);
+  await act(async () => reset.unmount());
 
   const firstKey = '00000000-0000-4000-8000-000000000001';
   let location = { href: `https://example.invalid/admin/raffle/cash?sale=${firstKey}` };

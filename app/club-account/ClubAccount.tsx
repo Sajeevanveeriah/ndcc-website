@@ -46,7 +46,7 @@ export default function ClubAccount() {
   if(!emailInput?.reportValidity())return;
   const submittedEmail=emailInput.value.trim().toLowerCase();
   setEmail(submittedEmail);setBusy(true);setError('');setRetryLoad(false);setMessage('');
-  try{const {error}=await getFantasyBrowserClient().auth.resetPasswordForEmail(submittedEmail,{redirectTo:`${window.location.origin}/fantasy/reset-password`});if(error)throw error;setMessage('If an account matches, a password reset email has been sent.');}catch(reason){setError(reason instanceof Error?reason.message:'Unable to send reset.');}finally{setBusy(false);}
+  try{const {error}=await getFantasyBrowserClient().auth.resetPasswordForEmail(submittedEmail,{redirectTo:`${window.location.origin}/club-account/reset-password`});if(error)throw error;setMessage('If an account matches, a password reset email has been sent.');}catch(reason){setError(reason instanceof Error?reason.message:'Unable to send reset.');}finally{setBusy(false);}
  };
  if(!ready)return <p role="status">Loading your account...</p>;
  return <div className="space-y-6">

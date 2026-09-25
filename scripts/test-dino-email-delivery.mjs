@@ -13,9 +13,11 @@ for (const page of ['app/fantasy/page.tsx','app/fantasy/rules/page.tsx']) {
 }
 
 const fragment = '#access_token=demo&refresh_token=demo&type=signup';
-assert.equal(authEmailReturnPath('/', fragment), '/fantasy/account');
-assert.equal(authEmailReturnPath('/', fragment.replace('signup','recovery')), '/fantasy/reset-password');
+assert.equal(authEmailReturnPath('/', fragment), '/club-account');
+assert.equal(authEmailReturnPath('/', fragment.replace('signup','recovery')), '/club-account/reset-password');
 assert.equal(authEmailReturnPath('/fantasy/account', fragment), null);
+assert.equal(authEmailReturnPath('/fantasy/reset-password', fragment.replace('signup','recovery')), null);
+assert.equal(authEmailReturnPath('/club-account/reset-password', fragment.replace('signup','recovery')), null);
 assert.equal(authEmailReturnPath('/', '#access_token=x&type=signup'), null);
 assert.equal(authEmailReturnPath('/', fragment.replace('signup','https://evil.invalid')), null);
 console.log('PASS confirmation fallback, recovery, no loop and fixed local destinations');
