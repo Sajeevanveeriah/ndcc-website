@@ -23,7 +23,7 @@ export async function fantasyAuthHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
+export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}, errors?: { unreadable: string; timeout: string }): Promise<T> {
   const headers = new Headers(options.headers);
   const authHeaders = await fantasyAuthHeaders();
   for (const [key, value] of Object.entries(authHeaders)) headers.set(key, value);
@@ -62,11 +62,11 @@ export async function fantasyJsonFetch<T>(url: string, options: RequestInit = {}
     if (!response.ok || object?.success === false) {
       throw new Error(typeof object?.error === 'string' ? object.error : `Request failed (${response.status})`);
     }
-    if (!object) throw new Error('Dino Coach returned an unreadable response. Please reload to check your latest saved changes.');
+    if (!object) throw new Error(errors?.unreadable || 'Dino Coach returned an unreadable response. Please reload to check your latest saved changes.');
     return object as T;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('The fantasy service is taking too long to respond. Please try again shortly.');
+      throw new Error(errors?.timeout || 'The fantasy service is taking too long to respond. Please try again shortly.');
     }
     throw error;
   } finally {

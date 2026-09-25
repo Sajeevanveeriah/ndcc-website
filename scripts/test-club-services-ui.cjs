@@ -43,9 +43,11 @@ const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByTyp
     resetPasswordForEmail: async (email, options) => { resetEmail=email; resetOptions=options; return {}; },
   };
   const Account = load('app/club-account/ClubAccount.tsx', { ...common,
+    '@/components/club-account/MemberDashboard': { default: props => React.createElement(React.Fragment, null, props.children) },
     '@/lib/fantasy-browser': {
       isFantasySupabaseConfigured: true, getFantasyBrowserClient: () => ({ auth }),
-      fantasyJsonFetch: async (_url, options) => {
+    },
+    '@/lib/club-account/browser': { clubAccountJsonFetch: async (_url, options) => {
         if (profileFails) throw new Error('Profile unavailable');
         if (options?.method === 'POST') { saved = JSON.parse(options.body); accountProfile = { ...saved, membership_status: 'pending' }; }
         return { profile: accountProfile, email: session.user.email };
