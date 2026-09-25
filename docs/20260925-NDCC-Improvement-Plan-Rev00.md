@@ -283,7 +283,10 @@ Bank details also fall back to blanks:
 2. On a deterministic mismatch, insert a row and log `[stripe_settlement_unmatched]`. Keep the current non-2xx response until the resolution path in item 4 has shipped; only then switch to returning 200. Keep retryable failures (a database outage) on 5xx.
 3. Show unresolved rows in the existing `/api/admin/payments/ambiguous` view. **This alone is not enough:** that route's POST only settles `imported_transactions` through `confirm_imported_order_payment`, so it cannot settle a Stripe row.
 4. Build a resolution path **before** switching the webhook to return 200. Once the webhook answers 200, Stripe stops retrying, so without this path a captured payment would stay unapplied forever.
-   - Add an admin-only "Reprocess" action. It retrieves the stored Stripe event and runs it through the same idempotent settlement handler the webhook uses, then sets `resolved_at` when it succeeds. Staff use it after they have repaired the ledger row or the metadata.
+   - Add an admin-only "Reprocess" action, for staff to use after they have repaired the ledger row or the metadata.
+     - **Do not replay the stored event.** The Stripe event's `data.object` is a frozen snapshot of the session, so replaying it would repeat the same mismatch even after staff fix the metadata.
+     - Instead, retrieve the **current** Checkout Session from Stripe using the stored session id, re-verify that it is paid, its currency and its amount, and pass that live session to the same idempotent settlement function the webhook uses. Refactor the handlers so that function accepts a session, not only an event.
+     - Set `resolved_at` when it succeeds.
    - Add a "Resolve as refunded or handled manually" action that records who resolved the row and why.
    - Test both actions, and test that reprocessing twice never settles a payment twice.
 4. Wrap the dispatcher in `app/api/stripe/webhook/route.ts` in a top-level try/catch that logs `[stripe_webhook_error] {event.id, type}` and returns 500.
@@ -316,6 +319,9 @@ Bank details also fall back to blanks:
 
 **Tasks**
 1. Confirm the SQL in the local file matches what production applied. The production statements can be read from `supabase_migrations.schema_migrations.statements` for version `20260923103604`. If it matches, rename the local file to `20260923103604_remove_dino_initial_expiry.sql`.
+   - **Repair the version history at the same time.** The migration is not safe to run twice: its `DO` block raises `Expected expiry gate missing` on a second application (line 16). Any local, preview or branch database that already recorded `20260923103500` would see `20260923103604` as unapplied, try to run it again, and fail.
+   - Ship a short repair note, or `supabase migration repair` commands, that mark `20260923103500` as reverted and `20260923103604` as applied in those environments. Production already has the correct version and needs nothing.
+   - Alternatively, make the `DO` block a no-op when the gate is already absent, so a re-run is harmless. That is an edit to an applied migration, so it is an OWNER DECISION; prefer the repair.
 2. Regenerate `supabase/remote-migration-history.json` from production, with all 156 versions.
 3. Make the check fail when:
    - a new local migration is older than the newest local migration already on `main`, or
