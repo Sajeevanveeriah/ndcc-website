@@ -230,7 +230,11 @@ Bank details also fall back to blanks:
 
 **Tasks**
 1. Add `isBankTransferConfigured()`, which returns true only when all three `NDCC_BANK_*` variables are non-empty.
-2. Load `deriveCapabilities(await loadMerchPaymentSettings(db))` in each of the four routes.
+2. Load the payment switches with a **strict** loader in each of the four routes.
+   - The existing `loadMerchPaymentSettings` (`lib/payments/capabilities.ts:34-57`) is meant for public display. If the query fails or finds no row, it silently returns `DEFAULT_SETTINGS`, and that default has `bank_transfer_enabled: true`. A timeout could therefore re-enable a method the committee turned off.
+   - Add `loadMerchPaymentSettingsStrict()`. It should throw or return an error on a query failure or a missing row.
+   - In these mutation routes, answer 503 ("payments temporarily unavailable") when the strict load fails. Never fall back to the defaults.
+   - Then apply `deriveCapabilities(...)` to the loaded row.
    - **`/api/orders`** is the only route that receives a `payment_method`. Reject `bank_transfer` with 400 when it is disabled or not configured, and reject `stripe` with 400 when card is not armed.
    - **Memberships, events and kitchen** (`app/api/memberships/route.ts`, `app/api/events/route.ts`, `app/api/kitchen/orders/route.ts`) receive no payment method. They create a pending order first; card checkout is then offered afterwards through `OrderPaymentOptions` and `/api/payments/checkout-session`.
      - Do **not** treat their `pending_bank_transfer` status as a bank-transfer choice. Doing so would reject every card-only order whenever bank transfer is switched off.
@@ -275,8 +279,12 @@ Bank details also fall back to blanks:
 
 **Tasks**
 1. Add a migration creating `stripe_unmatched_settlements` with these columns: event id (unique), session id, payment intent, amount, reason, `created_at` and `resolved_at`. Enable RLS with no policies (service-role only).
-2. On a deterministic mismatch, insert a row, log `[stripe_settlement_unmatched]` and return 200. Keep retryable failures (a database outage) on 5xx.
-3. Show unresolved rows in the existing `/api/admin/payments/ambiguous` view.
+2. On a deterministic mismatch, insert a row and log `[stripe_settlement_unmatched]`. Keep the current non-2xx response until the resolution path in item 4 has shipped; only then switch to returning 200. Keep retryable failures (a database outage) on 5xx.
+3. Show unresolved rows in the existing `/api/admin/payments/ambiguous` view. **This alone is not enough:** that route's POST only settles `imported_transactions` through `confirm_imported_order_payment`, so it cannot settle a Stripe row.
+4. Build a resolution path **before** switching the webhook to return 200. Once the webhook answers 200, Stripe stops retrying, so without this path a captured payment would stay unapplied forever.
+   - Add an admin-only "Reprocess" action. It retrieves the stored Stripe event and runs it through the same idempotent settlement handler the webhook uses, then sets `resolved_at` when it succeeds. Staff use it after they have repaired the ledger row or the metadata.
+   - Add a "Resolve as refunded or handled manually" action that records who resolved the row and why.
+   - Test both actions, and test that reprocessing twice never settles a payment twice.
 4. Wrap the dispatcher in `app/api/stripe/webhook/route.ts` in a top-level try/catch that logs `[stripe_webhook_error] {event.id, type}` and returns 500.
 
 **Rollback:** revert the PR. The new table can stay because it is additive.
@@ -310,7 +318,11 @@ Bank details also fall back to blanks:
 2. Regenerate `supabase/remote-migration-history.json` from production, with all 156 versions.
 3. Make the check fail when:
    - a new local migration is older than the newest local migration already on `main`, or
-   - the manifest's `capturedAt` predates the newest recorded migration by more than 7 days.
+   - production has migrations that the manifest does not record.
+
+   `capturedAt` is normally later than the newest migration it records, so comparing the two can never catch a stale manifest. Detect it one of these ways instead:
+   - **(a) Preferred:** a scheduled or manual GitHub Actions job, using a read-only database credential stored as a repository secret, that compares `supabase_migrations.schema_migrations` with the repository and fails on any difference.
+   - **(b)** In the credential-free PR check, print a warning (not a failure) when the current date is more than 7 days after `capturedAt`. Do not make it fail, because the result would then depend on the calendar date and old branches would break.
 4. Document the rule in AGENTS.md: "After applying a migration in production, update `remote-migration-history.json` in the same PR."
 5. Wire `scripts/test-event-calendar-sync.sql`, which is currently never run, into `scripts/test-migration-replay.mjs`. Extend the unreferenced-test safety net in `scripts/run-all-tests.mjs` to cover `test-*.sql`.
 6. Remove `continue-on-error: true` from `test:gallery-albums` in `.github/workflows/pr-validation.yml` once it passes on `main`.
