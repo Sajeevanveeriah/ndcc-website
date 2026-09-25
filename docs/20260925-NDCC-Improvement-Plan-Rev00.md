@@ -127,7 +127,10 @@ These were verified as working well. Do not weaken them while making changes.
 - Refunds and disputes that arrive early are stored and replayed.
 - Ledger rows are reserved before Stripe is called.
 - Idempotency keys come from canonical references.
-- Card checkout is armed only when all of these are set: `PAYMENT_PROVIDER=stripe_checkout`, a key whose mode matches `PAYMENT_TEST_MODE`, a webhook secret, and the CMS switch.
+- Card checkout needs all of these server settings: `PAYMENT_PROVIDER=stripe_checkout`, a key whose mode matches `PAYMENT_TEST_MODE`, and a webhook secret (`isCheckoutEnabled()` in `lib/payments/payment-config.ts`).
+  - The CMS card switch (`card_checkout_enabled`) is checked only for orders, memberships, events and kitchen payments (`lib/payments/capabilities.ts`).
+  - **It is not checked for raffle checkout** (`app/api/raffle/checkout/route.ts:42`) **or Dino Coach checkout** (`app/api/fantasy/checkout/route.ts:19`). Those routes call only `isCheckoutEnabled()`, so turning the CMS switch off does not stop them.
+  - OWNER DECISION: should the CMS switch also control raffle and Dino Coach payments? If yes, add a strict check of the switch to both routes as part of WP-03. Do not describe the switch as covering every checkout until that change is made.
 
 **Receipt outbox**
 - Leased jobs, dead-lettering, Resend idempotency keys.
@@ -361,7 +364,13 @@ Bank details also fall back to blanks:
 - The Supabase advisors no longer list the two leftover tables or the payment-table foreign keys.
 - `test:migration-replay` passes.
 
-**Rollback:** each item is additive. The dropped tables can only be recovered from the export, so take it first.
+**Rollback:** this package is **not** purely additive. Reverting the PR does not undo a migration that has already run, so every destructive item needs its own recovery path, written out before handover:
+- **Item 1 (drop tables):** before the drop, export both tables, schema and data (for example `pg_dump -t public.asset_repoint_backup_20260923 -t public.committee_users_test`), and store the file outside the repository. To restore, re-import that file. Put this item in its own migration.
+- **Item 2 (revoke):** the recovery migration re-grants the privileges that existed before. Record them first with `\dp` or `information_schema.routine_privileges`.
+- **Item 3 (indexes):** additive. The recovery migration is `DROP INDEX IF EXISTS ...`.
+- **Item 4 (function search_path):** before changing anything, save each current definition with `pg_get_functiondef()` in a companion rollback SQL file (for example `supabase/rollback/<version>_restore_function_search_path.sql`). The recovery migration re-creates the saved definitions.
+- **Item 5 (session purge):** only expired sessions are deleted, so they can't be used again and nothing needs restoring. The recovery step is to remove the purge statement from the cron.
+- **Item 6 (schema.sql/seed.sql):** these are repository files only, so reverting the PR restores them.
 
 ---
 
@@ -526,7 +535,10 @@ Acceptance: screenshots at 390px and 1440px, light and dark, show the gutter fix
 
    So:
    - Run the script for the PNG/JPEG images.
-   - Extend it (or add a companion script) to recompress existing WebP files in place with `sharp`, at the same quality setting.
+   - Extend it (or add a companion script) to recompress existing WebP files with `sharp`, at the same quality setting.
+     - **Make it idempotent.** Record each processed file's output hash in a committed manifest (for example `scripts/optimised-webp-manifest.json`). Skip any file whose current hash matches its recorded output. Without this, every later run would lossy-encode the same photos again and degrade them.
+     - Keep a result only if it is meaningfully smaller than the original (for example at least 10% smaller). Otherwise leave the file untouched and still record it in the manifest.
+     - Add a test that runs the script twice and asserts that the second run changes nothing.
    - Leave `/downloads/` files in their published format. Recompressing the Club Song PNG losslessly is optional.
    - Handle the logo only through the new favicon and OG files in WP-12.
 
@@ -647,4 +659,4 @@ A PR that implements any work package must leave these results no worse and repo
 3. **Then (P2):** WP-09 and WP-13 to WP-16, then WP-18.
 4. **Later (P3):** WP-17, WP-19 and WP-20.
 
-Every item is a separate PR. Roll back any PR by reverting its merge commit. Migrations in this plan are additive, except the leftover-table drop in WP-08, so export those tables first.
+Every item is a separate PR. Roll back any PR by reverting its merge commit. Most migrations in this plan are additive. WP-08 contains destructive changes, and its own Rollback section gives the recovery steps for each one.
