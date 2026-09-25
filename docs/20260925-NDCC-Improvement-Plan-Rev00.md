@@ -308,7 +308,7 @@ Bank details also fall back to blanks:
 - Stripe retries for about 3 days and then gives up. The money has been captured, but there is no ledger row and at most a `console.error`.
 
 **Tasks**
-1. Add a migration creating `stripe_unmatched_settlements` with these columns: event id (unique), session id, payment intent, amount, reason, `created_at`, `last_seen_at`, `delivery_count` and `resolved_at`. Enable RLS with no policies (service-role only).
+1. Add a migration creating `stripe_unmatched_settlements` with these columns: event id (unique), session id, payment intent, amount, reason, `created_at`, `last_seen_at`, `delivery_count`, `resolved_at`, `resolved_by` (committee user id), `resolution` (`reprocessed` or `manual`) and `resolution_note`. The idempotent upsert in item 2 must never overwrite any of the `resolved_*` or `resolution*` columns. Enable RLS with no policies (service-role only).
 2. On a deterministic mismatch, record the row idempotently with `INSERT ... ON CONFLICT (event_id) DO UPDATE`. Update only `last_seen_at` and a delivery count, and never overwrite `resolved_at` or any resolution fields. Stripe redelivers the same event id while the handler still answers non-2xx, and a plain insert would fail on that redelivery. Then log `[stripe_settlement_unmatched]`. Keep the current non-2xx response until the resolution path in item 4 has shipped; only then switch to returning 200. Keep retryable failures (a database outage) on 5xx.
 3. Show unresolved rows in the existing `/api/admin/payments/ambiguous` view. **This alone is not enough:** that route's POST only settles `imported_transactions` through `confirm_imported_order_payment`, so it cannot settle a Stripe row.
 4. Build a resolution path **before** switching the webhook to return 200. Once the webhook answers 200, Stripe stops retrying, so without this path a captured payment would stay unapplied forever.
@@ -511,7 +511,6 @@ Acceptance: screenshots at 390px and 1440px, light and dark, show the gutter fix
 4. **Heading order:**
    - event detail goes h1 -> h3 (`EventDetailClient.tsx:151`); change the h3 to h2
    - footer column headings should be h2
-   - home news goes h3 -> h4; fix the order
 5. **Eyebrows.** The eyebrow "Around the club" is used twice on the home page (`app/page.tsx:209, 493`). Give one of them a different label taken from the section's purpose.
 6. **Admin login heading.** The admin login h1 is "NDCC". Change it to "Committee sign in".
 
@@ -534,7 +533,14 @@ Acceptance: screenshots at 390px and 1440px, light and dark, show the gutter fix
    - Add an `image_alt` field for news through an additive migration, with an admin input that is required whenever an image is set.
    - Render `image_alt`, and fall back to the title only when `image_alt` is empty (the current behaviour).
    - Stop using `/images/Womens_Team.jpg` as the generic news fallback with the article title as its alt text. Use a neutral branded block instead.
-3. **Event poster alt text.** Add an `image_alt` column for events and content blocks through an additive migration, with an admin field, so posters get real alt text. All key event details already appear as HTML text, which is correct; keep that.
+3. **Event poster and content-block alt text.** Add an `image_alt` column for events and content blocks through an additive migration, with an admin field for each. All key event details already appear as HTML text, which is correct; keep that.
+   - **Show the new field on the public pages.** A new column and admin input on their own change nothing a visitor sees. Update the public queries, TypeScript types and page code to read `image_alt`:
+     - the events list and `EventDetailClient.tsx` (both use the event title today)
+     - `lib/content-blocks.ts`, which leaves `image_alt` out of what it loads today
+     - the About and Facilities images, which have hard-coded descriptions even after the CMS replaces the image (`app/facilities/page.tsx:113,129`)
+   - Fallbacks: the event title for events. For content blocks, the existing hard-coded text is used only while the default image is shown; once the CMS replaces the image, the new field is required.
+   - Apply the same rule to the news `image_alt` in item 2.
+   - **Rollback:** reverting the code leaves the new `image_alt` columns in place. They are harmless there, because nothing reads them. To remove them completely, add a forward migration with `ALTER TABLE ... DROP COLUMN IF EXISTS image_alt` for news, events and content blocks.
 4. **Decorative icons.** Add `aria-hidden="true"` to decorative icons in the footer (`Footer.tsx:121,127,133`) and the admin sidebar.
 5. **Navbar:**
    - Remove `aria-haspopup="true"` from the disclosure buttons.
