@@ -204,7 +204,7 @@ These were verified as working well. Do not weaken them while making changes.
 
 **Tasks**
 1. Handle `checkout.session.async_payment_failed` for raffle orders with the same guarded update used for expiry (`status: 'cancelled'` only while the order is still `pending_payment`).
-2. Add a sweep to an existing daily cron (for example `/api/cron/payment-receipts`). It finds `raffle_orders` rows in `pending_payment` for more than 40 minutes, retrieves each Stripe session, and cancels the order if the session is `expired` or its payment failed. Log a summary.
+2. Add a sweep that runs well within an hour, not in a daily cron. Checkout creates a 35-minute Stripe session (`app/api/raffle/checkout/route.ts` around line 120) and tells buyers a hold clears in about 35 minutes, so a daily sweep would leave numbers blocked for up to 24 hours. Run it opportunistically at the start of `/api/raffle/numbers` and `/api/raffle/checkout` (bounded, for example at most 10 rows), and also from a 15-minute cron if the Vercel plan allows. The sweep finds `raffle_orders` rows in `pending_payment` for more than 40 minutes, retrieves each Stripe session, and cancels the order if the session is `expired` or its payment failed. Log a summary.
 3. OWNER DECISION (see 2.3): set `payment_method_types: ['card']` for raffle checkout in `app/api/raffle/checkout/route.ts` if buy-now-pay-later is not wanted for raffles.
 4. Add a test in the style of `scripts/test-reverse-raffle*.mjs` covering the async-failed and sweep paths.
 
@@ -240,6 +240,7 @@ Bank details also fall back to blanks:
      - Do **not** treat their `pending_bank_transfer` status as a bank-transfer choice. Doing so would reject every card-only order whenever bank transfer is switched off.
      - Allow order creation whenever at least one payment path is available (card armed, or bank transfer enabled and configured). Return 503 only when neither is available.
      - Include bank details in the response or email only when bank transfer is enabled and configured.
+     - **Free events are exempt.** `app/api/events/route.ts` sets `isPaid = ticketPriceCents > 0` (around line 152). A zero-price event creates a `not_required` registration with no order. Run the settings load and capability check only when `isPaid` is true, so free registrations still work when payments are unavailable or the strict load fails.
 3. Never render the bank-details block, in email or JSON, unless it is configured. Remove the `'NDCC'` default.
 4. Tests for each rejection path.
 
@@ -298,7 +299,7 @@ Bank details also fall back to blanks:
 - Dead letters are only logged (`app/api/cron/payment-receipts/route.ts:69-76`).
 
 **Tasks**
-1. OWNER CHECK: confirm the Vercel plan's cron limits. If allowed, change the schedule to every 15 minutes. If not, run a small bounded `processPaymentReceiptJobs` batch at the end of the Stripe webhook handler.
+1. OWNER CHECK: confirm the Vercel plan's cron limits. If allowed, change the schedule to every 15 minutes. If not, use a separately scheduled trigger, for example a free external scheduler or a GitHub Actions `schedule` workflow calling the cron URL with `CRON_SECRET`. Do **not** rely on running a batch at the end of the webhook handler: a job that has just failed is given a future retry time, so that batch cannot pick it up, and if no later webhook arrives the receipt still waits for the daily cron. (Unverified: the exact retry delay used by the receipt outbox; check it in `lib/payments/` before choosing an interval.)
 2. When the dead-letter count increases, email the configured contact recipient using the existing `lib/email.ts` helpers, with a count and a link to the admin page. Do not include customer details.
 3. Tests.
 
@@ -481,7 +482,9 @@ Acceptance: screenshots at 390px and 1440px, light and dark, show the gutter fix
 
 ### WP-15 (P2) Accessibility clean-up
 1. **Nested `<main>`.** Change the admin layout's `<main>` (`app/admin/layout.tsx:313`) to a `<div>`, because it sits inside the root `<main id="main-content">`. Add `aria-current="page"` to active admin navigation links.
-2. **Alt text.** Where a visible title sits next to an image, use `alt=""` (`app/page.tsx:355`, `app/news/page.tsx:76,116`).
+2. **Alt text.** News cards currently use the article title as alt text (`app/page.tsx:355`, `app/news/page.tsx:76,116`). The images are real article photography from each post's `image_url`, so do **not** blank them: AGENTS.md requires meaningful alt text on every image.
+   - Add an `image_alt` field for news through an additive migration, with an admin input that is required whenever an image is set.
+   - Render `image_alt`, and fall back to the title only when `image_alt` is empty (the current behaviour).
    - Stop using `/images/Womens_Team.jpg` as the generic news fallback with the article title as its alt text. Use a neutral branded block instead.
 3. **Event poster alt text.** Add an `image_alt` column for events and content blocks through an additive migration, with an admin field, so posters get real alt text. All key event details already appear as HTML text, which is correct; keep that.
 4. **Decorative icons.** Add `aria-hidden="true"` to decorative icons in the footer (`Footer.tsx:121,127,133`) and the admin sidebar.
