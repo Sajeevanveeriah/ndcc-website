@@ -183,7 +183,10 @@ These were verified as working well. Do not weaken them while making changes.
 **Tasks**
 1. Add structured timing logs for each public read: scope, table, elapsed ms, attempt number and outcome. Use one stable prefix such as `[public-read-timing]` so they can be counted in Vercel logs.
 2. Make the site chrome snapshot (the `DegradedSnapshotError` in `unstable_cache`) and the publications list serve the last good cached value when the live read fails ("stale-while-error"). The current behaviour refuses to cache and throws.
-3. Make `/publications` and `/publications/[slug]` return their fallback UI instead of throwing `Publications temporarily unavailable` to the error boundary. `/events/[id]` (`Event temporarily unavailable`) needs the same change.
+3. Treat the list page and the detail pages differently:
+   - **`/publications`** is `force-dynamic` (`app/publications/page.tsx:17-18`). Make it return its fallback UI instead of throwing `Publications temporarily unavailable` to the error boundary.
+   - **`/publications/[slug]` and `/events/[id]`** are `force-static` ISR pages with `revalidate = 60`. **Keep them throwing on a failed read.** When a background regeneration throws, Next.js keeps serving the last good page. If they returned fallback UI instead, that regeneration would count as successful and a complete event or publication page would be replaced by the fallback.
+   - For those two routes, only make sure a *first* render (nothing cached yet) shows a friendly error page instead of a raw error, using the route's `error.tsx`. Confirm the behaviour with a production build (`next build && next start`) and a simulated Supabase failure.
 4. Deduplicate the reads on the home page: several sections query the same tables in one render. Fetch once per request with React `cache()`.
 5. Check whether ISR pages trigger live reads during `next build` (the 1000 ms build timeout). If they do, make the build use the static fallback without logging errors.
 6. **OWNER CHECK (Supabase dashboard):** record the compute size of the NDCC project. If it is the smallest tier, compare the timing logs before and after a one-step upgrade.
@@ -207,7 +210,16 @@ These were verified as working well. Do not weaken them while making changes.
 
 **Tasks**
 1. Handle `checkout.session.async_payment_failed` for raffle orders with the same guarded update used for expiry (`status: 'cancelled'` only while the order is still `pending_payment`).
-2. Add a sweep that runs well within an hour, not in a daily cron. Checkout creates a 35-minute Stripe session (`app/api/raffle/checkout/route.ts` around line 120) and tells buyers a hold clears in about 35 minutes, so a daily sweep would leave numbers blocked for up to 24 hours. Run it opportunistically at the start of `/api/raffle/numbers` and `/api/raffle/checkout` (bounded, for example at most 10 rows), and also from a 15-minute cron if the Vercel plan allows. The sweep finds `raffle_orders` rows in `pending_payment` for more than 40 minutes, retrieves each Stripe session, and cancels the order if the session is `expired` or its payment failed. Log a summary.
+2. Add a sweep that runs well within an hour, not in a daily cron. Checkout creates a 35-minute Stripe session (`app/api/raffle/checkout/route.ts` around line 120) and tells buyers a hold clears in about 35 minutes, so a daily sweep would leave numbers blocked for up to 24 hours. Trigger it in three ways:
+   - From `/api/raffle/checkout`.
+   - From `/api/raffle/numbers`, but only after the response has been sent (use `after()` from `next/server`) so visitors never wait on Stripe. `app/reverse-raffle/ReverseRaffleClient.tsx:37` polls this route every 30 seconds for every open page.
+   - From a 15-minute cron if the Vercel plan allows.
+
+   Make the sweep claim its rows in the database so it never re-checks the same rows on every poll:
+   - Add a nullable `sweep_checked_at` column to `raffle_orders` (additive migration).
+   - Pick rows ordered by `sweep_checked_at NULLS FIRST`, skip any checked in the last 5 minutes, and use `FOR UPDATE SKIP LOCKED` (via an RPC) so concurrent runs don't collide.
+   - Set `sweep_checked_at` on every row inspected, so older rows are always reached eventually.
+   - Keep a per-run limit (for example 10 rows). The sweep finds `raffle_orders` rows in `pending_payment` for more than 40 minutes, retrieves each Stripe session, and cancels the order if the session is `expired` or its payment failed. Log a summary.
 3. OWNER DECISION (see 2.3): set `payment_method_types: ['card']` for raffle checkout in `app/api/raffle/checkout/route.ts` if buy-now-pay-later is not wanted for raffles.
 4. Add a test in the style of `scripts/test-reverse-raffle*.mjs` covering the async-failed and sweep paths.
 
@@ -243,6 +255,11 @@ Bank details also fall back to blanks:
      - Do **not** treat their `pending_bank_transfer` status as a bank-transfer choice. Doing so would reject every card-only order whenever bank transfer is switched off.
      - Allow order creation whenever at least one payment path is available (card armed, or bank transfer enabled and configured). Return 503 only when neither is available.
      - Include bank details in the response or email only when bank transfer is enabled and configured.
+     - **Make the surrounding email copy match what is actually available, not just the details block.** For example, the kitchen confirmation email (`app/api/kitchen/orders/route.ts:139`) always says "pay securely by Stripe, or use the bank transfer details below".
+       - Card only: mention only card payment.
+       - Bank transfer only: mention only bank transfer.
+       - Both: keep the current wording.
+       - Check the membership and event emails for the same problem, and add a test for each case.
      - **Free events are exempt.** `app/api/events/route.ts` sets `isPaid = ticketPriceCents > 0` (around line 152). A zero-price event creates a `not_required` registration with no order. Run the settings load and capability check only when `isPaid` is true, so free registrations still work when payments are unavailable or the strict load fails.
 3. Never render the bank-details block, in email or JSON, unless it is configured. Remove the `'NDCC'` default.
 4. Tests for each rejection path.
@@ -341,7 +358,14 @@ Bank details also fall back to blanks:
 
 ---
 
-### WP-08 (P1) Database tidy-up (one additive migration)
+### WP-08 (P1) Database tidy-up (split into separate PRs)
+
+This package is **not** one additive migration. Give ChatGPT each PR below as its own task:
+- **PR A (low risk):** items 2 and 3, the revoke and the payment-table indexes, in one migration.
+- **PR B (destructive):** item 1, dropping the leftover tables, in its own migration, after the export.
+- **PR C (behaviour-sensitive):** item 4, the function `search_path` change.
+- **PR D:** item 5, the expired-session purge.
+- **PR E (repository only):** item 6, `schema.sql` and `seed.sql`.
 
 **Tasks**
 1. Drop the leftover tables `public.asset_repoint_backup_20260923` and `public.committee_users_test`.
