@@ -113,7 +113,7 @@ export const metadata: Metadata = {
 function SectionHeading({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-2" data-reveal="">
-      <span aria-hidden="true" className="brand-rule basis-full" />
+      <span aria-hidden="true" className="basis-full"><span className="brand-rule" /></span>
       <h2 id={id} className="font-display text-3xl font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl">{title}</h2>
       {children && <div className="flex flex-wrap gap-x-6">{children}</div>}
     </div>
