@@ -144,14 +144,15 @@ check('images carry descriptive alt text', () => {
 
 check('home stats strip has an accessible heading', () => {
   const stats = read('components/home/HomeStatsStrip.tsx');
-  assert.match(stats, /aria-labelledby="home-stats-heading"/);
-  assert.match(stats, /<h2 id="home-stats-heading" className="sr-only">/);
+  // The stats are a static list inside the hero, labelled for assistive technology.
+  assert.match(stats, /<dl[^>]*aria-label="Club at a glance"/);
 });
 
 check('marquee edge fades and dino frame use theme tokens', () => {
   const appointments = read('components/home/SeasonAppointmentsMarquee.tsx');
   assert.ok(!appointments.includes('dark:from-slate-800'));
-  assert.match(appointments, /from-surface-card to-surface-card\/0/);
+  assert.match(appointments, /from-surface-(card|page) to-(transparent|surface-(card|page)\/0)/);
+  assert.doesNotMatch(appointments, /from-slate-|from-white/);
   assert.ok(!read('components/home/ClubIntro.tsx').includes('bg-[#dedede]'));
 });
 

@@ -61,7 +61,10 @@ const homeDefaults = home.replace(/const GENERIC_CMS_COPY = \[[\s\S]*?\]\.map/, 
 for (const generic of ['Stay up to date with everything happening at NDCC.', 'Latest from NDCC', 'Explore the Club', 'seasoned cricketer']) {
   assert.ok(!homeDefaults.includes(generic), `generic copy "${generic}" is not a page default`);
 }
-assert.match(home, /isPromotionActive\(VOUCHERS\)/);
+// Promotions come from the CMS (lib/home-promotions.ts getJuniorGetActiveVouchers),
+// which falls back to the dated JUNIOR_GET_ACTIVE_VOUCHERS values.
+assert.match(home, /getJuniorGetActiveVouchers\(\)/);
+assert.match(home, /getCookieDoughCampaign\(\)/);
 const promotions = readFileSync('lib/home-promotions.ts', 'utf8');
 assert.match(promotions, /startsAt: '2026-09-15T00:00:00\+10:00'/);
 assert.match(promotions, /endsAt: '2026-10-13T10:00:00\+11:00'/);
