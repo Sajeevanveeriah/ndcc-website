@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ type PlayerPayload = {
 const roles = new Set(['WK', 'BAT', 'AR', 'BOWL', 'UNASSIGNED']);
 
 function revalidateFantasy() {
+  revalidateDinoPublicCache();
   for (const path of ['/fantasy', '/fantasy/squad', '/fantasy/team', '/fantasy/transfers']) {
     try { revalidatePath(path); } catch { /* best-effort */ }
   }

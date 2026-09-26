@@ -5,7 +5,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { SEASON_COLUMNS } from '@/lib/fantasy-seasons';
 import { getPlayHQSeasons } from '@/lib/playhq/client';
 import { getPlayHQConfig } from '@/lib/playhq/config';
-import { revalidateSitemap } from '@/lib/server/revalidate-public';
+import { revalidateSitemap, revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,6 +114,7 @@ export async function PATCH(request: Request) {
     // The previous current season is already cleared, so refresh the sitemap
     // even if the target update below fails.
     revalidateSitemap();
+    revalidateDinoPublicCache();
     update.is_current = true;
   }
 
@@ -122,5 +123,6 @@ export async function PATCH(request: Request) {
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400, headers: noStore });
   // The sitemap lists Dino Coach pages from the current season's launch state.
   revalidateSitemap();
+  revalidateDinoPublicCache();
   return NextResponse.json({ success: true, season }, { headers: noStore });
 }

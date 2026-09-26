@@ -163,14 +163,15 @@ const Layout = load('app/fantasy/layout.tsx', {
   '@/components/fantasy/DinoFeedbackNotice': { default: () => null },
   '@/components/fantasy/DinoServiceUnavailable': { default: Unavailable },
   'next/navigation': { notFound: () => { throw new Error('NOT_FOUND'); } },
-  '@/lib/supabase-server': {
-    isServerSupabaseConfigured: () => configured,
-    createServerClient: () => ({ from: table => {
-      const chain = { select: () => chain, eq: () => chain, limit: () => chain, maybeSingle: async () => ({
-        data: table === 'fantasy_seasons' ? (seasonExists ? { id: 'season' } : null) : { public_launch_enabled: launch },
-        error: failTable === table ? { message: 'Database unavailable' } : null,
-      }) }; return chain;
-    } }),
+  '@/lib/supabase-server': { isServerSupabaseConfigured: () => configured },
+  // Mirrors lib/server/dino-public-cache.ts: a failed read throws (and is never cached).
+  '@/lib/server/dino-public-cache': {
+    getCachedDinoLaunchState: async () => {
+      if (failTable === 'fantasy_seasons') throw new Error('Database unavailable');
+      if (!seasonExists) return { seasonId: null, publicLaunchEnabled: false };
+      if (failTable === 'fantasy_dino_settings') throw new Error('Database unavailable');
+      return { seasonId: 'season', publicLaunchEnabled: launch };
+    },
   },
 }).default;
 for (failTable of ['fantasy_seasons', 'fantasy_dino_settings']) {

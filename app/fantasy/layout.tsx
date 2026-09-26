@@ -3,7 +3,8 @@ import InstallDinoCoach from '@/components/fantasy/InstallDinoCoach';
 import DinoFeedbackNotice from '@/components/fantasy/DinoFeedbackNotice';
 import DinoServiceUnavailable from '@/components/fantasy/DinoServiceUnavailable';
 import { notFound } from 'next/navigation';
-import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { getCachedDinoLaunchState } from '@/lib/server/dino-public-cache';
 
 export const metadata: Metadata = {
   manifest: '/dino-coach.webmanifest',
@@ -27,24 +28,8 @@ export default async function FantasyLayout({ children }: { children: React.Reac
 
   let publicLaunchEnabled = false;
   try {
-    const supabase = createServerClient({ retryReads: true });
-    const { data: season, error: seasonError } = await supabase
-      .from('fantasy_seasons')
-      .select('id')
-      .eq('is_current', true)
-      .limit(1)
-      .maybeSingle();
-    if (seasonError) throw seasonError;
-
-    if (season?.id) {
-      const { data: settings, error: settingsError } = await supabase
-        .from('fantasy_dino_settings')
-        .select('public_launch_enabled')
-        .eq('season_id', season.id)
-        .maybeSingle();
-      if (settingsError) throw settingsError;
-      publicLaunchEnabled = settings?.public_launch_enabled === true;
-    }
+    // Shared 60-second copy; a failed read throws and is never cached.
+    publicLaunchEnabled = (await getCachedDinoLaunchState()).publicLaunchEnabled;
   } catch {
     return <DinoServiceUnavailable />;
   }

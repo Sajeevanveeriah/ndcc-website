@@ -3,6 +3,7 @@ import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse, after } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 import { fetchAllPages } from '@/lib/fantasy-paging';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices } from '@/lib/fantasy-game';
@@ -80,6 +81,7 @@ export async function PATCH(request:Request) {
     const result=await db.rpc('admin_edit_dino_manager',{p_manager:body.id,p_season:season.id,p_actor:user.id,p_expected_updated_at:body.expectedUpdatedAt,p_changes:body.changes,p_selection:selection,p_round:body.roundId||null,p_status:body.status||'draft',p_budget:budget,p_reason:reason});
     if(result.error)return fail(result.error.message,result.error.code==='40001'?409:400);
     after(()=>processDinoNotifications(db).catch(error=>console.error('[dino-notification] Pending retry:',error.message)));
+    revalidateDinoPublicCache();
     return NextResponse.json({success:true,result:result.data,notification:result.data?.changed?'queued':'not_needed'},{headers:noStore});
   }catch(error){return fail(error instanceof Error?error.message:'Could not save team.');}
 }
@@ -103,6 +105,7 @@ export async function POST(request:Request) {
     createdUserId=null; // Account and registration committed. Never roll back an existing participant.
     const entry=await db.from('fantasy_entries').select('id').eq('manager_id',result.data).eq('season_id',season.id).single();
     if(entry.data)after(()=>sendRegistrationEmail(db,entry.data!.id).catch(error=>console.error('[dino-welcome]',error.message)));
+    revalidateDinoPublicCache();
     return NextResponse.json({success:true,id:result.data,notification:'queued'},{headers:noStore});
   }catch(error){
     if(createdUserId){const removed=await db.auth.admin.deleteUser(createdUserId);if(removed.error)return fail('Registration failed and the new sign-in account needs administrator cleanup. No password was retained by the CMS.',500);}

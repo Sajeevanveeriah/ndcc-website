@@ -76,7 +76,9 @@ for (failTable of Object.keys(tables)) await assert.rejects(load('current'), /Re
 console.log('PASS every database read fails visibly instead of returning a misleading ranking');
 for (const path of ['app/fantasy/manager-leaderboard/page.tsx', 'app/api/fantasy/manager-leaderboard/route.ts', 'app/api/fantasy/leagues/route.ts']) {
   const route = readFileSync(path, 'utf8');
-  assert.match(route, /getDinoManagerStandings/);
+  // Public page and API read it through the 60-second public cache wrapper.
+  assert.match(route, /getDinoManagerStandings|getCachedManagerStandings/);
   assert.doesNotMatch(route, /from\('fantasy_manager_round_scores'\)/);
 }
+assert.match(readFileSync('lib/server/dino-public-cache.ts', 'utf8'), /getCachedManagerStandings = unstable_cache\(\s*async \(seasonId: string \| null\) => getDinoManagerStandings\(seasonId\)/);
 console.log('PASS page, public API and private leagues use the same standings loader');

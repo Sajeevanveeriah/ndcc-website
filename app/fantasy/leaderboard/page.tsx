@@ -4,12 +4,12 @@ import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { CLUB_SHORT } from '@/lib/constants';
-import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
 import { Trophy } from 'lucide-react';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
-import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
+import { seasonStatusLabel } from '@/lib/fantasy-seasons';
+import { getCachedPublishedLeaderboard, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
 
 export const metadata: Metadata = pageMetadata('/fantasy/leaderboard', 'Dino Coach Leaderboard', 'Published-only NDCC Dino Coach player leaderboard.');
 
@@ -33,11 +33,11 @@ function roundHref(roundId: string | null, seasonSlug?: string | null) {
 
 export default async function FantasyLeaderboardPage({ searchParams: searchParamsPromise }: PageProps) {
   const searchParams = await searchParamsPromise;
-  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const seasonContext = await getCachedSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   let leaderboard;
   let loadFailed = false;
   try {
-    leaderboard = await getPublishedFantasyLeaderboard(searchParams?.round || null, seasonContext.selected?.id || null);
+    leaderboard = await getCachedPublishedLeaderboard(searchParams?.round || null, seasonContext.selected?.id || null);
   } catch (err) {
     console.error('[fantasy/leaderboard] Failed to load published leaderboard; showing failure state:', err);
     loadFailed = true;

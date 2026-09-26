@@ -10,6 +10,7 @@ const eligibility={exports:{}};
 new Function('exports',ts.transpileModule(readFileSync('lib/dino-coach/manager-eligibility.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(eligibility.exports);
 const imports={
  '@/lib/dino-coach/manager-eligibility':eligibility.exports,
+ '@/lib/server/revalidate-public':{revalidateDinoPublicCache:()=>{}},
  'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})},after:()=>{}},
  '@/lib/auth/guard':{requirePermission:async()=>user}, '@/lib/supabase-server':{createServerClient:()=>db}, '@/lib/fantasy-paging':{fetchAllPages:async()=>[]},
  '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'})}, '@/lib/fantasy-game':{},

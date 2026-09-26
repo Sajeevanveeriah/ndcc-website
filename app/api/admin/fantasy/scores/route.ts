@@ -7,6 +7,7 @@ import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { SCORING_SQUAD_STATUSES, selectScoringSquads } from '@/lib/dino-coach/round-scoring';
 import { fetchAllPages } from '@/lib/fantasy-paging';
 import { resolveSeason } from '@/lib/fantasy-seasons';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
     const calculatedAt = new Date().toISOString();
     const rows = preview.rows.map((row) => ({ manager_id: row.managerId, season_id: preview.seasonId, round_id: roundId, squad_id: row.squadId, total_points: row.totalPoints, transfer_penalty: row.transferPenalty, net_points: row.netPoints, calculated_at: calculatedAt }));
     await replaceRoundScores(preview.seasonId, roundId, rows);
+    revalidateDinoPublicCache();
     return NextResponse.json({ success: true, saved: rows.length, preview: preview.rows });
   } catch (error) {
     return scoringErrorResponse(error, 'Could not save Dino Coach scores. Please try again.');

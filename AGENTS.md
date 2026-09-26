@@ -14,7 +14,7 @@ Preflight guardrails for safe staged updates to the Newcomb and District Cricket
 - Preserve all public routes, admin routes, API routes, Supabase schema behaviour, Vercel deployment assumptions, CMS behaviour, media upload behaviour, and payment/order behaviour.
 - Do not invent names, dates, prices, sponsor benefits, PlayHQ links, committee details, phone numbers, emails, URLs, or payment behaviour.
 - Do not publish visible placeholders.
-- Use supplied assets only.
+- Use supplied assets only. Approved exception: the drawn cricket ball and stumps in `components/home/CricketBall.tsx` (approved by Saj, September 2026).
 - Keep important event details as accessible HTML text, not only inside poster images.
 - Use meaningful alt text for every image.
 - Optimise large images before public use.

@@ -6,11 +6,10 @@ import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { CLUB_NICKNAME, CLUB_SHORT } from '@/lib/constants';
 import { FANTASY_MODULES } from '@/lib/fantasy';
-import { getFantasySettings } from '@/lib/fantasy-game';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
-import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
-import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { seasonStatusLabel } from '@/lib/fantasy-seasons';
+import { getCachedDinoCoachSettings, getCachedFantasySettings, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
 import { formatDinoDollars, formatEntryFee } from '@/lib/dino-coach/domain';
 import { seasonYearsLabel } from '@/lib/fantasy-seasons';
 
@@ -29,7 +28,7 @@ const gameHighlights = [
 async function getSeasonName(seasonId?: string | null): Promise<string | null> {
   if (!isServerSupabaseConfigured()) return null;
   try {
-    const settings = await getFantasySettings(seasonId);
+    const settings = await getCachedFantasySettings(seasonId ?? null);
     return settings.season_name?.trim() || null;
   } catch {
     return null;
@@ -38,11 +37,11 @@ async function getSeasonName(seasonId?: string | null): Promise<string | null> {
 
 export default async function FantasyPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;
-  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const seasonContext = await getCachedSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   const seasonQuery = searchParams?.season ? `?season=${encodeURIComponent(searchParams.season)}` : '';
   const seasonName = await getSeasonName(seasonContext.selected?.id);
   const dinoSettings = seasonContext.selected
-    ? await getDinoCoachSettings(seasonContext.selected.id).catch(() => null)
+    ? await getCachedDinoCoachSettings(seasonContext.selected.id).catch(() => null)
     : null;
   // Fall back to the published copy when the season or settings are unavailable.
   const seasonYears = seasonYearsLabel(seasonContext.selected) || '2026/2027';

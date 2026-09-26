@@ -96,6 +96,7 @@ const EXTRA_COMMANDS = [
   `${STRIP_TYPES} scripts/test-dino-baseline-import.mjs`,
   `${STRIP_TYPES} scripts/test-dino-public-surfaces.mjs`,
   `${STRIP_TYPES} scripts/test-dino-public-toggle.mjs`,
+  `${STRIP_TYPES} scripts/test-dino-public-cache.mjs`,
   `${STRIP_TYPES} scripts/test-dino-security-regressions.mjs`,
 ];
 

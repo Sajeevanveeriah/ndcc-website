@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getFantasySeasons, seasonStatusLabel } from '@/lib/fantasy-seasons';
+import { seasonStatusLabel } from '@/lib/fantasy-seasons';
+import { getCachedPublicSeasons } from '@/lib/server/dino-public-cache';
 
 export const dynamic = 'force-dynamic';
 
 // Public fantasy seasons for client-side pickers (season selector, carryover).
 export async function GET() {
   try {
-    const seasons = await getFantasySeasons();
+    const seasons = await getCachedPublicSeasons();
     return NextResponse.json({
       success: true,
       seasons: seasons.map((season) => ({

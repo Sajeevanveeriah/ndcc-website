@@ -72,7 +72,7 @@ const route = load('app/api/admin/fantasy/seasons/route.ts', {
   'next/server': { NextResponse: { json: body => body } }, '@/lib/auth/guard': { requirePermission: async () => ({ id: 'admin' }) },
   '@/lib/supabase-server': { createServerClient: db }, '@/lib/fantasy-seasons': { SEASON_COLUMNS: 'id, name' },
   '@/lib/playhq/client': {}, '@/lib/playhq/config': {},
-  '@/lib/server/revalidate-public': { revalidateSitemap: () => { sitemapRevalidations += 1; } },
+  '@/lib/server/revalidate-public': { revalidateSitemap: () => { sitemapRevalidations += 1; }, revalidateDinoPublicCache: () => {} },
 });
 let sitemapRevalidations = 0;
 for (const enabled of [false, true]) {
@@ -91,7 +91,7 @@ const failingRoute = load('app/api/admin/fantasy/seasons/route.ts', {
     return chain;
   } }) },
   '@/lib/fantasy-seasons': { SEASON_COLUMNS: 'id, name' }, '@/lib/playhq/client': {}, '@/lib/playhq/config': {},
-  '@/lib/server/revalidate-public': { revalidateSitemap: () => { sitemapRevalidations += 1; } },
+  '@/lib/server/revalidate-public': { revalidateSitemap: () => { sitemapRevalidations += 1; }, revalidateDinoPublicCache: () => {} },
 });
 const failed = await failingRoute.PATCH({ json: async () => ({ seasonId: 'gone', isCurrent: true }) });
 assert.equal(failed.success, false);

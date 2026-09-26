@@ -4,10 +4,9 @@ import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_SHORT } from '@/lib/constants';
 import { fantasyRuleSections, fantasyRuleValuesFrom } from '@/lib/fantasy';
-import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
-import { getSeasonPageContext } from '@/lib/fantasy-seasons';
+import { getCachedDinoCoachSettings, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
 
 import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
 
@@ -17,10 +16,10 @@ export const metadata: Metadata = pageMetadata('/fantasy/rules', 'Dino Coach Rul
 
 export default async function FantasyRulesPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;
-  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const seasonContext = await getCachedSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   // Season years, entry fee, budget, transfer window and prize follow the
   // selected season's settings; unavailable values keep the published copy.
-  const dinoSettings = seasonContext.selected ? await getDinoCoachSettings(seasonContext.selected.id).catch(() => null) : null;
+  const dinoSettings = seasonContext.selected ? await getCachedDinoCoachSettings(seasonContext.selected.id).catch(() => null) : null;
   const ruleSections = fantasyRuleSections(fantasyRuleValuesFrom(seasonContext.selected, dinoSettings));
   return (
     <>
