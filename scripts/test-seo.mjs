@@ -160,6 +160,18 @@ check('closed player registration drops out of the sitemap', () => {
   assert.ok(!closedMap.some(x => x.url.endsWith('/player-registration')));
 });
 tables.club_seasons = []; tables.club_season_registration_settings = []; tables.fantasy_seasons = []; tables.fantasy_dino_settings = [];
+// Registration, promotion and prize wheel reads are strict for the sitemap:
+// an outage rejects the build (keeping the last cached copy) instead of
+// caching a degraded map for five minutes.
+for (const table of ['club_seasons', 'site_promotions', 'raffle_campaigns']) {
+  failTable = table;
+  await assert.rejects(sitemap(), /unavailable/, `${table} outage rejects`); checks++;
+}
+tables.club_seasons = [{ id: 'season-1', name: 'Test season', is_current: true, status: 'active' }];
+failTable = 'club_season_registration_settings';
+await assert.rejects(sitemap(), /unavailable/, 'registration settings outage rejects'); checks++;
+tables.club_seasons = [];
+console.log('PASS registration, promotion and prize wheel outages reject instead of caching a degraded map');
 failTable = 'events';
 await assert.rejects(sitemap(), /unavailable/); checks++; console.log('PASS sitemap outage rejects instead of emitting a partial map');
 failTable = null; configured = false;

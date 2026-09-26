@@ -67,6 +67,17 @@ export async function isPrizeWheelPublic(): Promise<boolean> {
   return Boolean(await getPublicWheelCampaign());
 }
 
+/**
+ * Sitemap variant: throws on a failed read instead of reporting the wheel as
+ * hidden, so a transient outage is never cached as "no prize wheel".
+ */
+export async function isPrizeWheelPublicStrict(): Promise<boolean> {
+  const { data, error } = await createServerClient().from('raffle_campaigns')
+    .select(WHEEL_CAMPAIGN_COLUMNS).eq('active', true).eq('kind', 'wheel');
+  if (error || !Array.isArray(data)) throw new Error('Prize wheel visibility unavailable');
+  return Boolean(choosePublicWheelCampaign(data as unknown as WheelCampaign[]));
+}
+
 export async function loadWheelPrizes(db: Db, campaignId: string): Promise<WheelPrizeRow[] | null> {
   const { data, error } = await db.from('raffle_wheel_prizes')
     .select('id,position,name,description,retail_value_cents,quantity').eq('campaign_id', campaignId).order('position');

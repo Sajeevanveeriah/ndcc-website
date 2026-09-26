@@ -12,16 +12,26 @@ export const SITE_PROMOTION_COLUMNS = 'id,slug,kind,title,body,link_url,link_lab
  * missing configuration) reports 'unavailable' so callers keep the
  * hardcoded behaviour instead of hiding or breaking a promotion.
  */
-export async function loadSitePromotions(): Promise<PromotionLookup> {
-  if (!isServerSupabaseConfigured()) return { status: 'unavailable' };
+export async function loadSitePromotions(options: { strict?: boolean } = {}): Promise<PromotionLookup> {
+  // `strict` (the sitemap) reads uncached and throws on failure, so a
+  // fallback answer is never cached in place of the live CMS rows.
+  const strict = options.strict === true;
+  if (!isServerSupabaseConfigured()) {
+    if (strict) throw new Error('Site promotions unavailable');
+    return { status: 'unavailable' };
+  }
   try {
-    const { data, error } = await createServerClient({ publicReadCache: true, fetchTimeoutMs: 8_000 })
+    const { data, error } = await createServerClient(strict ? { fetchTimeoutMs: 8_000 } : { publicReadCache: true, fetchTimeoutMs: 8_000 })
       .from('site_promotions')
       .select(SITE_PROMOTION_COLUMNS)
       .order('sort_order', { ascending: true });
-    if (error || !Array.isArray(data)) return { status: 'unavailable' };
+    if (error || !Array.isArray(data)) {
+      if (strict) throw new Error('Site promotions unavailable');
+      return { status: 'unavailable' };
+    }
     return { status: 'ok', rows: data as SitePromotionRow[] };
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return { status: 'unavailable' };
   }
 }
@@ -43,8 +53,8 @@ const COOKIE_DOUGH_FALLBACK: CookieDoughCampaign = {
  * The cookie dough campaign while it is open (CMS row 'cookie-dough' when
  * present, otherwise the hardcoded deadline and link), or null once closed.
  */
-export async function getCookieDoughCampaign(now: number = Date.now()): Promise<CookieDoughCampaign | null> {
-  const lookup = await loadSitePromotions();
+export async function getCookieDoughCampaign(now: number = Date.now(), options: { strict?: boolean } = {}): Promise<CookieDoughCampaign | null> {
+  const lookup = await loadSitePromotions(options);
   return resolvePromotion(lookup, 'cookie-dough', now, { value: COOKIE_DOUGH_FALLBACK, live: isCookieDoughOpen(now) }, (row) => {
     const endsAt = row.ends_at ? Date.parse(row.ends_at) : null;
     return {
