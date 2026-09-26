@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { createServerClient } from '@/lib/supabase-server';
+import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
 import { isRaffleVisibleAt, type RaffleVisibilityRow } from '@/lib/raffle-visibility-rules';
 import {
   isWheelCampaignCode,
@@ -74,6 +75,8 @@ export async function isPrizeWheelPublic(): Promise<boolean> {
 export async function isPrizeWheelPublicStrict(): Promise<boolean> {
   const { data, error } = await createServerClient().from('raffle_campaigns')
     .select(WHEEL_CAMPAIGN_COLUMNS).eq('active', true).eq('kind', 'wheel');
+  // Before the prize wheel migration there is simply no wheel.
+  if (error && isMissingSchemaError(error)) return false;
   if (error || !Array.isArray(data)) throw new Error('Prize wheel visibility unavailable');
   return Boolean(choosePublicWheelCampaign(data as unknown as WheelCampaign[]));
 }

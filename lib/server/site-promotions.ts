@@ -3,6 +3,7 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 import { COOKIE_DOUGH_DEADLINE_LABEL, COOKIE_DOUGH_ENDS_AT, isCookieDoughOpen } from '@/lib/cookie-dough';
 import { COOKIE_DOUGH_FUNDRAISER_LINK } from '@/lib/public-links';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
+import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
 import { detailString, resolvePromotion, type PromotionLookup, type SitePromotionRow } from '@/lib/promotion-rules';
 
 export const SITE_PROMOTION_COLUMNS = 'id,slug,kind,title,body,link_url,link_label,image_url,starts_at,ends_at,placement,details,active,sort_order';
@@ -26,7 +27,9 @@ export async function loadSitePromotions(options: { strict?: boolean } = {}): Pr
       .select(SITE_PROMOTION_COLUMNS)
       .order('sort_order', { ascending: true });
     if (error || !Array.isArray(data)) {
-      if (strict) throw new Error('Site promotions unavailable');
+      // Before the promotions migration the hardcoded fallback still applies;
+      // only a real read failure is fatal in strict mode.
+      if (strict && !isMissingSchemaError(error)) throw new Error('Site promotions unavailable');
       return { status: 'unavailable' };
     }
     return { status: 'ok', rows: data as SitePromotionRow[] };

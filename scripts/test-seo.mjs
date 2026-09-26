@@ -94,20 +94,22 @@ check('login, private and payment responses get restrictive headers', () => {
 // Isolated query adapter: importing the real sitemap/catalogue executes no
 // network requests and cannot access any production credentials or data.
 let failTable = null;
+let failCode = '08006';
+let failColumn = null;
 let configured = true;
 const tables = { ...rows, gallery_albums: rows.albums, fantasy_seasons: [], raffle_campaigns: [],
   apparel_products: [{ id: 'p1', slug: 'shirt', name: 'Shirt', price: 45, active: true }, { id: 'p2', active: false }],
   apparel_product_options: [{ product_id: 'p1', option_group: 'Sleeve', option_value: 'long', price_delta: 6, active: true }],
 };
 globalThis.__seoTestClient = { from(table) {
-  const filters = []; let start = 0; let end = Infinity; let single = false;
-  const q = { select() {return q;}, eq(k,v) {filters.push(x => x[k] === v);return q;},
+  const filters = []; let start = 0; let end = Infinity; let single = false; let selected = '';
+  const q = { select(columns = '') {selected = columns;return q;}, eq(k,v) {filters.push(x => x[k] === v);return q;},
     order() {return q;}, returns() {return q;}, range(a,b) {start=a;end=b;return q;}, limit(n) {end=n-1;return q;},
     in(k,values) {filters.push(x => values.includes(x[k]));return q;},
     or() {filters.push(x => x.published_at == null || Date.parse(x.published_at) <= Date.now());return q;},
     maybeSingle() {single=true;return q;},
     then(ok,bad) {let data=(tables[table] || []).filter(x => filters.every(f => f(x))).slice(start,end+1);
-      return Promise.resolve(table === failTable ? { data: null, error: { code: '08006', message: 'test outage' } } :
+      return Promise.resolve(table === failTable && (!failColumn || selected.includes(failColumn)) ? { data: null, error: { code: failCode, message: 'test outage' } } :
         { data: single ? data[0] || null : data, error: null }).then(ok,bad);}
   }; return q;
 }};
@@ -172,6 +174,17 @@ failTable = 'club_season_registration_settings';
 await assert.rejects(sitemap(), /unavailable/, 'registration settings outage rejects'); checks++;
 tables.club_seasons = [];
 console.log('PASS registration, promotion and prize wheel outages reject instead of caching a degraded map');
+// A staged rollout ships code before its migration: missing tables or
+// columns keep the documented fallback instead of failing the sitemap.
+failCode = '42P01'; failTable = 'site_promotions';
+assert.ok((await sitemap()).length > 0); checks++;
+failTable = 'club_season_registration_settings'; tables.club_seasons = [{ id: 'season-1', name: 'Test season', is_current: true, status: 'active' }];
+assert.ok(!(await sitemap()).some(x => x.url.endsWith('/player-registration'))); checks++;
+tables.club_seasons = [];
+failCode = '42703'; failTable = 'raffle_campaigns'; failColumn = 'wheel_divisions';
+assert.ok(!(await sitemap()).some(x => x.url.endsWith('/prize-wheel'))); checks++;
+failCode = '08006'; failColumn = null; failTable = null;
+console.log('PASS missing promotion, registration and wheel schema keeps the fallback instead of failing the sitemap');
 failTable = 'events';
 await assert.rejects(sitemap(), /unavailable/); checks++; console.log('PASS sitemap outage rejects instead of emitting a partial map');
 failTable = null; configured = false;

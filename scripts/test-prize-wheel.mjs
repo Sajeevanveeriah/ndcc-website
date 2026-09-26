@@ -167,9 +167,20 @@ assert.equal(geometry.rotationForNumber(3, 10, 0, 0) >= 0, true, 'reduced motion
 const server = load('lib/prize-wheel/server.ts', {
   react: { cache: fn => fn },
   '@/lib/supabase-server': { createServerClient: () => ({}) },
+  '@/lib/supabase-schema-errors': load('lib/supabase-schema-errors.ts'),
   '@/lib/raffle-visibility-rules': load('lib/raffle-visibility-rules.ts'),
   '@/lib/prize-wheel/rules': rules,
 });
+// Sitemap reads: a missing wheel migration means no wheel; a real outage throws.
+const wheelServerWith = (error) => load('lib/prize-wheel/server.ts', {
+  react: { cache: fn => fn },
+  '@/lib/supabase-server': { createServerClient: () => { const q = { from: () => q, select: () => q, eq: () => q, then: (ok) => Promise.resolve({ data: null, error }).then(ok) }; return q; } },
+  '@/lib/supabase-schema-errors': load('lib/supabase-schema-errors.ts'),
+  '@/lib/raffle-visibility-rules': load('lib/raffle-visibility-rules.ts'),
+  '@/lib/prize-wheel/rules': rules,
+});
+assert.equal(await wheelServerWith({ code: '42703', message: 'column raffle_campaigns.kind does not exist' }).isPrizeWheelPublicStrict(), false);
+await assert.rejects(wheelServerWith({ code: '08006', message: 'connection failure' }).isPrizeWheelPublicStrict(), /unavailable/);
 const row = { id: 'w1', name: 'Wheel', code: 'NDCCWHL261010A', kind: 'wheel', price_cents: 500, wheel_divisions: 24, prize_pool_cents: 4500,
   sales_open_at: base.sales_open_at, draw_at: base.draw_at, draw_label: 'Clubrooms', active: true, public_visibility_mode: 'visible', public_opens_at: null };
 const at = new Date('2026-10-10T03:00:00Z');

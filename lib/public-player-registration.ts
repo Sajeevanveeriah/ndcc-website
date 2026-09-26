@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
 import { publicRegistrationFromRow, type PublicPlayerRegistration, type StoredRegistrationRow } from '@/lib/player-registration';
 
 export const PLAYER_REGISTRATION_SETTINGS_COLUMNS = [
@@ -39,7 +40,7 @@ export async function getPublicPlayerRegistration(options: { strict?: boolean } 
       .limit(1)
       .maybeSingle();
 
-    if (seasonError && strict) throw new Error('Player registration season unavailable');
+    if (seasonError && strict && !isMissingSchemaError(seasonError)) throw new Error('Player registration season unavailable');
     if (seasonError || !season) return null;
 
     const { data: settings, error: settingsError } = await supabase
@@ -51,7 +52,7 @@ export async function getPublicPlayerRegistration(options: { strict?: boolean } 
 
     // Migration-first rollout safety: previews connected to the old schema
     // degrade to the unavailable state until the additive migration is live.
-    if (settingsError && strict) throw new Error('Player registration settings unavailable');
+    if (settingsError && strict && !isMissingSchemaError(settingsError)) throw new Error('Player registration settings unavailable');
     if (settingsError || !settings) return null;
     return publicRegistrationFromRow(settings as unknown as StoredRegistrationRow, season.name);
   } catch (error) {
