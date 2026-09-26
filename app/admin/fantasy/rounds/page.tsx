@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
+import { datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input, { Select } from '@/components/ui/Input';
@@ -48,9 +49,9 @@ function toDatetimeLocal(value: string | null) {
   return date.toISOString().slice(0, 16);
 }
 
-function formatDeadline(value: string | null) {
+function formatDeadline(value: string | null, melbourne = false) {
   if (!value) return '—';
-  return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium', timeStyle: 'short', ...(melbourne ? { timeZone: 'Australia/Melbourne' } : {}) }).format(new Date(value));
 }
 
 function sortRounds(rounds: FantasyRound[]) {
@@ -65,7 +66,18 @@ export default function AdminFantasyRoundsPage() {
   const [form, setForm] = useState<RoundForm>(emptyRound);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [melbourneDeadlinesEnabled, setMelbourneDeadlinesEnabled] = useState(false);
+  const [editorUsesMelbourneTime, setEditorUsesMelbourneTime] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch('/api/admin/fantasy/deadline-editor-settings', { cache: 'no-store' })
+      .then(response => parseApiResponse<{ enabled?: boolean }>(response))
+      .then(result => { if (!cancelled) setMelbourneDeadlinesEnabled(result.enabled === true); })
+      .catch(() => { /* Keep the legacy editor if the switch cannot be read. */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const fetchRounds = async () => {
@@ -84,6 +96,7 @@ export default function AdminFantasyRoundsPage() {
   }, []);
 
   const openCreate = () => {
+    setEditorUsesMelbourneTime(melbourneDeadlinesEnabled);
     setEditingId(null);
     setForm(emptyRound);
     setFormErrors({});
@@ -92,11 +105,13 @@ export default function AdminFantasyRoundsPage() {
   };
 
   const openEdit = (round: FantasyRound) => {
+    // Snapshot the mode so a late settings response cannot reinterpret an open form.
+    setEditorUsesMelbourneTime(melbourneDeadlinesEnabled);
     setEditingId(round.id);
     setForm({
       round_number: String(round.round_number),
       name: round.name,
-      deadline_at: toDatetimeLocal(round.deadline_at),
+      deadline_at: melbourneDeadlinesEnabled ? toDatetimeLocalInClubTimezone(round.deadline_at || '') : toDatetimeLocal(round.deadline_at),
       status: round.status,
     });
     setFormErrors({});
@@ -109,6 +124,15 @@ export default function AdminFantasyRoundsPage() {
     const roundNumber = Number(form.round_number);
     if (!Number.isInteger(roundNumber) || roundNumber < 1) errors.round_number = 'Round number must be a positive whole number.';
     if (!form.name.trim()) errors.name = 'Round name is required.';
+    if (editorUsesMelbourneTime && form.deadline_at) {
+      try {
+        if (toDatetimeLocalInClubTimezone(datetimeLocalToClubIso(form.deadline_at)) !== form.deadline_at) {
+          errors.deadline_at = 'Choose a valid Melbourne date and time.';
+        }
+      } catch {
+        errors.deadline_at = 'Choose a valid Melbourne date and time.';
+      }
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -120,7 +144,7 @@ export default function AdminFantasyRoundsPage() {
     const payload = {
       round_number: Number(form.round_number),
       name: form.name.trim(),
-      deadline_at: form.deadline_at ? new Date(form.deadline_at).toISOString() : null,
+      deadline_at: form.deadline_at ? (editorUsesMelbourneTime ? datetimeLocalToClubIso(form.deadline_at) : new Date(form.deadline_at).toISOString()) : null,
       status: form.status,
     };
 
@@ -193,7 +217,7 @@ export default function AdminFantasyRoundsPage() {
               <TableRow key={round.id}>
                 <TableCell className="font-medium">{round.round_number}</TableCell>
                 <TableCell>{round.name}</TableCell>
-                <TableCell>{formatDeadline(round.deadline_at)}</TableCell>
+                <TableCell>{formatDeadline(round.deadline_at, melbourneDeadlinesEnabled)}</TableCell>
                 <TableCell><Badge variant={round.status === 'open' ? 'success' : round.status === 'locked' ? 'warning' : 'default'}>{round.status}</Badge></TableCell>
                 <TableCell>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(round)}>
@@ -210,7 +234,7 @@ export default function AdminFantasyRoundsPage() {
         <div className="space-y-4">
           <Input id="fantasy-round-number" label="Round number" type="number" min="1" step="1" value={form.round_number} onChange={(e) => setForm({ ...form, round_number: e.target.value })} error={formErrors.round_number} required />
           <Input id="fantasy-round-name" label="Round name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={formErrors.name} required />
-          <Input id="fantasy-round-deadline" label="Deadline (optional)" type="datetime-local" value={form.deadline_at} onChange={(e) => setForm({ ...form, deadline_at: e.target.value })} />
+          <Input id="fantasy-round-deadline" label={editorUsesMelbourneTime ? 'Deadline (Australia/Melbourne, optional)' : 'Deadline (optional)'} type="datetime-local" value={form.deadline_at} onChange={(e) => setForm({ ...form, deadline_at: e.target.value })} error={formErrors.deadline_at} />
           <Select id="fantasy-round-status" label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as RoundStatus })} options={statusOptions} required />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
