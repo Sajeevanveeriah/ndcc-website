@@ -56,6 +56,13 @@ test('scales initial price from floor to the best-player ceiling', () => {
   assert.equal(calculateInitialPrice(50, 100, 50000, 200000), 125000);
   assert.equal(calculateInitialPrice(1, 3, 100000, 2000000), 733000, 'Opening prices round to the nearest 1,000, not upwards');
   assert.equal(calculateInitialPrice(2, 3, 100000, 2000000), 1367000);
+  // The database opening-price functions round the same way (nearest 1,000).
+  const nearestMigration = readFileSync('supabase/migrations/20260926232018_dino_coach_nearest_thousand_opening_prices.sql', 'utf8');
+  assert.equal((nearestMigration.match(/ROUND\(\(/g) || []).length, 9);
+  assert.doesNotMatch(nearestMigration, /CEIL|ceil\(/);
+  for (const fn of ['publish_dino_coach_baseline_import', 'recalculate_dino_coach_applied_baseline', 'apply_dino_coach_provisional_baseline']) {
+    assert.match(nearestMigration, new RegExp(`CREATE OR REPLACE FUNCTION public\\.${fn}\\(`));
+  }
   assert.equal(calculateInitialPrice(0, 100, 50000, 200000), 50000);
 });
 
