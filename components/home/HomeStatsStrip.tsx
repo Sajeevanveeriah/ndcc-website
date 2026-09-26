@@ -12,8 +12,8 @@ const GCA_START_YEAR = 1995;
 // number of active entries in the CMS honour roll (history_premierships, the same list
 // the About page's honour board and "Premierships Won" count use; controlled fallbacks
 // apply only when that read fails). Team totals use the live CMS list.
-// Presentation: an editorial honour-board moment — oversized nickname watermark drifting
-// slowly behind the numbers, a gold rule that draws in, and counters that reveal once.
+// Presentation: an editorial honour-board moment - a static nickname watermark
+// behind the numbers and a gold rule above them.
 export default async function HomeStatsStrip() {
   const [teams, premierships] = await Promise.all([getPublicTeams(), getHistoryPremierships()]);
   const currentYear = new Date().getFullYear();
@@ -27,8 +27,9 @@ export default async function HomeStatsStrip() {
   ];
 
   return (
-    <section className="band-maroon border-y border-maroon-950/40 px-4 py-8 sm:px-6 lg:px-8" aria-label="Club at a glance">
-      {/* Oversized club-nickname typography drifting slowly behind the numbers. */}
+    <section className="band-maroon border-y border-maroon-950/40 px-4 py-8 sm:px-6 lg:px-8" aria-labelledby="home-stats-heading">
+      <h2 id="home-stats-heading" className="sr-only">Club at a glance</h2>
+      {/* Oversized club-nickname typography sitting behind the numbers. */}
       <ParallaxLayer drift={16} className="absolute inset-0 flex items-center justify-center overflow-hidden">
         <span className="watermark-type whitespace-nowrap text-[28vw] sm:text-[20vw] lg:text-[15rem]">
           {CLUB_NICKNAME}

@@ -131,7 +131,7 @@ export default async function PublicationsPage({
                 <ScrollReveal>
                   <Link
                     href={`/publications/${featured.slug}`}
-                    className="group mb-10 block overflow-hidden rounded-2xl border border-edge-subtle bg-surface-card shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lift focus-ring"
+                    className="group mb-10 block overflow-hidden rounded-2xl border border-edge-subtle bg-surface-card shadow-card card-interactive focus-ring"
                   >
                     <div className="band-maroon px-6 py-8 sm:px-10 sm:py-10">
                       <p className="eyebrow-gold">

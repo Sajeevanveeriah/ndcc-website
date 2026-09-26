@@ -55,9 +55,9 @@ export default async function GalleryPage() {
                         <div className="relative aspect-[3/2] bg-gray-900">
                           <SafeImage
                             src={album.cover_image_url || ''}
-                            alt=""
+                            alt={`Cover photo for the ${album.title} album`}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                            className="object-cover"
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             fallback={<div className="absolute inset-0 bg-gradient-to-br from-maroon-900 to-gray-900" aria-hidden="true" />}
                           />

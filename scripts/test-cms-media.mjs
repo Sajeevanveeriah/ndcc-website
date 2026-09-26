@@ -11,7 +11,7 @@ assert.equal(verifyUploadTicket(signed, 'owner', secret, 2000), null);
 assert.equal(verifyUploadTicket(signed, 'owner', 'wrong-key', 1000), null);
 assert.equal(verifyUploadTicket(`${signed}.extra`, 'owner', secret, 1000), null);
 assert.equal(verifyUploadTicket(signUploadTicket({ ...ticket, size: 20_000_000 }, secret), 'owner', secret, 1000), null);
-const png = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#800000' } }).png().toBuffer();
+const png = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#880000' } }).png().toBuffer();
 const first = await validateMedia(png, 'image/png');
 const second = await validateMedia(png, 'image/png');
 assert.equal(first.path, second.path, 'identical files must deduplicate');

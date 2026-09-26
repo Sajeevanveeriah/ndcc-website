@@ -18,25 +18,32 @@ const config: Config = {
           300: '#f4a3a3',
           400: '#e06060',
           500: '#c93030',
-          600: '#800000',
-          700: '#800000',
+          // Official club maroon. 800-950 stay as deeper variants of it.
+          600: '#880000',
+          700: '#880000',
           800: '#600000',
           900: '#4a0000',
           950: '#2d0000',
         },
-        sky_accent: '#ADD8E6',
-        // Additive only: a warm off-white for layered surfaces, plus an explicit gold
-        // ramp around the existing brand gold (#D4A017) for new accents. No existing
-        // brand colour values are changed.
+        // Official club blue. Never use it as text on light surfaces or behind
+        // white text (1.9:1 on white); pair it with navy or maroon text.
+        sky_accent: {
+          DEFAULT: '#8cc6d1',
+          light: '#b3d9e0',
+        },
+        // Club neutrals: navy for text on blue/gold, cream for warm surfaces.
+        navy: '#162845',
         cream: '#FBF7F0',
+        // Official club gold (400) with white tints above it and darker
+        // shades below it. Gold is never text on light surfaces (1.7:1).
         gold: {
-          50: '#fbf6e9',
-          100: '#f5e9c6',
-          200: '#ecd591',
-          300: '#e0bd55',
-          400: '#d4a017',
-          500: '#b8870f',
-          600: '#946a0c',
+          50: '#fdf8ef',
+          100: '#fbf0d9',
+          200: '#f6e0b2',
+          300: '#f1d18c',
+          400: '#edc266',
+          500: '#a98a48',
+          600: '#89703b',
         },
         // Semantic theme tokens backed by CSS variables declared in app/globals.css.
         // These flip automatically with the `.dark` class — no dark: variant needed.
@@ -82,22 +89,6 @@ const config: Config = {
         // CSS variables provided by next/font in app/layout.tsx.
         display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-      },
-      animation: {
-        'ken-burns':  'kenBurns 18s ease-in-out infinite alternate',
-        'fade-up':    'fadeUpIn 0.55s cubic-bezier(0.21,0.47,0.32,0.98) both',
-        'slide-down': 'slideDownIn 0.2s ease-out both',
-        'float':      'floatY 4s ease-in-out infinite',
-        'shimmer':    'shimmerSweep 2s linear infinite',
-        'pulse-ring': 'pulseRing 2s ease-out infinite',
-      },
-      keyframes: {
-        kenBurns:     { '0%': { transform: 'scale(1) translate3d(0,0,0)' }, '100%': { transform: 'scale(1.07) translate3d(-1%,-0.5%,0)' } },
-        fadeUpIn:     { '0%': { opacity: '0', transform: 'translateY(24px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-        shimmerSweep: { '0%': { backgroundPosition: '-200% center' }, '100%': { backgroundPosition: '200% center' } },
-        slideDownIn:  { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-        floatY:       { '0%, 100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-6px)' } },
-        pulseRing:    { '0%': { boxShadow: '0 0 0 0 rgba(128,0,0,0.4)' }, '70%': { boxShadow: '0 0 0 10px rgba(128,0,0,0)' }, '100%': { boxShadow: '0 0 0 0 rgba(128,0,0,0)' } },
       },
     },
   },

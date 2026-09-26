@@ -211,7 +211,7 @@ export async function POST(request: Request) {
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(full_name))},</p>
       <p style="font-size:15px;color:#374151;line-height:1.6;">Your membership signup for <strong>${escapeEmailHtml(plan.name)}</strong> has been received.</p>
       ${bankDetailsHtml(paymentReference, totalAmount)}
-      <p style="font-size:14px;color:#374151;line-height:1.6;">Your membership will be activated once we confirm your payment. If you have any questions, reach out at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+      <p style="font-size:14px;color:#374151;line-height:1.6;">Your membership will be activated once we confirm your payment. If you have any questions, reach out at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
     ),
   });
   return NextResponse.json({

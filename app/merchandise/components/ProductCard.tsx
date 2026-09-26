@@ -29,7 +29,7 @@ export default function ProductCard({
                   const gradient = PRODUCT_GRADIENTS[product.id] || 'from-maroon-600 to-maroon-800';
                   const iconData = PRODUCT_ICONS[product.id];
                   return (
-                    <Card className="product-card hover-lift">
+                    <Card className="product-card card-interactive">
                   {product.image ? (
                     <div className="relative h-56 bg-surface-page">
                       <SafeImage

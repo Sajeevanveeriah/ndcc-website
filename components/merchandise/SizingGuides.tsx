@@ -136,7 +136,7 @@ export default function SizingGuides() {
             </p>
           </div>
 
-          <figure key={activeGuide.key} className="mt-4 motion-safe:animate-fade-up">
+          <figure key={activeGuide.key} className="mt-4">
             <a
               aria-label={`Open the full-size ${activeGuide.code} ${activeGuide.label} sizing guide`}
               className="focus-ring block overflow-hidden rounded-xl border border-edge-strong bg-white"

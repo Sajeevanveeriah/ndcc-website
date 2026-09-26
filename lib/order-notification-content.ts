@@ -154,7 +154,7 @@ export function buildStaffOrderNotificationContent(
         <tfoot>
           <tr>
             <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">Order total</td>
-            <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#800000;">$${safeTotal} AUD</td>
+            <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#880000;">$${safeTotal} AUD</td>
           </tr>
         </tfoot>
       </table>`,

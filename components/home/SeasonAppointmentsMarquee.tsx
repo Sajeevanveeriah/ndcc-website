@@ -24,8 +24,13 @@ function initials(name: string) {
 export default function SeasonAppointmentsMarquee({ initialAppointments }: { initialAppointments: PublicSeasonAppointment[] }) {
   const [appointments, setAppointments] = useState(initialAppointments);
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
+  const hasServerAppointments = initialAppointments.length > 0;
 
   useEffect(() => {
+    // The server already rendered the active appointments (ISR, revalidated
+    // on CMS edits), so a second client request would only repeat them. The
+    // runtime fetch is kept as a fallback for when the server had none.
+    if (hasServerAppointments) return;
     let isMounted = true;
 
     async function loadAppointments() {
@@ -42,7 +47,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
 
     loadAppointments();
     return () => { isMounted = false; };
-  }, []);
+  }, [hasServerAppointments]);
 
   const marquee = useMemo(() => planSeasonAppointmentsMarquee(appointments), [appointments]);
 
@@ -60,8 +65,8 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
         <ScrollReveal className="relative overflow-hidden" role="region" aria-label="Season appointments">
           {marquee.animate && (
             <>
-              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-white to-transparent dark:from-slate-800" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white to-transparent dark:from-slate-800" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-surface-card to-surface-card/0" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-surface-card to-surface-card/0" />
             </>
           )}
           <div
@@ -92,14 +97,14 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
                   return (
                     <div
                       key={`${appointment.id}-${sequence.key}`}
-                      className="group relative h-[300px] w-[225px] flex-none overflow-hidden rounded-2xl bg-maroon-900 shadow-md transition-shadow duration-300 hover:shadow-xl"
+                      className="group relative h-[300px] w-[225px] flex-none overflow-hidden rounded-2xl bg-maroon-900 shadow-md"
                     >
                       {appointment.image_url ? (
                         <SafeImage
                           src={appointment.image_url}
                           alt={imageAlt}
                           fill
-                          className="object-cover img-zoom"
+                          className="object-cover"
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           fallback={
                             <div className="h-full flex items-center justify-center">
@@ -120,7 +125,7 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
                         className="absolute inset-0"
                         style={{ background: 'linear-gradient(to top, rgba(45,0,0,0.92) 0%, rgba(45,0,0,0.18) 55%, transparent 100%)' }}
                       />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 transition-transform duration-300 group-hover:-translate-y-1">
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
                         <p className="text-xs font-bold tracking-[0.12em] uppercase text-sky_accent mb-1">
                           {appointment.role}
                         </p>

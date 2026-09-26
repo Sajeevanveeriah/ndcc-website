@@ -354,7 +354,7 @@ async function ClubUpdatesSection() {
                         src={article.image_url || article.image || '/images/Womens_Team.jpg'}
                         alt={article.title}
                         fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="object-cover"
                         sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 28vw"
                         fallback={
                           <div className="flex h-full w-full items-center justify-center bg-maroon-800">
@@ -508,7 +508,7 @@ async function GalleryPreviewSection() {
                     src={photo.image_url}
                     alt={photo.alt_text || photo.caption || photo.title}
                     fill
-                    className="object-cover img-zoom"
+                    className="object-cover"
                     sizes="(max-width: 1024px) 50vw, 25vw"
                     fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                   />
@@ -712,10 +712,10 @@ function JuniorsCtaView({ title, body }: { title: string; body: string }) {
           <Link href="/join" className="btn-accent px-7 py-3 text-base">
             Join the Club
           </Link>
-          <Link href="/contact" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
+          <Link href="/contact" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800 dark:hover:text-maroon-200">
             Get in Touch
           </Link>
-          <Link href="/volunteer" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
+          <Link href="/volunteer" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800 dark:hover:text-maroon-200">
             Volunteer With Us
           </Link>
         </div>

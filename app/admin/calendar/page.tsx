@@ -198,7 +198,7 @@ export default function AdminCalendarPage() {
       errors.capacity = 'Capacity must be a positive whole number.';
     }
     if (form.colour.trim() && !/^#[0-9a-fA-F]{3,8}$/.test(form.colour.trim())) {
-      errors.colour = 'Use a hex colour like #800000.';
+      errors.colour = 'Use a hex colour like #880000.';
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;

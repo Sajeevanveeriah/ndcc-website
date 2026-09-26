@@ -72,7 +72,7 @@ export const CALENDAR_EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
 
 // NDCC palette: maroon/blue primary, gold reserved for emphasis (featured/current day).
 export const CALENDAR_EVENT_TYPE_COLOURS: Record<CalendarEventType, string> = {
-  club: '#800000',
+  club: '#880000',
   training: '#1e3a5f',
   match: '#600000',
   junior: '#2563eb',

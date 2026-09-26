@@ -171,8 +171,8 @@ export async function buildPaymentReceiptPdf(data: PaymentReceiptData): Promise<
     <image href="${logoUri}" x="150" y="130" width="330" height="250" preserveAspectRatio="xMidYMid meet"/>
     <text x="1618" y="190" text-anchor="end" font-size="48" font-weight="800" fill="#4a0000">NEWCOMB &amp; DISTRICT</text>
     <text x="1618" y="250" text-anchor="end" font-size="48" font-weight="800" fill="#4a0000">CRICKET CLUB</text>
-    <text x="1618" y="338" text-anchor="end" font-size="74" font-weight="900" letter-spacing="3" fill="#800000">PAYMENT RECEIPT</text>
-    <rect x="150" y="425" width="1468" height="10" fill="#800000"/>
+    <text x="1618" y="338" text-anchor="end" font-size="74" font-weight="900" letter-spacing="3" fill="#880000">PAYMENT RECEIPT</text>
+    <rect x="150" y="425" width="1468" height="10" fill="#880000"/>
 
     <rect x="150" y="485" width="1468" height="158" rx="14" fill="#f8f3ef"/>
     <text x="200" y="545" class="label">DATE ISSUED</text><text x="200" y="604" class="value">${issuedDate}</text>

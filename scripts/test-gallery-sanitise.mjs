@@ -24,7 +24,7 @@ process.on('exit', () => rmSync(tmp, { recursive: true, force: true }));
 writeFileSync(path.join(tmp, 'gallery-sanitise.ts'), source);
 const { sanitiseGalleryImage } = await import(pathToFileURL(path.join(tmp, 'gallery-sanitise.ts')).href);
 
-const base = sharp({ create: { width: 64, height: 32, channels: 3, background: '#800000' } });
+const base = sharp({ create: { width: 64, height: 32, channels: 3, background: '#880000' } });
 const exif = { IFD0: { Make: 'TestPhone', Model: 'GPS-Cam' }, IFD3: { GPSLatitudeRef: 'S', GPSLatitude: '38/1 10/1 0/1' } };
 
 for (const [mime, encode] of [
