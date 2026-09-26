@@ -6,6 +6,7 @@ import { getSiteChromeData, type SiteChromeData } from '@/lib/site-chrome';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 import { isRafflePublic } from '@/lib/raffle-visibility';
+import { isPrizeWheelPublic } from '@/lib/prize-wheel/server';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
 import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { isPublicSupabaseConfigured, isServerSupabaseConfigured } from '@/lib/supabase-server';
@@ -53,6 +54,8 @@ export type NavVisibility = {
   dinoCoachPublic: boolean;
   rafflePublic: boolean;
   reverseRafflePublic: boolean;
+  /** Optional so snapshots cached before the prize wheel shipped stay valid. */
+  prizeWheelPublic?: boolean;
   registration: NavRegistration;
   settings: NavSettings;
   headerLinks: NavHeaderLink[];
@@ -99,13 +102,14 @@ function registrationNavigation(registration: Awaited<ReturnType<typeof getPubli
 }
 
 async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded: boolean }> {
-  const [chrome, headerCards, dinoCoachPublic, rafflePublic, reverseRafflePublic, registration] = await Promise.all([
+  const [chrome, headerCards, dinoCoachPublic, rafflePublic, reverseRafflePublic, registration, prizeWheelPublic] = await Promise.all([
     getSiteChromeData(),
     getPageLinkCards('site', 'header_nav'),
     isDinoCoachPublic(),
     isRafflePublic(),
     isRafflePublic('NDCCRRO'),
     getPublicPlayerRegistration(),
+    isPrizeWheelPublic(),
   ]);
 
   const isFallbackCard = (card: { id: string }) => card.id.startsWith('fallback-');
@@ -136,6 +140,7 @@ async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded
         dinoCoachPublic,
         rafflePublic,
         reverseRafflePublic,
+        prizeWheelPublic,
         registration: registrationNavigation(registration),
         settings: navSettingsFrom(chrome.settings),
         headerLinks,
@@ -160,6 +165,7 @@ function emergencyFallbackSnapshot(): SiteChromeSnapshot {
       dinoCoachPublic: false,
       rafflePublic: false,
       reverseRafflePublic: false,
+      prizeWheelPublic: false,
       registration: null,
       settings: navSettingsFrom(fallbackClubSettings),
       headerLinks: defaultHeaderLinks(),

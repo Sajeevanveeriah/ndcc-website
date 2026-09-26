@@ -71,12 +71,13 @@ export default async function Footer() {
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled } = nav;
+  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled, prizeWheelPublic: prizeWheelEnabled } = nav;
   const hideDisabledFeatures = (link: PageLinkCard) =>
     (isCookieDoughOpen() || !isCookieDoughLink(link.href))
     && (dinoCoachEnabled || !link.href.startsWith('/fantasy'))
     && (raffleEnabled || !link.href.startsWith('/raffle'))
-    && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'));
+    && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'))
+    && (prizeWheelEnabled === true || !link.href.startsWith('/prize-wheel'));
   const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledFeatures);
   const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks).filter(hideDisabledFeatures);
   const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledFeatures);

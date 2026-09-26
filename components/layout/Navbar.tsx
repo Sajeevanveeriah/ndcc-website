@@ -28,7 +28,7 @@ const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }] },
   { label: 'Sponsors', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pot Club', href: '/pot-club' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }] },
-  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Record cash sales', href: '/raffle/cash' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }] },
+  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Record cash sales', href: '/raffle/cash' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }, { label: 'Prize Wheel', href: '/prize-wheel' }] },
   { label: 'Contact', href: '/contact' },
 ];
 
@@ -36,11 +36,11 @@ function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: st
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean, manageRaffles = false) {
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean, manageRaffles = false, prizeWheelEnabled = false) {
   const groups = PUBLIC_NAV_GROUPS.map((group) => group.href
     ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
     : { label: group.label, href: undefined, links: (group.links || [])
-      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || (link.href !== '/raffle' && link.href !== '/raffle/cash')) && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
+      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || (link.href !== '/raffle' && link.href !== '/raffle/cash')) && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (prizeWheelEnabled || link.href !== '/prize-wheel') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
       .map((link) => resolveLink(navLinks, link)) });
   // Management access follows the authenticated permission, never public sales
   // visibility. Staff use their committee session rather than a member login.
@@ -151,7 +151,7 @@ export default function Navbar({ nav }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const [sessionUser, setSessionUser] = useState<{ full_name: string; role: string; permissions?: string[] } | null>(null);
-  const [raffleVisibility, setRaffleVisibility] = useState({ enabled: nav.rafflePublic, reverseEnabled: nav.reverseRafflePublic });
+  const [raffleVisibility, setRaffleVisibility] = useState({ enabled: nav.rafflePublic, reverseEnabled: nav.reverseRafflePublic, wheelEnabled: nav.prizeWheelPublic === true });
   const settings = nav.settings;
   const navLinks = nav.headerLinks;
   const registrationNavigation = nav.registration;
@@ -218,7 +218,7 @@ export default function Navbar({ nav }: NavbarProps) {
     };
   }, [isOpen]);
   useEffect(() => {
-    setRaffleVisibility({ enabled: nav.rafflePublic, reverseEnabled: nav.reverseRafflePublic });
+    setRaffleVisibility({ enabled: nav.rafflePublic, reverseEnabled: nav.reverseRafflePublic, wheelEnabled: nav.prizeWheelPublic === true });
     if (!isAdminSurface(pathname)) return;
     let cancelled = false;
     // Admin pages can retain a prerendered layout snapshot. Refresh only these
@@ -227,11 +227,11 @@ export default function Navbar({ nav }: NavbarProps) {
       if (!response.ok) return;
       const data = await response.json();
       if (!cancelled && typeof data.enabled === 'boolean' && typeof data.reverseEnabled === 'boolean') {
-        setRaffleVisibility({ enabled: data.enabled, reverseEnabled: data.reverseEnabled });
+        setRaffleVisibility({ enabled: data.enabled, reverseEnabled: data.reverseEnabled, wheelEnabled: data.wheelEnabled === true });
       }
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [pathname, nav.rafflePublic, nav.reverseRafflePublic]);
+  }, [pathname, nav.rafflePublic, nav.reverseRafflePublic, nav.prizeWheelPublic]);
   useEffect(() => {
     // Public visitors never trigger a session request (see ADMIN_SESSION_HINT_KEY).
     if (!isAdminSurface(pathname) && !readAdminHint()) {
@@ -270,7 +270,7 @@ export default function Navbar({ nav }: NavbarProps) {
     setSessionUser(null);
   };
   const manageRaffles = sessionUser?.permissions?.includes('raffle') === true;
-  const navGroups = resolveGroups(navLinks, nav.dinoCoachPublic, raffleVisibility.enabled, cookieDoughOpen, raffleVisibility.reverseEnabled, manageRaffles);
+  const navGroups = resolveGroups(navLinks, nav.dinoCoachPublic, raffleVisibility.enabled, cookieDoughOpen, raffleVisibility.reverseEnabled, manageRaffles, raffleVisibility.wheelEnabled);
   const accountExpanded = accountOpen || accountHover;
   // Homepage nav starts transparent over the cinematic hero and settles onto
   // a translucent blurred surface after ~20px of scroll. Inner pages are
