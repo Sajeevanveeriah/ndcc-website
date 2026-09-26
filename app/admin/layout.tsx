@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard, Trash2, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -73,6 +73,8 @@ const adminGroups: AdminGroup[] = [
   ] },
   { title: 'Administration', icon: Shield, advanced: true, links: [
     { href: '/admin/users', label: 'Users', icon: Users, usersOnly: true },
+    { href: '/admin/audit', label: 'Audit log', plainLabel: 'Who changed what', icon: History, usersOnly: true },
+    { href: '/admin/trash', label: 'Trash', plainLabel: 'Restore deleted records', icon: Trash2, usersOnly: true },
     { href: '/admin/email-diagnostics', label: 'Email Diagnostics', icon: Mail },
     { href: '/admin/media-diagnostics', label: 'Media Diagnostics', icon: Settings },
     { href: '/admin/change-password', label: 'Password', icon: KeyRound },
@@ -96,6 +98,8 @@ function groupsForUser(user: SessionUser, search: string, showAdvanced: boolean)
 function canAccessPath(user: SessionUser, pathname: string) {
   if (pathname === '/admin/change-password') return true;
   if (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) return canManageUsers(user.role);
+  if (['/admin/audit', '/admin/trash'].some((path) => pathname === path || pathname.startsWith(`${path}/`))) return canManageUsers(user.role);
+  if (pathname === '/admin/search') return true;
   if (isFullAccessRole(user.role)) return true;
   const permission = permissionForAdminPath(pathname);
   return Boolean(permission && hasPermission(user, permission));
@@ -243,10 +247,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <input
               value={navSearch}
               onChange={(event) => setNavSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || !navSearch.trim()) return;
+                event.preventDefault();
+                router.push(`/admin/search?q=${encodeURIComponent(navSearch.trim())}`);
+              }}
+              aria-describedby="admin-nav-search-hint"
               placeholder="Search CMS"
               className="w-full rounded-lg border border-maroon-700 bg-maroon-900/40 py-2 pl-9 pr-3 text-sm text-white placeholder:text-maroon-200 focus:border-gold-300 focus:outline-none focus:ring-2 focus:ring-gold-300/30"
             />
           </label>
+          <p id="admin-nav-search-hint" className="sr-only">Filters the menu as you type. Press Enter to search records.</p>
           <button type="button" className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-maroon-100 hover:bg-maroon-700/50 hover:text-white" aria-expanded={showAdvanced} onClick={() => setShowAdvanced((value) => !value)}>
             {showAdvanced ? 'Fewer tools' : 'More tools'}
           </button>

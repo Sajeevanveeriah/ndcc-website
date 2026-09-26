@@ -5,6 +5,7 @@ import { fetchAllPages } from '@/lib/supabase-paginate';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { toCsv } from '@/lib/csv';
+import { scheduleAdminAudit } from '@/lib/revisions/server';
 export const dynamic = 'force-dynamic';
 const reply = (body: object, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
 export async function GET(request: Request) {
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
         .select('id').maybeSingle();
       if (result.error) return reply({ error: 'Reservation could not be released. Please retry.' }, 503);
       if (!result.data) return reply({ error: 'Reservation changed or is already paid/cancelled. Refresh the list.' }, 409);
+      scheduleAdminAudit({ actor: admin, action: 'cancel', resource: 'bankTransfers', recordId: id, summary: 'Released unpaid raffle bank transfer reservation' });
       return reply({ success: true });
     } catch { return reply({ error: 'Reservation could not be released. Please retry.' }, 503); }
   }
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
     if (result.error) return reply({ error: 'Receipt could not be confirmed. Refresh and check the amount and payment state.' }, 409);
     // The existing paid-state trigger queues the receipt atomically. The
     // scheduled outbox worker delivers it, including raffle ticket attachments.
+    scheduleAdminAudit({ actor: admin, action: 'confirm', resource: 'bankTransfers', recordId: id, summary: `Confirmed ${kind} bank transfer of ${(Number(expected_cents) / 100).toFixed(2)} AUD${result.data === true ? '' : ' (already confirmed)'}` });
     return reply({ success: true, newly_confirmed: result.data === true });
   } catch { return reply({ error: 'Receipt confirmation is temporarily unavailable.' }, 503); }
 }
