@@ -19,7 +19,10 @@ styles.add(ParagraphStyle(name='HeadingDino', fontName='DinoBold', fontSize=14, 
 styles.add(ParagraphStyle(name='BodyDino', fontName='Dino', fontSize=9.5, leading=14, spaceAfter=7))
 body = styles['BodyDino']
 source = Path('lib/fantasy.ts').read_text()
-sections = [(title, re.findall(r"    '([^\n]+)',", content)) for title, content in re.findall(r"\{ title: '([^']+)', items: \[(.*?)\] \}", source, re.S)]
+# Rule items may be template literals using ${v.name}; substitute RULE_DEFAULTS.
+defaults = dict(re.findall(r"^  (\w+): '([^']*)',$", source.split('const RULE_DEFAULTS = {', 1)[1].split('};', 1)[0], re.M))
+fill = lambda text: re.sub(r"\$\{v\.(\w+)\}", lambda m: defaults[m.group(1)], text)
+sections = [(title, [fill(item) for item in re.findall(r"    ['`]([^\n]+)['`],", content)]) for title, content in re.findall(r"\{ title: '([^']+)', items: \[(.*?)\] \}", source, re.S)]
 assert len(sections) == 6
 path = Path('public/documents/20260916-Dino-Coach-Rules-Rev00.pdf')
 path.parent.mkdir(parents=True, exist_ok=True)

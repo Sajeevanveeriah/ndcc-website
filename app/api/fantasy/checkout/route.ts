@@ -17,8 +17,29 @@ import { PUBLIC_ORDER_LIMITS, readLimitedJsonObject } from '@/lib/order-input-va
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+function isStripeError(error: unknown) {
+  const type = error && typeof error === 'object' ? (error as { type?: unknown }).type : undefined;
+  return typeof type === 'string' && type.startsWith('Stripe');
+}
 
+// Settings, database and Stripe failures return friendly JSON instead of an
+// unhandled 500 page. Stripe request errors are reported as a gateway error.
+export async function POST(request: Request) {
+  try {
+    return await createDinoCheckout(request);
+  } catch (error) {
+    const stripe = isStripeError(error);
+    console.error('[fantasy-checkout] Checkout failed', { stripe, message: error instanceof Error ? error.message.slice(0, 300) : String(error).slice(0, 300) });
+    return NextResponse.json({
+      success: false,
+      error: stripe
+        ? 'Card payment could not be started right now. Please try again shortly.'
+        : 'Could not start the Dino Coach payment. Please try again or contact the club.',
+    }, { status: stripe ? 502 : 500 });
+  }
+}
+
+async function createDinoCheckout(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   if (!await enforceRateLimit(`dino-checkout:${auth.manager.id}`, 8, 60_000)) {

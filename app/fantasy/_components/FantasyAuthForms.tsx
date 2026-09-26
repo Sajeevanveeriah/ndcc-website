@@ -4,7 +4,7 @@ import PaymentMethodChoice from '@/components/payments/PaymentMethodChoice';
 import BankTransferInstructions, { type BankTransferConfirmation } from '@/components/payments/BankTransferInstructions';
 
 import { useEffect, useState } from 'react';
-import { isAdultOnDate } from '@/lib/dino-coach/domain';
+import { formatDinoDollars, formatEntryFee, isAdultOnDate } from '@/lib/dino-coach/domain';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -12,6 +12,14 @@ import Input from '@/components/ui/Input';
 import { fantasyJsonFetch, getFantasyBrowserClient, isFantasySupabaseConfigured } from '@/lib/fantasy-browser';
 
 type Mode = 'register' | 'login' | 'account';
+
+// Matches the club account sign-up rule. Sign-in accepts any existing password
+// so accounts created under the earlier 6-character rule keep working.
+const MIN_PASSWORD_LENGTH = 8;
+
+function normaliseAuthEmail(value: string) {
+  return value.trim().toLowerCase();
+}
 
 function getSiteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
@@ -46,6 +54,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [startingPayment, setStartingPayment] = useState(false);
   const [availabilityError, setAvailabilityError] = useState(false);
   const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
+  const [settingsEntryFee, setSettingsEntryFee] = useState<string | null>(null);
+  const [budgetDinoDollars, setBudgetDinoDollars] = useState<number | null>(null);
 
   useEffect(() => {
     if (mode === 'login') return;
@@ -57,6 +67,9 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         if (!cancelled) {
           setRegistrationOpen(result?.settings?.is_registration_open === true);
           setRulesVersion(result?.settings?.rules_version || '');
+          setSettingsEntryFee(formatEntryFee(result?.settings?.entry_fee_cents, result?.settings?.entry_fee_currency));
+          const budget = Number(result?.settings?.budget_dino_dollars);
+          setBudgetDinoDollars(Number.isFinite(budget) && budget > 0 ? budget : null);
         }
       })
       .catch(() => {
@@ -163,10 +176,11 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   const handleResend = async () => {
     setResending(true);
+    const targetEmail = normaliseAuthEmail(email);
     try {
-      const { error } = await getFantasyBrowserClient().auth.resend({ type: 'signup', email, options: { emailRedirectTo: getFantasyEmailRedirectTo() } });
+      const { error } = await getFantasyBrowserClient().auth.resend({ type: 'signup', email: targetEmail, options: { emailRedirectTo: getFantasyEmailRedirectTo() } });
       if (error) throw error;
-      setFeedback({ type: 'success', message: `If this address needs verification, a confirmation email has been requested for ${email}. Check your inbox and spam folder. If you already have an NDCC account, sign in with your existing password or use Forgot password.` });
+      setFeedback({ type: 'success', message: `If this address needs verification, a confirmation email has been requested for ${targetEmail}. Check your inbox and spam folder. If you already have an NDCC account, sign in with your existing password or use Forgot password.` });
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not resend email.' });
     } finally {
@@ -175,7 +189,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   };
   const handleForgotPassword = async () => {
     setFeedback(null);
-    const targetEmail = email.trim();
+    const targetEmail = normaliseAuthEmail(email);
     if (!targetEmail) {
       setFeedback({ type: 'error', message: 'Enter your email above, then choose Forgot password.' });
       return;
@@ -227,8 +241,17 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
       setFeedback({ type: 'error', message: 'Enter your name, team name and valid date of birth, and accept the current rules. You must be at least 18.' });
       return;
     }
-    if (mode !== 'account' && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || password.length < 6)) {
-      setFeedback({ type: 'error', message: 'Enter a valid email address and a password of at least 6 characters.' });
+    const authEmail = normaliseAuthEmail(email);
+    if (mode !== 'account' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail)) {
+      setFeedback({ type: 'error', message: 'Enter a valid email address.' });
+      return;
+    }
+    if (mode === 'register' && password.length < MIN_PASSWORD_LENGTH) {
+      setFeedback({ type: 'error', message: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.` });
+      return;
+    }
+    if (mode === 'login' && !password) {
+      setFeedback({ type: 'error', message: 'Enter your password.' });
       return;
     }
     setLoading(true);
@@ -236,7 +259,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
     try {
       if (mode === 'register') {
         const { data, error } = await getFantasyBrowserClient().auth.signUp({
-          email,
+          email: authEmail,
           password,
           options: {
             data: { display_name: displayName.trim(), team_name: teamName.trim(), date_of_birth: dateOfBirth, rules_version: rulesVersion },
@@ -251,11 +274,11 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           setAwaitingConfirm(true);
           setFeedback({
             type: 'success',
-            message: `If ${email} is a new account, check your inbox and spam folder for a confirmation link. Already have an NDCC account? Sign in with your existing password or use Forgot password. Existing verified accounts do not receive another sign-up confirmation.`,
+            message: `If ${authEmail} is a new account, check your inbox and spam folder for a confirmation link. Already have an NDCC account? Sign in with your existing password or use Forgot password. Existing verified accounts do not receive another sign-up confirmation.`,
           });
         }
       } else if (mode === 'login') {
-        const { error } = await getFantasyBrowserClient().auth.signInWithPassword({ email, password });
+        const { error } = await getFantasyBrowserClient().auth.signInWithPassword({ email: authEmail, password });
         if (error) throw error;
         window.location.href = '/fantasy/account';
       } else {
@@ -284,6 +307,9 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   }
 
   const registrationClosed = mode === 'register' && registrationOpen === false;
+  // Prefer the fee recorded on the entry, then the season setting, then the published fee.
+  const entryFee = formatEntryFee(entry?.entry_fee_cents, entry?.currency) || settingsEntryFee || 'AUD 25.00';
+  const budgetLabel = budgetDinoDollars ? formatDinoDollars(budgetDinoDollars) : '15 million Dino Dollars';
 
   return (
     <Card>
@@ -301,13 +327,15 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         )}
         {mode !== 'login' && <Input id="displayName" label="Display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />}
         {mode !== 'login' && <Input id="teamName" label="Dino Coach team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
-        {mode !== 'account' && <Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
-        {mode !== 'account' && <Input id="password" label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />}
+        {mode !== 'account' && <Input id="email" label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
+        {mode !== 'account' && <Input id="password" label="Password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : undefined} value={password} onChange={(event) => setPassword(event.target.value)} required />}
+        {mode === 'register' && <p className="text-sm font-body text-content-muted">Use at least {MIN_PASSWORD_LENGTH} characters for your password.</p>}
+        {mode === 'register' && settingsEntryFee && <p className="text-sm font-body text-content-secondary">The entry fee is {settingsEntryFee}, paid after you confirm your email and your team name is approved.</p>}
         {mode !== 'login' && <Input id="dateOfBirth" label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} required />}
-        {mode === 'account' && manager && rulesVersion && manager.rules_version_accepted !== rulesVersion && <p role="status" className="rounded-lg border p-4">Dino Coach now has a 15 million Dino Dollar budget, a live wallet and sales back to the player pool. Inter-team trades are unavailable. Read the updated rules, tick the acceptance box and save your profile before changing your team.</p>}
+        {mode === 'account' && manager && rulesVersion && manager.rules_version_accepted !== rulesVersion && <p role="status" className="rounded-lg border p-4">Dino Coach now has a budget of {budgetLabel}, a live wallet and sales back to the player pool. Inter-team trades are unavailable. Read the updated rules, tick the acceptance box and save your profile before changing your team.</p>}
         {mode !== 'login' && <label className="flex items-start gap-3 text-sm font-body"><input className="mt-1 h-5 w-5" type="checkbox" checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} required /><span>I am at least 18 and accept the current <Link className="font-semibold text-maroon-700 hover:underline" href="/fantasy/rules">Dino Coach rules</Link>{rulesVersion ? ` (${rulesVersion})` : ''}.</span></label>}
         {mode === 'account' && <p className="text-sm text-content-muted font-body">Signed in as {sessionEmail}. {manager ? (manager.deleted_at ? 'Your team is deleted. Contact the club to restore it.' : 'Your manager profile is registered.') : autoCreating ? 'Creating your manager profile from your sign-up details...' : 'Create your manager profile to play.'}</p>}
-        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.fee_waived ? 'Complimentary entry - no payment required.' : entry?.is_demo ? 'Demo access enabled - no payment required. Demo teams are not eligible for prizes.' : entry?.status === 'paid' ? 'Entry paid.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : 'Entry payment required: AUD 25.00.'}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
+        {mode === 'account' && manager && <div className="rounded-lg border p-4 text-sm" role="status"><strong>{entry?.fee_waived ? 'Complimentary entry - no payment required.' : entry?.is_demo ? 'Demo access enabled - no payment required. Demo teams are not eligible for prizes.' : entry?.status === 'paid' ? 'Entry paid.' : entry?.status === 'pending' ? 'Payment confirmation pending. This page updates automatically.' : `Entry payment required: ${entryFee}.`}</strong>{entry?.payment_reference && <p>Reference: {entry.payment_reference}</p>}{manager.team_name_status === 'review_required' && <p>Your team name needs committee approval before payment.</p>}</div>}
         {mode === 'account' && manager && !manager.first_squad_completed_at && <p className="text-sm">Your registration does not expire. Choose and submit your 15-player squad before the round locks.</p>}
         {mode === 'account' && manager && <Link href="/fantasy/reset-password" className="underline">Change password</Link>}
         {feedback && <p role="status" className={`text-sm font-body ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
@@ -335,7 +363,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               Sign out
             </Button>
           )}
-          {mode === 'account' && manager && !entry?.is_demo && !entry?.fee_waived && entry?.status !== 'paid' && <div className="space-y-3">{bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <><PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} /><Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay AUD 25.00 entry'}</Button></>}</div>}
+          {mode === 'account' && manager && !entry?.is_demo && !entry?.fee_waived && entry?.status !== 'paid' && <div className="space-y-3">{bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <><PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} /><Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : `Pay ${entryFee} entry`}</Button></>}</div>}
           {mode === 'account' && (entry?.fee_waived || entry?.is_demo || entry?.status === 'paid') && <Link href="/fantasy/squad" className="btn-primary">Pick my team</Link>}
         </div>
         {mode === 'login' && !awaitingConfirm && (

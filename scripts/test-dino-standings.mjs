@@ -21,22 +21,33 @@ const tables = {
   ],
 };
 let failTable;
+const rangeCalls = [];
 const db = { from(table) {
   let data = [...tables[table]];
+  const orders = [];
   const query = {
     select() { return query; },
     or() { data = data.filter(row => row.hidden_at || row.deleted_at || row.is_active === false); return query; },
     eq(key, value) { data = data.filter(row => row[key] === value); return query; },
     in(key, values) { data = data.filter(row => values.includes(row[key])); return query; },
     not(key, _operator, value) { data = data.filter(row => row[key] !== value); return query; },
-    order(key, { ascending }) { data.sort((a, b) => (ascending ? 1 : -1) * a[key].localeCompare(b[key])); return query; },
+    order(key, { ascending }) {
+      orders.push([key, ascending ? 1 : -1]);
+      data.sort((a, b) => { for (const [k, dir] of orders) { const diff = String(a[k] ?? '').localeCompare(String(b[k] ?? '')); if (diff) return dir * diff; } return 0; });
+      return query;
+    },
+    range(from, to) { rangeCalls.push([table, from, to]); data = data.slice(from, to + 1); return query; },
     then(resolve, reject) { return Promise.resolve({ data, error: table === failTable ? { message: 'Read failed' } : null }).then(resolve, reject); },
   };
   return query;
 } };
 const source = ts.transpileModule(readFileSync('lib/dino-coach/standings.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const pagingSource = ts.transpileModule(readFileSync('lib/fantasy-paging.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const paging = { exports: {} };
+new Function('module', 'exports', pagingSource)(paging, paging.exports);
 const module = { exports: {} };
 new Function('require', 'module', 'exports', source)(id => {
+  if (id === '@/lib/fantasy-paging') return paging.exports;
   assert.equal(id, '@/lib/supabase-server');
   return { createServerClient: () => db, isServerSupabaseConfigured: () => true };
 }, module, module.exports);
@@ -47,6 +58,9 @@ assert.deepEqual(rows.map(row => row.rank), [1, 2, 3]);
 assert.equal(rows[2].totalPoints, 100);
 assert.equal(rows[2].squadValueDinoDollars, 100000);
 assert.equal(rows[2].totalNetPoints, 100);
+for (const table of ['fantasy_manager_round_scores', 'fantasy_squads', 'fantasy_squad_players', 'fantasy_player_prices']) {
+  assert.ok(rangeCalls.some(([name, from, to]) => name === table && from === 0 && to === 999), `${table} is read in 1000-row pages`);
+}
 console.log('PASS public demo exclusion, season isolation, score aggregation, value then team-name ties, latest submitted squad and published prices');
 const league = await load('current', { members: members.filter(row => ['a', 'c', 'demo', 'empty'].includes(row.managerId)), includeDemo: true });
 assert.deepEqual(league.map(row => row.managerId), ['demo', 'c', 'a', 'empty']);

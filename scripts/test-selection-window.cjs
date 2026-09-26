@@ -14,6 +14,7 @@ const db = {
       select: () => q, in: () => q, order: () => q, limit: () => q,
       eq: (key, value) => { if (key === 'status' && value === 'open') onlyOpen = true; return q; },
       or: () => q,
+      then: (resolve, reject) => Promise.resolve({ data: table === 'fantasy_rounds' ? rounds : [], error: null }).then(resolve, reject),
       maybeSingle: async () => ({ data: table === 'fantasy_dino_settings' ? { selection_window_enabled: enabled } : (onlyOpen ? rounds.find(r => r.status === 'open' && Date.parse(r.deadline_at) > Date.now()) : rounds[0]) || null, error: null }),
     };
     return q;
@@ -33,7 +34,7 @@ function load(file, mocks = {}) {
   }, exports);
   return exports;
 }
-const game = load('lib/fantasy-game.ts', { '@/lib/supabase-server': { createServerClient: () => db } });
+const game = load('lib/fantasy-game.ts', { '@/lib/supabase-server': { createServerClient: () => db }, '@/lib/fantasy-paging': load('lib/fantasy-paging.ts') });
 (async () => {
   assert.equal((await game.getRoundLockState('season')).locked, true, 'Weekly closure must lock first squads as well as transfers');
   windowOpen = true;

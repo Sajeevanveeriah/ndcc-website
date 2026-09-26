@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { fantasyJsonFetch } from '@/lib/fantasy-browser';
-import { formatDinoDollars as money } from '@/lib/dino-coach/domain';
+import { formatDinoDollars as money, isoWeekdayLabel } from '@/lib/dino-coach/domain';
 import { useSeasonParam } from './useSeasonParam';
 import WalletPanel from './WalletPanel';
 import { marketPreview } from '@/lib/dino-coach/wallet';
@@ -31,11 +31,10 @@ export default function TransfersClient() {
  const remaining=Number(data.settings.budget_dino_dollars)-Number(data.squad?.budget_used_dino_dollars||0);
  const empty=data.slots.filter((s:any)=>!picks.some((p:any)=>p.slot_key===s.key));
  const closed=!data.windowOpen||busy;
- const weekdays=['','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
  const clock=(minute:number)=>`${String(Math.floor(minute/60)).padStart(2,'0')}:${String(minute%60).padStart(2,'0')}`;
  return <div className="space-y-6">
   <WalletPanel query={query} refreshKey={data.squad?.updated_at} onExternalChange={()=>void load()}/>
-  <p role="status">{data.windowOpen?'The transfer window is open.':'The transfer window is closed.'} {weekdays[data.settings.transfer_open_weekday]} {clock(data.settings.transfer_open_minute)} to before {weekdays[data.settings.transfer_close_weekday]} {clock(data.settings.transfer_close_minute)}, {data.settings.transfer_timezone==='Australia/Melbourne'?'Melbourne':data.settings.transfer_timezone} time. Round locks also apply.</p>
+  <p role="status">{data.windowOpen?'The transfer window is open.':'The transfer window is closed.'} {isoWeekdayLabel(data.settings.transfer_open_weekday)} {clock(data.settings.transfer_open_minute)} to before {isoWeekdayLabel(data.settings.transfer_close_weekday)} {clock(data.settings.transfer_close_minute)}, {data.settings.transfer_timezone==='Australia/Melbourne'?'Melbourne':data.settings.transfer_timezone} time. Round locks also apply.</p>
   <p>Players are bought from and sold back to the shared player pool. Sales refund the original purchase cost shown below. Purchases use the current published price. Player market value is separate from available money. All transactions use virtual Dino Dollars.</p>
   <section className="card p-5 space-y-4"><h2 className="text-xl font-display font-bold">Buy, sell or replace a player</h2>
    {!data.squad&&<p><Link className="underline" href={`/fantasy/squad${query}`}>Build your first squad</Link> to use the market.</p>}
