@@ -1,5 +1,6 @@
 import { escapeEmailHtml } from './email-html';
 import { mealCollectionLabel, mealServiceLabel } from './meal-collection';
+import { fallbackNotificationRecipients } from './notification-recipients-fallback';
 export type StaffOrderCategory = 'apparel' | 'kitchen';
 export type StaffOrderNotificationStage = 'created' | 'paid';
 
@@ -42,9 +43,6 @@ export type StaffOrderNotificationContent = {
   paymentMadeLabel: 'Yes' | 'No';
 };
 
-const SECRETARY_EMAIL = 'ndcc.secretary1@gmail.com';
-const TREASURER_EMAIL = 'ndcc.treasurer1@gmail.com';
-const APPAREL_EMAILS = [SECRETARY_EMAIL, 'joshwalker20695@gmail.com'] as const;
 
 function finiteNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value);
@@ -82,8 +80,10 @@ function detailLines(item: StaffOrderItem): string[] {
   return lines;
 }
 
+// Fallback staff lists only. Live sends read the CMS-managed lists through
+// getStaffOrderNotificationRecipients() in lib/notification-recipients.ts.
 export function getStaffOrderRecipients(category: StaffOrderCategory): string[] {
-  return category === 'apparel' ? [...APPAREL_EMAILS] : [SECRETARY_EMAIL, TREASURER_EMAIL];
+  return fallbackNotificationRecipients(category === 'apparel' ? 'apparel_order_staff' : 'kitchen_order_staff');
 }
 
 export function buildStaffOrderNotificationContent(
@@ -154,7 +154,7 @@ export function buildStaffOrderNotificationContent(
         <tfoot>
           <tr>
             <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">Order total</td>
-            <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#800000;">$${safeTotal} AUD</td>
+            <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#880000;">$${safeTotal} AUD</td>
           </tr>
         </tfoot>
       </table>`,

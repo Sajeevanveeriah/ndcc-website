@@ -108,6 +108,8 @@ function loadUsersRoute(actor, rows, calls) {
     '@/lib/auth/config': config,
     '@/lib/auth/permissions': permissions,
     '@/lib/order-input-validation': validation,
+    // Best-effort audit hook (WP6b); runs after the response in production.
+    '@/lib/revisions/server': { scheduleAdminAudit: () => {} },
   });
 }
 

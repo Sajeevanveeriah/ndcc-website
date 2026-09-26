@@ -6,6 +6,8 @@ import { getSiteChromeData, type SiteChromeData } from '@/lib/site-chrome';
 import { getPageLinkCards } from '@/lib/structured-content';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 import { isRafflePublic } from '@/lib/raffle-visibility';
+import { isPrizeWheelPublic } from '@/lib/prize-wheel/server';
+import { getCookieDoughCampaign } from '@/lib/server/site-promotions';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
 import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { isPublicSupabaseConfigured, isServerSupabaseConfigured } from '@/lib/supabase-server';
@@ -53,6 +55,11 @@ export type NavVisibility = {
   dinoCoachPublic: boolean;
   rafflePublic: boolean;
   reverseRafflePublic: boolean;
+  /** Optional so snapshots cached before the prize wheel shipped stay valid. */
+  prizeWheelPublic?: boolean;
+  /** Cookie dough campaign from the CMS: open now, and its closing time (null = open-ended). Optional for older cached snapshots. */
+  cookieDoughOpen?: boolean;
+  cookieDoughEndsAt?: number | null;
   registration: NavRegistration;
   settings: NavSettings;
   headerLinks: NavHeaderLink[];
@@ -99,13 +106,15 @@ function registrationNavigation(registration: Awaited<ReturnType<typeof getPubli
 }
 
 async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded: boolean }> {
-  const [chrome, headerCards, dinoCoachPublic, rafflePublic, reverseRafflePublic, registration] = await Promise.all([
+  const [chrome, headerCards, dinoCoachPublic, rafflePublic, reverseRafflePublic, registration, prizeWheelPublic, cookieDough] = await Promise.all([
     getSiteChromeData(),
     getPageLinkCards('site', 'header_nav'),
     isDinoCoachPublic(),
     isRafflePublic(),
     isRafflePublic('NDCCRRO'),
     getPublicPlayerRegistration(),
+    isPrizeWheelPublic(),
+    getCookieDoughCampaign().catch(() => undefined),
   ]);
 
   const isFallbackCard = (card: { id: string }) => card.id.startsWith('fallback-');
@@ -136,6 +145,8 @@ async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded
         dinoCoachPublic,
         rafflePublic,
         reverseRafflePublic,
+        prizeWheelPublic,
+        ...(cookieDough !== undefined ? { cookieDoughOpen: cookieDough !== null, cookieDoughEndsAt: cookieDough ? cookieDough.endsAt : null } : {}),
         registration: registrationNavigation(registration),
         settings: navSettingsFrom(chrome.settings),
         headerLinks,
@@ -160,6 +171,7 @@ function emergencyFallbackSnapshot(): SiteChromeSnapshot {
       dinoCoachPublic: false,
       rafflePublic: false,
       reverseRafflePublic: false,
+      prizeWheelPublic: false,
       registration: null,
       settings: navSettingsFrom(fallbackClubSettings),
       headerLinks: defaultHeaderLinks(),

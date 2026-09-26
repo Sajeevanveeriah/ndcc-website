@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FantasyStatLine } from '@/lib/fantasy-scoring';
 import { createServerClient } from '@/lib/supabase-server';
+import { fetchAllPages } from '@/lib/fantasy-paging';
 
 export const ROLE_LIMITS = { WK: 2, BAT: 5, AR: 3, BOWL: 5 } as const;
 export const STARTER_MINIMUMS = { WK: 1, BAT: 3, AR: 1, BOWL: 3 } as const;
@@ -96,17 +97,16 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
   const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
   if (!targetSeasonId) return getActivePlayersWithLatestPricesLegacy();
 
-  const [{ data: memberships, error: memberError }, { data: prices, error: priceError }] = await Promise.all([
+  const [{ data: memberships, error: memberError }, prices] = await Promise.all([
     supabase
       .from('fantasy_season_players')
       .select('player_id, role, team_label, active, selectable, fantasy_players(id, display_name)')
       .eq('season_id', targetSeasonId)
       .eq('active', true)
       .eq('selectable', true),
-    supabase.from('fantasy_player_prices').select('player_id, price_million, price_dino_dollars, source_status, published_at, created_at').eq('season_id', targetSeasonId).not('published_at', 'is', null).order('created_at', { ascending: false }),
+    fetchAllPages<any>((from, to) => supabase.from('fantasy_player_prices').select('player_id, price_million, price_dino_dollars, source_status, published_at, created_at').eq('season_id', targetSeasonId).not('published_at', 'is', null).order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to)),
   ]);
   if (memberError) throw new Error(memberError.message);
-  if (priceError) throw new Error(priceError.message);
 
   const priceByPlayer = new Map<string, { legacy: number; dino: number; source: string; published: string | null }>();
   for (const row of prices ?? []) {
@@ -133,12 +133,11 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
 
 async function getActivePlayersWithLatestPricesLegacy(): Promise<FantasyPlayerWithPrice[]> {
   const supabase = createServerClient();
-  const [{ data: players, error: playerError }, { data: prices, error: priceError }] = await Promise.all([
+  const [{ data: players, error: playerError }, prices] = await Promise.all([
     supabase.from('fantasy_players').select('id, display_name, role, team_label').eq('active', true).order('display_name'),
-    supabase.from('fantasy_player_prices').select('player_id, price_million, created_at').order('created_at', { ascending: false }),
+    fetchAllPages<any>((from, to) => supabase.from('fantasy_player_prices').select('player_id, price_million, created_at').order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to)),
   ]);
   if (playerError) throw new Error(playerError.message);
-  if (priceError) throw new Error(priceError.message);
 
   const priceByPlayer = new Map<string, number>();
   for (const row of prices ?? []) {
@@ -173,24 +172,54 @@ export type RoundLockState = {
   reason: string | null;
 };
 
-export async function getCurrentRound(seasonId?: string | null): Promise<FantasyRoundInfo | null> {
-  const supabase = createServerClient();
-  const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
-  let query = supabase
-    .from('fantasy_rounds')
-    .select('id, name, status, deadline_at')
-    .in('status', ['open', 'locked', 'scored'])
-    .order('round_number', { ascending: true });
-  if (targetSeasonId) query = query.eq('season_id', targetSeasonId);
-  const { data, error } = await query.limit(1).maybeSingle();
-  if (error) throw new Error(error.message);
-  if (data?.id) return data as FantasyRoundInfo;
+export type SelectableRound = FantasyRoundInfo & { round_number?: number | null };
 
-  let fallbackQuery = supabase.from('fantasy_rounds').select('id, name, status, deadline_at').order('round_number', { ascending: true });
-  if (targetSeasonId) fallbackQuery = fallbackQuery.eq('season_id', targetSeasonId);
-  const fallback = await fallbackQuery.limit(1).maybeSingle();
-  if (fallback.error) throw new Error(fallback.error.message);
-  return (fallback.data as FantasyRoundInfo | null) ?? null;
+const STARTED_ROUND_STATUSES = new Set(['open', 'locked', 'scored', 'final']);
+
+function roundOrder(a: SelectableRound, b: SelectableRound) {
+  const numberA = Number.isFinite(Number(a.round_number)) && a.round_number !== null ? Number(a.round_number) : Number.POSITIVE_INFINITY;
+  const numberB = Number.isFinite(Number(b.round_number)) && b.round_number !== null ? Number(b.round_number) : Number.POSITIVE_INFINITY;
+  if (numberA !== numberB) return numberA - numberB;
+  const deadlineA = a.deadline_at ? Date.parse(a.deadline_at) : Number.POSITIVE_INFINITY;
+  const deadlineB = b.deadline_at ? Date.parse(b.deadline_at) : Number.POSITIVE_INFINITY;
+  return deadlineA - deadlineB;
+}
+
+// Pure round selection (tested in scripts/test-fantasy-logic.mjs). Rounds must
+// already be limited to one season.
+// 1. The lowest-numbered round that is open with no deadline or a future one.
+// 2. Otherwise the next upcoming draft round after the latest started round,
+//    so the lock reason names the round managers are waiting for.
+// 3. Otherwise the latest started round (in progress or season finished),
+//    which evaluateRoundLock reports as locked.
+export function selectCurrentRound(rounds: SelectableRound[], nowMs: number = Date.now()): FantasyRoundInfo | null {
+  const ordered = [...rounds].filter((round) => round?.id).sort(roundOrder);
+  if (!ordered.length) return null;
+  const pick = (round: SelectableRound): FantasyRoundInfo => ({ id: round.id, name: round.name, status: round.status, deadline_at: round.deadline_at ?? null });
+
+  const open = ordered.find((round) => round.status === 'open' && (!round.deadline_at || Date.parse(round.deadline_at) > nowMs));
+  if (open) return pick(open);
+
+  const started = ordered.filter((round) => STARTED_ROUND_STATUSES.has(round.status));
+  const latestStarted = started[started.length - 1];
+  const upcoming = ordered.find((round) => round.status === 'draft' && (!latestStarted || roundOrder(round, latestStarted) > 0));
+  if (upcoming) return pick(upcoming);
+  if (latestStarted) return pick(latestStarted);
+  return pick(ordered[0]);
+}
+
+export async function getCurrentRound(seasonId?: string | null): Promise<FantasyRoundInfo | null> {
+  const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
+  // Never fall back to rounds from other seasons.
+  if (!targetSeasonId) return null;
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from('fantasy_rounds')
+    .select('id, name, status, deadline_at, round_number')
+    .eq('season_id', targetSeasonId)
+    .order('round_number', { ascending: true });
+  if (error) throw new Error(error.message);
+  return selectCurrentRound((data ?? []) as SelectableRound[]);
 }
 
 // Pure deadline/lock evaluation so the rule is deterministic and unit-testable

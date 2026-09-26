@@ -22,7 +22,7 @@ type PermissionDefinition = {
 
 const registry = {
   dashboard: { group: 'Home', label: 'Dashboard', href: '/admin', scope: 'club' },
-  'season.setup': { group: 'Season', label: 'Start New Season', href: '/admin/season/new', scope: 'club' },
+  'season.setup': { group: 'Season', label: 'Start New Season', href: '/admin/season/new', scope: 'club', aliases: ['/admin/season/playhq'] },
   'season.registration': { group: 'Season', label: 'Player Registration', href: '/admin/season/registration', scope: 'club' },
   'club.details': { group: 'Season', label: 'Club Details / Contact Details', href: '/admin/club-details', scope: 'club', aliases: ['/admin/club-settings'] },
   teams: { group: 'Season', label: 'Teams', href: '/admin/teams', scope: 'club' },
@@ -32,12 +32,12 @@ const registry = {
   publications: { group: 'Publish', label: 'Publications', href: '/admin/publications', scope: 'club' },
   events: { group: 'Publish', label: 'Events', href: '/admin/events', scope: 'club' },
   pages: { group: 'Publish', label: 'Pages & Links', href: '/admin/site-pages', scope: 'club' },
-  content: { group: 'Publish', label: 'Page Sections', href: '/admin/content', scope: 'club', aliases: ['/admin/content-blocks'] },
+  content: { group: 'Publish', label: 'Page Sections', href: '/admin/content', scope: 'club', aliases: ['/admin/content-blocks', '/admin/promotions', '/admin/media'] },
   gallery: { group: 'Publish', label: 'Gallery', href: '/admin/gallery', scope: 'club' },
   history: { group: 'Club', label: 'History', href: '/admin/history', scope: 'club' },
   minutes: { group: 'Club', label: 'Minutes', href: '/admin/minutes', scope: 'club' },
   volunteers: { group: 'Community', label: 'Volunteers', href: '/admin/volunteers', scope: 'club' },
-  memberships: { group: 'Community', label: 'Memberships', href: '/admin/memberships', scope: 'club' },
+  memberships: { group: 'Community', label: 'Memberships', href: '/admin/memberships', scope: 'club', aliases: ['/admin/newsletter'] },
   enquiries: { group: 'Community', label: 'Enquiries', href: '/admin/enquiries', scope: 'club' },
   sponsors: { group: 'Commercial', label: 'Sponsors', href: '/admin/sponsors', scope: 'club' },
   merchandise: { group: 'Commercial', label: 'Merchandise', href: '/admin/apparel', scope: 'club' },

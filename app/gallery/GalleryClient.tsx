@@ -56,13 +56,13 @@ export default function GalleryClient({ photos, heading, showEmptyState = true }
                   triggerRef.current = event.currentTarget;
                   setActiveIndex(index);
                 }}
-                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-edge-subtle shadow-sm hover:shadow-lift hover:-translate-y-1 transition-all duration-300 dark:border-slate-700"
+                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-edge-subtle shadow-sm card-interactive dark:border-slate-700"
               >
                 <SafeImage
                   src={photo.image_url}
                   alt={photo.alt_text || photo.caption || photo.title}
                   fill
-                  className="object-contain bg-gray-900 group-hover:scale-105 transition-transform duration-300"
+                  className="object-contain bg-gray-900"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   fallback={<div className="absolute inset-0 bg-gray-900" aria-hidden="true" />}
                 />

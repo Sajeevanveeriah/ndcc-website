@@ -39,6 +39,8 @@ require(name) {
   let tree;
   await act(async () => { tree = create(React.createElement(exportsObject.default, { nav: { settings: { club_short: 'NDCC' }, headerLinks: [], dinoCoachPublic: true, rafflePublic: true, reverseRafflePublic: true } })); });
   assert.equal(tree.root.findByType('nav').findByProps({ href: '/club-account' }).type, dependencies['next/link'].default);
+  assert.equal(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 0, 'Public navigation no longer lists raffle cash sales');
+  assert.ok(tree.root.findAllByProps({ href: '/raffle' }).length);
   for (const scrollY of [0, 800, 2400]) {
     windowStub.scrollY = scrollY;
     await act(async () => listeners.scroll());
@@ -49,6 +51,8 @@ require(name) {
     assert.equal(documentStub.body.style.overflow, 'hidden');
     assert.ok(menu.findAllByProps({ href: '/pot-club' }).length);
     assert.ok(menu.findAllByProps({ href: '/club-account' }).length);
+    assert.ok(menu.findAllByProps({ href: '/raffle' }).length, 'Public raffle link stays in the mobile menu');
+    assert.equal(menu.findAllByProps({ href: '/raffle/cash' }).length, 0, 'Cash sales are a member tool, not a public menu item');
     // A filtered/transformed ancestor changes the containing block of fixed overlays.
     for (let parent = menu.parent; parent; parent = parent.parent) {
       assert.notEqual(parent.type, 'nav', 'Scrolled header must never contain the full-screen overlay');

@@ -87,7 +87,7 @@ export default async function SponsorsPage() {
     loadCurrentSeasonName(),
   ]);
   const heroTitle = blocks['sponsors.hero']?.title || 'Our Sponsors';
-  const heroBody = blocks['sponsors.hero']?.body || 'The generous support of our sponsors helps keep cricket thriving in the Newcomb and Geelong community. We are grateful for every partnership.';
+  const heroBody = blocks['sponsors.hero']?.body || 'The local businesses and organisations that support cricket at Newcomb.';
   const introTitle = blocks['sponsors.intro']?.title || 'Community Support';
   const introBody = blocks['sponsors.intro']?.body
     || `${CLUB_NAME} relies on the support of local businesses and community organisations to provide affordable cricket for players of all ages. Our sponsors help fund equipment, ground maintenance, junior development programmes, and club events. Every sponsorship dollar goes directly back into our cricket community.`;

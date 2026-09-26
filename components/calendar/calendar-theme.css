@@ -1,4 +1,4 @@
-/* NDCC FullCalendar theme — maroon/blue primary, gold reserved for today + featured. */
+/* NDCC FullCalendar theme: maroon/blue primary, gold reserved for today + featured. */
 
 .ndcc-calendar {
   --ndcc-calendar-heading: #4a0000;
@@ -6,16 +6,18 @@
   --fc-border-color: #e5e7eb;
   --fc-page-bg-color: #ffffff;
   --fc-neutral-bg-color: #f8fafc;
-  --fc-today-bg-color: rgba(212, 160, 23, 0.12);
-  --fc-button-bg-color: #800000;
-  --fc-button-border-color: #800000;
+  --fc-today-bg-color: rgba(237, 194, 102, 0.14);
+  --fc-button-bg-color: #880000;
+  --fc-button-border-color: #880000;
   --fc-button-hover-bg-color: #600000;
   --fc-button-hover-border-color: #600000;
   --fc-button-active-bg-color: #4a0000;
   --fc-button-active-border-color: #4a0000;
   --fc-event-border-color: transparent;
   --fc-list-event-hover-bg-color: #fbf7f0;
-  --fc-highlight-color: rgba(128, 0, 0, 0.08);
+  --fc-highlight-color: rgba(136, 0, 0, 0.08);
+  /* Navy focus ring on light surfaces (gold on white is only 1.7:1). */
+  --ndcc-calendar-focus: #162845;
 }
 
 .dark .ndcc-calendar {
@@ -26,6 +28,7 @@
   --fc-neutral-bg-color: rgb(var(--surface-muted));
   --fc-list-event-hover-bg-color: rgb(var(--surface-elevated));
   --fc-highlight-color: rgba(244, 163, 163, 0.12);
+  --ndcc-calendar-focus: #edc266;
 }
 
 .ndcc-calendar .fc {
@@ -42,7 +45,7 @@
 }
 
 .ndcc-calendar .fc .fc-button {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -51,7 +54,7 @@
 }
 
 .ndcc-calendar .fc .fc-button:focus-visible {
-  outline: 2px solid #d4a017;
+  outline: 2px solid var(--ndcc-calendar-focus);
   outline-offset: 2px;
 }
 
@@ -67,7 +70,7 @@
 .ndcc-calendar .fc .fc-col-header-cell-cushion {
   color: #ffffff;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 0.5rem 0.25rem;
@@ -83,7 +86,7 @@
 
 .ndcc-calendar .fc .fc-day-today .fc-daygrid-day-number {
   color: #4a0000;
-  background: #d4a017;
+  background: #edc266;
   border-radius: 9999px;
   min-width: 1.7rem;
   text-align: center;
@@ -99,7 +102,7 @@
 }
 
 .ndcc-calendar .fc .fc-event:focus-visible {
-  outline: 2px solid #d4a017;
+  outline: 2px solid var(--ndcc-calendar-focus);
   outline-offset: 1px;
 }
 
@@ -110,7 +113,7 @@
 }
 
 .ndcc-calendar .fc .fc-event.ndcc-event-featured {
-  box-shadow: 0 0 0 2px #d4a017;
+  box-shadow: 0 0 0 2px #edc266;
 }
 
 .ndcc-calendar .fc .fc-list-event-title a {

@@ -108,7 +108,7 @@ export default function ClubIntro() {
   }, [play]);
 
   return (
-    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-md border border-edge-subtle bg-[#dedede]" aria-label="NDCC dinosaur logo reveal">
+    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-md border border-edge-subtle bg-surface-muted" aria-label="NDCC dinosaur logo reveal">
       <div className="flex flex-1 items-center">
       <div ref={frameRef} className="relative aspect-video w-full overflow-hidden">
         <Image src={POSTER} alt="Newcomb and District Cricket Club dinosaur badge" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" priority />

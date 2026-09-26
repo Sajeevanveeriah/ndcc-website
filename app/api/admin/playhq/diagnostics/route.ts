@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
-import { getActivePlayHQBaseUrl, getPlayHQPublicDataUncached } from '@/lib/playhq/client';
+import { getActivePlayHQBaseUrl, getPlayHQEndpointUsage, getPlayHQPublicDataUncached } from '@/lib/playhq/client';
 import { getPlayHQConfig, isFantasySyncEnabled, redactedPlayHQConfig } from '@/lib/playhq/config';
 import { createServerClient } from '@/lib/supabase-server';
 
@@ -72,7 +72,11 @@ export async function GET() {
       organisation: data ? `${data.seasons.length} season(s) returned for the configured organisation.` : 'Not tested.',
       season: data?.selectedSeasonId ? 'Selected season discovered. Value hidden in UI response details.' : 'No selected season discovered.',
       grades: data ? `${data.grades.length} grade(s), ${data.fixtures.length} fixture(s), ${data.ladders.length} ladder row(s) returned.` : 'Not tested.',
+      mapping: data ? (data.source === 'mapped' ? 'Using the seasons, grades and teams saved in Season > PlayHQ Links.' : 'Automatic discovery (no PlayHQ links saved for the current club season).') : 'Not tested.',
     },
+    // Which documented endpoint version (v1/v2) last served each dataset in
+    // this server instance. Paths and ids are not included.
+    endpoints: getPlayHQEndpointUsage(),
     sync: { ...sync, nextScheduledRun: nextPlayHQCronRun() },
     remediation,
   }, { headers: noStore });

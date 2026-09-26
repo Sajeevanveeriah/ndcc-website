@@ -85,7 +85,7 @@ export default function DonationForm() {
                 <input type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} className={inputClass} />
               </label>
               <div hidden aria-hidden="true"><label>Leave blank<input ref={honeypot} tabIndex={-1} autoComplete="off" /></label></div>
-              <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} />
+              <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="donation" />
             </fieldset>
             {confirmation && paymentMethod === 'bank_transfer' && <OrderPaymentOptions orderId={confirmation.order_id} customerEmail={email} totalAmount={confirmation.total_amount} paymentReference={confirmation.payment_reference} bankDetails={confirmation.bank_details} returnPath="/sponsors/donate" />}
             {error && <p role="alert" className="mt-4 text-red-700 dark:text-red-300">{error}</p>}

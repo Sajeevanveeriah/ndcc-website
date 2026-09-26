@@ -1,12 +1,15 @@
 import { isCookieDoughOpen } from '@/lib/cookie-dough';
+import { getCookieDoughCampaign } from '@/lib/server/site-promotions';
 import type { MetadataRoute } from 'next';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
 import { RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
+import { isPrizeWheelPublic } from '@/lib/prize-wheel/server';
 import { buildDetailEntries } from '@/lib/seo-sitemap';
 import { SITE_URL } from '@/lib/seo';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
 import type { PublicPlayerRegistration } from '@/lib/player-registration';
+import { buildTeamSlugs } from '@/lib/playhq/team-slug';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -32,7 +35,9 @@ async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute
   }
   const [news, events, publications, albums] = await Promise.all([
     rows('news', 'id,title,published,published_at', true),
-    rows('events', 'id,published'),
+    // Scheduled events stay out until published_at; the retry covers a database
+    // without the scheduling column.
+    rows('events', 'id,published,published_at', true).catch(() => rows('events', 'id,published')),
     rows('publications', 'id,slug,published,published_at,updated_at', true),
     rows('gallery_albums', 'id,slug,published'),
   ]);
@@ -93,7 +98,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntries.push({ url: `${baseUrl}/player-registration`, changeFrequency: 'weekly', priority: 0.9 });
   }
 
-  if (isCookieDoughOpen()) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });
+  // Public team pages (/teams/[slug]) for every active team card. Same read
+  // order and slug rule as lib/public-teams.ts getPublicTeamsWithSlugs().
+  const { data: teamRows, error: teamsError } = await createServerClient({ fetchTimeoutMs: 5_000 }).from('teams').select('name,sort_order,is_active').eq('is_active', true).order('sort_order', { ascending: true }).order('name', { ascending: true });
+  if (teamsError) throw new Error('Sitemap teams unavailable');
+  for (const { slug } of buildTeamSlugs((teamRows || []) as Array<{ name: string }>)) {
+    staticEntries.push({ url: `${baseUrl}/teams/${slug}`, changeFrequency: 'weekly', priority: 0.6 });
+  }
+
+  const cookieDoughOpen = await getCookieDoughCampaign().then((campaign) => campaign !== null, () => isCookieDoughOpen());
+  if (cookieDoughOpen) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });
 
   if (await isDinoCoachPublic()) {
     staticEntries.push(
@@ -110,6 +124,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const route = campaign.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : campaign.code === RAFFLE_CAMPAIGN_CODE ? '/raffle' : null;
     if (route) staticEntries.push({ url: `${baseUrl}${route}`, changeFrequency: 'weekly', priority: 0.8 });
   }
+  // Prize wheel: only while an active, publicly visible wheel campaign exists.
+  if (await isPrizeWheelPublic()) staticEntries.push({ url: `${baseUrl}/prize-wheel`, changeFrequency: 'daily', priority: 0.6 });
 
   const detailEntries = await getPublishedDetailEntries(baseUrl);
   return [...staticEntries, ...detailEntries];

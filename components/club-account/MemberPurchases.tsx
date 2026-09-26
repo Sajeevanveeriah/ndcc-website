@@ -41,7 +41,7 @@ export default function MemberPurchases({ email }: { email: string }) {
       {order.category !== 'raffle' && <p className="text-sm">Order status: {order.order_status.replaceAll('_', ' ')}. {order.processed ? 'Processed by the club.' : 'Not marked as processed.'}</p>}
       {order.tickets.length > 0 && <p className="text-sm">Your ticket numbers: {order.tickets.map(ticket => ticket.number).join(', ')}</p>}
       {order.bank_transfer_selected && order.can_pay && <p className="text-sm">Bank transfer selected - awaiting receipt confirmation.</p>}
-      {order.can_pay && order.category === 'merch' && <Button onClick={() => void pay(order)} isLoading={paying === order.id}>Pay apparel balance</Button>}
+      {order.can_pay && order.category === 'merch' && <Button onClick={() => void pay(order)} isLoading={paying === order.id} disabled={Boolean(paying)}>Pay apparel balance</Button>}
       {order.can_pay && <Link className="inline-block rounded-lg border border-edge-strong px-4 py-3 underline" href={`/pay-balance?reference=${encodeURIComponent(order.reference)}`}>Payment options / bank deposit</Link>}
       {['needs_review', 'refunded', 'partially_refunded'].includes(order.payment_status) && <Link className="inline-block underline" href="/contact">Contact the club about this purchase</Link>}
     </article>)}

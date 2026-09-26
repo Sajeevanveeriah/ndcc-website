@@ -60,7 +60,7 @@ export default async function VolunteerPage() {
   ]);
   const heroTitle = blocks['volunteer.hero']?.title || 'Volunteer with Us';
   const heroBody = blocks['volunteer.hero']?.body
-    || 'Our club runs on the dedication of volunteers. Whether you can spare an hour or a whole day, your help makes a real difference to cricket in our community.';
+    || 'Help on match days, at training and at club events. Choose a role and register below.';
   const roleOptions = positionTitles.length > 0
     ? positionTitles.map((title) => ({ value: title, label: title }))
     : VOLUNTEER_ROLES.map((r) => ({ value: r, label: r }));
@@ -80,11 +80,8 @@ export default async function VolunteerPage() {
         <ScrollReveal className="container-width max-w-3xl mx-auto text-center">
           <h2 className="section-title">Why Volunteer?</h2>
           <p className="text-content-muted font-body text-lg leading-relaxed">
-            {CLUB_NAME} is a community-run club, and every match day, training session, and event
-            relies on people like you stepping up. Volunteering is a brilliant way to connect with
-            fellow members, contribute to junior development, and keep the Dinos thriving for
-            generations to come. No experience necessary — just enthusiasm and a willingness to lend
-            a hand.
+            {CLUB_NAME} is a community-run club. Every match day, training session and event relies
+            on volunteers. No experience is necessary.
           </p>
         </ScrollReveal>
       </section>

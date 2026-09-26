@@ -102,12 +102,23 @@ export async function POST(request: Request) {
     const supabase = createServerClient();
     const safeEventId = sanitiseInput(event_id);
 
-    const { data: eventRow, error: eventError } = await supabase
+    const lookupEvent = (columns: string) => supabase
       .from('events')
-      .select('id,title,date,ticket_price,location,capacity')
+      .select(columns)
       .eq('id', safeEventId)
       .eq('published', true)
       .maybeSingle();
+    // Scheduled events (published_at in the future) are not open yet. Retry
+    // without the column where the scheduling migration is not applied.
+    let lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at');
+    if (lookup.error && /published_at/.test(lookup.error.message || '')) {
+      lookup = await lookupEvent('id,title,date,ticket_price,location,capacity');
+    }
+    const eventError = lookup.error;
+    const scheduledRow = lookup.data as unknown as { published_at?: string | null } | null;
+    const eventRow = scheduledRow && scheduledRow.published_at && Date.parse(scheduledRow.published_at) > Date.now()
+      ? null
+      : lookup.data as unknown as { id: string; title: string; date: string | null; ticket_price: number | null; location: string | null; capacity: number | null } | null;
 
     if (eventError) {
       console.error('Supabase event lookup error:', eventError);
@@ -243,7 +254,7 @@ export async function POST(request: Request) {
           ? bankDetailsHtml(paymentReference, totalCost)
           : `<div style="background:#f0fdf4;border-radius:6px;padding:16px;margin:16px 0;"><p style="margin:0;font-size:14px;color:#166534;font-weight:bold;">Free entry - no payment required.</p></div>`
         }
-        <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+        <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
 

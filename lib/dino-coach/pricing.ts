@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import 'server-only';
 import { createServerClient } from '@/lib/supabase-server';
+import { fetchAllPages } from '@/lib/fantasy-paging';
 import { calculateBasePerformancePoints, calculateInitialPrice } from './domain';
 import { getDinoCoachSettings, getDinoReleaseReadiness } from './server';
+import seasonSummary from '@/data/dino-coach-2025-26-summary.json';
 
 const FINAL_STATUSES = ['verified_playhq','verified_no_prior_appearance','international_manual','international_premium'];
 
@@ -20,7 +22,7 @@ export async function recalculateDinoCoachInitialPrices(seasonId: string) {
   if (seasonError || !season) throw new Error(seasonError?.message || 'Dino Coach season not found.');
   const summary = await supabase.from('fantasy_player_prices').select('player_id').eq('season_id', seasonId).eq('formula_version', 'dino-season-summary-v1').limit(1);
   if (summary.error) throw new Error(summary.error.message);
-  if (summary.data?.length) return { seasonId, formulaVersion: 'dino-season-summary-v1', message: 'Opening prices use the published 2025/2026 season summary. Replace the source through a reviewed release to change this baseline.' };
+  if (summary.data?.length) return { seasonId, formulaVersion: 'dino-season-summary-v1', message: `Opening prices use the published ${seasonSummary.sourceSeason} season summary. Replace the source through a reviewed release to change this baseline.` };
   const {data:appliedBaseline,error:baselineError}=await supabase.from('fantasy_baseline_import_batches').select('id').eq('target_season_id',seasonId).eq('status','applied').order('applied_at',{ascending:false}).limit(1).maybeSingle();
   if(baselineError)throw new Error(baselineError.message);
   if(appliedBaseline)return recalculateFromAppliedBaseline(supabase,seasonId,appliedBaseline);
@@ -32,13 +34,14 @@ export async function recalculateDinoCoachInitialPrices(seasonId: string) {
   const { data: batch } = await supabase.from('fantasy_import_batches').select('id,status').eq('id',job.import_batch_id).eq('status','published').maybeSingle();
   if (!batch) throw new Error('Prior-season PlayHQ import batch is not published. Prices were not recalculated.');
 
-  const [{ data: roster, error: rosterError }, { data: stats, error: statError }] = await Promise.all([
+  const [{ data: roster, error: rosterError }, stats] = await Promise.all([
     supabase.from('fantasy_season_players').select('player_id,fantasy_players(display_name,playhq_player_id,is_international)').eq('season_id',seasonId).eq('active',true).eq('selectable',true),
-    supabase.from('fantasy_match_stats').select('player_id,playhq_game_id,runs,wickets,maidens,catches,runouts,stumpings,not_out,fantasy_rounds(pricing_eligible),fantasy_import_batches(status)').eq('season_id',prior.id).eq('import_batch_id',batch.id),
+    // A full prior season exceeds the 1000-row read cap, so read every page.
+    fetchAllPages<any>((from,to)=>supabase.from('fantasy_match_stats').select('id,player_id,playhq_game_id,runs,wickets,maidens,catches,runouts,stumpings,not_out,fantasy_rounds(pricing_eligible),fantasy_import_batches(status)').eq('season_id',prior.id).eq('import_batch_id',batch.id).order('id',{ascending:true}).range(from,to)),
   ]);
-  if (rosterError || statError) throw new Error(rosterError?.message || statError?.message);
+  if (rosterError) throw new Error(rosterError.message);
   const totals = new Map<string,{points:number;games:Set<string>}>();
-  for (const row of stats || []) {
+  for (const row of stats) {
     const typed=row as any;
     const batchRelation=Array.isArray(typed.fantasy_import_batches)?typed.fantasy_import_batches[0]:typed.fantasy_import_batches;
     const roundRelation=Array.isArray(typed.fantasy_rounds)?typed.fantasy_rounds[0]:typed.fantasy_rounds;

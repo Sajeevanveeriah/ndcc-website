@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Sponsor } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -31,6 +31,8 @@ const emptySponsor: Omit<Sponsor, 'id' | 'created_at'> = {
 };
 
 const asString = (value: unknown) => (typeof value === 'string' ? value : '');
+const scheduledTime = (sponsor: Sponsor) => asString((sponsor as Sponsor & { published_at?: string | null }).published_at) || null;
+const isFutureTime = (value: string | null) => Boolean(value && Date.parse(value) > Date.now());
 
 export default function AdminSponsorsPage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
@@ -46,6 +48,9 @@ export default function AdminSponsorsPage() {
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchBusy, setBatchBusy] = useState(false);
+  // Optional scheduled start (sponsors.published_at). Blank = shown while active.
+  const [publishAt, setPublishAt] = useState('');
+  const [editingHasSchedule, setEditingHasSchedule] = useState(false);
 
   const fetchSponsors = async () => {
     setLoading(true);
@@ -68,6 +73,8 @@ export default function AdminSponsorsPage() {
 
   const openCreate = () => {
     setEditingId(null);
+    setPublishAt('');
+    setEditingHasSchedule(false);
     setForm(emptySponsor);
     setFormErrors({});
     setFeedback(null);
@@ -77,6 +84,9 @@ export default function AdminSponsorsPage() {
 
   const openEdit = (sponsor: Sponsor) => {
     setEditingId(sponsor.id);
+    const scheduledAt = scheduledTime(sponsor);
+    setPublishAt(scheduledAt ? toDatetimeLocalInClubTimezone(scheduledAt) : '');
+    setEditingHasSchedule('published_at' in sponsor);
     setForm({
       name: sponsor.name,
       tier: sponsor.tier,
@@ -119,6 +129,9 @@ export default function AdminSponsorsPage() {
       source_url: asString(form.source_url).trim(),
       logo_source_url: asString(form.logo_source_url).trim(),
       logo_surface_mode: asString(form.logo_surface_mode) || 'auto',
+      // Sent only when set, or when clearing an existing schedule, so saving
+      // keeps working before the scheduling column is migrated.
+      ...(publishAt || editingHasSchedule ? { published_at: publishAt || null } : {}),
     };
 
     try {
@@ -297,7 +310,11 @@ export default function AdminSponsorsPage() {
                 </TableCell>
                 <TableCell>
                   {sponsor.active ? (
-                    <Badge variant="success">Active</Badge>
+                    isFutureTime(scheduledTime(sponsor)) ? (
+                      <Badge variant="info">Starts {new Date(scheduledTime(sponsor) as string).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })}</Badge>
+                    ) : (
+                      <Badge variant="success">Active</Badge>
+                    )
                   ) : (
                     <Badge variant="danger">Inactive</Badge>
                   )}
@@ -389,6 +406,14 @@ export default function AdminSponsorsPage() {
             />
             <span className="text-sm font-body text-content-secondary">Active sponsor</span>
           </label>
+          <Input
+            id="sponsor-publish-at"
+            label="Show on the website from - Australia/Melbourne (optional)"
+            type="datetime-local"
+            value={publishAt}
+            onChange={(e) => setPublishAt(e.target.value)}
+          />
+          <p className="-mt-2 text-xs text-content-muted">Leave blank to show an active sponsor straight away.</p>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>

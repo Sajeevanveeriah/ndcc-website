@@ -7,8 +7,7 @@ import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 import { escapeEmailHtml } from '@/lib/email-html';
-import { receiptRecipients } from '@/lib/payments/receipt-recipients';
-import { getStaffOrderRecipients } from '@/lib/order-notification-content';
+import { getReceiptRecipients, getStaffOrderNotificationRecipients } from '@/lib/notification-recipients';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 import {
   PUBLIC_ORDER_LIMITS,
@@ -284,7 +283,7 @@ export async function POST(request: Request) {
       })
       .join('');
     if (payment_method === 'bank_transfer') await sendEmail({
-      ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('apparel')),
+      ...(await getReceiptRecipients(sanitiseInput(customer_email), await getStaffOrderNotificationRecipients('apparel'))),
       subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',
@@ -302,7 +301,7 @@ export async function POST(request: Request) {
           <tfoot>
             <tr>
               <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">Total</td>
-              <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#800000;">$${serverTotal.toFixed(2)}</td>
+              <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#880000;">$${serverTotal.toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>
@@ -312,7 +311,7 @@ export async function POST(request: Request) {
             ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The surname entered has been recorded for club review.</div>`
             : ''}
         ${bankDetailsHtml(paymentReference, serverTotal)}
-        <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+        <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
 

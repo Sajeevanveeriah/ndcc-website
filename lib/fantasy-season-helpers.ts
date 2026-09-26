@@ -72,3 +72,25 @@ export function pickSeason<T extends { slug: string; id: string; is_current: boo
   }
   return seasons.find((season) => season.is_current) ?? seasons[0] ?? null;
 }
+
+// Season years for copy, for example "NDCC Fantasy 2026/2027" or slug
+// "2026-27" -> "2026/2027". Null when the season does not name its years.
+export function seasonYearsLabel(season: { name?: string | null; slug?: string | null } | null | undefined): string | null {
+  const expand = (start: string, end: string) => {
+    const first = Number(start);
+    const second = end.length === 2 ? Number(`${start.slice(0, 2)}${end}`) + (Number(end) < Number(start.slice(2)) ? 100 : 0) : Number(end);
+    return second === first + 1 ? `${first}/${second}` : null;
+  };
+  for (const text of [season?.name, season?.slug]) {
+    const match = typeof text === 'string' ? text.match(/(?:^|\D)((?:19|20)\d{2})\s*[/-]\s*(\d{4}|\d{2})(?!\d)/) : null;
+    const label = match ? expand(match[1], match[2]) : null;
+    if (label) return label;
+  }
+  return null;
+}
+
+// "2026/2027" -> "2025/2026".
+export function previousSeasonYearsLabel(label: string | null | undefined): string | null {
+  const match = typeof label === 'string' ? label.match(/^(\d{4})\/(\d{4})$/) : null;
+  return match && Number(match[2]) === Number(match[1]) + 1 ? `${Number(match[1]) - 1}/${match[1]}` : null;
+}

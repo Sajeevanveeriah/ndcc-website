@@ -1,5 +1,5 @@
 import CookieDoughVisibility from '@/components/common/CookieDoughVisibility';
-import { isCookieDoughOpen, isCookieDoughLink } from '@/lib/cookie-dough';
+import { COOKIE_DOUGH_ENDS_AT, isCookieDoughOpen, isCookieDoughLink } from '@/lib/cookie-dough';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
@@ -32,9 +32,11 @@ function resolveLinks(links: PageLinkCard[]) {
   });
 }
 
-function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
+type CookieWindow = { open: boolean; endsAt: number | null };
+
+function FooterLink({ link, className, cookie }: { link: PageLinkCard; className: string; cookie: CookieWindow }) {
   if (isCookieDoughLink(link.href)) {
-    return <CookieDoughVisibility initialOpen={isCookieDoughOpen()}><Link href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
+    return <CookieDoughVisibility initialOpen={cookie.open} endsAt={cookie.endsAt}><Link href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
   }
   const external = isExternalLink(link);
   const content = (
@@ -71,18 +73,23 @@ export default async function Footer() {
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled } = nav;
+  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled, prizeWheelPublic: prizeWheelEnabled } = nav;
+  // CMS campaign dates when known; otherwise the built-in deadline.
+  const cookie: CookieWindow = nav.cookieDoughOpen === undefined
+    ? { open: isCookieDoughOpen(), endsAt: COOKIE_DOUGH_ENDS_AT }
+    : { open: nav.cookieDoughOpen, endsAt: nav.cookieDoughOpen ? (nav.cookieDoughEndsAt ?? null) : 0 };
   const hideDisabledFeatures = (link: PageLinkCard) =>
-    (isCookieDoughOpen() || !isCookieDoughLink(link.href))
+    (cookie.open || !isCookieDoughLink(link.href))
     && (dinoCoachEnabled || !link.href.startsWith('/fantasy'))
     && (raffleEnabled || !link.href.startsWith('/raffle'))
-    && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'));
+    && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'))
+    && (prizeWheelEnabled === true || !link.href.startsWith('/prize-wheel'));
   const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledFeatures);
   const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks).filter(hideDisabledFeatures);
   const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledFeatures);
 
   return (
-    <footer className="bg-maroon-900 text-white" role="contentinfo">
+    <footer className="bg-maroon-900 text-white">
       {/* Acknowledgement */}
       <div
         className="border-b border-white/10 px-4 py-4 sm:px-6 lg:px-8"
@@ -142,7 +149,7 @@ export default async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Newcomb and District Cricket Club on Facebook"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
                 >
                   <Facebook className="h-4 w-4" />
                 </a>
@@ -151,7 +158,7 @@ export default async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Newcomb and District Cricket Club on Instagram"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
                 >
                   <Instagram className="h-4 w-4" />
                 </a>
@@ -161,12 +168,13 @@ export default async function Footer() {
             {/* Quick Links */}
             {quickLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em] text-gold-200">Quick Links</h3>
+                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">Quick Links</h3>
                 <ul className="space-y-1.5">
                   {quickLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
+                        cookie={cookie}
                         className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                       />
                     </li>
@@ -178,12 +186,13 @@ export default async function Footer() {
             {/* More Links */}
             {getInvolvedLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em] text-gold-200">Get Involved</h3>
+                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">Get Involved</h3>
                 <ul className="space-y-1.5">
                   {getInvolvedLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
+                        cookie={cookie}
                         className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                       />
                     </li>
@@ -195,12 +204,13 @@ export default async function Footer() {
             {/* Partners */}
             {affiliationLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em] text-gold-200">Affiliations</h3>
+                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">Affiliations</h3>
                 <ul className="space-y-1.5">
                   {affiliationLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
+                        cookie={cookie}
                         className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                       />
                     </li>
@@ -223,7 +233,7 @@ export default async function Footer() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
-            className="text-xs text-maroon-400 hover:text-maroon-200 transition-colors font-body focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-200"
+            className="text-xs text-maroon-200 hover:text-white hover:underline transition-colors font-body focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-200"
           >
             Built by Sajeevan Veeriah
           </a>

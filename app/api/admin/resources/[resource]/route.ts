@@ -1,4 +1,5 @@
 import { normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
+import { isRenderedContentBlockKey } from '@/lib/content-block-slots';
 import { NextResponse } from 'next/server';
 import { fetchAllPages } from '@/lib/supabase-paginate';
 import { revalidatePath, revalidateTag } from 'next/cache';
@@ -14,6 +15,10 @@ import { canDeleteResource } from '@/lib/auth/resource-delete';
 import { normaliseGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 import { normaliseMediaUrl } from '@/lib/media-url';
+import { RESOURCE_VALIDATORS, friendlyDatabaseError } from '@/lib/admin-resource-validation';
+import { hasRevisionHistory } from '@/lib/revisions/tables';
+import { enrichRevisionHistory, scheduleAdminAudit } from '@/lib/revisions/server';
+import { summariseFields } from '@/lib/admin-audit';
 
 export const dynamic = 'force-dynamic';
 const EDITORIAL_TABLES = new Set(['news', 'publications', 'events', 'content_blocks']);
@@ -39,9 +44,9 @@ const resourceMap: Record<string, ResourceConfig> = {
   // from the order_payments ledger by trigger. Manual money movements go
   // through /api/admin/orders/payments.
   orders: { table: 'orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['processed', 'confirmed_by', 'confirmed_at', 'bank_reference_used', 'needs_review_reason'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['confirmed_at'] },
-  merchPaymentSettings: { table: 'merch_payment_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['bank_transfer_enabled', 'card_checkout_enabled', 'partial_payments_enabled', 'minimum_partial_amount', 'required_deposit_percent'] },
+  merchPaymentSettings: { table: 'merch_payment_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['bank_transfer_enabled', 'card_checkout_enabled', 'partial_payments_enabled', 'minimum_partial_amount', 'required_deposit_percent', 'raffle_bank_transfer_enabled', 'reverse_raffle_bank_transfer_enabled', 'dino_bank_transfer_enabled', 'donation_bank_transfer_enabled'] },
   enquiries: { table: 'contacts', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['name', 'email', 'phone', 'enquiry_type', 'message', 'responded'], defaultOrder: { column: 'created_at', ascending: false } },
-  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
+  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'image_url', 'published', 'published_at'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date', 'published_at'] },
   calendarEvents: { table: 'calendar_events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'slug', 'description', 'start_at', 'end_at', 'all_day', 'location', 'venue_address', 'event_type', 'category', 'visibility', 'status', 'is_featured', 'show_on_home', 'show_on_contact', 'show_on_calendar', 'image_url', 'external_url', 'cta_label', 'cta_url', 'registration_required', 'ticket_price', 'capacity', 'colour', 'sort_order', 'recurrence_rule', 'recurrence_until'], defaultOrder: { column: 'start_at', ascending: true }, datetimeFields: ['start_at', 'end_at', 'recurrence_until'], validate: validateCalendarEventPayload },
   eventRegistrations: { table: 'event_registrations', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   publications: { table: 'publications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['publication_type', 'title', 'slug', 'summary', 'content', 'issue_date', 'season_label', 'round_label', 'cover_image_url', 'document_url', 'external_url', 'author', 'published', 'published_at', 'featured', 'display_order'], defaultOrder: { column: 'issue_date', ascending: false }, datetimeFields: ['published_at'], validate: validatePublicationPayload },
@@ -52,7 +57,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['round_number', 'name', 'deadline_at', 'status', 'season_id'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
   fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
   playerSponsors: { table: 'player_sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['player_name', 'player_image_url', 'sponsor_name', 'logo_url', 'website', 'sort_order', 'active'], defaultOrder: { column: 'sort_order', ascending: true }, validate: validatePlayerSponsor },
-  sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position'], defaultOrder: { column: 'sort_order', ascending: true } },
+  sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position', 'published_at'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipApplications: { table: 'member_applications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['full_name', 'email', 'status'], defaultOrder: { column: 'created_at', ascending: false } },
@@ -77,7 +82,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   kitchenOrders: { table: 'kitchen_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['status', 'payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   raffleCampaigns: { table: 'raffle_campaigns', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['name', 'price_cents', 'draw_at', 'draw_label', 'active', 'public_visibility_mode', 'public_opens_at'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['draw_at', 'public_opens_at'] },
   raffleOrders: { table: 'raffle_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['status'], defaultOrder: { column: 'created_at', ascending: false } },
-  contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
+  contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true }, validate: validateNewContentBlock },
   clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['donations_enabled', 'club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url', 'sponsor_marquee_speed'] },
 };
 
@@ -185,6 +190,29 @@ function validatePublicationPayload(payload: Record<string, unknown>, isCreate: 
   }
   return null;
 }
+
+const CONTENT_BLOCK_KEY_PATTERN = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
+const CONTENT_PAGE_SLUG_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+// New page sections created from /admin/content. Existing rows are edited
+// with PATCH and keep their stored keys unvalidated.
+function validateNewContentBlock(payload: Record<string, unknown>, isCreate: boolean): string | null {
+  if (!isCreate) return null;
+  const key = typeof payload.block_key === 'string' ? payload.block_key : '';
+  if (!CONTENT_BLOCK_KEY_PATTERN.test(key) || key.length > 80) return 'Section key must look like page.section using lowercase letters, numbers and underscores.';
+  if (!isRenderedContentBlockKey(key)) return 'Choose a section that the page displays.';
+  const slug = typeof payload.page_slug === 'string' ? payload.page_slug : '';
+  if (!CONTENT_PAGE_SLUG_PATTERN.test(slug) || slug.length > 40) return 'Choose the page this section belongs to.';
+  if (typeof payload.section_label !== 'string' || !payload.section_label.trim() || payload.section_label.length > 120) return 'Section name is required.';
+  if (typeof payload.is_active !== 'boolean') return 'Choose whether the section starts as a draft or is shown on the website.';
+  return null;
+}
+
+function isMissingScheduleColumnError(errorMessage: string, table: string, payload: Record<string, unknown>) {
+  return (table === 'events' || table === 'sponsors') && 'published_at' in payload && /published_at/.test(errorMessage);
+}
+
+const SCHEDULE_UNAVAILABLE = 'Scheduling needs the latest database update. Clear the schedule time to save now.';
 
 function revalidateForResourceBatch(resource: string, ids: string[]) {
   if (resource === 'news' || resource === 'publications' || resource === 'events') {
@@ -333,6 +361,23 @@ function seasonAppointmentsTableErrorResponse() {
   }, { status: 503 });
 }
 
+// Raw database messages stay in the server log; administrators see a
+// friendly explanation instead.
+function databaseErrorResponse(resource: string, action: string, error: { code?: string; message: string; details?: string | null; hint?: string | null }) {
+  console.error(`[admin/resources] ${action} ${resource} failed`, { code: error.code, message: error.message, details: error.details, hint: error.hint });
+  const friendly = friendlyDatabaseError(error);
+  return NextResponse.json({ success: false, error: friendly.error }, { status: friendly.status });
+}
+
+function loadErrorResponse(resource: string, error: { code?: string; message: string }) {
+  console.error(`[admin/resources] load ${resource} failed`, { code: error.code, message: error.message });
+  return NextResponse.json({ success: false, error: 'This list could not be loaded. Please refresh and try again.' }, { status: 500 });
+}
+
+function validateResourcePayload(resource: string, config: ResourceConfig, payload: Record<string, unknown>, isCreate: boolean) {
+  return config.validate?.(payload, isCreate) ?? RESOURCE_VALIDATORS[resource]?.(payload, isCreate) ?? null;
+}
+
 function isMissingImageUrlColumnError(errorMessage: string, table: string) {
   return table === 'news'
     && errorMessage.includes("Could not find the 'image_url' column")
@@ -365,23 +410,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
 
+  // Optional capability flags so admin pages can show read-only views to
+  // users who may read but not change this resource. Server checks are unchanged.
+  const accessFlags = { canWrite: canWrite(user.role, config), canDelete: canDelete(user.role, config) && config.allowDelete !== false };
   const supabase = createServerClient({ actorId: user.id });
   const { searchParams } = new URL(request.url);
   const historyId = searchParams.get('history');
   if (historyId) {
-    if (!EDITORIAL_TABLES.has(config.table) || !canWrite(user.role, config)) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-    const { data, error } = await supabase.from('editorial_revisions').select('id,revision,snapshot,action,changed_at')
+    if (!hasRevisionHistory(config.table) || !canWrite(user.role, config)) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    const { data, error } = await supabase.from('editorial_revisions').select('id,revision,snapshot,action,changed_at,changed_by')
       .eq('resource_table', config.table).eq('record_id', historyId).order('changed_at', { ascending: false }).limit(30);
     if (error) return NextResponse.json({ error: 'History is temporarily unavailable.' }, { status: 503 });
-    return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'no-store' } });
+    const history = await enrichRevisionHistory(supabase, config.table, historyId, data);
+    return NextResponse.json({ success: true, data: history.data, current: history.current }, { headers: { 'Cache-Control': 'no-store' } });
   }
   const limitParam = searchParams.get('limit');
   const limit = limitParam ? Number(limitParam) : null;
   let currentSeasonId: string | null = null;
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
-    if (currentSeasonError) return NextResponse.json({ success: false, error: currentSeasonError.message }, { status: 500 });
-    if (!currentSeason?.id) return NextResponse.json({ success: true, data: [] });
+    if (currentSeasonError) return loadErrorResponse(resource, currentSeasonError);
+    if (!currentSeason?.id) return NextResponse.json({ success: true, data: [], ...accessFlags });
     currentSeasonId = currentSeason.id;
   }
   const buildListQuery = () => {
@@ -417,16 +466,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
         return (stable ? query.order('id', { ascending: true }) : query).range(from, to);
       });
       if (fallback.error) {
-        return NextResponse.json({ success: false, error: fallback.error.message }, { status: 500 });
+        return loadErrorResponse(resource, fallback.error);
       }
-      return NextResponse.json({ success: true, data: fallback.data ?? [] });
+      return NextResponse.json({ success: true, data: fallback.data ?? [], ...accessFlags });
     }
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return loadErrorResponse(resource, error);
   }
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data, ...accessFlags });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ resource: string }> }) {
@@ -459,15 +508,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
       return NextResponse.json({ success: false, error: clubSettingsError }, { status: 400 });
     }
   }
-  const validationError = config.validate?.(payload, true) ?? null;
+  const validationError = validateResourcePayload(resource, config, payload, true);
   if (validationError) {
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
   const supabase = createServerClient({ actorId: user.id });
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
-    if (currentSeasonError || !currentSeason?.id) {
-      return NextResponse.json({ success: false, error: currentSeasonError?.message || 'Create a current club season before adding appointments.' }, { status: 400 });
+    if (currentSeasonError) {
+      console.error(`[admin/resources] current season lookup for ${resource} failed`, { code: currentSeasonError.code, message: currentSeasonError.message });
+      return NextResponse.json({ success: false, error: 'The current club season could not be checked. Please try again.' }, { status: 400 });
+    }
+    if (!currentSeason?.id) {
+      return NextResponse.json({ success: false, error: 'Create a current club season before adding appointments.' }, { status: 400 });
     }
     payload.club_season_id = currentSeason.id;
   }
@@ -495,9 +548,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (isMissingScheduleColumnError(error.message, config.table, payload)) {
+      return NextResponse.json({ success: false, error: SCHEDULE_UNAVAILABLE }, { status: 503 });
+    }
+    if (config.table === 'content_blocks' && /duplicate key|23505/.test(error.message)) {
+      return NextResponse.json({ success: false, error: 'A page section with that key already exists.' }, { status: 409 });
+    }
+    return databaseErrorResponse(resource, 'create', error);
   }
   revalidateForResource(resource, data?.id, data);
+  scheduleAdminAudit({ actor: user, action: 'create', resource, recordId: data?.id, summary: summariseFields('Created with fields', payload) });
   return NextResponse.json({ success: true, data });
 }
 
@@ -521,6 +581,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     const restored = await createServerClient({ actorId: user.id }).rpc('set_order_deleted', { p_id: id, p_resource: resource, p_deleted: false, p_actor: user.id, p_confirmation: '' });
     if (restored.error) return safeDeleteErrorResponse(restored.error.message);
     revalidateForResource(resource,id);
+    scheduleAdminAudit({ actor: user, action: 'restore', resource, recordId: id, summary: 'Restored deleted order' });
     return NextResponse.json({ success:true, data:{ id } });
   }
   if (!id && ids === undefined) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
@@ -546,7 +607,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
       return NextResponse.json({ success: false, error: clubSettingsError }, { status: 400 });
     }
   }
-  const validationError = config.validate?.(payload, false) ?? null;
+  const validationError = validateResourcePayload(resource, config, payload, false);
   if (validationError) {
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
@@ -559,9 +620,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
       if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
         return seasonAppointmentsTableErrorResponse();
       }
-      return NextResponse.json({ success: false, error: batchError.message }, { status: 500 });
+      return databaseErrorResponse(resource, 'batch update', batchError);
     }
     revalidateForResourceBatch(resource, batchIds);
+    scheduleAdminAudit({ actor: user, action: 'batch_update', resource, recordId: null, summary: summariseFields(`Updated ${batchData?.length ?? 0} records`, payload) });
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
@@ -596,9 +658,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (isMissingScheduleColumnError(error.message, config.table, payload)) {
+      return NextResponse.json({ success: false, error: SCHEDULE_UNAVAILABLE }, { status: 503 });
+    }
+    return databaseErrorResponse(resource, 'update', error);
   }
   revalidateForResource(resource, id, data);
+  scheduleAdminAudit({ actor: user, action: 'update', resource, recordId: id, summary: summariseFields('Changed', payload) });
   return NextResponse.json({ success: true, data });
 }
 
@@ -635,6 +701,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
     });
     if (error) return safeDeleteErrorResponse(error.message);
     revalidateForResource(resource, id);
+    scheduleAdminAudit({ actor: user, action: 'delete', resource, recordId: id, summary: 'Deleted order' });
     return NextResponse.json({ success: true, data: { id, cleanup: data } });
   }
 
@@ -651,6 +718,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
       return safeDeleteErrorResponse(batchError.message);
     }
     revalidateForResourceBatch(resource, batchIds);
+    scheduleAdminAudit({ actor: user, action: 'batch_delete', resource, recordId: null, summary: `Deleted ${batchData?.length ?? 0} records: ${(batchData ?? []).map((row) => row.id).join(', ')}` });
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
@@ -667,5 +735,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
     return NextResponse.json({ success: false, error: 'Record not found.' }, { status: 404 });
   }
   revalidateForResource(resource, id);
+  scheduleAdminAudit({ actor: user, action: 'delete', resource, recordId: deleted.id, summary: 'Deleted record' });
   return NextResponse.json({ success: true, data: { id: deleted.id } });
 }

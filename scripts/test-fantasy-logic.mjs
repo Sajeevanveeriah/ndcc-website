@@ -39,7 +39,7 @@ mkdirSync(tmpDir, { recursive: true });
 try {
   stageModule('server/timeout-fetch.ts', 'timeout-fetch.ts');
   stageModule('server/public-read-cache.ts', 'public-read-cache.ts');
-  for (const name of ['fantasy-scoring.ts', 'fantasy-game.ts', 'fantasy-leaderboard.ts', 'supabase-server.ts']) {
+  for (const name of ['fantasy-scoring.ts', 'fantasy-paging.ts', 'fantasy-game.ts', 'fantasy-leaderboard.ts', 'supabase-server.ts']) {
     stageModule(name);
   }
 
@@ -188,6 +188,44 @@ try {
   check('lock: non-open status is locked regardless of deadline', game.evaluateRoundLock({ ...openRound, status: 'locked', deadline_at: '2027-01-01T00:00:00Z' }, now).locked === true);
   check('lock: open round with no deadline is unlocked', game.evaluateRoundLock({ ...openRound, deadline_at: null }, now).locked === false);
   check('lock: no round means nothing to lock', game.evaluateRoundLock(null, now).locked === false);
+
+  // ---- 5b. Current round selection ----
+  const week = (n, status, deadline = `2026-10-${String(10 + n * 7).padStart(2, '0')}T00:00:00Z`) => ({ id: `w${n}`, name: `Week ${n}`, status, deadline_at: deadline, round_number: n });
+  const select = (rounds) => game.selectCurrentRound(rounds, now);
+  check('round: W1 scored + W2 open selects W2', select([week(1, 'scored', '2026-10-03T00:00:00Z'), week(2, 'open'), week(3, 'draft')])?.id === 'w2');
+  check('round: W1 scored + W2 open leaves saves unlocked', game.evaluateRoundLock(select([week(1, 'scored', '2026-10-03T00:00:00Z'), week(2, 'open')]), now).locked === false);
+  check('round: W1 final + W2 open selects W2', select([week(1, 'final', '2026-10-03T00:00:00Z'), week(2, 'open')])?.id === 'w2');
+  check('round: input order does not matter', select([week(3, 'draft'), week(2, 'open'), week(1, 'scored', '2026-10-03T00:00:00Z')])?.id === 'w2');
+  const allDraft = select([week(2, 'draft'), week(1, 'draft')]);
+  check('round: all draft returns Week 1 draft', allDraft?.id === 'w1' && allDraft.status === 'draft');
+  check('round: all draft reads as not open', game.evaluateRoundLock(allDraft, now).reason === 'Week 1 is not open for team changes.');
+  check('round: no rounds returns null', select([]) === null);
+  check('round: lowest open round wins', select([week(1, 'open'), week(2, 'open')])?.id === 'w1');
+  check('round: open round with no deadline is selected', select([week(1, 'scored', '2026-10-03T00:00:00Z'), week(2, 'open', null)])?.id === 'w2');
+  check('round: expired open round falls through to the later open round', select([week(1, 'open', '2026-10-09T00:00:00Z'), week(2, 'open')])?.id === 'w2');
+  check('round: between rounds names the next draft round', select([week(1, 'scored', '2026-10-03T00:00:00Z'), week(2, 'draft')])?.id === 'w2');
+  check('round: in-progress round then draft names the draft round', select([week(1, 'locked', '2026-10-09T00:00:00Z'), week(2, 'draft')])?.id === 'w2');
+  const finished = select([week(1, 'scored', '2026-10-03T00:00:00Z'), week(2, 'final', '2026-10-09T00:00:00Z')]);
+  check('round: finished season stays locked on the latest round', finished?.id === 'w2' && game.evaluateRoundLock(finished, now).locked === true);
+  const expiredOnly = select([week(1, 'open', '2026-10-09T00:00:00Z')]);
+  check('round: only an expired open round reports the deadline lock', expiredOnly?.id === 'w1' && game.evaluateRoundLock(expiredOnly, now).reason?.includes('deadline'));
+  check('round: stale earlier draft is skipped after later rounds start', select([week(1, 'draft'), week(2, 'scored', '2026-10-03T00:00:00Z'), week(3, 'draft')])?.id === 'w3');
+  check('round: selection returns only the public round fields', JSON.stringify(Object.keys(select([week(1, 'open')]))) === JSON.stringify(['id', 'name', 'status', 'deadline_at']));
+
+  // ---- 5c. Supabase paging helper ----
+  const paging = await import(pathToFileURL(join(tmpDir, 'fantasy-paging.ts')).href);
+  const source = Array.from({ length: 2501 }, (_, index) => index);
+  const ranges = [];
+  const allRows = await paging.fetchAllPages(async (from, to) => { ranges.push([from, to]); return { data: source.slice(from, to + 1), error: null }; });
+  check('paging: reads every row past the 1000-row cap', allRows.length === 2501 && allRows[2500] === 2500);
+  check('paging: requests contiguous 1000-row windows', JSON.stringify(ranges) === JSON.stringify([[0, 999], [1000, 1999], [2000, 2999]]));
+  const exactRanges = [];
+  const exact = await paging.fetchAllPages(async (from, to) => { exactRanges.push(from); return { data: source.slice(0, 2000).slice(from, to + 1), error: null }; });
+  check('paging: exact multiple of the page size stops on the empty page', exact.length === 2000 && exactRanges.length === 3);
+  check('paging: empty result returns an empty list', (await paging.fetchAllPages(async () => ({ data: null, error: null }))).length === 0);
+  let pagingError = null;
+  try { await paging.fetchAllPages(async (from) => (from ? { data: null, error: { message: 'boom' } } : { data: source.slice(0, 2), error: null }), 2); } catch (error) { pagingError = error; }
+  check('paging: errors are thrown, not treated as the last page', pagingError?.message === 'boom');
 
   // ---- 6. Leaderboard aggregation ----
   const stat = (playerId, playerName, runs, extras = {}) => ({

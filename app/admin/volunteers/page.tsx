@@ -9,6 +9,7 @@ import Badge from '@/components/ui/Badge';
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Users, CheckCircle, ClipboardList } from 'lucide-react';
+import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNotice';
 
 type VolunteerExpression = {
   id: string;
@@ -39,12 +40,16 @@ export default function AdminVolunteersPage() {
   const [positionsLoading, setPositionsLoading] = useState(true);
   const [positionForm, setPositionForm] = useState(emptyPositionForm);
   const [positionSaving, setPositionSaving] = useState(false);
+  const [positionsWritable, setPositionsWritable] = useState(true);
+  const [expressionsWritable, setExpressionsWritable] = useState(true);
+  const [expressionsDeletable, setExpressionsDeletable] = useState(true);
 
   const fetchPositions = async () => {
     try {
       const response = await adminFetch('/api/admin/resources/volunteerPositions', { cache: 'no-store' });
-      const result = await parseApiResponse<{ data?: VolunteerPosition[] }>(response);
+      const result = await parseApiResponse<{ data?: VolunteerPosition[]; canWrite?: boolean }>(response);
       setPositions(result.data || []);
+      setPositionsWritable(responseCanWrite(result));
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to fetch volunteer positions.');
     } finally {
@@ -56,8 +61,10 @@ export default function AdminVolunteersPage() {
     const fetchVolunteers = async () => {
       try {
         const response = await adminFetch('/api/admin/resources/volunteerExpressions', { cache: 'no-store' });
-        const result = await parseApiResponse<{ data?: VolunteerExpression[] }>(response);
+        const result = await parseApiResponse<{ data?: VolunteerExpression[]; canWrite?: boolean; canDelete?: boolean }>(response);
         setVolunteers(result.data || []);
+        setExpressionsWritable(responseCanWrite(result));
+        setExpressionsDeletable(result.canDelete !== false);
       } catch (err) {
         setMessage(err instanceof Error ? err.message : 'Failed to fetch volunteers.');
       } finally {
@@ -156,6 +163,7 @@ export default function AdminVolunteersPage() {
         </div>
       </div>
       {message && <p className="mb-4 text-sm text-content-muted">{message}</p>}
+      {(!positionsWritable || !expressionsWritable) && <ReadOnlyNotice className="mb-4" />}
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="w-full sm:w-48">
@@ -196,12 +204,12 @@ export default function AdminVolunteersPage() {
                 <TableCell>{formatDate(v.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {v.status !== 'contacted' && (
+                    {expressionsWritable && v.status !== 'contacted' && (
                       <Button variant="ghost" size="sm" onClick={() => handleMarkContacted(v.id)}>
                         <CheckCircle className="h-4 w-4 mr-1" />Mark Contacted
                       </Button>
                     )}
-                    <DeleteRecordButton
+                    {expressionsDeletable && <DeleteRecordButton
                       resource="volunteerExpressions"
                       recordId={v.id}
                       recordLabel={`volunteer EOI from ${v.full_name}`}
@@ -212,7 +220,7 @@ export default function AdminVolunteersPage() {
                       ]}
                       onDeleted={handleDeleted}
                       onSuccessMessage={setMessage}
-                    />
+                    />}
                   </div>
                 </TableCell>
               </TableRow>
@@ -226,7 +234,7 @@ export default function AdminVolunteersPage() {
           <ClipboardList className="h-5 w-5 text-maroon-700 dark:text-maroon-200" />
           Volunteer Positions
         </h2>
-        <form onSubmit={savePosition} className="bg-surface-card rounded-xl border border-edge-subtle p-5 space-y-4">
+        {positionsWritable && <form onSubmit={savePosition} className="bg-surface-card rounded-xl border border-edge-subtle p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Input id="position_title" label="Title" required value={positionForm.title} onChange={(e) => setPositionForm((v) => ({ ...v, title: e.target.value }))} />
             <Input id="position_sort" label="Sort order" type="number" value={positionForm.sort_order} onChange={(e) => setPositionForm((v) => ({ ...v, sort_order: e.target.value }))} />
@@ -240,12 +248,12 @@ export default function AdminVolunteersPage() {
             <Button type="submit" isLoading={positionSaving}>{positionForm.id ? 'Update Position' : 'Add Position'}</Button>
             {positionForm.id && <Button type="button" variant="secondary" onClick={() => setPositionForm(emptyPositionForm)}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
 
         {positionsLoading ? (
           <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">Loading volunteer positions...</div>
         ) : positions.length === 0 ? (
-          <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">No volunteer positions yet. Add one above.</div>
+          <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">{positionsWritable ? 'No volunteer positions yet. Add one above.' : 'No volunteer positions yet.'}</div>
         ) : (
           <Table>
             <TableHead>
@@ -265,10 +273,10 @@ export default function AdminVolunteersPage() {
                   <TableCell>{position.sort_order}</TableCell>
                   <TableCell>{position.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="danger">Inactive</Badge>}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    {positionsWritable ? <div className="flex items-center gap-2">
                       <Button size="sm" variant="ghost" onClick={() => setPositionForm({ id: position.id, title: position.title, description: position.description || '', sort_order: String(position.sort_order), is_active: position.is_active })}>Edit</Button>
                       <Button size="sm" variant="ghost" onClick={() => togglePositionActive(position)}>{position.is_active ? 'Deactivate' : 'Activate'}</Button>
-                    </div>
+                    </div> : <span className="text-content-muted">View only</span>}
                   </TableCell>
                 </TableRow>
               ))}

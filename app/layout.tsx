@@ -9,8 +9,8 @@ import Footer from '@/components/layout/Footer';
 import { getNavVisibility } from '@/lib/server/nav-visibility';
 import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
-import RouteSettle from '@/components/common/RouteSettle';
 import SiteAnalytics from '@/components/common/SiteAnalytics';
+import { BRAND_COLOURS } from '@/lib/brand-colours';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -100,7 +100,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     // class on <html> before hydration, which is an expected mismatch.
     <html lang="en-AU" suppressHydrationWarning className={fontVariables}>
       <head>
-        <meta name="theme-color" content="#800000" />
+        <meta name="theme-color" content={BRAND_COLOURS.maroon} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
@@ -119,9 +119,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <RouteProgress />
           </Suspense>
-          {/* Renders nothing: applies the .route-settle page-enter class to
-              <main> after client-side navigations commit. */}
-          <RouteSettle />
           <Navbar nav={nav} />
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           {/* Footer queries must not delay the first paint of every public page. */}

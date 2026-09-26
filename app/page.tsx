@@ -7,14 +7,11 @@ export const dynamic = 'force-static';
 export const revalidate = 60;
 
 import type { Metadata } from 'next';
-import { cache, Suspense } from 'react';
+import { cache, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
-import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
-import TiltCard from '@/components/common/motion/TiltCard';
-import Card, { CardContent } from '@/components/ui/Card';
 import type { LucideIcon } from 'lucide-react';
-import { Trophy, Users, Calendar, ShoppingCart, Handshake, Mail } from 'lucide-react';
+import { ArrowRight, CalendarDays, Camera, ExternalLink, HandHeart, Info, Mail, Newspaper, ShoppingBag, Trophy, Users } from 'lucide-react';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -31,23 +28,63 @@ import ClubIntro from '@/components/home/ClubIntro';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
-import PublicationCard from '@/components/publications/PublicationCard';
 import SponsorsMarquee from '@/components/home/SponsorsMarquee';
-import { getPublishedPublications } from '@/lib/public-publications';
+import { getPublishedPublications, publicationTypeLabel } from '@/lib/public-publications';
 import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/public-data';
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
-import { toCalendarFeedEvent } from '@/lib/calendar/format';
-import UpcomingEventsStrip from '@/components/calendar/UpcomingEventsStrip';
+import { CALENDAR_EVENT_TYPE_LABELS } from '@/lib/calendar/types';
 import { getClubSettings } from '@/lib/club-settings';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
+import { getPlayHQPublicData } from '@/lib/playhq/client';
 import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
-import { JUNIOR_GET_ACTIVE_VOUCHERS as VOUCHERS, isPromotionActive } from '@/lib/home-promotions';
+import { getJuniorGetActiveVouchers, type JuniorGetActiveVouchers } from '@/lib/home-promotions';
+import { getCookieDoughCampaign, type CookieDoughCampaign } from '@/lib/server/site-promotions';
+import {
+  allWithinDays,
+  comingUpDateParts,
+  fixturesWithinDays,
+  formatClubTime,
+  formatMatchDayDate,
+  mergeComingUp,
+  selectMatchDayBoard,
+  unavailableGradesFromWarnings,
+  type ComingUpItem,
+  type MatchDayEntry,
+} from '@/components/home/match-day';
 
 // Shared only for this render; the next request still reads live CMS content.
 const getHomeBlocks = cache(() => getContentBlocks(['home.hero', 'home.juniors', 'home.quicklinks', 'home.season_status', 'home.welcome']));
+
+const getHomeSeason = cache(() => getCurrentClubSeason().catch((error) => {
+  console.warn('[home] Current season temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
+  return null;
+}));
+
+// Seeded CMS defaults that read as filler. A CMS value equal to one of these
+// is treated as unset so the page shows its own short heading (or nothing);
+// any other text an editor enters is still shown exactly as written.
+const GENERIC_CMS_COPY = [
+  'Explore the Club',
+  'Everything you need to know about the Dinos.',
+  'Latest from NDCC',
+  'Stay up to date with everything happening at NDCC.',
+  'Ready to join the Dinos?',
+  'Whether you\'re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.',
+  'Thanks to all local businesses and partners supporting NDCC.',
+].map((text) => normaliseCopy(text));
+
+function normaliseCopy(value: string) {
+  return value.replace(/[’‘]/g, '\'').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function cmsCopy(value: string | null | undefined): string | null {
+  const text = value?.trim();
+  if (!text || GENERIC_CMS_COPY.includes(normaliseCopy(text))) return null;
+  return text;
+}
 
 type NewsItem = PublicNewsRecord & {
   image?: string;
@@ -59,7 +96,7 @@ async function getLatestNews(): Promise<NewsItem[]> {
   }
 
   try {
-    const data = await getPublishedNews({ limit: 3 });
+    const data = await getPublishedNews({ limit: 4 });
     if (!Array.isArray(data)) return [];
     return data as NewsItem[];
   } catch (err) {
@@ -72,18 +109,42 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
 };
 
+// Left-aligned section heading on a thin rule, with an optional text link.
+function SectionHeading({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
+  return (
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border-b border-edge-strong pb-3">
+      <h2 id={id} className="font-display text-2xl font-semibold text-content-primary sm:text-3xl">{title}</h2>
+      {children && <div className="flex flex-wrap gap-x-6">{children}</div>}
+    </div>
+  );
+}
+
+const headingLinkClass = 'club-text-link text-base font-semibold';
+
 const HERO_DEFAULT_BODY = `Home of the ${CLUB_NICKNAME}. Est. ${CLUB_ESTABLISHED}.`;
+
+function seasonLine(name: string | null | undefined) {
+  const trimmed = name?.trim();
+  if (!trimmed) return null;
+  return /season/i.test(trimmed) ? trimmed : `${trimmed} season`;
+}
 
 function HeroView({
   title,
   body,
   ctaLabel,
   ctaUrl,
+  season = null,
+  stats = null,
+  vouchers = null,
 }: {
   title: string;
   body: string;
   ctaLabel: string;
   ctaUrl: string;
+  season?: string | null;
+  stats?: ReactNode;
+  vouchers?: JuniorGetActiveVouchers | null;
 }) {
   return (
     <section className="club-home-hero" aria-labelledby="home-title">
@@ -92,16 +153,18 @@ function HeroView({
           <p className="club-kicker">Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
           <h1 id="home-title" className="club-home-title">{title}</h1>
           <p className="mt-4 font-display text-3xl font-semibold text-maroon-700 dark:text-sky_accent">Home of the {CLUB_NICKNAME}.</p>
+          {season && <p className="mt-3 text-base font-semibold text-content-secondary">{season}</p>}
           {body && !/^Home of the (Mighty )?Dinos/i.test(body) && <p className="mt-5 max-w-xl text-lg leading-relaxed text-content-secondary">{body}</p>}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href={ctaUrl} className="btn-primary">{ctaLabel}</Link>
             <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
           </div>
-          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 border-t border-edge-strong pt-5 text-base font-semibold">
-            {isPromotionActive(VOUCHERS) && <a href={`#${VOUCHERS.anchorId}`} className="club-text-link">{VOUCHERS.heroLinkLabel}</a>}
-            <Link href="/calendar" className="club-text-link">Club calendar <span aria-hidden="true">↗</span></Link>
-            <Link href="/merchandise" className="club-text-link">Wear the colours <span aria-hidden="true">↗</span></Link>
-          </div>
+          {vouchers && (
+            <p className="mt-4 text-base font-semibold">
+              <a href={`#${vouchers.anchorId}`} className="club-text-link">{vouchers.heroLinkLabel}</a>
+            </p>
+          )}
+          {stats}
         </div>
         <ClubIntro />
       </div>
@@ -110,211 +173,280 @@ function HeroView({
 }
 
 async function HeroSection() {
-  const blocks = await getHomeBlocks();
+  const [blocks, season, vouchers] = await Promise.all([getHomeBlocks(), getHomeSeason(), getJuniorGetActiveVouchers().catch(() => null)]);
   return (
     <HeroView
       title={blocks['home.hero']?.title || CLUB_NAME}
       body={blocks['home.hero']?.body || HERO_DEFAULT_BODY}
       ctaLabel={blocks['home.hero']?.cta_label || 'Join the Club'}
       ctaUrl={blocks['home.hero']?.cta_url || '/join'}
+      season={seasonLine(season?.name)}
+      vouchers={vouchers}
+      stats={<Suspense fallback={null}><HomeStatsStrip /></Suspense>}
     />
   );
 }
 
-// CMS page_link_cards.icon stores emoji glyphs today; map the known ones onto
-// the Lucide set already used across the site so quick-link icons render
-// consistently across OS/browser. Unrecognised strings fall through and render
-// as-is, so a custom CMS icon can never produce a blank slot. No data change.
-const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
-  '🏏': Trophy,
-  '👥': Users,
-  '📅': Calendar,
-  '🛒': ShoppingCart,
-  '🤝': Handshake,
-  '✉️': Mail,
-};
+// ---------------------------------------------------------------------------
+// Fixtures: match-day board (PlayHQ) plus the CMS season status.
 
-function QuickLinkIcon({ icon }: { icon: string }) {
-  const Icon = QUICK_LINK_ICONS[icon.trim()];
-  if (Icon) {
-    return <Icon className="mb-2 h-7 w-7 text-maroon-700 dark:text-maroon-300" aria-hidden="true" />;
-  }
-  return <span className="mb-2 block text-2xl" aria-hidden="true">{icon}</span>;
-}
+type HomeMatchDay = { board: MatchDayEntry[]; clubPlayHQUrl: string } | null;
 
-
-function JuniorVoucherSection() {
-  if (!isPromotionActive(VOUCHERS)) return null;
-  return (
-    <section id={VOUCHERS.anchorId} aria-labelledby="junior-vouchers-title" className="scroll-mt-40 border-y border-edge-blue bg-surface-blue-subtle px-5 py-6 sm:px-8">
-      <div className="container-width grid items-start gap-6 lg:grid-cols-[1fr_auto]">
-        <div className="max-w-3xl">
-          <p className="mb-1 text-sm font-semibold text-content-blue">Support for junior families</p>
-          <h2 id="junior-vouchers-title" className="mb-2 font-display text-2xl font-semibold text-content-primary">Get Active Kids vouchers</h2>
-          <p className="text-lg leading-relaxed text-content-blue">
-            Eligible Victorian children aged 0 to 18 may receive <strong>up to $200 each</strong> towards sport membership and registration fees.
-          </p>
-          <details className="mt-3 text-sm leading-relaxed text-content-blue">
-            <summary className="cursor-pointer font-semibold underline underline-offset-4">Dates, eligibility and reimbursement</summary>
-            <p className="mt-3"><strong>{VOUCHERS.roundLabel}:</strong> {VOUCHERS.startLabel} to <time dateTime={VOUCHERS.endsAt}>{VOUCHERS.endLabel}</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.</p>
-            <p className="mt-2">Applying for cricket? Select <strong>Cricket Victoria</strong> as your activity provider. Check the official website for eligibility and current availability.</p>
-            <p className="mt-2">Already paid? You may be eligible for reimbursement. See the official application page for details.</p>
-          </details>
-        </div>
-        <div className="flex flex-col items-start gap-3 lg:max-w-xs lg:pt-2">
-          <a href={VOUCHERS.eligibilityUrl} className="btn-primary w-full text-center">
-            Check eligibility and apply
-          </a>
-          <a href={VOUCHERS.applicationDetailsUrl} className="club-text-link">
-            Voucher and reimbursement details
-          </a>
-          <Link href="/contact" className="club-text-link">Ask NDCC about junior cricket</Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function QuickLinksSkeleton() {
-  return (
-    <section className="section-padding bg-surface-card">
-      <div className="container-width">
-        <div className="mb-8 text-center">
-          <span className="section-eyebrow">Quick Links</span>
-          <div className="mx-auto h-9 w-64 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[0, 1, 2].map((index) => (
-            <div key={index} className="h-full rounded-xl border border-l-4 border-edge-subtle border-l-maroon-700 bg-surface-card p-5 shadow-sm">
-              <div className="h-8 w-8 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-              <div className="h-6 w-2/3 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-              <div className="h-4 w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-async function QuickLinksSection() {
-  const [blocks, quickLinks] = await Promise.all([
-    getHomeBlocks(), getPageLinkCards('home', 'quick_links'),
-  ]);
-  return (
-    <section className="section-padding bg-surface-card" aria-labelledby="explore-club-title">
-      <div className="container-width">
-        <div className="mb-8">
-          <span className="section-eyebrow">Around the club</span>
-          <h2 id="explore-club-title" className="section-title">{blocks['home.quicklinks']?.title || 'Explore the Club'}</h2>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3">
-          {quickLinks.map((link) => (
-            <Link key={link.id} href={link.href} className="group flex items-start gap-4 border-b border-edge-subtle px-1 py-6 focus-ring sm:pr-8">
-              {link.icon && <QuickLinkIcon icon={link.icon} />}
-              <div className="min-w-0 flex-1">
-                <h3 className="mb-2 flex items-center justify-between gap-3 font-display text-xl font-semibold text-content-primary group-hover:text-maroon-700 dark:group-hover:text-sky_accent">
-                  {link.title}<span aria-hidden="true" className="text-maroon-700 dark:text-sky_accent">→</span>
-                </h3>
-                <p className="text-sm leading-relaxed text-content-muted">{link.description}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SeasonStatusView({
-  title,
-  body,
-  ctaLabel,
-  ctaUrl,
-}: {
-  title: string;
-  body: string;
-  ctaLabel: string;
-  ctaUrl: string;
-}) {
-  return (
-    // The first true "honour board" moment on the page: a full-bleed maroon
-    // band rather than a card floating on a tinted section.
-    <section className="band-maroon section-padding">
-      <div className="container-width">
-        <ScrollReveal>
-        <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto]">
-          <div>
-            <span className="eyebrow-gold">Season Update</span>
-            <h2 className="mb-2 font-display text-2xl font-bold uppercase tracking-wide text-white sm:text-3xl">{title}</h2>
-            <p className="font-body leading-relaxed mb-0 text-white/75">
-              {body}{' '}
-              <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-sky_accent hover:underline font-semibold">
-                Facebook page
-              </Link>.
-            </p>
-          </div>
-          <Link
-            href={ctaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-accent inline-flex items-center whitespace-nowrap"
-          >
-            {ctaLabel}
-            <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-            </svg>
-          </Link>
-        </div>
-        </ScrollReveal>
-      </div>
-    </section>
-  );
-}
-
-const SEASON_STATUS_DEFAULT_BODY = `Follow the latest ${CLUB_NICKNAME} season updates, match-day notices, and club announcements on our official channels.`;
-
-async function SeasonStatusSection() {
-  const [blocks, currentSeason] = await Promise.all([
-    getHomeBlocks(),
-    getCurrentClubSeason().catch((error) => {
-      console.warn('[home] Season status temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
+// One PlayHQ read per render, shared by the board and "This week". Hidden
+// (null) when PlayHQ is not configured, errored or lists no NDCC teams.
+const getHomeMatchDay = cache(async (): Promise<HomeMatchDay> => {
+  const [playhq, settings] = await Promise.all([
+    getPlayHQPublicData().catch((error) => {
+      console.warn('[home] PlayHQ data temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
       return null;
     }),
+    getClubSettings(),
   ]);
+  if (!playhq || !playhq.configured || playhq.error || playhq.teams.length === 0) return null;
+  const board = selectMatchDayBoard(playhq.teams, playhq.fixtures, Date.now(), unavailableGradesFromWarnings(playhq.warnings));
+  if (board.length === 0) return null;
+  return { board, clubPlayHQUrl: settings.playhq_url || PLAYHQ_ORG_URL };
+});
+
+const SEASON_STATUS_DEFAULT_BODY = 'Match-day notices and club announcements are posted on our';
+
+function ExternalLinkIcon() {
+  return <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />;
+}
+
+function MatchDayRow({ entry, clubPlayHQUrl }: { entry: MatchDayEntry; clubPlayHQUrl: string }) {
+  const grade = entry.gradeName && entry.gradeName !== entry.teamName ? entry.gradeName : null;
+  const fixture = entry.fixture;
+  return (
+    <li className="grid gap-x-6 gap-y-1 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_auto] md:items-center">
+      <p className="font-display text-lg font-semibold text-content-primary">
+        {entry.teamName}
+        {grade && <span className="block font-body text-sm font-normal text-content-muted">{grade}</span>}
+      </p>
+      {fixture ? (
+        <>
+          <p className="text-base font-semibold text-content-primary">
+            {fixture.startsAt ? <time dateTime={fixture.startsAt}>{formatMatchDayDate(fixture.startsAt)}</time> : 'Date TBC'}
+          </p>
+          <p className="text-base text-content-secondary">
+            <span className="font-semibold text-content-primary">{fixture.homeAway}</span> v {fixture.opponent}
+            {fixture.venue && <span className="block text-sm text-content-muted">{fixture.venue}</span>}
+          </p>
+          <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link gap-1.5 text-sm font-semibold">
+            View on PlayHQ<span className="sr-only">: {entry.teamName} v {fixture.opponent}</span>
+            <ExternalLinkIcon />
+          </a>
+        </>
+      ) : entry.state === 'unavailable' ? (
+        <p className="text-base text-content-muted md:col-span-3">
+          Fixture details could not be loaded here.{' '}
+          <a href={clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link text-sm font-semibold">
+            Check PlayHQ<span className="sr-only"> for {entry.teamName}</span>
+          </a>
+        </p>
+      ) : (
+        <p className="text-base text-content-muted md:col-span-3">Fixture not yet released by GCA</p>
+      )}
+    </li>
+  );
+}
+
+function FixturesView({
+  statusTitle,
+  statusBody,
+  ctaLabel,
+  ctaUrl,
+  matchDay = null,
+}: {
+  statusTitle: string;
+  statusBody: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  matchDay?: HomeMatchDay;
+}) {
+  return (
+    <section className="border-b border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="home-fixtures-title">
+      <div className="container-width">
+        <SectionHeading id="home-fixtures-title" title={matchDay ? 'Next matches' : 'Fixtures'}>
+          <Link href="/fixtures" className={headingLinkClass}>Fixtures and results</Link>
+        </SectionHeading>
+        {matchDay && (
+          <ul className="mb-8 divide-y divide-edge-subtle border-b border-edge-subtle" aria-label="Next fixture for each NDCC team">
+            {matchDay.board.map((entry) => <MatchDayRow key={entry.teamId} entry={entry} clubPlayHQUrl={matchDay.clubPlayHQUrl} />)}
+          </ul>
+        )}
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <div className="max-w-3xl">
+            <h3 className="font-display text-lg font-semibold text-content-primary">{statusTitle}</h3>
+            <p className="mt-1 text-base leading-relaxed text-content-secondary">
+              {statusBody}{' '}
+              <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-maroon-700 underline underline-offset-4 dark:text-sky_accent">
+                Facebook page
+              </a>.
+            </p>
+          </div>
+          <a href={ctaUrl} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-2 whitespace-nowrap">
+            {ctaLabel}
+            <ExternalLinkIcon />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+async function FixturesSection() {
+  const [blocks, currentSeason, matchDay] = await Promise.all([getHomeBlocks(), getHomeSeason(), getHomeMatchDay()]);
   const block = blocks['home.season_status'];
   return (
-    <SeasonStatusView
-      title={renderSeasonContent(block?.title || 'Season Update', currentSeason)}
-      body={renderSeasonContent(block?.body || SEASON_STATUS_DEFAULT_BODY, currentSeason)}
+    <FixturesView
+      statusTitle={renderSeasonContent(block?.title || 'Season Update', currentSeason)}
+      statusBody={renderSeasonContent(block?.body || SEASON_STATUS_DEFAULT_BODY, currentSeason)}
       ctaLabel={renderSeasonContent(block?.cta_label || 'View Results on PlayHQ', currentSeason)}
       ctaUrl={block?.cta_url || PLAYHQ_ORG_URL}
+      matchDay={matchDay}
     />
   );
 }
 
-function ClubUpdatesSkeleton() {
+// ---------------------------------------------------------------------------
+// This week: fixtures in the next seven days, the next two published club
+// events and the upcoming home-page calendar entries, as one dated list.
+
+const COMING_UP_KIND_LABEL: Record<ComingUpItem['kind'], string> = { fixture: 'Fixture', event: 'Club event', calendar: 'Calendar' };
+
+function ComingUpRow({ item, kindLabel }: { item: ComingUpItem; kindLabel: string }) {
+  const parts = comingUpDateParts(item.startsAt);
+  const cancelled = item.status === 'cancelled';
+  const content = (
+    <>
+      <span className="flex flex-col items-center border-r border-edge-subtle pr-4 text-center">
+        {parts && (
+          <>
+            <span className="text-sm font-semibold uppercase text-maroon-700 dark:text-maroon-300">{parts.weekday}</span>
+            <span className="font-display text-3xl font-semibold leading-tight text-content-primary">{parts.day}</span>
+            <span className="text-sm text-content-muted">{parts.month}</span>
+          </>
+        )}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-content-muted">
+          {kindLabel}
+          {item.status && <span className="ml-2 text-maroon-700 dark:text-maroon-300">{cancelled ? 'Cancelled' : 'Postponed'}</span>}
+        </span>
+        <span className={`block font-display text-lg font-semibold text-content-primary group-hover:underline ${cancelled ? 'line-through' : ''}`}>{item.title}</span>
+        {item.detail && <span className="block text-base text-content-secondary">{item.detail}</span>}
+      </span>
+    </>
+  );
+  const rowClass = 'group grid min-h-11 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-4 py-4 focus-ring';
   return (
-    <section className="section-padding surface-blue-band">
+    <li>
+      {item.external ? (
+        <a href={item.href} target="_blank" rel="noopener noreferrer" className={rowClass}>{content}</a>
+      ) : (
+        <Link href={item.href} className={rowClass}>{content}</Link>
+      )}
+    </li>
+  );
+}
+
+async function ThisWeekSection() {
+  const now = Date.now();
+  const [matchDay, { data: events }, calendarResult] = await Promise.all([
+    getHomeMatchDay(),
+    getPublicEvents(),
+    getUpcomingCalendarEvents({ limit: 4, home: true }),
+  ]);
+
+  const fixtureItems: ComingUpItem[] = matchDay
+    ? fixturesWithinDays(matchDay.board, now).flatMap((entry) => {
+        const fixture = entry.fixture;
+        if (!fixture?.startsAt) return [];
+        const detail = [formatClubTime(fixture.startsAt), fixture.homeAway, fixture.venue].filter(Boolean).join(', ');
+        return [{
+          key: `fixture-${entry.teamId}-${fixture.id}`,
+          kind: 'fixture' as const,
+          startsAt: fixture.startsAt,
+          title: `${entry.teamName} v ${fixture.opponent}`,
+          detail: detail || null,
+          href: fixture.playHQUrl || '/fixtures',
+          external: Boolean(fixture.playHQUrl),
+          status: null,
+        }];
+      })
+    : [];
+
+  const eventItems: ComingUpItem[] = events
+    .filter((event) => {
+      const time = Date.parse(String(event.date || ''));
+      return Number.isFinite(time) && time >= now - 24 * 60 * 60 * 1000;
+    })
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+    .slice(0, 2)
+    .map((event) => ({
+      key: `event-${event.id}`,
+      kind: 'event' as const,
+      startsAt: event.date,
+      title: event.title,
+      detail: [formatClubTime(event.date), event.location?.trim()].filter(Boolean).join(', ') || null,
+      href: `/events/${event.id}`,
+      external: false,
+      status: null,
+    }));
+
+  const calendarItems: ComingUpItem[] = (calendarResult.degraded ? [] : calendarResult.data).map((event) => {
+    const cancelled = event.status === 'cancelled';
+    const target = cancelled ? null : event.cta_url || event.external_url;
+    return {
+      key: `calendar-${event.id}`,
+      kind: 'calendar' as const,
+      startsAt: event.start_at,
+      title: event.title,
+      detail: [event.all_day ? 'All day' : formatClubTime(event.start_at), event.location?.trim()].filter(Boolean).join(', ') || null,
+      href: target || '/calendar',
+      external: Boolean(target && /^https?:\/\//.test(target)),
+      status: event.status === 'cancelled' || event.status === 'postponed' ? event.status : null,
+    };
+  });
+  const calendarTypeLabels = new Map((calendarResult.degraded ? [] : calendarResult.data).map((event) => [
+    `calendar-${event.id}`,
+    CALENDAR_EVENT_TYPE_LABELS[event.event_type] ?? COMING_UP_KIND_LABEL.calendar,
+  ]));
+
+  const items = mergeComingUp([...fixtureItems, ...eventItems, ...calendarItems]);
+  if (items.length === 0) return null;
+
+  return (
+    <section className="bg-surface-page py-10 sm:py-12" aria-labelledby="this-week-title">
       <div className="container-width">
-        <div className="mb-8 text-center">
-          <span className="section-eyebrow">Club Updates</span>
-          <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((index) => (
-            <Card key={index} className="h-full overflow-hidden">
-              <div className="aspect-video w-full bg-gray-200 animate-pulse dark:bg-slate-700" />
-              <CardContent className="p-5">
-                <div className="h-4 w-28 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-                <div className="h-6 w-3/4 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-                <div className="h-4 w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-2" />
-                <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
-              </CardContent>
-            </Card>
+        <SectionHeading id="this-week-title" title={allWithinDays(items, now) ? 'This week' : 'Coming up'}>
+          <Link href="/calendar" className={headingLinkClass}>Club calendar</Link>
+          <Link href="/events" className={headingLinkClass}>Events</Link>
+        </SectionHeading>
+        <ul className="max-w-3xl divide-y divide-edge-subtle">
+          {items.map((item) => (
+            <ComingUpRow key={item.key} item={item} kindLabel={calendarTypeLabels.get(item.key) ?? COMING_UP_KIND_LABEL[item.kind]} />
           ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Club news: one lead story, a short list and the latest publication.
+
+function ClubNewsSkeleton() {
+  return (
+    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="club-news-title">
+      <div className="container-width">
+        <SectionHeading id="club-news-title" title="Club news" />
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <div className="aspect-video w-full animate-pulse rounded-xl bg-surface-muted" />
+          <div className="space-y-4">
+            {[0, 1, 2].map((index) => <div key={index} className="h-12 animate-pulse rounded bg-surface-muted" />)}
+          </div>
         </div>
       </div>
     </section>
@@ -325,252 +457,226 @@ async function ClubUpdatesSection() {
   const [blocks, news, publications] = await Promise.all([
     getHomeBlocks(),
     getLatestNews(),
-    getPublishedPublications({ limit: 2 }).catch(() => null),
+    getPublishedPublications({ limit: 1 }).catch(() => null),
   ]);
+  const [lead, ...rest] = news;
+  const publication = publications?.[0] ?? null;
+  const intro = cmsCopy(blocks['home.welcome']?.body);
 
   return (
-    <section className="section-padding surface-blue-band">
+    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="club-news-title">
       <div className="container-width">
-        <ScrollReveal className="mb-8 text-center">
-          <span className="section-eyebrow">Club Updates</span>
-          <h2 className="section-title">{blocks['home.welcome']?.title || 'Latest from NDCC'}</h2>
-          <p className="section-subtitle mx-auto">
-            {blocks['home.welcome']?.body || 'Stay up to date with everything happening at NDCC.'}
-          </p>
-        </ScrollReveal>
-        <div className={publications && publications.length > 0 ? 'grid grid-cols-1 gap-8 xl:grid-cols-[1.7fr_1fr]' : ''}>
-          <div>
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Club News</h3>
-              <Link href="/news" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all news</Link>
-            </div>
-            <ScrollReveal stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {news.length === 0 && <p className="text-content-muted">News is temporarily unavailable. <Link href="/news" className="underline">Try the news page</Link> or visit our <a href={FACEBOOK_URL} className="underline">Facebook page</a>.</p>}
-              {news.map((article) => {
-                const inner = (
-                  <Card hover className="h-full overflow-hidden">
-                    <div className="relative aspect-video w-full overflow-hidden bg-surface-page">
-                      <SafeImage
-                        src={article.image_url || article.image || '/images/Womens_Team.jpg'}
-                        alt={article.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 28vw"
-                        fallback={
-                          <div className="flex h-full w-full items-center justify-center bg-maroon-800">
-                            <span className="font-display text-4xl font-black text-white/30">NDCC</span>
-                          </div>
-                        }
-                      />
-                    </div>
-                    <CardContent className="p-5">
-                      {article.published_at && (
-                        <p className="mb-2 font-body text-xs font-semibold uppercase tracking-[0.08em] text-maroon-600 dark:text-maroon-300">
-                          {formatDate(article.published_at)}
-                        </p>
-                      )}
-                      <h4 className="mb-2 font-display text-lg font-bold text-content-primary transition-colors group-hover:text-maroon-700 dark:group-hover:text-maroon-200">
-                        {article.title}
-                      </h4>
-                      <p className="font-body text-sm text-content-muted">{truncateText(article.content, 90)}</p>
-                    </CardContent>
-                  </Card>
-                );
-
-                return (
-                  <ScrollRevealItem key={article.id}>
-                    <Link href={`/news/${article.id}`} className="group block h-full rounded-xl focus-ring">
-                      <TiltCard className="h-full rounded-xl">{inner}</TiltCard>
-                    </Link>
-                  </ScrollRevealItem>
-                );
-              })}
-            </ScrollReveal>
-          </div>
-          {publications === null && <p className="text-sm text-content-muted">Publications are temporarily unavailable. <Link href="/publications" className="underline">Try again</Link>.</p>}
-          {publications && publications.length > 0 && (
-            <div>
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Publications</h3>
-                <Link href="/publications" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all publications</Link>
-              </div>
-              <ScrollReveal stagger direction="right" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                {publications.map((publication) => (
-                  <PublicationCard key={publication.id} publication={publication} />
-                ))}
-              </ScrollReveal>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-async function WhatsOnSection() {
-  const [{ data: events }, calendarResult] = await Promise.all([
-    getPublicEvents(),
-    getUpcomingCalendarEvents({ limit: 4, home: true }),
-  ]);
-  const now = Date.now();
-  const upcoming = events
-    .filter((event) => {
-      const time = Date.parse(String(event.date || ''));
-      return Number.isFinite(time) && time >= now - 24 * 60 * 60 * 1000;
-    })
-    .slice(0, 2);
-  const calendarEvents = calendarResult.degraded ? [] : calendarResult.data.map(toCalendarFeedEvent);
-  if (upcoming.length === 0 && calendarEvents.length === 0) return null;
-
-  return (
-    <section className="section-padding bg-surface-card">
-      <div className="container-width">
-        <ScrollReveal className="mb-8 text-center">
-          <span className="section-eyebrow">What&apos;s On</span>
-          <h2 className="section-title">Events &amp; Club Calendar</h2>
-        </ScrollReveal>
-        <div className={upcoming.length > 0 && calendarEvents.length > 0 ? 'grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.25fr_1fr]' : ''}>
-          {upcoming.length > 0 && (
-            <div>
-              <div className="mb-4 flex items-end justify-between gap-3">
-                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Upcoming Events</h3>
-                <Link href="/events" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View all</Link>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {upcoming.map((event) => (
-                  <ScrollReveal key={event.id}>
-                    <Card hover className="flex h-full flex-col">
-                      {event.image_url && (
-                        <div className="relative aspect-video w-full bg-surface-page">
-                          <SafeImage
-                            src={event.image_url}
-                            alt={`${event.title} event artwork`}
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 1024px) 100vw, 40vw"
-                            fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
-                          />
-                        </div>
-                      )}
-                      <div className="bg-gradient-to-br from-maroon-700 to-maroon-900 px-5 py-3">
-                        <p className="font-body text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">{formatDate(event.date)}</p>
-                        <h4 className="mt-1 font-display text-lg font-bold text-white">{event.title}</h4>
-                      </div>
-                      <CardContent className="flex-1 p-4">
-                        <p className="mb-3 font-body text-sm text-content-muted">{event.location}</p>
-                        <Link href={`/events/${event.id}`} className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View details</Link>
-                      </CardContent>
-                    </Card>
-                  </ScrollReveal>
-                ))}
-              </div>
-            </div>
-          )}
-          {calendarEvents.length > 0 && (
-            <div>
-              <div className="mb-4 flex items-end justify-between gap-3">
-                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-content-primary">Club Calendar</h3>
-                <Link href="/calendar" className="font-body text-sm font-semibold text-maroon-700 hover:underline dark:text-maroon-200">View full calendar</Link>
-              </div>
-              <UpcomingEventsStrip events={calendarEvents} showViewAll={false} />
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-async function GalleryPreviewSection() {
-  const { data: photos } = await getPublicGallery();
-  const preview = photos.slice(0, 4);
-  if (preview.length === 0) return null;
-
-  return (
-    <section className="section-padding bg-surface-card">
-      <div className="container-width">
-        <ScrollReveal className="mb-6 text-center">
-          <span className="section-eyebrow">Around the Club</span>
-          <h2 className="section-title">Gallery</h2>
-        </ScrollReveal>
-        {/* Cinematic gallery entrance: each frame settles from a gentle zoom on
-            a relaxed stagger; hovering re-engages the zoom. Image identity,
-            crops, alt text and order are untouched. */}
-        <ScrollReveal stagger staggerInterval={0.1} className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {preview.map((photo) => (
-            <ScrollRevealItem key={photo.id}>
-              <div className="group relative aspect-video overflow-hidden rounded-xl bg-surface-page ring-1 ring-maroon-100/60">
-                {/* The zoom plane sits inside the clipped frame, so the image
-                    settles from 108% behind the mask without ever crossing the
-                    grid gap. */}
-                <ScrollRevealItem effect="zoom" className="absolute inset-0">
+        <SectionHeading id="club-news-title" title={cmsCopy(blocks['home.welcome']?.title) || 'Club news'}>
+          <Link href="/news" className={headingLinkClass}>All news</Link>
+        </SectionHeading>
+        {intro && <p className="-mt-2 mb-6 max-w-2xl text-base text-content-secondary">{intro}</p>}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          {lead ? (
+            <article>
+              <Link href={`/news/${lead.id}`} className="group block rounded-xl focus-ring">
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-surface-page">
                   <SafeImage
-                    src={photo.image_url}
-                    alt={photo.alt_text || photo.caption || photo.title}
+                    src={lead.image_url || lead.image || '/images/Womens_Team.jpg'}
+                    alt={lead.title}
                     fill
-                    className="object-cover img-zoom"
-                    sizes="(max-width: 1024px) 50vw, 25vw"
-                    fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 60vw"
+                    fallback={
+                      <div className="flex h-full w-full items-center justify-center bg-maroon-800">
+                        <span className="font-display text-4xl font-black text-white/30">NDCC</span>
+                      </div>
+                    }
                   />
-                </ScrollRevealItem>
+                </div>
+                {lead.published_at && (
+                  <p className="mt-4 text-sm font-semibold text-maroon-700 dark:text-maroon-300">
+                    <time dateTime={lead.published_at}>{formatDate(lead.published_at)}</time>
+                  </p>
+                )}
+                <h3 className="mt-1 font-display text-2xl font-semibold text-content-primary group-hover:underline">{lead.title}</h3>
+                <p className="mt-2 text-base leading-relaxed text-content-secondary">{truncateText(lead.content, 180)}</p>
+              </Link>
+            </article>
+          ) : (
+            <p className="text-base text-content-muted">
+              News is temporarily unavailable. <Link href="/news" className="underline">Try the news page</Link> or visit our <a href={FACEBOOK_URL} className="underline">Facebook page</a>.
+            </p>
+          )}
+          <div className="space-y-8">
+            {rest.length > 0 && (
+              <div>
+                <h3 className="mb-2 font-display text-lg font-semibold text-content-primary">More news</h3>
+                <ul className="divide-y divide-edge-subtle border-y border-edge-subtle">
+                  {rest.map((article) => (
+                    <li key={article.id}>
+                      <Link href={`/news/${article.id}`} className="group block min-h-11 py-3 focus-ring">
+                        {article.published_at && <span className="block text-sm text-content-muted">{formatDate(article.published_at)}</span>}
+                        <span className="block font-semibold text-content-primary group-hover:underline">{article.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </ScrollRevealItem>
-          ))}
-        </ScrollReveal>
-        <div className="mt-6 text-center">
-          <Link href="/gallery" className="btn-secondary">View Full Gallery</Link>
+            )}
+            {publications === null && (
+              <p className="text-sm text-content-muted">Publications are temporarily unavailable. <Link href="/publications" className="underline">Try again</Link>.</p>
+            )}
+            {publication && (
+              <div>
+                <h3 className="mb-2 font-display text-lg font-semibold text-content-primary">Latest publication</h3>
+                <Link href={`/publications/${publication.slug}`} className="group block min-h-11 border-y border-edge-subtle py-3 focus-ring">
+                  <span className="block text-sm text-content-muted">
+                    {publicationTypeLabel(publication.publication_type)}, {formatDate(publication.issue_date)}
+                  </span>
+                  <span className="block font-semibold text-content-primary group-hover:underline">{publication.title}</span>
+                  {publication.summary && <span className="mt-1 block text-sm text-content-secondary">{truncateText(publication.summary, 120)}</span>}
+                </Link>
+                <Link href="/publications" className="club-text-link mt-2 text-sm font-semibold">All publications</Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function SeasonAppointmentsSkeleton() {
+// ---------------------------------------------------------------------------
+// Get involved: fixed text links, date-gated promotions and CMS quick links.
+
+// CMS page_link_cards.icon stores emoji glyphs. Known ones map onto a small
+// fixed Lucide set; anything else (including the cricket bat, which has no
+// honest Lucide equivalent) gets the neutral arrow, so a raw emoji never
+// renders. No data change.
+const QUICK_LINK_ICONS: Record<string, LucideIcon> = {
+  '👥': Users,
+  '📅': CalendarDays,
+  '🗓️': CalendarDays,
+  '🛒': ShoppingBag,
+  '🛍️': ShoppingBag,
+  '🤝': HandHeart,
+  '✉️': Mail,
+  '✉': Mail,
+  '📧': Mail,
+  '📰': Newspaper,
+  '📷': Camera,
+  '📸': Camera,
+  '🏆': Trophy,
+  'ℹ️': Info,
+};
+
+function QuickLinkIcon({ icon }: { icon: string | null | undefined }) {
+  const Icon = (icon && QUICK_LINK_ICONS[icon.trim()]) || ArrowRight;
+  return <Icon className="mt-0.5 h-5 w-5 shrink-0 text-maroon-700 dark:text-maroon-300" aria-hidden="true" />;
+}
+
+const GET_INVOLVED_LINKS = [
+  { href: '/join', label: 'Join the club' },
+  { href: '/volunteer', label: 'Volunteer' },
+  { href: '/pot-club', label: 'Pot Club' },
+  { href: '/merchandise', label: 'Shop' },
+  { href: '/contact', label: 'Contact the club' },
+];
+
+function JuniorVoucherBlock({ vouchers: VOUCHERS }: { vouchers: JuniorGetActiveVouchers | null }) {
+  if (!VOUCHERS) return null;
   return (
-    <section className="section-padding bg-surface-card">
+    <div id={VOUCHERS.anchorId} className="scroll-mt-40 border-l-4 border-sky_accent bg-surface-blue-subtle px-5 py-4">
+      <p className="text-sm font-semibold text-content-blue">Support for junior families</p>
+      <h3 className="font-display text-xl font-semibold text-content-primary">Get Active Kids vouchers</h3>
+      <p className="mt-1 text-base leading-relaxed text-content-blue">
+        Eligible Victorian children aged 0 to 18 may receive <strong>up to $200 each</strong> towards sport membership and registration fees.
+      </p>
+      <details className="mt-2 text-sm leading-relaxed text-content-blue">
+        <summary className="flex min-h-11 cursor-pointer items-center font-semibold underline underline-offset-4">Dates, eligibility and reimbursement</summary>
+        <p className="mt-1"><strong>{VOUCHERS.roundLabel}:</strong> {VOUCHERS.startLabel} to <time dateTime={VOUCHERS.endsAt}>{VOUCHERS.endLabel}</time> (Victorian time), or earlier if funding runs out. Cricket Victoria advises this is the only round this season.</p>
+        <p className="mt-2">Applying for cricket? Select <strong>Cricket Victoria</strong> as your activity provider. Check the official website for eligibility and current availability.</p>
+        <p className="mt-2">Already paid? You may be eligible for reimbursement. See the official application page for details.</p>
+      </details>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1">
+        <a href={VOUCHERS.eligibilityUrl} className="btn-primary">Check eligibility and apply</a>
+        <a href={VOUCHERS.applicationDetailsUrl} className="club-text-link text-sm font-semibold">Voucher and reimbursement details</a>
+        <Link href="/contact" className="club-text-link text-sm font-semibold">Ask NDCC about junior cricket</Link>
+      </div>
+    </div>
+  );
+}
+
+type QuickLink = { id: string; href: string; title: string; description?: string | null; icon?: string | null };
+
+function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, vouchers, cookieDough }: { title: string; intro: string | null; quickLinks: QuickLink[]; quickLinksTitle: string; vouchers: JuniorGetActiveVouchers | null; cookieDough: CookieDoughCampaign | null }) {
+  const fixedHrefs = new Set(GET_INVOLVED_LINKS.map((link) => link.href));
+  const extraLinks = quickLinks.filter((link) => !fixedHrefs.has(link.href));
+  const hasPromotions = Boolean(vouchers || cookieDough);
+  return (
+    <section className="bg-surface-page py-10 sm:py-12" aria-labelledby="get-involved-title">
       <div className="container-width">
-        <div className="mb-8 text-center">
-          <span className="section-eyebrow">Season appointments</span>
-          <h2 className="section-title">Season appointments</h2>
-        </div>
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((index) => (
-            <div
-              key={index}
-              className="rounded-2xl bg-gray-200 animate-pulse dark:bg-slate-700"
-              style={{ aspectRatio: '3/4' }}
-            />
+        <SectionHeading id="get-involved-title" title={title} />
+        {intro && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{intro}</p>}
+        <ul className="flex flex-wrap gap-x-8 gap-y-1">
+          {GET_INVOLVED_LINKS.map((link) => (
+            <li key={link.href}>
+              <Link href={link.href} className="club-text-link text-lg font-semibold">{link.label}</Link>
+            </li>
           ))}
-        </div>
-        <p className="mt-6 text-center font-body text-sm text-content-muted">
-          Follow us on{' '}
-          <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="text-maroon-700 dark:text-maroon-200 hover:underline font-semibold">
-            Facebook
-          </Link>{' '}
-          for updates.
-        </p>
+        </ul>
+        {hasPromotions && (
+          <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
+            <JuniorVoucherBlock vouchers={vouchers} />
+            {cookieDough && <CookieDoughFundraiserFeature campaign={cookieDough} />}
+          </div>
+        )}
+        {extraLinks.length > 0 && (
+          <div className="mt-8">
+            <h3 className="mb-2 font-display text-lg font-semibold text-content-primary">{quickLinksTitle}</h3>
+            <ul className="grid border-t border-edge-subtle sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-3">
+              {extraLinks.map((link) => (
+                <li key={link.id} className="border-b border-edge-subtle">
+                  <Link href={link.href} className="group flex min-h-11 items-start gap-3 py-3 focus-ring">
+                    <QuickLinkIcon icon={link.icon} />
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-content-primary group-hover:underline">{link.title}</span>
+                      {link.description && <span className="block text-sm text-content-muted">{link.description}</span>}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-async function SeasonAppointmentsSection() {
-  // Server-render only the active season's appointments. Fail closed so stale
-  // signings never reappear during an unavailable data-source window.
-  let initialAppointments: PublicSeasonAppointment[];
-  try {
-    initialAppointments = await getPublicSeasonAppointments();
-  } catch (err) {
-    console.error('[home] Failed to load season appointments; hiding the seasonal section:', err);
-    initialAppointments = [];
-  }
-  return <SeasonAppointmentsMarquee initialAppointments={initialAppointments} />;
+const GET_INVOLVED_DEFAULT_TITLE = 'Get involved';
+const QUICK_LINKS_DEFAULT_TITLE = 'Around the club';
+
+async function GetInvolvedSection() {
+  const [blocks, quickLinks, vouchers, cookieDough] = await Promise.all([
+    getHomeBlocks(),
+    getPageLinkCards('home', 'quick_links'),
+    getJuniorGetActiveVouchers().catch(() => null),
+    getCookieDoughCampaign().catch(() => null),
+  ]);
+  return (
+    <GetInvolvedView
+      title={cmsCopy(blocks['home.juniors']?.title) || GET_INVOLVED_DEFAULT_TITLE}
+      intro={cmsCopy(blocks['home.juniors']?.body)}
+      quickLinks={quickLinks}
+      quickLinksTitle={cmsCopy(blocks['home.quicklinks']?.title) || QUICK_LINKS_DEFAULT_TITLE}
+      vouchers={vouchers}
+      cookieDough={cookieDough}
+    />
+  );
 }
 
+// ---------------------------------------------------------------------------
+// Partners.
 
 function SponsorLinks() {
   return (
-    <div className="mt-6 flex flex-wrap justify-center gap-3">
+    <div className="mt-6 flex flex-wrap gap-3">
       <Link href="/sponsors" className="btn-secondary">
         View all sponsors
       </Link>
@@ -583,23 +689,11 @@ function SponsorLinks() {
 
 function SponsorsSkeleton() {
   return (
-    <section className="section-padding surface-blue-band">
+    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="partners-title">
       <div className="container-width">
-        <div className="mb-8 text-center">
-          <span className="section-eyebrow">Community Partners</span>
-          <div className="mx-auto h-9 w-56 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-          <div className="mx-auto h-5 w-80 max-w-full rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((index) => (
-            <Card key={index} className="h-full border border-edge-blue/60">
-              <CardContent className="flex h-full flex-col items-center p-5 text-center">
-                <div className="mb-4 h-24 w-full animate-pulse rounded-lg bg-gray-200 dark:bg-slate-700" />
-                <div className="h-5 w-40 rounded bg-gray-200 animate-pulse dark:bg-slate-700 mb-3" />
-                <div className="h-4 w-24 rounded bg-gray-200 animate-pulse dark:bg-slate-700" />
-              </CardContent>
-            </Card>
-          ))}
+        <SectionHeading id="partners-title" title="Our Sponsors" />
+        <div className="flex gap-4 overflow-hidden">
+          {[0, 1, 2].map((index) => <div key={index} className="h-32 w-60 flex-none animate-pulse rounded-2xl bg-surface-muted" />)}
         </div>
         <SponsorLinks />
       </div>
@@ -622,118 +716,95 @@ async function SponsorsSection() {
 
   const sponsorBlock = blocks['home.sponsor_intro'] || blocks['home.sponsorship'];
   const sponsorshipTitle = sponsorBlock?.title || 'Our Sponsors';
-  const sponsorshipBody = sponsorBlock?.body || 'Thanks to all local businesses and partners supporting NDCC.';
+  const sponsorshipBody = cmsCopy(sponsorBlock?.body);
 
   return (
-    <section className="section-padding surface-blue-band">
+    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="partners-title">
       <div className="container-width">
-        <ScrollReveal className="mb-8 text-center">
-          <span className="section-eyebrow">Community Partners</span>
-          <h2 className="section-title">{sponsorshipTitle}</h2>
-          <p className="section-subtitle mx-auto">
-            {sponsorshipBody}
-          </p>
-        </ScrollReveal>
-        <ScrollReveal>
-          <SponsorsMarquee sponsors={sponsors} durationSeconds={sponsorMarqueeDurationSeconds(clubSettings.sponsor_marquee_speed, sponsors.length)} />
-        </ScrollReveal>
+        <SectionHeading id="partners-title" title={sponsorshipTitle} />
+        {sponsorshipBody && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{sponsorshipBody}</p>}
+        <SponsorsMarquee
+          sponsors={sponsors}
+          durationSeconds={sponsorMarqueeDurationSeconds(clubSettings.sponsor_marquee_speed, sponsors.length)}
+          showViewAll={false}
+        />
         <SponsorLinks />
       </div>
     </section>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Toggle-gated rows: season appointments (club season toggle) and Dino Coach
+// (public launch setting).
+
+async function SeasonAppointmentsSection() {
+  // Server-render only the active season's appointments. Fail closed so stale
+  // signings never reappear during an unavailable data-source window.
+  let initialAppointments: PublicSeasonAppointment[];
+  try {
+    initialAppointments = await getPublicSeasonAppointments();
+  } catch (err) {
+    console.error('[home] Failed to load season appointments; hiding the seasonal section:', err);
+    initialAppointments = [];
+  }
+  return <SeasonAppointmentsMarquee initialAppointments={initialAppointments} />;
+}
+
 async function FantasyTeaserSection() {
   if (!(await isDinoCoachPublic())) return null;
-  // Static teaser: copy describes the game itself, so nothing here can go
-  // stale or invent scores. Live numbers stay on the fantasy pages.
-  const highlights = [
-    { label: 'Pick your squad', detail: 'Build an XI under the salary cap' },
-    { label: 'Score real points', detail: 'Runs, wickets, catches and more' },
-    { label: 'Climb the ladder', detail: 'Round and season leaderboards' },
-  ];
+  // Static teaser: copy describes the game itself (same wording as the
+  // /fantasy page), so nothing here can go stale or invent scores.
   return (
-    <section className="section-padding bg-surface-card">
+    <section className="bg-surface-page py-8" aria-labelledby="dino-coach-title">
       <div className="container-width">
-        <ScrollReveal effect="scale">
-          <div className="surface-panel relative overflow-hidden p-6 sm:p-8">
-            <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
-              <div>
-                <span className="section-eyebrow">Dinos Fantasy</span>
-                <h2 className="section-title">Dino Coach</h2>
-                <p className="section-subtitle mb-5">
-                  Back your judgement against the rest of the club. Pick a squad of real NDCC
-                  players, captain your stars, and score points from actual match performances
-                  across the season.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/fantasy" className="btn-primary">
-                    Play Dino Coach
-                  </Link>
-                  <Link href="/fantasy/leaderboard" className="btn-secondary">
-                    View Leaderboard
-                  </Link>
-                </div>
-              </div>
-              <ul className="space-y-2">
-                {highlights.map((item) => (
-                  <li
-                    key={item.label}
-                    className="flex items-start gap-3 rounded-xl border border-edge-subtle bg-white/70 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/70"
-                  >
-                    <Trophy className="h-5 w-5 mt-0.5 shrink-0 text-gold-500" aria-hidden="true" />
-                    <div>
-                      <p className="font-display font-bold text-maroon-800 dark:text-maroon-200 text-sm uppercase tracking-wide">{item.label}</p>
-                      <p className="font-body text-sm text-content-muted">{item.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div className="flex flex-col gap-4 border-y border-edge-strong py-6 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-2xl">
+            <h2 id="dino-coach-title" className="font-display text-2xl font-semibold text-content-primary">Dino Coach</h2>
+            <p className="mt-1 text-base leading-relaxed text-content-secondary">
+              Build your 15-player NDCC squad with Dino Dollars, captain your stars and score points from real match performances.
+            </p>
           </div>
-        </ScrollReveal>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/fantasy" className="btn-primary">Play Dino Coach</Link>
+            <Link href="/fantasy/leaderboard" className="btn-secondary">View Leaderboard</Link>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-function JuniorsCtaView({ title, body }: { title: string; body: string }) {
+// ---------------------------------------------------------------------------
+// Gallery strip.
+
+async function GalleryPreviewSection() {
+  const { data: photos } = await getPublicGallery();
+  const preview = photos.slice(0, 4);
+  if (preview.length === 0) return null;
+
   return (
-    <section className="band-maroon section-padding">
-      <ScrollReveal effect="scale" className="container-width text-center">
-        <span className="eyebrow-gold">Get Involved</span>
-        <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
-          {title}
-        </h2>
-        <p className="mx-auto mb-6 max-w-xl font-body text-base text-maroon-100 sm:text-lg">
-          {body}
-        </p>
-        <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
-          <Link href="/join" className="btn-accent px-7 py-3 text-base">
-            Join the Club
-          </Link>
-          <Link href="/contact" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
-            Get in Touch
-          </Link>
-          <Link href="/volunteer" className="btn-secondary border-white px-7 py-3 text-base text-white hover:bg-surface-card hover:text-maroon-800">
-            Volunteer With Us
-          </Link>
-        </div>
-      </ScrollReveal>
+    <section className="bg-surface-card py-10 sm:py-12" aria-labelledby="gallery-title">
+      <div className="container-width">
+        <SectionHeading id="gallery-title" title="Gallery">
+          <Link href="/gallery" className={headingLinkClass}>View full gallery</Link>
+        </SectionHeading>
+        <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {preview.map((photo) => (
+            <li key={photo.id} className="relative aspect-video min-w-0 overflow-hidden rounded-xl bg-surface-page">
+              <SafeImage
+                src={photo.image_url}
+                alt={photo.alt_text || photo.caption || photo.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
-  );
-}
-
-const JUNIORS_DEFAULT_TITLE = `Ready to join the ${CLUB_NICKNAME}?`;
-const JUNIORS_DEFAULT_BODY = 'Whether you’re a seasoned cricketer or picking up a bat for the first time, there is a place for you at NDCC.';
-
-async function JuniorsCtaSection() {
-  const blocks = await getHomeBlocks();
-  return (
-    <JuniorsCtaView
-      title={blocks['home.juniors']?.title || JUNIORS_DEFAULT_TITLE}
-      body={blocks['home.juniors']?.body || JUNIORS_DEFAULT_BODY}
-    />
   );
 }
 
@@ -753,48 +824,45 @@ export default function HomePage() {
         <HeroSection />
       </Suspense>
 
-      <JuniorVoucherSection />
-
-      {/* Compact club-stat strip below the hero and junior support notice. */}
-      <Suspense fallback={null}><HomeStatsStrip /></Suspense>
-
-      <CookieDoughFundraiserFeature />
-
-      <Suspense fallback={<QuickLinksSkeleton />}>
-        <QuickLinksSection />
-      </Suspense>
-
-      {/* Live season status / fixtures feature. */}
+      {/* Match-day board (hidden without PlayHQ data) and season status. */}
       <Suspense
         fallback={
-          <SeasonStatusView
-            title="Season Update"
-            body={SEASON_STATUS_DEFAULT_BODY}
+          <FixturesView
+            statusTitle="Season Update"
+            statusBody={SEASON_STATUS_DEFAULT_BODY}
             ctaLabel="View Results on PlayHQ"
             ctaUrl={PLAYHQ_ORG_URL}
           />
         }
       >
-        <SeasonStatusSection />
-      </Suspense>
-
-      <Suspense fallback={<ClubUpdatesSkeleton />}>
-        <ClubUpdatesSection />
-      </Suspense>
-
-      <Suspense fallback={<SeasonAppointmentsSkeleton />}>
-        <SeasonAppointmentsSection />
+        <FixturesSection />
       </Suspense>
 
       <Suspense fallback={null}>
-        <WhatsOnSection />
+        <ThisWeekSection />
+      </Suspense>
+
+      <Suspense fallback={<ClubNewsSkeleton />}>
+        <ClubUpdatesSection />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <GetInvolvedView title={GET_INVOLVED_DEFAULT_TITLE} intro={null} quickLinks={[]} quickLinksTitle={QUICK_LINKS_DEFAULT_TITLE} vouchers={null} cookieDough={null} />
+        }
+      >
+        <GetInvolvedSection />
       </Suspense>
 
       <Suspense fallback={<SponsorsSkeleton />}>
         <SponsorsSection />
       </Suspense>
 
-      {/* Dino Coach sits after the core club news, events and sponsors. */}
+      {/* Toggle-gated rows follow the core fixtures, news, events and sponsors. */}
+      <Suspense fallback={null}>
+        <SeasonAppointmentsSection />
+      </Suspense>
+
       <Suspense fallback={null}>
         <FantasyTeaserSection />
       </Suspense>
@@ -802,15 +870,6 @@ export default function HomePage() {
       <Suspense fallback={null}>
         <GalleryPreviewSection />
       </Suspense>
-
-      <Suspense
-        fallback={
-          <JuniorsCtaView title={JUNIORS_DEFAULT_TITLE} body={JUNIORS_DEFAULT_BODY} />
-        }
-      >
-        <JuniorsCtaSection />
-      </Suspense>
     </>
   );
 }
-

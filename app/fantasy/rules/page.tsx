@@ -3,7 +3,8 @@ import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import { CLUB_SHORT } from '@/lib/constants';
-import { FANTASY_RULE_SECTIONS } from '@/lib/fantasy';
+import { fantasyRuleSections, fantasyRuleValuesFrom } from '@/lib/fantasy';
+import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext } from '@/lib/fantasy-seasons';
@@ -17,6 +18,10 @@ export const metadata: Metadata = pageMetadata('/fantasy/rules', 'Dino Coach Rul
 export default async function FantasyRulesPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;
   const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  // Season years, entry fee, budget, transfer window and prize follow the
+  // selected season's settings; unavailable values keep the published copy.
+  const dinoSettings = seasonContext.selected ? await getDinoCoachSettings(seasonContext.selected.id).catch(() => null) : null;
+  const ruleSections = fantasyRuleSections(fantasyRuleValuesFrom(seasonContext.selected, dinoSettings));
   return (
     <>
       <section className="page-hero">
@@ -36,7 +41,7 @@ export default async function FantasyRulesPage({ searchParams: searchParamsPromi
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              {FANTASY_RULE_SECTIONS.map((section) => (
+              {ruleSections.map((section) => (
                   <Card key={section.title}>
                     <CardContent className="p-6 md:p-8">
                       <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-4">{section.title}</h2>

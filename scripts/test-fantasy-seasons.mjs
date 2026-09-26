@@ -43,6 +43,7 @@ try {
     ['supabase-server.ts', 'supabase-server.ts'],
     ['server/timeout-fetch.ts', 'timeout-fetch.ts'],
     ['server/public-read-cache.ts', 'public-read-cache.ts'],
+    ['fantasy-paging.ts', 'fantasy-paging.ts'],
     ['fantasy-game.ts', 'fantasy-game.ts'],
     ['fantasy-season-helpers.ts', 'fantasy-season-helpers.ts'],
     ['fantasy-seasons.ts', 'fantasy-seasons.ts'],

@@ -38,8 +38,7 @@ export default async function CalendarPage() {
         <div className="container-width">
           <h1 className="page-hero-title">Club Calendar</h1>
           <p className="page-hero-subtitle">
-            Everything happening at the Dinos — matches, training, junior cricket, social nights and club events.
-            All times are Melbourne time.
+            Matches, training, junior cricket, social nights and club events. All times are Melbourne time.
           </p>
         </div>
       </section>

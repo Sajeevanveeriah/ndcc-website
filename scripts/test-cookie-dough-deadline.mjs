@@ -66,14 +66,21 @@ const pageImports = {
   '@/components/common/ScrollReveal': { default: passthrough, ScrollRevealItem: passthrough },
   '@/lib/cookie-dough': { ...rules, isCookieDoughOpen: () => rules.isCookieDoughOpen(now) },
   '@/lib/public-links': { COOKIE_DOUGH_FUNDRAISER_LINK: { href: 'https://example.org/campaign' } },
+  '@/lib/server/site-promotions': {
+    getCookieDoughCampaign: async () => (rules.isCookieDoughOpen(now)
+      ? { endsAt: end, deadlineLabel: rules.COOKIE_DOUGH_DEADLINE_LABEL, href: 'https://example.org/campaign' }
+      : null),
+  },
 };
 const page = load('app/fundraising/cookie-dough/page.tsx', pageImports);
 const feature = load('components/home/CookieDoughFundraiserFeature.tsx', pageImports);
 now = end - 1;
-assert.match(renderToStaticMarkup(page.default()), /Ends 30 September 2026 at 9 pm/);
+const openPage = renderToStaticMarkup(await page.default());
+assert.match(openPage, /Ends 30 September 2026 at 9 pm/);
+assert.match(openPage, /href="https:\/\/example\.org\/campaign"/, 'campaign link comes from the promotion');
 assert.match(renderToStaticMarkup(feature.default()), /Ends 30 September 2026 at 9 pm/);
 now = end;
-assert.throws(() => page.default(), /404/);
+await assert.rejects(() => page.default(), /404/);
 assert.equal(feature.default(), null);
 assert.equal(page.dynamic, 'force-dynamic');
 console.log('PASS Melbourne cutoff before/at/after, link variants, open-tab expiry, timeout cap, resume and cleanup');

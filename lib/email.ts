@@ -1,10 +1,53 @@
 import 'server-only';
 import { Resend, type CreateEmailOptions, type Tag } from 'resend';
 import { escapeEmailHtml } from './email-html';
+import { SITE_URL } from './seo';
+import { FALLBACK_NOTIFICATION_RECIPIENTS } from './notification-recipients-fallback';
+import { getClubSettings } from './club-settings';
+import { fallbackClubSettings } from './club-settings-types';
 
 export { escapeEmailHtml } from './email-html';
 
-const DEFAULT_CONTACT_EMAIL = 'ndcc.secretary1@gmail.com';
+const DEFAULT_CONTACT_EMAIL = FALLBACK_NOTIFICATION_RECIPIENTS.contact[0];
+
+type EmailFooterContact = { location: string; email: string; phone: string | null };
+
+// The footer shown before club settings existed. Used when club settings are
+// unavailable so emails never lose their contact details.
+const FALLBACK_FOOTER_CONTACT: EmailFooterContact = {
+  location: 'Grinter Reserve, 141 Coppards Road, Moolap VIC 3224',
+  email: DEFAULT_CONTACT_EMAIL,
+  phone: null,
+};
+
+function emailFooterContactHtml(contact: EmailFooterContact): string {
+  const email = escapeEmailHtml(contact.email);
+  const phone = contact.phone ? ` &bull; ${escapeEmailHtml(contact.phone)}` : '';
+  return `${escapeEmailHtml(contact.location)}<br>
+              <a href="mailto:${email}" style="color:#880000;">${email}</a>${phone}`;
+}
+
+const FALLBACK_FOOTER_CONTACT_HTML = emailFooterContactHtml(FALLBACK_FOOTER_CONTACT);
+
+async function clubFooterContact(): Promise<EmailFooterContact | null> {
+  try {
+    const settings = await getClubSettings();
+    // getClubSettings returns the shared fallback object when the row cannot be read.
+    if (settings === fallbackClubSettings) return null;
+    const location = [settings.ground_name, settings.address].filter(Boolean).join(', ');
+    if (!location || !settings.email || !EMAIL_PATTERN.test(settings.email)) return null;
+    return { location, email: settings.email, phone: settings.phone };
+  } catch {
+    return null;
+  }
+}
+
+/** Swap the fallback footer written by emailHtml() for the live club settings. */
+async function withClubFooterContact(html: string): Promise<string> {
+  if (!html.includes(FALLBACK_FOOTER_CONTACT_HTML)) return html;
+  const contact = await clubFooterContact();
+  return contact ? html.replace(FALLBACK_FOOTER_CONTACT_HTML, () => emailFooterContactHtml(contact)) : html;
+}
 
 let _resend: Resend | null = null;
 
@@ -210,7 +253,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     from: sender.address,
     to: payload.to,
     subject: payload.subject,
-    html: payload.html,
+    html: await withClubFooterContact(payload.html),
     ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
     ...(payload.cc ? { cc: payload.cc } : {}),
     ...(payload.bcc ? { bcc: payload.bcc } : {}),
@@ -247,7 +290,7 @@ export function emailHtml(title: string, body: string): string {
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;width:100%;">
         <tr>
-          <td style="background:#800000;padding:24px;border-bottom:5px solid #ADD8E6;">
+          <td style="background:#880000;padding:24px;border-bottom:5px solid #8cc6d1;">
             <p style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">NDCC Dinos</p>
             <p style="margin:4px 0 0;font-size:14px;color:#ffffff;">Newcomb and District Cricket Club</p>
           </td>
@@ -258,8 +301,7 @@ export function emailHtml(title: string, body: string): string {
             ${body}
             <hr style="margin:32px 0;border:none;border-top:1px solid #e5e7eb;">
             <p style="margin:0;font-size:14px;color:#4b5563;">
-              Newcomb and District Cricket Club &bull; Grinter Reserve, 141 Coppards Road, Moolap VIC 3224<br>
-              <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>
+              Newcomb and District Cricket Club &bull; ${FALLBACK_FOOTER_CONTACT_HTML}
             </p>
           </td>
         </tr>
@@ -270,10 +312,10 @@ export function emailHtml(title: string, body: string): string {
 </html>`;
 }
 
-export function bankDetailsHtml(reference: string, amount?: number): string {
+export function bankDetailsHtml(reference: string, amount?: number, options: { recordChoiceLink?: boolean } = {}): string {
   if (![process.env.NDCC_BANK_ACCOUNT_NAME, process.env.NDCC_BANK_BSB, process.env.NDCC_BANK_ACCOUNT_NUMBER].every(value => value?.trim())) return '';
   const amountRow = amount != null
-    ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Amount</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">$${amount.toFixed(2)} AUD</td></tr>`
+    ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Amount</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#880000;">$${amount.toFixed(2)} AUD</td></tr>`
     : '';
   return `
 <div style="background:#f3f4f6;border-radius:6px;padding:20px;margin:20px 0;">
@@ -283,10 +325,10 @@ export function bankDetailsHtml(reference: string, amount?: number): string {
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">BSB</td><td style="padding:6px 0;font-size:14px;">${escapeEmailHtml(process.env.NDCC_BANK_BSB || '')}</td></tr>
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Account number</td><td style="padding:6px 0;font-size:14px;">${escapeEmailHtml(process.env.NDCC_BANK_ACCOUNT_NUMBER || '')}</td></tr>
     ${amountRow}
-    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">${escapeEmailHtml(reference)}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#880000;">${escapeEmailHtml(reference)}</td></tr>
   </table>
   <p style="margin:12px 0 0;font-size:14px;color:#4b5563;">Use your reference number exactly as shown so we can match your payment. Bank deposits remain unconfirmed until the club records receipt.</p>
-  <p style="margin:12px 0 0;font-size:14px;"><a href="https://ndcc.com.au/pay-balance?reference=${encodeURIComponent(reference)}">Record your bank transfer choice</a> using your order reference and email.</p>
+  ${options.recordChoiceLink === false ? '' : `<p style="margin:12px 0 0;font-size:14px;"><a href="${SITE_URL}/pay-balance?reference=${encodeURIComponent(reference)}">Record your bank transfer choice</a> using your order reference and email.</p>`}
 </div>`;
 }
 

@@ -2,7 +2,8 @@ import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { sanitiseInput } from '@/lib/utils';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
-import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
+import { sendEmail, emailHtml } from '@/lib/email';
+import { getContactNotificationRecipients } from '@/lib/notification-recipients';
 import { escapeEmailHtml } from '@/lib/email-html';
 import { readLimitedJsonObject, validateContactFormInput } from '@/lib/order-input-validation';
 
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
     }
 
     const timestamp = new Date().toISOString();
-    const contactConfig = getContactEmailRecipients();
+    const contactConfig = await getContactNotificationRecipients();
     const adminResult = await sendEmail({
       to: contactConfig.effectiveContactRecipient,
       cc: contactConfig.cc.length > 0 ? contactConfig.cc : undefined,
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
         `<p style="font-size:15px;color:#374151;line-height:1.6;">A new enquiry was submitted from the NDCC website.</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:130px;">Name</td><td style="padding:6px 0;font-size:14px;">${escapeHtml(safeName)}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;font-size:14px;"><a href="mailto:${escapeHtml(safeEmail)}" style="color:#800000;">${escapeHtml(safeEmail)}</a></td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;font-size:14px;"><a href="mailto:${escapeHtml(safeEmail)}" style="color:#880000;">${escapeHtml(safeEmail)}</a></td></tr>
           <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Enquiry type</td><td style="padding:6px 0;font-size:14px;">${escapeHtml(safeEnquiryType)}</td></tr>
           <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Timestamp</td><td style="padding:6px 0;font-size:14px;">${escapeHtml(timestamp)}</td></tr>
         </table>
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Your message</p>
           <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">${escapeHtml(safeMessage)}</p>
         </div>
-        <p style="font-size:14px;color:#6b7280;">If your enquiry is urgent, you can also reach us directly at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+        <p style="font-size:14px;color:#6b7280;">If your enquiry is urgent, you can also reach us directly at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
 

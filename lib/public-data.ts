@@ -49,17 +49,38 @@ export type GalleryAlbum = {
 // cold PostgREST connection has exceeded the previous five-second budget.
 const PUBLIC_QUERY_TIMEOUT_MS = 15_000;
 
+/**
+ * Scheduled publishing: events and sponsors may carry a published_at that
+ * hides them until it passes. Until the column is migrated, the filtered
+ * query fails with a missing-column error and callers retry unfiltered, so
+ * public behaviour is unchanged.
+ */
+export function isMissingPublishedAtColumn(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  return error.code === '42703' || error.code === 'PGRST204' || /published_at/.test(error.message || '');
+}
+
+/** Minute-rounded "now" keeps identical public reads shareable by the read cache. */
+export function scheduledVisibilityFilter(now: number = Date.now()): string {
+  const minute = new Date(Math.floor(now / 60_000) * 60_000).toISOString();
+  return `published_at.is.null,published_at.lte.${minute}`;
+}
+
 // Uncached live reads. These helpers back mutable public CMS content, so they
 // must hit Supabase on every request — wrapping them in unstable_cache let
 // build-time fallback output persist in the Data Cache and alternate with live
 // rows in production.
 async function getPublishedEventsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
-  const { data, error } = await supabase
-    .from('events')
-    .select('id,title,description,date,location,capacity,ticket_price,published,image_url')
-    .eq('published', true)
-    .order('date', { ascending: true });
+  const query = (scheduled: boolean) => {
+    const base = supabase
+      .from('events')
+      .select('id,title,description,date,location,capacity,ticket_price,published,image_url')
+      .eq('published', true);
+    return (scheduled ? base.or(scheduledVisibilityFilter()) : base).order('date', { ascending: true });
+  };
+  let { data, error } = await query(true);
+  if (isMissingPublishedAtColumn(error)) ({ data, error } = await query(false));
   return { data: data ?? [], error: error?.message ?? null };
 }
 
@@ -95,12 +116,17 @@ async function getPublishedGalleryFromSupabase() {
 
 async function getActiveSponsorsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
-  const { data, error } = await supabase
-    .from('sponsors')
-    .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order,logo_surface_mode,logo_padding,logo_object_position')
-    .eq('active', true)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true });
+  const query = (scheduled: boolean) => {
+    const base = supabase
+      .from('sponsors')
+      .select('id,name,tier,logo_url,website,placement_type,active,created_at,description,sort_order,logo_surface_mode,logo_padding,logo_object_position')
+      .eq('active', true);
+    return (scheduled ? base.or(scheduledVisibilityFilter()) : base)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+  };
+  let { data, error } = await query(true);
+  if (isMissingPublishedAtColumn(error)) ({ data, error } = await query(false));
   return { data: data ?? [], error: error?.message ?? null };
 }
 

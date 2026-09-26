@@ -3,6 +3,7 @@ import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse, after } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
+import { fetchAllPages } from '@/lib/fantasy-paging';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices } from '@/lib/fantasy-game';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
@@ -34,13 +35,15 @@ export async function GET(request:Request) {
       for(const r of [manager,entry,squads,rounds,events,jobs])if(r.error)throw new Error(r.error.message);
       return NextResponse.json({success:true,season,eligibilityIssues:managerEligibilityIssues(manager.data!,entry.data,settings.rules_version),manager:manager.data,entry:entry.data,squads:squads.data,players,slots:buildSquadSlots(settings.slot_counts),budget:settings.budget_dino_dollars,rounds:rounds.data,events:events.data,notifications:jobs.data,isAdmin:user.role==='admin'},{headers:noStore});
     }
+    // Paged: unpaged reads stop at 1000 rows, hiding managers and squads.
     const [managers,entries,squads]=await Promise.all([
-      db.from('fantasy_managers').select(managerFields).order('created_at',{ascending:false}),
-      db.from('fantasy_entries').select('manager_id,status,is_demo,fee_waived').eq('season_id',season.id),
-      db.from('fantasy_squads').select('id,manager_id,status,budget_used_dino_dollars,created_at,fantasy_squad_players(player_id)').eq('season_id',season.id).order('created_at',{ascending:false}),
+      fetchAllPages<any>((from,to)=>db.from('fantasy_managers').select(managerFields).order('created_at',{ascending:false}).order('id',{ascending:false}).range(from,to)),
+      fetchAllPages<any>((from,to)=>db.from('fantasy_entries').select('id,manager_id,status,is_demo,fee_waived').eq('season_id',season.id).order('id',{ascending:true}).range(from,to)),
+      fetchAllPages<any>((from,to)=>db.from('fantasy_squads').select('id,manager_id,status,budget_used_dino_dollars,created_at,fantasy_squad_players(player_id)').eq('season_id',season.id).order('created_at',{ascending:false}).order('id',{ascending:false}).range(from,to)),
     ]);
-    for(const r of [managers,entries,squads])if(r.error)throw new Error(r.error.message);
-    const rows=(managers.data||[]).map(m=>({...m,initialStatus:initialSquadStatus(m),entry:entries.data?.find(e=>e.manager_id===m.id),squad:squads.data?.find(s=>s.manager_id===m.id)||null}));
+    const entryByManager=new Map<string,any>(); for(const e of entries) if(!entryByManager.has(e.manager_id)) entryByManager.set(e.manager_id,{manager_id:e.manager_id,status:e.status,is_demo:e.is_demo,fee_waived:e.fee_waived});
+    const squadByManager=new Map<string,any>(); for(const s of squads) if(!squadByManager.has(s.manager_id)) squadByManager.set(s.manager_id,s);
+    const rows=managers.map(m=>({...m,initialStatus:initialSquadStatus(m),entry:entryByManager.get(m.id),squad:squadByManager.get(m.id)||null}));
     return NextResponse.json({success:true,season,managers:rows,isAdmin:user.role==='admin'},{headers:noStore});
   } catch(error){return fail(error instanceof Error?error.message:'Could not load managers.',500);}
 }

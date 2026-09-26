@@ -25,6 +25,7 @@ const mocks = {
  '@/lib/order-input-validation': {readLimitedJsonObject:async request=>({ok:true,value:await request.json()})},
  '@/lib/payments/capabilities': {deriveCapabilities:()=>({bank_transfer:enabled}),loadMerchPaymentSettings:async()=>({})},
  '@/lib/auth/guard':{requirePermission:async()=>admin}, '@/lib/supabase-paginate':{fetchAllPages:async()=>({data:[]})},
+ '@/lib/payments/receipt-delivery':{enqueuePaymentReceiptJob:async()=>({ok:true,jobId:'job'}),attemptPaymentReceiptDelivery:async()=>({attempted:true,status:'delivered'})},
 };
 const route=load('app/api/payments/bank-transfer/route.ts',mocks);
 const adminRoute=load('app/api/admin/payments/bank-transfers/route.ts',mocks);

@@ -33,6 +33,7 @@ const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByTyp
 
 (async () => {
   // Execute the real component with isolated auth/API adapters, never live credentials.
+  const resent = [];
   let session = null, accountProfile = null, profileFails = false, authFails = false, saved, resetEmail, resetOptions;
   const authCalls = [];
   const auth = {
@@ -41,12 +42,14 @@ const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByTyp
     signUp: async input => { authCalls.push(input); return { data: { session: null } }; },
     signOut: async () => { session = null; return {}; },
     resetPasswordForEmail: async (email, options) => { resetEmail=email; resetOptions=options; return {}; },
+    resend: async input => { resent.push(input); return {}; },
   };
   const Account = load('app/club-account/ClubAccount.tsx', { ...common,
     '@/components/club-account/MemberDashboard': { default: props => React.createElement(React.Fragment, null, props.children) },
-    '@/lib/fantasy-browser': {
-      isFantasySupabaseConfigured: true, getFantasyBrowserClient: () => ({ auth }),
+    '@/lib/account/browser': {
+      isAccountAuthConfigured: true, getAccountBrowserClient: () => ({ auth }),
     },
+    '@/lib/account/password': { ACCOUNT_PASSWORD_MIN_LENGTH: 8, accountPasswordError: password => password.length < 8 ? 'Use at least 8 characters for your password.' : null },
     '@/lib/club-account/browser': { clubAccountJsonFetch: async (_url, options) => {
         if (profileFails) throw new Error('Profile unavailable');
         if (options?.method === 'POST') { saved = JSON.parse(options.body); accountProfile = { ...saved, membership_status: 'pending' }; }
@@ -59,12 +62,19 @@ const submitAccount = (tree, fields = {}) => act(async () => tree.root.findByTyp
   await act(async () => button(account, 'Create an account').props.onClick());
   await change(account, 'club-email', 'member@example.invalid');
   await change(account, 'club-password', 'isolated-test-password');
+  await submitAccount(account,{email:'short@example.invalid',password:'1234567'});
+  assert.equal(authCalls.length, 0, 'Sign-up passwords under 8 characters never reach the auth service');
+  assert.match(text(account), /at least 8 characters/);
+  assert.equal(account.root.findByProps({ id: 'club-password' }).props.minLength, 8);
   await submitAccount(account,{email:' SIGNUP@EXAMPLE.INVALID ',password:'autofilled-signup-password'});
   assert.match(text(account), /Check your email to confirm/);
   assert.equal(authCalls[0].options.emailRedirectTo, 'https://example.invalid/club-account');
   assert.equal(authCalls[0].email, 'signup@example.invalid');
   assert.equal(authCalls[0].password, 'autofilled-signup-password');
   assert.equal(account.root.findByProps({ id: 'club-password' }).props.value, '');
+  await act(async()=>button(account,'Resend confirmation email').props.onClick({currentTarget:{form:{elements:{namedItem:()=>({value:' SIGNUP@EXAMPLE.INVALID ',reportValidity:()=>true})}}}}));
+  assert.deepEqual(JSON.parse(JSON.stringify(resent[0])), { type: 'signup', email: 'signup@example.invalid', options: { emailRedirectTo: 'https://example.invalid/club-account' } });
+  assert.match(text(account), /new confirmation email has been sent/);
   await act(async () => button(account, 'Already have an account?').props.onClick());
   profileFails = true;
   // Password managers can populate the form without updating React state.

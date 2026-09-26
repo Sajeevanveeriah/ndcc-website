@@ -154,19 +154,19 @@ export default async function PublicationDetailPage({ params }: { params: Promis
           {(newer || older) && (
             <nav aria-label="More publications" className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {older ? (
-                <Link href={`/publications/${older.slug}`} className="card p-4 hover-lift focus-ring group">
+                <Link href={`/publications/${older.slug}`} className="card p-4 card-interactive focus-ring group">
                   <span className="flex items-center gap-1 text-xs font-body font-semibold uppercase tracking-wide text-content-muted">
                     <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" /> Previous
                   </span>
-                  <span className="mt-1 block font-display font-bold text-content-primary group-hover:text-maroon-700">{older.title}</span>
+                  <span className="mt-1 block font-display font-bold text-content-primary group-hover:text-maroon-700 dark:group-hover:text-maroon-200">{older.title}</span>
                 </Link>
               ) : <span aria-hidden="true" />}
               {newer && (
-                <Link href={`/publications/${newer.slug}`} className="card p-4 hover-lift focus-ring group text-right">
+                <Link href={`/publications/${newer.slug}`} className="card p-4 card-interactive focus-ring group text-right">
                   <span className="flex items-center justify-end gap-1 text-xs font-body font-semibold uppercase tracking-wide text-content-muted">
                     Next <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </span>
-                  <span className="mt-1 block font-display font-bold text-content-primary group-hover:text-maroon-700">{newer.title}</span>
+                  <span className="mt-1 block font-display font-bold text-content-primary group-hover:text-maroon-700 dark:group-hover:text-maroon-200">{newer.title}</span>
                 </Link>
               )}
             </nav>

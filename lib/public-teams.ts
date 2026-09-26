@@ -2,6 +2,8 @@ import { TEAMS } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase-server';
 import type { TeamInfo } from '@/lib/types';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
+import { buildTeamSlugs } from '@/lib/playhq/team-view';
+import { loadTeamPlayHQLinks } from '@/lib/playhq/mapping-store';
 
 function normaliseTeamLinks(teams: TeamInfo[]): TeamInfo[] {
   return teams.map((team) => ({
@@ -35,3 +37,19 @@ export async function getPublicTeams(): Promise<TeamInfo[]> {
   }
 }
 
+
+export type PublicTeamWithSlug = TeamInfo & { slug: string; playhq_team_id: string | null };
+
+/**
+ * Active CMS teams with their public /teams/[slug] slug (derived from the
+ * team name in display order) and saved PlayHQ team link, if any. The link
+ * read degrades to "not linked" before the teams.playhq_team_id migration.
+ */
+export async function getPublicTeamsWithSlugs(): Promise<PublicTeamWithSlug[]> {
+  const [teams, links] = await Promise.all([getPublicTeams(), loadTeamPlayHQLinks()]);
+  return buildTeamSlugs(teams).map(({ team, slug }) => ({ ...team, slug, playhq_team_id: (team.id && links.get(team.id)) || null }));
+}
+
+export async function getPublicTeamBySlug(slug: string): Promise<PublicTeamWithSlug | null> {
+  return (await getPublicTeamsWithSlugs()).find((team) => team.slug === slug) || null;
+}

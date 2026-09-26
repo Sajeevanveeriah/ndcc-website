@@ -81,8 +81,9 @@ check('page titles rely on the root "| NDCC Dinos" template and theme colours ma
   }
   assert.match(readFileSync('app/raffle/page.tsx', 'utf8'), /pageMetadata\('\/raffle'/);
   assert.match(readFileSync('app/raffle/page.tsx', 'utf8'), /if \(!\(await isRafflePublic\(\)\)\) return \{\};/, 'hidden raffle gets no raffle metadata');
-  assert.match(readFileSync('app/fantasy/layout.tsx', 'utf8'), /themeColor: '#800000'/);
-  assert.equal(JSON.parse(readFileSync('public/dino-coach.webmanifest', 'utf8')).theme_color, '#800000');
+  assert.match(readFileSync('app/fantasy/layout.tsx', 'utf8'), /themeColor: '#880000'/);
+  assert.match(readFileSync('lib/brand-colours.ts', 'utf8'), /maroon: '#880000'/);
+  assert.equal(JSON.parse(readFileSync('public/dino-coach.webmanifest', 'utf8')).theme_color, '#880000');
 });
 const headers = await config.headers();
 check('login, private and payment responses get restrictive headers', () => {

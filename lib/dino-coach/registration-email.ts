@@ -1,6 +1,7 @@
 import 'server-only';
 import { sendEmail, emailHtml, escapeEmailHtml, getTransactionalReplyTo } from '@/lib/email';
 import { DINO_MANUAL_FILENAME, DINO_MANUAL_URL } from './manual';
+import { getNotificationRecipients } from '@/lib/notification-recipients';
 import type { createServerClient } from '@/lib/supabase-server';
 
 type ServerClient = ReturnType<typeof createServerClient>;
@@ -10,11 +11,22 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
   if (claimed.error) throw new Error(claimed.error.message);
   const job = claimed.data?.[0];
   if (!job) return { status: 'not_due' };
-  const details = await supabase.from('fantasy_entries').select('fee_waived,is_demo').eq('id',entryId).single();
+  const details = await supabase.from('fantasy_entries').select('fee_waived,is_demo,season_id').eq('id',entryId).single();
   if (details.error) throw new Error(details.error.message);
+  // Budget from the season settings; keep the published figure if unavailable.
+  let budgetText = '15,000,000';
+  if (!job.delivery && details.data.season_id) {
+    try {
+      const settings = await supabase.from('fantasy_dino_settings').select('budget_dino_dollars').eq('season_id', details.data.season_id).maybeSingle();
+      const budget = Number(settings.data?.budget_dino_dollars);
+      if (!settings.error && Number.isFinite(budget) && budget > 0) budgetText = Math.round(budget).toLocaleString('en-AU');
+    } catch { /* Keep the published budget figure. */ }
+  }
+  const registrationCopies = job.delivery ? [] : (await getNotificationRecipients('dino_registration_copy'))
+    .filter((email) => email !== String(job.recipient).trim().toLowerCase());
   const delivery = job.delivery || {
     to: job.recipient,
-    bcc: job.recipient.toLowerCase() === 'sajeevanveeriah@gmail.com' ? undefined : ['sajeevanveeriah@gmail.com'],
+    bcc: registrationCopies.length ? registrationCopies : undefined,
     replyTo: getTransactionalReplyTo(),
     subject: 'Dino Coach registration received',
     attachments: [{ filename: DINO_MANUAL_FILENAME, path: DINO_MANUAL_URL }],
@@ -24,7 +36,7 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
       `<p>Hi ${escapeEmailHtml(job.display_name)},</p>
       <p>Your manager registration for <strong>${escapeEmailHtml(job.team_name)}</strong> has been recorded.</p>
       ${details.data.fee_waived ? '<p>Your complimentary entry is approved. No payment is required. Sign in using the password supplied by the administrator, then choose Change password in your account.</p>' : details.data.is_demo ? '<p>Your demo entry does not require payment.</p>' : `<p>The entry fee is AUD ${(job.entry_fee_cents / 100).toFixed(2)}. If you have already paid, your account shows your payment status. Team selection unlocks after payment settles and your team name is approved.</p>`}
-      <p>Your starting budget is 15,000,000 virtual Dino Dollars. Choose 15 players, including a captain and vice-captain, and submit your squad before the round locks. There is no registration expiry for an incomplete squad.</p>
+      <p>Your starting budget is ${budgetText} virtual Dino Dollars. Choose 15 players, including a captain and vice-captain, and submit your squad before the round locks. There is no registration expiry for an incomplete squad.</p>
       <p>Your Dino Coach user manual is attached. It covers registration, squad selection, scoring, the live wallet, selling back to the player pool, competition rules and help. You can also <a href="${DINO_MANUAL_URL}">download the user manual (PDF)</a>.</p>
       <p><a href="https://www.ndcc.com.au/fantasy/account">Open your Dino Coach account</a> to complete payment or pick your squad.</p>`),
   };

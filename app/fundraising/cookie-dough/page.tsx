@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import CookieDoughVisibility from '@/components/common/CookieDoughVisibility';
-import { isCookieDoughOpen, COOKIE_DOUGH_DEADLINE_LABEL } from '@/lib/cookie-dough';
+import { getCookieDoughCampaign } from '@/lib/server/site-promotions';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import {
@@ -40,9 +40,10 @@ export const metadata: Metadata = {
 
 const campaignLink = COOKIE_DOUGH_FUNDRAISER_LINK;
 
-function CampaignLink({ children, className }: { children: React.ReactNode; className: string }) {
+// The campaign URL can be edited in /admin/promotions; the hardcoded link is the fallback.
+function CampaignLink({ children, className, href = campaignLink.href }: { children: React.ReactNode; className: string; href?: string }) {
   return (
-    <a href={campaignLink.href} target={campaignLink.target} rel={campaignLink.rel} className={className}>
+    <a href={href} target={campaignLink.target} rel={campaignLink.rel} className={className}>
       {children}
       <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="sr-only">(opens the official Billy G&apos;s campaign in a new tab)</span>
@@ -75,10 +76,11 @@ const facts = [
   { label: '$22 including GST', icon: ReceiptText },
 ] as const;
 
-export default function CookieDoughFundraiserPage() {
-  if (!isCookieDoughOpen()) notFound();
+export default async function CookieDoughFundraiserPage() {
+  const campaign = await getCookieDoughCampaign();
+  if (!campaign) notFound();
   return (
-    <CookieDoughVisibility initialOpen={true}>
+    <CookieDoughVisibility initialOpen={true} endsAt={campaign.endsAt}>
       <section className="overflow-hidden border-b border-edge-subtle bg-surface-card px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         <div className="container-width grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.78fr)]">
           <ScrollReveal onMount>
@@ -92,12 +94,12 @@ export default function CookieDoughFundraiserPage() {
               <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-content-secondary sm:text-lg">
                 Register as an NDCC fundraiser, share your page, or purchase cookie dough to support the club.
               </p>
-              <p className="mt-4 font-body font-semibold text-content-primary">{COOKIE_DOUGH_DEADLINE_LABEL}</p>
+              {campaign.deadlineLabel && <p className="mt-4 font-body font-semibold text-content-primary">{campaign.deadlineLabel}</p>}
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <CampaignLink className="btn-primary min-h-11 gap-2">
+                <CampaignLink href={campaign.href} className="btn-primary min-h-11 gap-2">
                   Register &amp; Start Fundraising
                 </CampaignLink>
-                <CampaignLink className="btn-secondary min-h-11 gap-2">
+                <CampaignLink href={campaign.href} className="btn-secondary min-h-11 gap-2">
                   Buy Cookie Dough
                 </CampaignLink>
               </div>
@@ -176,7 +178,7 @@ export default function CookieDoughFundraiserPage() {
                   <li>Create your personal fundraising page and set your goal.</li>
                   <li>Share your unique page so supporters can order through you.</li>
                 </ol>
-                <CampaignLink className="btn-primary mt-6 min-h-11 w-full gap-2 sm:w-fit">
+                <CampaignLink href={campaign.href} className="btn-primary mt-6 min-h-11 w-full gap-2 sm:w-fit">
                   Register &amp; Start Fundraising
                 </CampaignLink>
               </div>
@@ -191,7 +193,7 @@ export default function CookieDoughFundraiserPage() {
                   <li>Choose the fundraiser you want to support, then select your tubs.</li>
                   <li>Complete payment on Billy G&apos;s platform and follow the campaign&apos;s collection details.</li>
                 </ol>
-                <CampaignLink className="btn-secondary mt-6 min-h-11 w-full gap-2 sm:w-fit">
+                <CampaignLink href={campaign.href} className="btn-secondary mt-6 min-h-11 w-full gap-2 sm:w-fit">
                   Buy Cookie Dough
                 </CampaignLink>
               </div>
@@ -225,10 +227,10 @@ export default function CookieDoughFundraiserPage() {
             Choose your path and help raise dough for the Dinos.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-            <CampaignLink className="btn-accent min-h-11 gap-2">
+            <CampaignLink href={campaign.href} className="btn-accent min-h-11 gap-2">
               Register &amp; Start Fundraising
             </CampaignLink>
-            <CampaignLink className="btn-outline-white min-h-11 gap-2">
+            <CampaignLink href={campaign.href} className="btn-outline-white min-h-11 gap-2">
               Buy Cookie Dough
             </CampaignLink>
           </div>

@@ -7,6 +7,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { CLUB_NICKNAME } from '@/lib/constants';
 import { getPublicTeams } from '@/lib/public-teams';
+import { buildTeamSlugs } from '@/lib/playhq/team-view';
 
 const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
@@ -24,6 +25,8 @@ export const metadata: Metadata = pageMetadata("/teams", "Cricket teams", "Explo
 
 export default async function TeamsPage() {
   const teams = await getPublicTeams();
+  // Same deterministic slugs as /teams/[slug] (getPublicTeamsWithSlugs).
+  const slugs = new Map(buildTeamSlugs(teams).map(({ team, slug }) => [team, slug]));
 
   return (
     <>
@@ -69,7 +72,7 @@ export default async function TeamsPage() {
               const teamImage = team.image_url || TEAM_IMAGES[team.name];
 
               return (
-                <Card key={team.id || team.name} className="overflow-hidden transition-shadow duration-300 hover:shadow-lift">
+                <Card key={team.id || team.name} className="overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-3">
                     {/* Team image or colour block */}
                     {teamImage ? (
@@ -120,6 +123,10 @@ export default async function TeamsPage() {
                           <span className="font-semibold">Captain:</span> {team.captain}
                         </p>
                       )}
+                      <div className="flex flex-wrap items-center gap-3">
+                      <Link href={`/teams/${slugs.get(team)}`} className="btn-primary text-sm inline-flex items-center">
+                        Team page<span className="sr-only">: {team.name} fixtures and results</span>
+                      </Link>
                       {team.playhq_url && (
                         <a
                           href={team.playhq_url}
@@ -133,6 +140,7 @@ export default async function TeamsPage() {
                           </svg>
                         </a>
                       )}
+                      </div>
                     </CardContent>
                   </div>
                 </Card>
@@ -150,9 +158,8 @@ export default async function TeamsPage() {
             Join a Team
           </h2>
           <p className="mx-auto mb-6 max-w-2xl font-body text-base text-maroon-100 sm:text-lg">
-            Whether you are an experienced cricketer or a complete beginner, there is a team for you
-            at the {CLUB_NICKNAME}. We welcome players of all ages and abilities across our men&apos;s,
-            women&apos;s, and junior squads.
+            Interested in playing for the {CLUB_NICKNAME}? Contact the club and we will point you to the
+            right men&apos;s, women&apos;s or junior team.
           </p>
           <Link href="/contact" className="btn-accent px-7 py-3 text-base">
             Get in Touch

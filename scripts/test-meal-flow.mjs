@@ -118,6 +118,15 @@ const mocks = {
   '@/lib/stripe': { getStripe:()=>stripe },
   '@/lib/server/request-guards': { enforceRateLimit:()=>true, enforceHoneypotAndTiming:()=>true, getClientIp:()=> 'test' },
   '@/lib/club-settings': { getClubSettings:async()=>({}) },
+  // CMS recipient table unreadable: fall back to the hardcoded lists.
+  '@/lib/notification-recipients': (() => {
+    const fallback = plain('lib/notification-recipients-fallback.ts');
+    const { receiptRecipients } = plain('lib/payments/receipt-recipients.ts');
+    return {
+      getStaffOrderNotificationRecipients: async (category) => fallback.fallbackNotificationRecipients(category === 'apparel' ? 'apparel_order_staff' : 'kitchen_order_staff'),
+      getReceiptRecipients: async (purchaser, department = []) => receiptRecipients(purchaser, department, fallback.fallbackNotificationRecipients('receipt_copy')),
+    };
+  })(),
   '@/lib/payments/capabilities': { loadMerchPaymentSettings:async()=>({ minimum_partial_amount:10 }), deriveCapabilities:()=>({ card:true, partial_payments:false }) },
   '@/lib/payments/reference': { generateUniquePaymentReference:async()=> 'NCDDKIT-2026-000002',
     isCanonicalPaymentReference:v=>/^NCDDKIT-2026-\d{6}$/.test(v), normalisePaymentReferenceCategory:v=>v },

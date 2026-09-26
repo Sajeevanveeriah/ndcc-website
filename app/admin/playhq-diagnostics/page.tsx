@@ -10,7 +10,8 @@ type Diagnostics = {
   config: Record<string, unknown>;
   checks: Array<{ label: string; status: 'ok' | 'warn' | 'fail'; detail: string }>;
   connection: { status: 'ok' | 'warn' | 'fail'; detail: string };
-  discovery: { organisation: string; season: string; grades: string };
+  discovery: { organisation: string; season: string; grades: string; mapping?: string };
+  endpoints?: Array<{ dataset: string; version: string; host: string | null; lastServedAt: string; counts: Record<string, number> }>;
   sync: { lastSuccess: string | null; lastFailure: string | null; nextScheduledRun: string };
   remediation: string[];
 };
@@ -77,6 +78,7 @@ export default function PlayHQDiagnosticsPage() {
                 <div><dt className="font-semibold text-content-primary">Organisation discovery</dt><dd className="text-content-secondary">{data.discovery.organisation}</dd></div>
                 <div><dt className="font-semibold text-content-primary">Season discovery</dt><dd className="text-content-secondary">{data.discovery.season}</dd></div>
                 <div><dt className="font-semibold text-content-primary">Grade discovery</dt><dd className="text-content-secondary">{data.discovery.grades}</dd></div>
+                {data.discovery.mapping && <div><dt className="font-semibold text-content-primary">Mapping source</dt><dd className="text-content-secondary">{data.discovery.mapping}</dd></div>}
               </dl>
             </CardContent></Card>
 
@@ -89,6 +91,29 @@ export default function PlayHQDiagnosticsPage() {
               </dl>
             </CardContent></Card>
           </div>
+
+          {data.endpoints && data.endpoints.length > 0 && (
+            <Card><CardContent>
+              <h2 className="text-lg font-display font-bold text-content-primary">Endpoint versions</h2>
+              <p className="mt-1 text-sm text-content-muted font-body">Which PlayHQ API version last served each dataset on this server instance.</p>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full text-sm font-body">
+                  <thead><tr className="text-left text-content-secondary"><th scope="col" className="py-2 pr-4 font-semibold">Dataset</th><th scope="col" className="py-2 pr-4 font-semibold">Version</th><th scope="col" className="py-2 pr-4 font-semibold">Requests by version</th><th scope="col" className="py-2 pr-4 font-semibold">Host</th><th scope="col" className="py-2 font-semibold">Last served</th></tr></thead>
+                  <tbody className="divide-y divide-edge-subtle">
+                    {data.endpoints.map((row) => (
+                      <tr key={row.dataset}>
+                        <td className="py-2 pr-4 text-content-primary">{row.dataset}</td>
+                        <td className="py-2 pr-4 font-semibold tabular-nums text-content-primary">{row.version}</td>
+                        <td className="py-2 pr-4 tabular-nums text-content-secondary">{Object.entries(row.counts).map(([version, count]) => `${version}: ${count}`).join(', ')}</td>
+                        <td className="py-2 pr-4 text-content-secondary">{row.host || 'Unknown'}</td>
+                        <td className="py-2 tabular-nums text-content-secondary">{new Date(row.lastServedAt).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent></Card>
+          )}
 
           <Card><CardContent>
             <h2 className="text-lg font-display font-bold text-content-primary">Plain-English remediation</h2>

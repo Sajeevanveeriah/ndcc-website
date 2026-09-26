@@ -126,7 +126,7 @@ export async function POST(request: Request) {
           <p style="margin:0;font-size:14px;color:#374151;">${escapeEmailHtml(safeRole)}</p>
         </div>
         <p style="font-size:15px;color:#374151;line-height:1.6;">A committee member will be in touch with you shortly to discuss next steps.</p>
-        <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#800000;">ndcc.secretary1@gmail.com</a>.</p>`
+        <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });
     return NextResponse.json({

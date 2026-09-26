@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
-type Transfer = { id: string; kind: string; reference: string; name: string; amount_cents: number; selected_at: string };
+type Transfer = { id: string; kind: string; reference: string; name: string; amount_cents: number; selected_at: string; hold_expired?: boolean };
 export default function BankTransfersPage() {
   const [rows, setRows] = useState<Transfer[]>([]);
-  const [busy, setBusy] = useState(false); const [ready, setReady] = useState(false); const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false); const [ready, setReady] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
   const [bankReferences, setBankReferences] = useState<Record<string,string>>({});
   const money = (cents: number) => new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(cents/100);
   async function load() {
@@ -18,25 +18,36 @@ export default function BankTransfersPage() {
   useEffect(() => { void load(); }, []);
   async function cancel(row: Transfer) {
     if (!window.confirm(`Cancel the unpaid reservation ${row.reference} and release its raffle numbers? First check that no deposit has arrived. This does not refund a payment.`)) return;
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setNotice('');
     try {
       await parseApiResponse(await adminFetch('/api/admin/payments/bank-transfers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({action:'cancel',kind:row.kind,id:row.id,confirmed_cancelled:true}) }));
       await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not release reservation.'); }
     finally { setBusy(false); }
   }
+  async function switchToCard(row: Transfer) {
+    if (!window.confirm(`Switch ${row.reference} back to card payment? First check that no deposit has arrived. The entrant can then pay by card from their Dino Coach account.`)) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      await parseApiResponse(await adminFetch('/api/admin/payments/bank-transfers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({action:'switch_to_card',kind:row.kind,id:row.id,confirmed_switch:true}) }));
+      setNotice(`${row.reference} can now be paid by card.`);
+      await load();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not switch payment method.'); }
+    finally { setBusy(false); }
+  }
   async function confirm(row: Transfer) {
     const bank_reference = bankReferences[row.id]?.trim();
     if (!bank_reference || bank_reference.length < 3) { setError('Enter the bank transaction reference before confirming receipt.'); return; }
     if (!window.confirm(`Confirm you checked the bank and received the full ${money(row.amount_cents)} for ${row.reference}? This issues the receipt and any raffle tickets.`)) return;
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setNotice('');
     try {
-      await parseApiResponse(await adminFetch('/api/admin/payments/bank-transfers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({kind:row.kind,id:row.id,expected_cents:row.amount_cents,bank_reference,confirmed_received:true}) }));
+      const result = await parseApiResponse<{ receipt_delivery?: string }>(await adminFetch('/api/admin/payments/bank-transfers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({kind:row.kind,id:row.id,expected_cents:row.amount_cents,bank_reference,confirmed_received:true}) }));
+      setNotice(result.receipt_delivery === 'delivered' ? `${row.reference} confirmed and the receipt was emailed.` : `${row.reference} confirmed. The receipt will be emailed by the scheduled receipt worker.`);
       await load();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not confirm receipt.'); }
     finally { setBusy(false); }
   }
-  return <div className="space-y-5"><h1 className="text-2xl font-bold">Bank transfers to reconcile</h1><p>These purchasers selected bank deposit. Check these references together against the bank statement. A selection alone is not proof of payment.</p><p>Review outstanding raffle reservations here and release abandoned orders after checking for a deposit. Cancelled reservations cannot be confirmed as paid.</p><div className="flex flex-wrap gap-4"><Button onClick={load} disabled={busy}>Refresh</Button><a href="/api/admin/payments/bank-transfers?format=csv" className="underline">Export bank transfer list</a><Link href="/admin/orders" className="underline">All orders</Link></div>{error && <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>}{busy && <p role="status">Loading...</p>}{ready && !busy && rows.length === 0 && <p>No bank transfers awaiting receipt confirmation.</p>}
-    {rows.map(row => <article key={`${row.kind}-${row.id}`} className="rounded-lg border border-edge-strong p-4 space-y-3"><h2 className="font-bold break-all">{row.reference} - {money(row.amount_cents)}</h2><p>{row.name} - {row.kind === 'dino' ? 'Dino Coach' : row.kind === 'raffle' ? 'Raffle' : 'Order'}</p><p className="text-sm">Selected {new Date(row.selected_at).toLocaleString('en-AU',{timeZone:'Australia/Melbourne'})}</p>{row.kind === 'order' ? <Link className="underline" href={`/admin/orders?reference=${encodeURIComponent(row.reference)}`}>Open order to record funds received</Link> : <div className="space-y-2"><label className="block">Bank transaction reference<input className="form-input mt-1 w-full" value={bankReferences[row.id] || ''} maxLength={200} onChange={event=>setBankReferences({...bankReferences,[row.id]:event.target.value})}/></label><Button disabled={busy} onClick={()=>void confirm(row)}>Confirm full deposit received</Button></div>}{row.kind === 'raffle' && <Button variant="secondary" disabled={busy} onClick={() => void cancel(row)}>Cancel unpaid reservation and release numbers</Button>}</article>)}
+  return <div className="space-y-5"><h1 className="text-2xl font-bold">Bank transfers to reconcile</h1><p>These purchasers selected bank deposit. Check these references together against the bank statement. A selection alone is not proof of payment.</p><p>Review outstanding raffle reservations here and release abandoned orders after checking for a deposit. Cancelled reservations cannot be confirmed as paid. Reverse raffle numbers held for a bank deposit are released for sale 48 hours after selection; a late deposit can still be confirmed only while its numbers remain unsold.</p><div className="flex flex-wrap gap-4"><Button onClick={load} disabled={busy}>Refresh</Button><a href="/api/admin/payments/bank-transfers?format=csv" className="underline">Export bank transfer list</a><Link href="/admin/orders" className="underline">All orders</Link></div>{error && <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>}{notice && <p role="status">{notice}</p>}{busy && <p role="status">Loading...</p>}{ready && !busy && rows.length === 0 && <p>No bank transfers awaiting receipt confirmation.</p>}
+    {rows.map(row => <article key={`${row.kind}-${row.id}`} className="rounded-lg border border-edge-strong p-4 space-y-3"><h2 className="font-bold break-all">{row.reference} - {money(row.amount_cents)}</h2>{row.hold_expired && <p className="font-semibold">Hold expired - release?</p>}<p>{row.name} - {row.kind === 'dino' ? 'Dino Coach' : row.kind === 'raffle' ? 'Raffle' : 'Order'}</p><p className="text-sm">Selected {new Date(row.selected_at).toLocaleString('en-AU',{timeZone:'Australia/Melbourne'})}</p>{row.hold_expired && <p className="text-sm">The 48 hour hold has expired, so these numbers can be bought by others. If no deposit has arrived, cancel the reservation.</p>}{row.kind === 'order' ? <Link className="underline" href={`/admin/orders?reference=${encodeURIComponent(row.reference)}`}>Open order to record funds received</Link> : <div className="space-y-2"><label className="block">Bank transaction reference<input className="form-input mt-1 w-full" value={bankReferences[row.id] || ''} maxLength={200} onChange={event=>setBankReferences({...bankReferences,[row.id]:event.target.value})}/></label><Button disabled={busy} onClick={()=>void confirm(row)}>Confirm full deposit received</Button></div>}{row.kind === 'raffle' && <Button variant="secondary" disabled={busy} onClick={() => void cancel(row)}>Cancel unpaid reservation and release numbers</Button>}{row.kind === 'dino' && <Button variant="secondary" disabled={busy} onClick={() => void switchToCard(row)}>Switch back to card</Button>}</article>)}
   </div>;
 }

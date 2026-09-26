@@ -71,7 +71,8 @@ const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.res
     eq() { return query; },
     async maybeSingle() {
       assert.equal(table, 'events');
-      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity'];
+      // published_at is the optional scheduling column (CMS scheduling migration).
+      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at'];
       assert.ok(selected.split(',').every(column => allowed.includes(column)), 'event reads must match the deployed events schema');
       return { data: row, error: readError };
     },

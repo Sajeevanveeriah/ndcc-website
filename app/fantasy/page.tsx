@@ -11,7 +11,8 @@ import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getSeasonPageContext, seasonStatusLabel } from '@/lib/fantasy-seasons';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
-import { formatDinoDollars } from '@/lib/dino-coach/domain';
+import { formatDinoDollars, formatEntryFee } from '@/lib/dino-coach/domain';
+import { seasonYearsLabel } from '@/lib/fantasy-seasons';
 
 import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
 
@@ -43,6 +44,9 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
   const dinoSettings = seasonContext.selected
     ? await getDinoCoachSettings(seasonContext.selected.id).catch(() => null)
     : null;
+  // Fall back to the published copy when the season or settings are unavailable.
+  const seasonYears = seasonYearsLabel(seasonContext.selected) || '2026/2027';
+  const entryFee = formatEntryFee(dinoSettings?.entry_fee_cents, dinoSettings?.entry_fee_currency) || 'AUD 25.00';
   return (
     <>
       <section className="page-hero">
@@ -65,7 +69,7 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
             <div className="lg:col-span-2">
               <h2 className="section-title">Built for the {CLUB_NICKNAME}</h2>
               <div className="space-y-4 text-content-secondary font-body leading-relaxed max-w-3xl">
-                <p>Dino Coach is NDCC&apos;s 18+ fantasy competition for the 2026/2027 season. Entry is AUD 25.00; every squad price and prize shown in Dino Dollars is virtual.</p>
+                <p>Dino Coach is NDCC&apos;s 18+ fantasy competition for the {seasonYears} season. Entry is {entryFee}; every squad price and prize shown in Dino Dollars is virtual.</p>
                 <p>Squads, assigned fantasy roles, free transfers, player scores and leaderboards use reconciled player identities and published match-stat imports.</p>
               </div>
               <p className="mt-5 font-body"><a href={DINO_MANUAL_PATH} download className="text-maroon-700 dark:text-maroon-200 underline underline-offset-4">Download the Dino Coach user manual (PDF)</a></p>
@@ -108,7 +112,7 @@ export default async function FantasyPage({ searchParams: searchParamsPromise }:
                 <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Manager playbook</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-content-secondary font-body">
                   <p className="rounded-lg bg-surface-page p-3">Register, prove 18+ eligibility and accept the current rules.</p>
-                  <p className="rounded-lg bg-surface-page p-3">Pay AUD 25.00 through Stripe-hosted Checkout.</p>
+                  <p className="rounded-lg bg-surface-page p-3">Pay {entryFee} through Stripe-hosted Checkout.</p>
                   <p className="rounded-lg bg-surface-page p-3">Fill 15 explicit fantasy slots and choose captain and vice-captain.</p>
                   <p className="rounded-lg bg-surface-page p-3">Make unlimited free transfers in the open weekly window.</p>
                 </div>

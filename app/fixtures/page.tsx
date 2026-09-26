@@ -8,12 +8,15 @@ import { getClubSettings } from '@/lib/club-settings';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
-import { getPublicTeams } from '@/lib/public-teams';
+import { getPublicTeamsWithSlugs } from '@/lib/public-teams';
 import { formatFixtureTime } from '@/lib/playhq/normalise';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
-import type { PlayHQFixture, PlayHQLadderRow } from '@/lib/playhq/types';
+import { fixturesForTeam, ladderForGrade, matchPlayHQTeam, shortTeamLabel, splitTeamFixtures, teamMatchKey } from '@/lib/playhq/team-view';
+import type { PlayHQFixture, PlayHQTeam } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
+import FixturesTeamTabs, { type FixturesTab } from './_components/FixturesTeamTabs';
+import { FixtureList, LadderTable } from './_components/PlayHQTables';
 
 // ISR: regenerated at most every 60s and on demand after admin writes
 // (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
@@ -59,11 +62,11 @@ function PlayHQCtaLink({ href, label }: { href: string; label: string }) {
 
 function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; result?: boolean }) {
   return (
-    <Card className="h-full hover-lift">
+    <Card className="h-full card-interactive">
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
-          <span className="text-xs text-content-muted font-body">{formatFixtureTime(fixture.startsAt)}</span>
+          <span className="text-sm text-content-muted font-body tabular-nums">{formatFixtureTime(fixture.startsAt)}</span>
         </div>
         <div>
           <p className="font-display font-bold text-content-primary">{fixture.homeTeam}</p>
@@ -71,7 +74,7 @@ function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; resu
           <p className="font-display font-bold text-content-primary">{fixture.awayTeam}</p>
         </div>
         {(fixture.homeScore || fixture.awayScore) && (
-          <p className="text-sm font-semibold text-maroon-700 dark:text-maroon-200">{fixture.homeScore || 'TBC'} · {fixture.awayScore || 'TBC'}</p>
+          <p className="text-sm font-semibold tabular-nums text-maroon-700 dark:text-maroon-200">{fixture.homeScore || 'TBC'} · {fixture.awayScore || 'TBC'}</p>
         )}
         {fixture.venue && <p className="text-sm text-content-muted font-body">{fixture.venue}</p>}
         {fixture.playHQUrl && <Link href={fixture.playHQUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-maroon-700 dark:text-maroon-200 hover:underline">View on PlayHQ</Link>}
@@ -80,26 +83,16 @@ function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; resu
   );
 }
 
-function LadderTable({ rows }: { rows: PlayHQLadderRow[] }) {
-  // Scorebook-ledger styling: maroon-tinted header, centred numeric columns.
-  return (
-    <div className="overflow-x-auto rounded-xl border border-edge-subtle bg-surface-card dark:border-slate-700">
-      <table className="min-w-full divide-y divide-edge-subtle text-sm">
-        <thead className="bg-maroon-50/60 text-left dark:bg-slate-800/80">
-          <tr>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">Pos</th>
-            <th className="px-4 py-3 font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">Team</th>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">P</th>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">Pts</th>
-            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider text-xs text-maroon-800 dark:text-maroon-200 dark:text-slate-300">%</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-edge-subtle">
-          {rows.map((row, index) => <tr key={`${row.gradeId}-${row.teamName}-${index}`} className="hover:bg-surface-blue-subtle/60 transition-colors"><td className="px-4 py-3 text-center font-display font-bold text-maroon-700 dark:text-maroon-200">{row.position ?? '-'}</td><td className="px-4 py-3 font-medium text-content-primary">{row.teamName}</td><td className="px-4 py-3 text-center">{row.played ?? '-'}</td><td className="px-4 py-3 text-center font-semibold">{row.points ?? '-'}</td><td className="px-4 py-3 text-center">{row.percentage ?? '-'}</td></tr>)}
-        </tbody>
-      </table>
-    </div>
-  );
+// Men's teams by ordinal, then women's, then anything else by name.
+function sortClubTeams(teams: PlayHQTeam[]) {
+  const rank = (team: PlayHQTeam) => {
+    const key = teamMatchKey(team.name);
+    return [key.junior ? 2 : key.women ? 1 : 0, key.ordinal ?? 99] as const;
+  };
+  return [...teams].sort((a, b) => {
+    const [ga, oa] = rank(a); const [gb, ob] = rank(b);
+    return ga - gb || oa - ob || a.name.localeCompare(b.name);
+  });
 }
 
 export default async function FixturesPage() {
@@ -107,7 +100,7 @@ export default async function FixturesPage() {
     getClubSettings(),
     getContentBlocks(['fixtures.hero', 'fixtures.status', 'fixtures.team_links']),
     getPlayHQPublicData(),
-    getPublicTeams(),
+    getPublicTeamsWithSlugs(),
     getCurrentClubSeason().catch((error) => {
       console.warn('[fixtures] Current season temporarily unavailable:', error instanceof Error ? error.message : 'unknown');
       return null;
@@ -124,6 +117,72 @@ export default async function FixturesPage() {
   const seasonLabel = selectedSeason && selectedSeason.name !== selectedSeason.id ? selectedSeason.name : null;
   const fetchedAtDate = new Date(playhq.fetchedAt);
   const fetchedAtLabel = Number.isNaN(fetchedAtDate.getTime()) ? null : fetchedAtDate.toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Australia/Melbourne' });
+  // Team filter: one tab per NDCC PlayHQ team, linked to its /teams/[slug] page
+  // when a website team card matches it.
+  const clubTeams = sortClubTeams(playhq.teams);
+  const teamPageByPlayHQId = new Map<string, { slug: string; name: string }>();
+  for (const team of teams) {
+    const match = matchPlayHQTeam(team, playhq.teams);
+    if (match && !teamPageByPlayHQId.has(match.id)) teamPageByPlayHQId.set(match.id, { slug: team.slug, name: team.name });
+  }
+  const ungradedTeams = clubTeams.filter((team) => !team.gradeId);
+  const teamTabs: FixturesTab[] = clubTeams.map((team) => {
+    const page = teamPageByPlayHQId.get(team.id);
+    const split = team.gradeId ? splitTeamFixtures(fixturesForTeam(playhq.fixtures, team)) : null;
+    const ladder = ladderForGrade(playhq.ladders, team.gradeId);
+    return {
+      id: team.id,
+      label: shortTeamLabel(team.name),
+      content: (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-display font-bold text-content-primary">{team.name}</h2>
+              {team.gradeName && <p className="font-body text-content-secondary">{team.gradeName}</p>}
+            </div>
+            {page && <Link href={`/teams/${page.slug}`} className="font-body text-sm font-semibold text-maroon-700 underline-offset-2 hover:underline dark:text-maroon-200">{page.name} team page</Link>}
+          </div>
+          {!split ? (
+            <p className="font-body text-content-secondary">Fixture not yet released by GCA.</p>
+          ) : (
+            <>
+              <section>
+                <h3 className="mb-3 text-xl font-display font-bold text-content-primary">Upcoming fixtures</h3>
+                {split.upcoming.length ? <FixtureList fixtures={split.upcoming} team={team} label={`${team.name} upcoming fixtures`} /> : <p className="font-body text-content-muted">No upcoming fixtures are currently listed.</p>}
+              </section>
+              {split.results.length > 0 && (
+                <section>
+                  <h3 className="mb-3 text-xl font-display font-bold text-content-primary">Results</h3>
+                  <FixtureList fixtures={split.results} team={team} label={`${team.name} results`} />
+                </section>
+              )}
+              {ladder.length > 0 && (
+                <section>
+                  <h3 className="mb-3 text-xl font-display font-bold text-content-primary">{team.gradeName ? `${team.gradeName} ladder` : 'Ladder'}</h3>
+                  <LadderTable rows={ladder} caption={`${team.gradeName || 'Grade'} ladder`} highlightTeam={team} />
+                </section>
+              )}
+            </>
+          )}
+        </>
+      ),
+    };
+  });
+
+  // Unfiltered view: the original upcoming/results layout, grouped by grade.
+  const allTeamsPanel = (
+    <>
+      <section>
+        <h2 className="section-title mb-6">Upcoming Fixtures</h2>
+        {Object.values(upcomingByGrade).length === 0 ? <p className="text-content-muted font-body">No upcoming fixtures are currently listed.</p> : Object.values(upcomingByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}</div></div>)}
+      </section>
+
+      <section>
+        <h2 className="section-title mb-6">Recent Results</h2>
+        {Object.values(resultsByGrade).length === 0 ? <p className="text-content-muted font-body">No recent results are currently listed.</p> : Object.values(resultsByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} result />)}</div></div>)}
+      </section>
+    </>
+  );
 
   return (
     <>
@@ -160,22 +219,30 @@ export default async function FixturesPage() {
           ) : playhq.fixtures.length === 0 ? (
             <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures are not available here yet</h2><p className="mt-2 text-content-muted font-body">Check the club on PlayHQ for the latest published fixtures. Previous seasons will not be shown as the current season.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : (
-            <>
-              <section>
-                <h2 className="section-title mb-6">Upcoming Fixtures</h2>
-                {Object.values(upcomingByGrade).length === 0 ? <p className="text-content-muted font-body">No upcoming fixtures are currently listed.</p> : Object.values(upcomingByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}</div></div>)}
-              </section>
+            teamTabs.length > 0
+              ? <FixturesTeamTabs label="Filter fixtures by team" tabs={[{ id: 'all', label: 'All teams', content: allTeamsPanel }, ...teamTabs]} />
+              : <div className="space-y-8">{allTeamsPanel}</div>
+          )}
 
-              <section>
-                <h2 className="section-title mb-6">Recent Results</h2>
-                {Object.values(resultsByGrade).length === 0 ? <p className="text-content-muted font-body">No recent results are currently listed.</p> : Object.values(resultsByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} result />)}</div></div>)}
-              </section>
-            </>
+          {playhq.configured && ungradedTeams.length > 0 && (
+            <section aria-labelledby="awaiting-gca" className="surface-panel p-6">
+              <h2 id="awaiting-gca" className="text-xl font-display font-bold text-content-primary">Awaiting GCA fixtures</h2>
+              <ul className="mt-3 space-y-1 font-body text-content-secondary">
+                {ungradedTeams.map((team) => {
+                  const page = teamPageByPlayHQId.get(team.id);
+                  return (
+                    <li key={team.id}>
+                      {page ? <Link href={`/teams/${page.slug}`} className="font-semibold text-maroon-700 underline-offset-2 hover:underline dark:text-maroon-200">{team.name}</Link> : <span className="font-semibold text-content-primary">{team.name}</span>}: Fixture not yet released by GCA.
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
         </div>
       </section>
 
-      {playhq.ladders.length > 0 && <section className="section-padding surface-blue-band"><div className="container-width"><h2 className="section-title mb-8">Ladders</h2>{Object.values(laddersByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><LadderTable rows={group.rows} /></div>)}</div></section>}
+      {playhq.ladders.length > 0 && <section className="section-padding surface-blue-band"><div className="container-width"><h2 className="section-title mb-8">Ladders</h2>{Object.values(laddersByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><LadderTable rows={group.rows} caption={`${group.gradeName} ladder`} /></div>)}</div></section>}
 
       {teamLinks.length > 0 && (
         <section className="section-padding">
@@ -185,7 +252,7 @@ export default async function FixturesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {teamLinks.map((link) => (
                 <a key={link.id} href={currentSeasonPlayHQUrl(link.href, currentSeason?.slug, settings.playhq_url || PLAYHQ_ORG_URL)} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
-                  <Card className="h-full hover-lift">
+                  <Card className="h-full card-interactive">
                     <CardContent className="p-5 space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-display font-bold text-content-primary">{link.title}</h3>
