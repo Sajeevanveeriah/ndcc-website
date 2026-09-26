@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { revalidateSitemap } from '@/lib/server/revalidate-public';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
 import { isValidAlbumSlug, isUuid, MAX_ALBUM_SLUG_LENGTH } from '@/lib/gallery/shared';
@@ -12,6 +13,7 @@ const ALBUM_WRITABLE_FIELDS = [
 ] as const;
 
 function revalidateGallery(slug?: string | null) {
+  revalidateSitemap();
   try { revalidatePath('/gallery'); } catch { /* best-effort */ }
   try { revalidatePath('/'); } catch { /* best-effort */ }
   if (slug) {

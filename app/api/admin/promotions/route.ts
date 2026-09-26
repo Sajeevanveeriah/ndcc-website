@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { revalidateSitemap } from '@/lib/server/revalidate-public';
 import { requirePermissionResult } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { datetimeLocalToClubIso } from '@/lib/utils';
@@ -105,6 +106,8 @@ function parsePromotion(raw: Record<string, unknown>, isCreate: boolean): { ok: 
 }
 
 function revalidatePromotionPages() {
+  // The Cookie Dough campaign window decides whether its page is in the sitemap.
+  revalidateSitemap();
   for (const path of ['/', '/fundraising/cookie-dough']) {
     try { revalidatePath(path); } catch { /* best-effort */ }
   }

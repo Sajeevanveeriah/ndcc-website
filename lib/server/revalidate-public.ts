@@ -87,13 +87,22 @@ function safe(fn: () => void) {
 }
 
 /**
+ * Clear the cached sitemap. revalidatePublicContent already does this; admin
+ * writers that revalidate their own paths (gallery albums, promotions) call it
+ * so a visibility change reaches /sitemap.xml immediately.
+ */
+export function revalidateSitemap(): void {
+  safe(() => revalidateTag(SITEMAP_CACHE_TAG));
+}
+
+/**
  * Revalidate the public pages affected by a change to `resource`.
  * Unknown or omitted resources revalidate the whole site (`/`, 'layout'),
  * which also covers the shared Navbar/Footer chrome.
  */
 export function revalidatePublicContent(resource?: string, detail?: Detail): void {
   // Any public content change can add or remove sitemap entries.
-  safe(() => revalidateTag(SITEMAP_CACHE_TAG));
+  revalidateSitemap();
   const paths = resource ? RESOURCE_PATHS[resource] : undefined;
   if (!resource || !paths) {
     safe(() => revalidatePath('/', 'layout'));
