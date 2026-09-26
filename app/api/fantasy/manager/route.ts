@@ -47,8 +47,8 @@ export async function GET(request: Request) {
     const entryId = entry.data.id;
     after(() => sendRegistrationEmail(supabase, entryId).catch(error => console.error('[fantasy-manager] Welcome retry deferred', error.message)));
   }
-  const contacts = season ? (await getDinoCoachSettings(season.id)).notification_recipients : [];
-  return NextResponse.json({ success: true, reactivationContacts: contacts, user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
+  // Keep the response key for compatibility without exposing internal recipients.
+  return NextResponse.json({ success: true, reactivationContacts: [], user: { email: user.email }, manager: data ?? null, entry: entry?.data ?? null }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(request: Request) {

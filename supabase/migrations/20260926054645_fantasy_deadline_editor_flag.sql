@@ -5,5 +5,6 @@
 -- After reverting the reader code, the additive column may be removed:
 -- ALTER TABLE public.club_settings DROP COLUMN IF EXISTS fantasy_melbourne_deadlines_enabled;
 
+SET LOCAL lock_timeout = '3s';
 ALTER TABLE public.club_settings
   ADD COLUMN IF NOT EXISTS fantasy_melbourne_deadlines_enabled boolean DEFAULT false;
