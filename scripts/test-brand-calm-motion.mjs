@@ -76,9 +76,8 @@ check('retired motion modules are gone', () => {
   ]) assert.ok(!existsSync(file), `${file} should be deleted`);
 });
 
-check('reveal, tilt, parallax and counter wrappers render statically', () => {
+check('tilt, parallax and counter wrappers render statically', () => {
   for (const file of [
-    'components/common/ScrollReveal.tsx',
     'components/common/motion/TiltCard.tsx',
     'components/common/motion/ParallaxLayer.tsx',
     'components/common/AnimatedCounter.tsx',
@@ -88,6 +87,29 @@ check('reveal, tilt, parallax and counter wrappers render statically', () => {
     assert.ok(!/opacity:\s*0|useEffect|setInterval/.test(source), `${file} must not hide or animate content`);
   }
   assert.ok(!read('app/layout.tsx').includes('RouteSettle'));
+});
+
+check('scroll reveal is subtle, server-rendered and never hides content without JS', () => {
+  const reveal = read('components/common/ScrollReveal.tsx');
+  assert.ok(!reveal.includes('framer-motion') && !reveal.includes("'use client'"), 'ScrollReveal stays a server component');
+  assert.ok(!/opacity|useEffect/.test(reveal), 'ScrollReveal renders children as-is');
+  assert.match(reveal, /data-reveal/);
+  const observer = read('components/common/RevealObserver.tsx');
+  assert.match(observer, /prefers-reduced-motion: reduce/);
+  // In-view blocks are revealed before the effect is switched on, so nothing visible blinks.
+  assert.ok(observer.indexOf('revealVisible();') < observer.indexOf("classList.add('reveal-on')"));
+  assert.match(read('app/layout.tsx'), /<RevealObserver \/>/);
+  // Hidden state only applies under html.reveal-on, moves at most 16px and is off for reduced motion and print.
+  assert.match(globals, /\.reveal-on \[data-reveal\]:not\(\[data-revealed\]\)/);
+  const distance = Number(globals.match(/translate3d\(0, (\d+)px, 0\)/)?.[1]);
+  assert.ok(distance > 0 && distance <= 16, `reveal distance ${distance}px`);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\), print \{\s*\.reveal-on/);
+});
+
+check('hover and press motion stays within 2px', () => {
+  assert.match(globals, /\.card-interactive:hover \{[^}]*translateY\(-2px\)/);
+  assert.match(globals, /\.card-interactive:hover \{ transform: none; \}/);
+  assert.match(globals, /:active \{\s*transform: translateY\(1px\);/);
 });
 
 check('global CSS has no entrance, zoom or lift animation', () => {

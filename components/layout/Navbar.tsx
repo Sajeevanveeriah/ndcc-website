@@ -280,29 +280,29 @@ export default function Navbar({ nav }: NavbarProps) {
     <>
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-colors duration-300',
+        'fixed top-0 left-0 right-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 ease-out',
         scrolled
-          ? 'border-b-2 border-maroon-700 bg-surface-nav/90 backdrop-blur-md shadow-md'
-          : 'border-b-2 border-maroon-700 bg-surface-nav'
+          ? 'border-edge-subtle bg-surface-nav/75 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_30px_-18px_rgba(29,29,31,0.25)]'
+          : 'border-edge-subtle/70 bg-surface-nav'
       )}
       aria-label="Main navigation"
     >
-      {/* Maroon utility bar */}
-      <div className="px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between bg-surface-blue-subtle border-b border-edge-subtle">
-        <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-blue font-body tracking-[0.02em]">
+      {/* Utility bar: quiet secondary links above the main navigation. */}
+      <div className="px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between border-b border-edge-subtle/70">
+        <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-muted font-body">
           {settings.ground_name}, {settings.address}
         </span>
         <div className="flex shrink-0 items-center gap-3 sm:gap-4 ml-auto">
-          <Link href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-semibold text-content-blue hover:underline font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
+          <Link href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
             <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
             My Account
           </Link>
-          <Link href="/privacy" className="text-xs font-semibold text-content-blue hover:underline font-body focus-ring" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy</Link>
+          <Link href="/privacy" className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy</Link>
           <a
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-semibold text-content-blue hover:underline transition-colors font-body"
+            className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors transition-colors font-body"
           >
             Facebook
           </a>
@@ -310,7 +310,7 @@ export default function Navbar({ nav }: NavbarProps) {
             href={settings.playhq_url || fallbackClubSettings.playhq_url || "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-semibold text-content-blue hover:underline transition-colors font-body"
+            className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors transition-colors font-body"
           >
             PlayHQ
           </a>
@@ -353,8 +353,8 @@ export default function Navbar({ nav }: NavbarProps) {
                       // appears once there is room for it (xl and up).
                       group.href === '/' && 'hidden xl:inline-block',
                       pathname === group.href
-                        ? "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:after:bg-maroon-300"
-                        : 'nav-underline text-content-muted hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
+                        ? "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-px after:bg-maroon-700 after:content-[''] dark:after:bg-maroon-300"
+                        : 'nav-underline text-content-secondary hover:text-content-primary dark:text-slate-300 dark:hover:text-white'
                     )}
                   >
                     {group.label}
@@ -399,7 +399,7 @@ export default function Navbar({ nav }: NavbarProps) {
                       // their base pathname, e.g. /about#club-history).
                       group.links?.some((link) => pathname === link.href.split('#')[0])
                         ? 'text-maroon-700 font-semibold dark:text-maroon-200'
-                        : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50'
+                        : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5'
                     )}
                   >
                     {group.label} <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', expanded && 'rotate-180')} aria-hidden="true" />
@@ -408,13 +408,13 @@ export default function Navbar({ nav }: NavbarProps) {
                     id={menuId}
                     data-nav-menu
                     className={cn(
-                      'absolute left-0 top-full pt-1 transition-all duration-200',
-                      expanded ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
+                      'absolute left-0 top-full pt-2 transition-[opacity,transform,visibility] duration-200 ease-out',
+                      expanded ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-1'
                     )}
                   >
-                    <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[190px]">
+                    <div className="min-w-[210px] rounded-2xl border border-edge-subtle bg-surface-elevated/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(29,29,31,0.35)] backdrop-blur-xl">
                       {group.links?.map((link) => (
-                        <Link key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap px-4 py-2 text-sm font-body transition-colors focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60')}>
+                        <Link key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
                           {link.label}
                         </Link>
                       ))}
@@ -460,11 +460,11 @@ export default function Navbar({ nav }: NavbarProps) {
                   id="nav-menu-account"
                   data-nav-menu
                   className={cn(
-                    'absolute right-0 top-full pt-1 transition-all duration-200',
-                    accountExpanded ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-2'
+                    'absolute right-0 top-full pt-2 transition-[opacity,transform,visibility] duration-200 ease-out',
+                    accountExpanded ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-1'
                   )}
                 >
-                  <div className="bg-surface-elevated rounded-xl shadow-md border border-edge-subtle py-2 min-w-[180px]">
+                  <div className="min-w-[190px] rounded-2xl border border-edge-subtle bg-surface-elevated/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(29,29,31,0.35)] backdrop-blur-xl">
                     <Link href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
                     <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
                       Log out
@@ -480,7 +480,7 @@ export default function Navbar({ nav }: NavbarProps) {
             <Link
               href={registrationNavigation?.href || '/join'}
               className={cn(
-                'ml-1 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-maroon-700 px-2.5 xl:px-3 text-center text-xs xl:text-sm font-semibold leading-none text-white transition-colors hover:bg-maroon-800 focus-ring',
+                'ml-1.5 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-maroon-700 px-3.5 xl:px-4 text-center text-xs xl:text-sm font-semibold leading-none text-white transition-colors duration-200 hover:bg-maroon-800 focus-ring',
                 pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
               )}
               aria-label={registrationNavigation?.label || 'Join the Club'}
@@ -494,7 +494,7 @@ export default function Navbar({ nav }: NavbarProps) {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50"
+            className="lg:hidden min-h-11 min-w-11 p-2 rounded-full transition-colors focus-ring hover:bg-surface-muted dark:hover:bg-white/5"
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
@@ -548,14 +548,14 @@ export default function Navbar({ nav }: NavbarProps) {
               {group.label}
             </Link>
           ) : (
-            <section key={group.label} className="rounded-xl border border-edge-subtle/60 p-2">
-              <h2 className="px-2 py-1 text-sm font-bold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{group.label}</h2>
+            <section key={group.label} className="border-b border-edge-subtle/70 py-2">
+              <h2 className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.16em] text-content-muted">{group.label}</h2>
               {group.links?.map((link) => <Link key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
             </section>
           ))}
       <Link
         href={registrationNavigation?.href || '/join'}
-        className="block px-4 py-3 mt-1 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-xl hover:bg-maroon-800 transition-colors focus-ring"
+        className="block px-4 py-3 mt-3 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-full hover:bg-maroon-800 transition-colors focus-ring"
         aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
       >
         {registrationNavigation?.label || 'Join the Club'}

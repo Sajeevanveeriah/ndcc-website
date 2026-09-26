@@ -5,6 +5,8 @@ import { LoaderCircle, Pause, Play, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const VIDEO = '/media/20260912-NDCC-Logo-Reveal-Rev00.mp4';
+// Same reveal in VP9 for browsers without H.264 (open-source Chromium, some Linux Firefox builds).
+const VIDEO_WEBM = '/media/20260912-NDCC-Logo-Reveal-Rev00.webm';
 const POSTER = '/media/20260912-NDCC-Logo-Reveal-Poster-Rev00.webp';
 const SEEN_KEY = 'ndcc-logo-reveal-v1';
 
@@ -28,7 +30,8 @@ export default function ClubIntro() {
     setFailed(false);
     setLoading(true);
     setEnded(false);
-    if (!video.getAttribute('src')) video.src = VIDEO;
+    // The MP4 is H.264 High profile, level 3.1 (avc1.64001F): probe exactly that.
+    if (!video.getAttribute('src')) video.src = video.canPlayType('video/mp4; codecs="avc1.64001F"') ? VIDEO : VIDEO_WEBM;
     if (video.ended) video.currentTime = 0;
     video.muted = true;
     void video.play().catch(() => {
@@ -108,7 +111,7 @@ export default function ClubIntro() {
   }, [play]);
 
   return (
-    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-md border border-edge-subtle bg-surface-muted" aria-label="NDCC dinosaur logo reveal">
+    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-3xl border border-edge-subtle bg-surface-muted shadow-[0_1px_2px_rgba(29,29,31,0.05),0_30px_60px_-30px_rgba(45,0,0,0.35)]" aria-label="NDCC dinosaur logo reveal">
       <div className="flex flex-1 items-center">
       <div ref={frameRef} className="relative aspect-video w-full overflow-hidden">
         <Image src={POSTER} alt="Newcomb and District Cricket Club dinosaur badge" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" priority />
@@ -131,6 +134,17 @@ export default function ClubIntro() {
           onPause={() => setPlaying(false)}
           onEnded={() => { setPlaying(false); setShown(false); setEnded(true); }}
           onError={() => {
+            const video = videoRef.current;
+            // A browser can claim H.264 support and still fail to decode it:
+            // try the VP9 copy once before settling on the still badge.
+            if (video && video.getAttribute('src') === VIDEO) {
+              video.src = VIDEO_WEBM;
+              void video.play().catch(() => {
+                setLoading(false);
+                setPlaying(false);
+              });
+              return;
+            }
             setFailed(true);
             setLoading(false);
             setPlaying(false);
@@ -150,7 +164,8 @@ export default function ClubIntro() {
             {loading ? <LoaderCircle className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" /> : playing ? <Pause className="h-4 w-4" aria-hidden="true" /> : ended ? <RotateCcw className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
           </button>
         )}
-        {failed && <span role="status" className="relative max-w-24 text-sm">Intro unavailable</span>}
+        {/* The badge still stands in for the reveal, so the notice is for assistive technology only. */}
+        {failed && <span role="status" className="sr-only">The club intro video could not be played. The badge image is shown instead.</span>}
       </figcaption>
     </figure>
   );
