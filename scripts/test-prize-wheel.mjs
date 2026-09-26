@@ -189,7 +189,7 @@ const gates = [
   ['lib/server/nav-visibility.ts', 'isPrizeWheelPublic()'],
   ['components/layout/Navbar.tsx', "(prizeWheelEnabled || link.href !== '/prize-wheel')"],
   ['components/layout/Footer.tsx', "!link.href.startsWith('/prize-wheel')"],
-  ['app/sitemap.ts', 'if (await isPrizeWheelPublic())'],
+  ['lib/server/sitemap-entries.ts', 'if (await isPrizeWheelPublic())'],
   ['app/api/raffle/wheel/numbers/route.ts', 'getPublicWheelCampaign()'],
 ];
 for (const [file, marker] of gates) assert.ok(readFileSync(file, 'utf8').includes(marker), `${file} must contain ${marker}`);

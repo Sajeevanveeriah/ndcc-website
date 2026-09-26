@@ -2,6 +2,7 @@ import 'server-only';
 
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { SITE_CHROME_TAG } from '@/lib/server/nav-visibility';
+import { SITEMAP_CACHE_TAG } from '@/lib/seo-sitemap';
 
 /**
  * On-demand revalidation for the ISR public pages.
@@ -91,6 +92,8 @@ function safe(fn: () => void) {
  * which also covers the shared Navbar/Footer chrome.
  */
 export function revalidatePublicContent(resource?: string, detail?: Detail): void {
+  // Any public content change can add or remove sitemap entries.
+  safe(() => revalidateTag(SITEMAP_CACHE_TAG));
   const paths = resource ? RESOURCE_PATHS[resource] : undefined;
   if (!resource || !paths) {
     safe(() => revalidatePath('/', 'layout'));

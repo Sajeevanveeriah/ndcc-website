@@ -23,7 +23,7 @@ const navVisibility = readFileSync('lib/server/nav-visibility.ts', 'utf8');
 const joinPage = readFileSync('app/join/page.tsx', 'utf8');
 // The application form is a client island rendered by the join page.
 const joinForm = readFileSync('app/join/SocialMembershipForm.tsx', 'utf8');
-const sitemap = readFileSync('app/sitemap.ts', 'utf8');
+const sitemap = readFileSync('lib/server/sitemap-entries.ts', 'utf8');
 const smokeRoutes = readFileSync('scripts/smoke-routes.mjs', 'utf8');
 
 const expectedOptions = [

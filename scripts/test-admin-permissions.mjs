@@ -161,3 +161,12 @@ for (const fragment of [
 assert.doesNotMatch(migration, /WHERE\s+(?:lower\()?email|WHERE\s+full_name/i, 'Migration must not infer role changes from names or email addresses.');
 
 console.log('Admin permission policy checks passed.');
+
+// Instant CMS shell: the last confirmed session user is cached per tab only,
+// the server check always runs, and any failed or signed-out check clears it.
+assert.match(layout, /window\.sessionStorage\.getItem\(SESSION_CACHE_KEY\)/, 'Session cache is tab-scoped sessionStorage.');
+assert.doesNotMatch(layout, /localStorage/, 'The admin session cache never persists beyond the tab.');
+assert.match(layout, /SESSION_CACHE_MAX_AGE_MS = 10 \* 60 \* 1000/, 'Cached sessions expire with the inactivity window.');
+assert.match(layout, /runSessionCheck\(0, true, Boolean\(cached\)\)/, 'The server session check always runs, in the background when cached.');
+assert.equal((layout.match(/writeCachedSessionUser\(null\)/g) || []).length >= 5, true, 'Every failed, expired or signed-out path clears the cache.');
+console.log('Instant CMS shell checks passed.');

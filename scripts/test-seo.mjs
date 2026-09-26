@@ -120,7 +120,13 @@ const hooks = registerHooks({ resolve(specifier, context, next) {
   if (specifier.startsWith('@/')) return next(pathToFileURL(resolve(specifier.slice(2) + '.ts')).href, context);
   return next(specifier, context);
 }});
-const { default: sitemap } = await import('../app/sitemap.ts');
+const { buildSitemapEntries: sitemap } = await import('../lib/server/sitemap-entries.ts');
+check('sitemap route caches successful builds and CMS writes clear it', () => {
+  const route = readFileSync('app/sitemap.ts', 'utf8');
+  assert.match(route, /unstable_cache\(buildSitemapEntries, \['public-sitemap-v1'\], \{\s*revalidate: 300,\s*tags: \[SITEMAP_CACHE_TAG\]/);
+  assert.match(route, /export default async function sitemap\(\)[^{]*\{\s*return getCachedSitemap\(\);/);
+  assert.match(readFileSync('lib/server/revalidate-public.ts', 'utf8'), /revalidateTag\(SITEMAP_CACHE_TAG\)/);
+});
 const { loadPublicCatalogue } = await import('../lib/apparel/public-catalogue.ts');
 const map = await sitemap();
 check('real sitemap excludes utility routes and includes gallery', () => {
