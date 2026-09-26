@@ -5,6 +5,7 @@ import { ChangeEvent, useEffect, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { adminFetch } from '@/lib/admin-client';
+import { previousSeasonYearsLabel, seasonYearsLabel } from '@/lib/fantasy-season-helpers';
 
 type BaselinePreview = {
   rows: Array<{ rowNumber: number; playerDisplayName: string | null; submittedPlayerName: string; sourceStatus: string | null; appearances: number | null; priorAveragePoints: number | null; errors: string[] }>;
@@ -22,6 +23,7 @@ export default function FantasyReconciliationPage() {
   const [baselineFilename, setBaselineFilename] = useState('');
   const [baselineSourceUrl, setBaselineSourceUrl] = useState('');
   const [baselineSourceSeason, setBaselineSourceSeason] = useState('2025/2026');
+  const [baselineSourceSeasonEdited, setBaselineSourceSeasonEdited] = useState(false);
   const [baselineSourceType, setBaselineSourceType] = useState<'committee_playhq_export' | 'committee_manual_baseline'>('committee_playhq_export');
   const [baselinePreview, setBaselinePreview] = useState<BaselinePreview | null>(null);
 
@@ -68,6 +70,18 @@ export default function FantasyReconciliationPage() {
   }
 
   useEffect(() => { load(); }, []);
+  // Default the baseline source to the season before the current one; keep the
+  // existing default if seasons cannot be read.
+  useEffect(() => {
+    if (baselineSourceSeasonEdited) return;
+    let cancelled = false;
+    fetch('/api/fantasy/seasons', { cache: 'no-store' }).then((res) => res.json()).then((json) => {
+      const current = (json?.seasons || []).find((season: any) => season.is_current);
+      const previous = previousSeasonYearsLabel(seasonYearsLabel(current));
+      if (!cancelled && previous) setBaselineSourceSeason(previous);
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [baselineSourceSeasonEdited]);
 
   return (
     <div className="space-y-6">
@@ -88,7 +102,7 @@ export default function FantasyReconciliationPage() {
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-content-primary">Source season
-            <input className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong px-3 py-2" value={baselineSourceSeason} onChange={(event) => setBaselineSourceSeason(event.target.value)} />
+            <input className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong px-3 py-2" value={baselineSourceSeason} onChange={(event) => { setBaselineSourceSeasonEdited(true); setBaselineSourceSeason(event.target.value); }} />
           </label>
           <label className="text-sm font-semibold text-content-primary">Evidence type
             <select className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong px-3 py-2" value={baselineSourceType} onChange={(event) => setBaselineSourceType(event.target.value as typeof baselineSourceType)}>

@@ -273,6 +273,19 @@ export function validateSquadAssignments(assignments: DinoSquadAssignment[], slo
 }
 
 export function formatDinoDollars(value: number, currencyName = 'Dino Dollars') { return `${Math.round(finite(value)).toLocaleString('en-AU')} ${currencyName}`; }
+// "AUD 25.00" from stored cents; null when the fee is missing or invalid so
+// callers can keep their existing copy.
+export function formatEntryFee(cents: unknown, currency: unknown = 'AUD'): string | null {
+  const amount = typeof cents === 'string' && cents.trim() ? Number(cents) : cents;
+  if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount <= 0) return null;
+  const code = typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency.trim()) ? currency.trim().toUpperCase() : null;
+  return code ? `${code} ${(amount / 100).toFixed(2)}` : null;
+}
+// Minute-of-day as a 24-hour clock, for example 660 -> "11:00".
+export function formatMinuteOfDay(minute: unknown): string | null {
+  if (typeof minute !== 'number' || !Number.isInteger(minute) || minute < 0 || minute > 1439) return null;
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+}
 
 export type DinoRoundKind = 'regular' | 'preliminary_final' | 'quarter_final' | 'semi_final' | 'grand_final' | 'other_final';
 

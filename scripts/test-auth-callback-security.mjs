@@ -36,6 +36,9 @@ assert.equal(safeRedirect.searchParams.get('panel'), 'team');
 assert.equal(safeRedirect.searchParams.get('type'), 'recovery');
 assert.equal(safeRedirect.hash, '#details');
 
+assert.equal(DEFAULT_AUTH_CALLBACK_PATH, '/club-account', 'callbacks without a next path land on the club account, which exchanges the code');
+const clubAccount = readFileSync('app/club-account/ClubAccount.tsx', 'utf8');
+assert.match(clubAccount, /exchangeCodeForSession\(code\)/, 'the default destination must complete the auth code exchange');
 const defaultRedirect = resolveAuthCallbackRedirect(callbackUrl(null));
 assert.equal(defaultRedirect.href, `${origin}${DEFAULT_AUTH_CALLBACK_PATH}?code=provider-code`);
 

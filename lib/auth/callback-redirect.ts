@@ -1,4 +1,6 @@
-export const DEFAULT_AUTH_CALLBACK_PATH = '/fantasy/account';
+// The club account is the shared sign-in hub and exchanges the auth code.
+// Dino Coach emails redirect straight to /fantasy/account instead.
+export const DEFAULT_AUTH_CALLBACK_PATH = '/club-account';
 
 function isLocalRedirectPath(value: string) {
   return value.startsWith('/') && !value.startsWith('//') && !value.includes('\\');
