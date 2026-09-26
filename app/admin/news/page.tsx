@@ -387,7 +387,17 @@ export default function AdminNewsPage() {
             {form.published && form.published_at && Date.parse(form.published_at) > Date.now() && <Input id="news-schedule" label="Scheduled time - Australia/Melbourne" type="datetime-local" value={toDatetimeLocalInClubTimezone(form.published_at)} onChange={(e) => setForm({ ...form, published_at: datetimeLocalToClubIso(e.target.value) })} required />}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-edge-subtle">
+            {editingId && (
+              <a
+                href={`/api/admin/preview?type=news&id=${encodeURIComponent(editingId)}`}
+                target="_blank"
+                rel="noopener"
+                className="mr-auto text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
+              >
+                Preview saved version
+              </a>
+            )}
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

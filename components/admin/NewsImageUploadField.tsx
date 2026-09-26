@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { uploadCmsMedia } from '@/lib/admin-media-upload';
 import type { NewsGalleryImage } from '@/lib/news-gallery';
+import MediaLibraryPicker from '@/components/admin/MediaLibraryPicker';
 
 interface NewsImageUploadFieldProps {
   id: string;
@@ -34,6 +35,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
   const [uploading, setUploading] = useState(false);
   const [progressText, setProgressText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   const moveImage = (index: number, direction: -1 | 1) => {
     const targetIndex = index + direction;
@@ -118,6 +120,15 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
         >
           {uploading ? 'Uploading...' : 'Upload multiple images'}
         </button>
+        <button
+          type="button"
+          className="rounded border border-edge-strong px-3 py-1.5 text-xs hover:bg-surface-page disabled:opacity-60"
+          onClick={() => setLibraryOpen((open) => !open)}
+          disabled={uploading || value.length >= MAX_GALLERY_IMAGES}
+          aria-expanded={libraryOpen}
+        >
+          Choose from library
+        </button>
         <span className="text-xs text-content-muted">JPEG, PNG, WebP, GIF - max 4 MB each - up to {MAX_GALLERY_IMAGES}</span>
       </div>
 
@@ -134,6 +145,23 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
         }}
       />
 
+      {libraryOpen && (
+        <MediaLibraryPicker
+          kind="image"
+          onClose={() => setLibraryOpen(false)}
+          onPick={(asset) => {
+            setError(null);
+            if (value.length >= MAX_GALLERY_IMAGES) {
+              setError(`A news article can contain up to ${MAX_GALLERY_IMAGES} additional images.`);
+              return;
+            }
+            if (!value.some((image) => image.src === asset.public_url)) {
+              onChange([...value, { src: asset.public_url, alt: asset.alt_text || defaultAltText('', articleTitle, value.length) }]);
+            }
+            setProgressText('Library image added. Check its alt text, then save the article.');
+          }}
+        />
+      )}
       {progressText && <p className="text-xs text-green-700">{progressText}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
 

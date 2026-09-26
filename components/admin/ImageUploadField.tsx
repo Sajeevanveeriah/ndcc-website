@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Input from '@/components/ui/Input';
 import { uploadCmsMedia } from '@/lib/admin-media-upload';
 import { normaliseMediaUrl } from '@/lib/media-url';
+import MediaLibraryPicker from '@/components/admin/MediaLibraryPicker';
 
 interface ImageUploadFieldProps {
   id: string;
@@ -29,6 +30,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
   const [progressText, setProgressText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   useEffect(() => {
     setPreviewFailed(false);
@@ -93,6 +95,15 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         >
           {uploading ? 'Uploading...' : isPdf ? 'Upload PDF' : 'Upload image'}
         </button>
+        <button
+          type="button"
+          className="text-xs px-3 py-1.5 rounded border border-edge-strong hover:bg-surface-page disabled:opacity-60"
+          onClick={() => setLibraryOpen((open) => !open)}
+          disabled={uploading}
+          aria-expanded={libraryOpen}
+        >
+          Choose from library
+        </button>
         <p className="text-xs text-content-muted">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP up to 20 MB, resized automatically. GIF up to 4 MB.'}</p>
       </div>
       <input
@@ -107,6 +118,18 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
           }
         }}
       />
+      {libraryOpen && (
+        <MediaLibraryPicker
+          kind={isPdf ? 'pdf' : 'image'}
+          onClose={() => setLibraryOpen(false)}
+          onPick={(asset) => {
+            setError(null);
+            onChange(asset.public_url);
+            setLibraryOpen(false);
+            setProgressText('Library file selected. Review the preview, then save this form to publish your changes.');
+          }}
+        />
+      )}
       {helpText && <p className="text-xs text-content-muted">{helpText}</p>}
       {progressText && <p className="text-xs text-green-700">{progressText}</p>}
       {invalidPathWarning && <p className="text-xs text-amber-700">{invalidPathWarning}</p>}

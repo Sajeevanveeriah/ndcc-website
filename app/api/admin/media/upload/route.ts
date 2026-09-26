@@ -5,6 +5,7 @@ import { hasPermission, MEDIA_UPLOAD_PERMISSIONS } from '@/lib/auth/permissions'
 import { createServerClient } from '@/lib/supabase-server';
 import { enforceRateLimit } from '@/lib/server/request-guards';
 import { MEDIA_BUCKET, STAGING_BUCKET, MEDIA_TYPES, mediaLimit, signUploadTicket, verifyUploadTicket, validateMedia } from '@/lib/server/cms-media';
+import { recordMediaAsset } from '@/lib/server/media-library';
 
 export const dynamic = 'force-dynamic';
 // Session validation, rate limiting and three bounded storage calls run in
@@ -53,6 +54,12 @@ export async function POST(request: Request) {
     if (saved.error && !['409', 'Duplicate'].includes(String(saved.error.statusCode)) && !/already exists/i.test(saved.error.message)) throw new Error('publish_failed');
     await client.storage.from(STAGING_BUCKET).remove([ticket.path]);
     const { data: published } = client.storage.from(MEDIA_BUCKET).getPublicUrl(media.path);
+    // Media library entry (best-effort: the upload has already succeeded).
+    const usageHint = typeof body.usage_hint === 'string' ? body.usage_hint.trim().slice(0, 80) || null : null;
+    await recordMediaAsset(client, {
+      path: media.path, publicUrl: published.publicUrl, width: media.width, height: media.height,
+      bytes: media.content.length, contentType: media.contentType, uploadedBy: user.id, usageHint,
+    });
     console.info(JSON.stringify({ event: 'cms_media_published', bytes: media.content.length, type: media.contentType }));
     return NextResponse.json({ success: true, path: published.publicUrl });
   } catch {

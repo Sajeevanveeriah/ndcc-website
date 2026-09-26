@@ -41,7 +41,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   orders: { table: 'orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['processed', 'confirmed_by', 'confirmed_at', 'bank_reference_used', 'needs_review_reason'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['confirmed_at'] },
   merchPaymentSettings: { table: 'merch_payment_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['bank_transfer_enabled', 'card_checkout_enabled', 'partial_payments_enabled', 'minimum_partial_amount', 'required_deposit_percent'] },
   enquiries: { table: 'contacts', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['name', 'email', 'phone', 'enquiry_type', 'message', 'responded'], defaultOrder: { column: 'created_at', ascending: false } },
-  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'image_url', 'published'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date'] },
+  events: { table: 'events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'description', 'date', 'location', 'capacity', 'ticket_price', 'image_url', 'published', 'published_at'], defaultOrder: { column: 'date', ascending: false }, datetimeFields: ['date', 'published_at'] },
   calendarEvents: { table: 'calendar_events', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['title', 'slug', 'description', 'start_at', 'end_at', 'all_day', 'location', 'venue_address', 'event_type', 'category', 'visibility', 'status', 'is_featured', 'show_on_home', 'show_on_contact', 'show_on_calendar', 'image_url', 'external_url', 'cta_label', 'cta_url', 'registration_required', 'ticket_price', 'capacity', 'colour', 'sort_order', 'recurrence_rule', 'recurrence_until'], defaultOrder: { column: 'start_at', ascending: true }, datetimeFields: ['start_at', 'end_at', 'recurrence_until'], validate: validateCalendarEventPayload },
   eventRegistrations: { table: 'event_registrations', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   publications: { table: 'publications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['publication_type', 'title', 'slug', 'summary', 'content', 'issue_date', 'season_label', 'round_label', 'cover_image_url', 'document_url', 'external_url', 'author', 'published', 'published_at', 'featured', 'display_order'], defaultOrder: { column: 'issue_date', ascending: false }, datetimeFields: ['published_at'], validate: validatePublicationPayload },
@@ -52,7 +52,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   fantasyRounds: { table: 'fantasy_rounds', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['round_number', 'name', 'deadline_at', 'status', 'season_id'], defaultOrder: { column: 'round_number', ascending: true }, datetimeFields: ['deadline_at'], allowDelete: false },
   fantasyScoringRules: { table: 'fantasy_scoring_rules', readRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], writeRoles: ['admin', 'president', 'secretary', 'committee', 'fantasy_manager', 'fantasy_support'], allowedFields: ['points', 'enabled'], defaultOrder: { column: 'key', ascending: true }, allowDelete: false },
   playerSponsors: { table: 'player_sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['player_name', 'player_image_url', 'sponsor_name', 'logo_url', 'website', 'sort_order', 'active'], defaultOrder: { column: 'sort_order', ascending: true }, validate: validatePlayerSponsor },
-  sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position'], defaultOrder: { column: 'sort_order', ascending: true } },
+  sponsors: { table: 'sponsors', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'tier', 'logo_url', 'website', 'placement_type', 'active', 'description', 'sort_order', 'source_url', 'logo_source_url', 'logo_surface_mode', 'logo_padding', 'logo_object_position', 'published_at'], defaultOrder: { column: 'sort_order', ascending: true }, datetimeFields: ['published_at'] },
   membershipPlans: { table: 'social_membership_plans', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipAddons: { table: 'social_membership_addons', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['name', 'description', 'price', 'usage_limit', 'is_active', 'sort_order'], defaultOrder: { column: 'sort_order', ascending: true } },
   membershipApplications: { table: 'member_applications', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['full_name', 'email', 'status'], defaultOrder: { column: 'created_at', ascending: false } },
@@ -77,7 +77,7 @@ const resourceMap: Record<string, ResourceConfig> = {
   kitchenOrders: { table: 'kitchen_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], deleteRoles: ['admin'], allowedFields: ['status', 'payment_status', 'processed'], defaultOrder: { column: 'created_at', ascending: false } },
   raffleCampaigns: { table: 'raffle_campaigns', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['name', 'price_cents', 'draw_at', 'draw_label', 'active', 'public_visibility_mode', 'public_opens_at'], defaultOrder: { column: 'created_at', ascending: false }, datetimeFields: ['draw_at', 'public_opens_at'] },
   raffleOrders: { table: 'raffle_orders', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin'], allowDelete: false, allowedFields: ['status'], defaultOrder: { column: 'created_at', ascending: false } },
-  contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true } },
+  contentBlocks: { table: 'content_blocks', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['block_key', 'page_slug', 'section_label', 'title', 'body', 'image_url', 'cta_label', 'cta_url', 'is_active'], defaultOrder: { column: 'page_slug', ascending: true }, validate: validateNewContentBlock },
   clubSettings: { table: 'club_settings', readRoles: ['admin', 'president', 'secretary', 'committee'], writeRoles: ['admin', 'president', 'secretary', 'committee'], allowedFields: ['donations_enabled', 'club_name', 'club_short', 'club_nickname', 'established_year', 'email', 'phone', 'ground_name', 'address', 'association_name', 'association_short', 'facebook_url', 'instagram_url', 'instagram_handle', 'playhq_url', 'google_maps_embed_url', 'sponsor_marquee_speed'] },
 };
 
@@ -185,6 +185,28 @@ function validatePublicationPayload(payload: Record<string, unknown>, isCreate: 
   }
   return null;
 }
+
+const CONTENT_BLOCK_KEY_PATTERN = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
+const CONTENT_PAGE_SLUG_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+// New page sections created from /admin/content. Existing rows are edited
+// with PATCH and keep their stored keys unvalidated.
+function validateNewContentBlock(payload: Record<string, unknown>, isCreate: boolean): string | null {
+  if (!isCreate) return null;
+  const key = typeof payload.block_key === 'string' ? payload.block_key : '';
+  if (!CONTENT_BLOCK_KEY_PATTERN.test(key) || key.length > 80) return 'Section key must look like page.section using lowercase letters, numbers and underscores.';
+  const slug = typeof payload.page_slug === 'string' ? payload.page_slug : '';
+  if (!CONTENT_PAGE_SLUG_PATTERN.test(slug) || slug.length > 40) return 'Choose the page this section belongs to.';
+  if (typeof payload.section_label !== 'string' || !payload.section_label.trim() || payload.section_label.length > 120) return 'Section name is required.';
+  if (typeof payload.is_active !== 'boolean') return 'Choose whether the section starts as a draft or is shown on the website.';
+  return null;
+}
+
+function isMissingScheduleColumnError(errorMessage: string, table: string, payload: Record<string, unknown>) {
+  return (table === 'events' || table === 'sponsors') && 'published_at' in payload && /published_at/.test(errorMessage);
+}
+
+const SCHEDULE_UNAVAILABLE = 'Scheduling needs the latest database update. Clear the schedule time to save now.';
 
 function revalidateForResourceBatch(resource: string, ids: string[]) {
   if (resource === 'news' || resource === 'publications' || resource === 'events') {
@@ -495,6 +517,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
+    if (isMissingScheduleColumnError(error.message, config.table, payload)) {
+      return NextResponse.json({ success: false, error: SCHEDULE_UNAVAILABLE }, { status: 503 });
+    }
+    if (config.table === 'content_blocks' && /duplicate key|23505/.test(error.message)) {
+      return NextResponse.json({ success: false, error: 'A page section with that key already exists.' }, { status: 409 });
+    }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
   revalidateForResource(resource, data?.id, data);
@@ -595,6 +623,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
   if (error) {
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
+    }
+    if (isMissingScheduleColumnError(error.message, config.table, payload)) {
+      return NextResponse.json({ success: false, error: SCHEDULE_UNAVAILABLE }, { status: 503 });
     }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

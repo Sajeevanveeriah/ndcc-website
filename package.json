@@ -116,7 +116,11 @@
     "test:bank-transfer-ui": "node scripts/test-bank-transfer-ui.cjs",
     "test:manager-response-privacy": "node scripts/test-manager-response-privacy.cjs",
     "test:fantasy-deadline-editor": "node scripts/test-fantasy-deadline-editor.cjs",
-    "test:selection-window": "node scripts/test-selection-window.cjs"
+    "test:selection-window": "node scripts/test-selection-window.cjs",
+    "test:cms-promotions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-cms-promotions.mjs",
+    "test:media-library": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-media-library.mjs",
+    "test:draft-preview": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-draft-preview.mjs",
+    "test:member-newsletter": "node scripts/test-member-newsletter.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
