@@ -1,42 +1,28 @@
 import CookieDoughVisibility from '@/components/common/CookieDoughVisibility';
 import { isCookieDoughOpen, COOKIE_DOUGH_DEADLINE_LABEL } from '@/lib/cookie-dough';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import ScrollReveal from '@/components/common/ScrollReveal';
 
+// Compact promotion block for the home page "Get involved" section. Shown
+// only while the fundraiser is open (isCookieDoughOpen at render time, plus
+// CookieDoughVisibility removing it from an open tab at the cutoff).
 export default function CookieDoughFundraiserFeature() {
   if (!isCookieDoughOpen()) return null;
   return (
     <CookieDoughVisibility initialOpen={true}>
-      <section className="border-y border-edge-blue/60 bg-surface-blue-subtle px-4 py-8 sm:px-6 lg:px-8" aria-labelledby="cookie-dough-home-heading">
-        <ScrollReveal className="container-width">
-          <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)]">
-            <div>
-              <h2 id="cookie-dough-home-heading" className="font-display text-3xl font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-100 sm:text-4xl">
-                Raise dough for the Dinos
-              </h2>
-              <p className="mt-3 max-w-2xl font-body text-base leading-relaxed text-content-secondary sm:text-lg">
-                Register as an NDCC fundraiser, share your page, or purchase Billy G&apos;s Cookie Dough to support the club.
-              </p>
-              <p className="mt-3 font-body font-semibold text-content-primary">{COOKIE_DOUGH_DEADLINE_LABEL}</p>
-              <Link href="/fundraising/cookie-dough" className="btn-primary mt-5 gap-2">
-                View the fundraiser
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="relative mx-auto h-44 w-full max-w-sm sm:h-52" aria-hidden="true">
-              <Image
-                src="/images/fundraisers/billy-gs-cookie-selection.png"
-                alt=""
-                fill
-                className="object-contain drop-shadow-[0_14px_18px_rgba(45,0,0,0.14)]"
-                sizes="(max-width: 1024px) 90vw, 30vw"
-              />
-            </div>
-          </div>
-        </ScrollReveal>
-      </section>
+      <div className="border-l-4 border-sky_accent bg-surface-blue-subtle px-5 py-4">
+        <h3 id="cookie-dough-home-heading" className="font-display text-xl font-semibold text-content-primary">
+          Raise dough for the Dinos
+        </h3>
+        <p className="mt-1 font-body text-base leading-relaxed text-content-secondary">
+          Register as an NDCC fundraiser, share your page, or purchase Billy G&apos;s Cookie Dough to support the club.
+        </p>
+        <p className="mt-1 font-body text-sm font-semibold text-content-primary">{COOKIE_DOUGH_DEADLINE_LABEL}</p>
+        <Link href="/fundraising/cookie-dough" className="club-text-link mt-1 font-semibold">
+          View the fundraiser
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
     </CookieDoughVisibility>
   );
 }

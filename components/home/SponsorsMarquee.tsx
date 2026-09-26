@@ -7,7 +7,16 @@ import LogoChip from '@/components/common/LogoChip';
 import MarqueeVisibilityPause from '@/components/home/MarqueeVisibilityPause';
 import type { Sponsor } from '@/lib/types';
 
-export default function SponsorsMarquee({ sponsors, durationSeconds }: { sponsors: Sponsor[]; durationSeconds: number }) {
+export default function SponsorsMarquee({
+  sponsors,
+  durationSeconds,
+  showViewAll = true,
+}: {
+  sponsors: Sponsor[];
+  durationSeconds: number;
+  /** Hide the built-in "View All Sponsors" button when the host section renders its own link. */
+  showViewAll?: boolean;
+}) {
   const [paused, setPaused] = useState(false);
 
   return (
@@ -76,7 +85,7 @@ export default function SponsorsMarquee({ sponsors, durationSeconds }: { sponsor
           {paused ? <Play className="h-4 w-4" aria-hidden="true" /> : <Pause className="h-4 w-4" aria-hidden="true" />}
           {paused ? 'Play logos' : 'Pause logos'}
         </button>
-        <Link href="/sponsors" className="btn-secondary">View All Sponsors</Link>
+        {showViewAll && <Link href="/sponsors" className="btn-secondary">View All Sponsors</Link>}
       </div>
     </div>
   );

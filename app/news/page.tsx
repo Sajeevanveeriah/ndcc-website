@@ -42,8 +42,7 @@ export default async function NewsPage() {
         <div className="container-width">
           <h1 className="page-hero-title">News &amp; Announcements</h1>
           <p className="page-hero-subtitle">
-            Stay up to date with the latest from the Dinos - match reports, club updates,
-            community news, and more.
+            Match reports, club updates and community news from the Dinos.
           </p>
           <p className="mt-3 max-w-2xl font-body text-sm text-maroon-100 sm:text-base">
             Looking for club newsletters or weekly match reports?{' '}
