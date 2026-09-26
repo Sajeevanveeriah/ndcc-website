@@ -114,7 +114,8 @@
     "test:raffle-report": "node scripts/test-raffle-report.cjs",
     "test:bank-transfer": "node scripts/test-bank-transfer.cjs",
     "test:bank-transfer-ui": "node scripts/test-bank-transfer-ui.cjs",
-    "test:manager-response-privacy": "node scripts/test-manager-response-privacy.cjs"
+    "test:manager-response-privacy": "node scripts/test-manager-response-privacy.cjs",
+    "test:fantasy-deadline-editor": "node scripts/test-fantasy-deadline-editor.cjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

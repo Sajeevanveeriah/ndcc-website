@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-09-26T02:25:00+00:00",
+  "capturedAt": "2026-09-26T05:46:45+00:00",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -669,6 +669,10 @@
     {
       "version": "20260926022450",
       "name": "bank_transfer_selection"
+    },
+    {
+      "version": "20260926054645",
+      "name": "fantasy_deadline_editor_flag"
     }
   ],
   "localOnlyApplied": []
