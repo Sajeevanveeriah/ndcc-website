@@ -9,6 +9,7 @@ import {
   userAdministrationRemovesActiveAdmin,
 } from '@/lib/auth/permissions';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
+import { scheduleAdminAudit } from '@/lib/revisions/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -133,6 +134,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Failed to create CMS user.' }, { status: 400 });
   }
 
+  scheduleAdminAudit({ actor: administrator, action: 'create', resource: 'users', recordId: normalizedEmail, summary: `Created CMS user ${normalizedEmail} with role ${normalizedRole}` });
   return NextResponse.json({ success: true });
 }
 
@@ -268,5 +270,12 @@ export async function PATCH(request: Request) {
     await supabase.from('committee_sessions').delete().eq('user_id', userId);
   }
 
+  scheduleAdminAudit({
+    actor: administrator,
+    action: 'update',
+    resource: 'users',
+    recordId: userId,
+    summary: `Updated CMS user ${current.email}: ${[accessChangeRequested ? `access (${['email', 'fullName', 'role', 'permissions', 'isActive'].filter((field) => body[field] !== undefined).join(', ')})` : '', passwordResetRequested ? 'password reset' : ''].filter(Boolean).join(' and ')}`,
+  });
   return NextResponse.json({ success: true });
 }

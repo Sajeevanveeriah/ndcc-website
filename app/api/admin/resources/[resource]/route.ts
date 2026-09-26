@@ -15,6 +15,9 @@ import { normaliseGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 import { normaliseMediaUrl } from '@/lib/media-url';
 import { RESOURCE_VALIDATORS, friendlyDatabaseError } from '@/lib/admin-resource-validation';
+import { hasRevisionHistory } from '@/lib/revisions/tables';
+import { enrichRevisionHistory, scheduleAdminAudit } from '@/lib/revisions/server';
+import { summariseFields } from '@/lib/admin-audit';
 
 export const dynamic = 'force-dynamic';
 const EDITORIAL_TABLES = new Set(['news', 'publications', 'events', 'content_blocks']);
@@ -390,11 +393,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   const { searchParams } = new URL(request.url);
   const historyId = searchParams.get('history');
   if (historyId) {
-    if (!EDITORIAL_TABLES.has(config.table) || !canWrite(user.role, config)) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-    const { data, error } = await supabase.from('editorial_revisions').select('id,revision,snapshot,action,changed_at')
+    if (!hasRevisionHistory(config.table) || !canWrite(user.role, config)) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    const { data, error } = await supabase.from('editorial_revisions').select('id,revision,snapshot,action,changed_at,changed_by')
       .eq('resource_table', config.table).eq('record_id', historyId).order('changed_at', { ascending: false }).limit(30);
     if (error) return NextResponse.json({ error: 'History is temporarily unavailable.' }, { status: 503 });
-    return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'no-store' } });
+    const history = await enrichRevisionHistory(supabase, config.table, historyId, data);
+    return NextResponse.json({ success: true, data: history.data, current: history.current }, { headers: { 'Cache-Control': 'no-store' } });
   }
   const limitParam = searchParams.get('limit');
   const limit = limitParam ? Number(limitParam) : null;
@@ -523,6 +527,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
     return databaseErrorResponse(resource, 'create', error);
   }
   revalidateForResource(resource, data?.id, data);
+  scheduleAdminAudit({ actor: user, action: 'create', resource, recordId: data?.id, summary: summariseFields('Created with fields', payload) });
   return NextResponse.json({ success: true, data });
 }
 
@@ -546,6 +551,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     const restored = await createServerClient({ actorId: user.id }).rpc('set_order_deleted', { p_id: id, p_resource: resource, p_deleted: false, p_actor: user.id, p_confirmation: '' });
     if (restored.error) return safeDeleteErrorResponse(restored.error.message);
     revalidateForResource(resource,id);
+    scheduleAdminAudit({ actor: user, action: 'restore', resource, recordId: id, summary: 'Restored deleted order' });
     return NextResponse.json({ success:true, data:{ id } });
   }
   if (!id && ids === undefined) return NextResponse.json({ success: false, error: 'id is required.' }, { status: 400 });
@@ -587,6 +593,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
       return databaseErrorResponse(resource, 'batch update', batchError);
     }
     revalidateForResourceBatch(resource, batchIds);
+    scheduleAdminAudit({ actor: user, action: 'batch_update', resource, recordId: null, summary: summariseFields(`Updated ${batchData?.length ?? 0} records`, payload) });
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
@@ -624,6 +631,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     return databaseErrorResponse(resource, 'update', error);
   }
   revalidateForResource(resource, id, data);
+  scheduleAdminAudit({ actor: user, action: 'update', resource, recordId: id, summary: summariseFields('Changed', payload) });
   return NextResponse.json({ success: true, data });
 }
 
@@ -660,6 +668,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
     });
     if (error) return safeDeleteErrorResponse(error.message);
     revalidateForResource(resource, id);
+    scheduleAdminAudit({ actor: user, action: 'delete', resource, recordId: id, summary: 'Deleted order' });
     return NextResponse.json({ success: true, data: { id, cleanup: data } });
   }
 
@@ -676,6 +685,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
       return safeDeleteErrorResponse(batchError.message);
     }
     revalidateForResourceBatch(resource, batchIds);
+    scheduleAdminAudit({ actor: user, action: 'batch_delete', resource, recordId: null, summary: `Deleted ${batchData?.length ?? 0} records: ${(batchData ?? []).map((row) => row.id).join(', ')}` });
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
   }
 
@@ -692,5 +702,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
     return NextResponse.json({ success: false, error: 'Record not found.' }, { status: 404 });
   }
   revalidateForResource(resource, id);
+  scheduleAdminAudit({ actor: user, action: 'delete', resource, recordId: deleted.id, summary: 'Deleted record' });
   return NextResponse.json({ success: true, data: { id: deleted.id } });
 }

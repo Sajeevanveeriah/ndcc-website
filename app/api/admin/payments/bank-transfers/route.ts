@@ -7,6 +7,7 @@ import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { toCsv } from '@/lib/csv';
 import { bankHoldExpired } from '@/lib/payments/bank-transfer';
 import { attemptPaymentReceiptDelivery, enqueuePaymentReceiptJob } from '@/lib/payments/receipt-delivery';
+import { scheduleAdminAudit } from '@/lib/revisions/server';
 export const dynamic = 'force-dynamic';
 const reply = (body: object, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
 const NUMBERS_RESOLD_MESSAGE = 'Hold expired: the 48 hour hold on this bank deposit ended and one or more of its raffle numbers have since been sold or are held by another checkout. No tickets were issued. Cancel this reservation and contact the purchaser about their deposit.';
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
         .select('id').maybeSingle();
       if (result.error) return reply({ error: 'Reservation could not be released. Please retry.' }, 503);
       if (!result.data) return reply({ error: 'Reservation changed or is already paid/cancelled. Refresh the list.' }, 409);
+      scheduleAdminAudit({ actor: admin, action: 'cancel', resource: 'bankTransfers', recordId: id, summary: 'Released unpaid raffle bank transfer reservation' });
       return reply({ success: true });
     } catch { return reply({ error: 'Reservation could not be released. Please retry.' }, 503); }
   }
@@ -99,6 +101,7 @@ export async function POST(request: Request) {
       if (String(result.error.message || '').includes('Reverse raffle numbers no longer available')) return reply({ error: NUMBERS_RESOLD_MESSAGE, numbers_unavailable: true }, 409);
       return reply({ error: 'Receipt could not be confirmed. Refresh and check the amount and payment state.' }, 409);
     }
+    scheduleAdminAudit({ actor: admin, action: 'confirm', resource: 'bankTransfers', recordId: id, summary: `Confirmed ${kind} bank transfer of ${(Number(expected_cents) / 100).toFixed(2)} AUD${result.data === true ? '' : ' (already confirmed)'}` });
     // The paid-state trigger queues the receipt atomically. Deliver it now,
     // best-effort; the scheduled outbox worker remains the fallback.
     let receiptDelivery = 'queued';
