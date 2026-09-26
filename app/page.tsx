@@ -637,7 +637,7 @@ function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, vouchers, 
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="get-involved-title" title={title} />
         {intro && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{intro}</p>}
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" data-reveal-stagger="">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" data-reveal-stagger="">
           {GET_INVOLVED_LINKS.map((link) => {
             const Icon = GET_INVOLVED_ICONS[link.href] || ArrowRight;
             return (
