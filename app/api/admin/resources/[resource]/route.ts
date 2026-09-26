@@ -1,4 +1,5 @@
 import { normalisePlayerSponsor, validatePlayerSponsor } from '@/lib/player-sponsors';
+import { isRenderedContentBlockKey } from '@/lib/content-block-slots';
 import { NextResponse } from 'next/server';
 import { fetchAllPages } from '@/lib/supabase-paginate';
 import { revalidatePath, revalidateTag } from 'next/cache';
@@ -199,6 +200,7 @@ function validateNewContentBlock(payload: Record<string, unknown>, isCreate: boo
   if (!isCreate) return null;
   const key = typeof payload.block_key === 'string' ? payload.block_key : '';
   if (!CONTENT_BLOCK_KEY_PATTERN.test(key) || key.length > 80) return 'Section key must look like page.section using lowercase letters, numbers and underscores.';
+  if (!isRenderedContentBlockKey(key)) return 'Choose a section that the page displays.';
   const slug = typeof payload.page_slug === 'string' ? payload.page_slug : '';
   if (!CONTENT_PAGE_SLUG_PATTERN.test(slug) || slug.length > 40) return 'Choose the page this section belongs to.';
   if (typeof payload.section_label !== 'string' || !payload.section_label.trim() || payload.section_label.length > 120) return 'Section name is required.';

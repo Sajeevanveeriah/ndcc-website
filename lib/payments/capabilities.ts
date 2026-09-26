@@ -60,8 +60,10 @@ export async function loadMerchPaymentSettings(client: unknown): Promise<MerchPa
   const read = (columns: string) => supabase.from('merch_payment_settings').select(columns).maybeSingle();
   try {
     let { data, error } = await read(`${BASE_COLUMNS},${PRODUCT_COLUMNS}`);
-    // Per-product columns may not be migrated yet: fall back to the original row.
-    if (error) ({ data, error } = await read(BASE_COLUMNS));
+    // Per-product columns may not be migrated yet: fall back to the original
+    // row only for that missing-column case. Any other error fails closed so a
+    // disabled product override can never be lost to a transient failure.
+    if (error && /_bank_transfer_enabled|schema cache|column/i.test(error.message || '')) ({ data, error } = await read(BASE_COLUMNS));
     if (error || !data) return { ...DEFAULT_SETTINGS, bank_transfer_enabled: false };
     const row = data as MerchPaymentSettingsRow;
     const settings: MerchPaymentSettingsRow = {

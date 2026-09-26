@@ -1,5 +1,6 @@
 'use client';
 
+import { renderedKeysForPage } from '@/lib/content-block-slots';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import ImageUploadField from '@/components/admin/ImageUploadField';
@@ -171,11 +172,12 @@ export default function AdminContentPage() {
 
   const visibleBlockCount = groupedBlocks.reduce((count, group) => count + group.blocks.length, 0);
 
+  const availableKeys = renderedKeysForPage(newBlock.page_slug).filter((key) => !blocks.some((block) => block.block_key === key));
+
   async function createBlock() {
-    const suffix = newBlock.key.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
-    if (!suffix) { setFeedback({ type: 'error', message: 'Enter a short section key, for example season_update.' }); return; }
+    const blockKey = newBlock.key;
+    if (!renderedKeysForPage(newBlock.page_slug).includes(blockKey)) { setFeedback({ type: 'error', message: 'Choose a section that this page displays.' }); return; }
     if (!newBlock.section_label.trim()) { setFeedback({ type: 'error', message: 'Enter a section name.' }); return; }
-    const blockKey = `${newBlock.page_slug.replace(/-/g, '_')}.${suffix}`;
     if (blocks.some((block) => block.block_key === blockKey)) { setFeedback({ type: 'error', message: 'A page section with that key already exists.' }); return; }
     setCreateBusy(true);
     setFeedback(null);
@@ -267,14 +269,19 @@ export default function AdminContentPage() {
       {creating && (
         <section className="space-y-3 rounded-xl border bg-surface-card p-4" aria-labelledby="new-block-heading">
           <h2 id="new-block-heading" className="font-semibold">New page section</h2>
-          <p className="text-xs text-content-muted">New sections are saved with a key that pages can use. Start as a draft to prepare the wording before showing it.</p>
+          <p className="text-sm text-content-muted">Only sections the page displays can be added. Start as a draft to prepare the wording before showing it.</p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="text-sm text-content-secondary">Page
-              <select className="mt-1 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2" value={newBlock.page_slug} onChange={(e) => setNewBlock({ ...newBlock, page_slug: e.target.value })}>
+              <select className="mt-1 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2" value={newBlock.page_slug} onChange={(e) => setNewBlock({ ...newBlock, page_slug: e.target.value, key: '' })}>
                 {PAGE_GROUPS.map((group) => <option key={group.slug} value={group.slug}>{group.label}</option>)}
               </select>
             </label>
-            <Input id="new_block_key" label={`Section key (saved as ${newBlock.page_slug.replace(/-/g, '_')}.your_key)`} value={newBlock.key} onChange={(e) => setNewBlock({ ...newBlock, key: e.target.value })} />
+            <label className="text-sm text-content-secondary">Section
+              <select id="new_block_key" className="mt-1 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2" value={newBlock.key} onChange={(e) => setNewBlock({ ...newBlock, key: e.target.value })}>
+                <option value="">{availableKeys.length ? 'Choose a section' : 'Every section on this page already exists'}</option>
+                {availableKeys.map((key) => <option key={key} value={key}>{key}</option>)}
+              </select>
+            </label>
           </div>
           <Input id="new_block_label" label="Section name (shown in this editor)" value={newBlock.section_label} onChange={(e) => setNewBlock({ ...newBlock, section_label: e.target.value })} />
           <label className="text-sm text-content-secondary">Starting state

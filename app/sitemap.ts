@@ -35,7 +35,9 @@ async function getPublishedDetailEntries(baseUrl: string): Promise<MetadataRoute
   }
   const [news, events, publications, albums] = await Promise.all([
     rows('news', 'id,title,published,published_at', true),
-    rows('events', 'id,published'),
+    // Scheduled events stay out until published_at; the retry covers a database
+    // without the scheduling column.
+    rows('events', 'id,published,published_at', true).catch(() => rows('events', 'id,published')),
     rows('publications', 'id,slug,published,published_at,updated_at', true),
     rows('gallery_albums', 'id,slug,published'),
   ]);
