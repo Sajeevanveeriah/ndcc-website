@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { getDinoCoachSettings, getDinoReleaseReadiness } from '@/lib/dino-coach/server';
 import { revalidatePublicContent } from '@/lib/server/revalidate-public';
+import { isIsoWeekday } from '@/lib/dino-coach/domain';
 
 export const dynamic = 'force-dynamic';
 async function currentSeason() { const { data, error } = await createServerClient().from('fantasy_seasons').select('id,name,slug').eq('is_current', true).single(); if (error) throw new Error(error.message); return data; }
@@ -34,7 +35,7 @@ export async function PATCH(request: Request) {
       slot_counts: body.slot_counts, scoring_config: body.scoring_config, rollover_strategy: String(body.rollover_strategy || 'previous_regular_season'),
       updated_by: user.id,
     };
-    if (![payload.transfer_open_weekday,payload.transfer_close_weekday].every(v => Number.isInteger(v) && v <= 6) || ![payload.transfer_open_minute,payload.transfer_close_minute].every(v => Number.isInteger(v) && v <= 1439)) throw new Error('Choose valid transfer days and times.');
+    if (![payload.transfer_open_weekday,payload.transfer_close_weekday].every(isIsoWeekday) || ![payload.transfer_open_minute,payload.transfer_close_minute].every(v => Number.isInteger(v) && v <= 1439)) throw new Error('Choose valid transfer days and times.');
     if (!payload.notification_recipients.length || payload.notification_recipients.some((v: string) => !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v))) throw new Error('Provide valid reactivation contact emails.');
     if (!payload.rules_version || !payload.pilot_notice || payload.initial_price_ceiling_dino_dollars < payload.initial_price_floor_dino_dollars) throw new Error('Rules version, pilot notice and a valid floor/ceiling are required.');
     const supabase = createServerClient(); const saved = await supabase.from('fantasy_dino_settings').update(payload).eq('season_id', season.id).select().single();

@@ -198,6 +198,15 @@ export function isAdultOnDate(dateOfBirth: string, referenceDate: string, minimu
 }
 
 const WEEKDAY_TO_ISO: Record<string, number> = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+// Transfer-window weekdays are ISO numbered (Monday=1 ... Sunday=7), matching
+// fantasy_dino_settings CHECK constraints and dino_coach_transfer_window_open.
+export const ISO_WEEKDAY_OPTIONS = Object.entries(WEEKDAY_TO_ISO).map(([label, value]) => ({ value, label }));
+export function isoWeekdayLabel(value: unknown) {
+  return ISO_WEEKDAY_OPTIONS.find((option) => option.value === value)?.label ?? '';
+}
+export function isIsoWeekday(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 7;
+}
 export type TransferWindowConfig = { timezone: string; openWeekday: number; openMinute: number; closeWeekday: number; closeMinute: number };
 export function isTransferWindowOpen(atTime: Date, config: TransferWindowConfig) {
   if (!(atTime instanceof Date) || Number.isNaN(atTime.getTime())) return false;
