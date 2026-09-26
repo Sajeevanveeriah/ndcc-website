@@ -208,6 +208,24 @@ export function evaluateRoundLock(round: FantasyRoundInfo | null, nowMs: number 
 }
 
 export async function getRoundLockState(seasonId?: string | null): Promise<RoundLockState> {
+  const targetSeasonId = seasonId ?? (await resolveDefaultSeasonId());
+  if (targetSeasonId) {
+    const db = createServerClient();
+    const settings = await db.from('fantasy_dino_settings').select('selection_window_enabled').eq('season_id', targetSeasonId).maybeSingle();
+    if (settings.error) throw new Error(settings.error.message);
+    if (settings.data?.selection_window_enabled === true) {
+      const window = await db.rpc('dino_coach_transfer_window_open', { target_season_id: targetSeasonId });
+      if (window.error) throw new Error(window.error.message);
+      const next = await db.from('fantasy_rounds').select('id,name,status,deadline_at')
+        .eq('season_id', targetSeasonId).eq('status', 'open')
+        .or(`deadline_at.is.null,deadline_at.gt.${new Date().toISOString()}`)
+        .order('round_number', { ascending: true }).limit(1).maybeSingle();
+      if (next.error) throw new Error(next.error.message);
+      if (!next.data) return { roundId: null, roundName: null, locked: true, reason: 'No round is open for team selection.' };
+      if (window.data !== true) return { roundId: next.data.id, roundName: next.data.name, locked: true, reason: 'The weekly team-selection window is closed. Check the player market for opening times.' };
+      return evaluateRoundLock(next.data);
+    }
+  }
   const round = await getCurrentRound(seasonId);
   return evaluateRoundLock(round);
 }
