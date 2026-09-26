@@ -20,13 +20,13 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex items-center justify-center font-body font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-slate-900';
+    'inline-flex items-center justify-center gap-2 font-body font-semibold tracking-[-0.01em] rounded-full transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-out active:translate-y-px focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-slate-900';
 
   const variants = {
     primary:
       'bg-maroon-700 text-white shadow-sm hover:bg-maroon-800 focus:ring-maroon-500 dark:hover:bg-maroon-500',
     secondary:
-      'border-2 border-maroon-700 text-maroon-700 hover:bg-maroon-700 hover:text-white focus:ring-maroon-500 dark:border-maroon-300/70 dark:text-maroon-100 dark:bg-maroon-950/30 dark:hover:bg-maroon-700 dark:hover:border-maroon-600 dark:hover:text-white',
+      'border border-edge-strong bg-surface-card text-content-primary hover:border-maroon-700 hover:text-maroon-700 focus:ring-maroon-500 dark:bg-transparent dark:text-maroon-100 dark:hover:border-maroon-300 dark:hover:text-white',
     accent:
       'bg-sky_accent text-maroon-900 dark:text-maroon-900 shadow-sm border border-sky_accent hover:bg-sky_accent-light hover:border-sky_accent-light focus:ring-navy',
     ghost:
@@ -36,8 +36,8 @@ export default function Button({
 
   const sizes = {
     sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
+    md: 'min-h-11 px-6 py-2.5 text-base',
+    lg: 'min-h-12 px-8 py-3 text-lg',
   };
 
   return (

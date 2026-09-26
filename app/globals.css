@@ -11,18 +11,18 @@
      purpose-designed near-black / charcoal / deep-navy system instead of the
      old flat slate substitutions. */
   :root {
-    --surface-page: 255 255 255;        /* page background (slate-50)        */
+    --surface-page: 250 249 247;        /* warm paper page (#FAF9F7)         */
     --surface-elevated: 255 255 255;    /* raised chrome: nav, menus, modals */
     --surface-card: 255 255 255;        /* cards and panels                  */
-    --surface-muted: 243 244 246;       /* subdued wells, table heads        */
-    --surface-nav: 255 255 255;         /* sticky navigation                 */
-    --surface-footer: 45 0 0;           /* footer (maroon-950)               */
-    --text-primary: 31 41 55;           /* gray-800                          */
-    --text-secondary: 55 65 81;         /* gray-700                          */
-    --text-muted: 75 85 99;             /* gray-600                          */
+    --surface-muted: 243 241 238;       /* subdued wells, table heads        */
+    --surface-nav: 250 249 247;         /* frosted navigation                */
+    --surface-footer: 34 4 4;           /* footer: deepest club maroon       */
+    --text-primary: 29 29 31;           /* graphite ink (#1D1D1F)            */
+    --text-secondary: 60 60 67;         /* 10.4:1 on the page                */
+    --text-muted: 99 99 106;            /* 5.8:1 on the page                 */
     --text-inverse: 255 255 255;
-    --border-subtle: 229 231 235;       /* gray-200                          */
-    --border-strong: 209 213 219;       /* gray-300                          */
+    --border-subtle: 232 229 224;       /* warm hairline                     */
+    --border-strong: 212 208 201;
     --focus-ring: 136 0 0;              /* maroon-600 (#880000)              */
     --action-primary: 136 0 0;          /* maroon-700 (#880000)              */
     --action-primary-hover: 96 0 0;     /* maroon-800                        */
@@ -112,35 +112,75 @@
 
   body {
     @apply font-body antialiased bg-surface-page text-content-primary;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
+    letter-spacing: -0.022em;
+  }
+
+  ::selection {
+    background: rgb(136 0 0 / 0.14);
+  }
+
+  /* Subtle entrance: content wrapped in ScrollReveal is always in the server
+     HTML. Only once RevealObserver is running (html.reveal-on) do elements
+     below the fold start slightly lowered and transparent, then settle once
+     as they enter the viewport. Reduced motion and print never hide anything. */
+  .reveal-on [data-reveal]:not([data-revealed]),
+  .reveal-on [data-reveal-stagger]:not([data-revealed]) > * {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+
+  .reveal-on [data-reveal],
+  .reveal-on [data-reveal-stagger] > * {
+    transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-on [data-reveal-stagger] > :nth-child(2) { transition-delay: 60ms; }
+  .reveal-on [data-reveal-stagger] > :nth-child(3) { transition-delay: 120ms; }
+  .reveal-on [data-reveal-stagger] > :nth-child(4) { transition-delay: 180ms; }
+  .reveal-on [data-reveal-stagger] > :nth-child(5) { transition-delay: 240ms; }
+  .reveal-on [data-reveal-stagger] > :nth-child(n + 6) { transition-delay: 300ms; }
+
+  @media (prefers-reduced-motion: reduce), print {
+    .reveal-on [data-reveal]:not([data-revealed]),
+    .reveal-on [data-reveal-stagger]:not([data-revealed]) > * {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
 @layer components {
-  /* Buttons: 6px radius and a 44px minimum touch target. Hover feedback is a
-     colour change only (no lift, scale or shadow growth). */
+  /* Buttons: pill shape, 44px minimum touch target, a colour and soft-shadow
+     change on hover and a 1px press. No scale, no bounce. */
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 bg-maroon-700 text-white font-body font-semibold shadow-sm hover:bg-maroon-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 bg-maroon-700 text-white font-body font-semibold tracking-[-0.01em] shadow-[0_1px_2px_rgba(45,0,0,0.18)] hover:bg-maroon-800 hover:shadow-[0_6px_18px_-6px_rgba(96,0,0,0.45)] transition-[background-color,box-shadow,transform] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 border border-maroon-700 text-maroon-700 font-body font-semibold hover:bg-maroon-700 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:border-maroon-300/70 dark:text-maroon-100 dark:bg-maroon-950/30 dark:hover:bg-maroon-700 dark:hover:border-maroon-600 dark:hover:text-white dark:focus:ring-offset-slate-900;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 border border-edge-strong bg-surface-card text-content-primary font-body font-semibold tracking-[-0.01em] hover:border-maroon-700 hover:text-maroon-700 transition-[border-color,color,transform] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:bg-transparent dark:text-maroon-100 dark:hover:border-maroon-300 dark:hover:text-white dark:focus-visible:ring-offset-slate-900;
   }
 
   /* Club blue button: always dark maroon text (never white on blue). */
   .btn-accent {
-    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 bg-sky_accent text-maroon-900 font-body font-semibold shadow-sm border border-sky_accent hover:bg-sky_accent-light hover:border-sky_accent-light transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2 dark:focus:ring-offset-slate-900;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 bg-sky_accent text-maroon-900 font-body font-semibold tracking-[-0.01em] border border-sky_accent hover:bg-sky_accent-light hover:border-sky_accent-light transition-[background-color,border-color,transform] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
   }
 
   .btn-outline-white {
-    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 border border-white/50 text-white font-body font-medium hover:border-white hover:bg-white/10 transition-colors duration-200 focus:outline-none;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 border border-white/40 text-white font-body font-semibold tracking-[-0.01em] hover:border-white hover:bg-white/10 transition-[background-color,border-color,transform] duration-200 ease-out focus:outline-none;
+  }
+
+  .btn-primary:active, .btn-secondary:active, .btn-accent:active, .btn-outline-white:active {
+    transform: translateY(1px);
   }
 
   .section-padding {
-    @apply px-4 py-10 sm:px-6 sm:py-12 lg:px-8;
+    @apply px-4 py-12 sm:px-6 sm:py-16 lg:px-8;
   }
 
   .container-width {
@@ -148,29 +188,44 @@
   }
 
   .card {
-    @apply bg-surface-card rounded-xl shadow-sm border border-edge-subtle/80 overflow-hidden;
+    @apply bg-surface-card rounded-2xl border border-edge-subtle overflow-hidden;
+    box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04);
   }
 
-  /* Calm hover feedback for linked cards: a border colour change only. */
+  /* Linked cards: a quiet 2px settle-up with a soft shadow on hover. */
   .card-interactive {
-    @apply transition-colors duration-200 hover:border-maroon-300 dark:hover:border-maroon-500;
+    transition: border-color 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .card-interactive:hover {
+    @apply border-edge-strong;
+    box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 14px 32px -16px rgba(45, 0, 0, 0.22);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card-interactive:hover { transform: none; }
   }
 
   .form-input {
-    @apply w-full min-h-12 px-4 py-3 border border-edge-strong rounded-lg text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply w-full min-h-12 px-4 py-3 border border-edge-strong rounded-xl text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
   }
 
   .form-label {
     @apply block text-base font-semibold text-content-secondary mb-2 font-body;
   }
 
-  /* Inner page hero: a flat club-maroon band with a club-blue keyline. */
+  /* Inner page hero: deep club maroon with one soft light source and a gold
+     hairline, rather than a flat band. */
   .page-hero {
     @apply relative overflow-hidden px-4 text-white sm:px-6 lg:px-8;
-    padding-top: clamp(3rem, 6vw, 5rem);
-    padding-bottom: clamp(3rem, 6vw, 5rem);
-    background: rgb(var(--brand-maroon-surface));
-    border-bottom: 5px solid theme('colors.sky_accent.DEFAULT');
+    padding-top: clamp(3.5rem, 7vw, 6rem);
+    padding-bottom: clamp(3.5rem, 7vw, 6rem);
+    background:
+      radial-gradient(120% 140% at 85% -20%, rgb(255 255 255 / 0.10), transparent 55%),
+      radial-gradient(90% 120% at 0% 120%, rgb(0 0 0 / 0.28), transparent 60%),
+      rgb(var(--brand-maroon-surface));
+    box-shadow: inset 0 -1px 0 rgb(237 194 102 / 0.45);
   }
 
   .page-hero > * {
@@ -178,19 +233,19 @@
   }
 
   .page-hero-title {
-    @apply mb-3 font-display font-semibold;
-    font-size: clamp(2.4rem, 4.5vw, 4rem);
-    line-height: 1.1;
-    letter-spacing: -.04em;
+    @apply mb-4 font-display font-semibold;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    line-height: 1.04;
+    letter-spacing: -.045em;
     text-wrap: balance;
   }
 
   .page-hero-subtitle {
-    @apply max-w-2xl font-body text-lg leading-relaxed text-white;
+    @apply max-w-2xl font-body text-lg leading-relaxed text-white/90 sm:text-xl;
   }
 
   .section-title {
-    @apply mb-3 font-display text-2xl leading-[1.2] font-semibold tracking-[-0.035em] text-maroon-800 dark:text-maroon-100 sm:text-3xl sm:leading-[1.2];
+    @apply mb-3 font-display text-3xl leading-[1.1] font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl sm:leading-[1.08];
     text-wrap: balance;
   }
 
@@ -219,15 +274,22 @@
 
   .nav-underline::after {
     content: '';
-    @apply absolute left-3 right-3 bottom-1 h-0.5 bg-maroon-700 opacity-0 dark:bg-maroon-300;
+    @apply absolute left-3 right-3 bottom-1 h-px bg-maroon-700 dark:bg-maroon-300;
+    transform: scaleX(0);
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .nav-underline:hover::after {
-    @apply opacity-100;
+    transform: scaleX(1);
   }
 
   .section-eyebrow {
-    @apply inline-block text-xs font-semibold tracking-[0.14em] uppercase text-maroon-700 bg-maroon-50 px-3.5 py-1 rounded-full mb-3 dark:text-maroon-200 dark:bg-maroon-900/40;
+    @apply inline-flex items-center gap-2 text-xs font-semibold tracking-[0.16em] uppercase text-maroon-700 mb-3 dark:text-maroon-200;
+  }
+
+  .section-eyebrow::before {
+    content: '';
+    @apply inline-block h-px w-6 bg-current opacity-60;
   }
 
   /* Gold companion to .section-eyebrow for text sitting on maroon bands and
@@ -249,7 +311,7 @@
 
   /* Layered surface: hairline border on the card surface. */
   .surface-panel {
-    @apply rounded-2xl border border-edge-subtle/70 bg-surface-card;
+    @apply rounded-3xl border border-edge-subtle bg-surface-card;
   }
 
   /* Flat club-maroon band with a blue-grey keyline top and bottom. */
@@ -354,16 +416,16 @@ body.marquee-page-hidden .homepage-marquee-track {
 @layer components {
   .club-home-hero { @apply border-b border-edge-subtle bg-surface-page; }
   .club-home-copy { @apply min-w-0 py-2; }
-  .club-kicker { @apply text-sm font-semibold tracking-wide text-maroon-700 dark:text-sky_accent; }
-  .club-home-title { font-size: clamp(2.5rem, 4.2vw, 4rem); line-height: 1.08; letter-spacing: -.045em; text-wrap: balance; @apply mt-5 font-display font-semibold text-content-primary; }
-  .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-200 underline-offset-8 transition-colors hover:decoration-maroon-700 dark:text-sky_accent; }
-  .club-disclosure { @apply rounded-lg border border-edge-strong bg-surface-card; }
+  .club-kicker { @apply block text-xs font-semibold uppercase leading-relaxed tracking-[0.16em] text-maroon-700 dark:text-sky_accent; }
+  .club-home-title { font-size: clamp(2.75rem, 5.6vw, 5.25rem); line-height: 1.0; letter-spacing: -.05em; text-wrap: balance; @apply mt-5 font-display font-semibold text-content-primary; }
+  .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-700/25 decoration-1 underline-offset-[6px] transition-[text-decoration-color] duration-200 hover:decoration-maroon-700 dark:text-sky_accent dark:decoration-sky_accent/30 dark:hover:decoration-sky_accent; }
+  .club-disclosure { @apply rounded-2xl border border-edge-subtle bg-surface-card; }
   .club-disclosure > summary { @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary; }
   .club-disclosure[open] > summary { @apply border-b border-edge-subtle; }
   .club-disclosure > summary::marker { color: rgb(var(--action-secondary)); }
   .product-options button { min-height: 44px; min-width: 44px; }
   .club-disclosure .product-options { @apply space-y-5 p-4; }
-  .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-lg border border-maroon-950 bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-lg; }
+  .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-full bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-[0_12px_32px_-12px_rgba(45,0,0,0.55)]; }
   .prose { line-height: 1.8; }
   .prose p, .prose li { font-size: 1rem; }
   .prose a { text-decoration: underline; text-underline-offset: 3px; }

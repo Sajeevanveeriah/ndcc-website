@@ -10,7 +10,7 @@ export default function Card({ className, children, hover = false }: CardProps) 
   return (
     <div
       className={cn(
-        'bg-surface-card rounded-xl shadow-sm border border-edge-subtle/80 overflow-hidden',
+        'card',
         hover && 'card-interactive',
         className
       )}

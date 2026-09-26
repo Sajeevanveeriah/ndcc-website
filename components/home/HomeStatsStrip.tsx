@@ -22,11 +22,11 @@ export default async function HomeStatsStrip() {
   if (stats.length === 0) return null;
 
   return (
-    <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-edge-strong pt-5" aria-label="Club at a glance">
+    <dl className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-edge-subtle border-t border-edge-subtle pt-6" aria-label="Club at a glance">
       {stats.map((stat) => (
-        <div key={stat.label} className="flex items-baseline gap-2">
-          <dt className="order-2 text-sm font-semibold text-content-secondary">{stat.label}</dt>
-          <dd className="order-1 font-display text-2xl font-semibold text-content-primary">{stat.value}</dd>
+        <div key={stat.label} className="flex flex-col gap-1 px-4 first:pl-0">
+          <dt className="order-2 text-sm text-content-muted">{stat.label}</dt>
+          <dd className="order-1 font-display text-3xl font-semibold tracking-[-0.04em] text-content-primary sm:text-4xl">{stat.value}</dd>
         </div>
       ))}
     </dl>

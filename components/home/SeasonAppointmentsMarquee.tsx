@@ -55,10 +55,10 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
   if (marquee.appointments.length === 0) return null;
 
   return (
-    <section className="bg-surface-page py-10 sm:py-12" aria-labelledby="season-appointments-title">
-      <div className="container-width">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border-b border-edge-strong pb-3">
-          <h2 id="season-appointments-title" className="font-display text-2xl font-semibold text-content-primary sm:text-3xl">Season appointments</h2>
+    <section className="bg-surface-page py-14 sm:py-20" aria-labelledby="season-appointments-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-2" data-reveal="">
+          <h2 id="season-appointments-title" className="font-display text-3xl font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl">Season appointments</h2>
           <Link href="/about#committee" className="club-text-link text-base font-semibold">View all appointments</Link>
         </div>
         <div className="relative overflow-hidden" role="region" aria-label="Season appointments">

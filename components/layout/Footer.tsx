@@ -89,7 +89,7 @@ export default async function Footer() {
   const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledFeatures);
 
   return (
-    <footer className="bg-maroon-900 text-white">
+    <footer className="bg-surface-footer text-white">
       {/* Acknowledgement */}
       <div
         className="border-b border-white/10 px-4 py-4 sm:px-6 lg:px-8"
@@ -98,16 +98,16 @@ export default async function Footer() {
           : { background: 'rgba(255,255,255,0.06)' }}
       >
         <div className="container-width">
-          <p className="text-sm text-maroon-100 font-body leading-relaxed max-w-4xl">
+          <p className="text-sm text-white/70 font-body leading-relaxed max-w-4xl">
             {acknowledgement || ACKNOWLEDGEMENT}
           </p>
         </div>
       </div>
 
       {/* Main Footer */}
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <div className="px-4 py-14 sm:px-6 lg:px-8">
         <div className="container-width">
-          <ScrollReveal stagger className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
+          <ScrollReveal stagger className="grid grid-cols-2 gap-8 lg:grid-cols-4 lg:gap-12">
             {/* Club Info */}
             <ScrollRevealItem className="col-span-2 lg:col-span-1">
               <Link href="/" className="mb-3 flex items-center gap-3">
@@ -120,23 +120,23 @@ export default async function Footer() {
                 />
                 <span className="font-display font-semibold uppercase tracking-wide text-lg">{settings.club_short}</span>
               </Link>
-              <p className="mb-3 font-body text-sm text-maroon-200">
+              <p className="mb-3 font-body text-sm text-white/70">
                 {settings.club_name}. Established {settings.established_year}. Competing in the {settings.association_name}.
               </p>
               <div className="space-y-2">
-                <div className="flex items-start gap-2 text-sm text-maroon-200">
+                <div className="flex items-start gap-2 text-sm text-white/70">
                   <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                   <span className="font-body">
                     {settings.ground_name}, {settings.address}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-maroon-200">
+                <div className="flex items-center gap-2 text-sm text-white/70">
                   <Mail className="h-4 w-4 shrink-0" />
                   <a href={emailHref || undefined} className="font-body hover:text-white transition-colors">
                     {settings.email}
                   </a>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-maroon-200">
+                <div className="flex items-center gap-2 text-sm text-white/70">
                   <Phone className="h-4 w-4 shrink-0" />
                   <a href={phoneHref || undefined} className="font-body hover:text-white transition-colors">
                     {settings.phone}
@@ -149,7 +149,7 @@ export default async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Newcomb and District Cricket Club on Facebook"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white/80 ring-1 ring-white/10 transition-colors duration-200 hover:bg-white/15 hover:text-white focus-ring"
                 >
                   <Facebook className="h-4 w-4" />
                 </a>
@@ -158,7 +158,7 @@ export default async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Newcomb and District Cricket Club on Instagram"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-maroon-100 transition-colors hover:bg-white/20 hover:text-white focus-ring"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white/80 ring-1 ring-white/10 transition-colors duration-200 hover:bg-white/15 hover:text-white focus-ring"
                 >
                   <Instagram className="h-4 w-4" />
                 </a>
@@ -168,14 +168,14 @@ export default async function Footer() {
             {/* Quick Links */}
             {quickLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">Quick Links</h3>
-                <ul className="space-y-1.5">
+                <h3 className="mb-4 font-display text-xs font-semibold uppercase tracking-[0.16em] text-gold-200/90">Quick Links</h3>
+                <ul className="space-y-2.5">
                   {quickLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
                         cookie={cookie}
-                        className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                        className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200 font-body"
                       />
                     </li>
                   ))}
@@ -186,14 +186,14 @@ export default async function Footer() {
             {/* More Links */}
             {getInvolvedLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">Get Involved</h3>
-                <ul className="space-y-1.5">
+                <h3 className="mb-4 font-display text-xs font-semibold uppercase tracking-[0.16em] text-gold-200/90">Get Involved</h3>
+                <ul className="space-y-2.5">
                   {getInvolvedLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
                         cookie={cookie}
-                        className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                        className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200 font-body"
                       />
                     </li>
                   ))}
@@ -204,14 +204,14 @@ export default async function Footer() {
             {/* Partners */}
             {affiliationLinks.length > 0 && (
               <ScrollRevealItem>
-                <h3 className="mb-3 border-b border-gold-400/25 pb-2 font-display text-xs font-semibold uppercase tracking-[0.08em] text-gold-200">Affiliations</h3>
-                <ul className="space-y-1.5">
+                <h3 className="mb-4 font-display text-xs font-semibold uppercase tracking-[0.16em] text-gold-200/90">Affiliations</h3>
+                <ul className="space-y-2.5">
                   {affiliationLinks.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
                         cookie={cookie}
-                        className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
+                        className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200 font-body"
                       />
                     </li>
                   ))}
@@ -223,9 +223,9 @@ export default async function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-maroon-700 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="border-t border-white/10 px-4 py-6 sm:px-6 lg:px-8">
         <div className="container-width flex flex-col items-center justify-between gap-2 sm:flex-row">
-          <p className="text-xs text-maroon-300 font-body">
+          <p className="text-xs text-white/60 font-body">
             &copy; {currentYear} {settings.club_name}. All rights reserved.
           </p>
           <a
@@ -233,7 +233,7 @@ export default async function Footer() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
-            className="text-xs text-maroon-200 hover:text-white hover:underline transition-colors font-body focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-200"
+            className="text-xs text-white/70 hover:text-white hover:underline transition-colors font-body focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-200"
           >
             Built by Sajeevan Veeriah
           </a>

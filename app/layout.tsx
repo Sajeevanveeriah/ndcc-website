@@ -9,6 +9,7 @@ import Footer from '@/components/layout/Footer';
 import { getNavVisibility } from '@/lib/server/nav-visibility';
 import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
+import RevealObserver from '@/components/common/RevealObserver';
 import SiteAnalytics from '@/components/common/SiteAnalytics';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
 import {
@@ -119,6 +120,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <RouteProgress />
           </Suspense>
+          <RevealObserver />
           <Navbar nav={nav} />
           <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
           {/* Footer queries must not delay the first paint of every public page. */}

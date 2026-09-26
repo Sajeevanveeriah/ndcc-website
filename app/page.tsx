@@ -112,8 +112,8 @@ export const metadata: Metadata = {
 // Left-aligned section heading on a thin rule, with an optional text link.
 function SectionHeading({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border-b border-edge-strong pb-3">
-      <h2 id={id} className="font-display text-2xl font-semibold text-content-primary sm:text-3xl">{title}</h2>
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-2" data-reveal="">
+      <h2 id={id} className="font-display text-3xl font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl">{title}</h2>
       {children && <div className="flex flex-wrap gap-x-6">{children}</div>}
     </div>
   );
@@ -148,15 +148,15 @@ function HeroView({
 }) {
   return (
     <section className="club-home-hero" aria-labelledby="home-title">
-      <div className="container-width grid items-center gap-6 py-8 sm:py-12 lg:grid-cols-[1.1fr_1fr] lg:gap-14 lg:py-16">
+      <div className="container-width grid items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:py-24">
         <div className="club-home-copy">
-          <p className="club-kicker">Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
+          <p className="club-kicker"><span aria-hidden="true" className="mr-2.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-gold-400 align-middle" />Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
           <h1 id="home-title" className="club-home-title">{title}</h1>
-          <p className="mt-4 font-display text-3xl font-semibold text-maroon-700 dark:text-sky_accent">Home of the {CLUB_NICKNAME}.</p>
-          {season && <p className="mt-3 text-base font-semibold text-content-secondary">{season}</p>}
+          <p className="mt-5 font-display text-2xl font-medium tracking-[-0.03em] text-maroon-700 sm:text-3xl dark:text-sky_accent">Home of the {CLUB_NICKNAME}.</p>
+          {season && <p className="mt-3 text-base text-content-muted">{season}</p>}
           {body && !/^Home of the (Mighty )?Dinos/i.test(body) && <p className="mt-5 max-w-xl text-lg leading-relaxed text-content-secondary">{body}</p>}
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href={ctaUrl} className="btn-primary">{ctaLabel}</Link>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <Link href={ctaUrl} className="btn-primary">{ctaLabel}<ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
             <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
           </div>
           {vouchers && (
@@ -265,13 +265,13 @@ function FixturesView({
   matchDay?: HomeMatchDay;
 }) {
   return (
-    <section className="border-b border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="home-fixtures-title">
-      <div className="container-width">
+    <section className="border-b border-edge-subtle bg-surface-card py-14 sm:py-20" aria-labelledby="home-fixtures-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="home-fixtures-title" title={matchDay ? 'Next matches' : 'Fixtures'}>
           <Link href="/fixtures" className={headingLinkClass}>Fixtures and results</Link>
         </SectionHeading>
         {matchDay && (
-          <ul className="mb-8 divide-y divide-edge-subtle border-b border-edge-subtle" aria-label="Next fixture for each NDCC team">
+          <ul className="mb-10 divide-y divide-edge-subtle border-y border-edge-subtle" aria-label="Next fixture for each NDCC team" data-reveal-stagger="">
             {matchDay.board.map((entry) => <MatchDayRow key={entry.teamId} entry={entry} clubPlayHQUrl={matchDay.clubPlayHQUrl} />)}
           </ul>
         )}
@@ -418,13 +418,13 @@ async function ThisWeekSection() {
   if (items.length === 0) return null;
 
   return (
-    <section className="bg-surface-page py-10 sm:py-12" aria-labelledby="this-week-title">
-      <div className="container-width">
+    <section className="bg-surface-page py-14 sm:py-20" aria-labelledby="this-week-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="this-week-title" title={allWithinDays(items, now) ? 'This week' : 'Coming up'}>
           <Link href="/calendar" className={headingLinkClass}>Club calendar</Link>
           <Link href="/events" className={headingLinkClass}>Events</Link>
         </SectionHeading>
-        <ul className="max-w-3xl divide-y divide-edge-subtle">
+        <ul className="max-w-3xl divide-y divide-edge-subtle" data-reveal-stagger="">
           {items.map((item) => (
             <ComingUpRow key={item.key} item={item} kindLabel={calendarTypeLabels.get(item.key) ?? COMING_UP_KIND_LABEL[item.kind]} />
           ))}
@@ -439,8 +439,8 @@ async function ThisWeekSection() {
 
 function ClubNewsSkeleton() {
   return (
-    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="club-news-title">
-      <div className="container-width">
+    <section className="border-y border-edge-subtle bg-surface-card py-14 sm:py-20" aria-labelledby="club-news-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="club-news-title" title="Club news" />
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <div className="aspect-video w-full animate-pulse rounded-xl bg-surface-muted" />
@@ -464,8 +464,8 @@ async function ClubUpdatesSection() {
   const intro = cmsCopy(blocks['home.welcome']?.body);
 
   return (
-    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="club-news-title">
-      <div className="container-width">
+    <section className="border-y border-edge-subtle bg-surface-card py-14 sm:py-20" aria-labelledby="club-news-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="club-news-title" title={cmsCopy(blocks['home.welcome']?.title) || 'Club news'}>
           <Link href="/news" className={headingLinkClass}>All news</Link>
         </SectionHeading>
@@ -609,8 +609,8 @@ function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, vouchers, 
   const extraLinks = quickLinks.filter((link) => !fixedHrefs.has(link.href));
   const hasPromotions = Boolean(vouchers || cookieDough);
   return (
-    <section className="bg-surface-page py-10 sm:py-12" aria-labelledby="get-involved-title">
-      <div className="container-width">
+    <section className="bg-surface-page py-14 sm:py-20" aria-labelledby="get-involved-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="get-involved-title" title={title} />
         {intro && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{intro}</p>}
         <ul className="flex flex-wrap gap-x-8 gap-y-1">
@@ -689,8 +689,8 @@ function SponsorLinks() {
 
 function SponsorsSkeleton() {
   return (
-    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="partners-title">
-      <div className="container-width">
+    <section className="border-y border-edge-subtle bg-surface-card py-14 sm:py-20" aria-labelledby="partners-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="partners-title" title="Our Sponsors" />
         <div className="flex gap-4 overflow-hidden">
           {[0, 1, 2].map((index) => <div key={index} className="h-32 w-60 flex-none animate-pulse rounded-2xl bg-surface-muted" />)}
@@ -719,8 +719,8 @@ async function SponsorsSection() {
   const sponsorshipBody = cmsCopy(sponsorBlock?.body);
 
   return (
-    <section className="border-y border-edge-subtle bg-surface-card py-10 sm:py-12" aria-labelledby="partners-title">
-      <div className="container-width">
+    <section className="border-y border-edge-subtle bg-surface-card py-14 sm:py-20" aria-labelledby="partners-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="partners-title" title={sponsorshipTitle} />
         {sponsorshipBody && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{sponsorshipBody}</p>}
         <SponsorsMarquee
@@ -757,7 +757,7 @@ async function FantasyTeaserSection() {
   // /fantasy page), so nothing here can go stale or invent scores.
   return (
     <section className="bg-surface-page py-8" aria-labelledby="dino-coach-title">
-      <div className="container-width">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 border-y border-edge-strong py-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <h2 id="dino-coach-title" className="font-display text-2xl font-semibold text-content-primary">Dino Coach</h2>
@@ -784,8 +784,8 @@ async function GalleryPreviewSection() {
   if (preview.length === 0) return null;
 
   return (
-    <section className="bg-surface-card py-10 sm:py-12" aria-labelledby="gallery-title">
-      <div className="container-width">
+    <section className="bg-surface-card py-14 sm:py-20" aria-labelledby="gallery-title">
+      <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="gallery-title" title="Gallery">
           <Link href="/gallery" className={headingLinkClass}>View full gallery</Link>
         </SectionHeading>

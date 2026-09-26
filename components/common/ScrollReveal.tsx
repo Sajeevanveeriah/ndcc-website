@@ -4,12 +4,13 @@ type ScrollRevealProps = {
   children: ReactNode;
   className?: string;
   /*
-   * Retired entrance-animation options. They are still accepted so existing
-   * call sites keep compiling, but content now renders statically: visible in
-   * the server HTML, with no hidden initial state and no animation.
+   * Timing and direction options from the earlier animation system. They are
+   * still accepted so existing call sites keep compiling; every reveal now
+   * uses the one shared subtle settle defined in app/globals.css.
    */
   delay?: number;
   onMount?: boolean;
+  /** Settle each direct child in turn instead of the wrapper as a whole. */
   stagger?: boolean;
   duration?: number;
   direction?: 'up' | 'left' | 'right';
@@ -23,13 +24,15 @@ type ScrollRevealProps = {
 };
 
 /**
- * Static layout wrapper (formerly a scroll-triggered reveal). The public site
- * uses calm motion: content is always visible from the first paint.
+ * Marks content for a one-time subtle settle as it scrolls into view. The
+ * content is always rendered in the server HTML; RevealObserver only hides
+ * blocks that start below the fold, and never with reduced motion or no JS.
  */
 export default function ScrollReveal(props: ScrollRevealProps) {
-  const { children, className, as: Tag = 'div', role } = props;
+  const { children, className, as: Tag = 'div', role, stagger } = props;
+  const marker = stagger ? { 'data-reveal-stagger': '' } : { 'data-reveal': '' };
   return (
-    <Tag className={className} role={role} aria-label={props['aria-label']}>
+    <Tag className={className} role={role} aria-label={props['aria-label']} {...marker}>
       {children}
     </Tag>
   );
@@ -43,7 +46,7 @@ export function ScrollRevealItem({
   children?: ReactNode;
   className?: string;
   as?: 'div' | 'li' | 'span';
-  /* Retired entrance treatment; accepted for call-site compatibility. */
+  /* Earlier per-item treatment; accepted for call-site compatibility. */
   effect?: 'rise' | 'zoom' | 'draw';
 }) {
   return <Tag className={className}>{children}</Tag>;
