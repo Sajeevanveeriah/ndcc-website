@@ -8,8 +8,7 @@ import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/s
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
-import { receiptRecipients } from '@/lib/payments/receipt-recipients';
-import { getStaffOrderRecipients } from '@/lib/order-notification-content';
+import { getReceiptRecipients, getStaffOrderNotificationRecipients } from '@/lib/notification-recipients';
 import {
   PUBLIC_ORDER_LIMITS,
   audAmountToCents,
@@ -131,7 +130,7 @@ export async function POST(request: Request) {
     )
     .join('');
   const notification = await sendEmail({
-    ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('kitchen')),
+    ...(await getReceiptRecipients(sanitiseInput(customer_email), await getStaffOrderNotificationRecipients('kitchen'))),
     idempotencyKey: `meal-order-${saved.id}-${saved.meal_revision}`,
     subject: `Kitchen order received - Ref ${saved.payment_reference} | NDCC Dinos`,
     html: emailHtml(

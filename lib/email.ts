@@ -2,10 +2,52 @@ import 'server-only';
 import { Resend, type CreateEmailOptions, type Tag } from 'resend';
 import { escapeEmailHtml } from './email-html';
 import { SITE_URL } from './seo';
+import { FALLBACK_NOTIFICATION_RECIPIENTS } from './notification-recipients-fallback';
+import { getClubSettings } from './club-settings';
+import { fallbackClubSettings } from './club-settings-types';
 
 export { escapeEmailHtml } from './email-html';
 
-const DEFAULT_CONTACT_EMAIL = 'ndcc.secretary1@gmail.com';
+const DEFAULT_CONTACT_EMAIL = FALLBACK_NOTIFICATION_RECIPIENTS.contact[0];
+
+type EmailFooterContact = { location: string; email: string; phone: string | null };
+
+// The footer shown before club settings existed. Used when club settings are
+// unavailable so emails never lose their contact details.
+const FALLBACK_FOOTER_CONTACT: EmailFooterContact = {
+  location: 'Grinter Reserve, 141 Coppards Road, Moolap VIC 3224',
+  email: DEFAULT_CONTACT_EMAIL,
+  phone: null,
+};
+
+function emailFooterContactHtml(contact: EmailFooterContact): string {
+  const email = escapeEmailHtml(contact.email);
+  const phone = contact.phone ? ` &bull; ${escapeEmailHtml(contact.phone)}` : '';
+  return `${escapeEmailHtml(contact.location)}<br>
+              <a href="mailto:${email}" style="color:#880000;">${email}</a>${phone}`;
+}
+
+const FALLBACK_FOOTER_CONTACT_HTML = emailFooterContactHtml(FALLBACK_FOOTER_CONTACT);
+
+async function clubFooterContact(): Promise<EmailFooterContact | null> {
+  try {
+    const settings = await getClubSettings();
+    // getClubSettings returns the shared fallback object when the row cannot be read.
+    if (settings === fallbackClubSettings) return null;
+    const location = [settings.ground_name, settings.address].filter(Boolean).join(', ');
+    if (!location || !settings.email || !EMAIL_PATTERN.test(settings.email)) return null;
+    return { location, email: settings.email, phone: settings.phone };
+  } catch {
+    return null;
+  }
+}
+
+/** Swap the fallback footer written by emailHtml() for the live club settings. */
+async function withClubFooterContact(html: string): Promise<string> {
+  if (!html.includes(FALLBACK_FOOTER_CONTACT_HTML)) return html;
+  const contact = await clubFooterContact();
+  return contact ? html.replace(FALLBACK_FOOTER_CONTACT_HTML, () => emailFooterContactHtml(contact)) : html;
+}
 
 let _resend: Resend | null = null;
 
@@ -211,7 +253,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailSendResult>
     from: sender.address,
     to: payload.to,
     subject: payload.subject,
-    html: payload.html,
+    html: await withClubFooterContact(payload.html),
     ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
     ...(payload.cc ? { cc: payload.cc } : {}),
     ...(payload.bcc ? { bcc: payload.bcc } : {}),
@@ -259,8 +301,7 @@ export function emailHtml(title: string, body: string): string {
             ${body}
             <hr style="margin:32px 0;border:none;border-top:1px solid #e5e7eb;">
             <p style="margin:0;font-size:14px;color:#4b5563;">
-              Newcomb and District Cricket Club &bull; Grinter Reserve, 141 Coppards Road, Moolap VIC 3224<br>
-              <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>
+              Newcomb and District Cricket Club &bull; ${FALLBACK_FOOTER_CONTACT_HTML}
             </p>
           </td>
         </tr>

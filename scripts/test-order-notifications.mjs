@@ -10,7 +10,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 // Node's stripped-TypeScript runner requires an explicit extension for this new shared helper.
 const { registerHooks } = await import('node:module');
 registerHooks({ resolve(specifier, context, nextResolve) {
-  const explicit = { './meal-collection': './meal-collection.ts', './email-html': './email-html.ts' };
+  const explicit = { './meal-collection': './meal-collection.ts', './email-html': './email-html.ts', './notification-recipients-fallback': './notification-recipients-fallback.ts' };
   return nextResolve(explicit[specifier] || specifier, context);
 } });
 const content = await import(pathToFileURL(path.join(repoRoot, 'lib/order-notification-content.ts')).href);
@@ -156,11 +156,11 @@ test('staff order notifications are consolidated into the payment receipt', () =
 });
 
 test('apparel bank instructions include department recipients once', () => {
-  assert.match(apparelRoute, /receiptRecipients\(sanitiseInput\(customer_email\), getStaffOrderRecipients\('apparel'\)\)/);
+  assert.match(apparelRoute, /getReceiptRecipients\(sanitiseInput\(customer_email\), await getStaffOrderNotificationRecipients\('apparel'\)\)/);
 });
 
 test('kitchen bank instructions include department recipients once', () => {
-  assert.match(kitchenRoute, /receiptRecipients\(sanitiseInput\(customer_email\), getStaffOrderRecipients\('kitchen'\)\)/);
+  assert.match(kitchenRoute, /getReceiptRecipients\(sanitiseInput\(customer_email\), await getStaffOrderNotificationRecipients\('kitchen'\)\)/);
 });
 
 test('Stripe settlement and duplicate paths dispatch best-effort through the paid marker', () => {

@@ -6,6 +6,7 @@ import Input, { Select, Textarea } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { Trash2 } from 'lucide-react';
+import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNotice';
 
 type Lineage = {
   id: string;
@@ -53,6 +54,9 @@ export default function AdminHistoryPage() {
   const [committeeMembers, setCommitteeMembers] = useState<CommitteeMember[]>([]);
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [historyWritable, setHistoryWritable] = useState(true);
+  const [committeeWritable, setCommitteeWritable] = useState(true);
+  const [committeeUnavailable, setCommitteeUnavailable] = useState(false);
 
   const [lineageForm, setLineageForm] = useState({ id: '', club_name: '', start_season: '', end_season: '', association_abbr: '', sort_order: '1', is_active: true });
   const [premForm, setPremForm] = useState({ id: '', team_label: '1st XI', season_label: '', competition_abbr: 'GCA', grade_label: '', sort_order: '1', is_active: true });
@@ -62,25 +66,32 @@ export default function AdminHistoryPage() {
 
   const loadAll = useCallback(async function loadAll() {
     try {
-      const [lineageRes, premRes, competitionsRes, committeeRes] = await Promise.all([
+      // Committee members use the Club Details permission; a History-only user
+      // still sees the history records when that list is not available to them.
+      const committeeRequest = adminFetch('/api/admin/resources/committeeMembers', { cache: 'no-store' })
+        .then((res) => parseApiResponse<{ data?: CommitteeMember[]; canWrite?: boolean }>(res))
+        .catch(() => null);
+      const [lineageRes, premRes, competitionsRes] = await Promise.all([
         adminFetch('/api/admin/resources/historyLineage', { cache: 'no-store' }),
         adminFetch('/api/admin/resources/historyPremierships', { cache: 'no-store' }),
         adminFetch('/api/admin/resources/historyCompetitions', { cache: 'no-store' }),
-        adminFetch('/api/admin/resources/committeeMembers', { cache: 'no-store' }),
       ]);
 
       const [lineageData, premData, competitionsData, committeeData] = await Promise.all([
-        parseApiResponse<{ data?: Lineage[] }>(lineageRes),
-        parseApiResponse<{ data?: Premiership[] }>(premRes),
-        parseApiResponse<{ data?: HistoryCompetition[] }>(competitionsRes),
-        parseApiResponse<{ data?: CommitteeMember[] }>(committeeRes),
+        parseApiResponse<{ data?: Lineage[]; canWrite?: boolean }>(lineageRes),
+        parseApiResponse<{ data?: Premiership[]; canWrite?: boolean }>(premRes),
+        parseApiResponse<{ data?: HistoryCompetition[]; canWrite?: boolean }>(competitionsRes),
+        committeeRequest,
       ]);
+      setHistoryWritable(responseCanWrite(lineageData) && responseCanWrite(premData) && responseCanWrite(competitionsData));
+      setCommitteeUnavailable(!committeeData);
+      setCommitteeWritable(Boolean(committeeData) && responseCanWrite(committeeData));
 
       const competitionList = competitionsData.data || [];
       setLineage(lineageData.data || []);
       setPremierships(premData.data || []);
       setCompetitions(competitionList);
-      setCommitteeMembers(committeeData.data || []);
+      setCommitteeMembers(committeeData?.data || []);
       if (!competitionList.find((item) => item.abbreviation === premForm.competition_abbr) && competitionList[0]) {
         setPremForm((current) => ({ ...current, competition_abbr: competitionList[0].abbreviation }));
       }
@@ -224,22 +235,23 @@ export default function AdminHistoryPage() {
       <h1 className="text-2xl font-display font-bold">History & Committee</h1>
       <p className="text-sm text-content-muted">Manage lineage, competitions, premiership records, and the About page committee list.</p>
       {status && <p className="text-sm text-content-muted">{status}</p>}
+      {(!historyWritable || (!committeeWritable && !committeeUnavailable)) && <ReadOnlyNotice />}
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">History Competitions</h2>
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveCompetition}>
+        {historyWritable && <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveCompetition}>
           <Input id="competition_abbr" label="Abbreviation" required value={competitionForm.abbreviation} onChange={(e) => setCompetitionForm((v) => ({ ...v, abbreviation: e.target.value }))} />
           <Input id="competition_name" label="Competition name" required value={competitionForm.name} onChange={(e) => setCompetitionForm((v) => ({ ...v, name: e.target.value }))} />
           <div className="flex items-end gap-2">
             <Button type="submit" isLoading={saving}>{competitionForm.id ? 'Update Competition' : 'Save Competition'}</Button>
             {competitionForm.id && <Button type="button" variant="secondary" onClick={() => setCompetitionForm({ id: '', abbreviation: '', name: '' })}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
         <ul className="space-y-2 text-sm text-content-secondary">
           {competitions.map((entry) => (
             <li key={entry.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{entry.abbreviation} · {entry.name}</span>
-              <Button size="sm" variant="ghost" onClick={() => setCompetitionForm({ id: entry.id, abbreviation: entry.abbreviation, name: entry.name })}>Edit</Button>
+              {historyWritable && <Button size="sm" variant="ghost" onClick={() => setCompetitionForm({ id: entry.id, abbreviation: entry.abbreviation, name: entry.name })}>Edit</Button>}
             </li>
           ))}
         </ul>
@@ -247,7 +259,7 @@ export default function AdminHistoryPage() {
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Club Lineage</h2>
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveLineage}>
+        {historyWritable && <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveLineage}>
           <Input id="club_name" label="Club name" required value={lineageForm.club_name} onChange={(e) => setLineageForm((v) => ({ ...v, club_name: e.target.value }))} />
           <Input id="start_season" label="Start season" required value={lineageForm.start_season} onChange={(e) => setLineageForm((v) => ({ ...v, start_season: e.target.value }))} />
           <Input id="end_season" label="End season" required value={lineageForm.end_season} onChange={(e) => setLineageForm((v) => ({ ...v, end_season: e.target.value }))} />
@@ -258,13 +270,13 @@ export default function AdminHistoryPage() {
             <Button type="submit" isLoading={saving}>{lineageForm.id ? 'Update Lineage' : 'Save Lineage'}</Button>
             {lineageForm.id && <Button type="button" variant="secondary" onClick={() => setLineageForm({ id: '', club_name: '', start_season: '', end_season: '', association_abbr: '', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
 
         <ul className="space-y-2 text-sm text-content-secondary">
           {lineage.map((entry) => (
             <li key={entry.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{entry.club_name} · {entry.start_season} to {entry.end_season} · {entry.association_abbr}</span>
-              <Button size="sm" variant="ghost" onClick={() => setLineageForm({ id: entry.id, club_name: entry.club_name, start_season: entry.start_season, end_season: entry.end_season, association_abbr: entry.association_abbr, sort_order: String(entry.sort_order), is_active: entry.is_active })}>Edit</Button>
+              {historyWritable && <Button size="sm" variant="ghost" onClick={() => setLineageForm({ id: entry.id, club_name: entry.club_name, start_season: entry.start_season, end_season: entry.end_season, association_abbr: entry.association_abbr, sort_order: String(entry.sort_order), is_active: entry.is_active })}>Edit</Button>}
             </li>
           ))}
         </ul>
@@ -272,7 +284,7 @@ export default function AdminHistoryPage() {
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Premiership Records</h2>
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={savePremiership}>
+        {historyWritable && <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={savePremiership}>
           <Input id="team_label" label="Team" required value={premForm.team_label} onChange={(e) => setPremForm((v) => ({ ...v, team_label: e.target.value }))} />
           <Input id="season_label" label="Season" required value={premForm.season_label} onChange={(e) => setPremForm((v) => ({ ...v, season_label: e.target.value }))} />
           <Select id="prem_competition_abbr" label="Competition" options={competitions.map((item) => ({ value: item.abbreviation, label: `${item.abbreviation} · ${item.name}` }))} value={premForm.competition_abbr} onChange={(e) => setPremForm((v) => ({ ...v, competition_abbr: e.target.value }))} />
@@ -283,13 +295,13 @@ export default function AdminHistoryPage() {
             <Button type="submit" isLoading={saving}>{premForm.id ? 'Update Premiership' : 'Save Premiership'}</Button>
             {premForm.id && <Button type="button" variant="secondary" onClick={() => setPremForm({ id: '', team_label: '1st XI', season_label: '', competition_abbr: competitions[0]?.abbreviation || 'GCA', grade_label: '', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
 
         <ul className="space-y-2 text-sm text-content-secondary">
           {premierships.map((entry) => (
             <li key={entry.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{entry.team_label} · {entry.season_label} · {entry.competition_abbr} · {entry.grade_label}</span>
-              <Button size="sm" variant="ghost" onClick={() => setPremForm({ id: entry.id, team_label: entry.team_label, season_label: entry.season_label, competition_abbr: entry.competition_abbr, grade_label: entry.grade_label, sort_order: String(entry.sort_order), is_active: entry.is_active })}>Edit</Button>
+              {historyWritable && <Button size="sm" variant="ghost" onClick={() => setPremForm({ id: entry.id, team_label: entry.team_label, season_label: entry.season_label, competition_abbr: entry.competition_abbr, grade_label: entry.grade_label, sort_order: String(entry.sort_order), is_active: entry.is_active })}>Edit</Button>}
             </li>
           ))}
         </ul>
@@ -297,7 +309,8 @@ export default function AdminHistoryPage() {
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Committee Members (About page)</h2>
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveCommittee}>
+        {committeeUnavailable && <p className="text-sm text-content-muted">The committee list could not be loaded. It needs the Club Details permission.</p>}
+        {committeeWritable && <form className="grid grid-cols-1 md:grid-cols-3 gap-3" onSubmit={saveCommittee}>
           <Input id="committee_name" label="Name" required value={committeeForm.name} onChange={(e) => setCommitteeForm((v) => ({ ...v, name: e.target.value }))} />
           <Input id="committee_role" label="Role" required value={committeeForm.role} onChange={(e) => setCommitteeForm((v) => ({ ...v, role: e.target.value }))} />
           <Input id="committee_sort" label="Sort order" type="number" value={committeeForm.sort_order} onChange={(e) => setCommitteeForm((v) => ({ ...v, sort_order: e.target.value }))} />
@@ -311,17 +324,17 @@ export default function AdminHistoryPage() {
             <Button type="submit" isLoading={saving}>{committeeForm.id ? 'Update Member' : 'Save Member'}</Button>
             {committeeForm.id && <Button type="button" variant="secondary" onClick={() => setCommitteeForm(emptyCommitteeForm)}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
         <ul className="space-y-2 text-sm text-content-secondary">
           {committeeMembers.map((member) => (
             <li key={member.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{member.name} · {member.role} · sort {member.sort_order}</span>
-              <div className="flex items-center gap-2">
+              {committeeWritable && <div className="flex items-center gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setCommitteeForm({ id: member.id, name: member.name, role: member.role, email: member.email || '', phone: member.phone || '', bio: member.bio || '', sort_order: String(member.sort_order), is_active: member.is_active })}>Edit</Button>
                 <Button size="sm" variant="ghost" onClick={() => setCommitteeDeleteConfirm(member.id)} aria-label={`Delete ${member.name}`}>
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
-              </div>
+              </div>}
             </li>
           ))}
         </ul>

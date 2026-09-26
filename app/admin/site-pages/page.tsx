@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
+import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNotice';
 
 type PageLinkCard = {
   id: string;
@@ -44,6 +45,8 @@ export default function AdminSitePagesPage() {
   const [features, setFeatures] = useState<FacilityFeature[]>([]);
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [cardsWritable, setCardsWritable] = useState(true);
+  const [featuresWritable, setFeaturesWritable] = useState(true);
 
   const [cardForm, setCardForm] = useState({
     id: '',
@@ -74,9 +77,11 @@ export default function AdminSitePagesPage() {
         adminFetch('/api/admin/resources/facilityFeatures', { cache: 'no-store' }),
       ]);
       const [cardsData, featuresData] = await Promise.all([
-        parseApiResponse<{ data?: PageLinkCard[] }>(cardsRes),
-        parseApiResponse<{ data?: FacilityFeature[] }>(featuresRes),
+        parseApiResponse<{ data?: PageLinkCard[]; canWrite?: boolean }>(cardsRes),
+        parseApiResponse<{ data?: FacilityFeature[]; canWrite?: boolean }>(featuresRes),
       ]);
+      setCardsWritable(responseCanWrite(cardsData));
+      setFeaturesWritable(responseCanWrite(featuresData));
       setCards((cardsData.data || []).filter(card => !(card.page_slug === 'fixtures' && card.section_key === 'team_links')));
       setFeatures(featuresData.data || []);
     } catch (error) {
@@ -165,10 +170,11 @@ export default function AdminSitePagesPage() {
       <p className="text-sm text-content-muted">Manage repeatable links used by the header navigation, footer, Home, About, and Facilities pages.</p>
       <p className="text-sm text-content-muted">Manage fixture team links, team descriptions and the homepage team total in <Link href="/admin/teams" className="font-semibold underline">Teams</Link>. Active teams appear on both Teams and Fixtures.</p>
       {status && <p className="text-sm text-content-muted">{status}</p>}
+      {(!cardsWritable || !featuresWritable) && <ReadOnlyNotice />}
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Page Link Cards</h2>
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveCard}>
+        {cardsWritable && <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveCard}>
           <Select id="page_section" label="Page section" options={sectionOptions} value={cardForm.page_section} onChange={(e) => setCardForm((v) => ({ ...v, page_section: e.target.value }))} />
           <Input id="card_title" label="Card title" required value={cardForm.title} onChange={(e) => setCardForm((v) => ({ ...v, title: e.target.value }))} />
           <Textarea id="card_description" label="Description" rows={3} value={cardForm.description} onChange={(e) => setCardForm((v) => ({ ...v, description: e.target.value }))} />
@@ -184,13 +190,13 @@ export default function AdminSitePagesPage() {
             <Button type="submit" isLoading={saving}>{cardForm.id ? 'Update Card' : 'Save Card'}</Button>
             {cardForm.id && <Button type="button" variant="secondary" onClick={() => setCardForm({ id: '', page_section: sectionOptions[0].value, title: '', description: '', href: '', icon: '', badge: '', is_external: false, sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
 
         <ul className="space-y-2 text-sm text-content-secondary">
           {cards.map((card) => (
             <li key={card.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{card.page_slug}/{card.section_key} · {card.title} · {card.href}</span>
-              <Button size="sm" variant="ghost" onClick={() => setCardForm({
+              {cardsWritable && <Button size="sm" variant="ghost" onClick={() => setCardForm({
                 id: card.id,
                 page_section: `${card.page_slug}:${card.section_key}`,
                 title: card.title,
@@ -201,7 +207,7 @@ export default function AdminSitePagesPage() {
                 is_external: card.is_external,
                 sort_order: String(card.sort_order),
                 is_active: card.is_active,
-              })}>Edit</Button>
+              })}>Edit</Button>}
             </li>
           ))}
         </ul>
@@ -209,7 +215,7 @@ export default function AdminSitePagesPage() {
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Facility Features</h2>
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveFeature}>
+        {featuresWritable && <form className="grid grid-cols-1 md:grid-cols-2 gap-3" onSubmit={saveFeature}>
           <Input id="feature_title" label="Feature title" required value={featureForm.title} onChange={(e) => setFeatureForm((v) => ({ ...v, title: e.target.value }))} />
           <Input id="feature_icon_key" label="Icon key" value={featureForm.icon_key} onChange={(e) => setFeatureForm((v) => ({ ...v, icon_key: e.target.value }))} />
           <Textarea id="feature_description" label="Description" rows={3} value={featureForm.description} onChange={(e) => setFeatureForm((v) => ({ ...v, description: e.target.value }))} />
@@ -219,13 +225,13 @@ export default function AdminSitePagesPage() {
             <Button type="submit" isLoading={saving}>{featureForm.id ? 'Update Feature' : 'Save Feature'}</Button>
             {featureForm.id && <Button type="button" variant="secondary" onClick={() => setFeatureForm({ id: '', title: '', description: '', icon_key: 'feature', sort_order: '1', is_active: true })}>Cancel</Button>}
           </div>
-        </form>
+        </form>}
 
         <ul className="space-y-2 text-sm text-content-secondary">
           {features.map((feature) => (
             <li key={feature.id} className="border rounded-lg px-3 py-2 flex items-center justify-between gap-3">
               <span>{feature.title} · {feature.icon_key} · sort {feature.sort_order}</span>
-              <Button size="sm" variant="ghost" onClick={() => setFeatureForm({ id: feature.id, title: feature.title, description: feature.description, icon_key: feature.icon_key, sort_order: String(feature.sort_order), is_active: feature.is_active })}>Edit</Button>
+              {featuresWritable && <Button size="sm" variant="ghost" onClick={() => setFeatureForm({ id: feature.id, title: feature.title, description: feature.description, icon_key: feature.icon_key, sort_order: String(feature.sort_order), is_active: feature.is_active })}>Edit</Button>}
             </li>
           ))}
         </ul>

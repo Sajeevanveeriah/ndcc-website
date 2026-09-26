@@ -7,6 +7,7 @@ import PurchaseTabs from '@/components/admin/PurchaseTabs';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNotice';
 import { RAFFLE_SAMPLE_REFERENCE, REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_MAX_NUMBER, REVERSE_RAFFLE_MIN_NUMBER, REVERSE_RAFFLE_NUMBER_RANGE_LABEL } from '@/lib/raffle-constants';
 
 type VisibilityMode = 'hidden' | 'scheduled' | 'visible';
@@ -34,9 +35,10 @@ export default function AdminRafflePage() {
   const [campaign,setCampaign]=useState<Campaign|null>(null);
   const [salesRevision,setSalesRevision]=useState(0);
   const [error,setError]=useState(''); const [message,setMessage]=useState(''); const [saving,setSaving]=useState(false);
+  const [campaignsWritable,setCampaignsWritable]=useState(true);
   useEffect(()=>{ void adminFetch('/api/admin/resources/raffleCampaigns')
-    .then(r=>parseApiResponse<{data:Campaign[]}>(r))
-    .then(result=>{setCampaigns(result.data || []);setCampaign(result.data?.find(item=>item.id===new URLSearchParams(window.location.search).get('campaign'))||result.data?.find(item=>item.active)||result.data?.[0]||null);})
+    .then(r=>parseApiResponse<{data:Campaign[];canWrite?:boolean}>(r))
+    .then(result=>{setCampaignsWritable(responseCanWrite(result));setCampaigns(result.data || []);setCampaign(result.data?.find(item=>item.id===new URLSearchParams(window.location.search).get('campaign'))||result.data?.find(item=>item.active)||result.data?.[0]||null);})
     .catch(e=>setError(e instanceof Error?e.message:'Could not load raffle administration.')); },[]);
 
   async function saveVisibility() {
@@ -55,10 +57,11 @@ export default function AdminRafflePage() {
     <PurchaseTabs active={campaign?.id} onCampaign={id=>{setCampaign(campaigns.find(c=>c.id===id)||null);setMessage('');window.history.replaceState(null,'',`?campaign=${id}`);}} /><label className="block"><span className="block text-sm font-semibold mb-1">Raffle campaign</span><select className="min-h-11 border rounded-md p-2 bg-surface-card" value={campaign?.id || ''} onChange={e => { setCampaign(campaigns.find(row => row.id === e.target.value) || null); setMessage(''); }}><option value="" disabled>Choose a campaign</option>{campaigns.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
     {error&&<p role="alert" className="text-red-700">{error}</p>}{message&&<p role="status" className="text-green-700">{message}</p>}
     <section className="rounded-lg border border-edge-subtle bg-surface-card p-5 space-y-4" aria-labelledby="raffle-visibility-title"><div><h2 id="raffle-visibility-title" className="font-display text-xl font-bold">Public visibility</h2><p className="text-sm text-content-muted">The public page, navigation, footer, sitemap and checkout all follow this setting.</p></div>
-      {!campaign?<p>Loading raffle campaign...</p>:<><label className="block"><span className="mb-1 block text-sm font-semibold">Visibility mode</span><select className="min-h-11 w-full rounded-md border border-edge-subtle bg-surface-card px-3" value={campaign.public_visibility_mode} onChange={e=>setCampaign({...campaign,public_visibility_mode:e.target.value as VisibilityMode})}><option value="hidden">Hidden</option><option value="scheduled">Scheduled</option><option value="visible">Visible now</option></select></label>
-        {campaign.public_visibility_mode==='scheduled'&&<Input id="raffle-public-opens-at" type="datetime-local" label="Automatically opens at - Melbourne time" value={toLocalDateTime(campaign.public_opens_at)} onChange={e=>setCampaign({...campaign,public_opens_at:e.target.value?new Date(e.target.value).toISOString():null})}/>}<p className="text-sm font-semibold">Current public state: {currentlyVisible?'Visible':'Hidden'}</p><Button onClick={saveVisibility} isLoading={saving}>Save visibility settings</Button></>}
+      {!campaignsWritable&&<ReadOnlyNotice />}
+      {!campaign?<p>Loading raffle campaign...</p>:<><label className="block"><span className="mb-1 block text-sm font-semibold">Visibility mode</span><select className="min-h-11 w-full rounded-md border border-edge-subtle bg-surface-card px-3" disabled={!campaignsWritable} value={campaign.public_visibility_mode} onChange={e=>setCampaign({...campaign,public_visibility_mode:e.target.value as VisibilityMode})}><option value="hidden">Hidden</option><option value="scheduled">Scheduled</option><option value="visible">Visible now</option></select></label>
+        {campaign.public_visibility_mode==='scheduled'&&<Input id="raffle-public-opens-at" disabled={!campaignsWritable} type="datetime-local" label="Automatically opens at - Melbourne time" value={toLocalDateTime(campaign.public_opens_at)} onChange={e=>setCampaign({...campaign,public_opens_at:e.target.value?new Date(e.target.value).toISOString():null})}/>}<p className="text-sm font-semibold">Current public state: {currentlyVisible?'Visible':'Hidden'}</p>{campaignsWritable&&<Button onClick={saveVisibility} isLoading={saving}>Save visibility settings</Button>}</>}
     </section>
-    <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created after confirmed card payment or an authorised cash receipt. Staff notifications go to the club, vice-president and secretary raffle recipients.</p></div>
+    <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created after confirmed card payment or an authorised cash receipt. Staff copies go to the raffle staff addresses managed in Notification Emails.</p></div>
     {campaign?.code==='NDCCRAF'&&<CashCollections onReconciled={()=>setSalesRevision(value=>value+1)} />}
     <RaffleSales campaign={campaign} refreshKey={salesRevision} />
   </div>;

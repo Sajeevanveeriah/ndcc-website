@@ -19,12 +19,20 @@ function moduleAt(path, dependencies = {}, suffix = '') {
   });
   return exports;
 }
-const recipients = moduleAt('lib/payments/receipt-recipients.ts');
+const fallbackRecipients = moduleAt('lib/notification-recipients-fallback.ts');
+const recipients = moduleAt('lib/payments/receipt-recipients.ts', { '@/lib/notification-recipients-fallback': fallbackRecipients });
+// Stands in for lib/notification-recipients.ts with the table unreadable, so the
+// hardcoded fallback lists (identical to the migration seed) are used.
+const notificationRecipients = {
+  getNotificationRecipients: async (type) => fallbackRecipients.fallbackNotificationRecipients(type),
+  getStaffOrderNotificationRecipients: async (category) => fallbackRecipients.fallbackNotificationRecipients(category === 'apparel' ? 'apparel_order_staff' : 'kitchen_order_staff'),
+  getReceiptRecipients: async (purchaser, department = []) => recipients.receiptRecipients(purchaser, department, fallbackRecipients.fallbackNotificationRecipients('receipt_copy')),
+};
 const raffleConstants = moduleAt('lib/raffle-constants.ts');
 const references = moduleAt('lib/payments/reference.ts', { '@/lib/supabase-server': {}, '@/lib/raffle-constants': raffleConstants });
 const mealCollection = moduleAt('lib/meal-collection.ts');
 const emailHtmlModule = moduleAt('lib/email-html.ts');
-const content = moduleAt('lib/order-notification-content.ts', { './meal-collection': mealCollection, './email-html': emailHtmlModule });
+const content = moduleAt('lib/order-notification-content.ts', { './meal-collection': mealCollection, './email-html': emailHtmlModule, './notification-recipients-fallback': fallbackRecipients });
 const plain = value => JSON.parse(JSON.stringify(value));
 assert.deepEqual(plain(recipients.receiptRecipients(' NDCC.Secretary1@gmail.com ', ['ndsc.cricket@gmail.com', 'NDCC.SECRETARY1@gmail.com'])), {
   to: 'ndcc.secretary1@gmail.com', bcc: ['ndsc.cricket@gmail.com'],
@@ -49,7 +57,7 @@ const db = { from(table) { return { select() { return this; }, eq() { return thi
 const sender = moduleAt('lib/payment-receipts.ts', {
   '@/lib/meal-collection': mealCollection,
   '@/lib/email-html': emailHtmlModule,
-  '@/lib/payments/receipt-recipients': recipients,
+  '@/lib/notification-recipients': notificationRecipients,
   '@/lib/order-notification-content': content,
   '@/lib/payments/reference': references,
   '@/lib/email': { emailHtml: (_, body) => body, getTransactionalReplyTo: () => undefined,
@@ -207,7 +215,7 @@ const cashDb={from(table){assert.equal(table,'raffle_orders','Cash receipts must
 let cashMessages=[],cashPdf;
 const cashSender=moduleAt('lib/raffle-email.ts',{
  '@/lib/supabase-server':{createServerClient:()=>cashDb},
- '@/lib/payments/receipt-recipients':recipients,
+ '@/lib/notification-recipients':notificationRecipients,
  '@/lib/email':{emailHtml:(_,body)=>body,getTransactionalReplyTo:()=>undefined,sendEmail:async payload=>{cashMessages.push(payload);return {status:'sent',id:'mock-message'};}},
  '@/lib/payment-receipt-pdf':{buildPaymentReceiptFilename:data=>`${data.reference}.pdf`,buildPaymentReceiptPdf:async data=>{cashPdf=data;return 'mock-pdf';}},
  '@/lib/raffle-ticket':{renderRaffleTicket:async reference=>({buffer:'mock-image',filename:`${reference}.png`})},

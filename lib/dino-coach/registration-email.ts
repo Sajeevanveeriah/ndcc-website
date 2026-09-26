@@ -1,6 +1,7 @@
 import 'server-only';
 import { sendEmail, emailHtml, escapeEmailHtml, getTransactionalReplyTo } from '@/lib/email';
 import { DINO_MANUAL_FILENAME, DINO_MANUAL_URL } from './manual';
+import { getNotificationRecipients } from '@/lib/notification-recipients';
 import type { createServerClient } from '@/lib/supabase-server';
 
 type ServerClient = ReturnType<typeof createServerClient>;
@@ -21,9 +22,11 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
       if (!settings.error && Number.isFinite(budget) && budget > 0) budgetText = Math.round(budget).toLocaleString('en-AU');
     } catch { /* Keep the published budget figure. */ }
   }
+  const registrationCopies = job.delivery ? [] : (await getNotificationRecipients('dino_registration_copy'))
+    .filter((email) => email !== String(job.recipient).trim().toLowerCase());
   const delivery = job.delivery || {
     to: job.recipient,
-    bcc: job.recipient.toLowerCase() === 'sajeevanveeriah@gmail.com' ? undefined : ['sajeevanveeriah@gmail.com'],
+    bcc: registrationCopies.length ? registrationCopies : undefined,
     replyTo: getTransactionalReplyTo(),
     subject: 'Dino Coach registration received',
     attachments: [{ filename: DINO_MANUAL_FILENAME, path: DINO_MANUAL_URL }],

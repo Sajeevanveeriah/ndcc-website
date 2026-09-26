@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { INTERESTS, VOLUNTEERING } from '@/lib/club-account/preferences';
+import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 type Contact = { member_id: string; full_name: string; email: string; phone: string; status: string; interests: string[]; volunteering: string[]; email_updates: boolean };
 export default function MemberPreferencesAdmin() {
   const [interest, setInterest] = useState(''); const [volunteer, setVolunteer] = useState(''); const [optedIn, setOptedIn] = useState(false);
@@ -11,16 +12,17 @@ export default function MemberPreferencesAdmin() {
   const query = new URLSearchParams({ interest, volunteer, opted_in: String(optedIn), page: String(page) }).toString();
   useEffect(() => {
     let active = true; const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 15000); setResult(null); setError('');
-    void fetch(`/api/admin/memberships/preferences?${query}`, { cache: 'no-store', signal: controller.signal }).then(async response => {
-      const body = await response.json(); if (!response.ok) throw new Error(body.error || 'Could not load contacts.'); if (active) setResult(body);
+    void adminFetch(`/api/admin/memberships/preferences?${query}`, { cache: 'no-store', signal: controller.signal }).then(async response => {
+      const body = await parseApiResponse<{ contacts?: Contact[]; total?: number }>(response);
+      if (active) setResult({ contacts: Array.isArray(body.contacts) ? body.contacts : [], total: Number(body.total) || 0 });
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load contacts.'); }).finally(() => clearTimeout(timeout));
     return () => { active = false; controller.abort(); clearTimeout(timeout); };
   }, [query, retry]);
   async function download() {
     setBusy(true); setError('');
     try {
-      const response = await fetch(`/api/admin/memberships/preferences?${query}&export=csv`, { cache: 'no-store' });
-      if (!response.ok) { const body = await response.json(); throw new Error(body.error || 'Could not export contacts.'); }
+      const response = await adminFetch(`/api/admin/memberships/preferences?${query}&export=csv`, { cache: 'no-store' });
+      if (!response.ok) await parseApiResponse(response);
       const url = URL.createObjectURL(await response.blob()); const link = document.createElement('a');
       link.href = url; link.download = 'NDCC-Opted-In-Contacts.csv'; link.click(); URL.revokeObjectURL(url);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not export contacts.'); }

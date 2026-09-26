@@ -107,6 +107,8 @@
     "test:public-read-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-read-cache.mjs",
     "test:dino-recovery": "node scripts/test-dino-recovery.mjs",
     "test:club-services": "node scripts/test-club-services.mjs",
+    "test:notification-recipients": "node scripts/test-notification-recipients.mjs",
+    "test:admin-cms-guardrails": "node scripts/test-admin-cms-guardrails.mjs",
     "test:club-member-dashboard": "node scripts/test-club-member-dashboard.cjs",
     "test:club-account-hub": "node scripts/test-club-account-hub.cjs",
     "test:club-services-ui": "node scripts/test-club-services-ui.cjs",

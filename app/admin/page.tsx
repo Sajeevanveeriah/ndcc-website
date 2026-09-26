@@ -43,6 +43,13 @@ interface ClubSeasonSummary {
   end_date: string;
 }
 
+interface AttentionItem {
+  key: string;
+  label: string;
+  href: string;
+  count: number | null;
+}
+
 interface DashboardHealth {
   draftNews: number | null;
   unpublishedEvents: number | null;
@@ -68,6 +75,7 @@ export default function AdminDashboardPage() {
   const [currentSeason, setCurrentSeason] = useState<ClubSeasonSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [canViewOperations, setCanViewOperations] = useState(false);
+  const [attention, setAttention] = useState<AttentionItem[]>([]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -77,12 +85,13 @@ export default function AdminDashboardPage() {
           adminFetch('/api/admin/dashboard', { cache: 'no-store' }),
           adminFetch('/api/admin/club-seasons', { cache: 'no-store' }),
         ]);
-        const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[]; canViewOperations?: boolean }>(response);
+        const data = await parseApiResponse<{ stats?: DashboardStats; health?: DashboardHealth; activity?: RecentActivity[]; canViewOperations?: boolean; attention?: AttentionItem[] }>(response);
         const seasonData = await parseApiResponse<{ seasons?: ClubSeasonSummary[] }>(seasonsResponse).catch(() => ({ seasons: [] }));
 
         setStats(data.stats || emptyStats);
         setCanViewOperations(data.canViewOperations === true);
         setHealth(data.health ?? null);
+        setAttention(Array.isArray(data.attention) ? data.attention : []);
         if (Array.isArray(data.activity) && data.activity.length > 0) {
           setActivity(data.activity);
         }
@@ -170,6 +179,22 @@ export default function AdminDashboardPage() {
               </ul>
             </div>
           </div>
+
+          {attention.length > 0 && (
+            <section aria-labelledby="needs-attention-title" className="mb-8 rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-sm">
+              <h2 id="needs-attention-title" className="text-sm font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Needs attention</h2>
+              <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {attention.map((item) => (
+                  <li key={item.key}>
+                    <Link href={item.href} className={`flex h-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm hover:border-maroon-300 focus-ring ${item.count ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100' : 'border-edge-subtle text-content-secondary'}`}>
+                      <span>{item.label}</span>
+                      <strong className="shrink-0 text-lg">{item.count === null ? 'Unavailable' : item.count}</strong>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {canViewOperations && <Link href="/admin/operations" className="btn-secondary mb-6">Website operations and email delivery</Link>}
           {/* CMS health strip */}
