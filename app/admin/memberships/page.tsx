@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Input from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
+import DeletionRequests from './DeletionRequests';
 
 type Plan = { id: string; name: string; description: string | null; price: number; is_active: boolean; sort_order: number };
 type Addon = { id: string; name: string; description: string | null; price: number; usage_limit: number | null; is_active: boolean; sort_order: number };
@@ -211,6 +212,8 @@ export default function AdminMembershipsPage() {
           ))}
         </div>
       </div>
+
+      <DeletionRequests />
 
       <div className="bg-surface-card border rounded-xl p-4">
         <div className="flex items-center justify-between gap-3 mb-3">

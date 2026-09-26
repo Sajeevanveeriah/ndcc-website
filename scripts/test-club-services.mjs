@@ -14,14 +14,20 @@ assert.equal(refs.parseRaffleReference('NDCCTRO-20260001',{code:'NDCCRRO',year_c
 assert.equal(refs.parseRaffleReference('NDCCTRO-20270001',{code:'NDCCRAF',year_code:'26'}),null);
 assert.equal(refs.parseRaffleReference('NDCCTRO-202600001'),null);
 let user=null;let writes=[];let filters=[];let limit=true;
-const db={from:table=>{assert.equal(table,'club_members');const chain={select:()=>chain,eq:(...args)=>{filters.push(args);return chain;},upsert:(record)=>{writes.push(record);return chain;},maybeSingle:async()=>({data:null,error:null}),single:async()=>({data:{id:'owned'},error:null})};return chain;}};
+let unclaimed=[];let claims=[];let lookups=[];
+const db={from:table=>{assert.equal(table,'club_members');let claiming=null;const chain={select:()=>chain,eq:(...args)=>{if(claiming)claiming.filters.push(['eq',...args]);else filters.push(args);return chain;},
+ is:(...args)=>{if(claiming)claiming.filters.push(['is',...args]);else lookups.push(['is',...args]);return chain;},ilike:(...args)=>{lookups.push(['ilike',...args]);return chain;},order:()=>chain,
+ limit:async()=>({data:unclaimed,error:null}),update:record=>{claiming={record,filters:[]};claims.push(claiming);return chain;},
+ upsert:(record)=>{writes.push(record);return chain;},maybeSingle:async()=>claiming?({data:{id:claiming.filters.find(f=>f[1]==='id')[2],membership_status:'active'},error:null}):({data:null,error:null}),single:async()=>({data:{id:'owned'},error:null})};return chain;}};
 const route=load('app/api/club-account/route.ts',{
  'next/server':{NextResponse:{json:(body,init)=>Response.json(body,init)}},
- '@/lib/fantasy-manager-auth':{getAuthUserFromRequest:async()=>user},
+ '@/lib/account/server-auth':{getAuthUserFromRequest:async()=>user},
  '@/lib/supabase-server':{createServerClient:()=>db},
  '@/lib/order-input-validation':{readLimitedJsonObject:async request=>({ok:true,value:await request.json()})},
  '@/lib/server/request-guards':{enforceRateLimit:async()=>limit},
  '@/lib/club-members':{parseClubMember},
+ '@/lib/club-account/claim':load('lib/club-account/claim.ts'),
+ '@/lib/club-account/purchases':load('lib/club-account/purchases.ts'),
 });
 const request=(body={...valid,privacyAccepted:true})=>new Request('https://example.invalid/api/club-account',{method:'POST',body:JSON.stringify(body)});
 assert.equal((await route.GET(request())).status,401);
@@ -35,6 +41,23 @@ assert.equal((await route.POST(request({...valid,privacyAccepted:true,auth_user_
 assert.equal(writes.length,1);assert.equal(writes[0].auth_user_id,'owner');assert.equal(writes[0].email,user.email);
 for(const field of ['id','membership_status','created_by'])assert.equal(writes[0][field],undefined);
 limit=false;assert.equal((await route.POST(request())).status,429);assert.equal(writes.length,1);
+assert.equal(claims.length,0,'No unclaimed record means no claim update');
+// A committee-created record with the same verified email is linked, not duplicated.
+limit=true;filters=[];lookups=[];
+unclaimed=[{id:'newer-active',email:'verified@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_at:'2026-09-02'},
+ {id:'older-active',email:'VERIFIED@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_at:'2026-09-01'},
+ {id:'claimed',email:'verified@example.invalid',membership_status:'active',auth_user_id:'someone',created_at:'2026-01-01'}];
+let claimedBody=await (await route.GET(request())).json();
+assert.equal(claimedBody.claimed,true);assert.equal(claims.length,1);assert.equal(claims[0].record.auth_user_id,'owner');
+assert.deepEqual(Object.keys(claims[0].record).sort(),['auth_user_id','updated_at'],'A claim never overwrites membership status or committee fields');
+assert.ok(claims[0].filters.some(f=>f[0]==='eq'&&f[1]==='id'&&f[2]==='older-active'));
+assert.ok(claims[0].filters.some(f=>f[0]==='is'&&f[1]==='auth_user_id'&&f[2]===null),'Claims are conditional on the record still being unclaimed');
+assert.ok(lookups.some(f=>f[0]==='ilike'&&f[1]==='email'&&f[2]==='verified@example.invalid'));
+// On a profile save the typed name picks the right record behind a shared family email.
+unclaimed=[...unclaimed,{id:'named-pending',email:'verified@example.invalid',full_name:'Test Member',membership_status:'pending',auth_user_id:null,created_at:'2026-09-03'}];
+assert.equal((await route.POST(request())).status,200);assert.equal(claims.length,2);
+assert.ok(claims[1].filters.some(f=>f[0]==='eq'&&f[1]==='id'&&f[2]==='named-pending'));
+assert.equal(writes.at(-1).membership_status,undefined);unclaimed=[];
 console.log('PASS confirmed account ownership, private reads, server-selected identity, no permission escalation, rate limits and new/legacy raffle references');
 const pricing=JSON.parse(readFileSync('data/dino-coach-researched-baselines-20260924.json','utf8'));
 for(const player of pricing.players){assert.equal(player.knownPoints,player.runs+10*(player.wickets+player.catches+player.stumpings));assert.equal(player.priceDinoDollars,Math.ceil((500000+Math.min(player.knownPoints/913,1)*1500000)/1000)*1000);}

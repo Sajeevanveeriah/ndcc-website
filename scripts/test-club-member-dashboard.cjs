@@ -32,7 +32,10 @@ const req = (body, search = '') => new Request(`https://example.invalid/api/club
     process: { env: {} }, Headers, AbortController, DOMException,
     fetch: async () => { if (abortAccountRead) throw new DOMException('Aborted', 'AbortError'); return Response.json(null); },
   });
-  const accountRequests = load('lib/club-account/browser.ts', { '@/lib/fantasy-browser': browserRequests });
+  const neutralRequests = load('lib/account/browser.ts', { '@/lib/fantasy-browser': browserRequests });
+  const accountRequests = load('lib/club-account/browser.ts', { '@/lib/account/browser': neutralRequests });
+  assert.throws(() => neutralRequests.getAccountBrowserClient(), /^Error: Account sign-in is not configured yet\.$/);
+  await assert.rejects(neutralRequests.accountJsonFetch('/api/club-account/export'), error => /account service returned an unreadable response/.test(error.message) && !/Dino|fantasy/i.test(error.message));
   await assert.rejects(accountRequests.clubAccountJsonFetch('/api/club-account'), /club account service returned an unreadable response/);
   abortAccountRead = true;
   await assert.rejects(accountRequests.clubAccountJsonFetch('/api/club-account'), /club account service is taking too long/);
@@ -62,7 +65,7 @@ const req = (body, search = '') => new Request(`https://example.invalid/api/club
     return chain;
   } };
   const preferencesRoute = load('app/api/club-account/preferences/route.ts', {
-    'next/server': next, '@/lib/fantasy-manager-auth': { getAuthUserFromRequest: async () => user }, '@/lib/supabase-server': { createServerClient: () => db },
+    'next/server': next, '@/lib/account/server-auth': { getAuthUserFromRequest: async () => user }, '@/lib/supabase-server': { createServerClient: () => db },
     '@/lib/order-input-validation': { readLimitedJsonObject: async request => ({ ok: true, value: await request.json() }) },
     '@/lib/server/request-guards': { enforceRateLimit: async () => rate }, '@/lib/club-account/preferences': preferenceLib,
   });
@@ -88,7 +91,7 @@ const req = (body, search = '') => new Request(`https://example.invalid/api/club
 
   let calls = [], orderError = false;
   const purchasesRoute = load('app/api/club-account/purchases/route.ts', {
-    'next/server': next, '@/lib/fantasy-manager-auth': { getAuthUserFromRequest: async () => user }, '@/lib/club-account/purchases': purchaseLib,
+    'next/server': next, '@/lib/account/server-auth': { getAuthUserFromRequest: async () => user }, '@/lib/club-account/purchases': purchaseLib,
     '@/lib/supabase-server': { createServerClient: () => ({ from(table) { calls.push(['from', table]); const chain = {};
       for (const method of ['select', 'ilike', 'is', 'order']) chain[method] = (...args) => { calls.push([method, ...args]); return chain; };
       chain.range = async (...args) => { calls.push(['range', ...args]); return { data: [row], count: 21, error: orderError ? new Error('private') : null }; }; return chain;
@@ -177,21 +180,32 @@ const req = (body, search = '') => new Request(`https://example.invalid/api/club
   assert.equal(tree.root.findAllByType('input').length, 0);
   await act(async () => tree.unmount());
 
-  const icons = Object.fromEntries(['CalendarDays', 'ShoppingBag', 'HeartHandshake', 'Newspaper', 'Utensils', 'Ticket', 'UserRound', 'Settings'].map(name => [name, props => React.createElement('span', props)]));
-  let degraded = false;
+  const icons = Object.fromEntries(['CalendarDays', 'ShoppingBag', 'HeartHandshake', 'Newspaper', 'Utensils', 'Ticket', 'UserRound', 'Settings', 'Trophy', 'ClipboardList'].map(name => [name, props => React.createElement('span', props)]));
+  let degraded = false, dinoLaunch = false;
   const Dashboard = load('components/club-account/MemberDashboard.tsx', { ...common, 'lucide-react': icons,
     '@/components/calendar/UpcomingEventsStrip': { default: props => React.createElement('p', null, props.events.length ? 'Events loaded' : props.emptyMessage) },
     '@/components/calendar/AddToCalendarButton': { default: () => React.createElement('button', null, 'Add calendar') },
     './MemberInterests': { default: () => React.createElement('p', null, 'Interest controls') }, './MemberPurchases': { default: () => React.createElement('p', null, 'Purchase history') }, './ShareLink': { default: () => null },
-  }, { fetch: async url => ({ ok: true, json: async () => ({ success: true, degraded, data: url.includes('/news') ? [{ id: 'news', title: 'Published club update', published_at: null }] : [] }) }), AbortController }).default;
+    './AccountSettings': { default: () => React.createElement('p', null, 'Account settings') }, './MemberBalance': { default: () => React.createElement('p', null, 'Balance summary') },
+    './MemberDinoCoach': { default: () => React.createElement('p', null, 'Dino summary') },
+  }, { fetch: async url => ({ ok: true, json: async () => url.includes('dino-coach-status') ? { enabled: dinoLaunch } : ({ success: true, degraded, data: url.includes('/news') ? [{ id: 'news', title: 'Published club update', published_at: null }] : [] }) }), AbortController }).default;
   await act(async () => { tree = create(React.createElement(Dashboard, { email: 'owner@example.invalid', name: 'Test Member', status: 'pending', profileComplete: true }, React.createElement('p', null, 'Edit details form'))); });
   assert.match(content(tree), /Published club update/); assert.match(content(tree), /awaiting review/);
   assert.ok(tree.root.findAllByProps({ href: '/kitchen' }).length);
   assert.equal(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 0);
-  await act(async () => button(tree, 'My purchases').props.onClick()); assert.match(content(tree), /Purchase history/);
-  await act(async () => button(tree, 'My details').props.onClick()); assert.match(content(tree), /Edit details form/);
+  assert.match(content(tree), /Balance summary/);
+  assert.equal(button(tree, 'Dino Coach'), undefined, 'Dino Coach tab stays hidden until public launch');
+  assert.equal(button(tree, 'Volunteer tools'), undefined, 'Volunteer tools are for active members only');
+  await act(async () => button(tree, 'My purchases and tickets').props.onClick()); assert.match(content(tree), /Purchase history/);
+  await act(async () => button(tree, 'My details').props.onClick()); assert.match(content(tree), /Edit details form/); assert.match(content(tree), /Account settings/);
   assert.ok(tree.root.findAllByProps({ href: '/club-account/reset-password' }).length);
-  await act(async () => tree.unmount()); degraded = true;
+  await act(async () => tree.unmount()); dinoLaunch = true;
+  await act(async () => { tree = create(React.createElement(Dashboard, { email: 'owner@example.invalid', name: 'Active Member', status: 'active', profileComplete: true }, null)); });
+  assert.equal(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 0, 'Cash sales live in the Volunteer tools tab, not the overview');
+  await act(async () => button(tree, 'Volunteer tools').props.onClick());
+  assert.ok(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 'Active members reach cash sales from Volunteer tools');
+  await act(async () => button(tree, 'Dino Coach').props.onClick()); assert.match(content(tree), /Dino summary/);
+  await act(async () => tree.unmount()); dinoLaunch = false; degraded = true;
   await act(async () => { tree = create(React.createElement(Dashboard, { email: 'owner@example.invalid', name: '', status: 'pending', profileComplete: false })); });
   await act(async () => button(tree, 'Overview').props.onClick()); assert.doesNotMatch(content(tree), /Published club update/); assert.match(content(tree), /temporarily unavailable/);
   await act(async () => tree.unmount());

@@ -28,7 +28,7 @@ const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }] },
   { label: 'Sponsors', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pot Club', href: '/pot-club' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }] },
-  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Record cash sales', href: '/raffle/cash' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }] },
+  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }] },
   { label: 'Contact', href: '/contact' },
 ];
 

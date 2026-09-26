@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUserFromRequest } from '@/lib/fantasy-manager-auth';
+import { getAuthUserFromRequest } from '@/lib/account/server-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { enforceRateLimit } from '@/lib/server/request-guards';
