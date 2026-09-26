@@ -34,6 +34,7 @@ const adminGroups: AdminGroup[] = [
   { title: 'Season', icon: ClipboardList, links: [
     { href: '/admin/season/new', label: 'Start New Season', plainLabel: 'Season setup wizard', icon: CalendarDays },
     { href: '/admin/season/registration', label: 'Player Registration', plainLabel: 'Seasonal registration page and terms', icon: ClipboardCheck },
+    { href: '/admin/season/playhq', label: 'PlayHQ Links', plainLabel: 'Link PlayHQ seasons, grades and teams; refresh fixtures', icon: Trophy },
     { href: '/admin/club-details', label: 'Club & Contact Details', plainLabel: 'Club name, contact details and settings', icon: Settings },
     { href: '/admin/teams', label: 'Teams', plainLabel: 'Teams and grades', icon: Users },
     { href: '/admin/season-appointments', label: 'Appointments', plainLabel: 'Coaches and appointments', icon: UserRoundCheck },

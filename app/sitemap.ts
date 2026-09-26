@@ -7,6 +7,7 @@ import { buildDetailEntries } from '@/lib/seo-sitemap';
 import { SITE_URL } from '@/lib/seo';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
 import type { PublicPlayerRegistration } from '@/lib/player-registration';
+import { buildTeamSlugs } from '@/lib/playhq/team-slug';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -91,6 +92,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   if (isPlayerRegistrationOpen(await getPublicPlayerRegistration())) {
     staticEntries.push({ url: `${baseUrl}/player-registration`, changeFrequency: 'weekly', priority: 0.9 });
+  }
+
+  // Public team pages (/teams/[slug]) for every active team card. Same read
+  // order and slug rule as lib/public-teams.ts getPublicTeamsWithSlugs().
+  const { data: teamRows, error: teamsError } = await createServerClient({ fetchTimeoutMs: 5_000 }).from('teams').select('name,sort_order,is_active').eq('is_active', true).order('sort_order', { ascending: true }).order('name', { ascending: true });
+  if (teamsError) throw new Error('Sitemap teams unavailable');
+  for (const { slug } of buildTeamSlugs((teamRows || []) as Array<{ name: string }>)) {
+    staticEntries.push({ url: `${baseUrl}/teams/${slug}`, changeFrequency: 'weekly', priority: 0.6 });
   }
 
   if (isCookieDoughOpen()) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });

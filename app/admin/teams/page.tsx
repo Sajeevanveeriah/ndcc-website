@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -18,9 +19,11 @@ type TeamRecord = Required<Pick<TeamInfo, 'id' | 'name' | 'grade' | 'description
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  // Added by 20260927070000_playhq_season_links.sql; set on /admin/season/playhq.
+  playhq_team_id?: string | null;
 };
 
-type TeamForm = Omit<TeamRecord, 'id' | 'created_at'>;
+type TeamForm = Omit<TeamRecord, 'id' | 'created_at' | 'playhq_team_id'>;
 
 const emptyTeam: TeamForm = {
   name: '',
@@ -164,6 +167,11 @@ export default function AdminTeamsPage() {
           <p className="text-content-muted font-body mt-1">
             Manage the team cards shown on the public Teams page. Active teams also update the homepage total automatically.
           </p>
+          <p className="text-sm text-content-muted font-body mt-1">
+            Link each card to its PlayHQ team in{' '}
+            <Link href="/admin/season/playhq" className="font-semibold text-maroon-700 underline dark:text-maroon-200">PlayHQ Links</Link>{' '}
+            to show fixtures, results and the ladder on the public team page.
+          </p>
         </div>
         <Button variant="primary" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1" />
@@ -193,6 +201,7 @@ export default function AdminTeamsPage() {
               <TableHeader>Grade</TableHeader>
               <TableHeader>Captain</TableHeader>
               <TableHeader>PlayHQ</TableHeader>
+              <TableHeader>PlayHQ team</TableHeader>
               <TableHeader>Image</TableHeader>
               <TableHeader>Order</TableHeader>
               <TableHeader>Status</TableHeader>
@@ -206,6 +215,7 @@ export default function AdminTeamsPage() {
                 <TableCell>{team.grade}</TableCell>
                 <TableCell>{team.captain || '—'}</TableCell>
                 <TableCell>{team.playhq_url ? 'Set' : 'None'}</TableCell>
+                <TableCell>{team.playhq_team_id ? <span title={team.playhq_team_id}>Linked</span> : 'Match by name'}</TableCell>
                 <TableCell>{team.image_url ? 'Set' : 'None'}</TableCell>
                 <TableCell>{team.sort_order}</TableCell>
                 <TableCell>
