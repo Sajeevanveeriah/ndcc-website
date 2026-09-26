@@ -10,6 +10,7 @@ import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
+import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNotice';
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
@@ -52,6 +53,9 @@ export default function AdminKitchenPage() {
       setExporting(false);
     }
   }
+  const [menusWritable, setMenusWritable] = useState(true);
+  const [itemsWritable, setItemsWritable] = useState(true);
+  const [ordersWritable, setOrdersWritable] = useState(true);
   const [menuForm, setMenuForm] = useState({ name: '', is_active: true });
   const [itemForm, setItemForm] = useState({ menu_id: '', name: '', description: '', image_url: '', price: '0', is_available: true, is_hidden: false, sort_order: '0' });
 
@@ -66,8 +70,9 @@ export default function AdminKitchenPage() {
   async function loadMenus() {
     try {
       const res = await adminFetch('/api/admin/resources/kitchenMenus', { cache: 'no-store' });
-      const data = await parseApiResponse<{ data?: Menu[] }>(res);
+      const data = await parseApiResponse<{ data?: Menu[]; canWrite?: boolean }>(res);
       setMenus(data.data || []);
+      setMenusWritable(responseCanWrite(data));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load menus.');
     }
@@ -76,8 +81,9 @@ export default function AdminKitchenPage() {
   async function loadItems() {
     try {
       const res = await adminFetch('/api/admin/resources/kitchenItems', { cache: 'no-store' });
-      const data = await parseApiResponse<{ data?: Item[] }>(res);
+      const data = await parseApiResponse<{ data?: Item[]; canWrite?: boolean }>(res);
       setItems(data.data || []);
+      setItemsWritable(responseCanWrite(data));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load items.');
     }
@@ -88,6 +94,12 @@ export default function AdminKitchenPage() {
       const res = await adminFetch('/api/admin/kitchen/orders?deleted=include', { cache: 'no-store' });
       const data = await parseApiResponse<{ data?: KitchenOrder[] }>(res);
       setOrders(data.data || []);
+      // Order changes are limited to administrators; read the capability flag
+      // from the resources API without loading the full list again.
+      void adminFetch('/api/admin/resources/kitchenOrders?limit=1', { cache: 'no-store' })
+        .then((capability) => parseApiResponse<{ canWrite?: boolean }>(capability))
+        .then((capability) => setOrdersWritable(responseCanWrite(capability)))
+        .catch(() => undefined);
     } catch(error) {
       setMessage(error instanceof Error?error.message:'Could not load kitchen orders.');
     }
@@ -302,6 +314,7 @@ export default function AdminKitchenPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Kitchen Management</h1>
       {message && <p className="text-sm text-content-secondary bg-surface-page border rounded px-3 py-2">{message}</p>}
+      {(!menusWritable || !itemsWritable || !ordersWritable) && <ReadOnlyNotice />}
 
       <KitchenOrderingControls />
 
@@ -309,7 +322,7 @@ export default function AdminKitchenPage() {
       <section className="bg-surface-card rounded-xl border p-5 space-y-4">
         <h2 className="text-lg font-semibold">Menus</h2>
 
-        {editingMenu ? (
+        {!menusWritable ? null : editingMenu ? (
           <form onSubmit={saveEditMenu} className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-lg p-3 bg-blue-50">
             <Input id="edit_menu_name" label="Menu name" required value={editMenuForm.name} onChange={(e) => setEditMenuForm((v) => ({ ...v, name: e.target.value }))} />
             <label className="inline-flex items-center gap-2 text-sm mt-8">
@@ -336,12 +349,12 @@ export default function AdminKitchenPage() {
           {menus.map((menu) => (
             <div key={menu.id} className="flex items-center justify-between border rounded-lg px-3 py-2 text-sm">
               <span className="font-medium">{menu.name} {menu.is_active && <span className="ml-1 text-green-600 text-xs">(Active)</span>}</span>
-              <div className="flex gap-2">
+              {menusWritable && <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => openEditMenu(menu)}>Edit</Button>
                 <Button size="sm" variant="ghost" onClick={() => deleteMenu(menu.id)}>
                   <span className="text-red-500">Delete</span>
                 </Button>
-              </div>
+              </div>}
             </div>
           ))}
           {menus.length === 0 && <p className="text-sm text-content-muted">No menus yet.</p>}
@@ -352,7 +365,7 @@ export default function AdminKitchenPage() {
       <section className="bg-surface-card rounded-xl border p-5 space-y-4">
         <h2 className="text-lg font-semibold">Menu Items</h2>
 
-        {editingItem ? (
+        {!itemsWritable ? null : editingItem ? (
           <form onSubmit={saveEditItem} className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-lg p-3 bg-blue-50">
             <label className="text-sm">Menu
               <select className="mt-1 w-full border rounded-lg px-3 py-2" value={editItemForm.menu_id} onChange={(e) => setEditItemForm((v) => ({ ...v, menu_id: e.target.value }))} required>
@@ -416,7 +429,7 @@ export default function AdminKitchenPage() {
                 {!item.is_available && <span className="ml-2 text-red-500 text-xs">Sold out</span>}
                 {item.is_hidden && <span className="ml-2 text-gray-400 text-xs">Hidden</span>}
               </div>
-              <div className="flex gap-1 flex-wrap justify-end">
+              {itemsWritable && <div className="flex gap-1 flex-wrap justify-end">
                 <Button size="sm" variant="ghost" onClick={() => openEditItem(item)}>Edit</Button>
                 <Button size="sm" variant="ghost" onClick={() => toggleItem(item, { is_available: !item.is_available })}>
                   {item.is_available ? 'Sold Out' : 'Available'}
@@ -427,7 +440,7 @@ export default function AdminKitchenPage() {
                 <Button size="sm" variant="ghost" onClick={() => deleteItem(item.id)}>
                   <span className="text-red-500">Delete</span>
                 </Button>
-              </div>
+              </div>}
             </div>
           ))}
           {items.length === 0 && <p className="text-sm text-content-muted">No items yet.</p>}
@@ -458,7 +471,7 @@ export default function AdminKitchenPage() {
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex flex-col gap-3 lg:flex-row lg:items-center justify-between">
               <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}</span>
               <div className="flex flex-wrap items-center gap-2">
-                {o.deleted_at?<Button size="sm" onClick={()=>restoreOrder(o.id)}>Restore order</Button>:<>
+                {!ordersWritable ? <span>{new Date(o.created_at).toLocaleString()}</span> : o.deleted_at?<Button size="sm" onClick={()=>restoreOrder(o.id)}>Restore order</Button>:<>
                 <label className="inline-flex items-center gap-1 text-xs">
                   <input
                     type="checkbox"

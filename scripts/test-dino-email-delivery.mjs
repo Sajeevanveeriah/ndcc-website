@@ -33,6 +33,8 @@ const module={exports:{}};
 new Function('require','module','exports',source)(id=>{
  if(id==='server-only')return {};
  if(id==='./manual')return manualModule.exports;
+ // CMS recipients unreadable: the hardcoded fallback copy list is used.
+ if(id==='@/lib/notification-recipients')return {getNotificationRecipients:async()=>['sajeevanveeriah@gmail.com']};
  if(id==='@/lib/email')return {sendEmail:async p=>{sendCount++;payloads.push(p);return fail?{status:'failed',reason:'temporary provider outage'}:{status:'sent',id:'provider-demo'};},emailHtml:(t,b)=>b,escapeEmailHtml:s=>s.replaceAll('<','&lt;').replaceAll('>','&gt;'),getTransactionalReplyTo:()=> 'ndcc.secretary1@gmail.com'};
  throw Error(id);
 },module,module.exports);

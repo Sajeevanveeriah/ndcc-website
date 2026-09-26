@@ -282,7 +282,7 @@ test('webhook, manual and import paths use the same durable two-call integration
 test('provider idempotency keys use stable payment identities', () => {
   assert.match(orderReceipt, /website-payment-receipt-\$\{paymentId\}/);
   assert.match(raffleEmail, /raffle-customer-receipt-\$\{orderId\}/);
-  assert.match(raffleEmail, /receiptRecipients\(order.customer_email, STAFF\)/);
+  assert.match(raffleEmail, /getReceiptRecipients\(order.customer_email, staff\)/);
   assert.doesNotMatch(raffleEmail, /raffle-(customer|staff)-\$\{eventId\}/);
   assert.match(dinoReceipt, /dino-coach-receipt-\$\{entryId\}/);
 });

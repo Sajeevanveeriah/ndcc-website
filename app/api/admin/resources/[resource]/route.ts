@@ -14,6 +14,7 @@ import { canDeleteResource } from '@/lib/auth/resource-delete';
 import { normaliseGoogleMapsEmbedUrl } from '@/lib/google-maps-embed';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 import { normaliseMediaUrl } from '@/lib/media-url';
+import { RESOURCE_VALIDATORS, friendlyDatabaseError } from '@/lib/admin-resource-validation';
 
 export const dynamic = 'force-dynamic';
 const EDITORIAL_TABLES = new Set(['news', 'publications', 'events', 'content_blocks']);
@@ -333,6 +334,23 @@ function seasonAppointmentsTableErrorResponse() {
   }, { status: 503 });
 }
 
+// Raw database messages stay in the server log; administrators see a
+// friendly explanation instead.
+function databaseErrorResponse(resource: string, action: string, error: { code?: string; message: string; details?: string | null; hint?: string | null }) {
+  console.error(`[admin/resources] ${action} ${resource} failed`, { code: error.code, message: error.message, details: error.details, hint: error.hint });
+  const friendly = friendlyDatabaseError(error);
+  return NextResponse.json({ success: false, error: friendly.error }, { status: friendly.status });
+}
+
+function loadErrorResponse(resource: string, error: { code?: string; message: string }) {
+  console.error(`[admin/resources] load ${resource} failed`, { code: error.code, message: error.message });
+  return NextResponse.json({ success: false, error: 'This list could not be loaded. Please refresh and try again.' }, { status: 500 });
+}
+
+function validateResourcePayload(resource: string, config: ResourceConfig, payload: Record<string, unknown>, isCreate: boolean) {
+  return config.validate?.(payload, isCreate) ?? RESOURCE_VALIDATORS[resource]?.(payload, isCreate) ?? null;
+}
+
 function isMissingImageUrlColumnError(errorMessage: string, table: string) {
   return table === 'news'
     && errorMessage.includes("Could not find the 'image_url' column")
@@ -365,6 +383,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 });
   }
 
+  // Optional capability flags so admin pages can show read-only views to
+  // users who may read but not change this resource. Server checks are unchanged.
+  const accessFlags = { canWrite: canWrite(user.role, config), canDelete: canDelete(user.role, config) && config.allowDelete !== false };
   const supabase = createServerClient({ actorId: user.id });
   const { searchParams } = new URL(request.url);
   const historyId = searchParams.get('history');
@@ -380,8 +401,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   let currentSeasonId: string | null = null;
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
-    if (currentSeasonError) return NextResponse.json({ success: false, error: currentSeasonError.message }, { status: 500 });
-    if (!currentSeason?.id) return NextResponse.json({ success: true, data: [] });
+    if (currentSeasonError) return loadErrorResponse(resource, currentSeasonError);
+    if (!currentSeason?.id) return NextResponse.json({ success: true, data: [], ...accessFlags });
     currentSeasonId = currentSeason.id;
   }
   const buildListQuery = () => {
@@ -417,16 +438,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
         return (stable ? query.order('id', { ascending: true }) : query).range(from, to);
       });
       if (fallback.error) {
-        return NextResponse.json({ success: false, error: fallback.error.message }, { status: 500 });
+        return loadErrorResponse(resource, fallback.error);
       }
-      return NextResponse.json({ success: true, data: fallback.data ?? [] });
+      return NextResponse.json({ success: true, data: fallback.data ?? [], ...accessFlags });
     }
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return loadErrorResponse(resource, error);
   }
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data, ...accessFlags });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ resource: string }> }) {
@@ -459,15 +480,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
       return NextResponse.json({ success: false, error: clubSettingsError }, { status: 400 });
     }
   }
-  const validationError = config.validate?.(payload, true) ?? null;
+  const validationError = validateResourcePayload(resource, config, payload, true);
   if (validationError) {
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
   const supabase = createServerClient({ actorId: user.id });
   if (config.table === 'season_appointments') {
     const { data: currentSeason, error: currentSeasonError } = await supabase.from('club_seasons').select('id').eq('is_current', true).limit(1).maybeSingle();
-    if (currentSeasonError || !currentSeason?.id) {
-      return NextResponse.json({ success: false, error: currentSeasonError?.message || 'Create a current club season before adding appointments.' }, { status: 400 });
+    if (currentSeasonError) {
+      console.error(`[admin/resources] current season lookup for ${resource} failed`, { code: currentSeasonError.code, message: currentSeasonError.message });
+      return NextResponse.json({ success: false, error: 'The current club season could not be checked. Please try again.' }, { status: 400 });
+    }
+    if (!currentSeason?.id) {
+      return NextResponse.json({ success: false, error: 'Create a current club season before adding appointments.' }, { status: 400 });
     }
     payload.club_season_id = currentSeason.id;
   }
@@ -495,7 +520,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ res
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return databaseErrorResponse(resource, 'create', error);
   }
   revalidateForResource(resource, data?.id, data);
   return NextResponse.json({ success: true, data });
@@ -546,7 +571,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
       return NextResponse.json({ success: false, error: clubSettingsError }, { status: 400 });
     }
   }
-  const validationError = config.validate?.(payload, false) ?? null;
+  const validationError = validateResourcePayload(resource, config, payload, false);
   if (validationError) {
     return NextResponse.json({ success: false, error: validationError }, { status: 400 });
   }
@@ -559,7 +584,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
       if (isMissingSeasonAppointmentsTableError(batchError.message, config.table)) {
         return seasonAppointmentsTableErrorResponse();
       }
-      return NextResponse.json({ success: false, error: batchError.message }, { status: 500 });
+      return databaseErrorResponse(resource, 'batch update', batchError);
     }
     revalidateForResourceBatch(resource, batchIds);
     return NextResponse.json({ success: true, count: batchData?.length ?? 0 });
@@ -596,7 +621,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     if (isMissingSeasonAppointmentsTableError(error.message, config.table)) {
       return seasonAppointmentsTableErrorResponse();
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return databaseErrorResponse(resource, 'update', error);
   }
   revalidateForResource(resource, id, data);
   return NextResponse.json({ success: true, data });

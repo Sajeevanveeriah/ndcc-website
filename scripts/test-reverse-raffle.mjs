@@ -201,7 +201,7 @@ const paid = { id: 'order-test',status:'paid',currency:'aud',amount_cents:12000,
 const emailDb = { from(table) { return {select(){return this;},eq(){return this;},limit(){return this;},
   async single(){return {data:paid};},async maybeSingle(){return {data:null};},update(){return this;},async is(){marked=true; return {};}};} };
 const mailer = load('lib/raffle-email.ts', {
-  '@/lib/payments/receipt-recipients':{receiptRecipients:email=>({to:email})},
+  '@/lib/notification-recipients':{getNotificationRecipients:async()=>[],getReceiptRecipients:async email=>({to:email})},
   '@/lib/supabase-server':{createServerClient:()=>emailDb},
   '@/lib/email':{emailHtml:(_,body)=>body,getTransactionalReplyTo:()=>undefined,sendEmail:async value=>{mail=value;return {status:'sent',id:'message-test'};}},
   '@/lib/payment-receipt-pdf':{buildPaymentReceiptFilename:()=> 'receipt.pdf',buildPaymentReceiptPdf:async data=>{if(paid.raffle_tickets[0].ticket_reference.startsWith('NDCCRRO'))assert.ok(data.descriptionLines.includes('Raffle numbers: 201, 202'));return 'pdf';}},

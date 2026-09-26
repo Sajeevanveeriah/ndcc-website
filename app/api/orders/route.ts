@@ -7,8 +7,7 @@ import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
 import { sendEmail, emailHtml, bankDetailsHtml } from '@/lib/email';
 import { escapeEmailHtml } from '@/lib/email-html';
-import { receiptRecipients } from '@/lib/payments/receipt-recipients';
-import { getStaffOrderRecipients } from '@/lib/order-notification-content';
+import { getReceiptRecipients, getStaffOrderNotificationRecipients } from '@/lib/notification-recipients';
 import { loadPricedCatalogue, priceOrderItems, type PostedOrderItem as PostedItem } from '@/lib/apparel/server-catalogue';
 import {
   PUBLIC_ORDER_LIMITS,
@@ -284,7 +283,7 @@ export async function POST(request: Request) {
       })
       .join('');
     if (payment_method === 'bank_transfer') await sendEmail({
-      ...receiptRecipients(sanitiseInput(customer_email), getStaffOrderRecipients('apparel')),
+      ...(await getReceiptRecipients(sanitiseInput(customer_email), await getStaffOrderNotificationRecipients('apparel'))),
       subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',

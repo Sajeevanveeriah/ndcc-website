@@ -23,7 +23,7 @@ type SessionUser = {
   permissions: PermissionKey[];
 };
 
-type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; usersOnly?: boolean };
+type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; usersOnly?: boolean; fullAccessOnly?: boolean };
 type AdminGroup = { title: string; icon: typeof LayoutDashboard; links: AdminLink[]; advanced?: boolean };
 
 const adminGroups: AdminGroup[] = [
@@ -73,6 +73,7 @@ const adminGroups: AdminGroup[] = [
   ] },
   { title: 'Administration', icon: Shield, advanced: true, links: [
     { href: '/admin/users', label: 'Users', icon: Users, usersOnly: true },
+    { href: '/admin/notifications', label: 'Notification Emails', plainLabel: 'Who receives club copies of website emails', icon: Mail, fullAccessOnly: true },
     { href: '/admin/email-diagnostics', label: 'Email Diagnostics', icon: Mail },
     { href: '/admin/media-diagnostics', label: 'Media Diagnostics', icon: Settings },
     { href: '/admin/change-password', label: 'Password', icon: KeyRound },
@@ -85,6 +86,7 @@ function groupsForUser(user: SessionUser, search: string, showAdvanced: boolean)
     ...group,
     links: group.links.filter((link) => {
       if (link.usersOnly && !canManageUsers(user.role)) return false;
+      if (link.fullAccessOnly && !isFullAccessRole(user.role)) return false;
       const permission = permissionForAdminPath(link.href);
       if (permission && !hasPermission(user, permission)) return false;
       const label = `${group.title} ${link.label} ${link.plainLabel || ''}`.toLowerCase();

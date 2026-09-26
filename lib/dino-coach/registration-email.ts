@@ -1,6 +1,7 @@
 import 'server-only';
 import { sendEmail, emailHtml, escapeEmailHtml, getTransactionalReplyTo } from '@/lib/email';
 import { DINO_MANUAL_FILENAME, DINO_MANUAL_URL } from './manual';
+import { getNotificationRecipients } from '@/lib/notification-recipients';
 import type { createServerClient } from '@/lib/supabase-server';
 
 type ServerClient = ReturnType<typeof createServerClient>;
@@ -12,9 +13,11 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
   if (!job) return { status: 'not_due' };
   const details = await supabase.from('fantasy_entries').select('fee_waived,is_demo').eq('id',entryId).single();
   if (details.error) throw new Error(details.error.message);
+  const registrationCopies = job.delivery ? [] : (await getNotificationRecipients('dino_registration_copy'))
+    .filter((email) => email !== String(job.recipient).trim().toLowerCase());
   const delivery = job.delivery || {
     to: job.recipient,
-    bcc: job.recipient.toLowerCase() === 'sajeevanveeriah@gmail.com' ? undefined : ['sajeevanveeriah@gmail.com'],
+    bcc: registrationCopies.length ? registrationCopies : undefined,
     replyTo: getTransactionalReplyTo(),
     subject: 'Dino Coach registration received',
     attachments: [{ filename: DINO_MANUAL_FILENAME, path: DINO_MANUAL_URL }],

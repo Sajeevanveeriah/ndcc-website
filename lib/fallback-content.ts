@@ -191,18 +191,15 @@ export function mergeSponsorsWithFallback<T extends Partial<Sponsor> & { name: s
   for (const sponsor of source) {
     const key = canonicalSponsorKey(sponsor.name);
     if (byCanonical.has(key)) continue;
-    const fallback = fallbackSponsors.find((item) => canonicalSponsorKey(item.name) === key);
     byCanonical.set(key, {
       ...sponsor,
       name: canonicalSponsorName(sponsor.name),
-      logo_url: sponsor.logo_url?.trim() ? sponsor.logo_url : fallback?.logo_url || getFallbackSponsorLogo(sponsor.name) || '',
-      website: sponsor.website?.trim() ? sponsor.website : fallback?.website || '',
-      description: sponsor.description?.trim() ? sponsor.description : fallback?.description,
     });
   }
-  // A non-empty live list is authoritative: fallback rows only backfill missing
-  // logo/website/description fields above, never re-add sponsors an admin removed
-  // or deactivated. The full fallback list serves only the cold-start/empty path.
+  // A non-empty live list is authoritative, field by field: a logo, website or
+  // description an admin cleared stays cleared, and sponsors an admin removed or
+  // deactivated are never re-added. The hardcoded fallback list is used only
+  // when the CMS returns no sponsors at all (or is unavailable).
   if (byCanonical.size > 0) return Array.from(byCanonical.values());
   return fallbackSponsors.map((sponsor) => ({ ...sponsor, name: canonicalSponsorName(sponsor.name) })) as Array<T & Sponsor>;
 }

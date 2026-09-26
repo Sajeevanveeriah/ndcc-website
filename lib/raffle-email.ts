@@ -1,5 +1,5 @@
 import 'server-only';
-import { receiptRecipients } from '@/lib/payments/receipt-recipients';
+import { getNotificationRecipients, getReceiptRecipients } from '@/lib/notification-recipients';
 import { createServerClient } from '@/lib/supabase-server';
 import { emailHtml, getTransactionalReplyTo, sendEmail } from '@/lib/email';
 import { buildPaymentReceiptFilename, buildPaymentReceiptPdf } from '@/lib/payment-receipt-pdf';
@@ -9,7 +9,6 @@ import { canRecordSimulatedReceiptDelivery } from '@/lib/payments/receipt-delive
 import { isCanonicalPaymentReference } from '@/lib/payments/reference';
 import { REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 
-const STAFF = ['ndsc.cricket@gmail.com', 'ndcc.vicepres@gmail.com', 'ndcc.secretary1@gmail.com'];
 const escape = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
 
 export async function sendPaidRaffleEmails(
@@ -86,7 +85,8 @@ export async function sendPaidRaffleEmails(
       ...ticketAttachments,
       { filename: receiptFilename, content: receipt, contentType: 'application/pdf' },
     ];
-    const result = await sendEmail({ ...receiptRecipients(order.customer_email, STAFF), replyTo: getTransactionalReplyTo(), subject: `NDCC raffle receipt - ${order.payment_reference}`,
+    const staff = await getNotificationRecipients('raffle_staff');
+    const result = await sendEmail({ ...(await getReceiptRecipients(order.customer_email, staff)), replyTo: getTransactionalReplyTo(), subject: `NDCC raffle receipt - ${order.payment_reference}`,
       html: emailHtml('Your paid raffle tickets', `<p>Hi ${escape(order.customer_name)},</p><p><strong>Purchaser:</strong> ${escape(order.customer_name)}<br><strong>Email:</strong> ${escape(order.customer_email)}<br><strong>Paid:</strong> $${(order.amount_cents / 100).toFixed(2)} AUD</p><p>${bankPayment ? 'NDCC has confirmed receipt of your bank transfer.' : cashPayment ? 'NDCC has recorded your cash payment.' : 'Stripe has confirmed your payment.'} Your payment reference is <strong>${escape(order.payment_reference)}</strong>.</p><p>Your ticket reference${references.length > 1 ? 's are' : ' is'}:</p><p style="font-size:18px;font-weight:bold;color:#800000">${references.map((ref: string) => ref.startsWith(`${REVERSE_RAFFLE_CAMPAIGN_CODE}-`) ? `Raffle number ${Number(ref.slice(-4))} - ${escape(ref)}` : escape(ref)).join('<br>')}</p>${campaign.draw_label ? `<p>${escape(campaign.draw_label)}</p>` : ''}<p>Your ticket image${references.length > 1 ? 's are' : ' is'} and payment receipt are attached.</p>`), attachments, idempotencyKey: `raffle-customer-receipt-${orderId}` });
     if (result.status !== 'sent' && result.status !== 'simulated') return { status: 'failed', reason: result.reason };
     if (result.status === 'simulated' && !canRecordSimulatedReceiptDelivery()) {

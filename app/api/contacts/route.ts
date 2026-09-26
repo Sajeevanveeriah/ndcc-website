@@ -2,7 +2,8 @@ import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { sanitiseInput } from '@/lib/utils';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
-import { sendEmail, emailHtml, getContactEmailRecipients } from '@/lib/email';
+import { sendEmail, emailHtml } from '@/lib/email';
+import { getContactNotificationRecipients } from '@/lib/notification-recipients';
 import { escapeEmailHtml } from '@/lib/email-html';
 import { readLimitedJsonObject, validateContactFormInput } from '@/lib/order-input-validation';
 
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
     }
 
     const timestamp = new Date().toISOString();
-    const contactConfig = getContactEmailRecipients();
+    const contactConfig = await getContactNotificationRecipients();
     const adminResult = await sendEmail({
       to: contactConfig.effectiveContactRecipient,
       cc: contactConfig.cc.length > 0 ? contactConfig.cc : undefined,
