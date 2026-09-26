@@ -232,5 +232,31 @@ const has = (state, method, ...args) => state.ops.some(op => op[0] === method &&
     const source = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(source.replace(/^\s*(\/\/|import).*$/gm, ''), /fantasy|Dino/i, `${file} must stay product-neutral`);
   }
+  // Confirmed email change reaches the club contact record.
+  {
+    const updates = [];
+    const profile = { id: 'm1', full_name: 'A Member', email: 'old@example.invalid', phone: null, member_type: 'social', membership_status: 'active', privacy_accepted_at: '2026-09-01', updated_at: null };
+    const db = { from: () => {
+      const chain = { select: () => chain, eq: () => chain,
+        update: record => { updates.push(record); chain.updating = true; return chain; },
+        maybeSingle: async () => ({ data: chain.updating ? { ...profile, email: 'new@example.invalid' } : profile, error: null }) };
+      return chain;
+    } };
+    const route = load('app/api/club-account/route.ts', {
+      'next/server': next,
+      '@/lib/account/server-auth': { getAuthUserFromRequest: async () => ({ id: 'u1', email: 'New@Example.invalid', email_confirmed_at: '2026-09-26' }) },
+      '@/lib/supabase-server': { createServerClient: () => db },
+      '@/lib/order-input-validation': { readLimitedJsonObject: async () => ({ ok: false }) },
+      '@/lib/server/request-guards': { enforceRateLimit: async () => true },
+      '@/lib/club-members': { parseClubMember: () => null },
+      '@/lib/club-account/claim': { selectClaimCandidate: () => null },
+      '@/lib/club-account/purchases': { exactEmailPattern: value => value },
+    });
+    const body = await (await route.GET(new Request('https://example.invalid/api/club-account'))).json();
+    assert.equal(updates.length, 1, 'A changed confirmed email updates the club record once');
+    assert.deepEqual(Object.keys(updates[0]).sort(), ['email', 'updated_at'], 'Only the email is synchronised');
+    assert.equal(updates[0].email, 'new@example.invalid');
+    assert.equal(body.profile.email, 'new@example.invalid');
+  }
   console.log('PASS club account hub: safe record claiming, private export shape, validated deletion requests without ledger deletion, read-only Dino Coach summary, admin actioning, email change and additive migrations');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -31,7 +31,17 @@ export async function GET(request: Request) {
   const db = createServerClient();
   const { data, error } = await db.from('club_members').select(fields).eq('auth_user_id', user.id).maybeSingle();
   if (error) return reply({ success: false, error: 'Your club profile could not be loaded. Please retry.' }, 503);
-  if (data) return reply({ success: true, profile: data, email: user.email });
+  if (data) {
+    // Keep the club contact record on the confirmed sign-in email, so a
+    // confirmed email change reaches committee exports and club emails.
+    const confirmedEmail = user.email.trim().toLowerCase();
+    if (typeof data.email === 'string' && data.email.trim().toLowerCase() !== confirmedEmail) {
+      const synced = await db.from('club_members').update({ email: confirmedEmail, updated_at: new Date().toISOString() })
+        .eq('auth_user_id', user.id).select(fields).maybeSingle();
+      if (!synced.error && synced.data) return reply({ success: true, profile: synced.data, email: user.email });
+    }
+    return reply({ success: true, profile: data, email: user.email });
+  }
   const claimed = await claimExistingRecord(db, user);
   return reply({ success: true, profile: claimed || null, email: user.email, ...(claimed ? { claimed: true } : {}) });
 }
