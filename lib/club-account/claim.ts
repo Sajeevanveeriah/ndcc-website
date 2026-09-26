@@ -12,6 +12,8 @@ export type ClaimCandidate = {
   membership_status: string | null;
   auth_user_id: string | null;
   created_at: string | null;
+  created_by?: string | null;
+  privacy_accepted_at?: string | null;
 };
 
 const normalEmail = (value: unknown) => typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -20,8 +22,9 @@ const normalName = (value: unknown) => typeof value === 'string' ? value.trim().
 /**
  * Choose at most one unclaimed record to link, or none when the match is not
  * unambiguous. A shared family email is not proof of identity, so:
- * - Only unclaimed rows whose email equals the verified email
- *   (case-insensitive, trimmed) are eligible.
+ * - Only unclaimed, never-owned committee rows (no privacy acceptance)
+ *   whose email equals the verified email (case-insensitive, trimmed) are
+ *   eligible.
  * - Without a name (first sign-in), a record is linked only when exactly one
  *   eligible record exists.
  * - With a name (profile save), only records whose full name matches are
@@ -31,7 +34,9 @@ const normalName = (value: unknown) => typeof value === 'string' ? value.trim().
 export function selectClaimCandidate(candidates: ClaimCandidate[], verifiedEmail: string, fullName?: string | null): ClaimCandidate | null {
   const email = normalEmail(verifiedEmail);
   if (!email) return null;
-  let eligible = candidates.filter(row => row && typeof row.id === 'string' && row.id && row.auth_user_id === null && normalEmail(row.email) === email);
+  // Never-owned committee records only (see the route's lookup filter).
+  let eligible = candidates.filter(row => row && typeof row.id === 'string' && row.id && row.auth_user_id === null && !row.privacy_accepted_at
+    && (row.created_by === undefined || Boolean(row.created_by)) && normalEmail(row.email) === email);
   const name = normalName(fullName);
   if (name) eligible = eligible.filter(row => normalName(row.full_name) === name);
   return eligible.length === 1 ? eligible[0] : null;

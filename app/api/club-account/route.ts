@@ -16,10 +16,22 @@ type Db = ReturnType<typeof createServerClient>;
 // update means a record claimed concurrently by someone else is never taken.
 // Returns undefined when the lookup itself failed.
 async function claimExistingRecord(db: Db, user: User, fullName?: string) {
-  const lookup = await db.from('club_members').select('id,email,full_name,membership_status,auth_user_id,created_at')
-    .is('auth_user_id', null).ilike('email', exactEmailPattern(user.email || '')).order('created_at').limit(25);
+  // Only records a committee member created and no account has ever owned:
+  // an account-owned record always has privacy acceptance, and a record with
+  // a deletion request must never pass to a new sign-in with the same email.
+  const lookup = await db.from('club_members').select('id,email,full_name,membership_status,auth_user_id,created_at,created_by,privacy_accepted_at')
+    .is('auth_user_id', null).is('privacy_accepted_at', null).not('created_by', 'is', null)
+    .ilike('email', exactEmailPattern(user.email || '')).order('created_at').limit(25);
   if (lookup.error) return undefined;
-  const pick = selectClaimCandidate((lookup.data || []) as ClaimCandidate[], user.email || '', fullName);
+  let candidates = (lookup.data || []) as ClaimCandidate[];
+  if (candidates.length) {
+    const requests = await db.from('club_account_deletion_requests').select('member_id').in('member_id', candidates.map((row) => row.id));
+    // A missing table (migration not applied) means no deletion history yet.
+    if (requests.error && !/club_account_deletion_requests/.test(requests.error.message || '')) return undefined;
+    const deleted = new Set((requests.data || []).map((row: { member_id: string | null }) => row.member_id));
+    candidates = candidates.filter((row) => !deleted.has(row.id));
+  }
+  const pick = selectClaimCandidate(candidates, user.email || '', fullName);
   if (!pick) return null;
   const claimed = await db.from('club_members').update({ auth_user_id: user.id, updated_at: new Date().toISOString() })
     .eq('id', pick.id).is('auth_user_id', null).select(fields).maybeSingle();

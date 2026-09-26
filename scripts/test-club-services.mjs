@@ -15,7 +15,9 @@ assert.equal(refs.parseRaffleReference('NDCCTRO-20270001',{code:'NDCCRAF',year_c
 assert.equal(refs.parseRaffleReference('NDCCTRO-202600001'),null);
 let user=null;let writes=[];let filters=[];let limit=true;
 let unclaimed=[];let claims=[];let lookups=[];
-const db={from:table=>{assert.equal(table,'club_members');let claiming=null;const chain={select:()=>chain,eq:(...args)=>{if(claiming)claiming.filters.push(['eq',...args]);else filters.push(args);return chain;},
+let deletionRequests=[];
+const db={from:table=>{if(table==='club_account_deletion_requests'){const req={select:()=>req,in:async(field,ids)=>({data:deletionRequests.filter(r=>ids.includes(r.member_id)),error:null})};return req;}
+ assert.equal(table,'club_members');let claiming=null;const chain={select:()=>chain,not:(...args)=>{lookups.push(['not',...args]);return chain;},eq:(...args)=>{if(claiming)claiming.filters.push(['eq',...args]);else filters.push(args);return chain;},
  is:(...args)=>{if(claiming)claiming.filters.push(['is',...args]);else lookups.push(['is',...args]);return chain;},ilike:(...args)=>{lookups.push(['ilike',...args]);return chain;},order:()=>chain,
  limit:async()=>({data:unclaimed,error:null}),update:record=>{claiming={record,filters:[]};claims.push(claiming);return chain;},
  upsert:(record)=>{writes.push(record);return chain;},maybeSingle:async()=>claiming?({data:{id:claiming.filters.find(f=>f[1]==='id')[2],membership_status:'active'},error:null}):({data:null,error:null}),single:async()=>({data:{id:'owned'},error:null})};return chain;}};
@@ -63,6 +65,14 @@ unclaimed=[...unclaimed,{id:'named-pending',email:'verified@example.invalid',ful
 assert.equal((await route.POST(request())).status,200);assert.equal(claims.length,2);
 assert.ok(claims[1].filters.some(f=>f[0]==='eq'&&f[1]==='id'&&f[2]==='named-pending'));
 assert.equal(writes.at(-1).membership_status,undefined);unclaimed=[];
+assert.ok(lookups.some(f=>f[0]==='is'&&f[1]==='privacy_accepted_at'&&f[2]===null),'Records an account ever owned (privacy accepted) are never auto-claimed');
+assert.ok(lookups.some(f=>f[0]==='not'&&f[1]==='created_by'),'Only committee-created records are claimable');
+// A record with a deletion request is never passed to a new sign-in.
+unclaimed=[{id:'deleted-member',email:'verified@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_by:'admin',privacy_accepted_at:null,created_at:'2026-09-01'}];
+deletionRequests=[{member_id:'deleted-member'}];const claimsBefore=claims.length;
+let deletedBody=await (await route.GET(request())).json();
+assert.equal(deletedBody.claimed,undefined);assert.equal(claims.length,claimsBefore,'Deleted-account records are not auto-claimed');
+deletionRequests=[];unclaimed=[];
 console.log('PASS confirmed account ownership, private reads, server-selected identity, no permission escalation, rate limits and new/legacy raffle references');
 const pricing=JSON.parse(readFileSync('data/dino-coach-researched-baselines-20260924.json','utf8'));
 for(const player of pricing.players){assert.equal(player.knownPoints,player.runs+10*(player.wickets+player.catches+player.stumpings));assert.equal(player.priceDinoDollars,Math.ceil((500000+Math.min(player.knownPoints/913,1)*1500000)/1000)*1000);}
