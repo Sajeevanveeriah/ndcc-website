@@ -11,7 +11,7 @@ import { cache, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, CalendarDays, Camera, ExternalLink, HandHeart, Info, Mail, Newspaper, ShoppingBag, Trophy, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Camera, Coins, ExternalLink, HandHeart, Info, Mail, MapPin, Newspaper, ShoppingBag, Trophy, Users } from 'lucide-react';
 import {
   CLUB_NAME,
   CLUB_NICKNAME,
@@ -113,6 +113,7 @@ export const metadata: Metadata = {
 function SectionHeading({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-2" data-reveal="">
+      <span aria-hidden="true" className="brand-rule basis-full" />
       <h2 id={id} className="font-display text-3xl font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl">{title}</h2>
       {children && <div className="flex flex-wrap gap-x-6">{children}</div>}
     </div>
@@ -152,7 +153,7 @@ function HeroView({
         <div className="club-home-copy">
           <p className="club-kicker"><span aria-hidden="true" className="mr-2.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-gold-400 align-middle" />Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
           <h1 id="home-title" className="club-home-title">{title}</h1>
-          <p className="mt-5 font-display text-2xl font-medium tracking-[-0.03em] text-maroon-700 sm:text-3xl dark:text-sky_accent">Home of the {CLUB_NICKNAME}.</p>
+          <p className="mt-5 font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl"><span className="text-brand-gradient">Home of the {CLUB_NICKNAME}.</span></p>
           {season && <p className="mt-3 text-base text-content-muted">{season}</p>}
           {body && !/^Home of the (Mighty )?Dinos/i.test(body) && <p className="mt-5 max-w-xl text-lg leading-relaxed text-content-secondary">{body}</p>}
           <div className="mt-9 flex flex-wrap gap-3">
@@ -166,7 +167,10 @@ function HeroView({
           )}
           {stats}
         </div>
-        <ClubIntro />
+        <div className="relative">
+          <div aria-hidden="true" className="absolute -inset-6 -z-10 rounded-[3rem] bg-gradient-to-br from-maroon-700/25 via-sky_accent/25 to-gold-400/30 blur-3xl dark:from-maroon-600/40 dark:via-sky_accent/10 dark:to-gold-400/15" />
+          <ClubIntro />
+        </div>
       </div>
     </section>
   );
@@ -214,38 +218,49 @@ function ExternalLinkIcon() {
   return <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />;
 }
 
-function MatchDayRow({ entry, clubPlayHQUrl }: { entry: MatchDayEntry; clubPlayHQUrl: string }) {
+function MatchDayCard({ entry, clubPlayHQUrl }: { entry: MatchDayEntry; clubPlayHQUrl: string }) {
   const grade = entry.gradeName && entry.gradeName !== entry.teamName ? entry.gradeName : null;
   const fixture = entry.fixture;
+  if (!fixture) return null;
+  const home = /home/i.test(fixture.homeAway || '');
   return (
-    <li className="grid gap-x-6 gap-y-1 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_auto] md:items-center">
-      <p className="font-display text-lg font-semibold text-content-primary">
-        {entry.teamName}
-        {grade && <span className="block font-body text-sm font-normal text-content-muted">{grade}</span>}
-      </p>
-      {fixture ? (
-        <>
-          <p className="text-base font-semibold text-content-primary">
-            {fixture.startsAt ? <time dateTime={fixture.startsAt}>{formatMatchDayDate(fixture.startsAt)}</time> : 'Date TBC'}
-          </p>
-          <p className="text-base text-content-secondary">
-            <span className="font-semibold text-content-primary">{fixture.homeAway}</span> v {fixture.opponent}
-            {fixture.venue && <span className="block text-sm text-content-muted">{fixture.venue}</span>}
-          </p>
-          <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link gap-1.5 text-sm font-semibold">
-            View on PlayHQ<span className="sr-only">: {entry.teamName} v {fixture.opponent}</span>
-            <ExternalLinkIcon />
-          </a>
-        </>
-      ) : entry.state === 'unavailable' ? (
-        <p className="text-base text-content-muted md:col-span-3">
+    <li className="card card-interactive fixture-card">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-content-primary">
+          <CalendarDays className="h-4 w-4 text-maroon-700 dark:text-sky_accent" aria-hidden="true" />
+          {fixture.startsAt ? <time dateTime={fixture.startsAt}>{formatMatchDayDate(fixture.startsAt)}</time> : 'Date TBC'}
+        </span>
+        {fixture.homeAway && <span className={home ? 'badge-home' : 'badge-away'}>{fixture.homeAway}</span>}
+      </div>
+      <div>
+        <p className="font-display text-xl font-semibold tracking-[-0.02em] text-content-primary">{entry.teamName}</p>
+        {grade && <p className="text-sm text-content-muted">{grade}</p>}
+      </div>
+      <div className="mt-auto border-t border-edge-subtle pt-4 dark:border-white/10">
+        <p className="text-base text-content-secondary"><span className="text-content-muted">v</span> <span className="font-semibold text-content-primary">{fixture.opponent}</span></p>
+        {fixture.venue && <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-content-muted"><MapPin className="h-3.5 w-3.5" aria-hidden="true" />{fixture.venue}</p>}
+        <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link mt-1 flex gap-1.5 text-sm font-semibold">
+          View on PlayHQ<span className="sr-only">: {entry.teamName} v {fixture.opponent}</span>
+          <ExternalLinkIcon />
+        </a>
+      </div>
+    </li>
+  );
+}
+
+function PendingFixtureRow({ entry, clubPlayHQUrl }: { entry: MatchDayEntry; clubPlayHQUrl: string }) {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3">
+      <span className="font-semibold text-content-primary">{entry.teamName}</span>
+      {entry.state === 'unavailable' ? (
+        <span className="text-sm text-content-muted">
           Fixture details could not be loaded here.{' '}
           <a href={clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link text-sm font-semibold">
             Check PlayHQ<span className="sr-only"> for {entry.teamName}</span>
           </a>
-        </p>
+        </span>
       ) : (
-        <p className="text-base text-content-muted md:col-span-3">Fixture not yet released by GCA</p>
+        <span className="text-sm text-content-muted">Fixture not yet released by GCA</span>
       )}
     </li>
   );
@@ -265,15 +280,22 @@ function FixturesView({
   matchDay?: HomeMatchDay;
 }) {
   return (
-    <section className="border-b border-edge-subtle bg-surface-card py-14 sm:py-20" aria-labelledby="home-fixtures-title">
+    <section className="home-band border-b border-edge-subtle py-14 sm:py-20" aria-labelledby="home-fixtures-title">
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="home-fixtures-title" title={matchDay ? 'Next matches' : 'Fixtures'}>
           <Link href="/fixtures" className={headingLinkClass}>Fixtures and results</Link>
         </SectionHeading>
-        {matchDay && (
-          <ul className="mb-10 divide-y divide-edge-subtle border-y border-edge-subtle" aria-label="Next fixture for each NDCC team" data-reveal-stagger="">
-            {matchDay.board.map((entry) => <MatchDayRow key={entry.teamId} entry={entry} clubPlayHQUrl={matchDay.clubPlayHQUrl} />)}
+        {matchDay && matchDay.board.some((entry) => entry.fixture) && (
+          <ul className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Next fixture for each NDCC team" data-reveal-stagger="">
+            {matchDay.board.filter((entry) => entry.fixture).map((entry) => <MatchDayCard key={entry.teamId} entry={entry} clubPlayHQUrl={matchDay.clubPlayHQUrl} />)}
           </ul>
+        )}
+        {matchDay && matchDay.board.some((entry) => !entry.fixture) && (
+          <div className="glass-panel mb-10 px-5 py-2">
+            <ul className="divide-y divide-edge-subtle dark:divide-white/10" aria-label="Teams awaiting their next fixture">
+              {matchDay.board.filter((entry) => !entry.fixture).map((entry) => <PendingFixtureRow key={entry.teamId} entry={entry} clubPlayHQUrl={matchDay.clubPlayHQUrl} />)}
+            </ul>
+          </div>
         )}
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div className="max-w-3xl">
@@ -320,12 +342,12 @@ function ComingUpRow({ item, kindLabel }: { item: ComingUpItem; kindLabel: strin
   const cancelled = item.status === 'cancelled';
   const content = (
     <>
-      <span className="flex flex-col items-center border-r border-edge-subtle pr-4 text-center">
+      <span className="date-tile">
         {parts && (
           <>
-            <span className="text-sm font-semibold uppercase text-maroon-700 dark:text-maroon-300">{parts.weekday}</span>
-            <span className="font-display text-3xl font-semibold leading-tight text-content-primary">{parts.day}</span>
-            <span className="text-sm text-content-muted">{parts.month}</span>
+            <span className="text-xs font-semibold uppercase leading-none tracking-wide text-maroon-700 dark:text-sky_accent">{parts.weekday}</span>
+            <span className="font-display text-2xl font-semibold leading-tight text-content-primary">{parts.day}</span>
+            <span className="text-xs leading-none text-content-muted">{parts.month}</span>
           </>
         )}
       </span>
@@ -339,7 +361,7 @@ function ComingUpRow({ item, kindLabel }: { item: ComingUpItem; kindLabel: strin
       </span>
     </>
   );
-  const rowClass = 'group grid min-h-11 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-4 py-4 focus-ring';
+  const rowClass = 'group grid min-h-11 grid-cols-[4rem_minmax(0,1fr)] items-center gap-5 py-4 focus-ring';
   return (
     <li>
       {item.external ? (
@@ -578,6 +600,8 @@ const GET_INVOLVED_LINKS = [
   { href: '/contact', label: 'Contact the club' },
 ];
 
+const GET_INVOLVED_ICONS: Record<string, LucideIcon> = { '/join': Users, '/volunteer': HandHeart, '/pot-club': Coins, '/merchandise': ShoppingBag, '/contact': Mail };
+
 function JuniorVoucherBlock({ vouchers: VOUCHERS }: { vouchers: JuniorGetActiveVouchers | null }) {
   if (!VOUCHERS) return null;
   return (
@@ -613,12 +637,19 @@ function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, vouchers, 
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="get-involved-title" title={title} />
         {intro && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{intro}</p>}
-        <ul className="flex flex-wrap gap-x-8 gap-y-1">
-          {GET_INVOLVED_LINKS.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} className="club-text-link text-lg font-semibold">{link.label}</Link>
-            </li>
-          ))}
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" data-reveal-stagger="">
+          {GET_INVOLVED_LINKS.map((link) => {
+            const Icon = GET_INVOLVED_ICONS[link.href] || ArrowRight;
+            return (
+              <li key={link.href}>
+                <Link href={link.href} className="group card card-interactive involve-tile focus-ring">
+                  <span className="involve-icon"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                  <span className="min-w-0 flex-1 font-display text-lg font-semibold tracking-[-0.02em] text-content-primary">{link.label}</span>
+                  <ArrowRight className="h-4 w-4 flex-none text-content-muted transition-colors group-hover:text-maroon-700 dark:group-hover:text-sky_accent" aria-hidden="true" />
+                </Link>
+              </li>
+            );
+          })}
         </ul>
         {hasPromotions && (
           <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">

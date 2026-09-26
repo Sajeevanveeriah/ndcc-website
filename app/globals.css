@@ -232,6 +232,16 @@
     @apply relative z-10;
   }
 
+  /* Faint gold dot texture fading in from the right edge of inner heroes. */
+  .page-hero::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background-image: radial-gradient(rgb(237 194 102 / 0.22) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 45% 90% at 100% 40%, black, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 45% 90% at 100% 40%, black, transparent 70%);
+  }
+
   .page-hero-title {
     @apply mb-4 font-display font-semibold;
     font-size: clamp(2.5rem, 5vw, 4.5rem);
@@ -414,7 +424,62 @@ body.marquee-page-hidden .homepage-marquee-track {
 
 /* NDCC club identity: clear type, real photography and cricket-blue wayfinding. */
 @layer components {
-  .club-home-hero { @apply border-b border-edge-subtle bg-surface-page; }
+  /* Home hero: soft club-colour light (maroon, blue, gold) over the page
+     surface with a faint dot texture that fades out, for depth without noise. */
+  .club-home-hero {
+    @apply relative isolate overflow-hidden border-b border-edge-subtle;
+    background:
+      radial-gradient(55% 65% at 6% -5%, rgb(136 0 0 / 0.11), transparent 62%),
+      radial-gradient(45% 60% at 96% 45%, rgb(140 198 209 / 0.26), transparent 62%),
+      radial-gradient(40% 45% at 55% 115%, rgb(237 194 102 / 0.20), transparent 62%),
+      rgb(var(--surface-page));
+  }
+  .club-home-hero::before {
+    content: '';
+    @apply pointer-events-none absolute inset-0 -z-10;
+    background-image: radial-gradient(rgb(var(--text-primary) / 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 70% 60% at 25% 35%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 25% 35%, black, transparent 75%);
+  }
+  .dark .club-home-hero {
+    background:
+      radial-gradient(55% 70% at 6% -5%, rgb(136 0 0 / 0.42), transparent 62%),
+      radial-gradient(45% 60% at 96% 45%, rgb(140 198 209 / 0.14), transparent 62%),
+      radial-gradient(40% 45% at 55% 115%, rgb(237 194 102 / 0.10), transparent 62%),
+      rgb(var(--surface-page));
+  }
+  /* Maroon to deep gold in light mode, club blue to gold in dark mode. */
+  .text-brand-gradient {
+    background-image: linear-gradient(95deg, #880000 0%, #a3281c 45%, #89703b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dark .text-brand-gradient { background-image: linear-gradient(95deg, #8cc6d1 0%, #b3d9e0 45%, #edc266 100%); }
+  .glass-panel {
+    @apply rounded-3xl border border-edge-subtle bg-surface-card/70 backdrop-blur-xl;
+    box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 20px 40px -28px rgba(45, 0, 0, 0.30);
+  }
+  .dark .glass-panel { @apply bg-white/[0.04] border-white/10; }
+  .brand-rule { @apply mb-4 block h-1 w-12 rounded-full; background-image: linear-gradient(90deg, #880000, #edc266); }
+  .dark .brand-rule { background-image: linear-gradient(90deg, #8cc6d1, #edc266); }
+  .home-band { @apply relative; background: linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page))); }
+  .dark .home-band { background: linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%); }
+  .fixture-card {
+    @apply flex h-full flex-col gap-4 p-5;
+  }
+  .dark .fixture-card { @apply bg-white/[0.035] border-white/10; }
+  .badge-home { @apply inline-flex items-center rounded-full bg-maroon-700 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-white; }
+  .badge-away { @apply inline-flex items-center rounded-full bg-sky_accent px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-navy; }
+  .date-tile { @apply flex h-16 w-16 flex-none flex-col items-center justify-center rounded-2xl border border-edge-subtle bg-surface-card text-center; }
+  .dark .date-tile { @apply bg-white/[0.04] border-white/10; }
+  .involve-tile {
+    @apply flex min-h-24 items-center gap-4 p-5;
+  }
+  .dark .involve-tile { @apply bg-white/[0.035] border-white/10; }
+  .involve-icon { @apply flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-maroon-50 text-maroon-700; }
+  .dark .involve-icon { @apply bg-maroon-900/60 text-maroon-100; }
   .club-home-copy { @apply min-w-0 py-2; }
   .club-kicker { @apply block text-xs font-semibold uppercase leading-relaxed tracking-[0.16em] text-maroon-700 dark:text-sky_accent; }
   .club-home-title { font-size: clamp(2.75rem, 5.6vw, 5.25rem); line-height: 1.0; letter-spacing: -.05em; text-wrap: balance; @apply mt-5 font-display font-semibold text-content-primary; }
