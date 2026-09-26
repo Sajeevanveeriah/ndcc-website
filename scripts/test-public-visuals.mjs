@@ -81,6 +81,9 @@ assert.match(home, /<CricketBall className="cricket-ball-hero" \/>/);
 assert.match(home, /<StumpsIcon className=/);
 const css = readFileSync('app/globals.css', 'utf8');
 assert.match(css, /\.cricket-ball-turn \{ animation: ndcc-ball-turn 120s linear infinite; \}/);
+// The inner-page seam outline is part of the same approved concept and stays decorative.
+assert.match(css, /\.page-hero::before \{\s*content: '';\s*@apply pointer-events-none/);
+assert.match(readFileSync('AGENTS.md', 'utf8'), /faint ball-seam outline on inner page heroes \(`\.page-hero::before` in `app\/globals\.css`\)/);
 assert.match(css, /@media \(prefers-reduced-motion: reduce\), print \{\s*\.cricket-ball-turn \{ animation: none; \}/);
 assert.match(css, /\.brand-rule \{[^}]*repeating-linear-gradient/);
 assert.match(css, /\.home-band \{[^}]*repeating-linear-gradient\(90deg/);
