@@ -7,6 +7,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { CLUB_NICKNAME } from '@/lib/constants';
 import { getPublicTeams } from '@/lib/public-teams';
+import { buildTeamSlugs } from '@/lib/playhq/team-view';
 
 const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',
@@ -24,6 +25,8 @@ export const metadata: Metadata = pageMetadata("/teams", "Cricket teams", "Explo
 
 export default async function TeamsPage() {
   const teams = await getPublicTeams();
+  // Same deterministic slugs as /teams/[slug] (getPublicTeamsWithSlugs).
+  const slugs = new Map(buildTeamSlugs(teams).map(({ team, slug }) => [team, slug]));
 
   return (
     <>
@@ -120,6 +123,10 @@ export default async function TeamsPage() {
                           <span className="font-semibold">Captain:</span> {team.captain}
                         </p>
                       )}
+                      <div className="flex flex-wrap items-center gap-3">
+                      <Link href={`/teams/${slugs.get(team)}`} className="btn-primary text-sm inline-flex items-center">
+                        Team page<span className="sr-only">: {team.name} fixtures and results</span>
+                      </Link>
                       {team.playhq_url && (
                         <a
                           href={team.playhq_url}
@@ -133,6 +140,7 @@ export default async function TeamsPage() {
                           </svg>
                         </a>
                       )}
+                      </div>
                     </CardContent>
                   </div>
                 </Card>

@@ -89,6 +89,8 @@ const publicClient = load('lib/playhq/client.ts', {
   'server-only': {}, 'next/cache': { unstable_cache: fn => fn },
   '@/lib/club-seasons': { getCurrentClubSeason: async () => ({ slug: '2026-27', name: '2026/2027' }) },
   './season-match': publicSeason, './normalise': normalise,
+  // No saved PlayHQ mappings: the automatic discovery path is exercised.
+  './mapping': load('lib/playhq/mapping.ts', { './season-match': publicSeason }), './mapping-store': { loadPlayHQMappings: async () => null },
   './config': { LEGACY_BASE_URL: 'https://legacy.example.invalid', getPlayHQConfig: () => ({
     configured: true, apiKey: 'test-fixture', organisationId: 'club', tenant: 'ca',
     baseUrl: 'https://api.example.invalid', defaultGradeIds: [], revalidateSeconds: 300,

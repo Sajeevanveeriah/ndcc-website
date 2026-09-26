@@ -13,6 +13,8 @@ export type PlayHQFixture = {
   homeScore?: string | null;
   awayScore?: string | null;
   playHQUrl?: string | null;
+  /** PlayHQ ids of the NDCC teams whose feed returned this game (mapped mode only). */
+  clubTeamIds?: string[];
 };
 export type PlayHQLadderRow = { gradeId: string; gradeName: string; teamName: string; position: number | null; played: number | null; points: number | null; percentage?: number | null };
 export type PlayHQPublicData = {
@@ -27,6 +29,8 @@ export type PlayHQPublicData = {
   ladders: PlayHQLadderRow[];
   error?: string | null;
   warnings?: string[];
+  /** 'mapped' when saved admin mappings selected the seasons/grades/teams. Absent for automatic discovery. */
+  source?: 'mapped';
 };
 export type PlayHqPlayerInput = {
   id?: string;

@@ -22,7 +22,7 @@ type PermissionDefinition = {
 
 const registry = {
   dashboard: { group: 'Home', label: 'Dashboard', href: '/admin', scope: 'club' },
-  'season.setup': { group: 'Season', label: 'Start New Season', href: '/admin/season/new', scope: 'club' },
+  'season.setup': { group: 'Season', label: 'Start New Season', href: '/admin/season/new', scope: 'club', aliases: ['/admin/season/playhq'] },
   'season.registration': { group: 'Season', label: 'Player Registration', href: '/admin/season/registration', scope: 'club' },
   'club.details': { group: 'Season', label: 'Club Details / Contact Details', href: '/admin/club-details', scope: 'club', aliases: ['/admin/club-settings'] },
   teams: { group: 'Season', label: 'Teams', href: '/admin/teams', scope: 'club' },
