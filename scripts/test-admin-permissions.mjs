@@ -161,3 +161,18 @@ for (const fragment of [
 assert.doesNotMatch(migration, /WHERE\s+(?:lower\()?email|WHERE\s+full_name/i, 'Migration must not infer role changes from names or email addresses.');
 
 console.log('Admin permission policy checks passed.');
+
+// Instant CMS shell: the last confirmed session user is cached per tab only,
+// the server check always runs, and any failed or signed-out check clears it.
+assert.match(layout, /window\.sessionStorage\.getItem\(SESSION_CACHE_KEY\)/, 'Session cache is tab-scoped sessionStorage.');
+assert.doesNotMatch(layout, /localStorage/, 'The admin session cache never persists beyond the tab.');
+assert.match(layout, /SESSION_CACHE_MAX_AGE_MS = 10 \* 60 \* 1000/, 'Cached sessions expire with the inactivity window.');
+assert.match(layout, /runSessionCheck\(0, true, Boolean\(cached\)\)/, 'The server session check always runs, in the background when cached.');
+assert.equal((layout.match(/writeCachedSessionUser\(null\)/g) || []).length >= 5, true, 'Every failed, expired or signed-out path clears the cache.');
+assert.match(layout, /if \(!user \|\| !sessionVerified \|\| isLoginPage \|\| canAccessPath\(user, pathname\)\) return;/, 'Access redirects wait for the live session check, never a cached identity.');
+assert.match(layout, /setSessionVerified\(Boolean\(data\.user\)\)/, 'Only a confirmed server session marks the identity verified.');
+assert.match(layout, /if \(isLoginPage\) \{(?:\s*\/\/[^\n]*)*\s*invalidateSessionChecks\(\);\s*writeCachedSessionUser\(null\);\s*setSessionVerified\(false\);\s*setUser\(null\);/, 'The sign-in page abandons in-flight checks and drops any previous administrator identity.');
+assert.match(layout, /const isCurrent = \(\) => generation === sessionGenerationRef\.current;/, 'Each session check is tied to a generation.');
+assert.ok((layout.match(/if \(!isCurrent\(\)\) return;/g) || []).length >= 3, 'Obsolete session checks never apply their result.');
+assert.match(layout, /return invalidateSessionChecks;/, 'Leaving the protected shell abandons in-flight checks.');
+console.log('Instant CMS shell checks passed.');

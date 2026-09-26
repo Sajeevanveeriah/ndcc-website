@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
+import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
 import { publicRegistrationFromRow, type PublicPlayerRegistration, type StoredRegistrationRow } from '@/lib/player-registration';
 
 export const PLAYER_REGISTRATION_SETTINGS_COLUMNS = [
@@ -16,11 +17,21 @@ export const PLAYER_REGISTRATION_SETTINGS_COLUMNS = [
   'terms_sections',
 ].join(',');
 
-export async function getPublicPlayerRegistration(): Promise<PublicPlayerRegistration | null> {
-  if (!isServerSupabaseConfigured()) return null;
+/**
+ * The current season's public registration, or null when there is none.
+ * Pages degrade to null on any read failure. `strict` (the sitemap) reads
+ * uncached and throws instead, so a failed read is never mistaken for
+ * "registration closed" and cached.
+ */
+export async function getPublicPlayerRegistration(options: { strict?: boolean } = {}): Promise<PublicPlayerRegistration | null> {
+  const strict = options.strict === true;
+  if (!isServerSupabaseConfigured()) {
+    if (strict) throw new Error('Player registration unavailable');
+    return null;
+  }
 
   try {
-    const supabase = createServerClient({ publicReadCache: true });
+    const supabase = createServerClient(strict ? {} : { publicReadCache: true });
     const { data: season, error: seasonError } = await supabase
       .from('club_seasons')
       .select('id,name')
@@ -29,6 +40,7 @@ export async function getPublicPlayerRegistration(): Promise<PublicPlayerRegistr
       .limit(1)
       .maybeSingle();
 
+    if (seasonError && strict && !isMissingSchemaError(seasonError)) throw new Error('Player registration season unavailable');
     if (seasonError || !season) return null;
 
     const { data: settings, error: settingsError } = await supabase
@@ -40,9 +52,11 @@ export async function getPublicPlayerRegistration(): Promise<PublicPlayerRegistr
 
     // Migration-first rollout safety: previews connected to the old schema
     // degrade to the unavailable state until the additive migration is live.
+    if (settingsError && strict && !isMissingSchemaError(settingsError)) throw new Error('Player registration settings unavailable');
     if (settingsError || !settings) return null;
     return publicRegistrationFromRow(settings as unknown as StoredRegistrationRow, season.name);
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return null;
   }
 }

@@ -21,7 +21,7 @@ const requiredGates = [
   ['app/raffle/page.tsx', 'notFound'],
   ['app/reverse-raffle/page.tsx', 'getPublicRaffleCampaign(REVERSE_RAFFLE_CAMPAIGN_CODE)'],
   ['app/api/raffle/checkout/route.ts', 'getPublicRaffleCampaign'],
-  ['app/sitemap.ts', 'isRaffleVisibleAt'],
+  ['lib/server/sitemap-entries.ts', 'isRaffleVisibleAt'],
 ];
 for (const [file, marker] of requiredGates) assert.ok(fs.readFileSync(file, 'utf8').includes(marker), `${file} must contain ${marker}`);
 console.log('Raffle visibility schedule and all public gates passed.');

@@ -1,3 +1,6 @@
+/** Cache tag for the public sitemap (app/sitemap.ts); cleared on every public content write. */
+export const SITEMAP_CACHE_TAG = 'public-sitemap';
+
 type Row = Record<string, unknown>;
 type DetailRows = { news: Row[]; events: Row[]; publications: Row[]; albums: Row[] };
 

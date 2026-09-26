@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const layout = readFileSync('app/fantasy/layout.tsx', 'utf8');
 const statusRoute = readFileSync('app/api/public/dino-coach-status/route.ts', 'utf8');
 const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
-const sitemap = readFileSync('app/sitemap.ts', 'utf8');
+const sitemap = readFileSync('lib/server/sitemap-entries.ts', 'utf8');
 
 for (const source of [layout, statusRoute, sitemap]) {
   assert.match(source, /public_launch_enabled/, 'Public visibility reads the CMS launch flag.');

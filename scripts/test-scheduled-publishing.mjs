@@ -5,7 +5,7 @@ import { datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '../lib/ut
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const news = read('lib/public-news.ts');
 const publications = read('lib/public-publications.ts');
-const sitemap = read('app/sitemap.ts');
+const sitemap = read('lib/server/sitemap-entries.ts');
 const adminNews = read('app/admin/news/page.tsx');
 const adminPublications = read('app/admin/publications/page.tsx');
 
