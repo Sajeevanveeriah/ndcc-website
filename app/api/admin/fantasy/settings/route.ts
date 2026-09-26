@@ -38,6 +38,8 @@ export async function PATCH(request: Request) {
     if (![payload.transfer_open_weekday,payload.transfer_close_weekday].every(isIsoWeekday) || ![payload.transfer_open_minute,payload.transfer_close_minute].every(v => Number.isInteger(v) && v <= 1439)) throw new Error('Choose valid transfer days and times.');
     if (!payload.notification_recipients.length || payload.notification_recipients.some((v: string) => !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v))) throw new Error('Provide valid reactivation contact emails.');
     if (!payload.rules_version || !payload.pilot_notice || payload.initial_price_ceiling_dino_dollars < payload.initial_price_floor_dino_dollars) throw new Error('Rules version, pilot notice and a valid floor/ceiling are required.');
+    // Opening prices round to the nearest 1,000, so whole-thousand limits keep every rounded price inside them.
+    if (![payload.initial_price_floor_dino_dollars, payload.initial_price_ceiling_dino_dollars].every(v => Number.isInteger(v) && v % 1000 === 0)) throw new Error('The price floor and ceiling must be whole thousands of Dino Dollars.');
     const supabase = createServerClient(); const saved = await supabase.from('fantasy_dino_settings').update(payload).eq('season_id', season.id).select().single();
     if (saved.error) throw new Error(saved.error.message);
     const flags = await supabase.rpc('set_dino_coach_launch_state', { target_season_id: season.id, launch_enabled: body.public_launch_enabled === true, registration_enabled: body.registration_open === true, selection_enabled: body.team_selection_open === true });

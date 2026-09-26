@@ -56,6 +56,8 @@ test('scales initial price from floor to the best-player ceiling', () => {
   assert.equal(calculateInitialPrice(50, 100, 50000, 200000), 125000);
   assert.equal(calculateInitialPrice(1, 3, 100000, 2000000), 733000, 'Opening prices round to the nearest 1,000, not upwards');
   assert.equal(calculateInitialPrice(2, 3, 100000, 2000000), 1367000);
+  assert.equal(calculateInitialPrice(0, 100, 100499, 2000000), 100499, 'Rounding never goes below the floor');
+  assert.match(readFileSync('app/api/admin/fantasy/settings/route.ts', 'utf8'), /v % 1000 === 0\)\) throw new Error\('The price floor and ceiling must be whole thousands/, 'Settings require whole-thousand price limits');
   // The database opening-price functions round the same way (nearest 1,000).
   const nearestMigration = readFileSync('supabase/migrations/20260926232018_dino_coach_nearest_thousand_opening_prices.sql', 'utf8');
   assert.equal((nearestMigration.match(/ROUND\(\(/g) || []).length, 9);

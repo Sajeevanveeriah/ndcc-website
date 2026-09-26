@@ -175,7 +175,7 @@ export function calculateInitialPrice(playerAverage: number, bestAverage: number
   if (best <= 0) return floor;
   const ratio = Math.max(0, Math.min(1, finite(playerAverage) / best));
   // Opening prices round to the nearest 1,000 (approved by the club, Sep 2026).
-  return Math.min(ceiling, Math.round((floor + ratio * (ceiling - floor)) / 1000) * 1000);
+  return Math.max(floor, Math.min(ceiling, Math.round((floor + ratio * (ceiling - floor)) / 1000) * 1000));
 }
 
 export function calculateRollingPerformance(priorBaseline: number, recentPoints: number[], baselineWeight = 0.5, recentGameWeight = 0.25) {
