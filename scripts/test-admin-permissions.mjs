@@ -169,4 +169,7 @@ assert.doesNotMatch(layout, /localStorage/, 'The admin session cache never persi
 assert.match(layout, /SESSION_CACHE_MAX_AGE_MS = 10 \* 60 \* 1000/, 'Cached sessions expire with the inactivity window.');
 assert.match(layout, /runSessionCheck\(0, true, Boolean\(cached\)\)/, 'The server session check always runs, in the background when cached.');
 assert.equal((layout.match(/writeCachedSessionUser\(null\)/g) || []).length >= 5, true, 'Every failed, expired or signed-out path clears the cache.');
+assert.match(layout, /if \(!user \|\| !sessionVerified \|\| isLoginPage \|\| canAccessPath\(user, pathname\)\) return;/, 'Access redirects wait for the live session check, never a cached identity.');
+assert.match(layout, /setSessionVerified\(Boolean\(data\.user\)\)/, 'Only a confirmed server session marks the identity verified.');
+assert.match(layout, /if \(isLoginPage\) \{\s*\/\/[^\n]*\n[^\n]*\n\s*writeCachedSessionUser\(null\);\s*setSessionVerified\(false\);\s*setUser\(null\);/, 'The sign-in page drops any previous administrator identity.');
 console.log('Instant CMS shell checks passed.');

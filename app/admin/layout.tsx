@@ -142,6 +142,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === '/admin/login';
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
+  // True only once the server has confirmed the session in this mount. A
+  // cached identity may draw the shell, but never drives access redirects.
+  const [sessionVerified, setSessionVerified] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [navSearch, setNavSearch] = useState('');
@@ -173,6 +176,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setMessage('Session validation is temporarily unavailable. Supabase may still be recovering. Use Retry when ready or return to sign in.');
         }
         writeCachedSessionUser(null);
+        setSessionVerified(false);
         setUser(null);
         return;
       }
@@ -191,6 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
       writeCachedSessionUser(data.user || null);
       setUser(data.user || null);
+      setSessionVerified(Boolean(data.user));
       setMessage('');
     } catch (error) {
       const isAbort = error instanceof Error && error.name === 'AbortError';
@@ -202,6 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setMessage(isAbort ? 'Session validation timed out. Use Retry when Supabase has recovered or return to sign in.' : 'Session validation failed. Use Retry when Supabase has recovered or return to sign in.');
       }
       writeCachedSessionUser(null);
+      setSessionVerified(false);
       setUser(null);
     } finally {
       clearTimeout(timeout);
@@ -211,6 +217,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (isLoginPage) {
+      // A new sign-in must never start from a previous administrator's
+      // identity, so drop the cached and in-memory session here.
+      writeCachedSessionUser(null);
+      setSessionVerified(false);
+      setUser(null);
       setLoading(false);
       return undefined;
     }
@@ -229,9 +240,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [isLoginPage, runSessionCheck]);
 
   useEffect(() => {
-    if (!user || isLoginPage || canAccessPath(user, pathname)) return;
+    if (!user || !sessionVerified || isLoginPage || canAccessPath(user, pathname)) return;
     router.replace(getDefaultAdminHref(user));
-  }, [isLoginPage, pathname, router, user]);
+  }, [isLoginPage, pathname, router, sessionVerified, user]);
 
   const handleSignOut = async () => {
     writeCachedSessionUser(null);
@@ -269,7 +280,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!canAccessPath(user, pathname)) {
-    return <div className="min-h-screen bg-surface-page flex items-center justify-center">Redirecting...</div>;
+    return <div className="min-h-screen bg-surface-page flex items-center justify-center">{sessionVerified ? 'Redirecting...' : 'Loading...'}</div>;
   }
 
   const groupedLinks = groupsForUser(user, navSearch, showAdvanced);
