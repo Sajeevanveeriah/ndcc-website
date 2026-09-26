@@ -18,10 +18,10 @@ const selection = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-consta
 const realValidation = load('lib/order-input-validation.ts', {});
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2, selectedNumbers: [201, 300] };
 let selected, inserted, payload, payloadOptions, hidden = false, soldOut = false, failure = '', released = false, expired = false;
-let bankEnabled = false;
+let bankEnabled = false, bankEmails = [];
 let pendingHolds = [], holdQuery = null, ipTokens = 0, ipTokenLimit = Infinity, turnstileAllowed = true;
 const db = { from() { return {
-  insert(value) { inserted = value; return this; }, select(columns) { if (columns === 'quantity') holdQuery = []; return this; },
+  insert(value) { inserted = value; return this; }, select(columns) { if (String(columns).startsWith('quantity')) holdQuery = []; return this; },
   or(expression) { holdQuery?.push(['or', expression]); return this; },
   gte(key, value) { holdQuery?.push([key, value]); return this; },
   then(resolve, reject) { return Promise.resolve({ data: pendingHolds, error: null }).then(resolve, reject); },
@@ -32,7 +32,8 @@ const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/reverse-raffle-selection': selection,
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
-  '@/lib/payments/bank-transfer': { configuredBankDetails: () => ({account_name:'TEST ONLY',bsb:'000000',account_number:'00000000'}) },
+  '@/lib/payments/bank-transfer': { ...load('lib/payments/bank-transfer.ts', {}), configuredBankDetails: () => ({account_name:'TEST ONLY',bsb:'000000',account_number:'00000000'}) },
+  '@/lib/payments/bank-transfer-email': { sendBankTransferInstructions: async value => { bankEmails.push(value); return { status: 'sent' }; } },
   '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:bankEnabled}) },
   '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async (value, options) => {
     if(failure === 'create') throw new Error('Stripe unavailable');
@@ -98,7 +99,9 @@ for (const code of ['NDCCRAF','NDCCRRO']) {
  assert.equal(inserted.payment_method,'bank_transfer'); assert.ok(inserted.bank_transfer_selected_at);
  assert.equal(inserted.status,undefined); assert.equal(payload,null);
  assert.equal(response.body.total_amount,code==='NDCCRRO'?120:10);
+ assert.equal(bankEmails.at(-1).reference,response.body.payment_reference,'bank deposit instructions are emailed with the order reference');
 }
+assert.equal(bankEmails.length,2,'one instructions email per bank order');
 delete input.payment_method; bankEnabled=false;
 for (const invalid of [undefined, [], [201], [201, 201], [200, 300], [201, 301], ['201', 300]]) {
   input.selectedNumbers = invalid;
@@ -132,7 +135,7 @@ pendingHolds = []; ipTokens = 0; ipTokenLimit = Infinity; inserted = payload = n
 assert.equal((await route.POST(reverseUrl)).status, 200);
 assert.equal(payload.expires_at - Math.floor(Date.now() / 1000) > 34 * 60, true, 'reverse raffle checkout keeps its 35 minute expiry');
 assert.deepEqual(holdQuery.filter(([key]) => ['status', 'customer_email'].includes(key)), [['status', 'pending_payment'], ['customer_email', 'buyer@example.com']]);
-assert.ok(holdQuery.some(([key,value]) => key === 'or' && /^bank_transfer_selected_at.not.is.null,created_at.gte./.test(value)), 'bank selections and recent card holds both count towards the cap');
+assert.ok(holdQuery.some(([key,value]) => key === 'or' && /^bank_transfer_selected_at.gte.[^,]+,created_at.gte./.test(value)), 'bank selections inside the 48 hour hold and recent card holds both count towards the cap');
 assert.equal(ipTokens, 2, 'one IP hold token per requested number');
 
 pendingHolds = [{ quantity: 10 }, { quantity: 9 }]; inserted = payload = null;

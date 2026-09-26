@@ -4,6 +4,7 @@ import { getClubSettings } from '@/lib/club-settings';
 import { createServerClient } from '@/lib/supabase-server';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
+import { sendBankTransferInstructions } from '@/lib/payments/bank-transfer-email';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { validateDonationInput } from '@/lib/donation-input';
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     const settings = await loadMerchPaymentSettings(supabase);
     const method = parsed.value.payment_method || 'stripe';
     if (method !== 'stripe' && method !== 'bank_transfer') return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 });
-    const capabilities = deriveCapabilities(settings);
+    const capabilities = deriveCapabilities(settings, 'donation');
     if (!(method === 'bank_transfer' ? capabilities.bank_transfer : capabilities.card)) return NextResponse.json({ error: 'The selected payment method is currently unavailable.' }, { status: 503 });
     // Keep the established general-payment reference contract; the dedicated
     // order category identifies donations in Stripe metadata and ledger exports.
@@ -42,7 +43,17 @@ export async function POST(request: Request) {
       payment_status: 'pending_bank_transfer', payment_reference: reference, processed: false,
     }).select('id').single();
     if (error || !data) throw new Error('Donation order could not be created.');
-    return NextResponse.json({ success: true, order_id: data.id, total_amount: input.amount, payment_reference: reference, bank_details: capabilities.bank_transfer ? configuredBankDetails() : null }, { headers: { 'Cache-Control': 'no-store' } });
+    // Best-effort copy of the on-screen bank instructions; one message per donation.
+    let emailed = false;
+    if (method === 'bank_transfer') {
+      try {
+        const amountCents = Math.round(Number(input.amount) * 100);
+        emailed = (await sendBankTransferInstructions({ kind: 'donation', sourceId: data.id, to: input.email, name: input.name, reference, amountCents, productLabel: 'club donation' })).status === 'sent';
+      } catch (emailError) {
+        console.error('Donation bank deposit instructions email failed:', emailError);
+      }
+    }
+    return NextResponse.json({ success: true, order_id: data.id, total_amount: input.amount, payment_reference: reference, bank_details: capabilities.bank_transfer ? configuredBankDetails() : null, ...(emailed ? { instructions_emailed: true } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'Unable to start your donation. Please try again shortly.' }, { status: 503 });
   }

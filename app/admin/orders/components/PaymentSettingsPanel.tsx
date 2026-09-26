@@ -2,7 +2,7 @@
 
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import type { PaymentSettings } from './shared';
+import { BANK_TRANSFER_PRODUCT_SETTINGS, type PaymentSettings } from './shared';
 
 export default function PaymentSettingsPanel({
   settings,
@@ -56,6 +56,31 @@ export default function PaymentSettingsPanel({
               Save settings
             </Button>
           </div>
+          {BANK_TRANSFER_PRODUCT_SETTINGS.some(({ key }) => key in settings) && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-semibold text-content-primary">Bank transfer by product</legend>
+              <p className="text-sm text-content-muted">&quot;Same as bank transfer setting&quot; follows the Bank transfer enabled checkbox above.</p>
+              <div className="flex flex-wrap gap-x-6 gap-y-3">
+                {BANK_TRANSFER_PRODUCT_SETTINGS.filter(({ key }) => key in settings).map(({ key, label }) => {
+                  const value = settings[key];
+                  return (
+                    <label key={key} className="flex flex-col text-sm">
+                      {label}
+                      <select
+                        className="form-input mt-1"
+                        value={value === true ? 'on' : value === false ? 'off' : 'inherit'}
+                        onChange={(e) => setSettings({ ...settings, [key]: e.target.value === 'on' ? true : e.target.value === 'off' ? false : null })}
+                      >
+                        <option value="inherit">Same as bank transfer setting</option>
+                        <option value="on">Enabled</option>
+                        <option value="off">Disabled</option>
+                      </select>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
         </section>
   );
 }

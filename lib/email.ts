@@ -1,6 +1,7 @@
 import 'server-only';
 import { Resend, type CreateEmailOptions, type Tag } from 'resend';
 import { escapeEmailHtml } from './email-html';
+import { SITE_URL } from './seo';
 
 export { escapeEmailHtml } from './email-html';
 
@@ -270,7 +271,7 @@ export function emailHtml(title: string, body: string): string {
 </html>`;
 }
 
-export function bankDetailsHtml(reference: string, amount?: number): string {
+export function bankDetailsHtml(reference: string, amount?: number, options: { recordChoiceLink?: boolean } = {}): string {
   if (![process.env.NDCC_BANK_ACCOUNT_NAME, process.env.NDCC_BANK_BSB, process.env.NDCC_BANK_ACCOUNT_NUMBER].every(value => value?.trim())) return '';
   const amountRow = amount != null
     ? `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Amount</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">$${amount.toFixed(2)} AUD</td></tr>`
@@ -286,7 +287,7 @@ export function bankDetailsHtml(reference: string, amount?: number): string {
     <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:bold;color:#800000;">${escapeEmailHtml(reference)}</td></tr>
   </table>
   <p style="margin:12px 0 0;font-size:14px;color:#4b5563;">Use your reference number exactly as shown so we can match your payment. Bank deposits remain unconfirmed until the club records receipt.</p>
-  <p style="margin:12px 0 0;font-size:14px;"><a href="https://ndcc.com.au/pay-balance?reference=${encodeURIComponent(reference)}">Record your bank transfer choice</a> using your order reference and email.</p>
+  ${options.recordChoiceLink === false ? '' : `<p style="margin:12px 0 0;font-size:14px;"><a href="${SITE_URL}/pay-balance?reference=${encodeURIComponent(reference)}">Record your bank transfer choice</a> using your order reference and email.</p>`}
 </div>`;
 }
 

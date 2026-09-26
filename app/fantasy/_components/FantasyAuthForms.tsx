@@ -363,7 +363,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               Sign out
             </Button>
           )}
-          {mode === 'account' && manager && !entry?.is_demo && !entry?.fee_waived && entry?.status !== 'paid' && <div className="space-y-3">{bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <><PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} /><Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : `Pay ${entryFee} entry`}</Button></>}</div>}
+          {mode === 'account' && manager && !entry?.is_demo && !entry?.fee_waived && entry?.status !== 'paid' && <div className="space-y-3">{bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <><PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="dino" /><Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : `Pay ${entryFee} entry`}</Button></>}</div>}
           {mode === 'account' && (entry?.fee_waived || entry?.is_demo || entry?.status === 'paid') && <Link href="/fantasy/squad" className="btn-primary">Pick my team</Link>}
         </div>
         {mode === 'login' && !awaitingConfirm && (

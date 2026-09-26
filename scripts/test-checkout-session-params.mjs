@@ -113,6 +113,7 @@ const dinoRoute = load('app/api/fantasy/checkout/route.ts', {
   '@/lib/supabase-server': { createServerClient: () => db },
   '@/lib/payments/bank-transfer': { configuredBankDetails: () => null },
   '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:false}) },
+  '@/lib/payments/bank-transfer-email': { sendBankTransferInstructions: async () => { throw new Error('card checkout must not email bank instructions'); } },
   '@/lib/stripe': { getStripe: () => stripe },
   '@/lib/payments/payment-config': { isCheckoutEnabled: () => true },
   '@/lib/payments/reference': { isCanonicalPaymentReference: (value) => value === reference },
