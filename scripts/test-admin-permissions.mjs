@@ -171,5 +171,8 @@ assert.match(layout, /runSessionCheck\(0, true, Boolean\(cached\)\)/, 'The serve
 assert.equal((layout.match(/writeCachedSessionUser\(null\)/g) || []).length >= 5, true, 'Every failed, expired or signed-out path clears the cache.');
 assert.match(layout, /if \(!user \|\| !sessionVerified \|\| isLoginPage \|\| canAccessPath\(user, pathname\)\) return;/, 'Access redirects wait for the live session check, never a cached identity.');
 assert.match(layout, /setSessionVerified\(Boolean\(data\.user\)\)/, 'Only a confirmed server session marks the identity verified.');
-assert.match(layout, /if \(isLoginPage\) \{\s*\/\/[^\n]*\n[^\n]*\n\s*writeCachedSessionUser\(null\);\s*setSessionVerified\(false\);\s*setUser\(null\);/, 'The sign-in page drops any previous administrator identity.');
+assert.match(layout, /if \(isLoginPage\) \{(?:\s*\/\/[^\n]*)*\s*invalidateSessionChecks\(\);\s*writeCachedSessionUser\(null\);\s*setSessionVerified\(false\);\s*setUser\(null\);/, 'The sign-in page abandons in-flight checks and drops any previous administrator identity.');
+assert.match(layout, /const isCurrent = \(\) => generation === sessionGenerationRef\.current;/, 'Each session check is tied to a generation.');
+assert.ok((layout.match(/if \(!isCurrent\(\)\) return;/g) || []).length >= 3, 'Obsolete session checks never apply their result.');
+assert.match(layout, /return invalidateSessionChecks;/, 'Leaving the protected shell abandons in-flight checks.');
 console.log('Instant CMS shell checks passed.');

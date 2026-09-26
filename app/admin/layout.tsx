@@ -150,13 +150,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [navSearch, setNavSearch] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(() => adminGroups.some((group) => group.advanced && group.links.some((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))));
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Each session check takes a generation number; a check whose generation is
+  // no longer current (sign-in page opened, layout left) is aborted and its
+  // result ignored, so it can never restore an earlier administrator.
+  const sessionGenerationRef = useRef(0);
+  const sessionControllerRef = useRef<AbortController | null>(null);
+
+  const invalidateSessionChecks = useCallback(() => {
+    sessionGenerationRef.current += 1;
+    sessionControllerRef.current?.abort();
+    sessionControllerRef.current = null;
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+  }, []);
 
   const runSessionCheck = useCallback(async (retryAttempt = 0, allowAutoRetry = true, background = false) => {
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
     }
+    sessionControllerRef.current?.abort();
+    const generation = ++sessionGenerationRef.current;
+    const isCurrent = () => generation === sessionGenerationRef.current;
     const controller = new AbortController();
+    sessionControllerRef.current = controller;
     const timeout = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
 
     try {
@@ -166,6 +185,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         credentials: 'include',
         signal: controller.signal,
       });
+      if (!isCurrent()) return;
 
       if (response.status === 503) {
         const nextDelay = SESSION_RETRY_DELAYS_MS[retryAttempt];
@@ -188,6 +208,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
 
       const data = await parseApiResponse<{ authenticated?: boolean; user?: SessionUser }>(response);
+      if (!isCurrent()) return;
       if (!data.authenticated) {
         writeCachedSessionUser(null);
         router.push('/admin/login');
@@ -198,6 +219,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setSessionVerified(Boolean(data.user));
       setMessage('');
     } catch (error) {
+      if (!isCurrent()) return;
       const isAbort = error instanceof Error && error.name === 'AbortError';
       const nextDelay = SESSION_RETRY_DELAYS_MS[retryAttempt];
       if (allowAutoRetry && nextDelay) {
@@ -211,14 +233,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setUser(null);
     } finally {
       clearTimeout(timeout);
-      setLoading(false);
+      if (isCurrent()) {
+        sessionControllerRef.current = null;
+        setLoading(false);
+      }
     }
   }, [router]);
 
   useEffect(() => {
     if (isLoginPage) {
       // A new sign-in must never start from a previous administrator's
-      // identity, so drop the cached and in-memory session here.
+      // identity, so drop the cached and in-memory session here and abandon
+      // any check that is still in flight.
+      invalidateSessionChecks();
       writeCachedSessionUser(null);
       setSessionVerified(false);
       setUser(null);
@@ -234,10 +261,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setLoading(false);
     }
     runSessionCheck(0, true, Boolean(cached));
-    return () => {
-      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
-    };
-  }, [isLoginPage, runSessionCheck]);
+    return invalidateSessionChecks;
+  }, [invalidateSessionChecks, isLoginPage, runSessionCheck]);
 
   useEffect(() => {
     if (!user || !sessionVerified || isLoginPage || canAccessPath(user, pathname)) return;
