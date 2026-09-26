@@ -11,7 +11,7 @@ new Function('exports',ts.transpileModule(readFileSync('lib/dino-coach/manager-e
 const imports={
  '@/lib/dino-coach/manager-eligibility':eligibility.exports,
  'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})},after:()=>{}},
- '@/lib/auth/guard':{requirePermission:async()=>user}, '@/lib/supabase-server':{createServerClient:()=>db},
+ '@/lib/auth/guard':{requirePermission:async()=>user}, '@/lib/supabase-server':{createServerClient:()=>db}, '@/lib/fantasy-paging':{fetchAllPages:async()=>[]},
  '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'})}, '@/lib/fantasy-game':{},
  '@/lib/dino-coach/server':{getDinoCoachSettings:async()=>({minimum_age:18})},
  '@/lib/dino-coach/domain':{isAdultOnDate:dob=>dob==='2000-01-01'}, '@/lib/dino-coach/lifecycle':{},
