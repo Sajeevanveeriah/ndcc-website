@@ -42,10 +42,12 @@ export type PublicDinoCoachSettings = Omit<DinoCoachSettings, 'blocked_team_name
 
 export function toPublicDinoCoachSettings(settings: DinoCoachSettings): PublicDinoCoachSettings {
   const {
+    selection_window_enabled: _privateSelectionWindow,
     blocked_team_name_terms: _privateModerationTerms,
     notification_recipients: _privateNotificationRecipients,
     ...publicSettings
-  } = settings;
+  } = settings as DinoCoachSettings & { selection_window_enabled?: boolean };
+  void _privateSelectionWindow;
   void _privateModerationTerms;
   void _privateNotificationRecipients;
   return publicSettings;
