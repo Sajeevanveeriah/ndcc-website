@@ -71,15 +71,13 @@ assert.match(promotions, /endsAt: '2026-10-13T10:00:00\+11:00'/);
 const stats = readFileSync('components/home/HomeStatsStrip.tsx', 'utf8');
 assert.match(stats, /getHistoryPremierships\(\)/, 'premiership stat comes from the CMS honour roll');
 assert.ok(!stats.includes('fallbackHistoryPremierships'), 'premiership stat is not a static count');
-// Cricket character: decorative ball and stumps are hidden from assistive
-// technology, and the only motion stops for reduced motion and print.
-const ball = readFileSync('components/home/CricketBall.tsx', 'utf8');
-assert.equal((ball.match(/aria-hidden="true"/g) || []).length, 2, 'ball and stumps are decorative');
-assert.match(home, /<CricketBall className="cricket-ball-hero" \/>/);
-assert.match(home, /<StumpsIcon className=/);
+// Cricket character stays within CSS treatments (no bespoke artwork, per
+// AGENTS.md "Use supplied assets only"): stitched seam accent, tonal mowing
+// stripes and scoreboard numerals.
 const css = readFileSync('app/globals.css', 'utf8');
-assert.match(css, /\.cricket-ball-turn \{ animation: ndcc-ball-turn 120s linear infinite; \}/);
-assert.match(css, /@media \(prefers-reduced-motion: reduce\), print \{\s*\.cricket-ball-turn \{ animation: none; \}/);
+assert.ok(!/cricket-ball|<svg/.test(home), 'no drawn cricket artwork on the home page');
+assert.match(css, /\.brand-rule \{[^}]*repeating-linear-gradient/);
+assert.match(css, /\.home-band \{[^}]*repeating-linear-gradient\(90deg/);
 assert.match(stats, /glass-panel scoreboard/);
 // Publication PDFs embed with an iframe (object-src stays 'none').
 const publication = readFileSync('app/publications/[slug]/page.tsx', 'utf8');

@@ -25,7 +25,6 @@ import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublishedNews, type PublicNewsRecord } from '@/lib/public-news';
 import { getPublicSeasonAppointments, type PublicSeasonAppointment } from '@/lib/public-season-appointments';
 import ClubIntro from '@/components/home/ClubIntro';
-import CricketBall, { StumpsIcon } from '@/components/home/CricketBall';
 import SeasonAppointmentsMarquee from '@/components/home/SeasonAppointmentsMarquee';
 import HomeStatsStrip from '@/components/home/HomeStatsStrip';
 import { getPageLinkCards } from '@/lib/structured-content';
@@ -150,10 +149,9 @@ function HeroView({
 }) {
   return (
     <section className="club-home-hero" aria-labelledby="home-title">
-      <CricketBall className="cricket-ball-hero" />
       <div className="container-width grid items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:py-24">
         <div className="club-home-copy">
-          <p className="club-kicker"><StumpsIcon className="mr-2.5 inline-block h-3.5 w-3 -translate-y-px align-middle text-gold-400" />Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
+          <p className="club-kicker"><span aria-hidden="true" className="mr-2.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-gold-400 align-middle" />Est. {CLUB_ESTABLISHED} <span aria-hidden="true"> / </span> {CLUB_ASSOCIATION}</p>
           <h1 id="home-title" className="club-home-title">{title}</h1>
           <p className="mt-5 font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl"><span className="text-brand-gradient">Home of the {CLUB_NICKNAME}.</span></p>
           {season && <p className="mt-3 text-base text-content-muted">{season}</p>}
