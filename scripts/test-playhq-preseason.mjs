@@ -82,6 +82,20 @@ for (const enabled of [false, true]) {
   assert.equal(reloaded.seasons[0].auto_sync_enabled, enabled);
 }
 assert.equal(sitemapRevalidations, 2, 'each successful season save clears the sitemap cache');
+// Making a season current clears the old one first; the sitemap is refreshed
+// as soon as that succeeds, even when the target update then fails.
+const failingRoute = load('app/api/admin/fantasy/seasons/route.ts', {
+  'next/server': { NextResponse: { json: body => body } }, '@/lib/auth/guard': { requirePermission: async () => ({ id: 'admin' }) },
+  '@/lib/supabase-server': { createServerClient: () => ({ from: () => {
+    const chain = { update: () => chain, eq: () => chain, neq: () => Promise.resolve({ error: null }), select: () => chain, single: async () => ({ data: null, error: { message: 'season missing' } }) };
+    return chain;
+  } }) },
+  '@/lib/fantasy-seasons': { SEASON_COLUMNS: 'id, name' }, '@/lib/playhq/client': {}, '@/lib/playhq/config': {},
+  '@/lib/server/revalidate-public': { revalidateSitemap: () => { sitemapRevalidations += 1; } },
+});
+const failed = await failingRoute.PATCH({ json: async () => ({ seasonId: 'gone', isCurrent: true }) });
+assert.equal(failed.success, false);
+assert.equal(sitemapRevalidations, 3, 'clearing the previous current season refreshes the sitemap even when the switch fails');
 console.log('Preseason fixture classification, safe recovery eligibility, round alignment and Auto Sync save/reload checks passed.');
 
 // Exercise the actual public client against provider responses: empty grade

@@ -111,6 +111,9 @@ export async function PATCH(request: Request) {
   if (body.isCurrent === true) {
     const { error: clearError } = await supabase.from('fantasy_seasons').update({ is_current: false }).eq('is_current', true).neq('id', seasonId);
     if (clearError) return NextResponse.json({ success: false, error: clearError.message }, { status: 500, headers: noStore });
+    // The previous current season is already cleared, so refresh the sitemap
+    // even if the target update below fails.
+    revalidateSitemap();
     update.is_current = true;
   }
 
