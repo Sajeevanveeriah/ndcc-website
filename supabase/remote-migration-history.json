@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-09-26T07:08:55+00:00",
+  "capturedAt": "2026-09-26T09:01:35+00:00",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -677,6 +677,18 @@
     {
       "version": "20260926070855",
       "name": "dino_selection_window_guard"
+    },
+    {
+      "version": "20260926082423",
+      "name": "club_account_deletion_requests"
+    },
+    {
+      "version": "20260926082444",
+      "name": "fantasy_manager_auth_user_delete_guard"
+    },
+    {
+      "version": "20260926085943",
+      "name": "dino_round_score_replace"
     }
   ],
   "localOnlyApplied": []

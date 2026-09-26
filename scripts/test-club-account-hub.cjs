@@ -220,10 +220,10 @@ const has = (state, method, ...args) => state.ops.some(op => op[0] === method &&
   await act(async () => tree.unmount());
 
   // 8. Migrations: additive, private, reversible.
-  const requests = fs.readFileSync('supabase/migrations/20260927050000_club_account_deletion_requests.sql', 'utf8');
+  const requests = fs.readFileSync('supabase/migrations/20260926082423_club_account_deletion_requests.sql', 'utf8');
   for (const pattern of [/Rollback:/, /set local lock_timeout = '3s'/, /enable row level security/, /revoke all on public\.club_account_deletion_requests from public,anon,authenticated/, /check\(status in \('pending','actioned'\)\)/, /where status = 'pending'/]) assert.match(requests, pattern);
   assert.doesNotMatch(requests.replace(/^--.*$/gm, ''), /\b(drop|truncate)\b|\bdelete from\b/i, 'Only the rollback comment drops anything');
-  const guard = fs.readFileSync('supabase/migrations/20260927050100_fantasy_manager_auth_user_delete_guard.sql', 'utf8');
+  const guard = fs.readFileSync('supabase/migrations/20260926082444_fantasy_manager_auth_user_delete_guard.sql', 'utf8');
   for (const pattern of [/Rollback:/, /after delete on auth\.users/, /security definer\s+set search_path = ''/, /set auth_user_id = null/, /revoke all on function public\.ndcc_clear_fantasy_manager_auth_user\(\) from public, anon, authenticated/]) assert.match(guard, pattern);
   assert.doesNotMatch(guard.replace(/^--.*$/gm, ''), /foreign key|references/i, 'No FK that could fail on existing orphan rows');
 
