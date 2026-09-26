@@ -40,7 +40,19 @@ export type PaymentSettings = {
   partial_payments_enabled: boolean;
   minimum_partial_amount: number;
   required_deposit_percent: number | null;
+  // NULL inherits bank_transfer_enabled. Absent until the migration is applied.
+  raffle_bank_transfer_enabled?: boolean | null;
+  reverse_raffle_bank_transfer_enabled?: boolean | null;
+  dino_bank_transfer_enabled?: boolean | null;
+  donation_bank_transfer_enabled?: boolean | null;
 };
+
+export const BANK_TRANSFER_PRODUCT_SETTINGS = [
+  { key: 'raffle_bank_transfer_enabled', label: 'Trailer raffle' },
+  { key: 'reverse_raffle_bank_transfer_enabled', label: 'Reverse raffle' },
+  { key: 'dino_bank_transfer_enabled', label: 'Dino Coach' },
+  { key: 'donation_bank_transfer_enabled', label: 'Donations' },
+] as const;
 
 export type PaymentFormState = { method: string; amount: string; notes: string };
 

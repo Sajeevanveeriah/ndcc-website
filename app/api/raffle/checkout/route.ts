@@ -1,4 +1,5 @@
-import { configuredBankDetails } from '@/lib/payments/bank-transfer';
+import { BANK_TRANSFER_HOLD_MS, bankHoldLimitMessage, configuredBankDetails } from '@/lib/payments/bank-transfer';
+import { sendBankTransferInstructions } from '@/lib/payments/bank-transfer-email';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
@@ -23,6 +24,18 @@ import { validReverseRaffleSelection } from '@/lib/reverse-raffle-selection';
 export const dynamic = 'force-dynamic';
 
 const HOLD_LIMIT_MESSAGE = 'You already have raffle numbers held in an unfinished checkout. Complete that payment or wait about 35 minutes for it to expire, then try again.';
+
+type PendingHold = { quantity: number; payment_method?: string | null; payment_reference?: string | null };
+
+// Card holds keep the existing message. When unconfirmed bank-deposit holds
+// alone keep the buyer over the cap, explain the 48 hour release instead.
+function holdLimitMessage(rows: PendingHold[], requested: number) {
+  const bankRows = rows.filter(row => row.payment_method === 'bank_transfer');
+  if (!bankRows.length) return HOLD_LIMIT_MESSAGE;
+  const cardHeld = sumPendingRaffleQuantities(rows.filter(row => row.payment_method !== 'bank_transfer')) ?? 0;
+  if (!reverseRaffleHoldAllowed(cardHeld, requested, REVERSE_RAFFLE_HOLD_LIMITS.maxPendingNumbersPerEmail)) return HOLD_LIMIT_MESSAGE;
+  return bankHoldLimitMessage(bankRows.find(row => row.payment_reference)?.payment_reference);
+}
 
 // Takes one token per requested number from a per-IP bucket that lasts as
 // long as a checkout hold, so one address cannot lock up the draw.
@@ -65,9 +78,9 @@ export async function POST(request: Request) {
     const site = getCheckoutSiteUrl(request);
     if (method === 'stripe' && !site) return NextResponse.json({ error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
     const db = createServerClient();
-    if (method === 'bank_transfer' && !deriveCapabilities(await loadMerchPaymentSettings(db)).bank_transfer) return NextResponse.json({ error: 'Bank transfers are currently unavailable.' }, { status: 503 });
     const campaignCode = new URL(request.url).searchParams.get('campaign') || 'NDCCRAF';
     if (!['NDCCRAF', 'NDCCRRO'].includes(campaignCode)) return NextResponse.json({ error: 'Unknown raffle.' }, { status: 400 });
+    if (method === 'bank_transfer' && !deriveCapabilities(await loadMerchPaymentSettings(db), campaignCode === 'NDCCRRO' ? 'reverse_raffle' : 'raffle').bank_transfer) return NextResponse.json({ error: 'Bank transfers are currently unavailable.' }, { status: 503 });
     const selectedNumbers = rawBody.value.selectedNumbers;
     if (campaignCode === 'NDCCRRO' && !validReverseRaffleSelection(selectedNumbers, quantity)) {
       return NextResponse.json({ error: 'Choose one different number between 201 and 300 for each ticket.' }, { status: 400 });
@@ -81,22 +94,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Raffle pricing is unavailable.' }, { status: 503 });
     }
     if (campaign.code === 'NDCCRRO') {
-      // Cap unpaid number holds per buyer email (pending orders still inside
-      // the checkout-expiry window) and per client IP.
+      // Cap unpaid number holds per buyer email (card orders still inside the
+      // checkout-expiry window, bank deposits inside the 48 hour hold) and per
+      // client IP. Expired bank holds no longer reserve numbers.
       const holdCutoff = new Date(Date.now() - REVERSE_RAFFLE_HOLD_LIMITS.holdWindowMs).toISOString();
+      const bankHoldCutoff = new Date(Date.now() - BANK_TRANSFER_HOLD_MS).toISOString();
       const { data: pendingRows, error: pendingError } = await db.from('raffle_orders')
-        .select('quantity')
+        .select('quantity,payment_method,payment_reference')
         .eq('campaign_id', campaign.id)
         .eq('status', 'pending_payment')
         .eq('customer_email', email)
-        .or(`bank_transfer_selected_at.not.is.null,created_at.gte.${holdCutoff}`);
+        .or(`bank_transfer_selected_at.gte.${bankHoldCutoff},created_at.gte.${holdCutoff}`);
       const pendingForEmail = pendingError ? null : sumPendingRaffleQuantities(pendingRows);
       if (pendingForEmail === null) {
         console.error('Reverse raffle hold lookup failed:', pendingError);
         return NextResponse.json({ error: 'Ticket availability could not be checked. Please try again.' }, { status: 503 });
       }
       if (!reverseRaffleHoldAllowed(pendingForEmail, quantity, REVERSE_RAFFLE_HOLD_LIMITS.maxPendingNumbersPerEmail)) {
-        return NextResponse.json({ error: HOLD_LIMIT_MESSAGE }, { status: 429 });
+        return NextResponse.json({ error: holdLimitMessage(pendingRows as PendingHold[], quantity) }, { status: 429 });
       }
       if (!await takeReverseRaffleIpHold(ip, quantity)) {
         return NextResponse.json({ error: HOLD_LIMIT_MESSAGE }, { status: 429 });
@@ -112,7 +127,16 @@ export async function POST(request: Request) {
     if (campaign.code === 'NDCCRRO') pendingOrderId = order.id;
     if (method === 'bank_transfer') {
       checkoutPublished = true;
-      return NextResponse.json({ success: true, bank_transfer: true, order_id: order.id, total_amount: amount / 100, payment_reference: paymentReference, bank_details: configuredBankDetails() }, { headers: { 'Cache-Control': 'no-store' } });
+      // Best-effort copy of the on-screen instructions; one message per order.
+      let emailed = false;
+      try {
+        const sent = await sendBankTransferInstructions({ kind: 'raffle', sourceId: order.id, to: email, name, reference: paymentReference, amountCents: amount,
+          productLabel: `${campaign.name} tickets`, selectedNumbers: campaign.code === 'NDCCRRO' ? selectedNumbers as number[] : null });
+        emailed = sent.status === 'sent';
+      } catch (emailError) {
+        console.error('Raffle bank deposit instructions email failed:', emailError);
+      }
+      return NextResponse.json({ success: true, bank_transfer: true, order_id: order.id, total_amount: amount / 100, payment_reference: paymentReference, bank_details: configuredBankDetails(), instructions_emailed: emailed }, { headers: { 'Cache-Control': 'no-store' } });
     }
     const paymentMetadata = {
       ndcc_payment_reference: paymentReference,

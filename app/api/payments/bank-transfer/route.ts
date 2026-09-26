@@ -10,10 +10,18 @@ export const dynamic = 'force-dynamic';
 const reply = (body: object, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
 export async function POST(request: Request) {
   try {
-    if (!await enforceRateLimit(`bank-transfer:${getClientIp(request)}`, 12, 60_000)) return reply({ error: 'Too many attempts. Please wait a minute.' }, 429);
     const parsed = await readLimitedJsonObject(request, 4096);
-    if (!parsed.ok) return reply({ error: 'Invalid request.' }, 400);
+    if (!parsed.ok) {
+      if (!await enforceRateLimit(`bank-transfer-read:${getClientIp(request)}`, 60, 60_000)) return reply({ error: 'Too many attempts. Please wait a minute.' }, 429);
+      return reply({ error: 'Invalid request.' }, 400);
+    }
     const { order_id, email, token, selected, action } = parsed.value;
+    // Status reads (the panel's initial load) have their own looser bucket so
+    // they never use up the stricter limit on changing the selection.
+    const allowed = action === 'read'
+      ? await enforceRateLimit(`bank-transfer-read:${getClientIp(request)}`, 60, 60_000)
+      : await enforceRateLimit(`bank-transfer:${getClientIp(request)}`, 12, 60_000);
+    if (!allowed) return reply({ error: 'Too many attempts. Please wait a minute.' }, 429);
     if (typeof order_id !== 'string' || !isUuidV1ToV5(order_id) || (!(typeof token === 'string' && isUuidV1ToV5(token)) && !(typeof email === 'string' && email.trim() && email.length <= 254))
       || (action !== 'read' && typeof selected !== 'boolean')) return reply({ error: 'Enter the email used for this order.' }, 400);
     const db = createServerClient();
@@ -33,7 +41,7 @@ export async function POST(request: Request) {
     if (action === 'read') return reply({ selected: Boolean(order.bank_transfer_selected_at) });
     if (!TRANSFER_PAYABLE_STATUSES.includes(order.payment_status) || order.order_status === 'cancelled'
       || Number(order.balance_due ?? (Number(order.total_amount) - Number(order.amount_paid || 0))) <= 0) return reply({ error: 'This order is no longer awaiting payment. Refresh your order.' }, 409);
-    if (selected && (!deriveCapabilities(await loadMerchPaymentSettings(db)).bank_transfer || !configuredBankDetails())) return reply({ error: 'Bank transfers are currently unavailable.' }, 409);
+    if (selected && (!deriveCapabilities(await loadMerchPaymentSettings(db), order.order_category === 'donation' ? 'donation' : undefined).bank_transfer || !configuredBankDetails())) return reply({ error: 'Bank transfers are currently unavailable.' }, 409);
     // Only intent can change here. Settlement is exclusively the existing
     // authorised payment ledger / signed Stripe webhook workflow.
     const timestamp = selected ? order.bank_transfer_selected_at || new Date().toISOString() : null;

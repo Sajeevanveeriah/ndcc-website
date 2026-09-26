@@ -1,5 +1,6 @@
 import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
+import { sendBankTransferInstructions } from '@/lib/payments/bank-transfer-email';
 import { NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import type Stripe from 'stripe';
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   if (method === 'stripe' && !siteUrl) return NextResponse.json({ success: false, error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
 
   const supabase = createServerClient();
-  if (method === 'bank_transfer' && !deriveCapabilities(await loadMerchPaymentSettings(supabase)).bank_transfer) return NextResponse.json({ error: 'Bank transfers are currently unavailable.' }, { status: 503 });
+  if (method === 'bank_transfer' && !deriveCapabilities(await loadMerchPaymentSettings(supabase), 'dino').bank_transfer) return NextResponse.json({ error: 'Bank transfers are currently unavailable.' }, { status: 503 });
   const { data: manager } = await supabase.from('fantasy_managers')
     .select('id,email,age_verified_at,team_name_status,rules_version_accepted,is_active')
     .eq('id', auth.manager.id).single();
@@ -89,10 +90,32 @@ export async function POST(request: Request) {
   }
   if (method === 'bank_transfer') {
     if (entry.stripe_checkout_session_id || entry.stripe_payment_intent_id) return NextResponse.json({ error: 'A card payment has already been started. Contact the club to change it to bank deposit.' }, { status: 409 });
-    const selected = await supabase.from('fantasy_entries').update({ bank_transfer_selected_at: entry.bank_transfer_selected_at || new Date().toISOString() })
-      .eq('id', entry.id).in('status', payableStatuses).is('stripe_checkout_session_id', null).is('stripe_payment_intent_id', null).select('id').maybeSingle();
+    // Only the request that records a new selection emails the instructions;
+    // retries and repeat clicks keep the stored timestamp and send nothing.
+    const selectedAt = entry.bank_transfer_selected_at || new Date().toISOString();
+    let selection = supabase.from('fantasy_entries').update({ bank_transfer_selected_at: selectedAt })
+      .eq('id', entry.id).in('status', payableStatuses).is('stripe_checkout_session_id', null).is('stripe_payment_intent_id', null);
+    if (!entry.bank_transfer_selected_at) selection = selection.is('bank_transfer_selected_at', null);
+    let selected = await selection.select('id').maybeSingle();
+    let newlySelected = !entry.bank_transfer_selected_at;
+    if (!selected.error && !selected.data && newlySelected) {
+      // A concurrent request recorded the selection first; it sends the email.
+      selected = await supabase.from('fantasy_entries').select('id').eq('id', entry.id).in('status', payableStatuses)
+        .not('bank_transfer_selected_at', 'is', null).is('stripe_checkout_session_id', null).is('stripe_payment_intent_id', null).maybeSingle();
+      newlySelected = false;
+    }
     if (selected.error || !selected.data) return NextResponse.json({ error: 'The entry changed or the payment choice could not be saved. Refresh and retry.' }, { status: 409 });
-    return NextResponse.json({ success: true, bank_transfer: true, order_id: entry.id, total_amount: entry.entry_fee_cents / 100, payment_reference: paymentReference, bank_details: configuredBankDetails() }, { headers: { 'Cache-Control': 'no-store' } });
+    let emailed = false;
+    if (newlySelected) {
+      try {
+        const sent = await sendBankTransferInstructions({ kind: 'dino', sourceId: entry.id, to: manager.email, name: auth.manager.display_name || 'Dino Coach', reference: paymentReference,
+          amountCents: entry.entry_fee_cents, productLabel: `${season.name} entry`, selectedAt });
+        emailed = sent.status === 'sent';
+      } catch (emailError) {
+        console.error('Dino bank deposit instructions email failed:', emailError);
+      }
+    }
+    return NextResponse.json({ success: true, bank_transfer: true, order_id: entry.id, total_amount: entry.entry_fee_cents / 100, payment_reference: paymentReference, bank_details: configuredBankDetails(), ...(emailed ? { instructions_emailed: true } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
   }
   if (entry.bank_transfer_selected_at) return NextResponse.json({ error: 'Bank transfer is selected for this entry. Contact the club before paying again by card.' }, { status: 409 });
   if (entry.stripe_checkout_session_id) {

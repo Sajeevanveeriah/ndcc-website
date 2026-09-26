@@ -22,6 +22,7 @@ const windowStub = { setInterval: () => 1, clearInterval() {}, addEventListener(
 const component = load('app/reverse-raffle/ReverseRaffleClient.tsx', {
   '@/components/payments/PaymentMethodChoice': { default: () => null },
   '@/components/payments/BankTransferInstructions': { default: () => null },
+  '@/lib/payments/bank-transfer': { BANK_TRANSFER_HOLD_HOURS: 48 },
   react: React,
   'react/jsx-runtime': require('react/jsx-runtime'),
   'next/navigation': { useSearchParams: () => new URLSearchParams() },

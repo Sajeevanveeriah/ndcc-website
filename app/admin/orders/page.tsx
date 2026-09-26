@@ -18,6 +18,7 @@ import {
   type AdminOrder,
   type OrderPayment,
   type PaymentSettings,
+  BANK_TRANSFER_PRODUCT_SETTINGS,
 } from './components/shared';
 
 
@@ -36,6 +37,16 @@ export default function AdminOrdersPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [exporting, setExporting] = useState(false);
   const paymentOperationRef = useRef<{ signature: string; id: string } | null>(null);
+  // Bank deposit confirmation is administrator-only (the API also enforces it).
+  const [isAdministrator, setIsAdministrator] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/auth/session', { cache: 'no-store', credentials: 'include' })
+      .then(response => parseApiResponse<{ authenticated?: boolean; user?: { role?: string } }>(response))
+      .then(data => { if (active) setIsAdministrator(data.authenticated === true && data.user?.role === 'admin'); })
+      .catch(() => { if (active) setIsAdministrator(false); });
+    return () => { active = false; };
+  }, []);
 
   const fetchAll = async () => {
     try {
@@ -173,6 +184,8 @@ export default function AdminOrdersPage() {
           partial_payments_enabled: next.partial_payments_enabled,
           minimum_partial_amount: Number(next.minimum_partial_amount) || 10,
           required_deposit_percent: next.required_deposit_percent,
+          // Per-product bank switches are sent only once their columns exist.
+          ...Object.fromEntries(BANK_TRANSFER_PRODUCT_SETTINGS.filter(({ key }) => key in next).map(({ key }) => [key, next[key] ?? null])),
         }),
       });
       await parseApiResponse(response);
@@ -247,7 +260,7 @@ export default function AdminOrdersPage() {
 
       {group === 'merch' && <PaymentReportExport exporting={exporting} setExporting={setExporting} setMessage={setMessage} />}
 
-      <a className="block mb-4 underline" href="/admin/payments/bank-transfers">Bank transfers to reconcile - all payments</a>
+      {isAdministrator && <a className="block mb-4 underline" href="/admin/payments/bank-transfers">Bank transfers to reconcile - all payments</a>}
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="w-full sm:w-48">

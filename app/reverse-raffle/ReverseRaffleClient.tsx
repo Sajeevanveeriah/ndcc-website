@@ -1,6 +1,7 @@
 'use client';
 import PaymentMethodChoice from '@/components/payments/PaymentMethodChoice';
 import BankTransferInstructions, { type BankTransferConfirmation } from '@/components/payments/BankTransferInstructions';
+import { BANK_TRANSFER_HOLD_HOURS } from '@/lib/payments/bank-transfer';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -74,7 +75,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
       <Image src="/images/20260922-NDCC-Reverse-Raffle-Rev00.webp" width={1600} height={2000}
         sizes="(max-width: 768px) 100vw, 480px" alt="Newcomb and District Cricket Club Reverse Raffle. $60 AUD per ticket. Support your club."
         className="w-full h-auto" priority />
-      {bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <form onSubmit={checkout} className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-4">
+      {bankConfirmation ? <div className="space-y-2"><BankTransferInstructions confirmation={bankConfirmation} /><p className="text-sm">Your numbers are held for {BANK_TRANSFER_HOLD_HOURS} hours. If the club has not confirmed your deposit by then, they may be released to other buyers.</p></div> : <form onSubmit={checkout} className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-4">
         <h2 className="font-display text-2xl font-bold">Buy reverse raffle tickets</h2>
         {paymentResult === 'success' && <p role="status">Checkout completed. Your numbered tickets will be emailed once payment is confirmed.</p>}
         {paymentResult === 'cancelled' && <p role="status">Checkout was cancelled. You can try again below.</p>}
@@ -114,7 +115,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
         </fieldset>
         <p className="font-bold" aria-live="polite">{validQuantity ? `Total: $${(form.quantity * priceCents / 100).toFixed(2)} AUD` : 'Choose between 1 and 20 tickets.'}</p>
         {error && <p className="text-red-700" role="alert">{error}</p>}
-        <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} />
+        <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="reverse_raffle" />
         <Button type="submit" isLoading={busy} disabled={!canCheckout}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay securely with Stripe'}</Button>
       </form>}
     </div></main>

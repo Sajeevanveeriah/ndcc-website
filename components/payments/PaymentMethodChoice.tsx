@@ -1,15 +1,17 @@
 'use client';
 import { useEffect, useState } from 'react';
-export default function PaymentMethodChoice({ method, onChange }: { method: 'stripe' | 'bank_transfer'; onChange: (method: 'stripe' | 'bank_transfer') => void }) {
+// `product` applies that product's bank deposit switch (raffle, reverse_raffle,
+// dino or donation); omitted, the general capability is used.
+export default function PaymentMethodChoice({ method, onChange, product }: { method: 'stripe' | 'bank_transfer'; onChange: (method: 'stripe' | 'bank_transfer') => void; product?: 'raffle' | 'reverse_raffle' | 'dino' | 'donation' }) {
   const [capabilities, setCapabilities] = useState<{ card: boolean; bank_transfer: boolean } | null>(null);
   useEffect(() => {
     let active = true;
-    fetch('/api/payments/capabilities', { cache: 'no-store' }).then(async response => {
+    fetch(product ? `/api/payments/capabilities?product=${product}` : '/api/payments/capabilities', { cache: 'no-store' }).then(async response => {
       const result = await response.json();
       if (active && response.ok && result.data) setCapabilities(result.data);
     }).catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [product]);
   useEffect(() => {
     if (capabilities?.bank_transfer && !capabilities.card && method !== 'bank_transfer') onChange('bank_transfer');
     if (capabilities?.card && !capabilities.bank_transfer && method !== 'stripe') onChange('stripe');
