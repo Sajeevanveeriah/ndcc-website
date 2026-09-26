@@ -30,7 +30,8 @@ export default function ClubIntro() {
     setFailed(false);
     setLoading(true);
     setEnded(false);
-    if (!video.getAttribute('src')) video.src = video.canPlayType('video/mp4; codecs="avc1.64001E"') ? VIDEO : VIDEO_WEBM;
+    // The MP4 is H.264 High profile, level 3.1 (avc1.64001F): probe exactly that.
+    if (!video.getAttribute('src')) video.src = video.canPlayType('video/mp4; codecs="avc1.64001F"') ? VIDEO : VIDEO_WEBM;
     if (video.ended) video.currentTime = 0;
     video.muted = true;
     void video.play().catch(() => {
@@ -133,6 +134,17 @@ export default function ClubIntro() {
           onPause={() => setPlaying(false)}
           onEnded={() => { setPlaying(false); setShown(false); setEnded(true); }}
           onError={() => {
+            const video = videoRef.current;
+            // A browser can claim H.264 support and still fail to decode it:
+            // try the VP9 copy once before settling on the still badge.
+            if (video && video.getAttribute('src') === VIDEO) {
+              video.src = VIDEO_WEBM;
+              void video.play().catch(() => {
+                setLoading(false);
+                setPlaying(false);
+              });
+              return;
+            }
             setFailed(true);
             setLoading(false);
             setPlaying(false);
