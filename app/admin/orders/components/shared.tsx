@@ -2,6 +2,7 @@ import Badge from '@/components/ui/Badge';
 import type { Order } from '@/lib/types';
 
 export type AdminOrder = Order & {
+  bank_transfer_selected_at?: string | null;
   deleted_at?: string | null;
   order_category?: string;
   meal_collection_window?: string | null;

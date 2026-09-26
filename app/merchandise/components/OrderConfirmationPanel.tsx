@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
+import BankTransferChoice from '@/components/payments/BankTransferChoice';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderConfirmation, PaymentCapabilities } from './types';
@@ -38,8 +39,9 @@ export default function OrderConfirmationPanel({
                   <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
                 </div>
               )}
-              {orderConfirmation?.bank_details?.bsb && (
+              {capabilities.bank_transfer && orderConfirmation?.bank_details?.bsb && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
+                  <BankTransferChoice key={orderConfirmation.order_id} orderId={orderConfirmation.order_id} email={orderConfirmation.customer_email} />
                   <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Bank Transfer Details:</p>
                   <div className="mt-1 text-sm font-body text-green-800 dark:text-green-200 space-y-0.5">
                     <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>

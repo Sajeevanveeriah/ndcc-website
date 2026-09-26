@@ -26,6 +26,8 @@ psql(DB, readFileSync(new URL('./test-reverse-raffle.sql', import.meta.url), 'ut
 check('Reverse raffle 201-300 capacity, paid-only allocation, duplicate-event replay and private receipt mappings', true);
 psql(DB, readFileSync(new URL('./test-apparel-reminders.sql', import.meta.url), 'utf8'));
 check('Apparel reminders include overdue unpaid and part-paid orders, skip ineligible orders and preserve sent cycles', true);
+psql(DB, readFileSync(new URL('./test-bank-transfer.sql', import.meta.url), 'utf8'));
+check('Bank deposit selections, authorised confirmation, idempotent ticket allocation and receipt eligibility', true);
 psql(DB, readFileSync(new URL('./test-club-services.sql', import.meta.url), 'utf8'));
 check('Cash sale authorisation, exact price, idempotent tickets, receipt queue and member privacy', true);
 // Seed only the two reviewed identities in this disposable database, then

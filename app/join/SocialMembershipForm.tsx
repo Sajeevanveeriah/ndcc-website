@@ -127,6 +127,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
               {orderConfirmation?.order_id && orderConfirmation.total_amount > 0 && (
                 <OrderPaymentOptions
                   orderId={orderConfirmation.order_id}
+                      customerEmail={formData.email}
                   totalAmount={orderConfirmation.total_amount}
                   paymentReference={orderConfirmation.payment_reference}
                   bankDetails={orderConfirmation.bank_details}

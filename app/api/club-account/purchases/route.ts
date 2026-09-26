@@ -12,8 +12,8 @@ export async function GET(request: Request) {
     const page = Number(params.get('page') || 0);
     if (!Number.isSafeInteger(page) || page < 0 || page > 5000 || !['orders', 'raffle'].includes(params.get('kind') || 'orders')) return reply({ success: false, error: 'Choose a valid purchase page.' }, 400);
     const raffle = params.get('kind') === 'raffle';
-    const fields = raffle ? 'id,payment_reference,quantity,amount_cents,status,created_at,raffle_tickets(ticket_number,ticket_reference)'
-      : 'id,payment_reference,order_category,items,total_amount,amount_paid,balance_due,payment_status,order_status,processed,created_at';
+    const fields = raffle ? 'id,payment_reference,quantity,amount_cents,status,created_at,bank_transfer_selected_at,raffle_tickets(ticket_number,ticket_reference)'
+      : 'id,payment_reference,order_category,items,total_amount,amount_paid,balance_due,payment_status,order_status,processed,created_at,bank_transfer_selected_at';
     let query = createServerClient().from(raffle ? 'raffle_orders' : 'orders').select(fields, { count: 'exact' })
       .ilike('customer_email', exactEmailPattern(user.email));
     if (!raffle) query = query.is('deleted_at', null);

@@ -101,6 +101,7 @@ export default function OrdersTable({
                 </TableCell>
                 <TableCell>
                   {paymentBadge(o.payment_status)}
+                  {o.bank_transfer_selected_at && <p className="mt-1 text-xs">Bank transfer selected{balance > 0 ? " - awaiting receipt confirmation" : ""}<br />{formatDate(o.bank_transfer_selected_at)}</p>}
                   {o.needs_review_reason ? (
                     <p className="mt-1 text-xs text-red-600 max-w-[180px]">{o.needs_review_reason}</p>
                   ) : null}

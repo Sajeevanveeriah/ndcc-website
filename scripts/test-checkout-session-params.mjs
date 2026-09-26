@@ -81,7 +81,7 @@ let createStatuses;
 const db = {
   from(table) {
     const query = {
-      select() { return query; }, eq() { return query; }, in() { return query; }, upsert() { return query; }, update() { return query; },
+      select() { return query; }, is() { return query; }, eq() { return query; }, in() { return query; }, upsert() { return query; }, update() { return query; },
       async single() { return table === 'fantasy_managers' ? { data: manager } : { data: entry }; },
       async maybeSingle() { return { data: table === 'fantasy_entries' ? entry : null, error: null }; },
     };
@@ -108,6 +108,8 @@ const dinoRoute = load('app/api/fantasy/checkout/route.ts', {
   '@/lib/fantasy-seasons': { resolveRequestSeason: async () => season },
   '@/lib/dino-coach/server': { getDinoCoachSettings: async () => settings },
   '@/lib/supabase-server': { createServerClient: () => db },
+  '@/lib/payments/bank-transfer': { configuredBankDetails: () => null },
+  '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:false}) },
   '@/lib/stripe': { getStripe: () => stripe },
   '@/lib/payments/payment-config': { isCheckoutEnabled: () => true },
   '@/lib/payments/reference': { isCanonicalPaymentReference: (value) => value === reference },

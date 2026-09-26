@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
   const season = await resolveRequestSeason(request);
   const entry = data && season ? await supabase.from('fantasy_entries')
-    .select('id,status,is_demo,fee_waived,entry_fee_cents,currency,payment_reference,paid_at')
+    .select('id,status,is_demo,fee_waived,entry_fee_cents,currency,payment_reference,paid_at,bank_transfer_selected_at')
     .eq('manager_id', data.id).eq('season_id', season.id).maybeSingle() : null;
   if (entry?.error) return NextResponse.json({ success: false, error: 'Could not load your payment status.' }, { status: 503 });
   if (entry?.data?.id) {

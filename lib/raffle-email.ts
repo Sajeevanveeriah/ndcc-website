@@ -33,7 +33,8 @@ export async function sendPaidRaffleEmails(
   }
   const paymentIntent = String(order.stripe_payment_intent_id || '').trim();
   const cashPayment = order.payment_method === 'cash' && Boolean((Boolean(order.cash_received_by) !== Boolean(order.cash_received_by_member)) && order.cash_received_at && order.cash_sale_key) && !order.stripe_payment_intent_id && !order.stripe_checkout_session_id;
-  if ((order.payment_method === 'cash' && !cashPayment) || (!cashPayment && !/^pi_[A-Za-z0-9_]+$/.test(paymentIntent))) {
+  const bankPayment = order.payment_method === 'bank_transfer' && Boolean(order.bank_transfer_confirmed_at && order.bank_transfer_confirmed_by && String(order.bank_transfer_reference || '').trim().length >= 3) && !order.stripe_payment_intent_id && !order.stripe_checkout_session_id;
+  if ((order.payment_method === 'bank_transfer' && !bankPayment) || (order.payment_method === 'cash' && !cashPayment) || (!cashPayment && !bankPayment && !/^pi_[A-Za-z0-9_]+$/.test(paymentIntent))) {
     return { status: 'failed', reason: 'The paid raffle payment intent is missing or invalid.' };
   }
   if (!String(order.customer_email || '').trim()) {
@@ -48,7 +49,7 @@ export async function sendPaidRaffleEmails(
   // Paid unit price is frozen on the order; later campaign changes must not alter receipts.
   const ticketDetails = { name: campaign.name, priceCents: order.amount_cents / order.quantity, drawLabel: campaign.draw_label || null };
   let customerResult: PaymentReceiptSendResult | null = null;
-  if (!cashPayment && (!order.customer_email_sent_at || !order.staff_email_sent_at)) {
+  if (!cashPayment && !bankPayment && (!order.customer_email_sent_at || !order.staff_email_sent_at)) {
     const pending = await db
       .from('stripe_payment_events')
       .select('provider_event_id')
@@ -75,7 +76,7 @@ export async function sendPaidRaffleEmails(
       issuedDate: options.issuedAt || String(order.paid_at),
       amountCents: Number(order.amount_cents),
       paymentType: 'Raffle Ticket Purchase',
-      paymentMethod: cashPayment ? (order.cash_received_by_member ? 'Cash - collected for NDCC' : 'Cash - received by NDCC') : 'Stripe Checkout',
+      paymentMethod: bankPayment ? 'Bank transfer' : cashPayment ? (order.cash_received_by_member ? 'Cash - collected for NDCC' : 'Cash - received by NDCC') : 'Stripe Checkout',
       reference: String(order.payment_reference),
       descriptionLines: [`${order.quantity} x ${campaign.name} Ticket`, `Ticket references: ${references.join(', ')}`, ...(references[0]?.startsWith(`${REVERSE_RAFFLE_CAMPAIGN_CODE}-`) ? [`Raffle numbers: ${references.map((ref: string) => Number(ref.slice(-4))).join(', ')}`] : [])],
     };

@@ -18,9 +18,11 @@ const selection = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-consta
 const realValidation = load('lib/order-input-validation.ts', {});
 const input = { name: 'Test purchaser', email: 'buyer@example.com', phone: '', quantity: 2, selectedNumbers: [201, 300] };
 let selected, inserted, payload, payloadOptions, hidden = false, soldOut = false, failure = '', released = false, expired = false;
+let bankEnabled = false;
 let pendingHolds = [], holdQuery = null, ipTokens = 0, ipTokenLimit = Infinity, turnstileAllowed = true;
 const db = { from() { return {
   insert(value) { inserted = value; return this; }, select(columns) { if (columns === 'quantity') holdQuery = []; return this; },
+  or(expression) { holdQuery?.push(['or', expression]); return this; },
   gte(key, value) { holdQuery?.push([key, value]); return this; },
   then(resolve, reject) { return Promise.resolve({ data: pendingHolds, error: null }).then(resolve, reject); },
   async single() { return soldOut ? { error: { message: 'Reverse raffle allocation unavailable' } } : { data: { id: 'test-order' } }; },
@@ -30,6 +32,8 @@ const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/reverse-raffle-selection': selection,
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
+  '@/lib/payments/bank-transfer': { configuredBankDetails: () => ({account_name:'TEST ONLY',bsb:'000000',account_number:'00000000'}) },
+  '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:bankEnabled}) },
   '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async (value, options) => {
     if(failure === 'create') throw new Error('Stripe unavailable');
     payload = value; payloadOptions = options; return { ...value, id: 'cs_test', status: 'open', url: failure === 'validation' ? null : 'https://checkout.stripe.com/test' };
@@ -83,6 +87,19 @@ for (const code of ['NDCCRRO', 'NDCCRAF']) {
   if (code === 'NDCCRRO') assert.ok(Math.abs(payload.expires_at - (Math.floor(Date.now() / 1000) + 35 * 60)) <= 2);
   else assert.equal(Object.hasOwn(payload, 'expires_at'), false, 'the standard raffle sends no expires_at');
 }
+// A bank deposit creates a pending order without calling Stripe or allocating tickets.
+input.payment_method = 'bank_transfer'; inserted = payload = null;
+assert.equal((await route.POST({url:'https://www.ndcc.com.au/api/raffle/checkout?campaign=NDCCRRO'})).status,503);
+assert.equal(inserted,null); bankEnabled=true;
+for (const code of ['NDCCRAF','NDCCRRO']) {
+ inserted=payload=null;
+ const response=await route.POST({url:`https://www.ndcc.com.au/api/raffle/checkout?campaign=${code}`});
+ assert.equal(response.status,200); assert.equal(response.body.bank_transfer,true);
+ assert.equal(inserted.payment_method,'bank_transfer'); assert.ok(inserted.bank_transfer_selected_at);
+ assert.equal(inserted.status,undefined); assert.equal(payload,null);
+ assert.equal(response.body.total_amount,code==='NDCCRRO'?120:10);
+}
+delete input.payment_method; bankEnabled=false;
 for (const invalid of [undefined, [], [201], [201, 201], [200, 300], [201, 301], ['201', 300]]) {
   input.selectedNumbers = invalid;
   inserted = payload = null;
@@ -115,7 +132,7 @@ pendingHolds = []; ipTokens = 0; ipTokenLimit = Infinity; inserted = payload = n
 assert.equal((await route.POST(reverseUrl)).status, 200);
 assert.equal(payload.expires_at - Math.floor(Date.now() / 1000) > 34 * 60, true, 'reverse raffle checkout keeps its 35 minute expiry');
 assert.deepEqual(holdQuery.filter(([key]) => ['status', 'customer_email'].includes(key)), [['status', 'pending_payment'], ['customer_email', 'buyer@example.com']]);
-assert.ok(holdQuery.some(([key]) => key === 'created_at'), 'only holds inside the checkout window count');
+assert.ok(holdQuery.some(([key,value]) => key === 'or' && /^bank_transfer_selected_at.not.is.null,created_at.gte./.test(value)), 'bank selections and recent card holds both count towards the cap');
 assert.equal(ipTokens, 2, 'one IP hold token per requested number');
 
 pendingHolds = [{ quantity: 10 }, { quantity: 9 }]; inserted = payload = null;

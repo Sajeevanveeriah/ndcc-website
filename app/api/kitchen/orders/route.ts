@@ -1,3 +1,4 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { isMealCollectionWindow, MEAL_COLLECTION_REQUIRED_MESSAGE, mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
 import { getStripe } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
@@ -174,8 +175,7 @@ function mealResponse(order: SavedMeal) {
     payment_reference: order.payment_reference, collection_window: order.meal_collection_window,
     service_date: order.meal_service_date, revision: order.meal_revision, editing: order.meal_editing,
     payment_status: order.payment_status, draft: order.meal_request,
-    bank_details: { account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
-      bsb: process.env.NDCC_BANK_BSB || '', account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '' },
+    bank_details: configuredBankDetails(),
   };
 }
 

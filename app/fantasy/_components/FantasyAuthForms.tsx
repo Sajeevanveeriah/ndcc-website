@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
+import PaymentMethodChoice from '@/components/payments/PaymentMethodChoice';
+import BankTransferInstructions, { type BankTransferConfirmation } from '@/components/payments/BankTransferInstructions';
 
 import { useEffect, useState } from 'react';
 import { isAdultOnDate } from '@/lib/dino-coach/domain';
@@ -39,6 +41,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
   const [sendingReset, setSendingReset] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'bank_transfer'>('stripe');
+  const [bankConfirmation, setBankConfirmation] = useState<BankTransferConfirmation | null>(null);
   const [startingPayment, setStartingPayment] = useState(false);
   const [availabilityError, setAvailabilityError] = useState(false);
   const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
@@ -91,6 +95,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         .then(async (result) => {
           setManager(result.manager);
           setEntry(result.entry);
+          if (result.entry?.bank_transfer_selected_at) setPaymentMethod('bank_transfer');
           setContacts(result.reactivationContacts || []);
           const metadataDisplayName = typeof data.session?.user.user_metadata?.display_name === 'string' ? data.session.user.user_metadata.display_name : '';
           const metadataTeamName = typeof data.session?.user.user_metadata?.team_name === 'string' ? data.session.user.user_metadata.team_name : '';
@@ -134,6 +139,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
         const result = await fantasyJsonFetch<any>('/api/fantasy/manager');
         if (!cancelled) {
           setEntry(result.entry);
+          if (result.entry?.bank_transfer_selected_at) setPaymentMethod('bank_transfer');
           setManager(result.manager);
           setContacts(result.reactivationContacts || []);
         }
@@ -208,7 +214,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
 
   const startPayment = async () => {
     setStartingPayment(true); setFeedback(null);
-    try { const result = await fantasyJsonFetch<any>('/api/fantasy/checkout', { method: 'POST', body: '{}' }); window.location.href = result.url; }
+    try { const result = await fantasyJsonFetch<any>('/api/fantasy/checkout', { method: 'POST', body: JSON.stringify({ payment_method: paymentMethod }) }); if (result.bank_transfer) { setBankConfirmation(result); setStartingPayment(false); return; } window.location.href = result.url; }
     catch (err) { setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Could not start secure Checkout.' }); setStartingPayment(false); }
   };
 
@@ -329,7 +335,7 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
               Sign out
             </Button>
           )}
-          {mode === 'account' && manager && !entry?.is_demo && !entry?.fee_waived && entry?.status !== 'paid' && <Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>Pay AUD 25.00 entry</Button>}
+          {mode === 'account' && manager && !entry?.is_demo && !entry?.fee_waived && entry?.status !== 'paid' && <div className="space-y-3">{bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <><PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} /><Button onClick={startPayment} isLoading={startingPayment} disabled={!['approved', 'replaced'].includes(manager.team_name_status) || !registrationOpen}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay AUD 25.00 entry'}</Button></>}</div>}
           {mode === 'account' && (entry?.fee_waived || entry?.is_demo || entry?.status === 'paid') && <Link href="/fantasy/squad" className="btn-primary">Pick my team</Link>}
         </div>
         {mode === 'login' && !awaitingConfirm && (

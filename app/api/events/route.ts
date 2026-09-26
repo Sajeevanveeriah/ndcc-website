@@ -1,3 +1,4 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
@@ -252,13 +253,7 @@ export async function POST(request: Request) {
       order_id: linkedOrder?.id ?? null,
       total_amount: totalCost,
       payment_reference: paymentReference,
-      bank_details: isPaid
-        ? {
-            account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
-            bsb: process.env.NDCC_BANK_BSB || '',
-            account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '',
-          }
-        : null,
+      bank_details: isPaid ? configuredBankDetails() : null,
     });
   } catch (err) {
     console.error('Event registration route error:', err);

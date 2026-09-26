@@ -1,3 +1,5 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
+import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import type Stripe from 'stripe';
@@ -16,7 +18,7 @@ import { PUBLIC_ORDER_LIMITS, readLimitedJsonObject } from '@/lib/order-input-va
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  if (!isCheckoutEnabled()) return NextResponse.json({ success: false, error: 'Card payments are not currently enabled.' }, { status: 503 });
+
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   if (!await enforceRateLimit(`dino-checkout:${auth.manager.id}`, 8, 60_000)) {
@@ -27,6 +29,9 @@ export async function POST(request: Request) {
     const status = rawBody.error === 'Request body is too large.' ? 413 : 400;
     return NextResponse.json({ success: false, error: rawBody.error }, { status });
   }
+  const method = rawBody.value.payment_method || 'stripe';
+  if (method !== 'stripe' && method !== 'bank_transfer') return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 });
+  if (method === 'stripe' && !isCheckoutEnabled()) return NextResponse.json({ error: 'Card payments are not currently enabled.' }, { status: 503 });
   const season = await resolveRequestSeason(request, rawBody.value);
   if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
   const settings = await getDinoCoachSettings(season.id);
@@ -37,9 +42,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Dino Coach AUD pricing is unavailable.' }, { status: 503 });
   }
   const siteUrl = getCheckoutSiteUrl(request);
-  if (!siteUrl) return NextResponse.json({ success: false, error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
+  if (method === 'stripe' && !siteUrl) return NextResponse.json({ success: false, error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
 
   const supabase = createServerClient();
+  if (method === 'bank_transfer' && !deriveCapabilities(await loadMerchPaymentSettings(supabase)).bank_transfer) return NextResponse.json({ error: 'Bank transfers are currently unavailable.' }, { status: 503 });
   const { data: manager } = await supabase.from('fantasy_managers')
     .select('id,email,age_verified_at,team_name_status,rules_version_accepted,is_active')
     .eq('id', auth.manager.id).single();
@@ -81,6 +87,14 @@ export async function POST(request: Request) {
   if (ensuredReference.error || !isCanonicalPaymentReference(paymentReference, 'dino_coach')) {
     return NextResponse.json({ success: false, error: 'Could not allocate the Dino Coach payment reference.' }, { status: 500 });
   }
+  if (method === 'bank_transfer') {
+    if (entry.stripe_checkout_session_id || entry.stripe_payment_intent_id) return NextResponse.json({ error: 'A card payment has already been started. Contact the club to change it to bank deposit.' }, { status: 409 });
+    const selected = await supabase.from('fantasy_entries').update({ bank_transfer_selected_at: entry.bank_transfer_selected_at || new Date().toISOString() })
+      .eq('id', entry.id).in('status', payableStatuses).is('stripe_checkout_session_id', null).is('stripe_payment_intent_id', null).select('id').maybeSingle();
+    if (selected.error || !selected.data) return NextResponse.json({ error: 'The entry changed or the payment choice could not be saved. Refresh and retry.' }, { status: 409 });
+    return NextResponse.json({ success: true, bank_transfer: true, order_id: entry.id, total_amount: entry.entry_fee_cents / 100, payment_reference: paymentReference, bank_details: configuredBankDetails() }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+  if (entry.bank_transfer_selected_at) return NextResponse.json({ error: 'Bank transfer is selected for this entry. Contact the club before paying again by card.' }, { status: 409 });
   if (entry.stripe_checkout_session_id) {
     const existing = await getStripe().checkout.sessions.retrieve(entry.stripe_checkout_session_id).catch(() => null);
     if (!existing) {
@@ -192,7 +206,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Stripe did not return a verified Checkout session.' }, { status: 502 });
   }
   const recorded = await supabase.from('fantasy_entries').update({ status: 'pending', stripe_checkout_session_id: session.id })
-    .eq('id', entry.id).in('status', ['payment_required','pending','failed','expired']).select('id').maybeSingle();
+    .eq('id', entry.id).is('bank_transfer_selected_at', null).in('status', ['payment_required','pending','failed','expired']).select('id').maybeSingle();
   if (recorded.error || !recorded.data) {
     await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
     return NextResponse.json({ success: false, error: recorded.error ? 'Could not record the Checkout session.' : 'This Dino Coach entry is no longer payable.' }, { status: recorded.error ? 500 : 409 });

@@ -60,6 +60,7 @@ export type PaymentCapabilities = {
 };
 
 export type OrderConfirmation = {
+  customer_email: string;
   order_id: string;
   total_amount: number;
   payment_reference: string;

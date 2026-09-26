@@ -286,6 +286,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
                       mealDraftToken={draftToken}
                       mealRevision={orderConfirmation.revision}
                       orderId={orderConfirmation.order_id}
+                      customerEmail={email}
                       totalAmount={orderConfirmation.total_amount}
                       paymentReference={orderConfirmation.payment_reference}
                       bankDetails={orderConfirmation.bank_details}

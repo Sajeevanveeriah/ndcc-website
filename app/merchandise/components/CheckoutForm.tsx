@@ -105,10 +105,10 @@ export default function CheckoutForm({
                       }
                     />
 
-                    {capabilities.card && (
+                    {(capabilities.card || capabilities.bank_transfer) && (
                       <fieldset className="space-y-2">
                         <legend className="form-label">Payment method</legend>
-                        <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
+                        {capabilities.bank_transfer && <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
                           <input
                             type="radio"
                             name="payment_method"
@@ -116,9 +116,9 @@ export default function CheckoutForm({
                             checked={paymentMethod === 'bank_transfer'}
                             onChange={() => setPaymentMethod('bank_transfer')}
                           />
-                          Bank transfer
-                        </label>
-                        <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
+                          Bank transfer (bank deposit)
+                        </label>}
+                        {capabilities.card && <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
                           <input
                             type="radio"
                             name="payment_method"
@@ -127,7 +127,7 @@ export default function CheckoutForm({
                             onChange={() => setPaymentMethod('stripe')}
                           />
                           Pay securely by card with Stripe
-                        </label>
+                        </label>}
                       </fieldset>
                     )}
 

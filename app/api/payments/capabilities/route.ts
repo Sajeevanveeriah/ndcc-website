@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // Public, secret-free payment capability data for the merchandise page.
 export async function GET() {
   if (!isServerSupabaseConfigured()) {
-    return NextResponse.json({ success: true, data: deriveCapabilities(DEFAULT_SETTINGS) });
+    return NextResponse.json({ success: true, data: deriveCapabilities({ ...DEFAULT_SETTINGS, bank_transfer_enabled: false }) });
   }
   const settings = await loadMerchPaymentSettings(createServerClient());
   return NextResponse.json(

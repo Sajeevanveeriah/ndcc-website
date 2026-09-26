@@ -55,8 +55,9 @@ export default async function PaymentResultPage({ searchParams: searchParamsProm
                   ? 'Stripe has returned you to the club website. The signed payment notification is being matched to your order.'
                   : returnPath === '/sponsors/donate'
                     ? 'Your donation checkout was cancelled. You can return to Sponsors whenever you are ready.'
-                    : 'No card payment was completed. Your order or registration remains available for bank transfer.'}
+                    : 'No card payment was completed. Check your order to choose an available payment method.'}
               </p>
+              {!submitted && <Link href="/pay-balance" className="block underline">Find your order and choose bank deposit</Link>}
               {returnPath === '/kitchen' && <MealPaymentSummary />}
               <Link href={returnPath} className="btn-primary inline-flex justify-center">
                 Return to the previous page
