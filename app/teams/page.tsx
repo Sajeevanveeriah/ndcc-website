@@ -150,9 +150,8 @@ export default async function TeamsPage() {
             Join a Team
           </h2>
           <p className="mx-auto mb-6 max-w-2xl font-body text-base text-maroon-100 sm:text-lg">
-            Whether you are an experienced cricketer or a complete beginner, there is a team for you
-            at the {CLUB_NICKNAME}. We welcome players of all ages and abilities across our men&apos;s,
-            women&apos;s, and junior squads.
+            Interested in playing for the {CLUB_NICKNAME}? Contact the club and we will point you to the
+            right men&apos;s, women&apos;s or junior team.
           </p>
           <Link href="/contact" className="btn-accent px-7 py-3 text-base">
             Get in Touch
