@@ -92,8 +92,11 @@ const db = {
     return { data: reference, error: null };
   },
 };
+let settingsFailure = null;
+let createFailure = null;
 const stripe = { checkout: { sessions: {
   async create(params, options) {
+    if (createFailure) throw createFailure;
     creates.push({ params, options });
     const status = createStatuses.shift() || 'open';
     return { ...params, id: `cs_dino_${creates.length}`, status, url: 'https://checkout.stripe.com/dino',
@@ -106,7 +109,7 @@ const dinoRoute = load('app/api/fantasy/checkout/route.ts', {
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/fantasy-manager-auth': { resolveFantasyManagerAuth: async () => ({ auth: { manager: { id: manager.id } } }) },
   '@/lib/fantasy-seasons': { resolveRequestSeason: async () => season },
-  '@/lib/dino-coach/server': { getDinoCoachSettings: async () => settings },
+  '@/lib/dino-coach/server': { getDinoCoachSettings: async () => { if (settingsFailure) throw settingsFailure; return settings; } },
   '@/lib/supabase-server': { createServerClient: () => db },
   '@/lib/payments/bank-transfer': { configuredBankDetails: () => null },
   '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:false}) },
@@ -158,6 +161,29 @@ await test('Dino Coach expired-session recovery reuses the params with a session
   assert.equal(creates.length, 2);
   same(creates[1].params, expectedDinoParams());
   same(creates[1].options, { idempotencyKey: `ndcc:dino:v2:entry-1:cs_dino_1:${digest}` });
+});
+
+await test('Dino Coach settings failure returns friendly JSON', async () => {
+  entry = { id: 'entry-1', entry_fee_cents: 2500, currency: 'AUD', status: 'payment_required', stripe_checkout_session_id: null };
+  creates = []; createStatuses = [];
+  settingsFailure = new Error('private settings failure');
+  const response = await dinoRoute.POST({ url: 'https://www.ndcc.com.au/api/fantasy/checkout' });
+  settingsFailure = null;
+  assert.equal(response.status, 500);
+  assert.equal(response.body.success, false);
+  assert.ok(!JSON.stringify(response.body).includes('private settings failure'));
+  assert.equal(creates.length, 0);
+});
+
+await test('Dino Coach Stripe failure returns a friendly gateway error', async () => {
+  entry = { id: 'entry-1', entry_fee_cents: 2500, currency: 'AUD', status: 'payment_required', stripe_checkout_session_id: null };
+  creates = []; createStatuses = [];
+  createFailure = Object.assign(new Error('private Stripe failure'), { type: 'StripeAPIError' });
+  const response = await dinoRoute.POST({ url: 'https://www.ndcc.com.au/api/fantasy/checkout' });
+  createFailure = null;
+  assert.equal(response.status, 502);
+  assert.equal(response.body.success, false);
+  assert.ok(!JSON.stringify(response.body).includes('private Stripe failure'));
 });
 
 console.log(`Checkout Session params: ${passed} checks passed.`);

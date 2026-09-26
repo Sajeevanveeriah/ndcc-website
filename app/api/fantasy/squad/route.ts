@@ -51,7 +51,17 @@ export async function GET(request: Request) {
   }
 }
 
+// Settings, player, round and database read failures return friendly JSON.
 export async function POST(request: Request) {
+  try {
+    return await saveSquad(request);
+  } catch (error) {
+    logRouteError('fantasy/squad:post', error);
+    return NextResponse.json({ success: false, error: 'Could not save your Dino Coach squad. Please reload and try again.' }, { status: 500 });
+  }
+}
+
+async function saveSquad(request: Request) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return NextResponse.json({ success: false, error: errorMessage }, { status: errorStatus });
   const input = await readFantasyMutation(request, auth.manager.id, 'squad');
