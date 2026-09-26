@@ -14,32 +14,25 @@ export type ClaimCandidate = {
   created_at: string | null;
 };
 
-const STATUS_PRIORITY: Record<string, number> = { active: 0, pending: 1, inactive: 2 };
 const normalEmail = (value: unknown) => typeof value === 'string' ? value.trim().toLowerCase() : '';
 const normalName = (value: unknown) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').toLowerCase() : '';
-const time = (value: string | null) => { const parsed = Date.parse(value || ''); return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY; };
 
 /**
- * Choose at most one unclaimed record to link.
+ * Choose at most one unclaimed record to link, or none when the match is not
+ * unambiguous. A shared family email is not proof of identity, so:
  * - Only unclaimed rows whose email equals the verified email
  *   (case-insensitive, trimmed) are eligible.
- * - When a full name is known (profile save) and some candidates match it,
- *   only those are considered, so a shared family email links the right person.
- * - Active records win over pending, then inactive; the oldest record wins a tie.
- * - Every other candidate is left untouched for the committee to review.
+ * - Without a name (first sign-in), a record is linked only when exactly one
+ *   eligible record exists.
+ * - With a name (profile save), only records whose full name matches are
+ *   considered; exactly one must match.
+ * - Every other case links nothing and leaves the records for the committee.
  */
 export function selectClaimCandidate(candidates: ClaimCandidate[], verifiedEmail: string, fullName?: string | null): ClaimCandidate | null {
   const email = normalEmail(verifiedEmail);
   if (!email) return null;
   let eligible = candidates.filter(row => row && typeof row.id === 'string' && row.id && row.auth_user_id === null && normalEmail(row.email) === email);
   const name = normalName(fullName);
-  if (name) {
-    const named = eligible.filter(row => normalName(row.full_name) === name);
-    if (named.length) eligible = named;
-  }
-  if (!eligible.length) return null;
-  return [...eligible].sort((a, b) =>
-    (STATUS_PRIORITY[a.membership_status || ''] ?? 3) - (STATUS_PRIORITY[b.membership_status || ''] ?? 3)
-    || time(a.created_at) - time(b.created_at)
-    || a.id.localeCompare(b.id))[0];
+  if (name) eligible = eligible.filter(row => normalName(row.full_name) === name);
+  return eligible.length === 1 ? eligible[0] : null;
 }

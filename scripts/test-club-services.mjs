@@ -44,9 +44,14 @@ limit=false;assert.equal((await route.POST(request())).status,429);assert.equal(
 assert.equal(claims.length,0,'No unclaimed record means no claim update');
 // A committee-created record with the same verified email is linked, not duplicated.
 limit=true;filters=[];lookups=[];
+// A shared email with several unclaimed records is never guessed on sign-in.
 unclaimed=[{id:'newer-active',email:'verified@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_at:'2026-09-02'},
- {id:'older-active',email:'VERIFIED@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_at:'2026-09-01'},
+ {id:'older-active',email:'VERIFIED@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_at:'2026-09-01'}];
+let ambiguousBody=await (await route.GET(request())).json();
+assert.equal(ambiguousBody.claimed,undefined);assert.equal(claims.length,0,'Ambiguous family email links nothing');
+unclaimed=[{id:'older-active',email:'VERIFIED@example.invalid',full_name:'Other',membership_status:'active',auth_user_id:null,created_at:'2026-09-01'},
  {id:'claimed',email:'verified@example.invalid',membership_status:'active',auth_user_id:'someone',created_at:'2026-01-01'}];
+lookups=[];
 let claimedBody=await (await route.GET(request())).json();
 assert.equal(claimedBody.claimed,true);assert.equal(claims.length,1);assert.equal(claims[0].record.auth_user_id,'owner');
 assert.deepEqual(Object.keys(claims[0].record).sort(),['auth_user_id','updated_at'],'A claim never overwrites membership status or committee fields');

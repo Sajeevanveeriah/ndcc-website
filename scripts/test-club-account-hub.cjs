@@ -46,11 +46,12 @@ const has = (state, method, ...args) => state.ops.some(op => op[0] === method &&
   assert.equal(selectClaimCandidate([row('a', { email: 'other@example.invalid' })], 'member@example.invalid'), null, 'Different email never matches');
   assert.equal(selectClaimCandidate([row('a', { auth_user_id: 'someone' })], 'member@example.invalid'), null, 'Claimed records are never taken');
   assert.equal(selectClaimCandidate([row('a', { email: ' Member@Example.INVALID ' })], 'MEMBER@example.invalid ').id, 'a', 'Email match is case-insensitive and trimmed');
-  assert.equal(selectClaimCandidate([row('new', { membership_status: 'active', created_at: '2026-09-05' }), row('old', { membership_status: 'active', created_at: '2026-09-02' }), row('older-pending', { created_at: '2026-01-01' })], 'member@example.invalid').id, 'old', 'Oldest active wins, pending is left');
-  assert.equal(selectClaimCandidate([row('inactive', { membership_status: 'inactive', created_at: '2025-01-01' }), row('pending', { created_at: '2026-09-01' })], 'member@example.invalid').id, 'pending', 'Pending before inactive when nothing is active');
-  assert.equal(selectClaimCandidate([row('parent', { membership_status: 'active', full_name: 'Sam Parent', created_at: '2020-01-01' }), row('child', { full_name: 'Alex  member' })], 'member@example.invalid', ' alex member').id, 'child', 'A matching name wins behind a shared family email');
-  assert.equal(selectClaimCandidate([row('parent', { membership_status: 'active', full_name: 'Sam Parent' })], 'member@example.invalid', 'Nobody Matches').id, 'parent', 'Without a name match the normal order applies');
-  assert.equal(selectClaimCandidate([row('b', { created_at: null }), row('a', { created_at: null })], 'member@example.invalid').id, 'a', 'Stable tie-break');
+  assert.equal(selectClaimCandidate([row('only', { membership_status: 'active' })], 'member@example.invalid').id, 'only', 'A single unclaimed match is linked on first sign-in');
+  assert.equal(selectClaimCandidate([row('a', { membership_status: 'active', created_at: '2026-09-02' }), row('b', { created_at: '2026-09-05' })], 'member@example.invalid'), null, 'A shared email with several records is never guessed without a name');
+  assert.equal(selectClaimCandidate([row('parent', { membership_status: 'active', full_name: 'Sam Parent', created_at: '2020-01-01' }), row('child', { full_name: 'Alex  member' })], 'member@example.invalid', ' alex member').id, 'child', 'A unique matching name links the right person behind a shared family email');
+  assert.equal(selectClaimCandidate([row('parent', { membership_status: 'active', full_name: 'Sam Parent' })], 'member@example.invalid', 'Nobody Matches'), null, 'A name that matches no record links nothing');
+  assert.equal(selectClaimCandidate([row('a', { full_name: 'Alex Member' }), row('b', { full_name: 'alex member' })], 'member@example.invalid', 'Alex Member'), null, 'Two records with the same name link nothing');
+  assert.equal(selectClaimCandidate([row('b', { created_at: null }), row('a', { created_at: null })], 'member@example.invalid'), null, 'No tie-break guessing between records');
 
   // 2. Export shape and deletion request validation.
   const data = load('lib/club-account/account-data.ts');
