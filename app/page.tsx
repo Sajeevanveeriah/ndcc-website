@@ -39,9 +39,9 @@ import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
-import { isCookieDoughOpen } from '@/lib/cookie-dough';
 import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
-import { JUNIOR_GET_ACTIVE_VOUCHERS as VOUCHERS, isPromotionActive } from '@/lib/home-promotions';
+import { getJuniorGetActiveVouchers, type JuniorGetActiveVouchers } from '@/lib/home-promotions';
+import { getCookieDoughCampaign, type CookieDoughCampaign } from '@/lib/server/site-promotions';
 import {
   allWithinDays,
   comingUpDateParts,
@@ -136,6 +136,7 @@ function HeroView({
   ctaUrl,
   season = null,
   stats = null,
+  vouchers = null,
 }: {
   title: string;
   body: string;
@@ -143,6 +144,7 @@ function HeroView({
   ctaUrl: string;
   season?: string | null;
   stats?: ReactNode;
+  vouchers?: JuniorGetActiveVouchers | null;
 }) {
   return (
     <section className="club-home-hero" aria-labelledby="home-title">
@@ -157,9 +159,9 @@ function HeroView({
             <Link href={ctaUrl} className="btn-primary">{ctaLabel}</Link>
             <Link href="/fixtures" className="btn-secondary">View Fixtures</Link>
           </div>
-          {isPromotionActive(VOUCHERS) && (
+          {vouchers && (
             <p className="mt-4 text-base font-semibold">
-              <a href={`#${VOUCHERS.anchorId}`} className="club-text-link">{VOUCHERS.heroLinkLabel}</a>
+              <a href={`#${vouchers.anchorId}`} className="club-text-link">{vouchers.heroLinkLabel}</a>
             </p>
           )}
           {stats}
@@ -171,7 +173,7 @@ function HeroView({
 }
 
 async function HeroSection() {
-  const [blocks, season] = await Promise.all([getHomeBlocks(), getHomeSeason()]);
+  const [blocks, season, vouchers] = await Promise.all([getHomeBlocks(), getHomeSeason(), getJuniorGetActiveVouchers().catch(() => null)]);
   return (
     <HeroView
       title={blocks['home.hero']?.title || CLUB_NAME}
@@ -179,6 +181,7 @@ async function HeroSection() {
       ctaLabel={blocks['home.hero']?.cta_label || 'Join the Club'}
       ctaUrl={blocks['home.hero']?.cta_url || '/join'}
       season={seasonLine(season?.name)}
+      vouchers={vouchers}
       stats={<Suspense fallback={null}><HomeStatsStrip /></Suspense>}
     />
   );
@@ -575,8 +578,8 @@ const GET_INVOLVED_LINKS = [
   { href: '/contact', label: 'Contact the club' },
 ];
 
-function JuniorVoucherBlock() {
-  if (!isPromotionActive(VOUCHERS)) return null;
+function JuniorVoucherBlock({ vouchers: VOUCHERS }: { vouchers: JuniorGetActiveVouchers | null }) {
+  if (!VOUCHERS) return null;
   return (
     <div id={VOUCHERS.anchorId} className="scroll-mt-40 border-l-4 border-sky_accent bg-surface-blue-subtle px-5 py-4">
       <p className="text-sm font-semibold text-content-blue">Support for junior families</p>
@@ -601,10 +604,10 @@ function JuniorVoucherBlock() {
 
 type QuickLink = { id: string; href: string; title: string; description?: string | null; icon?: string | null };
 
-function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle }: { title: string; intro: string | null; quickLinks: QuickLink[]; quickLinksTitle: string }) {
+function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, vouchers, cookieDough }: { title: string; intro: string | null; quickLinks: QuickLink[]; quickLinksTitle: string; vouchers: JuniorGetActiveVouchers | null; cookieDough: CookieDoughCampaign | null }) {
   const fixedHrefs = new Set(GET_INVOLVED_LINKS.map((link) => link.href));
   const extraLinks = quickLinks.filter((link) => !fixedHrefs.has(link.href));
-  const hasPromotions = isPromotionActive(VOUCHERS) || isCookieDoughOpen();
+  const hasPromotions = Boolean(vouchers || cookieDough);
   return (
     <section className="bg-surface-page py-10 sm:py-12" aria-labelledby="get-involved-title">
       <div className="container-width">
@@ -619,8 +622,8 @@ function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle }: { title:
         </ul>
         {hasPromotions && (
           <div className="mt-6 grid items-start gap-4 lg:grid-cols-2">
-            <JuniorVoucherBlock />
-            <CookieDoughFundraiserFeature />
+            <JuniorVoucherBlock vouchers={vouchers} />
+            {cookieDough && <CookieDoughFundraiserFeature campaign={cookieDough} />}
           </div>
         )}
         {extraLinks.length > 0 && (
@@ -650,13 +653,20 @@ const GET_INVOLVED_DEFAULT_TITLE = 'Get involved';
 const QUICK_LINKS_DEFAULT_TITLE = 'Around the club';
 
 async function GetInvolvedSection() {
-  const [blocks, quickLinks] = await Promise.all([getHomeBlocks(), getPageLinkCards('home', 'quick_links')]);
+  const [blocks, quickLinks, vouchers, cookieDough] = await Promise.all([
+    getHomeBlocks(),
+    getPageLinkCards('home', 'quick_links'),
+    getJuniorGetActiveVouchers().catch(() => null),
+    getCookieDoughCampaign().catch(() => null),
+  ]);
   return (
     <GetInvolvedView
       title={cmsCopy(blocks['home.juniors']?.title) || GET_INVOLVED_DEFAULT_TITLE}
       intro={cmsCopy(blocks['home.juniors']?.body)}
       quickLinks={quickLinks}
       quickLinksTitle={cmsCopy(blocks['home.quicklinks']?.title) || QUICK_LINKS_DEFAULT_TITLE}
+      vouchers={vouchers}
+      cookieDough={cookieDough}
     />
   );
 }
@@ -838,7 +848,7 @@ export default function HomePage() {
 
       <Suspense
         fallback={
-          <GetInvolvedView title={GET_INVOLVED_DEFAULT_TITLE} intro={null} quickLinks={[]} quickLinksTitle={QUICK_LINKS_DEFAULT_TITLE} />
+          <GetInvolvedView title={GET_INVOLVED_DEFAULT_TITLE} intro={null} quickLinks={[]} quickLinksTitle={QUICK_LINKS_DEFAULT_TITLE} vouchers={null} cookieDough={null} />
         }
       >
         <GetInvolvedSection />

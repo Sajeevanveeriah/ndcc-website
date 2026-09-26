@@ -1,5 +1,5 @@
 import CookieDoughVisibility from '@/components/common/CookieDoughVisibility';
-import { isCookieDoughOpen, isCookieDoughLink } from '@/lib/cookie-dough';
+import { COOKIE_DOUGH_ENDS_AT, isCookieDoughOpen, isCookieDoughLink } from '@/lib/cookie-dough';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
@@ -32,9 +32,11 @@ function resolveLinks(links: PageLinkCard[]) {
   });
 }
 
-function FooterLink({ link, className }: { link: PageLinkCard; className: string }) {
+type CookieWindow = { open: boolean; endsAt: number | null };
+
+function FooterLink({ link, className, cookie }: { link: PageLinkCard; className: string; cookie: CookieWindow }) {
   if (isCookieDoughLink(link.href)) {
-    return <CookieDoughVisibility initialOpen={isCookieDoughOpen()}><Link href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
+    return <CookieDoughVisibility initialOpen={cookie.open} endsAt={cookie.endsAt}><Link href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
   }
   const external = isExternalLink(link);
   const content = (
@@ -72,8 +74,12 @@ export default async function Footer() {
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
   const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled, prizeWheelPublic: prizeWheelEnabled } = nav;
+  // CMS campaign dates when known; otherwise the built-in deadline.
+  const cookie: CookieWindow = nav.cookieDoughOpen === undefined
+    ? { open: isCookieDoughOpen(), endsAt: COOKIE_DOUGH_ENDS_AT }
+    : { open: nav.cookieDoughOpen, endsAt: nav.cookieDoughOpen ? (nav.cookieDoughEndsAt ?? null) : 0 };
   const hideDisabledFeatures = (link: PageLinkCard) =>
-    (isCookieDoughOpen() || !isCookieDoughLink(link.href))
+    (cookie.open || !isCookieDoughLink(link.href))
     && (dinoCoachEnabled || !link.href.startsWith('/fantasy'))
     && (raffleEnabled || !link.href.startsWith('/raffle'))
     && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'))
@@ -168,6 +174,7 @@ export default async function Footer() {
                     <li key={link.id}>
                       <FooterLink
                         link={link}
+                        cookie={cookie}
                         className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                       />
                     </li>
@@ -185,6 +192,7 @@ export default async function Footer() {
                     <li key={link.id}>
                       <FooterLink
                         link={link}
+                        cookie={cookie}
                         className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                       />
                     </li>
@@ -202,6 +210,7 @@ export default async function Footer() {
                     <li key={link.id}>
                       <FooterLink
                         link={link}
+                        cookie={cookie}
                         className="inline-flex items-center gap-1.5 text-sm text-maroon-200 hover:text-white transition-colors font-body"
                       />
                     </li>

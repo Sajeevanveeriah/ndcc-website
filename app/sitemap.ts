@@ -1,4 +1,5 @@
 import { isCookieDoughOpen } from '@/lib/cookie-dough';
+import { getCookieDoughCampaign } from '@/lib/server/site-promotions';
 import type { MetadataRoute } from 'next';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
@@ -103,7 +104,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntries.push({ url: `${baseUrl}/teams/${slug}`, changeFrequency: 'weekly', priority: 0.6 });
   }
 
-  if (isCookieDoughOpen()) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });
+  const cookieDoughOpen = await getCookieDoughCampaign().then((campaign) => campaign !== null, () => isCookieDoughOpen());
+  if (cookieDoughOpen) staticEntries.push({ url: `${baseUrl}/fundraising/cookie-dough`, changeFrequency: 'weekly', priority: 0.8 });
 
   if (await isDinoCoachPublic()) {
     staticEntries.push(

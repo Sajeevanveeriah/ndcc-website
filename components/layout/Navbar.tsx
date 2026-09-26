@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LazyMotion, domAnimation, m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, ChevronDown, UserRound } from 'lucide-react';
 import { useCookieDoughOpen } from '@/components/common/CookieDoughVisibility';
-import { isCookieDoughLink } from '@/lib/cookie-dough';
+import { COOKIE_DOUGH_ENDS_AT, isCookieDoughLink } from '@/lib/cookie-dough';
 import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/common/ThemeToggle';
@@ -145,7 +145,11 @@ type NavbarProps = {
 };
 
 export default function Navbar({ nav }: NavbarProps) {
-  const cookieDoughOpen = useCookieDoughOpen();
+  // CMS campaign dates when known; otherwise the built-in deadline.
+  const cookieDoughOpen = useCookieDoughOpen(
+    nav.cookieDoughOpen ?? true,
+    nav.cookieDoughOpen === undefined ? COOKIE_DOUGH_ENDS_AT : nav.cookieDoughOpen ? (nav.cookieDoughEndsAt ?? null) : 0,
+  );
   const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
