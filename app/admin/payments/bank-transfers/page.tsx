@@ -16,6 +16,15 @@ export default function BankTransfersPage() {
     finally { setBusy(false); }
   }
   useEffect(() => { void load(); }, []);
+  async function cancel(row: Transfer) {
+    if (!window.confirm(`Cancel the unpaid reservation ${row.reference} and release its raffle numbers? First check that no deposit has arrived. This does not refund a payment.`)) return;
+    setBusy(true); setError('');
+    try {
+      await parseApiResponse(await adminFetch('/api/admin/payments/bank-transfers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({action:'cancel',kind:row.kind,id:row.id,confirmed_cancelled:true}) }));
+      await load();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not release reservation.'); }
+    finally { setBusy(false); }
+  }
   async function confirm(row: Transfer) {
     const bank_reference = bankReferences[row.id]?.trim();
     if (!bank_reference || bank_reference.length < 3) { setError('Enter the bank transaction reference before confirming receipt.'); return; }
@@ -27,7 +36,7 @@ export default function BankTransfersPage() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not confirm receipt.'); }
     finally { setBusy(false); }
   }
-  return <div className="space-y-5"><h1 className="text-2xl font-bold">Bank transfers to reconcile</h1><p>These purchasers selected bank deposit. Check these references together against the bank statement. A selection alone is not proof of payment.</p><div className="flex flex-wrap gap-4"><Button onClick={load} disabled={busy}>Refresh</Button><a href="/api/admin/payments/bank-transfers?format=csv" className="underline">Export bank transfer list</a><Link href="/admin/orders" className="underline">All orders</Link></div>{error && <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>}{busy && <p role="status">Loading...</p>}{ready && !busy && rows.length === 0 && <p>No bank transfers awaiting receipt confirmation.</p>}
-    {rows.map(row => <article key={`${row.kind}-${row.id}`} className="rounded-lg border border-edge-strong p-4 space-y-3"><h2 className="font-bold break-all">{row.reference} - {money(row.amount_cents)}</h2><p>{row.name} - {row.kind === 'dino' ? 'Dino Coach' : row.kind === 'raffle' ? 'Raffle' : 'Order'}</p><p className="text-sm">Selected {new Date(row.selected_at).toLocaleString('en-AU',{timeZone:'Australia/Melbourne'})}</p>{row.kind === 'order' ? <Link className="underline" href={`/admin/orders?reference=${encodeURIComponent(row.reference)}`}>Open order to record funds received</Link> : <div className="space-y-2"><label className="block">Bank transaction reference<input className="form-input mt-1 w-full" value={bankReferences[row.id] || ''} maxLength={200} onChange={event=>setBankReferences({...bankReferences,[row.id]:event.target.value})}/></label><Button disabled={busy} onClick={()=>void confirm(row)}>Confirm full deposit received</Button></div>}</article>)}
+  return <div className="space-y-5"><h1 className="text-2xl font-bold">Bank transfers to reconcile</h1><p>These purchasers selected bank deposit. Check these references together against the bank statement. A selection alone is not proof of payment.</p><p>Review outstanding raffle reservations here and release abandoned orders after checking for a deposit. Cancelled reservations cannot be confirmed as paid.</p><div className="flex flex-wrap gap-4"><Button onClick={load} disabled={busy}>Refresh</Button><a href="/api/admin/payments/bank-transfers?format=csv" className="underline">Export bank transfer list</a><Link href="/admin/orders" className="underline">All orders</Link></div>{error && <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>}{busy && <p role="status">Loading...</p>}{ready && !busy && rows.length === 0 && <p>No bank transfers awaiting receipt confirmation.</p>}
+    {rows.map(row => <article key={`${row.kind}-${row.id}`} className="rounded-lg border border-edge-strong p-4 space-y-3"><h2 className="font-bold break-all">{row.reference} - {money(row.amount_cents)}</h2><p>{row.name} - {row.kind === 'dino' ? 'Dino Coach' : row.kind === 'raffle' ? 'Raffle' : 'Order'}</p><p className="text-sm">Selected {new Date(row.selected_at).toLocaleString('en-AU',{timeZone:'Australia/Melbourne'})}</p>{row.kind === 'order' ? <Link className="underline" href={`/admin/orders?reference=${encodeURIComponent(row.reference)}`}>Open order to record funds received</Link> : <div className="space-y-2"><label className="block">Bank transaction reference<input className="form-input mt-1 w-full" value={bankReferences[row.id] || ''} maxLength={200} onChange={event=>setBankReferences({...bankReferences,[row.id]:event.target.value})}/></label><Button disabled={busy} onClick={()=>void confirm(row)}>Confirm full deposit received</Button></div>}{row.kind === 'raffle' && <Button variant="secondary" disabled={busy} onClick={() => void cancel(row)}>Cancel unpaid reservation and release numbers</Button>}</article>)}
   </div>;
 }

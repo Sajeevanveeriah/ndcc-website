@@ -34,6 +34,16 @@ begin
  perform public.confirm_special_bank_transfer('raffle',oid,actor,12000,'TEST-REVERSE');
  if (select array_agg(ticket_number order by ticket_number) from public.raffle_tickets where raffle_order_id=oid) is distinct from array[201,202] then raise exception 'Bank confirmation changed selected raffle numbers'; end if;
  if public.confirm_special_bank_transfer('raffle',oid,actor,12000,'TEST-REVERSE') then raise exception 'Duplicate reverse confirmation'; end if;
+ -- Exercise the admin endpoint's conditional cancellation against real holds.
+ insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents,payment_reference,payment_method,bank_transfer_selected_at,selected_ticket_numbers)
+ values(campaign,'Cancelled bank fixture','cancel-bank@example.invalid',1,6000,public.allocate_payment_reference('raffle'),'bank_transfer',now(),array[203]) returning id into oid;
+ update public.raffle_orders set status='cancelled',updated_at=now() where id=oid and payment_method='bank_transfer' and status='pending_payment' and bank_transfer_confirmed_at is null and stripe_checkout_session_id is null and stripe_payment_intent_id is null;
+ if exists(select 1 from public.reverse_raffle_unavailable_numbers() where ticket_number=203) then raise exception 'Cancelled bank reservation still holds number'; end if;
+ if exists(select 1 from public.raffle_tickets where raffle_order_id=oid) or exists(select 1 from public.receipt_delivery_jobs where raffle_order_id=oid) then raise exception 'Cancellation issued a ticket or receipt'; end if;
+ begin
+  perform public.confirm_special_bank_transfer('raffle',oid,actor,6000,'TEST-CANCELLED');
+  raise exception 'Cancelled bank order was paid';
+ exception when raise_exception then if sqlerrm='Cancelled bank order was paid' then raise; end if; end;
  insert into public.fantasy_seasons(name,slug,is_public,auto_sync_enabled) values('Bank fixture','bank-fixture-'||gen_random_uuid(),false,false) returning id into sid;
  insert into public.fantasy_managers(display_name,email,team_name) values('Bank fixture',gen_random_uuid()||'@example.invalid','Bank fixture') returning id into mid;
  insert into public.fantasy_entries(manager_id,season_id,entry_fee_cents,currency,payment_reference,bank_transfer_selected_at) values(mid,sid,2500,'AUD',public.allocate_payment_reference('dino_coach'),now()) returning id into eid;

@@ -43,6 +43,22 @@ export async function POST(request: Request) {
   if (!admin || admin.role !== 'admin') return reply({ error: 'Administrator access required.' }, 403);
   const parsed = await readLimitedJsonObject(request, 4096);
   if (!parsed.ok) return reply({ error: 'Invalid request.' }, 400);
+  if (parsed.value.action === 'cancel') {
+    const { id, kind, confirmed_cancelled } = parsed.value;
+    if (kind !== 'raffle' || typeof id !== 'string' || !isUuidV1ToV5(id) || confirmed_cancelled !== true) return reply({ error: 'Confirm cancellation of this unpaid raffle reservation.' }, 400);
+    try {
+      // The conditional update serialises with receipt confirmation's row lock.
+      // A completed payment can never be cancelled by this reservation action.
+      const result = await createServerClient({ actorId: admin.id }).from('raffle_orders')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', id).eq('payment_method', 'bank_transfer').eq('status', 'pending_payment')
+        .is('bank_transfer_confirmed_at', null).is('stripe_checkout_session_id', null).is('stripe_payment_intent_id', null)
+        .select('id').maybeSingle();
+      if (result.error) return reply({ error: 'Reservation could not be released. Please retry.' }, 503);
+      if (!result.data) return reply({ error: 'Reservation changed or is already paid/cancelled. Refresh the list.' }, 409);
+      return reply({ success: true });
+    } catch { return reply({ error: 'Reservation could not be released. Please retry.' }, 503); }
+  }
   const { kind, id, expected_cents, bank_reference, confirmed_received } = parsed.value;
   if (!['raffle','dino'].includes(String(kind)) || typeof id !== 'string' || !isUuidV1ToV5(id) || !Number.isSafeInteger(expected_cents) || Number(expected_cents) <= 0 || typeof bank_reference !== 'string' || bank_reference.trim().length < 3 || bank_reference.trim().length > 200 || confirmed_received !== true) return reply({ error: 'Confirm the full amount received and enter the bank transaction reference.' }, 400);
   try {

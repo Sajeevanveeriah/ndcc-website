@@ -231,3 +231,9 @@ paid.cash_received_by='staff';mail=null;
 assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'failed','Two collector identities must not count as valid payment evidence');
 assert.equal(mail,null);
 console.log('PASS trailer design number 200, member cash receipt attachments and ambiguous cash-evidence rejection');
+
+Object.assign(paid,{payment_method:'bank_transfer',cash_received_by:null,cash_received_by_member:null,cash_received_at:null,cash_sale_key:null,bank_transfer_confirmed_at:'2026-09-26',bank_transfer_confirmed_by:'admin',bank_transfer_reference:'BANK-TEST'});
+mail=null;assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'sent');
+assert.match(mail.html,/NDCC has confirmed receipt of your bank transfer/);assert.doesNotMatch(mail.html,/Stripe has confirmed/);
+paid.bank_transfer_confirmed_at=null;mail=null;assert.equal((await mailer.sendPaidRaffleEmails(paid.id)).status,'failed');assert.equal(mail,null);
+console.log('PASS bank raffle receipt accurately describes confirmed deposit and rejects purchaser selection alone');

@@ -13,10 +13,11 @@ function load(file, mocks = {}, env = bankEnv) {
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, console, Request, Response, Headers, URL, Date, process: {env}, require(name) { if (name in mocks) return mocks[name]; if(name.startsWith('@/')) return load(path.resolve(name.slice(2)+'.ts'),mocks,env); if(name === 'server-only') return {}; return require(name); } }, {filename:file});
   return exports;
 }
+let raffleOrder = {id,payment_method:'bank_transfer',status:'pending_payment',bank_transfer_confirmed_at:null,stripe_checkout_session_id:null,stripe_payment_intent_id:null};
 const link = {token:'33333333-3333-4333-8333-333333333333',order_id:id};
 const db = { from(table) { const predicates = []; let update; const q = {
  select:()=>q, eq:(k,v)=>{predicates.push(row=>row[k]===v);return q;}, is:(k,v)=>{predicates.push(row=>row[k]===v);return q;}, neq:(k,v)=>{predicates.push(row=>row[k]!==v);return q;}, update:value=>{update=value;return q;},
- maybeSingle:async()=>{if(fault)return {error:{message:'private db error'},data:null};const row = table === 'apparel_balance_links' ? link : order;if(!row||!predicates.every(fn=>fn(row)))return{data:null};if(table === 'apparel_balance_links')return{data:row};if(update){writes.push(update);order={...order,...update};}return{data:order};},
+ maybeSingle:async()=>{if(fault)return {error:{message:'private db error'},data:null};const row = table === 'apparel_balance_links' ? link : table === 'raffle_orders' ? raffleOrder : order;if(!row||!predicates.every(fn=>fn(row)))return{data:null};if(table === 'apparel_balance_links')return{data:row};if(update){writes.push(update);if(table === 'raffle_orders')raffleOrder={...row,...update};else order={...order,...update};}return{data:table === 'raffle_orders'?raffleOrder:order};},
  };return q; }, rpc:async(name,args)=>{rpcCalls.push({name,args});return{data:true,error:null};} };
 const mocks = {
  'next/server': {NextResponse}, '@/lib/supabase-server': {createServerClient:()=>db},
@@ -65,6 +66,15 @@ const call = body => route.POST(req({order_id:id,email:original.customer_email,.
  assert.equal((await adminRoute.POST(req({...confirmation,expected_cents:0}))).status,400);
  assert.equal((await adminRoute.POST(req({...confirmation,bank_reference:''}))).status,400);
  assert.equal((await adminRoute.POST(req(confirmation))).status,200);assert.equal(rpcCalls[0].args.actor_id,admin.id);
+ const cancel={action:'cancel',kind:'raffle',id,confirmed_cancelled:true};
+ const before=rpcCalls.length;
+ assert.equal((await adminRoute.POST(req({...cancel,confirmed_cancelled:false}))).status,400);
+ admin=null;assert.equal((await adminRoute.POST(req(cancel))).status,403);admin={id:'admin',role:'admin'};
+ for(const change of [{status:'paid'},{payment_method:'stripe'},{stripe_checkout_session_id:'cs_live'},{bank_transfer_confirmed_at:'today'}]) {
+  const saved={...raffleOrder};raffleOrder={...raffleOrder,...change};assert.equal((await adminRoute.POST(req(cancel))).status,409);raffleOrder=saved;
+ }
+ assert.equal((await adminRoute.POST(req(cancel))).status,200);assert.equal(raffleOrder.status,'cancelled');
+ assert.equal((await adminRoute.POST(req(cancel))).status,409);assert.equal(rpcCalls.length,before,'reservation cancellation cannot confirm payment');
  const {buildMerchExportRows,EXPORT_HEADER}=load('lib/orders/export.ts');
  const rows=buildMerchExportRows([{...original,created_at:'2026-09-26T00:00:00Z',customer_name:'Test',items:[{name:'Ticket',price:60,quantity:1}],bank_transfer_selected_at:'2026-09-26T00:00:00Z'}],[]);
  assert.equal(rows[1][EXPORT_HEADER.indexOf('amount_paid')],'0.00');assert.equal(rows[1][EXPORT_HEADER.indexOf('balance_due')],'60.00');assert.equal(rows[1][EXPORT_HEADER.indexOf('payment_methods')],'');assert.equal(rows[1][EXPORT_HEADER.indexOf('purchaser_payment_choice')],'bank_transfer');
