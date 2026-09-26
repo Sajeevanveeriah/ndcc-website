@@ -3,6 +3,7 @@ import { requirePermission } from '@/lib/auth/guard';
 import { CLUB_SEASON_COLUMNS, nextClubSeasonDraft } from '@/lib/club-seasons';
 import { buildSeasonWizardPreview, validateSeasonWizardPayload } from '@/lib/club-season-wizard';
 import { createServerClient } from '@/lib/supabase-server';
+import { revalidateSitemap } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 const noStore = { 'Cache-Control': 'no-store', Vary: 'Cookie' } as const;
@@ -80,6 +81,8 @@ export async function PATCH(request: Request) {
     if (stateError || !state?.club_season_id) return NextResponse.json({ success: false, error: stateError?.message || 'Wizard state has no season to activate.' }, { status: 400, headers: noStore });
     const { error } = await supabase.rpc('activate_club_season', { p_club_season_id: state.club_season_id, p_actor: user.email });
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: noStore });
+    // Player registration in the sitemap follows the current club season.
+    revalidateSitemap();
     await supabase.from('club_season_wizard_states').update({ status: 'activated', updated_by: user.email }).eq('id', stateId);
     return NextResponse.json({ success: true }, { headers: noStore });
   }

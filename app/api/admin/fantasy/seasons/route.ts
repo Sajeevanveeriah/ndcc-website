@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { SEASON_COLUMNS } from '@/lib/fantasy-seasons';
 import { getPlayHQSeasons } from '@/lib/playhq/client';
 import { getPlayHQConfig } from '@/lib/playhq/config';
+import { revalidateSitemap } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,5 +117,7 @@ export async function PATCH(request: Request) {
   if (!Object.keys(update).length) return NextResponse.json({ success: false, error: 'No supported season fields were provided.' }, { status: 400, headers: noStore });
   const { data: season, error } = await supabase.from('fantasy_seasons').update(update).eq('id', seasonId).select(ADMIN_SEASON_COLUMNS).single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400, headers: noStore });
+  // The sitemap lists Dino Coach pages from the current season's launch state.
+  revalidateSitemap();
   return NextResponse.json({ success: true, season }, { headers: noStore });
 }

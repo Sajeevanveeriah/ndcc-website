@@ -72,13 +72,16 @@ const route = load('app/api/admin/fantasy/seasons/route.ts', {
   'next/server': { NextResponse: { json: body => body } }, '@/lib/auth/guard': { requirePermission: async () => ({ id: 'admin' }) },
   '@/lib/supabase-server': { createServerClient: db }, '@/lib/fantasy-seasons': { SEASON_COLUMNS: 'id, name' },
   '@/lib/playhq/client': {}, '@/lib/playhq/config': {},
+  '@/lib/server/revalidate-public': { revalidateSitemap: () => { sitemapRevalidations += 1; } },
 });
+let sitemapRevalidations = 0;
 for (const enabled of [false, true]) {
   const saved = await route.PATCH({ json: async () => ({ seasonId: 'season', autoSyncEnabled: enabled }) });
   assert.equal(saved.season.auto_sync_enabled, enabled);
   const reloaded = await route.GET({ url: 'https://example.test/api/admin/fantasy/seasons' });
   assert.equal(reloaded.seasons[0].auto_sync_enabled, enabled);
 }
+assert.equal(sitemapRevalidations, 2, 'each successful season save clears the sitemap cache');
 console.log('Preseason fixture classification, safe recovery eligibility, round alignment and Auto Sync save/reload checks passed.');
 
 // Exercise the actual public client against provider responses: empty grade

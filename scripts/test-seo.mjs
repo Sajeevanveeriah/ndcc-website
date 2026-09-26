@@ -126,7 +126,8 @@ check('sitemap route caches successful builds and CMS writes clear it', () => {
   assert.match(route, /unstable_cache\(buildSitemapEntries, \['public-sitemap-v1'\], \{\s*revalidate: 300,\s*tags: \[SITEMAP_CACHE_TAG\]/);
   assert.match(route, /export default async function sitemap\(\)[^{]*\{\s*return getCachedSitemap\(\);/);
   assert.match(readFileSync('lib/server/revalidate-public.ts', 'utf8'), /revalidateTag\(SITEMAP_CACHE_TAG\)/);
-  for (const writer of ['app/api/admin/gallery/albums/route.ts', 'app/api/admin/promotions/route.ts']) {
+  // Writers for sitemap inputs that do not go through revalidatePublicContent.
+  for (const writer of ['app/api/admin/gallery/albums/route.ts', 'app/api/admin/promotions/route.ts', 'app/api/admin/fantasy/seasons/route.ts', 'app/api/admin/club-seasons/wizard/route.ts']) {
     assert.match(readFileSync(writer, 'utf8'), /revalidateSitemap\(\);/, `${writer} clears the sitemap cache`);
   }
 });
