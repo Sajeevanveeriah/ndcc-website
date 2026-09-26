@@ -249,9 +249,13 @@ function MatchDayCard({ entry, clubPlayHQUrl }: { entry: MatchDayEntry; clubPlay
 }
 
 function PendingFixtureRow({ entry, clubPlayHQUrl }: { entry: MatchDayEntry; clubPlayHQUrl: string }) {
+  const grade = entry.gradeName && entry.gradeName !== entry.teamName ? entry.gradeName : null;
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3">
-      <span className="font-semibold text-content-primary">{entry.teamName}</span>
+      <span className="font-semibold text-content-primary">
+        {entry.teamName}
+        {grade && <span className="ml-2 font-normal text-sm text-content-muted">{grade}</span>}
+      </span>
       {entry.state === 'unavailable' ? (
         <span className="text-sm text-content-muted">
           Fixture details could not be loaded here.{' '}
