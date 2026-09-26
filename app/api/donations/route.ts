@@ -1,3 +1,4 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { NextResponse } from 'next/server';
 import { getClubSettings } from '@/lib/club-settings';
 import { createServerClient } from '@/lib/supabase-server';
@@ -26,7 +27,10 @@ export async function POST(request: Request) {
     }
     const supabase = createServerClient();
     const settings = await loadMerchPaymentSettings(supabase);
-    if (!deriveCapabilities(settings).card) return NextResponse.json({ error: 'Online payments are currently unavailable.' }, { status: 503 });
+    const method = parsed.value.payment_method || 'stripe';
+    if (method !== 'stripe' && method !== 'bank_transfer') return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 });
+    const capabilities = deriveCapabilities(settings);
+    if (!(method === 'bank_transfer' ? capabilities.bank_transfer : capabilities.card)) return NextResponse.json({ error: 'The selected payment method is currently unavailable.' }, { status: 503 });
     // Keep the established general-payment reference contract; the dedicated
     // order category identifies donations in Stripe metadata and ledger exports.
     const reference = await generateUniquePaymentReference('general');
@@ -34,10 +38,11 @@ export async function POST(request: Request) {
       customer_name: input.name, customer_email: input.email, customer_phone: '',
       items: [{ name: 'Club donation', quantity: 1, price: input.amount }],
       total_amount: input.amount, order_category: 'donation', order_status: 'submitted',
+      bank_transfer_selected_at: method === 'bank_transfer' ? new Date().toISOString() : null,
       payment_status: 'pending_bank_transfer', payment_reference: reference, processed: false,
     }).select('id').single();
     if (error || !data) throw new Error('Donation order could not be created.');
-    return NextResponse.json({ success: true, order_id: data.id }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ success: true, order_id: data.id, total_amount: input.amount, payment_reference: reference, bank_details: capabilities.bank_transfer ? configuredBankDetails() : null }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'Unable to start your donation. Please try again shortly.' }, { status: 503 });
   }

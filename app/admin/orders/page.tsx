@@ -22,6 +22,7 @@ import {
 
 
 export default function AdminOrdersPage() {
+  const [referenceFilter, setReferenceFilter] = useState('');
   const [group, setGroup] = useState('merch');
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [payments, setPayments] = useState<OrderPayment[]>([]);
@@ -61,7 +62,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  useEffect(() => { setGroup(new URLSearchParams(window.location.search).get('group') || 'merch'); fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const params = new URLSearchParams(window.location.search); setReferenceFilter(params.get('reference') || ''); setGroup(params.get('group') || 'merch'); fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSetProcessed = async (id: string, processed: boolean) => {
     try {
@@ -192,11 +193,12 @@ export default function AdminOrdersPage() {
     try { await parseApiResponse(await adminFetch('/api/admin/resources/orders', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})})); await fetchAll(); setMessage('Order restored.'); } catch (error) {setMessage(error instanceof Error ? error.message : 'Restore failed.');}
   };
   const filteredOrders = orders.filter((o) => {
-    if (purchaseGroup(o) !== group) return false;
+    if (referenceFilter ? o.payment_reference !== referenceFilter : purchaseGroup(o) !== group) return false;
     if (filterStatus === 'deleted') return Boolean(o.deleted_at);
     if (o.deleted_at) return false;
     if (filterStatus === 'processed' && !o.processed) return false;
     if (filterStatus === 'pending' && o.processed) return false;
+    if (filterStatus === 'bank_transfer' && (!o.bank_transfer_selected_at || balanceDue(o) <= 0)) return false;
     if (filterStatus === 'paid' && o.payment_status !== 'paid') return false;
     if (filterStatus === 'unpaid' && (o.payment_status === 'paid' || o.payment_status === 'refunded')) return false;
     if (filterStatus === 'part_paid' && o.payment_status !== 'part_paid' && o.payment_status !== 'partially_refunded') return false;
@@ -205,6 +207,7 @@ export default function AdminOrdersPage() {
   });
 
   const statusOptions = [
+    { value: 'bank_transfer', label: 'Bank transfer selected - to reconcile' },
     { value: 'deleted', label: 'Deleted orders' },
     { value: 'pending', label: 'Unprocessed' },
     { value: 'processed', label: 'Processed' },
@@ -244,6 +247,7 @@ export default function AdminOrdersPage() {
 
       {group === 'merch' && <PaymentReportExport exporting={exporting} setExporting={setExporting} setMessage={setMessage} />}
 
+      <a className="block mb-4 underline" href="/admin/payments/bank-transfers">Bank transfers to reconcile - all payments</a>
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="w-full sm:w-48">
@@ -255,6 +259,7 @@ export default function AdminOrdersPage() {
             label="Filter by Status"
           />
         </div>
+        {referenceFilter && <Button variant="ghost" onClick={() => setReferenceFilter('')}>Clear order reference</Button>}
         {filterStatus && (
           <div className="flex items-end">
             <Button variant="ghost" size="sm" onClick={() => setFilterStatus('')}>

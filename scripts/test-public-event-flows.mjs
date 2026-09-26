@@ -87,6 +87,8 @@ const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.res
 } };
 const route = load('app/api/events/route.ts', {
   '@/lib/supabase-server': { createServerClient: () => db },
+  '@/lib/payments/bank-transfer': { configuredBankDetails: () => null },
+  '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:false}) },
   'next/server': { NextResponse: { json: (body, options) => Response.json(body, options) } },
   '@/lib/server/request-guards': { enforceHoneypotAndTiming: () => true, enforceRateLimit: () => true, getClientIp: () => 'test' },
   '@/lib/utils': load('lib/utils.ts'),

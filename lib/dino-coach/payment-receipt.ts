@@ -46,7 +46,7 @@ export async function sendDinoCoachPaymentReceiptForEntry(
 ): Promise<PaymentReceiptSendResult> {
   const { data: entry, error: entryError } = await supabase
     .from('fantasy_entries')
-    .select('id,status,paid_at,entry_fee_cents,currency,payment_reference,stripe_payment_intent_id,customer_receipt_sent_at,customer_receipt_message_id,customer_receipt_filename,fantasy_managers(display_name,email,team_name)')
+    .select('id,status,paid_at,entry_fee_cents,currency,payment_reference,stripe_payment_intent_id,stripe_checkout_session_id,bank_transfer_confirmed_at,bank_transfer_confirmed_by,bank_transfer_reference,customer_receipt_sent_at,customer_receipt_message_id,customer_receipt_filename,fantasy_managers(display_name,email,team_name)')
     .eq('id', entryId)
     .maybeSingle();
   if (entryError || !entry) {
@@ -72,7 +72,8 @@ export async function sendDinoCoachPaymentReceiptForEntry(
     return { status: 'failed', reason: 'The Dino Coach entry is not recorded in AUD.' };
   }
   const paymentIntent = String(entry.stripe_payment_intent_id || '').trim();
-  if (!/^pi_[A-Za-z0-9_]+$/.test(paymentIntent)) {
+  const bankPayment = Boolean(entry.bank_transfer_confirmed_at && entry.bank_transfer_confirmed_by && String(entry.bank_transfer_reference || '').trim().length >= 3) && !entry.stripe_payment_intent_id && !entry.stripe_checkout_session_id;
+  if (!bankPayment && !/^pi_[A-Za-z0-9_]+$/.test(paymentIntent)) {
     return { status: 'failed', reason: 'The Dino Coach payment intent is missing or invalid.' };
   }
 
@@ -151,7 +152,7 @@ export async function sendDinoCoachPaymentReceiptForEntry(
     issuedDate: options.issuedAt || String(entry.paid_at),
     amountCents,
     paymentType: 'Dino Coach Entry',
-    paymentMethod: 'Stripe Checkout',
+    paymentMethod: bankPayment ? 'Bank transfer' : 'Stripe Checkout',
     reference,
     descriptionLines: [`Dino Coach entry - ${teamName}`],
   };

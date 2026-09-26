@@ -1,3 +1,5 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
+import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
     if (!await enforceRateLimit(`raffle:${ip}`, 8, 60_000)) return NextResponse.json({ error: 'Too many attempts. Please wait and try again.' }, { status: 429 });
-    if (!isCheckoutEnabled()) return NextResponse.json({ error: 'Card payments are not currently enabled.' }, { status: 503 });
+
     const rawBody = await readLimitedJsonObject(request, 16 * 1024);
     if (!rawBody.ok) {
       return NextResponse.json(
@@ -47,6 +49,9 @@ export async function POST(request: Request) {
         { status: rawBody.error === 'Request body is too large.' ? 413 : 400 },
       );
     }
+    const method = rawBody.value.payment_method || 'stripe';
+    if (method !== 'stripe' && method !== 'bank_transfer') return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 });
+    if (method === 'stripe' && !isCheckoutEnabled()) return NextResponse.json({ error: 'Card payments are not currently enabled.' }, { status: 503 });
     // Optional Cloudflare Turnstile check; a no-op unless TURNSTILE_SECRET_KEY is set.
     if (!await enforceTurnstile(request, rawBody.value)) {
       return NextResponse.json({ error: 'Please complete the security check and try again.' }, { status: 403 });
@@ -58,8 +63,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Enter a valid name, email, phone and quantity from 1 to 20.' }, { status: 400 });
     }
     const site = getCheckoutSiteUrl(request);
-    if (!site) return NextResponse.json({ error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
+    if (method === 'stripe' && !site) return NextResponse.json({ error: 'Secure checkout return URLs are not configured.' }, { status: 503 });
     const db = createServerClient();
+    if (method === 'bank_transfer' && !deriveCapabilities(await loadMerchPaymentSettings(db)).bank_transfer) return NextResponse.json({ error: 'Bank transfers are currently unavailable.' }, { status: 503 });
     const campaignCode = new URL(request.url).searchParams.get('campaign') || 'NDCCRAF';
     if (!['NDCCRAF', 'NDCCRRO'].includes(campaignCode)) return NextResponse.json({ error: 'Unknown raffle.' }, { status: 400 });
     const selectedNumbers = rawBody.value.selectedNumbers;
@@ -83,7 +89,7 @@ export async function POST(request: Request) {
         .eq('campaign_id', campaign.id)
         .eq('status', 'pending_payment')
         .eq('customer_email', email)
-        .gte('created_at', holdCutoff);
+        .or(`bank_transfer_selected_at.not.is.null,created_at.gte.${holdCutoff}`);
       const pendingForEmail = pendingError ? null : sumPendingRaffleQuantities(pendingRows);
       if (pendingForEmail === null) {
         console.error('Reverse raffle hold lookup failed:', pendingError);
@@ -97,13 +103,17 @@ export async function POST(request: Request) {
       }
     }
     const paymentReference = await generateUniquePaymentReference('raffle');
-    const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount, payment_reference: paymentReference,
+    const { data: order, error: orderError } = await db.from('raffle_orders').insert({ campaign_id: campaign.id, customer_name: name, customer_email: email, customer_phone: phone || null, quantity, amount_cents: amount, payment_reference: paymentReference, payment_method: method, bank_transfer_selected_at: method === 'bank_transfer' ? new Date().toISOString() : null,
       ...(campaignCode === 'NDCCRRO' ? { selected_ticket_numbers: selectedNumbers } : {}),
     }).select('id').single();
     if (orderError?.message?.includes('Reverse raffle number unavailable')) return NextResponse.json({ error: 'One or more selected numbers are now sold or held by another checkout. Please choose again.' }, { status: 409 });
     if (orderError?.message?.includes('Reverse raffle allocation unavailable')) return NextResponse.json({ error: 'There are not enough tickets available. Tickets may be sold or held by another checkout. Please reduce the quantity or try again later.' }, { status: 409 });
     if (orderError || !order) return NextResponse.json({ error: 'The raffle order could not be created.' }, { status: 500 });
     if (campaign.code === 'NDCCRRO') pendingOrderId = order.id;
+    if (method === 'bank_transfer') {
+      checkoutPublished = true;
+      return NextResponse.json({ success: true, bank_transfer: true, order_id: order.id, total_amount: amount / 100, payment_reference: paymentReference, bank_details: configuredBankDetails() }, { headers: { 'Cache-Control': 'no-store' } });
+    }
     const paymentMetadata = {
       ndcc_payment_reference: paymentReference,
       ndcc_payment_type: 'raffle',

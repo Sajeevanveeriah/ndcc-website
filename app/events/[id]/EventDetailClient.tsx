@@ -15,6 +15,7 @@ import { normalizeEventImage } from '@/lib/public-content-normalizers';
 
 type OrderConfirmation = {
   order_id: string;
+  customer_email: string;
   total_amount: number;
   payment_reference: string;
   bank_details: { account_name: string; bsb: string; account_number: string } | null;
@@ -97,6 +98,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
           total_amount: totalAmount,
           payment_reference: data.payment_reference || '',
           bank_details: data.bank_details || null,
+          customer_email: formData.email,
         });
       }
       setFormData({ name: '', email: '', phone: '', quantity: 1, hp_field: '', submitted_at: Date.now() });
@@ -216,6 +218,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
                   {submitStatus === 'success' && orderConfirmation && (
                     <OrderPaymentOptions
                       orderId={orderConfirmation.order_id}
+                      customerEmail={orderConfirmation.customer_email}
                       totalAmount={orderConfirmation.total_amount}
                       paymentReference={orderConfirmation.payment_reference}
                       bankDetails={orderConfirmation.bank_details}

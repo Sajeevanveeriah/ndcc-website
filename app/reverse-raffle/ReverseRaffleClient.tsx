@@ -1,4 +1,6 @@
 'use client';
+import PaymentMethodChoice from '@/components/payments/PaymentMethodChoice';
+import BankTransferInstructions, { type BankTransferConfirmation } from '@/components/payments/BankTransferInstructions';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -9,6 +11,8 @@ import { REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_NUMBER_RANGE_LABEL, isReve
 
 export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCents: number; drawLabel: string | null }) {
   const paymentResult = useSearchParams().get('payment');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'bank_transfer'>('stripe');
+  const [bankConfirmation, setBankConfirmation] = useState<BankTransferConfirmation | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', quantity: 1 });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -48,10 +52,12 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
     setBusy(true); setError('');
     try {
       const response = await fetch(`/api/raffle/checkout?campaign=${REVERSE_RAFFLE_CAMPAIGN_CODE}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, selectedNumbers }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, selectedNumbers, payment_method: paymentMethod }),
       });
       const result = await response.json();
-      if (!response.ok || !result.checkout_url) throw new Error(result.error || 'Checkout could not be started.');
+      if (!response.ok) throw new Error(result.error || 'Checkout could not be started.');
+      if (result.bank_transfer) { setBankConfirmation(result); setBusy(false); return; }
+      if (!result.checkout_url) throw new Error('Checkout could not be started.');
       window.location.href = result.checkout_url;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Checkout could not be started.');
@@ -68,7 +74,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
       <Image src="/images/20260922-NDCC-Reverse-Raffle-Rev00.webp" width={1600} height={2000}
         sizes="(max-width: 768px) 100vw, 480px" alt="Newcomb and District Cricket Club Reverse Raffle. $60 AUD per ticket. Support your club."
         className="w-full h-auto" priority />
-      <form onSubmit={checkout} className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-4">
+      {bankConfirmation ? <BankTransferInstructions confirmation={bankConfirmation} /> : <form onSubmit={checkout} className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-4">
         <h2 className="font-display text-2xl font-bold">Buy reverse raffle tickets</h2>
         {paymentResult === 'success' && <p role="status">Checkout completed. Your numbered tickets will be emailed once payment is confirmed.</p>}
         {paymentResult === 'cancelled' && <p role="status">Checkout was cancelled. You can try again below.</p>}
@@ -108,8 +114,9 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
         </fieldset>
         <p className="font-bold" aria-live="polite">{validQuantity ? `Total: $${(form.quantity * priceCents / 100).toFixed(2)} AUD` : 'Choose between 1 and 20 tickets.'}</p>
         {error && <p className="text-red-700" role="alert">{error}</p>}
-        <Button type="submit" isLoading={busy} disabled={!canCheckout}>Pay securely with Stripe</Button>
-      </form>
+        <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} />
+        <Button type="submit" isLoading={busy} disabled={!canCheckout}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay securely with Stripe'}</Button>
+      </form>}
     </div></main>
   </>;
 }

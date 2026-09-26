@@ -6,6 +6,7 @@
 // display date (order_date_melbourne).
 
 export type ExportOrder = {
+  bank_transfer_selected_at?: string | null;
   id: string;
   created_at: string;
   payment_reference?: string | null;
@@ -82,6 +83,8 @@ export const EXPORT_HEADER = [
   'notes',
   'alternate_number',
   'number_request_status',
+  'purchaser_payment_choice',
+  'bank_transfer_selected_at',
 ];
 
 const melbourneDate = new Intl.DateTimeFormat('en-AU', {
@@ -200,6 +203,8 @@ export function buildMerchExportRows(
         order.notes || '',
         item.alternate_number === undefined || item.alternate_number === null ? '' : String(item.alternate_number),
         item.number_request_status || '',
+        order.bank_transfer_selected_at ? 'bank_transfer' : '',
+        order.bank_transfer_selected_at || '',
       ]);
     }
   }

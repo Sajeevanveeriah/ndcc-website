@@ -30,7 +30,7 @@ export type { ApiProduct } from './components/types';
 // availability comes from /api/payments/capabilities (CMS switch + server
 // environment) — never from a hardcoded client flag.
 const DEFAULT_CAPABILITIES: PaymentCapabilities = {
-  bank_transfer: true,
+  bank_transfer: false,
   card: false,
   partial_payments: false,
   minimum_partial_amount: 10,
@@ -194,9 +194,10 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
         const payload = await res.json();
         if (!stale && res.ok && payload?.data) {
           setCapabilities({ ...DEFAULT_CAPABILITIES, ...payload.data });
+          if (!payload.data.bank_transfer && payload.data.card) setPaymentMethod('stripe');
         }
       } catch (err) {
-        console.error('[merchandise] Failed to load payment capabilities; keeping bank-transfer-only defaults:', err);
+        console.error('[merchandise] Failed to load payment capabilities; keeping payment methods unavailable:', err);
       }
     };
 
@@ -431,6 +432,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
         payment_reference: data.payment_reference || '',
         personalisation_requested: Boolean(data.personalisation_requested),
         number_requested: Boolean(data.number_requested),
+        customer_email: formData.email,
         bank_details: data.bank_details || { account_name: '', bsb: '', account_number: '' },
       });
       setSubmitStatus('success');

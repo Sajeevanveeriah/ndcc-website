@@ -6,6 +6,7 @@
 // (merch_payment_settings.card_checkout_enabled) and the environment arming
 // (PAYMENT_PROVIDER=stripe_checkout + STRIPE_SECRET_KEY present).
 
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { isCheckoutEnabled } from '@/lib/payments/payment-config';
 
 export type PaymentCapabilities = {
@@ -44,7 +45,7 @@ export async function loadMerchPaymentSettings(client: unknown): Promise<MerchPa
       .from('merch_payment_settings')
       .select('bank_transfer_enabled,card_checkout_enabled,partial_payments_enabled,minimum_partial_amount,required_deposit_percent')
       .maybeSingle();
-    if (error || !data) return DEFAULT_SETTINGS;
+    if (error || !data) return { ...DEFAULT_SETTINGS, bank_transfer_enabled: false };
     const row = data as MerchPaymentSettingsRow;
     return {
       bank_transfer_enabled: Boolean(row.bank_transfer_enabled),
@@ -54,14 +55,14 @@ export async function loadMerchPaymentSettings(client: unknown): Promise<MerchPa
       required_deposit_percent: row.required_deposit_percent === null ? null : Number(row.required_deposit_percent),
     };
   } catch {
-    return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, bank_transfer_enabled: false };
   }
 }
 
 export function deriveCapabilities(settings: MerchPaymentSettingsRow): PaymentCapabilities {
   const cardArmed = settings.card_checkout_enabled && isCheckoutEnabled();
   return {
-    bank_transfer: settings.bank_transfer_enabled,
+    bank_transfer: settings.bank_transfer_enabled && Boolean(configuredBankDetails()),
     card: cardArmed,
     partial_payments: cardArmed && settings.partial_payments_enabled,
     minimum_partial_amount: settings.minimum_partial_amount,

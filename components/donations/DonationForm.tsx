@@ -1,9 +1,13 @@
 'use client';
 
 import { FormEvent, useRef, useState } from 'react';
+import PaymentMethodChoice from '@/components/payments/PaymentMethodChoice';
+import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import Link from 'next/link';
 
 export default function DonationForm() {
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'bank_transfer'>('stripe');
+  const [confirmation, setConfirmation] = useState<{order_id:string;total_amount:number;payment_reference:string;bank_details:{account_name:string;bsb:string;account_number:string}|null}|null>(null);
   const [amount, setAmount] = useState('10');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -26,12 +30,14 @@ export default function DonationForm() {
       if (!currentOrder) {
         const response = await fetch('/api/donations', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: Number(amount), name, email, hp_field: honeypot.current?.value || '', submitted_at: startedAt.current }),
+          body: JSON.stringify({ payment_method: paymentMethod, amount: Number(amount), name, email, hp_field: honeypot.current?.value || '', submitted_at: startedAt.current }),
         });
         const result = await response.json();
         if (!response.ok || !result.order_id) throw new Error(result.error || 'Unable to start your donation.');
         currentOrder = result.order_id;
         setOrderId(currentOrder);
+        setConfirmation(result);
+        if (paymentMethod === 'bank_transfer') return;
       }
       const response = await fetch('/api/payments/checkout-session', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -79,12 +85,14 @@ export default function DonationForm() {
                 <input type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} className={inputClass} />
               </label>
               <div hidden aria-hidden="true"><label>Leave blank<input ref={honeypot} tabIndex={-1} autoComplete="off" /></label></div>
+              <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} />
             </fieldset>
+            {confirmation && paymentMethod === 'bank_transfer' && <OrderPaymentOptions orderId={confirmation.order_id} customerEmail={email} totalAmount={confirmation.total_amount} paymentReference={confirmation.payment_reference} bankDetails={confirmation.bank_details} returnPath="/sponsors/donate" />}
             {error && <p role="alert" className="mt-4 text-red-700 dark:text-red-300">{error}</p>}
-            <button type="submit" disabled={busy} className="mt-6 w-full rounded-lg bg-maroon-700 px-6 py-4 font-semibold text-white hover:bg-maroon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 disabled:opacity-60">
-              {busy ? 'Opening secure checkout...' : orderId ? 'Retry secure checkout' : `Donate ${new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(amount) || 0)}`}
+            <button type="submit" disabled={busy || (Boolean(confirmation) && paymentMethod === 'bank_transfer')} className="mt-6 w-full rounded-lg bg-maroon-700 px-6 py-4 font-semibold text-white hover:bg-maroon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 disabled:opacity-60">
+              {busy ? 'Preparing your donation...' : confirmation && paymentMethod === 'bank_transfer' ? 'Bank transfer selected' : orderId ? 'Retry secure checkout' : `Donate ${new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(amount) || 0)}`}
             </button>
-            <p className="mt-4 text-sm leading-relaxed text-content-muted">One-off payment through Stripe. Your payment receipt is issued after payment is confirmed. This is not a tax-deductible donation receipt.</p>
+            <p className="mt-4 text-sm leading-relaxed text-content-muted">Pay by card or bank deposit. Your payment receipt is issued after payment is confirmed. This is not a tax-deductible donation receipt.</p>
           </form>
         </div>
       </div>

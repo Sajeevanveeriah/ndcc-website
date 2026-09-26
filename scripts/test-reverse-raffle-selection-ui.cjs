@@ -20,6 +20,8 @@ const selection = load('lib/reverse-raffle-selection.ts', { '@/lib/raffle-consta
 let unavailable = [202], availabilityFails = false, checkoutBody;
 const windowStub = { setInterval: () => 1, clearInterval() {}, addEventListener() {}, removeEventListener() {}, location: {} };
 const component = load('app/reverse-raffle/ReverseRaffleClient.tsx', {
+  '@/components/payments/PaymentMethodChoice': { default: () => null },
+  '@/components/payments/BankTransferInstructions': { default: () => null },
   react: React,
   'react/jsx-runtime': require('react/jsx-runtime'),
   'next/navigation': { useSearchParams: () => new URLSearchParams() },

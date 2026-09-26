@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import BankTransferChoice from './BankTransferChoice';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ type OrderPaymentOptionsProps = {
   mealDraftToken?: string;
   mealRevision?: number;
   orderId: string;
+  customerEmail: string;
   totalAmount: number;
   paymentReference: string;
   bankDetails: BankDetails;
@@ -28,7 +30,7 @@ type OrderPaymentOptionsProps = {
 };
 
 const DEFAULT_CAPABILITIES: PaymentCapabilities = {
-  bank_transfer: true,
+  bank_transfer: false,
   card: false,
   partial_payments: false,
   minimum_partial_amount: 10,
@@ -38,6 +40,7 @@ export default function OrderPaymentOptions({
   mealDraftToken,
   mealRevision,
   orderId,
+  customerEmail,
   totalAmount,
   paymentReference,
   bankDetails,
@@ -58,7 +61,7 @@ export default function OrderPaymentOptions({
           setCapabilities({ ...DEFAULT_CAPABILITIES, ...payload.data });
         }
       } catch {
-        // Keep the bank-transfer-only fallback when capability discovery fails.
+        // Do not offer a payment method until the server confirms availability.
       }
     })();
 
@@ -105,7 +108,8 @@ export default function OrderPaymentOptions({
 
       {capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
         <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
-          <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer</p>
+          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} />
+          <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer details</p>
           {bankDetails.account_name && <p>Account name: {bankDetails.account_name}</p>}
           <p>BSB: {bankDetails.bsb}</p>
           <p>Account number: {bankDetails.account_number}</p>

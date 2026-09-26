@@ -1,3 +1,4 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
@@ -219,10 +220,6 @@ export async function POST(request: Request) {
     order_id: order.id,
     total_amount: totalAmount,
     payment_reference: paymentReference,
-    bank_details: {
-      account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
-      bsb: process.env.NDCC_BANK_BSB || '',
-      account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '',
-    },
+    bank_details: configuredBankDetails(),
   });
 }

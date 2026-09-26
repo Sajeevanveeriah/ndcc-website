@@ -133,6 +133,8 @@ console.log('PASS failed initial load retry, retained edits on validation failur
 
 let availabilityFails = true;
 const Auth = load('app/fantasy/_components/FantasyAuthForms.tsx', {
+  '@/components/payments/PaymentMethodChoice': { default: () => null },
+  '@/components/payments/BankTransferInstructions': { default: () => null },
   ...shared, '@/components/ui/Input': { default: props => React.createElement('input', props) },
   '@/lib/dino-coach/domain': { isAdultOnDate: () => true },
   '@/lib/fantasy-browser': { isFantasySupabaseConfigured: true, fantasyJsonFetch: async () => {

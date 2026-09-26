@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   const cutoff = new Date().toISOString();
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase.from('orders')
-      .select('id,created_at,payment_reference,merch_window_label,merch_window_id,customer_name,customer_email,customer_phone,items,total_amount,amount_paid,balance_due,payment_status,processed,order_status,notes')
+      .select('id,created_at,payment_reference,merch_window_label,merch_window_id,customer_name,customer_email,customer_phone,items,total_amount,amount_paid,balance_due,payment_status,processed,order_status,notes,bank_transfer_selected_at')
       .is('deleted_at', null).eq('order_category', 'merch').neq('order_status', 'cancelled').lte('created_at', cutoff)
       .order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 499);
     if (error) return NextResponse.json({ success: false, error: 'Unable to load orders for export.' }, { status: 500 });

@@ -111,7 +111,9 @@
     "test:club-services-ui": "node scripts/test-club-services-ui.cjs",
     "test:catalogue-export": "node scripts/test-catalogue-export.cjs",
     "test:mobile-navigation": "node scripts/test-mobile-navigation.cjs",
-    "test:raffle-report": "node scripts/test-raffle-report.cjs"
+    "test:raffle-report": "node scripts/test-raffle-report.cjs",
+    "test:bank-transfer": "node scripts/test-bank-transfer.cjs",
+    "test:bank-transfer-ui": "node scripts/test-bank-transfer-ui.cjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

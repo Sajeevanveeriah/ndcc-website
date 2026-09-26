@@ -1,3 +1,5 @@
+import { configuredBankDetails } from '@/lib/payments/bank-transfer';
+import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
@@ -222,6 +224,8 @@ export async function POST(request: Request) {
       ? `client price mismatch (server prices used): ${priceMismatches.join('; ')}`.slice(0, 500)
       : null;
 
+    const capabilities = deriveCapabilities(await loadMerchPaymentSettings(supabase));
+    if (!(payment_method === 'bank_transfer' ? capabilities.bank_transfer : capabilities.card)) return NextResponse.json({ error: 'The selected payment method is currently unavailable.' }, { status: 400 });
     const paymentReference = await generateUniquePaymentReference('merch');
 
     const { data, error } = await supabase
@@ -234,6 +238,7 @@ export async function POST(request: Request) {
         total_amount: serverTotal,
         ...(needsReviewReason ? { needs_review_reason: needsReviewReason } : {}),
         payment_status: 'pending_bank_transfer',
+        bank_transfer_selected_at: payment_method === 'bank_transfer' ? new Date().toISOString() : null,
         order_category: 'merch',
         order_status: orderStatus,
         merch_window_id: safeMerchWindowId,
@@ -322,11 +327,7 @@ export async function POST(request: Request) {
       merch_window_label: merchWindowLabel,
       personalisation_requested: personalisationRequested,
       number_requested: numberRequested,
-      bank_details: {
-        account_name: process.env.NDCC_BANK_ACCOUNT_NAME || '',
-        bsb: process.env.NDCC_BANK_BSB || '',
-        account_number: process.env.NDCC_BANK_ACCOUNT_NUMBER || '',
-      },
+      bank_details: configuredBankDetails(),
     });
   } catch (err) {
     console.error('Order route error:', err);
