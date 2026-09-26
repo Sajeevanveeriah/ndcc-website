@@ -126,7 +126,11 @@
     "test:dino-round-scoring": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-dino-round-scoring.mjs",
     "test:dino-coach-hardening": "node scripts/test-dino-coach-hardening.cjs",
     "test:brand-calm-motion": "node scripts/test-brand-calm-motion.mjs",
-    "test:playhq-mapping": "node scripts/test-playhq-mapping.mjs"
+    "test:playhq-mapping": "node scripts/test-playhq-mapping.mjs",
+    "test:cms-promotions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-cms-promotions.mjs",
+    "test:media-library": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-media-library.mjs",
+    "test:draft-preview": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-draft-preview.mjs",
+    "test:member-newsletter": "node scripts/test-member-newsletter.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

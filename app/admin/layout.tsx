@@ -47,6 +47,8 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/site-pages', label: 'Pages & Links', plainLabel: 'Pages, buttons and links', icon: FileText },
     { href: '/admin/content', label: 'Page Sections', plainLabel: 'Page sections', icon: FileText },
     { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
+    { href: '/admin/promotions', label: 'Promotions', plainLabel: 'Home banners, fundraisers and Pot Club product', icon: Megaphone },
+    { href: '/admin/media', label: 'Media Library', plainLabel: 'Uploaded images and PDFs', icon: ImageIcon },
   ] },
   { title: 'Club', icon: Building2, advanced: true, links: [
     { href: '/admin/history', label: 'History', icon: Newspaper },
@@ -55,6 +57,7 @@ const adminGroups: AdminGroup[] = [
   { title: 'Community', icon: HeartHandshake, advanced: true, links: [
     { href: '/admin/volunteers', label: 'Volunteers', icon: Users },
     { href: '/admin/memberships', label: 'Memberships', icon: Users },
+    { href: '/admin/newsletter', label: 'Member Newsletter', plainLabel: 'Email opted-in members', icon: Mail },
     { href: '/admin/enquiries', label: 'Enquiries', icon: Mail },
   ] },
   { title: 'Commercial', icon: ShoppingBag, links: [

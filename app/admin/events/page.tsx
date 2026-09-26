@@ -29,6 +29,11 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   published: false,
 };
 
+function isScheduled(event: Event) {
+  const at = (event as Event & { published_at?: string | null }).published_at;
+  return typeof at === 'string' && Date.parse(at) > Date.now();
+}
+
 function asSafeString(value: unknown) {
   return typeof value === 'string' ? value : '';
 }
@@ -49,6 +54,9 @@ export default function AdminEventsPage() {
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchBusy, setBatchBusy] = useState(false);
+  // Optional scheduled publishing (events.published_at). Blank = visible as soon as published.
+  const [publishAt, setPublishAt] = useState('');
+  const [editingHasSchedule, setEditingHasSchedule] = useState(false);
   const draft = useDraftAutosave({ editor: 'events', recordId: editingId, value: form, active: modalOpen });
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
@@ -88,6 +96,8 @@ export default function AdminEventsPage() {
 
   const openCreate = () => {
     setEditingId(null);
+    setPublishAt('');
+    setEditingHasSchedule(false);
     setForm(emptyEvent);
     setFormErrors({});
     setFeedback(null);
@@ -97,6 +107,9 @@ export default function AdminEventsPage() {
   const openEdit = (event: Event) => {
     setEditingId(event.id);
     setEditingRevision(event.revision);
+    const scheduledAt = (event as Event & { published_at?: string | null }).published_at;
+    setPublishAt(typeof scheduledAt === 'string' && scheduledAt ? toDatetimeLocalInClubTimezone(scheduledAt) : '');
+    setEditingHasSchedule('published_at' in event);
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
@@ -138,6 +151,9 @@ export default function AdminEventsPage() {
         ticket_price: form.ticket_price,
         image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
+        // Sent only when set, or when clearing an existing schedule, so saving
+        // keeps working before the scheduling column is migrated.
+        ...(publishAt || editingHasSchedule ? { published_at: publishAt || null } : {}),
       };
 
       if (editingId) {
@@ -318,7 +334,11 @@ export default function AdminEventsPage() {
                 <TableCell>{event.ticket_price > 0 ? formatCurrency(event.ticket_price) : 'Free'}</TableCell>
                 <TableCell>
                   {event.published ? (
-                    <Badge variant="success">Published</Badge>
+                    isScheduled(event) ? (
+                      <Badge variant="info">Scheduled for {new Date((event as Event & { published_at: string }).published_at).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })}</Badge>
+                    ) : (
+                      <Badge variant="success">Published</Badge>
+                    )
                   ) : (
                     <Badge variant="warning">Draft</Badge>
                   )}
@@ -499,8 +519,26 @@ export default function AdminEventsPage() {
             />
             <span className="text-sm font-body text-content-secondary">Published (also appears in the club calendar)</span>
           </label>
+          <Input
+            id="event-publish-at"
+            label="Show on the Events page from - Australia/Melbourne (optional)"
+            type="datetime-local"
+            value={publishAt}
+            onChange={(e) => setPublishAt(e.target.value)}
+          />
+          <p className="-mt-2 text-xs text-content-muted">Leave blank to show it as soon as it is published. A scheduled event stays off the Events page and its detail page until this time; its club calendar entry follows the Published setting.</p>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-edge-subtle">
+            {editingId && (
+              <a
+                href={`/api/admin/preview?type=event&id=${encodeURIComponent(editingId)}`}
+                target="_blank"
+                rel="noopener"
+                className="mr-auto text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
+              >
+                Preview saved version
+              </a>
+            )}
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

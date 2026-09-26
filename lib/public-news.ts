@@ -210,3 +210,13 @@ async function getPublishedNewsUncached(options?: { id?: string; limit?: number 
 // Uncached live read: public news is mutable CMS content, so it must be
 // queried at request time rather than served from the build/Data Cache.
 export const getPublishedNews = getPublishedNewsUncached;
+
+/**
+ * Draft-mode only (committee preview via /api/admin/preview): one article by
+ * id whatever its published state. Never call this outside draft mode.
+ */
+export async function getNewsForPreview(id: string): Promise<PublicNewsRecord | null> {
+  const { data, error } = await createServerClient({ retryReads: true }).from('news').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return normalizePublicNewsRecord((data as PublicNewsRecord | null) ?? null);
+}

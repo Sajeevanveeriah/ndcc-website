@@ -35,6 +35,8 @@ export async function validateMedia(bytes: Buffer, type: string) {
   let content = bytes;
   let contentType = type;
   let extension = 'pdf';
+  let width: number | null = null;
+  let height: number | null = null;
   if (type === 'application/pdf') {
     if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-' || !bytes.subarray(-2048).includes(Buffer.from('%%EOF'))) {
       throw new Error('File is not a complete PDF document.');
@@ -47,7 +49,10 @@ export async function validateMedia(bytes: Buffer, type: string) {
     content = await decoder.rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
     contentType = 'image/webp';
     extension = 'webp';
+    const output = await sharp(content, { animated: true }).metadata();
+    width = output.width ?? null;
+    height = output.pageHeight ?? output.height ?? null;
   }
   const hash = createHash('sha256').update(content).digest('hex');
-  return { content, contentType, path: `${hash.slice(0, 2)}/${hash}.${extension}` };
+  return { content, contentType, width, height, path: `${hash.slice(0, 2)}/${hash}.${extension}` };
 }

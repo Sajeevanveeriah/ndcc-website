@@ -2,6 +2,7 @@ import { createServerClient, isServerSupabaseConfigured } from './supabase-serve
 import { normalisePublicText } from './utils';
 import { fallbackBlocksForKeys } from '@/lib/fallback-content';
 import { resolvePublicLinkUrl } from './public-link-url';
+import { draftMode } from 'next/headers';
 
 export interface ContentBlock {
   block_key: string;
@@ -39,15 +40,27 @@ function mapContentBlocksForKeys(keys: string[], rows: Partial<ContentBlock>[] |
   }));
 }
 
+// Committee preview (/api/admin/preview) turns on draft mode, which also
+// shows hidden (draft) page sections. Outside a request, or when draft mode
+// is off, public behaviour is unchanged.
+async function isPreviewingDrafts(): Promise<boolean> {
+  try {
+    return (await draftMode()).isEnabled;
+  } catch {
+    return false;
+  }
+}
+
 async function getContentBlocksUncached(keys: string[]): Promise<Record<string, ContentBlock>> {
   if (!isServerSupabaseConfigured()) return fallbackBlocksForKeys(keys);
 
   try {
-    const supabase = createServerClient({ publicReadCache: true });
-    const { data, error } = await supabase
+    const preview = await isPreviewingDrafts();
+    const supabase = createServerClient({ publicReadCache: !preview });
+    const base = supabase
       .from('content_blocks')
-      .select('block_key,title,body,image_url,cta_label,cta_url')
-      .eq('is_active', true)
+      .select('block_key,title,body,image_url,cta_label,cta_url');
+    const { data, error } = await (preview ? base : base.eq('is_active', true))
       .in('block_key', keys);
 
     if (error) {

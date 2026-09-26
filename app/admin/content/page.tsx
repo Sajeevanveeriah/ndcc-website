@@ -114,6 +114,9 @@ export default function AdminContentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newBlock, setNewBlock] = useState({ page_slug: PAGE_GROUPS[0].slug, key: '', section_label: '', is_active: false });
+  const [createBusy, setCreateBusy] = useState(false);
 
   const loadBlocks = useCallback(async (): Promise<Block[]> => {
     setLoading(true);
@@ -168,6 +171,44 @@ export default function AdminContentPage() {
 
   const visibleBlockCount = groupedBlocks.reduce((count, group) => count + group.blocks.length, 0);
 
+  async function createBlock() {
+    const suffix = newBlock.key.trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!suffix) { setFeedback({ type: 'error', message: 'Enter a short section key, for example season_update.' }); return; }
+    if (!newBlock.section_label.trim()) { setFeedback({ type: 'error', message: 'Enter a section name.' }); return; }
+    const blockKey = `${newBlock.page_slug.replace(/-/g, '_')}.${suffix}`;
+    if (blocks.some((block) => block.block_key === blockKey)) { setFeedback({ type: 'error', message: 'A page section with that key already exists.' }); return; }
+    setCreateBusy(true);
+    setFeedback(null);
+    try {
+      const res = await adminFetch('/api/admin/resources/contentBlocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          block_key: blockKey,
+          page_slug: newBlock.page_slug,
+          section_label: newBlock.section_label.trim(),
+          title: null,
+          body: null,
+          image_url: null,
+          cta_label: null,
+          cta_url: null,
+          is_active: newBlock.is_active,
+        }),
+      });
+      const result = await parseApiResponse<{ data?: Block }>(res);
+      const refreshed = await loadBlocks();
+      const created = refreshed.find((block) => block.id === result.data?.id);
+      if (created) setSelected(created);
+      setCreating(false);
+      setNewBlock({ page_slug: newBlock.page_slug, key: '', section_label: '', is_active: false });
+      setFeedback({ type: 'success', message: newBlock.is_active ? 'Page section created.' : 'Page section created as a draft. It stays hidden until Show on website is turned on.' });
+    } catch (error) {
+      setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'The page section could not be created.' });
+    } finally {
+      setCreateBusy(false);
+    }
+  }
+
   async function saveBlock() {
     if (!selected) return;
     setSaving(true);
@@ -218,6 +259,33 @@ export default function AdminContentPage() {
           <li>Turn off Show on website if a section should be hidden temporarily.</li>
         </ul>
       </div>
+      <div>
+        <Button variant="secondary" size="sm" onClick={() => { setCreating((open) => !open); setFeedback(null); }} aria-expanded={creating}>
+          {creating ? 'Close new section' : 'New page section'}
+        </Button>
+      </div>
+      {creating && (
+        <section className="space-y-3 rounded-xl border bg-surface-card p-4" aria-labelledby="new-block-heading">
+          <h2 id="new-block-heading" className="font-semibold">New page section</h2>
+          <p className="text-xs text-content-muted">New sections are saved with a key that pages can use. Start as a draft to prepare the wording before showing it.</p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="text-sm text-content-secondary">Page
+              <select className="mt-1 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2" value={newBlock.page_slug} onChange={(e) => setNewBlock({ ...newBlock, page_slug: e.target.value })}>
+                {PAGE_GROUPS.map((group) => <option key={group.slug} value={group.slug}>{group.label}</option>)}
+              </select>
+            </label>
+            <Input id="new_block_key" label={`Section key (saved as ${newBlock.page_slug.replace(/-/g, '_')}.your_key)`} value={newBlock.key} onChange={(e) => setNewBlock({ ...newBlock, key: e.target.value })} />
+          </div>
+          <Input id="new_block_label" label="Section name (shown in this editor)" value={newBlock.section_label} onChange={(e) => setNewBlock({ ...newBlock, section_label: e.target.value })} />
+          <label className="text-sm text-content-secondary">Starting state
+            <select className="mt-1 block rounded-lg border border-edge-strong bg-surface-card px-3 py-2" value={newBlock.is_active ? 'active' : 'draft'} onChange={(e) => setNewBlock({ ...newBlock, is_active: e.target.value === 'active' })}>
+              <option value="draft">Draft (hidden)</option>
+              <option value="active">Show on website</option>
+            </select>
+          </label>
+          <Button onClick={() => void createBlock()} isLoading={createBusy}>Create section</Button>
+        </section>
+      )}
       {feedback && (
         <p className={`text-sm px-3 py-2 rounded border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
           {feedback.message}
@@ -253,7 +321,7 @@ export default function AdminContentPage() {
                           onClick={() => { setSelected(block); setFeedback(null); }}
                           className={`w-full text-left px-3 py-2 rounded-lg border ${selected?.id === block.id ? 'border-maroon-600 bg-maroon-50 dark:bg-maroon-950' : 'border-edge-subtle hover:border-edge-strong'}`}
                         >
-                          <p className="font-medium text-sm">{getFriendlyBlockLabel(block)}</p>
+                          <p className="font-medium text-sm">{getFriendlyBlockLabel(block)}{!block.is_active && <span className="ml-2 rounded bg-surface-page px-1.5 py-0.5 text-[11px] font-semibold text-content-secondary">Draft</span>}</p>
                           <p className="text-xs text-content-muted">{getBlockHelper(block)}</p>
                         </button>
                       ))}
@@ -293,7 +361,18 @@ export default function AdminContentPage() {
               </label>
               <div className="pt-3 border-t border-edge-subtle">
                 <EditorialHistory key={selected.id} resource="contentBlocks" id={selected.id} onSelect={(snapshot) => setSelected({ ...snapshot, id: selected.id, revision: selected.revision } as Block)} />
-                <Button onClick={saveBlock} isLoading={saving}>Save website content</Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button onClick={saveBlock} isLoading={saving}>Save website content</Button>
+                  <a
+                    href={`/api/admin/preview?type=content&id=${encodeURIComponent(selected.id)}`}
+                    target="_blank"
+                    rel="noopener"
+                    className="text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
+                  >
+                    Preview saved version
+                  </a>
+                </div>
+                <p className="mt-1 text-xs text-content-muted">Preview opens the page with draft sections shown. Save first to preview your latest changes.</p>
               </div>
             </>
           )}
