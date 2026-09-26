@@ -5,6 +5,8 @@ import { getServerSharp } from './server-fonts.mjs';
 import { trailerRaffleTicketSvg } from './trailer-raffle-ticket';
 import { reverseRaffleTicketSvg } from './reverse-raffle-ticket';
 import { parseRaffleReference, RAFFLE_FALLBACK_DISPLAY, REVERSE_RAFFLE_CAMPAIGN_CODE } from './raffle-constants';
+import { parseWheelTicketReference } from './prize-wheel/rules';
+import { wheelTicketSvg } from './prize-wheel/ticket';
 
 /**
  * Renders the emailed ticket image. `details` comes from the paid order's
@@ -17,6 +19,15 @@ export async function renderRaffleTicket(
   details?: { name: string; priceCents: number; drawLabel: string | null },
   campaign?: { code: string; year_code?: string | null },
 ): Promise<Buffer> {
+  // Prize wheel tickets (NDCCWHL-YYMMDDL-NNN) are always rendered from the paid order's campaign details.
+  const wheel = parseWheelTicketReference(reference);
+  if (wheel) {
+    if ((campaign && campaign.code !== wheel.campaignCode) || !details) throw new Error('Invalid raffle ticket reference.');
+    const logo = await fs.readFile(path.join(process.cwd(), 'public/images/reverse-raffle-logo.png'));
+    const svg = wheelTicketSvg(reference, `data:image/png;base64,${logo.toString('base64')}`, details.priceCents, details.name, details.drawLabel);
+    const sharp = await getServerSharp();
+    return sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer();
+  }
   const parsed = parseRaffleReference(reference, campaign);
   if (!parsed) throw new Error('Invalid raffle ticket reference.');
   const fallback = RAFFLE_FALLBACK_DISPLAY[parsed.code];

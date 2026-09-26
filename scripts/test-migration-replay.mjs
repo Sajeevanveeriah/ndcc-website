@@ -30,6 +30,8 @@ psql(DB, readFileSync(new URL('./test-bank-transfer.sql', import.meta.url), 'utf
 check('Bank deposit selections, authorised confirmation, idempotent ticket allocation and receipt eligibility', true);
 psql(DB, readFileSync(new URL('./test-club-services.sql', import.meta.url), 'utf8'));
 check('Cash sale authorisation, exact price, idempotent tickets, receipt queue and member privacy', true);
+psql(DB, readFileSync(new URL('./test-prize-wheel.sql', import.meta.url), 'utf8'));
+check('Prize wheel small-raffle limits, picked numbers, sales window, ordered append-only draws and single wins', true);
 // Seed only the two reviewed identities in this disposable database, then
 // execute the exact data operation intended for release.
 const research=JSON.parse(readFileSync(new URL('../data/dino-coach-researched-baselines-20260924.json',import.meta.url),'utf8'));

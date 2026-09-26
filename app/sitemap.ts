@@ -3,6 +3,7 @@ import type { MetadataRoute } from 'next';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
 import { RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
+import { isPrizeWheelPublic } from '@/lib/prize-wheel/server';
 import { buildDetailEntries } from '@/lib/seo-sitemap';
 import { SITE_URL } from '@/lib/seo';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
@@ -119,6 +120,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const route = campaign.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : campaign.code === RAFFLE_CAMPAIGN_CODE ? '/raffle' : null;
     if (route) staticEntries.push({ url: `${baseUrl}${route}`, changeFrequency: 'weekly', priority: 0.8 });
   }
+  // Prize wheel: only while an active, publicly visible wheel campaign exists.
+  if (await isPrizeWheelPublic()) staticEntries.push({ url: `${baseUrl}/prize-wheel`, changeFrequency: 'daily', priority: 0.6 });
 
   const detailEntries = await getPublishedDetailEntries(baseUrl);
   return [...staticEntries, ...detailEntries];

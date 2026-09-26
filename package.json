@@ -117,6 +117,7 @@
     "test:catalogue-export": "node scripts/test-catalogue-export.cjs",
     "test:mobile-navigation": "node scripts/test-mobile-navigation.cjs",
     "test:raffle-report": "node scripts/test-raffle-report.cjs",
+    "test:prize-wheel": "node scripts/test-prize-wheel.mjs",
     "test:bank-transfer": "node scripts/test-bank-transfer.cjs",
     "test:bank-transfer-ui": "node scripts/test-bank-transfer-ui.cjs",
     "test:bank-transfer-hardening": "node scripts/test-bank-transfer-hardening.cjs",

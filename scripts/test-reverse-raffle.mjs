@@ -28,8 +28,11 @@ const db = { from() { return {
   async single() { return soldOut ? { error: { message: 'Reverse raffle allocation unavailable' } } : { data: { id: 'test-order' } }; },
   update(value) { if(value.status === 'cancelled') released = true; return this; }, eq(key, value) { holdQuery?.push([key, value]); return this; }, async maybeSingle() { return failure === 'link' ? {error: new Error('link failed')} : { data: { id: 'test-order' } }; },
 }; } };
+const wheelRules = load('lib/prize-wheel/rules.ts', {});
 const route = load('app/api/raffle/checkout/route.ts', {
   '@/lib/reverse-raffle-selection': selection,
+  '@/lib/prize-wheel/rules': wheelRules,
+  '@/lib/prize-wheel/checkout': load('lib/prize-wheel/checkout.ts', { './rules': wheelRules }),
   'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
   '@/lib/supabase-server': { createServerClient: () => db },
   '@/lib/payments/bank-transfer': { ...load('lib/payments/bank-transfer.ts', {}), configuredBankDetails: () => ({account_name:'TEST ONLY',bsb:'000000',account_number:'00000000'}) },
@@ -163,6 +166,8 @@ const ticket = load('lib/raffle-ticket.ts', {
   './reverse-raffle-ticket': vector,
   './trailer-raffle-ticket': load('lib/trailer-raffle-ticket.ts', { './raffle-constants': constants, './email-html': load('lib/email-html.ts', {}) }),
   './raffle-constants': constants,
+  './prize-wheel/rules': wheelRules,
+  './prize-wheel/ticket': load('lib/prize-wheel/ticket.ts', { '../email-html': load('lib/email-html.ts', {}), '../raffle-constants': constants, './rules': wheelRules }),
   'node:fs/promises': { default: { readFile: async () => Buffer.from('test-logo') } },
   'node:path': { default: { join: (...parts) => parts.join('/') } },
   './server-fonts.mjs': { getServerSharp: async () => buffer => ({ png: () => ({ toBuffer: async () => buffer }) }) },

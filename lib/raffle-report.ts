@@ -59,3 +59,69 @@ export function raffleReportFilename(code: string, now = new Date()) {
   const part = (type: string) => parts.find(value => value.type === type)?.value || '';
   return `${part('year')}${part('month')}${part('day')}-${code.replace(/[^A-Za-z0-9-]/g, '')}-Sales-Rev00.csv`;
 }
+
+// ---- Prize wheel (small raffle drawn by spinning wheel) ----
+// Records, including every draw and re-spin, must be kept for 3 years.
+
+export type WheelReportPrize = { id: string; position: number; name: string; retail_value_cents: number; quantity: number };
+export type WheelReportDraw = {
+  id: string; prize_id: string; draw_number: number; winning_number: number; ticket_id: string | null;
+  respin_reason: string | null; random_value?: string; operator_id?: string; created_at: string;
+};
+export type WheelReportTicket = { id: string; ticket_number: number; ticket_reference: string; order: { customer_name: string; customer_email: string } | null };
+export type WheelReportCollection = { draw_id: string; collected_at: string; staff: { full_name: string } | null; note: string | null };
+
+export function wheelPrizeCostCents(prizes: WheelReportPrize[]): number {
+  return prizes.reduce((sum, prize) => sum + prize.retail_value_cents * prize.quantity, 0);
+}
+
+export function wheelReportSummary(orders: RaffleReportOrder[], prizes: WheelReportPrize[]) {
+  const sales = raffleSalesSummary(orders);
+  const prizeCostCents = wheelPrizeCostCents(prizes);
+  return { ...sales, prizeCostCents, netCents: sales.paidCents - prizeCostCents };
+}
+
+export function wheelDrawsCsvRows(prizes: WheelReportPrize[], draws: WheelReportDraw[], tickets: WheelReportTicket[],
+  collections: WheelReportCollection[], operators: Record<string, string> = {}) {
+  const prizeById = new Map(prizes.map(prize => [prize.id, prize]));
+  const ticketById = new Map(tickets.map(ticket => [ticket.id, ticket]));
+  const collectionByDraw = new Map(collections.map(item => [item.draw_id, item]));
+  return [
+    ['Draw number', 'Drawn at UTC', 'Prize position', 'Prize', 'Prize retail value AUD', 'Winning number', 'Outcome', 'Re-spin reason',
+      'Ticket reference', 'Winner', 'Winner email', 'Random source', 'Operator', 'Collected at UTC', 'Collection recorded by', 'Collection note'],
+    ...[...draws].sort((a, b) => a.draw_number - b.draw_number).map(draw => {
+      const prize = prizeById.get(draw.prize_id);
+      const ticket = draw.ticket_id ? ticketById.get(draw.ticket_id) : null;
+      const collection = collectionByDraw.get(draw.id);
+      return [draw.draw_number, draw.created_at, prize?.position ?? '', prize?.name ?? '',
+        prize ? ((prize.retail_value_cents * prize.quantity) / 100).toFixed(2) : '', draw.winning_number,
+        draw.ticket_id ? 'Winning ticket' : 'No winner - re-spin required', draw.respin_reason || 'First spin',
+        ticket?.ticket_reference || '', ticket?.order?.customer_name || '', ticket?.order?.customer_email || '',
+        draw.random_value || '', (draw.operator_id && operators[draw.operator_id]) || draw.operator_id || '',
+        collection?.collected_at || '', collection?.staff?.full_name || '', collection?.note || ''];
+    }),
+  ];
+}
+
+/** One CSV with summary, draw log and sales sections. */
+export function wheelReportCsv(input: {
+  campaignName: string; campaignCode: string; orders: RaffleReportOrder[]; prizes: WheelReportPrize[]; draws: WheelReportDraw[];
+  tickets: WheelReportTicket[]; collections: WheelReportCollection[]; operators?: Record<string, string>;
+}) {
+  const summary = wheelReportSummary(input.orders, input.prizes);
+  const money = (cents: number) => (cents / 100).toFixed(2);
+  const sales = raffleOrdersCsv(input.orders, input.campaignName).replace(/^﻿/, '');
+  return toCsv([
+    ['Prize wheel report', input.campaignName, input.campaignCode],
+    ['Record retention', 'Keep this report and all draw records for at least 3 years.'],
+    ['Paid tickets', summary.tickets],
+    ['Ticket sales AUD', money(summary.paidCents)],
+    ['Prize cost (retail value) AUD', money(summary.prizeCostCents)],
+    ['Net AUD', money(summary.netCents)],
+    [],
+    ['Draw log'],
+    ...wheelDrawsCsvRows(input.prizes, input.draws, input.tickets, input.collections, input.operators),
+    [],
+    ['Sales'],
+  ]) + sales;
+}

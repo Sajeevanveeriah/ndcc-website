@@ -8,12 +8,15 @@ import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNotice';
+import WheelCampaignManager from './wheel/WheelCampaignManager';
+import { isWheelCampaignCode } from '@/lib/prize-wheel/rules';
 import { RAFFLE_SAMPLE_REFERENCE, REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_MAX_NUMBER, REVERSE_RAFFLE_MIN_NUMBER, REVERSE_RAFFLE_NUMBER_RANGE_LABEL } from '@/lib/raffle-constants';
 
 type VisibilityMode = 'hidden' | 'scheduled' | 'visible';
 type Campaign = { id:string; code:string; year_code?:string|null; price_cents:number; draw_label:string|null; name:string; active:boolean; public_visibility_mode:VisibilityMode; public_opens_at:string|null };
 
 function ticketReferenceRule(campaign: Campaign | null) {
+  if (isWheelCampaignCode(campaign?.code)) return `NDCCWHL-${campaign.code.slice(7)}-NNN (buyer-picked wheel numbers)`;
   if (!campaign?.year_code) return campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? REVERSE_RAFFLE_NUMBER_RANGE_LABEL : RAFFLE_SAMPLE_REFERENCE;
   const prefix = `${campaign.code}-${campaign.year_code}`;
   if (campaign.code === REVERSE_RAFFLE_CAMPAIGN_CODE) {
@@ -53,7 +56,7 @@ export default function AdminRafflePage() {
   }
 
   const currentlyVisible=campaign?.active===true&&(campaign.public_visibility_mode==='visible'||(campaign.public_visibility_mode==='scheduled'&&Boolean(campaign.public_opens_at)&&Date.now()>=new Date(campaign.public_opens_at as string).getTime()));
-  return <div className="space-y-6"><div><Link href="/admin/raffle/cash" className="btn-primary">Record trailer raffle cash sale</Link><h1 className="text-2xl font-display font-bold">Raffle</h1><p className="text-content-muted">{campaign ? `${campaign.name}: AUD ${(campaign.price_cents / 100).toFixed(2)} per ticket. ${campaign.draw_label || ''}` : 'Choose a raffle campaign.'}</p>{currentlyVisible&&<Link className="text-maroon-700 underline" href={campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : '/raffle'} target="_blank">Open public raffle page</Link>}</div>
+  return <div className="space-y-6"><div><Link href="/admin/raffle/cash" className="btn-primary">Record trailer raffle cash sale</Link><h1 className="text-2xl font-display font-bold">Raffle</h1><p className="text-content-muted">{campaign ? `${campaign.name}: AUD ${(campaign.price_cents / 100).toFixed(2)} per ticket. ${campaign.draw_label || ''}` : 'Choose a raffle campaign.'}</p>{currentlyVisible&&<Link className="text-maroon-700 underline" href={campaign?.code === REVERSE_RAFFLE_CAMPAIGN_CODE ? '/reverse-raffle' : isWheelCampaignCode(campaign?.code) ? '/prize-wheel' : '/raffle'} target="_blank">Open public raffle page</Link>}</div>
     <PurchaseTabs active={campaign?.id} onCampaign={id=>{setCampaign(campaigns.find(c=>c.id===id)||null);setMessage('');window.history.replaceState(null,'',`?campaign=${id}`);}} /><label className="block"><span className="block text-sm font-semibold mb-1">Raffle campaign</span><select className="min-h-11 border rounded-md p-2 bg-surface-card" value={campaign?.id || ''} onChange={e => { setCampaign(campaigns.find(row => row.id === e.target.value) || null); setMessage(''); }}><option value="" disabled>Choose a campaign</option>{campaigns.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
     {error&&<p role="alert" className="text-red-700">{error}</p>}{message&&<p role="status" className="text-green-700">{message}</p>}
     <section className="rounded-lg border border-edge-subtle bg-surface-card p-5 space-y-4" aria-labelledby="raffle-visibility-title"><div><h2 id="raffle-visibility-title" className="font-display text-xl font-bold">Public visibility</h2><p className="text-sm text-content-muted">The public page, navigation, footer, sitemap and checkout all follow this setting.</p></div>
@@ -64,5 +67,6 @@ export default function AdminRafflePage() {
     <div className="rounded-lg border border-edge-subtle bg-surface-card p-4"><p className="font-bold">Ticket issuing rule</p><p className="text-sm text-content-muted">References use {ticketReferenceRule(campaign)}. Tickets and emails are created after confirmed card payment or an authorised cash receipt. Staff copies go to the raffle staff addresses managed in Notification Emails.</p></div>
     {campaign?.code==='NDCCRAF'&&<CashCollections onReconciled={()=>setSalesRevision(value=>value+1)} />}
     <RaffleSales campaign={campaign} refreshKey={salesRevision} />
+    <WheelCampaignManager />
   </div>;
 }
