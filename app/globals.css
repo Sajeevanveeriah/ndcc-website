@@ -462,10 +462,38 @@ body.marquee-page-hidden .homepage-marquee-track {
     box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 20px 40px -28px rgba(45, 0, 0, 0.30);
   }
   .dark .glass-panel { @apply bg-white/[0.04] border-white/10; }
-  .brand-rule { @apply mb-4 block h-1 w-12 rounded-full; background-image: linear-gradient(90deg, #880000, #edc266); }
-  .dark .brand-rule { background-image: linear-gradient(90deg, #8cc6d1, #edc266); }
-  .home-band { @apply relative; background: linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page))); }
-  .dark .home-band { background: linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%); }
+  /* Section accent: a short club-colour bar stitched like a ball seam. */
+  .brand-rule {
+    @apply mb-4 block h-1.5 w-14 rounded-full;
+    background:
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.9) 0 2px, transparent 2px 6px) center / 100% 1px no-repeat,
+      linear-gradient(90deg, #880000, #edc266);
+  }
+  .dark .brand-rule {
+    background:
+      repeating-linear-gradient(90deg, rgb(22 40 69 / 0.9) 0 2px, transparent 2px 6px) center / 100% 1px no-repeat,
+      linear-gradient(90deg, #8cc6d1, #edc266);
+  }
+  /* Match-day band: faint tonal mowing stripes, like a freshly cut outfield. */
+  .home-band {
+    @apply relative;
+    background:
+      repeating-linear-gradient(90deg, rgb(var(--text-primary) / 0.022) 0 96px, transparent 96px 192px),
+      linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page)));
+  }
+  .dark .home-band {
+    background:
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.022) 0 96px, transparent 96px 192px),
+      linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%);
+  }
+  /* Scoreboard figures: fixed-width numerals with a gold hairline above. */
+  .scoreboard { position: relative; }
+  .scoreboard::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-8 top-0 h-px;
+    background: linear-gradient(90deg, transparent, rgb(237 194 102 / 0.8), transparent);
+  }
+  .scoreboard dd { font-variant-numeric: tabular-nums; }
   .fixture-card {
     @apply flex h-full flex-col gap-4 p-5;
   }
@@ -502,3 +530,4 @@ body.marquee-page-hidden .homepage-marquee-track {
   .sponsor-gallery > li { min-width: 0; }
   .sponsor-gallery h3 { letter-spacing: -.025em; line-height: 1.4; }
 }
+

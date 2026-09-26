@@ -10,8 +10,9 @@
 // - connect-src: Supabase REST/auth/storage and realtime (wss, used by the
 //   Dino Coach wallet panel) plus Stripe. Vercel Web Analytics v2 posts to
 //   same-origin /_vercel/insights, covered by 'self'.
-// - frame-src: Stripe, the Google Maps embed (www.google.com/maps/embed) and
-//   Turnstile challenges.
+// - frame-src: same-origin and Supabase Storage publication PDFs, Stripe, the
+//   Google Maps embed (www.google.com/maps/embed) and Turnstile challenges.
+//   object-src stays 'none', so PDFs are embedded with an iframe.
 // `next dev` (React Refresh / eval source maps) still needs 'unsafe-eval'.
 const devScriptEval = process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'";
 const csp = [
@@ -22,7 +23,7 @@ const csp = [
   "font-src 'self' data:",
   "media-src 'self' blob: https://alduwuipmmnzorcgkcli.supabase.co",
   "connect-src 'self' https://alduwuipmmnzorcgkcli.supabase.co wss://alduwuipmmnzorcgkcli.supabase.co https://*.supabase.co wss://*.supabase.co https://api.stripe.com",
-  "frame-src https://js.stripe.com https://checkout.stripe.com https://www.google.com https://challenges.cloudflare.com",
+  "frame-src 'self' https://alduwuipmmnzorcgkcli.supabase.co https://js.stripe.com https://checkout.stripe.com https://www.google.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "form-action 'self' https://checkout.stripe.com",
   "frame-ancestors 'self'",
@@ -62,7 +63,13 @@ const nextConfig = {
     // scripts/check-public-assets.mjs; redirects run before public files.
     const { readFileSync } = await import('node:fs');
     const assetRedirects = JSON.parse(readFileSync(new URL('./lib/asset-redirects.json', import.meta.url), 'utf8'));
-    return Object.entries(assetRedirects).map(([source, destination]) => ({ source, destination, permanent: true }));
+    return [
+      ...Object.entries(assetRedirects).map(([source, destination]) => ({ source, destination, permanent: true })),
+      // Friendly entry points to the filtered publications archive, redirected
+      // before rendering (the page files remain as a fallback).
+      { source: '/newsletters', destination: '/publications?type=monthly_newsletter', permanent: false },
+      { source: '/match-reports', destination: '/publications?type=weekly_match_report', permanent: false },
+    ];
   },
   async headers() {
     return [

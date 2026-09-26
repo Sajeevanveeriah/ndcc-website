@@ -22,7 +22,7 @@ export default async function HomeStatsStrip() {
   if (stats.length === 0) return null;
 
   return (
-    <dl className="glass-panel mt-10 grid w-fit max-w-full grid-flow-col auto-cols-fr divide-x divide-edge-subtle px-1.5 py-4 sm:px-2 sm:py-5 dark:divide-white/10" aria-label="Club at a glance">
+    <dl className="glass-panel scoreboard mt-10 grid w-fit max-w-full grid-flow-col auto-cols-fr divide-x divide-edge-subtle px-1.5 py-4 sm:px-2 sm:py-5 dark:divide-white/10" aria-label="Club at a glance">
       {stats.map((stat) => (
         <div key={stat.label} className="flex min-w-0 flex-col gap-1 px-2.5 sm:px-5">
           <dt className="order-2 break-words text-xs leading-snug text-content-muted [hyphens:auto] sm:text-sm">{stat.label}</dt>

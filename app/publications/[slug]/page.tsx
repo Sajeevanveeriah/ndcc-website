@@ -124,16 +124,14 @@ export default async function PublicationDetailPage({ params }: { params: Promis
                     Download PDF
                   </a>
                 </div>
-                <object
-                  data={publication.document_url}
-                  type="application/pdf"
-                  className="mt-4 hidden h-[70vh] w-full rounded-lg border border-edge-subtle sm:block"
-                  aria-label={`${publication.title} PDF document`}
-                >
-                  <p className="p-4 font-body text-sm text-content-muted">
-                    Your browser cannot display the PDF here — use the download button above.
-                  </p>
-                </object>
+                {/* An iframe rather than an object element: the site CSP keeps object-src
+                    'none' and allows same-origin frames for these PDFs. */}
+                <iframe
+                  src={publication.document_url}
+                  title={`${publication.title} PDF document`}
+                  loading="lazy"
+                  className="mt-4 hidden h-[70vh] w-full rounded-lg border border-edge-subtle bg-white sm:block"
+                />
               </div>
             )}
 
