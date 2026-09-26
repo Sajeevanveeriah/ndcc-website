@@ -242,6 +242,19 @@
     -webkit-mask-image: radial-gradient(ellipse 45% 90% at 100% 40%, black, transparent 70%);
   }
 
+  /* Faint gold ball seam on the right of every inner page hero. */
+  .page-hero::before {
+    content: '';
+    @apply pointer-events-none absolute hidden sm:block;
+    width: 26rem;
+    height: 26rem;
+    right: -7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.2;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23edc266'%3E%3Ccircle cx='100' cy='100' r='96' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 34 96 0 0 0 100 196' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 48 96 0 0 0 100 196' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 41 96 0 0 0 100 196' stroke-width='9' stroke-dasharray='1.4 7.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+
   .page-hero-title {
     @apply mb-4 font-display font-semibold;
     font-size: clamp(2.5rem, 5vw, 4.5rem);
@@ -462,10 +475,48 @@ body.marquee-page-hidden .homepage-marquee-track {
     box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 20px 40px -28px rgba(45, 0, 0, 0.30);
   }
   .dark .glass-panel { @apply bg-white/[0.04] border-white/10; }
-  .brand-rule { @apply mb-4 block h-1 w-12 rounded-full; background-image: linear-gradient(90deg, #880000, #edc266); }
-  .dark .brand-rule { background-image: linear-gradient(90deg, #8cc6d1, #edc266); }
-  .home-band { @apply relative; background: linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page))); }
-  .dark .home-band { background: linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%); }
+  /* Section accent: a short club-colour bar stitched like a ball seam. */
+  .brand-rule {
+    @apply mb-4 block h-1.5 w-14 rounded-full;
+    background:
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.9) 0 2px, transparent 2px 6px) center / 100% 1px no-repeat,
+      linear-gradient(90deg, #880000, #edc266);
+  }
+  .dark .brand-rule {
+    background:
+      repeating-linear-gradient(90deg, rgb(22 40 69 / 0.9) 0 2px, transparent 2px 6px) center / 100% 1px no-repeat,
+      linear-gradient(90deg, #8cc6d1, #edc266);
+  }
+  /* Match-day band: faint tonal mowing stripes, like a freshly cut outfield. */
+  .home-band {
+    @apply relative;
+    background:
+      repeating-linear-gradient(90deg, rgb(var(--text-primary) / 0.022) 0 96px, transparent 96px 192px),
+      linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page)));
+  }
+  .dark .home-band {
+    background:
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.022) 0 96px, transparent 96px 192px),
+      linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%);
+  }
+  /* Home hero ball: large, partly off the top-right edge, behind the content. */
+  .cricket-ball-hero {
+    @apply pointer-events-none absolute -z-10 hidden sm:block;
+    width: clamp(15rem, 30vw, 30rem);
+    right: clamp(-9rem, -6vw, -4rem);
+    top: clamp(-9rem, -6vw, -4rem);
+    filter: drop-shadow(0 30px 45px rgb(45 0 0 / 0.28));
+  }
+  .dark .cricket-ball-hero { opacity: 0.78; filter: drop-shadow(0 30px 50px rgb(0 0 0 / 0.55)); }
+  .cricket-ball-turn { animation: ndcc-ball-turn 120s linear infinite; }
+  /* Scoreboard figures: fixed-width numerals with a gold hairline above. */
+  .scoreboard { position: relative; }
+  .scoreboard::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-8 top-0 h-px;
+    background: linear-gradient(90deg, transparent, rgb(237 194 102 / 0.8), transparent);
+  }
+  .scoreboard dd { font-variant-numeric: tabular-nums; }
   .fixture-card {
     @apply flex h-full flex-col gap-4 p-5;
   }
@@ -501,4 +552,12 @@ body.marquee-page-hidden .homepage-marquee-track {
   .sponsor-gallery { align-items: stretch; }
   .sponsor-gallery > li { min-width: 0; }
   .sponsor-gallery h3 { letter-spacing: -.025em; line-height: 1.4; }
+}
+
+/* Slow seam turn on the decorative hero ball; still for reduced motion and print. */
+@keyframes ndcc-ball-turn {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce), print {
+  .cricket-ball-turn { animation: none; }
 }
