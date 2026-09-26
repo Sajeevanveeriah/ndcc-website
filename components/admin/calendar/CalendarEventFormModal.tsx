@@ -221,7 +221,7 @@ export default function CalendarEventFormModal({
             label="Colour override (optional hex)"
             value={form.colour}
             onChange={(e) => set({ colour: e.target.value })}
-            placeholder="#800000"
+            placeholder="#880000"
             error={errors.colour}
           />
         </div>

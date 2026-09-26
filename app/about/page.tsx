@@ -281,7 +281,7 @@ export default async function AboutPage() {
               <ScrollRevealItem key={member.name}>
                 <Card hover className="group h-full">
                   <CardContent className="flex h-full flex-col items-center p-5 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-maroon-700 to-maroon-900 shadow-md transition-all duration-300 group-hover:scale-105">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-maroon-700 to-maroon-900 shadow-md">
                       <span className="text-gold-200 font-display font-bold text-xl">
                         {getInitials(member.name)}
                       </span>

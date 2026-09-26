@@ -27,7 +27,7 @@ export function toCalendarFeedEvent(event: CalendarEvent): CalendarFeedEvent {
     allDay: event.all_day,
     url: event.external_url || null,
     backgroundColor: muted ? '#9ca3af' : colour,
-    borderColor: event.is_featured && !muted ? '#d4a017' : muted ? '#9ca3af' : colour,
+    borderColor: event.is_featured && !muted ? '#edc266' : muted ? '#9ca3af' : colour,
     textColor: '#ffffff',
     extendedProps: {
       description: event.description,

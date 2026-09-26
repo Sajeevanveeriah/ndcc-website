@@ -1,11 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import listPlugin from '@fullcalendar/list';
-import interactionPlugin from '@fullcalendar/interaction';
+import dynamic from 'next/dynamic';
 import type { EventClickArg } from '@fullcalendar/core';
 import type { CalendarFeedEvent } from '@/lib/calendar/types';
 import { utcToMelbourneFloating } from '@/lib/calendar/format';
@@ -13,6 +9,20 @@ import CalendarFilters from './CalendarFilters';
 import CalendarLegend from './CalendarLegend';
 import EventDetailModal from './EventDetailModal';
 import './calendar-theme.css';
+
+function CalendarLoading() {
+  return (
+    <div className="py-24 text-center text-sm text-content-muted font-body" role="status">
+      Loading calendar...
+    </div>
+  );
+}
+
+// FullCalendar is large and browser-only: load it on demand after hydration.
+const FullCalendarView = dynamic(() => import('./FullCalendarView'), {
+  ssr: false,
+  loading: CalendarLoading,
+});
 
 type NdccCalendarProps = {
   events: CalendarFeedEvent[];
@@ -95,28 +105,9 @@ export default function NdccCalendar({ events, showFilters = true, showLegend = 
 
       <div className="ndcc-calendar bg-surface-card rounded-xl border border-edge-subtle shadow-card p-3 sm:p-5">
         {!mounted ? (
-          <div className="animate-pulse py-24 text-center text-sm text-gray-400 font-body" role="status">
-            Loading calendar…
-          </div>
+          <CalendarLoading />
         ) : (
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-            initialView={isMobile ? 'listMonth' : 'dayGridMonth'}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'dayGridMonth,timeGridWeek,listMonth',
-            }}
-            buttonText={{ today: 'Today', month: 'Month', week: 'Week', list: 'List' }}
-            events={calendarEvents}
-            eventClick={handleEventClick}
-            height="auto"
-            dayMaxEventRows={3}
-            firstDay={1}
-            nowIndicator
-            eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
-            noEventsContent="No club events in this period."
-          />
+          <FullCalendarView events={calendarEvents} isMobile={isMobile} onEventClick={handleEventClick} />
         )}
       </div>
 

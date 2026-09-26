@@ -26,7 +26,7 @@ export default function PublicationCard({ publication }: { publication: PublicPu
           <div className="relative h-40 w-full overflow-hidden bg-surface-muted">
             <SafeImage
               src={publication.cover_image_url}
-              alt=""
+              alt={`Cover of ${publication.title}`}
               fallback={null}
               fill
               sizes="(max-width: 640px) 100vw, 400px"
@@ -40,7 +40,7 @@ export default function PublicationCard({ publication }: { publication: PublicPu
             <Badge>{publicationTypeLabel(publication.publication_type)}</Badge>
             {publication.round_label && <Badge variant="info">{publication.round_label}</Badge>}
           </div>
-          <h3 className="font-display text-lg font-bold text-content-primary group-hover:text-maroon-700 mb-1">
+          <h3 className="font-display text-lg font-bold text-content-primary group-hover:text-maroon-700 dark:group-hover:text-maroon-200 mb-1">
             {publication.title}
           </h3>
           <p className="text-xs font-body text-content-muted mb-2">

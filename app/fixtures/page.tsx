@@ -59,7 +59,7 @@ function PlayHQCtaLink({ href, label }: { href: string; label: string }) {
 
 function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; result?: boolean }) {
   return (
-    <Card className="h-full hover-lift">
+    <Card className="h-full card-interactive">
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
@@ -185,7 +185,7 @@ export default async function FixturesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {teamLinks.map((link) => (
                 <a key={link.id} href={currentSeasonPlayHQUrl(link.href, currentSeason?.slug, settings.playhq_url || PLAYHQ_ORG_URL)} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
-                  <Card className="h-full hover-lift">
+                  <Card className="h-full card-interactive">
                     <CardContent className="p-5 space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-display font-bold text-content-primary">{link.title}</h3>

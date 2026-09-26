@@ -23,14 +23,14 @@ export function trailerRaffleTicketSvg(
   <title id="title">${escapeEmailHtml(name.toUpperCase())} - ticket ${number}</title>
   <desc id="desc">Newcomb and District Cricket Club. Raffle number ${number}. ${price}. Reference ${reference}.${sample ? ' Design sample, not valid for entry.' : ''}</desc>
   <rect width="1800" height="700" fill="#641D2C"/>
-  <rect x="1190" width="610" height="700" fill="#ADD8E6"/>
+  <rect x="1190" width="610" height="700" fill="#8cc6d1"/>
   <path d="M1190 30V670" stroke="#641D2C" stroke-width="2" stroke-dasharray="8 12" opacity=".45"/>
   <image href="${logoUri}" x="55" y="36" width="165" height="165" preserveAspectRatio="xMidYMid meet"/>
   <g font-family="Noto Sans, sans-serif">
     <text x="250" y="105" fill="#FAF7F0" font-size="31" letter-spacing="2">NEWCOMB &amp; DISTRICT</text>
     <text x="250" y="151" fill="#FAF7F0" font-size="31" letter-spacing="2">CRICKET CLUB</text>
     <text x="65" y="237" fill="#FAF7F0" font-size="25">${escapeEmailHtml((drawLabel || "").toUpperCase())}</text>
-    <text x="65" y="359" fill="#ADD8E6" font-size="149" font-weight="900" letter-spacing="-5">TRAILER</text>
+    <text x="65" y="359" fill="#8cc6d1" font-size="149" font-weight="900" letter-spacing="-5">TRAILER</text>
     <text x="65" y="519" fill="#FAF7F0" font-size="149" font-weight="900" letter-spacing="-5">RAFFLE</text>
     <path d="M65 584H1095" stroke="#D9AF58" stroke-width="2"/>
     <text x="65" y="637" fill="#FAF7F0" font-size="24" letter-spacing="2">${sample ? 'DESIGN SAMPLE - NOT VALID FOR ENTRY' : 'KEEP THIS TICKET FOR THE DRAW'}</text>

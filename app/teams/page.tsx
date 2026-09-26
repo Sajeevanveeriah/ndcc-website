@@ -69,7 +69,7 @@ export default async function TeamsPage() {
               const teamImage = team.image_url || TEAM_IMAGES[team.name];
 
               return (
-                <Card key={team.id || team.name} className="overflow-hidden transition-shadow duration-300 hover:shadow-lift">
+                <Card key={team.id || team.name} className="overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-3">
                     {/* Team image or colour block */}
                     {teamImage ? (

@@ -37,7 +37,7 @@ export default function SponsorsMarquee({ sponsors, durationSeconds }: { sponsor
                       width={320}
                       height={160}
                       sizes="240px"
-                      className="h-32 w-60 rounded-2xl transition-transform duration-300 group-hover:-translate-y-0.5"
+                      className="h-32 w-60 rounded-2xl"
                       imageClassName="max-h-full max-w-full w-auto h-auto"
                       fallback={brandedFallback}
                     />

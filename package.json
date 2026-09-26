@@ -121,7 +121,8 @@
     "test:selection-window": "node scripts/test-selection-window.cjs",
     "test:dino-transfer-weekdays": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-dino-transfer-weekdays.mjs",
     "test:dino-round-scoring": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-dino-round-scoring.mjs",
-    "test:dino-coach-hardening": "node scripts/test-dino-coach-hardening.cjs"
+    "test:dino-coach-hardening": "node scripts/test-dino-coach-hardening.cjs",
+    "test:brand-calm-motion": "node scripts/test-brand-calm-motion.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

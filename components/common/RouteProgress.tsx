@@ -10,8 +10,8 @@ const FINISH_HIDE_DELAY_MS = 250;
 const SAFETY_TIMEOUT_MS = 8_000;
 
 /**
- * Slim brand-coloured progress bar at the top of the viewport during route
- * changes. Starts on same-origin link clicks and back/forward navigation,
+ * Thin solid club-maroon progress bar (lighter maroon tint in dark mode) at
+ * the top of the viewport during route changes. Starts on same-origin link clicks and back/forward navigation,
  * completes when the pathname or search params actually change. Width is
  * animated with a plain CSS transition; reduced-motion users get an explicit
  * static indicator (no trickle, no width transition) on top of the global
@@ -133,8 +133,8 @@ export default function RouteProgress() {
       <div
         className={
           reducedMotion
-            ? 'h-[3px] rounded-r-full bg-gradient-to-r from-maroon-800 via-maroon-600 to-sky_accent shadow-[0_1px_6px_rgba(128,0,0,0.45)]'
-            : 'h-[3px] rounded-r-full bg-gradient-to-r from-maroon-800 via-maroon-600 to-sky_accent shadow-[0_1px_6px_rgba(128,0,0,0.45)] transition-[width] duration-300 ease-out'
+            ? 'h-0.5 bg-maroon-700 dark:bg-maroon-300'
+            : 'h-0.5 bg-maroon-700 transition-[width] duration-300 ease-out dark:bg-maroon-300'
         }
         style={{ width: `${progress}%` }}
       />

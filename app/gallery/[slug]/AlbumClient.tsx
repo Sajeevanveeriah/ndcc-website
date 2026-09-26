@@ -122,14 +122,14 @@ export default function AlbumClient({ albumTitle, albumAllowsDownload, photos }:
                 setActiveIndex(index);
               }}
               aria-label={`View photo ${index + 1} of ${total}: ${photoAlt(photo, index, total, albumTitle)}`}
-              className="relative block w-full aspect-[4/3] rounded-xl overflow-hidden group border border-edge-subtle bg-gray-900 shadow-sm hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500"
+              className="relative block w-full aspect-[4/3] rounded-xl overflow-hidden group border border-edge-subtle bg-gray-900 shadow-sm card-interactive focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500"
             >
               <SafeImage
                 src={photo.image_url}
                 alt={photoAlt(photo, index, total, albumTitle)}
                 fill
                 loading={index < 8 ? undefined : 'lazy'}
-                className="object-cover group-hover:scale-105 transition-transform duration-300 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                className="object-cover"
                 sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 fallback={<div className="absolute inset-0 bg-gray-900" aria-hidden="true" />}
               />

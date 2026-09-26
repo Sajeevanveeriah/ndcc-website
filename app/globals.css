@@ -23,17 +23,17 @@
     --text-inverse: 255 255 255;
     --border-subtle: 229 231 235;       /* gray-200                          */
     --border-strong: 209 213 219;       /* gray-300                          */
-    --focus-ring: 128 0 0;              /* maroon-600                        */
-    --action-primary: 128 0 0;          /* maroon-700                        */
+    --focus-ring: 136 0 0;              /* maroon-600 (#880000)              */
+    --action-primary: 136 0 0;          /* maroon-700 (#880000)              */
     --action-primary-hover: 96 0 0;     /* maroon-800                        */
-    --action-secondary: 128 0 0;        /* outline buttons                   */
-    --action-accent: 173 216 230;       /* sky_accent                        */
+    --action-secondary: 136 0 0;        /* outline buttons                   */
+    --action-accent: 140 198 209;       /* sky_accent (#8cc6d1)              */
     --status-success: 21 128 61;        /* green-700                         */
     --status-warning: 180 83 9;         /* amber-700                         */
     --status-error: 185 28 28;          /* red-700                           */
-    --brand-maroon-surface: 128 0 0;    /* maroon bands / heroes             */
+    --brand-maroon-surface: 136 0 0;    /* maroon bands / heroes             */
     --brand-blue-surface: 22 40 69;     /* deep club navy                    */
-    --brand-gold: 212 160 23;           /* gold-400                          */
+    --brand-gold: 237 194 102;          /* gold-400 (#edc266)                */
     /* Semantic blue surfaces: informational bands, callouts, fixture and
        status boxes. Solid colours in both themes — never opacity washes. */
     --surface-blue-subtle: 232 243 250; /* #E8F3FA section band              */
@@ -56,16 +56,16 @@
     --border-subtle: 45 56 78;
     --border-strong: 66 80 107;
     --focus-ring: 244 163 163;          /* maroon-300                        */
-    --action-primary: 128 0 0;
+    --action-primary: 136 0 0;
     --action-primary-hover: 154 22 22;
     --action-secondary: 244 163 163;
-    --action-accent: 173 216 230;
+    --action-accent: 140 198 209;
     --status-success: 74 222 128;       /* green-400                         */
     --status-warning: 251 191 36;       /* amber-400                         */
     --status-error: 248 113 113;        /* red-400                           */
     --brand-maroon-surface: 74 0 0;     /* restrained maroon-900             */
     --brand-blue-surface: 16 28 49;
-    --brand-gold: 224 189 85;           /* gold-300 reads better on dark     */
+    --brand-gold: 237 194 102;          /* official gold reads well on dark  */
     /* Dark blue surfaces stay visibly blue — a clear step off the page and
        cards, with solid fills and visible borders (no alpha-only washes). */
     --surface-blue-subtle: 16 42 68;    /* #102A44                           */
@@ -108,13 +108,6 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
-
-    .animate-ken-burns,
-    .animate-float,
-    .animate-shimmer,
-    .animate-pulse-ring {
-      animation: none !important;
-    }
   }
 
   body {
@@ -127,20 +120,23 @@
 }
 
 @layer components {
+  /* Buttons: 6px radius and a 44px minimum touch target. Hover feedback is a
+     colour change only (no lift, scale or shadow growth). */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-maroon-700 text-white font-body font-semibold rounded-[10px] shadow-sm hover:bg-maroon-800 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
+    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 bg-maroon-700 text-white font-body font-semibold shadow-sm hover:bg-maroon-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-maroon-700 text-maroon-700 font-body font-semibold rounded-[10px] hover:bg-maroon-700 hover:text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:border-maroon-300/70 dark:text-maroon-100 dark:bg-maroon-950/30 dark:hover:bg-maroon-700 dark:hover:border-maroon-600 dark:hover:text-white dark:focus:ring-offset-slate-900;
+    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 border border-maroon-700 text-maroon-700 font-body font-semibold hover:bg-maroon-700 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:ring-offset-2 dark:border-maroon-300/70 dark:text-maroon-100 dark:bg-maroon-950/30 dark:hover:bg-maroon-700 dark:hover:border-maroon-600 dark:hover:text-white dark:focus:ring-offset-slate-900;
   }
 
+  /* Club blue button: always dark maroon text (never white on blue). */
   .btn-accent {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-sky_accent text-maroon-900 font-body font-semibold rounded-lg shadow-sm border border-sky-300/60 hover:bg-sky-300 hover:shadow-md active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 dark:border-sky-200/40 dark:focus:ring-offset-slate-900;
+    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 bg-sky_accent text-maroon-900 font-body font-semibold shadow-sm border border-sky_accent hover:bg-sky_accent-light hover:border-sky_accent-light transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2 dark:focus:ring-offset-slate-900;
   }
 
   .btn-outline-white {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-white/50 text-white font-body font-medium rounded-[10px] hover:border-white hover:bg-white/10 active:scale-[0.98] transition-all duration-200 focus:outline-none;
+    @apply inline-flex min-h-11 items-center justify-center rounded-md px-6 py-3 border border-white/50 text-white font-body font-medium hover:border-white hover:bg-white/10 transition-colors duration-200 focus:outline-none;
   }
 
   .section-padding {
@@ -155,37 +151,26 @@
     @apply bg-surface-card rounded-xl shadow-sm border border-edge-subtle/80 overflow-hidden;
   }
 
-  .card-hover {
-    @apply card hover:shadow-lift hover:border-maroon-100 hover:-translate-y-1 transition-all duration-300 dark:hover:border-maroon-700;
+  /* Calm hover feedback for linked cards: a border colour change only. */
+  .card-interactive {
+    @apply transition-colors duration-200 hover:border-maroon-300 dark:hover:border-maroon-500;
   }
 
   .form-input {
-    @apply w-full px-4 py-3 border border-edge-strong rounded-lg text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply w-full min-h-12 px-4 py-3 border border-edge-strong rounded-lg text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
   }
 
   .form-label {
     @apply block text-base font-semibold text-content-secondary mb-2 font-body;
   }
 
+  /* Inner page hero: a flat club-maroon band with a club-blue keyline. */
   .page-hero {
-    @apply relative overflow-hidden px-4 py-10 text-white sm:px-6 sm:py-12 lg:px-8;
-    background:
-      radial-gradient(1100px 420px at 85% -10%, rgba(255, 255, 255, 0.08), transparent 60%),
-      linear-gradient(135deg, theme('colors.maroon.700') 0%, theme('colors.maroon.800') 60%, theme('colors.maroon.900') 100%);
-  }
-
-  .page-hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: repeating-linear-gradient(
-      -45deg,
-      rgba(255, 255, 255, 0.025) 0px,
-      rgba(255, 255, 255, 0.025) 1px,
-      transparent 1px,
-      transparent 14px
-    );
+    @apply relative overflow-hidden px-4 text-white sm:px-6 lg:px-8;
+    padding-top: clamp(3rem, 6vw, 5rem);
+    padding-bottom: clamp(3rem, 6vw, 5rem);
+    background: rgb(var(--brand-maroon-surface));
+    border-bottom: 5px solid theme('colors.sky_accent.DEFAULT');
   }
 
   .page-hero > * {
@@ -193,15 +178,20 @@
   }
 
   .page-hero-title {
-    @apply mb-3 font-display text-3xl font-semibold uppercase tracking-wide sm:text-4xl;
+    @apply mb-3 font-display font-semibold;
+    font-size: clamp(2.4rem, 4.5vw, 4rem);
+    line-height: 1.1;
+    letter-spacing: -.04em;
+    text-wrap: balance;
   }
 
   .page-hero-subtitle {
-    @apply max-w-2xl font-body text-base text-maroon-100 sm:text-lg;
+    @apply max-w-2xl font-body text-lg leading-relaxed text-white;
   }
 
   .section-title {
-    @apply mb-3 font-display text-2xl font-semibold uppercase tracking-wide text-maroon-800 dark:text-maroon-100 sm:text-3xl;
+    @apply mb-3 font-display text-2xl leading-[1.2] font-semibold tracking-[-0.035em] text-maroon-800 dark:text-maroon-100 sm:text-3xl sm:leading-[1.2];
+    text-wrap: balance;
   }
 
   .section-subtitle {
@@ -222,47 +212,34 @@
     @apply bg-surface-blue-subtle border border-edge-blue/70 rounded-xl;
   }
 
-  /* Image zoom on card hover: apply to the <img>, with `group` + overflow-hidden on the container */
-  .img-zoom {
-    @apply transition-transform duration-500 ease-out group-hover:scale-105;
-  }
-
-  /* Animated underline for nav links */
+  /* Hover underline for nav links: appears on hover with no sweep. */
   .nav-underline {
     @apply relative;
   }
 
   .nav-underline::after {
     content: '';
-    @apply absolute left-3 right-3 bottom-1 h-0.5 bg-maroon-700 origin-left scale-x-0 transition-transform duration-200 dark:bg-maroon-300;
+    @apply absolute left-3 right-3 bottom-1 h-0.5 bg-maroon-700 opacity-0 dark:bg-maroon-300;
   }
 
   .nav-underline:hover::after {
-    @apply scale-x-100;
+    @apply opacity-100;
   }
 
   .section-eyebrow {
-    @apply inline-block text-[11px] font-semibold tracking-[0.14em] uppercase text-maroon-700 bg-maroon-50 px-3.5 py-1 rounded-full mb-3 dark:text-maroon-200 dark:bg-maroon-900/40;
+    @apply inline-block text-xs font-semibold tracking-[0.14em] uppercase text-maroon-700 bg-maroon-50 px-3.5 py-1 rounded-full mb-3 dark:text-maroon-200 dark:bg-maroon-900/40;
   }
 
   /* Gold companion to .section-eyebrow for text sitting on maroon bands and
-     photo heroes — the honour-board "gold lettering" label treatment. */
+     photo heroes: the honour-board "gold lettering" label treatment. */
   .eyebrow-gold {
-    @apply inline-block text-[11px] font-bold tracking-[0.14em] uppercase text-gold-200 bg-gold-400/15 px-3.5 py-1 rounded-full mb-3;
+    @apply inline-block text-xs font-bold tracking-[0.14em] uppercase text-gold-200 bg-gold-400/15 px-3.5 py-1 rounded-full mb-3;
   }
 
-  /* Sponsor tiles read one step more premium than a plain card: the shared
-     lift plus a soft maroon ring-glow. */
+  /* Sponsor tiles: a rounder card whose hover is a border colour change. */
   .card-hover-sponsor {
-    @apply card hover:shadow-lift hover:border-maroon-200/70 hover:-translate-y-1 hover:ring-2 hover:ring-maroon-200/50 transition-all duration-300 dark:hover:border-maroon-700 dark:hover:ring-maroon-700/40;
-  }
-
-  /* ---- Part B: additive depth / surface / motion utilities (no existing rule changed) ---- */
-
-  /* Reusable hover lift for cards and tiles. Honours prefers-reduced-motion via the
-     global base rule that neutralises transitions. */
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lift;
+    @apply card rounded-[1.25rem] transition-colors duration-200 hover:border-maroon-300 dark:hover:border-maroon-500;
+    box-shadow: none;
   }
 
   /* Consistent, accessible keyboard focus ring for interactive chrome. */
@@ -270,36 +247,16 @@
     @apply focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2;
   }
 
-  /* Layered light surface: soft vertical gradient, hairline border, soft shadow. */
+  /* Layered surface: hairline border on the card surface. */
   .surface-panel {
-    @apply rounded-2xl border border-edge-subtle/70 bg-gradient-to-b from-white to-cream shadow-card dark:from-surface-card dark:to-surface-muted;
+    @apply rounded-2xl border border-edge-subtle/70 bg-surface-card;
   }
 
-  /* Dark maroon band to break up the page and create vertical rhythm.
-     The inset hairlines are a faint gold keyline top and bottom, so every
-     dark moment reads like the brass edge of an honour board. */
+  /* Flat club-maroon band with a blue-grey keyline top and bottom. */
   .band-maroon {
     @apply relative text-white overflow-hidden;
-    background:
-      radial-gradient(900px 360px at 12% -25%, rgba(212, 160, 23, 0.10), transparent 60%),
-      linear-gradient(135deg, theme('colors.maroon.950') 0%, theme('colors.maroon.800') 55%, theme('colors.maroon.900') 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(212, 160, 23, 0.28),
-      inset 0 -1px 0 rgba(212, 160, 23, 0.28);
-  }
-
-  .band-maroon::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: repeating-linear-gradient(
-      -45deg,
-      rgba(255, 255, 255, 0.03) 0px,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px,
-      transparent 14px
-    );
+    background: rgb(var(--brand-maroon-surface));
+    border-block: 1px solid rgb(var(--border-blue));
   }
 
   .band-maroon > * {
@@ -320,56 +277,13 @@
     @apply mt-3 block w-60 text-center font-body text-xs font-medium leading-snug text-content-muted;
   }
 
-  /* ---- Cinematic layer (additive) ------------------------------------- */
-
-  /* Ambient hero light layers: fade in after the image settles. Decorative
-     only (aria-hidden at call sites); the global reduced-motion rule collapses
-     the animation so the layers simply appear. */
-  .hero-ambient {
-    opacity: 0;
-    animation: ambientIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
-  }
-
-  /* Scroll indicator: enters last in the hero sequence, then floats gently.
-     Pure CSS so it costs no JS; reduced motion leaves it static and visible. */
-  .hero-scroll-hint {
-    opacity: 0;
-    animation: fadeUpIn 0.8s cubic-bezier(0.21, 0.47, 0.32, 0.98) 1.7s forwards;
-  }
-
-  .hero-scroll-hint-wheel {
-    animation: scrollHintDrop 2.2s ease-in-out 2.5s infinite;
-  }
-
-  /* Inner public pages: one consistent, restrained page-hero entrance
-     (≈4/10 intensity). CSS-only so it works on every route that uses the
-     .page-hero classes with zero new client JS, degrades to instant content
-     when JavaScript or animation is unavailable, and is neutralised by the
-     global prefers-reduced-motion rule. */
-  .page-hero-title {
-    animation: fadeUpIn 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98) both;
-  }
-
-  .page-hero-subtitle {
-    animation: fadeUpIn 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98) 0.12s both;
-  }
-
-  /* Post-commit page-enter settle, applied to <main> by the RouteSettle
-     island after client-side navigations only. Starts from a still-legible
-     0.55 opacity (never zero) so content is readable throughout; the global
-     prefers-reduced-motion rule collapses it, and RouteSettle additionally
-     skips applying the class under reduced motion. */
-  .route-settle {
-    animation: routeSettleIn 0.4s cubic-bezier(0.21, 0.47, 0.32, 0.98) both;
-  }
-
   /* Oversized editorial background typography (e.g. the club nickname behind
-     the stats band). Decorative watermark — always aria-hidden. */
+     the stats band). Decorative watermark: always aria-hidden. */
   .watermark-type {
     @apply pointer-events-none select-none font-display font-bold uppercase leading-none;
     letter-spacing: -0.02em;
     color: transparent;
-    -webkit-text-stroke: 1px rgba(212, 160, 23, 0.14);
+    -webkit-text-stroke: 1px rgba(237, 194, 102, 0.14);
   }
 }
 
@@ -377,45 +291,6 @@
    utility remapping) has been removed: every call site now uses the semantic
    token utilities (bg-surface-*, text-content-*, border-edge-*) or carries an
    explicit dark: variant, so no plain utility changes meaning under .dark. */
-
-/* Animation keyframes */
-@keyframes kenBurns {
-  0%   { transform: scale(1) translate3d(0, 0, 0); }
-  100% { transform: scale(1.07) translate3d(-1%, -0.5%, 0); }
-}
-@keyframes fadeUpIn {
-  0%   { opacity: 0; transform: translateY(24px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes shimmerSweep {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-@keyframes slideDownIn {
-  0%   { opacity: 0; transform: translateY(-10px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes floatY {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
-}
-@keyframes pulseRing {
-  0%   { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0.4); }
-  70%  { box-shadow: 0 0 0 10px rgba(128, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(128, 0, 0, 0); }
-}
-@keyframes ambientIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes routeSettleIn {
-  0%   { opacity: 0.55; transform: translateY(12px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes scrollHintDrop {
-  0%, 100% { transform: translateY(0); opacity: 1; }
-  50%      { transform: translateY(6px); opacity: 0.55; }
-}
 
 .homepage-marquee-track {
   display: flex;
@@ -481,8 +356,6 @@ body.marquee-page-hidden .homepage-marquee-track {
   .club-home-copy { @apply min-w-0 py-2; }
   .club-kicker { @apply text-sm font-semibold tracking-wide text-maroon-700 dark:text-sky_accent; }
   .club-home-title { font-size: clamp(2.5rem, 4.2vw, 4rem); line-height: 1.08; letter-spacing: -.045em; text-wrap: balance; @apply mt-5 font-display font-semibold text-content-primary; }
-  .club-home-photo { @apply relative m-0 min-h-72 overflow-hidden border-t-4 border-sky_accent lg:min-h-full lg:border-l-4 lg:border-t-0; }
-  .club-ground-caption { @apply absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-2 bg-maroon-800 px-6 py-5 text-white; }
   .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-200 underline-offset-8 transition-colors hover:decoration-maroon-700 dark:text-sky_accent; }
   .club-disclosure { @apply rounded-lg border border-edge-strong bg-surface-card; }
   .club-disclosure > summary { @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary; }
@@ -491,34 +364,14 @@ body.marquee-page-hidden .homepage-marquee-track {
   .product-options button { min-height: 44px; min-width: 44px; }
   .club-disclosure .product-options { @apply space-y-5 p-4; }
   .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-lg border border-maroon-950 bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-lg; }
-  .page-hero { background: rgb(var(--brand-maroon-surface)); border-bottom: 5px solid #ADD8E6; }
-  .page-hero::after { background-image: none; }
-  .page-hero-title { font-size: clamp(2.4rem, 4.5vw, 4rem); line-height: 1.1; letter-spacing: -.04em; text-transform: none; text-wrap: balance; }
-  .section-title { letter-spacing: -.035em; line-height: 1.2; text-transform: none; text-wrap: balance; }
-  .page-hero-subtitle { @apply text-lg leading-relaxed text-white; }
-  .form-input { min-height: 48px; }
-  .card-hover { transform: none; }
-  .card-hover:hover { transform: translateY(-2px); }
   .prose { line-height: 1.8; }
   .prose p, .prose li { font-size: 1rem; }
   .prose a { text-decoration: underline; text-underline-offset: 3px; }
   button, a, input, select, textarea { scroll-margin-top: 8rem; }
-  .btn-primary, .btn-secondary, .btn-accent, .btn-outline-white { border-radius: 6px; min-height: 44px; }
-  .btn-secondary { border-width: 1px; }
-  .page-hero { padding-top: clamp(3rem, 6vw, 5rem); padding-bottom: clamp(3rem, 6vw, 5rem); }
-  .band-maroon { background: rgb(var(--brand-maroon-surface)); box-shadow: none; border-block: 1px solid rgb(var(--border-blue)); }
-  .band-maroon::after { background: none; }
-  .surface-panel { background: rgb(var(--surface-card)); box-shadow: none; }
-  .card-hover-sponsor { border-radius: 1.25rem; box-shadow: none; }
-  .card-hover-sponsor:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -18px rgb(var(--brand-maroon-surface) / .35); --tw-ring-shadow: 0 0 #0000; }
   .sponsor-introduction { @apply grid items-start gap-5 md:grid-cols-[1fr_2fr] md:gap-16; }
   .sponsor-introduction .section-title { @apply text-3xl; }
   .sponsor-introduction p { max-width: 48rem; }
   .sponsor-gallery { align-items: stretch; }
   .sponsor-gallery > li { min-width: 0; }
   .sponsor-gallery h3 { letter-spacing: -.025em; line-height: 1.4; }
-  @media (prefers-reduced-motion: no-preference) {
-    .club-home-photo img { animation: club-photo-enter 600ms ease-out both; }
-    @keyframes club-photo-enter { from { opacity: .6; transform: scale(1.02); } to { opacity: 1; transform: scale(1); } }
-  }
 }

@@ -96,7 +96,7 @@ const feed = toCalendarFeedEvent(baseEvent);
 check('feed keeps id/title/start', feed.id === 'abc-123' && feed.title === 'Presentation Night' && feed.start === baseEvent.start_at);
 check('feed extendedProps carry cta and status', feed.extendedProps.ctaUrl === '/events/abc' && feed.extendedProps.status === 'published');
 check('cancelled events are greyed', toCalendarFeedEvent({ ...baseEvent, status: 'cancelled' }).backgroundColor === '#9ca3af');
-check('featured events get gold border', toCalendarFeedEvent({ ...baseEvent, is_featured: true }).borderColor === '#d4a017');
+check('featured events get gold border', toCalendarFeedEvent({ ...baseEvent, is_featured: true }).borderColor === '#edc266');
 check('custom colour wins', eventColour({ colour: '#123456', event_type: 'social' }) === '#123456');
 check('invalid colour falls back to type colour', eventColour({ colour: 'red-ish', event_type: 'training' }) === '#1e3a5f');
 

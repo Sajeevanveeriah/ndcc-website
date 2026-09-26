@@ -272,26 +272,19 @@ export default function Navbar({ nav }: NavbarProps) {
   const manageRaffles = sessionUser?.permissions?.includes('raffle') === true;
   const navGroups = resolveGroups(navLinks, nav.dinoCoachPublic, raffleVisibility.enabled, cookieDoughOpen, raffleVisibility.reverseEnabled, manageRaffles);
   const accountExpanded = accountOpen || accountHover;
-  // Homepage nav starts transparent over the cinematic hero and settles onto
-  // a translucent blurred surface after ~20px of scroll. Inner pages are
-  // solid from the start.
-  const transparent = false;
   return (
     <>
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        transparent
-          ? 'border-b border-white/15 bg-transparent'
-          : scrolled
-            ? 'border-b-2 border-maroon-700 bg-surface-nav/90 backdrop-blur-md shadow-md'
-            : 'border-b-2 border-maroon-700 bg-surface-nav'
+        'fixed top-0 left-0 right-0 z-50 transition-colors duration-300',
+        scrolled
+          ? 'border-b-2 border-maroon-700 bg-surface-nav/90 backdrop-blur-md shadow-md'
+          : 'border-b-2 border-maroon-700 bg-surface-nav'
       )}
-      role="navigation"
       aria-label="Main navigation"
     >
       {/* Maroon utility bar */}
-      <div className={cn('px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between transition-colors duration-300', transparent ? 'bg-maroon-950/35 backdrop-blur-sm' : 'bg-surface-blue-subtle border-b border-edge-subtle')}>
+      <div className="px-4 sm:px-6 lg:px-8 py-[6px] flex items-center justify-between bg-surface-blue-subtle border-b border-edge-subtle">
         <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-blue font-body tracking-[0.02em]">
           {settings.ground_name}, {settings.address}
         </span>
@@ -332,10 +325,10 @@ export default function Navbar({ nav }: NavbarProps) {
               priority
             />
             <div className="hidden sm:flex lg:hidden flex-col">
-              <span className={cn('font-display font-semibold uppercase tracking-wide text-lg leading-none block', transparent ? 'text-white' : 'text-maroon-700 dark:text-maroon-200')}>
+              <span className="font-display font-semibold uppercase tracking-wide text-lg leading-none block text-maroon-700 dark:text-maroon-200">
                 {settings.club_short}
               </span>
-              <span className={cn('text-sm font-body tracking-[0.08em] uppercase mt-1', transparent ? 'text-white/70' : 'text-gray-600 dark:text-slate-400')}>
+              <span className="text-sm font-body tracking-[0.08em] uppercase mt-1 text-gray-600 dark:text-slate-400">
                 The Dinos · Est. {settings.established_year}
               </span>
             </div>
@@ -351,17 +344,13 @@ export default function Navbar({ nav }: NavbarProps) {
                     href={group.href}
                     aria-current={pathname === group.href ? 'page' : undefined}
                     className={cn(
-                      'whitespace-nowrap px-[5px] xl:px-2 py-1.5 text-[13px] xl:text-sm font-body font-medium transition-colors rounded-md focus-ring',
+                      'whitespace-nowrap px-[5px] xl:px-2 py-1.5 text-xs xl:text-sm font-body font-medium transition-colors rounded-md focus-ring',
                       // The logo already links home; the extra Home item only
                       // appears once there is room for it (xl and up).
                       group.href === '/' && 'hidden xl:inline-block',
                       pathname === group.href
-                        ? transparent
-                          ? "relative text-white font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-gold-300 after:content-['']"
-                          : "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:text-maroon-200 dark:after:bg-maroon-300"
-                        : transparent
-                          ? 'nav-underline text-white/85 hover:text-white'
-                          : 'nav-underline text-content-muted hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
+                        ? "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-maroon-700 after:content-[''] dark:after:bg-maroon-300"
+                        : 'nav-underline text-content-muted hover:text-maroon-700 dark:text-slate-300 dark:hover:text-maroon-200'
                     )}
                   >
                     {group.label}
@@ -400,17 +389,13 @@ export default function Navbar({ nav }: NavbarProps) {
                       if (openGroup === group.label) setHoverGroup(null);
                     }}
                     className={cn(
-                      'flex shrink-0 items-center gap-0.5 xl:gap-1 whitespace-nowrap px-[5px] xl:px-2 py-1.5 text-[13px] xl:text-sm font-body font-medium rounded-md transition-colors focus-ring',
+                      'flex shrink-0 items-center gap-0.5 xl:gap-1 whitespace-nowrap px-[5px] xl:px-2 py-1.5 text-xs xl:text-sm font-body font-medium rounded-md transition-colors focus-ring',
                       // A group whose child route is active reads as active too,
                       // matching the top-level link treatment (hash links share
                       // their base pathname, e.g. /about#club-history).
                       group.links?.some((link) => pathname === link.href.split('#')[0])
-                        ? transparent
-                          ? 'text-white font-semibold'
-                          : 'text-maroon-700 font-semibold dark:text-maroon-200'
-                        : transparent
-                          ? 'text-white/85 hover:text-white hover:bg-white/10'
-                          : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50'
+                        ? 'text-maroon-700 font-semibold dark:text-maroon-200'
+                        : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50'
                     )}
                   >
                     {group.label} <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', expanded && 'rotate-180')} aria-hidden="true" />
@@ -463,7 +448,7 @@ export default function Navbar({ nav }: NavbarProps) {
                   }}
                   aria-label={`Account: ${sessionUser.full_name}`}
                   title={sessionUser.full_name}
-                  className={cn('flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-ring', transparent ? 'text-white/85 hover:text-white hover:bg-white/10' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-ring text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
                 >
                   <UserRound className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -491,7 +476,7 @@ export default function Navbar({ nav }: NavbarProps) {
             <Link
               href={registrationNavigation?.href || '/join'}
               className={cn(
-                'ml-1 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-maroon-700 px-2.5 xl:px-3 text-center text-[13px] xl:text-sm font-semibold leading-none text-white transition-colors hover:bg-maroon-800 focus-ring',
+                'ml-1 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-maroon-700 px-2.5 xl:px-3 text-center text-xs xl:text-sm font-semibold leading-none text-white transition-colors hover:bg-maroon-800 focus-ring',
                 pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
               )}
               aria-label={registrationNavigation?.label || 'Join the Club'}
@@ -505,13 +490,13 @@ export default function Navbar({ nav }: NavbarProps) {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={cn('lg:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring', transparent ? 'border-white/40 hover:bg-white/10' : 'border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50')}
+            className="lg:hidden min-h-11 min-w-11 p-2 rounded-md border transition-colors focus-ring border-edge-subtle hover:bg-surface-muted dark:border-slate-700 dark:hover:bg-maroon-950/50"
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
             aria-controls="mobile-site-menu"
           >
-            {isOpen ? <X className={cn('h-6 w-6', transparent ? 'text-white' : 'text-content-secondary dark:text-slate-200')} /> : <Menu className={cn('h-6 w-6', transparent ? 'text-white' : 'text-content-secondary dark:text-slate-200')} />}
+            {isOpen ? <X className="h-6 w-6 text-content-secondary dark:text-slate-200" /> : <Menu className="h-6 w-6 text-content-secondary dark:text-slate-200" />}
           </button>
         </div>
       </div>
