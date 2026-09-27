@@ -44,7 +44,8 @@ function asSafeString(value: unknown) {
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
-  const [songPotOrders, setSongPotOrders] = useState<SongPotOrder[] | null>([]);
+  // undefined while loading, null if the load failed.
+  const [songPotOrders, setSongPotOrders] = useState<SongPotOrder[] | null | undefined>(undefined);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [registrationsLoading, setRegistrationsLoading] = useState(true);
@@ -406,7 +407,9 @@ export default function AdminEventsPage() {
           return (
             <div key={event.id} className="bg-surface-card rounded-xl border border-edge-subtle p-4 mb-3 text-sm">
               <p className="font-semibold text-content-primary">{event.title}: song pot</p>
-              {songPotOrders === null ? (
+              {registrationsLoading || songPotOrders === undefined ? (
+                <p className="text-content-secondary">Loading paid orders...</p>
+              ) : songPotOrders === null ? (
                 <p className="text-content-secondary">Paid orders could not be loaded. Reload the page to see the pot.</p>
               ) : (
                 <p className="text-content-secondary">Paid songs: {paidSongs}. Pot (paid order totals): {formatCurrency(pot)}. Half the pot: {formatCurrency(pot / 2)}. Unpaid entries are excluded.</p>
@@ -456,7 +459,10 @@ export default function AdminEventsPage() {
                   <TableCell>
                     {/* Song entries are paid through the order ledger so the pot stays exact. */}
                     {registration.order_id && (registration.song_requests?.length ?? 0) > 0 ? (
-                      <Link href="/admin/orders" className="text-sm underline underline-offset-4">
+                      <Link
+                        href={`/admin/orders?group=${encodeURIComponent(`event:${events.find((event) => event.id === registration.event_id)?.title || ''}`)}${registration.payment_reference ? `&reference=${encodeURIComponent(registration.payment_reference)}` : ''}`}
+                        className="text-sm underline underline-offset-4"
+                      >
                         {registration.payment_status === 'paid' ? 'Paid (order)' : 'Record payment in Orders'}
                       </Link>
                     ) : (
