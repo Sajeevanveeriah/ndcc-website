@@ -61,6 +61,7 @@ export default function AdminEventsPage() {
   // Optional scheduled publishing (events.published_at). Blank = visible as soon as published.
   const [publishAt, setPublishAt] = useState('');
   const [editingHasSchedule, setEditingHasSchedule] = useState(false);
+  const [editingHasMode, setEditingHasMode] = useState(false);
   const draft = useDraftAutosave({ editor: 'events', recordId: editingId, value: form, active: modalOpen });
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
@@ -114,6 +115,7 @@ export default function AdminEventsPage() {
     setEditingId(null);
     setPublishAt('');
     setEditingHasSchedule(false);
+    setEditingHasMode(false);
     setForm(emptyEvent);
     setFormErrors({});
     setFeedback(null);
@@ -126,6 +128,7 @@ export default function AdminEventsPage() {
     const scheduledAt = (event as Event & { published_at?: string | null }).published_at;
     setPublishAt(typeof scheduledAt === 'string' && scheduledAt ? toDatetimeLocalInClubTimezone(scheduledAt) : '');
     setEditingHasSchedule('published_at' in event);
+    setEditingHasMode('registration_mode' in event);
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
@@ -166,7 +169,11 @@ export default function AdminEventsPage() {
         location: asSafeString(form.location).trim(),
         capacity: form.capacity,
         ticket_price: form.ticket_price,
-        registration_mode: form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
+        // Sent only for song events, or when the row already has the column, so
+        // ticket-event saves keep working before the song migration is applied.
+        ...(form.registration_mode === 'song_requests' || editingHasMode
+          ? { registration_mode: form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets' }
+          : {}),
         image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
         // Sent only when set, or when clearing an existing schedule, so saving
@@ -386,7 +393,8 @@ export default function AdminEventsPage() {
         {events.filter((event) => event.registration_mode === 'song_requests').map((event) => {
           const ordersById = new Map((songPotOrders || []).map((order) => [order.id, order]));
           const paidEntries = registrations
-            .filter((registration) => registration.event_id === event.id && registration.order_id)
+            // Only song entries count; earlier ticket registrations stay out of the pot.
+            .filter((registration) => registration.event_id === event.id && registration.order_id && (registration.song_requests?.length ?? 0) > 0)
             .map((registration) => ({ registration, order: ordersById.get(registration.order_id as string) }))
             .filter(({ order }) => order?.payment_status === 'paid');
           const paidSongs = paidEntries.reduce((sum, { registration }) => sum + (registration.song_requests?.length ?? 0), 0);
