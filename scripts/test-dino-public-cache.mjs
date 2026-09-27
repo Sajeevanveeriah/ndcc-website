@@ -49,4 +49,6 @@ for (const file of [
   'app/api/cron/playhq-fantasy-sync/route.ts', 'app/api/internal/fantasy/release-run/route.ts',
 ]) assert.match(read(file), /revalidateDinoPublicCache\(\);/, `${file} clears the public Dino cache after a write`);
 assert.match(read('app/api/admin/fantasy/settings/route.ts'), /revalidatePublicContent\('fantasySettings'\)/);
+// Manual sync start and continue both process batches, so both clear the cache.
+assert.equal((read('app/api/admin/fantasy/sync/route.ts').match(/processFantasySyncBatch\([^\n]*\n(?:\s*\/\/[^\n]*\n)?\s*revalidateDinoPublicCache\(\);/g) || []).length, 2);
 console.log('PASS admin and scheduled Dino writers clear the public cache');

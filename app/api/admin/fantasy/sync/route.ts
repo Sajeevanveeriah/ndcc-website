@@ -58,12 +58,15 @@ export async function POST(request: Request) {
         }, { headers: noStore });
       }
       const progress = await processFantasySyncBatch(started.job.id, Number(body.batchSize) || DEFAULT_SYNC_BATCH_SIZE);
+      // A batch can change roster team labels and match stats shown on public pages.
+      revalidateDinoPublicCache();
       return NextResponse.json({ success: true, jobId: started.job.id, queued: started.queued, ...progress }, { headers: noStore });
     }
     if (action === 'continue') {
       const jobId = String(body.jobId || '').trim();
       if (!jobId) return NextResponse.json({ success: false, error: 'jobId is required.' }, { status: 400, headers: noStore });
       const progress = await processFantasySyncBatch(jobId, Number(body.batchSize) || DEFAULT_SYNC_BATCH_SIZE);
+      revalidateDinoPublicCache();
       return NextResponse.json({ success: true, jobId, ...progress }, { headers: noStore });
     }
     if (action === 'orchestrate') {
