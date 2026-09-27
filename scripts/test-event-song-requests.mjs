@@ -64,4 +64,7 @@ assert.match(adminEvents, /registrationsLoading \|\| songPotOrders === undefined
 
 assert.match(adminEvents, /const modeSource = 'registration_mode' in event \? event : events\.find/, 'restored snapshots take the registration mode from the live row');
 
+assert.match(adminEvents, /\/api\/admin\/resources\/orders\?deleted=include/, 'soft-deleted paid orders stay in the pot');
+assert.match(adminEvents, /registration_mode: saved\.registration_mode \?\? current\.registration_mode/, 'old local drafts keep the live registration mode');
+
 console.log('PASS event song requests: validation, limits, labels, per-song pricing, atomic storage and privileges');

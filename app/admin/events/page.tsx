@@ -68,7 +68,8 @@ export default function AdminEventsPage() {
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
     const saved = draft.restoreDraft();
-    if (saved) setForm(saved);
+    // Drafts saved before registration_mode existed keep the form's current (live) mode.
+    if (saved) setForm((current) => ({ ...saved, registration_mode: saved.registration_mode ?? current.registration_mode }));
   };
 
   const fetchEvents = async () => {
@@ -107,7 +108,8 @@ export default function AdminEventsPage() {
   useEffect(() => {
     if (!hasSongEvent) return;
     let cancelled = false;
-    adminFetch('/api/admin/resources/orders', { cache: 'no-store' })
+    // Include soft-deleted orders: a deleted paid order still holds collected money.
+    adminFetch('/api/admin/resources/orders?deleted=include', { cache: 'no-store' })
       .then((response) => parseApiResponse<{ data?: SongPotOrder[] }>(response))
       .then((result) => { if (!cancelled) setSongPotOrders((result.data || []).filter((order) => order.order_category === 'event')); })
       .catch(() => { if (!cancelled) setSongPotOrders(null); });
