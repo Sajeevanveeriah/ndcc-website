@@ -16,6 +16,8 @@ const pick = { slotKey: slot.key, playerId: 'excluded', displayName: 'Removed pl
 const source = ts.transpileModule(readFileSync('app/fantasy/_components/SquadBuilder.tsx', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
 }).outputText;
+const cardExports = {};
+vm.runInNewContext(ts.transpileModule(readFileSync('app/fantasy/_components/PlayerStatsCard.tsx','utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports: cardExports, require: name => name === 'react/jsx-runtime' ? jsx : { CRICKET_ROLE_LABELS: { BAT: 'Batter' } } });
 function render(selection, readonlyMode = false, issues = [], options = {}) {
   const states = [issues, options.players || [player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true, women_rule_enabled: options.womenRuleEnabled === true, women_update_deadline: options.deadline || null }, '', 'name', '', '', '', false, false];
   let index = 0;
@@ -31,7 +33,7 @@ function render(selection, readonlyMode = false, issues = [], options = {}) {
     '@/components/ui/Card': { default: div, CardContent: div },
     '@/lib/fantasy-browser': {},
     './WalletPanel': { default: () => null },
-    './PlayerStatsCard': { default: ({ player }) => React.createElement('div', null, player.display_name) },
+    './PlayerStatsCard': cardExports,
     '@/lib/dino-coach/wallet': walletExports,
     './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
   };
@@ -77,3 +79,30 @@ const compliant = render([woman('w1', 'starter'), woman('w2', 'bench')], false, 
 assert.match(compliant, /<button>Submit squad<\/button>/);
 assert.match(compliant, /Show women eligible for the minimum/);
 console.log('PASS rendered women counts, draft availability, submit gating and catalogue filter');
+
+const disabled = render([woman('w1', 'starter')], false, [], { ...womenOptions, womenRuleEnabled: false });
+assert.doesNotMatch(disabled, /Women selected:|Show women eligible|women selection minimum|women’s selection|Women’s selection/);
+assert.match(compliant, /Counts towards the women selection minimum/);
+
+const catalogueSource = ts.transpileModule(readFileSync('app/fantasy/_components/PlayerListExplorer.tsx','utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
+function catalogue(enabled) {
+  const exports = {}; let index = 0;
+  // Keep a previously checked filter while the rule is switched off.
+  const states = ['', true, 'all', 'all', 'name'];
+  const div = ({children}) => React.createElement('div', null, children);
+  const imports = {
+    react: { useState: () => [states[index++], () => {}], useMemo: fn => fn() },
+    'react/jsx-runtime': jsx,
+    './PlayerStatsCard': cardExports,
+    '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
+    '@/components/ui/Badge': { default: div },
+    '@/components/ui/Table': Object.fromEntries(['Table','TableBody','TableCell','TableHead','TableHeader','TableRow'].map(name => [name, div])),
+  };
+  vm.runInNewContext(catalogueSource, { exports, require: name => { assert(name in imports); return imports[name]; } });
+  return renderToStaticMarkup(React.createElement(exports.default, { players: [...womenPlayers, { ...player, display_name: 'Other player' }], hasPublishedPoints: false, womenRuleEnabled: enabled }));
+}
+assert.match(catalogue(true), /Showing 2 of 3 players/);
+assert.match(catalogue(true), /Counts towards the women selection minimum/);
+assert.match(catalogue(false), /Showing 3 of 3 players/);
+assert.doesNotMatch(catalogue(false), /women selection minimum|Show women eligible/);
+console.log('PASS disabled-rule rollback hides minimum labels and releases a previously checked women filter');

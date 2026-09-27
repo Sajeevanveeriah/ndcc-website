@@ -1,8 +1,10 @@
 -- Reviewed production data operation. Apply after the schema/application release
 -- after verifying these recorded identities still belong to the current pool.
 -- Unreviewed classifications stay NULL and can be confirmed by the club in admin.
--- Rollback: disable women_rule_enabled and restore rules_version to rev06 for
--- this season. Retain eligibility data and each manager's recorded acceptance.
+-- Rollback: disable women_rule_enabled for this season. Retain the current
+-- rules_version, eligibility data and each manager's recorded acceptance.
+-- Do not downgrade the required version: that would block managers who have
+-- already accepted rev07. Communicate the suspended minimum to managers.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 -- Seed from the committee season summary's explicitly recorded women's teams.

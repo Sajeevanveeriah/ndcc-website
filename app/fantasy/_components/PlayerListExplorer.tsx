@@ -35,7 +35,7 @@ function formScore(player: PlayerListEntry) {
   return player.matches_counted > 0 ? player.total_points / player.matches_counted : 0;
 }
 
-export default function PlayerListExplorer({ players, hasPublishedPoints }: { players: PlayerListEntry[]; hasPublishedPoints: boolean }) {
+export default function PlayerListExplorer({ players, hasPublishedPoints, womenRuleEnabled = false }: { players: PlayerListEntry[]; hasPublishedPoints: boolean; womenRuleEnabled?: boolean }) {
   const [search, setSearch] = useState('');
   const [womenOnly, setWomenOnly] = useState(false);
   const [role, setRole] = useState('all');
@@ -50,7 +50,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
   const visible = useMemo(() => {
     const query = search.trim().toLowerCase();
     const filtered = players.filter((player) => {
-      if (womenOnly && player.women_eligible !== true) return false;
+      if (womenRuleEnabled && womenOnly && player.women_eligible !== true) return false;
       if (role !== 'all' && player.role !== role) return false;
       if (query && !player.display_name.toLowerCase().includes(query)) return false;
       if (team !== 'all' && (player.team_label || '') !== team) return false;
@@ -62,7 +62,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
     if (sortKey === 'points') sorted.sort((a, b) => b.total_points - a.total_points || a.display_name.localeCompare(b.display_name));
     if (sortKey === 'form') sorted.sort((a, b) => formScore(b) - formScore(a) || a.display_name.localeCompare(b.display_name));
     return sorted;
-  }, [players, search, team, role, sortKey, womenOnly]);
+  }, [players, search, team, role, sortKey, womenOnly, womenRuleEnabled]);
 
   return (
     <div className="space-y-4">
@@ -101,7 +101,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
         </label>
       </div>
 
-      {players.some(player => player.women_eligible === true) && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={womenOnly} onChange={event => setWomenOnly(event.target.checked)} />Show women eligible for the squad minimum</label>}
+      {womenRuleEnabled && players.some(player => player.women_eligible === true) && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={womenOnly} onChange={event => setWomenOnly(event.target.checked)} />Show women eligible for the squad minimum</label>}
       <p className="font-body text-sm text-content-muted" role="status">
         Showing {visible.length} of {players.length} players
       </p>
@@ -112,7 +112,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
         </div>
       ) : (
         <>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.map(player => <PlayerStatsCard key={player.id} player={player} />)}</div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.map(player => <PlayerStatsCard key={player.id} player={player} womenRuleEnabled={womenRuleEnabled} />)}</div>
         <details><summary className="cursor-pointer py-3 font-semibold">Compare prices and points in a table</summary><Table>
           <TableHead>
             <TableRow>
