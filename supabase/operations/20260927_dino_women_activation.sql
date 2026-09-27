@@ -4,9 +4,16 @@
 -- Rollback: disable women_rule_enabled for this season. Retain the current
 -- rules_version, eligibility data and each manager's recorded acceptance.
 -- Do not downgrade the required version: that would block managers who have
--- already accepted rev07. Communicate the suspended minimum to managers.
+-- already accepted rev07. This suspends the section minimum only; it does not
+-- bypass rules acceptance. Managers still on rev06 must read and accept rev07
+-- before saving or transferring. Communicate both points to managers.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
+-- Men’s membership is explicit and independent of women’s membership.
+-- The boundary avoids matching 'Mens' inside 'Womens'.
+UPDATE public.fantasy_season_players SET men_eligible=true
+WHERE season_id='75425550-0622-4ecb-87c4-69ab5ca40a53'
+  AND source='committee_season_summary' AND team_label ~ '(^| / )Mens( |$)';
 -- Seed from the committee season summary's explicitly recorded women's teams.
 -- This does not change active/selectable status (including junior exclusions).
 UPDATE public.fantasy_season_players SET women_eligible=true
@@ -28,7 +35,7 @@ WHERE season_id='75425550-0622-4ecb-87c4-69ab5ca40a53' AND player_id IN (
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM public.fantasy_manager_round_scores WHERE season_id='75425550-0622-4ecb-87c4-69ab5ca40a53') THEN
-    RAISE EXCEPTION 'Season already has scores; review the women rule activation round.';
+    RAISE EXCEPTION 'Season already has scores; review the section rule activation round.';
   END IF;
   UPDATE public.fantasy_dino_settings SET women_rule_enabled=true,rules_version='2026-27-rev07',
     women_update_deadline='2026-10-02T23:59:59+10:00'

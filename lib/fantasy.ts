@@ -54,7 +54,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
   ] },
   { title: 'Squad and assigned roles', items: [
     'Each manager selects exactly 15 real NDCC players: a playing XI of 4 BAT, 2 AR, 1 WK and 4 BOWL, plus a bench of 1 BAT, 1 AR, 1 WK and 1 BOWL.',
-    ...(values.womenRuleEnabled ? ['Every squad must include at least two women, with at least one in the playing XI. The club confirms eligible players in the catalogue. Drafts may be incomplete, but submissions, replacements and carried-forward squads must meet this minimum before they can score.'] : []),
+    ...(values.womenRuleEnabled ? ['All teams must include at least one player from the men’s and women’s sections in the squad. Bench players qualify; there is no starting-XI section minimum. The club confirms eligible players in the catalogue. Drafts may be incomplete, but submissions, replacements and carried-forward squads must meet this minimum before they can score.'] : []),
     'A real player can be assigned to any fantasy slot. Their real-world cricket role does not restrict selection; the assigned fantasy slot controls scoring.',
     'Junior-only players are excluded. Juniors who also play senior cricket may be selected, subject to league-manager eligibility confirmation. The league manager maintains the eligible player pool for this season.',
     'Cricket roles are inferred from season batting and bowling contributions, with club-confirmed wicket keepers overriding the statistics. Players without enough evidence are labelled not yet classified. These labels do not restrict fantasy slots.',
@@ -84,7 +84,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
     `Transfers are unlimited, free and carry no points penalty. The server-authoritative window is ${v.transferWindow}.`,
     `Opening player prices reflect the supplied ${v.sourceSeasonLabel} statistics and are rounded to the nearest 1,000 Dino Dollars. The highest-ranked player starts at 2,000,000 Dino Dollars. Players without historical statistics start at 100,000 Dino Dollars.`,
     'All price reviews and manual price changes are rounded upwards to whole 1,000 Dino Dollars. Prices are reviewed automatically after every two regular rounds: rounds 2, 4, 6 and so on. Settlement becomes eligible on the following Monday at 09:00 Melbourne time and runs at the next daily pricing check once published results are available.',
-    'Strong performances can increase a player price; weaker performances can reduce it. Prices stay between 100,000 and 2,000,000 Dino Dollars. A non-appearance does not count as a zero-score appearance. Finals do not change prices.',
+    'Strong performances can increase a player price; weaker performances can reduce it. Prices stay between 100,000 and 2,000,000 Dino Dollars. Before a player or grade starts, unplayed weeks do not count as zero appearances or lower the performance average or price. Finals do not change prices.',
     'Price reviews use published results available when the review runs. Late results enter a later review. Completed reviews are not charged or applied twice.',
     'The league manager can make manual price and eligibility corrections. Price overrides are recorded with the old price, new price, reason and administrator. Automatic changes resume at the next review.',
   ] },

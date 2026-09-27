@@ -86,7 +86,7 @@ check('Dino no-expiry save, consent, account and payment gates', true);
 psql(DB, readFileSync(new URL('./test-dino-market.sql', import.meta.url), 'utf8'));
 check('Dino wallet pool purchases, sales and disabled inter-team trading', true);
 psql(DB, readFileSync(new URL('./test-dino-women-selection.sql', import.meta.url), 'utf8'));
-check('Dino women minimum, drafts, starting XI, transfer rollback and carried-forward scoring', true);
+check('Dino men’s and women’s section representation, drafts, bench, transfer rollback and carried-forward scoring', true);
 const runPsql = promisify(execFile);
 const reservationResults = await Promise.allSettled(Array.from({length:20},()=>runPsql('psql',['-X','-t','-A','-v','ON_ERROR_STOP=1','-d',DB,'-c',
   `insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents,selected_ticket_numbers) select id,'Concurrency test','test@example.com',1,6000,array[300] from public.raffle_campaigns where code='NDCCRRO'`],{

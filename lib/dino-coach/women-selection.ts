@@ -1,14 +1,18 @@
-/** Club-confirmed season eligibility, never inferred from names or cricket roles. */
+/** Club-confirmed section membership, never inferred from names or cricket roles.
+ * Legacy function/flag names are retained for compatibility with existing clients.
+ * A player recorded in both club sections represents both sections.
+ */
 export function womenSelectionStatus(
   selection: ReadonlyArray<{ playerId: string; positionType: string }>,
-  players: ReadonlyArray<{ id: string; women_eligible?: boolean | null }>,
+  players: ReadonlyArray<{ id: string; women_eligible?: boolean | null; men_eligible?: boolean | null }>,
   enabled: boolean,
 ) {
-  const eligible = new Set(players.filter(player => player.women_eligible === true).map(player => player.id));
-  const women = new Set(selection.filter(pick => eligible.has(pick.playerId)).map(pick => pick.playerId));
-  const starters = new Set(selection.filter(pick => pick.positionType === 'starter' && eligible.has(pick.playerId)).map(pick => pick.playerId));
+  const womenIds = new Set(players.filter(player => player.women_eligible === true).map(player => player.id));
+  const menIds = new Set(players.filter(player => player.men_eligible === true).map(player => player.id));
+  const selected = new Set(selection.map(pick => pick.playerId));
+  const squadCount = [...selected].filter(id => womenIds.has(id)).length;
+  const menCount = [...selected].filter(id => menIds.has(id)).length;
   const errors: string[] = [];
-  if (enabled && women.size < 2) errors.push('Select at least two women in your 15-player squad.');
-  if (enabled && starters.size < 1) errors.push('Select at least one woman in your playing XI.');
-  return { squadCount: women.size, starterCount: starters.size, valid: errors.length === 0, errors };
+  if (enabled && (squadCount < 1 || menCount < 1)) errors.push('All teams must include at least one player from the men’s and women’s sections in the squad');
+  return { squadCount, menCount, valid: errors.length === 0, errors };
 }

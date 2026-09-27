@@ -17,8 +17,8 @@ BEGIN
  FOR i IN 1..16 LOOP
   INSERT INTO public.fantasy_players(display_name,role) VALUES('Rule fixture '||gen_random_uuid(),'BAT') RETURNING id INTO pid;
   ids:=array_append(ids,pid);
-  INSERT INTO public.fantasy_season_players(season_id,player_id,role,active,selectable,stats_status,women_eligible)
-  VALUES(sid,pid,'BAT',true,true,'unrated',NULL);
+  INSERT INTO public.fantasy_season_players(season_id,player_id,role,active,selectable,stats_status,women_eligible,men_eligible)
+  VALUES(sid,pid,'BAT',true,true,'unrated',NULL,NULL);
   INSERT INTO public.fantasy_player_prices(season_id,player_id,price_dino_dollars,price_million,published_at) VALUES(sid,pid,100000,0.1,now());
   IF i<=15 THEN picks:=picks||jsonb_build_array(jsonb_build_object('player_id',pid,'slot_key',keys[i],'assigned_role',split_part(keys[i],'_',2),'position_type',CASE WHEN i<=11 THEN 'starter' ELSE 'bench' END,'is_captain',i=1,'is_vice_captain',i=2)); END IF;
  END LOOP;
@@ -28,47 +28,57 @@ BEGIN
   PERFORM public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
   RAISE EXCEPTION 'Unreviewed roster was accepted';
  EXCEPTION WHEN check_violation THEN
-  IF SQLERRM<>'Select at least two women in your 15-player squad.' THEN RAISE; END IF;
+  IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
  END;
  UPDATE public.fantasy_season_players SET women_eligible=true WHERE season_id=sid AND player_id=ids[12];
  BEGIN
   PERFORM public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
-  RAISE EXCEPTION 'One woman was accepted';
+  RAISE EXCEPTION 'Women’s section without men’s section was accepted';
  EXCEPTION WHEN check_violation THEN
-  IF SQLERRM<>'Select at least two women in your 15-player squad.' THEN RAISE; END IF;
+  IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
  END;
- UPDATE public.fantasy_season_players SET women_eligible=true WHERE season_id=sid AND player_id=ids[13];
- BEGIN
-  PERFORM public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
-  RAISE EXCEPTION 'Two bench women were accepted';
- EXCEPTION WHEN check_violation THEN
-  IF SQLERRM<>'Select at least one woman in your playing XI.' THEN RAISE; END IF;
- END;
- UPDATE public.fantasy_season_players SET women_eligible=false WHERE season_id=sid AND player_id=ids[13];
- UPDATE public.fantasy_season_players SET women_eligible=true WHERE season_id=sid AND player_id=ids[1];
+ UPDATE public.fantasy_season_players SET men_eligible=true WHERE season_id=sid AND player_id=ids[13];
+ -- Both section representatives may be on the bench, including when the squad scores.
+ squad:=public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
+ INSERT INTO public.fantasy_manager_round_scores(manager_id,season_id,round_id,squad_id,total_points,transfer_penalty,net_points)
+ VALUES(mid,sid,rid,squad,10,0,10);
+ DELETE FROM public.fantasy_manager_round_scores WHERE manager_id=mid AND season_id=sid AND round_id=rid;
+ UPDATE public.fantasy_season_players SET men_eligible=false WHERE season_id=sid AND player_id=ids[13];
+ UPDATE public.fantasy_season_players SET men_eligible=true WHERE season_id=sid AND player_id=ids[1];
  squad:=public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
  SELECT updated_at INTO version FROM public.fantasy_squads WHERE id=squad;
  BEGIN
   PERFORM public.dino_market_action(mid,sid,null,'swap',ids[1],ids[16],null,version,100000);
-  RAISE EXCEPTION 'Swap removed the only starting woman';
+  RAISE EXCEPTION 'Swap removed the last men’s section representative';
  EXCEPTION WHEN check_violation THEN
-  IF SQLERRM<>'Select at least two women in your 15-player squad.' THEN RAISE; END IF;
+  IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
  END;
  IF (SELECT budget_used_dino_dollars FROM public.fantasy_squads WHERE id=squad)<>1500000 THEN RAISE EXCEPTION 'Rejected swap changed the wallet'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.fantasy_squad_players WHERE squad_id=squad AND player_id=ids[1]) THEN RAISE EXCEPTION 'Rejected swap changed the squad'; END IF;
  INSERT INTO public.fantasy_manager_round_scores(manager_id,season_id,round_id,squad_id,total_points,transfer_penalty,net_points)
  VALUES(mid,sid,rid,squad,10,0,10);
- UPDATE public.fantasy_season_players SET women_eligible=false WHERE season_id=sid AND player_id=ids[1];
+ UPDATE public.fantasy_season_players SET men_eligible=false WHERE season_id=sid AND player_id=ids[1];
  BEGIN
   UPDATE public.fantasy_manager_round_scores SET net_points=20 WHERE squad_id=squad;
   RAISE EXCEPTION 'Invalid carried-forward squad scored';
  EXCEPTION WHEN check_violation THEN
-  IF SQLERRM<>'Select at least two women in your 15-player squad.' THEN RAISE; END IF;
+  IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
+ END;
+ -- Explicit dual-section membership counts for both sections.
+ UPDATE public.fantasy_season_players SET men_eligible=true WHERE season_id=sid AND player_id=ids[12];
+ PERFORM public.validate_dino_women_selection(sid,picks);
+ -- With only men’s-section membership the squad must also fail.
+ UPDATE public.fantasy_season_players SET women_eligible=false WHERE season_id=sid AND player_id=ids[12];
+ BEGIN
+  PERFORM public.validate_dino_women_selection(sid,picks);
+  RAISE EXCEPTION 'Men’s section without women’s section was accepted';
+ EXCEPTION WHEN check_violation THEN
+  IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
  END;
  UPDATE public.fantasy_dino_settings SET women_rule_enabled=false WHERE season_id=sid;
  PERFORM public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
  IF has_function_privilege('authenticated','public.validate_dino_women_selection(uuid,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'Browser role has validation RPC access'; END IF;
- RAISE NOTICE 'PASS women rule: drafts, one/two women, bench/starter, swap rollback, scoring, disabled seasons and privileges';
+ RAISE NOTICE 'PASS section rule: drafts, both sections, bench/starter, swap rollback, scoring, disabled seasons and privileges';
 END;
 $$;
 ROLLBACK;

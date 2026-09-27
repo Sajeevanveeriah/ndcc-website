@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export type PlayerListEntry = {
   women_eligible?: boolean | null;
+  men_eligible?: boolean | null;
   id: string;
   display_name: string;
   role: string;
@@ -101,7 +102,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints, womenR
         </label>
       </div>
 
-      {womenRuleEnabled && players.some(player => player.women_eligible === true) && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={womenOnly} onChange={event => setWomenOnly(event.target.checked)} />Show women eligible for the squad minimum</label>}
+      {womenRuleEnabled && players.some(player => player.women_eligible === true) && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={womenOnly} onChange={event => setWomenOnly(event.target.checked)} />Show players from the women’s section</label>}
       <p className="font-body text-sm text-content-muted" role="status">
         Showing {visible.length} of {players.length} players
       </p>

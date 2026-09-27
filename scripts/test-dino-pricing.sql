@@ -78,4 +78,41 @@ BEGIN
  IF value<>503000 THEN RAISE EXCEPTION '502500 must round upwards to 503000, got %',value; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.fantasy_price_calculations WHERE season_id=sid AND new_price_dino_dollars=503000 AND price_change_dino_dollars=3000) THEN RAISE EXCEPTION 'Rounded price audit is inconsistent'; END IF;
 END $$;
+-- Later-starting grades have no invented zero appearances or price reduction.
+DO $$
+DECLARE sid uuid; early_id uuid; late_id uuid; rid uuid; bid uuid; p uuid;
+BEGIN
+ INSERT INTO public.fantasy_seasons(name,slug,is_public,auto_sync_enabled)
+ VALUES('Later start pricing','later-start-'||gen_random_uuid(),false,false) RETURNING id INTO sid;
+ INSERT INTO public.fantasy_dino_settings(season_id,pilot_notice,slot_counts,scoring_config,budget_dino_dollars,price_changes_start_round,price_point_value_dino_dollars)
+ VALUES(sid,'Isolated later-start fixture','{}','{}',15000000,2,10000);
+ INSERT INTO public.fantasy_players(display_name,role) VALUES('Early grade '||gen_random_uuid(),'BAT') RETURNING id INTO early_id;
+ INSERT INTO public.fantasy_players(display_name,role) VALUES('Later grade '||gen_random_uuid(),'BAT') RETURNING id INTO late_id;
+ FOREACH p IN ARRAY ARRAY[early_id,late_id] LOOP
+  INSERT INTO public.fantasy_season_players(season_id,player_id,role,active,selectable,stats_status,women_eligible)
+  VALUES(sid,p,'BAT',true,true,'unrated',p=late_id);
+  INSERT INTO public.fantasy_player_prices(season_id,player_id,price_dino_dollars,price_million,prior_baseline_points,rolling_performance_points,published_at,created_at)
+  VALUES(sid,p,500000,0.5,20,20,now(),now()-interval '1 day');
+ END LOOP;
+ INSERT INTO public.fantasy_import_batches(season_id,status) VALUES(sid,'published') RETURNING id INTO bid;
+ INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status)
+ VALUES(sid,2,'Before later grade starts',now()-interval '30 days','scored') RETURNING id INTO rid;
+ INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs)
+ VALUES(sid,rid,early_id,bid,current_date-30,60);
+ PERFORM public.settle_dino_price_windows(sid);
+ IF NOT EXISTS(SELECT 1 FROM public.fantasy_player_prices WHERE season_id=sid AND player_id=late_id AND effective_round_id=rid AND price_dino_dollars=500000 AND rolling_performance_points=20 AND price_change_dino_dollars=0) THEN
+  RAISE EXCEPTION 'A later-starting player lost price or performance average without an appearance';
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.fantasy_price_calculations WHERE season_id=sid AND player_id=late_id AND cardinality(recent_points)>0) THEN
+  RAISE EXCEPTION 'An unplayed week was counted as an appearance';
+ END IF;
+ INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status)
+ VALUES(sid,4,'Later grade first appearance',now()-interval '16 days','scored') RETURNING id INTO rid;
+ INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs)
+ VALUES(sid,rid,late_id,bid,current_date-16,60);
+ PERFORM public.settle_dino_price_windows(sid);
+ IF NOT EXISTS(SELECT 1 FROM public.fantasy_player_prices WHERE season_id=sid AND player_id=late_id AND effective_round_id=rid AND price_dino_dollars=650000 AND rolling_performance_points=35) THEN
+  RAISE EXCEPTION 'First real appearance was diluted by earlier unplayed weeks';
+ END IF;
+END $$;
 ROLLBACK;
