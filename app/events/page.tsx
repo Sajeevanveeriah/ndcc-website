@@ -1,4 +1,5 @@
 import { pageMetadata } from '@/lib/seo';
+import { isSongRequestEvent } from '@/lib/events/song-requests';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
@@ -83,7 +84,7 @@ export default async function EventsPage() {
                             : event.description}
                         </p>
                         <Badge variant={event.ticket_price === 0 ? 'success' : 'default'}>
-                          {event.ticket_price === 0 ? 'Free Entry' : formatCurrency(event.ticket_price)}
+                          {event.ticket_price === 0 ? 'Free Entry' : `${formatCurrency(event.ticket_price)}${isSongRequestEvent(event) ? ' per song' : ''}`}
                         </Badge>
                       </CardContent>
                       <CardFooter className="mt-auto">

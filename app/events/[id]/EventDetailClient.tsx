@@ -12,6 +12,7 @@ import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
+import { EVENT_SONG_LIMITS, isSongRequestEvent } from '@/lib/events/song-requests';
 
 type OrderConfirmation = {
   order_id: string;
@@ -23,6 +24,11 @@ type OrderConfirmation = {
 
 export default function EventDetailClient({ event }: { event: Event }) {
   const eventId = event.id;
+  const songEvent = isSongRequestEvent(event);
+  const [songs, setSongs] = useState([{ title: '', artist: '' }]);
+  const songTotal = songs.length * event.ticket_price;
+  const updateSong = (index: number, patch: Partial<{ title: string; artist: string }>) =>
+    setSongs((prev) => prev.map((song, i) => (i === index ? { ...song, ...patch } : song)));
 
   const [formData, setFormData] = useState({
     name: '',
@@ -51,8 +57,13 @@ export default function EventDetailClient({ event }: { event: Event }) {
     } else if (!validatePhone(formData.phone)) {
       errors.phone = 'Please enter a valid phone number';
     }
-    if (formData.quantity < 1) errors.quantity = 'Quantity must be at least 1';
-    if (formData.quantity > 20) errors.quantity = 'Maximum 20 tickets per registration';
+    if (songEvent) {
+      const missing = songs.findIndex((song) => !song.title.trim());
+      if (missing >= 0) errors.songs = `Enter a title for song ${missing + 1}, or remove it.`;
+    } else {
+      if (formData.quantity < 1) errors.quantity = 'Quantity must be at least 1';
+      if (formData.quantity > 20) errors.quantity = 'Maximum 20 tickets per registration';
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -75,7 +86,9 @@ export default function EventDetailClient({ event }: { event: Event }) {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          quantity: formData.quantity,
+          ...(songEvent
+            ? { songs: songs.map((song) => ({ title: song.title.trim(), artist: song.artist.trim() })) }
+            : { quantity: formData.quantity }),
           hp_field: formData.hp_field,
           submitted_at: formData.submitted_at,
         }),
@@ -102,6 +115,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
         });
       }
       setFormData({ name: '', email: '', phone: '', quantity: 1, hp_field: '', submitted_at: Date.now() });
+      setSongs([{ title: '', artist: '' }]);
       setFormErrors({});
     } catch (err) {
       setSubmitStatus('error');
@@ -183,10 +197,11 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
                     </svg>
                     <div>
-                      <p className="font-body font-semibold text-content-primary text-sm">Ticket Price</p>
+                      <p className="font-body font-semibold text-content-primary text-sm">{songEvent ? 'Price per song' : 'Ticket Price'}</p>
                       <Badge variant={event.ticket_price === 0 ? 'success' : 'default'}>
-                        {event.ticket_price === 0 ? 'Free Entry' : formatCurrency(event.ticket_price)}
+                        {event.ticket_price === 0 ? 'Free Entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : ''}`}
                       </Badge>
+                      {songEvent && <p className="font-body text-content-muted text-sm mt-2">Entry is by buying songs. Choose at least one; there is no limit on how many you buy.</p>}
                     </div>
                   </div>
 
@@ -274,6 +289,59 @@ export default function EventDetailClient({ event }: { event: Event }) {
                       onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                     />
 
+                    {songEvent ? (
+                      <fieldset className="w-full space-y-3">
+                        <legend className="form-label">Your songs</legend>
+                        {songs.map((song, index) => (
+                          <div key={index} className="rounded-lg border border-edge-subtle p-3 space-y-2">
+                            <Input
+                              id={`song_title_${index}`}
+                              label={`Song ${index + 1} title`}
+                              type="text"
+                              required
+                              maxLength={EVENT_SONG_LIMITS.titleLength}
+                              value={song.title}
+                              onChange={(e) => updateSong(index, { title: e.target.value })}
+                            />
+                            <Input
+                              id={`song_artist_${index}`}
+                              label={`Song ${index + 1} artist (optional)`}
+                              type="text"
+                              maxLength={EVENT_SONG_LIMITS.artistLength}
+                              value={song.artist}
+                              onChange={(e) => updateSong(index, { artist: e.target.value })}
+                            />
+                            {songs.length > 1 && (
+                              <button
+                                type="button"
+                                className="text-sm text-maroon-700 dark:text-maroon-200 underline underline-offset-4"
+                                onClick={() => setSongs((prev) => prev.filter((_, i) => i !== index))}
+                              >
+                                Remove song {index + 1}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {songs.length < EVENT_SONG_LIMITS.maxSongs ? (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full"
+                            onClick={() => setSongs((prev) => [...prev, { title: '', artist: '' }])}
+                          >
+                            Add another song
+                          </Button>
+                        ) : (
+                          <p className="text-sm text-content-muted">This order has the maximum of {EVENT_SONG_LIMITS.maxSongs} songs. Place another order for more.</p>
+                        )}
+                        <p className="font-body font-semibold text-content-primary text-sm" aria-live="polite">
+                          {songs.length} {songs.length === 1 ? 'song' : 'songs'} x {formatCurrency(event.ticket_price)} = {formatCurrency(songTotal)}
+                        </p>
+                        {formErrors.songs && (
+                          <p className="mt-1 text-sm text-red-600">{formErrors.songs}</p>
+                        )}
+                      </fieldset>
+                    ) : (
                     <div className="w-full">
                       <label htmlFor="reg_quantity" className="form-label">Quantity</label>
                       <input
@@ -293,12 +361,13 @@ export default function EventDetailClient({ event }: { event: Event }) {
                         <p className="mt-1 text-sm text-red-600">{formErrors.quantity}</p>
                       )}
                     </div>
+                    )}
 
                     <Button type="submit" isLoading={isSubmitting} className="w-full">
                       {isSubmitting
                         ? 'Registering...'
                         : event.ticket_price > 0
-                          ? 'Register and choose payment'
+                          ? songEvent ? `Buy ${songs.length} ${songs.length === 1 ? 'song' : 'songs'} and choose payment` : 'Register and choose payment'
                           : 'Register Now'}
                     </Button>
                   </form>

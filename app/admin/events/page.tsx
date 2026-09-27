@@ -25,6 +25,7 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   location: '',
   capacity: null,
   ticket_price: 0,
+  registration_mode: 'tickets',
   image_url: '',
   published: false,
 };
@@ -117,6 +118,7 @@ export default function AdminEventsPage() {
       location: asSafeString(event.location),
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
+      registration_mode: event.registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
       image_url: asSafeString(event.image_url),
       published: !!event.published,
     });
@@ -149,6 +151,7 @@ export default function AdminEventsPage() {
         location: asSafeString(form.location).trim(),
         capacity: form.capacity,
         ticket_price: form.ticket_price,
+        registration_mode: form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
         image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
         // Sent only when set, or when clearing an existing schedule, so saving
@@ -365,6 +368,19 @@ export default function AdminEventsPage() {
 
       <div className="mt-10">
         <h2 className="text-xl font-display font-bold text-content-primary mb-3">Event Registrations</h2>
+        {events.filter((event) => event.registration_mode === 'song_requests').map((event) => {
+          const entries = registrations.filter((registration) => registration.event_id === event.id);
+          const paidSongs = entries
+            .filter((registration) => registration.payment_status === 'paid')
+            .reduce((sum, registration) => sum + (registration.song_requests?.length ?? 0), 0);
+          const pot = paidSongs * Number(event.ticket_price || 0);
+          return (
+            <div key={event.id} className="bg-surface-card rounded-xl border border-edge-subtle p-4 mb-3 text-sm">
+              <p className="font-semibold text-content-primary">{event.title}: song pot</p>
+              <p className="text-content-secondary">Paid songs: {paidSongs}. Pot: {formatCurrency(pot)}. Half the pot: {formatCurrency(pot / 2)}. Unpaid entries are excluded.</p>
+            </div>
+          );
+        })}
         {registrationsLoading ? (
           <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">Loading registrations...</div>
         ) : registrations.length === 0 ? (
@@ -373,10 +389,12 @@ export default function AdminEventsPage() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableHeader>Event</TableHeader>
                 <TableHeader>Name</TableHeader>
                 <TableHeader>Email</TableHeader>
                 <TableHeader>Phone</TableHeader>
                 <TableHeader>Qty</TableHeader>
+                <TableHeader>Songs</TableHeader>
                 <TableHeader>Payment Ref</TableHeader>
                 <TableHeader>Payment</TableHeader>
                 <TableHeader>Processed</TableHeader>
@@ -387,10 +405,20 @@ export default function AdminEventsPage() {
             <TableBody>
               {registrations.map((registration) => (
                 <TableRow key={registration.id}>
+                  <TableCell>{events.find((event) => event.id === registration.event_id)?.title || '-'}</TableCell>
                   <TableCell className="font-medium">{registration.name}</TableCell>
                   <TableCell>{registration.email}</TableCell>
                   <TableCell>{registration.phone || '-'}</TableCell>
                   <TableCell>{registration.quantity}</TableCell>
+                  <TableCell>
+                    {registration.song_requests?.length ? (
+                      <ol className="list-decimal pl-4 text-xs space-y-0.5">
+                        {registration.song_requests.map((song, index) => (
+                          <li key={index}>{song.artist ? `${song.title} - ${song.artist}` : song.title}</li>
+                        ))}
+                      </ol>
+                    ) : '-'}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{registration.payment_reference || '-'}</TableCell>
                   <TableCell>
                     <Button
@@ -491,7 +519,7 @@ export default function AdminEventsPage() {
             />
             <Input
               id="event-price"
-              label="Ticket Price ($)"
+              label={form.registration_mode === 'song_requests' ? 'Price per song ($)' : 'Ticket Price ($)'}
               type="number"
               min="0"
               step="0.01"
@@ -501,6 +529,18 @@ export default function AdminEventsPage() {
               }
               error={formErrors.ticket_price}
             />
+          </div>
+          <div className="w-full">
+            <label htmlFor="event-registration-mode" className="form-label">Registration type</label>
+            <select
+              id="event-registration-mode"
+              className="form-input"
+              value={form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets'}
+              onChange={(e) => setForm({ ...form, registration_mode: e.target.value === 'song_requests' ? 'song_requests' : 'tickets' })}
+            >
+              <option value="tickets">Tickets (price per ticket)</option>
+              <option value="song_requests">Song requests (entry by buying named songs, price per song)</option>
+            </select>
           </div>
           <ImageUploadField
             id="event-image-url"

@@ -59,6 +59,8 @@ export interface Event {
   location: string;
   capacity: number | null;
   ticket_price: number;
+  /** 'song_requests': entry by buying named songs at ticket_price each. */
+  registration_mode?: 'tickets' | 'song_requests' | null;
   stripe_link?: string;
   published: boolean;
   created_at: string;
@@ -75,6 +77,7 @@ export interface EventRegistration {
   payment_status: string;
   payment_reference?: string | null;
   processed?: boolean;
+  song_requests?: Array<{ title: string; artist?: string }> | null;
   created_at: string;
 }
 

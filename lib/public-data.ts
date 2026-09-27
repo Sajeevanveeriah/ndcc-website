@@ -75,7 +75,7 @@ async function getPublishedEventsFromSupabase() {
   const query = (scheduled: boolean) => {
     const base = supabase
       .from('events')
-      .select('id,title,description,date,location,capacity,ticket_price,published,image_url')
+      .select('id,title,description,date,location,capacity,ticket_price,published,image_url,registration_mode')
       .eq('published', true);
     return (scheduled ? base.or(scheduledVisibilityFilter()) : base).order('date', { ascending: true });
   };

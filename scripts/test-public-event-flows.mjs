@@ -72,7 +72,8 @@ const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.res
     async maybeSingle() {
       assert.equal(table, 'events');
       // published_at is the optional scheduling column (CMS scheduling migration).
-      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at'];
+      // registration_mode selects song-request entry (20260927140000_event_song_requests).
+      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at', 'registration_mode'];
       assert.ok(selected.split(',').every(column => allowed.includes(column)), 'event reads must match the deployed events schema');
       return { data: row, error: readError };
     },
@@ -97,6 +98,7 @@ const route = load('app/api/events/route.ts', {
   '@/lib/email': { sendEmail: async message => sent.push(message), emailHtml: (_, html) => html, bankDetailsHtml: () => '', escapeEmailHtml: value => value },
   '@/lib/order-input-validation': load('lib/order-input-validation.ts'),
   '@/lib/validation/uuid': load('lib/validation/uuid.ts'),
+  '@/lib/events/song-requests': load('lib/events/song-requests.ts'),
 }, { NEXT_PUBLIC_SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'isolated-test' });
 const submit = () => route.POST(new Request('https://example.invalid/api/events', {
   method: 'POST', body: JSON.stringify({ event_id: id, name: 'Test registrant', email: 'test@example.com',
@@ -121,6 +123,46 @@ assert.equal(writes[1].value.order_id, 'order-test');
 assert.equal(writes[1].value.payment_reference, 'TEST-EVENT-1');
 assert.equal(sent.length, 0, 'paid events retain the existing payment receipt workflow');
 console.log('PASS paid registration retains exact totals, payment reference and linked order');
+
+// Song-request events (iPod Shuffle): entry is by buying named songs at ticket_price each.
+const submitSongs = (songs, extra = {}) => route.POST(new Request('https://example.invalid/api/events', {
+  method: 'POST', body: JSON.stringify({ event_id: id, name: 'Test registrant', email: 'test@example.com',
+    phone: '0412345678', hp_field: '', submitted_at: now - 5000, ...(songs === undefined ? {} : { songs }), ...extra }),
+}));
+writes = []; sent = []; rpcCalls = [];
+rpcResult = { data: 'registration-test', error: null };
+row = { ...row, ticket_price: 10, registration_mode: 'song_requests' };
+response = await submitSongs([{ title: 'Thunderstruck', artist: 'AC/DC' }, { title: ' Mr  Brightside ' }, { title: 'Dancing Queen', artist: 'ABBA' }]);
+assert.equal(response.status, 200);
+assert.equal((await response.json()).total_amount, 30);
+assert.equal(writes[0].table, 'orders');
+assert.equal(writes[0].value.total_amount, 30);
+assert.deepEqual(writes[0].value.items.map(item => [item.name, item.size, item.quantity, item.price]), [
+  ['Club event song: Thunderstruck - AC/DC', 'song', 1, 10],
+  ['Club event song: Mr Brightside', 'song', 1, 10],
+  ['Club event song: Dancing Queen - ABBA', 'song', 1, 10],
+]);
+assert.equal(rpcCalls.length, 1);
+assert.equal(rpcCalls[0].name, 'ndcc_register_event_song_entry');
+assert.deepEqual(rpcCalls[0].args.p_song_requests, [
+  { title: 'Thunderstruck', artist: 'AC/DC' }, { title: 'Mr Brightside', artist: '' }, { title: 'Dancing Queen', artist: 'ABBA' },
+]);
+assert.equal(rpcCalls[0].args.p_order_id, 'order-test');
+console.log('PASS song entry charges $10 per named song, one order line per song, stored with the entry');
+
+writes = []; rpcCalls = [];
+for (const [songs, extra] of [[undefined, { quantity: 2 }], [[], {}], [[{ title: '  ' }], {}], [Array.from({ length: 31 }, () => ({ title: 'A' })), {}]]) {
+  response = await submitSongs(songs, extra);
+  assert.equal(response.status, 400);
+}
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+row = { ...row, registration_mode: 'tickets' };
+assert.equal((await submitSongs([{ title: 'A' }])).status, 400, 'ticket events refuse song lists');
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+row = { ...row, ticket_price: 12.34 };
+delete row.registration_mode;
+rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
+console.log('PASS song entries need 1 to 30 titled songs, ticket events refuse songs, nothing is written on rejection');
 
 writes = [];
 registrationError = { message: 'Isolated insert failure' };

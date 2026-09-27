@@ -288,7 +288,8 @@ await test('live routes use the shared validation and cents arithmetic', () => {
   assert.match(raffleRoute, /PUBLIC_ORDER_LIMITS\.maximumOrderCents/);
   assert.doesNotMatch(raffleRoute, /Number\(body\.quantity\)/);
 
-  assert.match(eventRoute, /readLimitedJsonObject\(request, 16 \* 1024\)/);
+  // Song-request entries carry up to 30 named songs, so events use the standard order body limit.
+  assert.match(eventRoute, /readLimitedJsonObject\(request, PUBLIC_ORDER_LIMITS\.bodyBytes\)/);
   assert.match(eventRoute, /Number\.isSafeInteger\(quantity\)/);
   assert.match(eventRoute, /\.eq\('published', true\)/);
   assert.match(eventRoute, /audAmountToCents\(eventRow\.ticket_price \|\| 0\)/);
