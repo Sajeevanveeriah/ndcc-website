@@ -1,6 +1,7 @@
 /** Club-confirmed section membership, never inferred from names or cricket roles.
  * Legacy function/flag names are retained for compatibility with existing clients.
- * A player recorded in both club sections represents both sections.
+ * Two different players are required: a player recorded in both club sections
+ * can represent either section, but not both at once.
  */
 export function womenSelectionStatus(
   selection: ReadonlyArray<{ playerId: string; positionType: string }>,
@@ -12,7 +13,8 @@ export function womenSelectionStatus(
   const selected = new Set(selection.map(pick => pick.playerId));
   const squadCount = [...selected].filter(id => womenIds.has(id)).length;
   const menCount = [...selected].filter(id => menIds.has(id)).length;
+  const representedCount = [...selected].filter(id => womenIds.has(id) || menIds.has(id)).length;
   const errors: string[] = [];
-  if (enabled && (squadCount < 1 || menCount < 1)) errors.push('All teams must include at least one player from the men’s and women’s sections in the squad');
-  return { squadCount, menCount, valid: errors.length === 0, errors };
+  if (enabled && (squadCount < 1 || menCount < 1 || representedCount < 2)) errors.push('All teams must include at least one player from the men’s and women’s sections in the squad');
+  return { squadCount, menCount, representedCount, valid: errors.length === 0, errors };
 }

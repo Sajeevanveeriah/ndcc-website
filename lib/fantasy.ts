@@ -54,7 +54,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
   ] },
   { title: 'Squad and assigned roles', items: [
     'Each manager selects exactly 15 real NDCC players: a playing XI of 4 BAT, 2 AR, 1 WK and 4 BOWL, plus a bench of 1 BAT, 1 AR, 1 WK and 1 BOWL.',
-    ...(values.womenRuleEnabled ? ['All teams must include at least one player from the men’s and women’s sections in the squad. Bench players qualify; there is no starting-XI section minimum. The club confirms eligible players in the catalogue. Drafts may be incomplete, but submissions, replacements and carried-forward squads must meet this minimum before they can score.'] : []),
+    ...(values.womenRuleEnabled ? ['All teams must include at least one player from the men’s and women’s sections in the squad. Two different players are needed; a player recorded in both sections counts for only one of them. Bench players qualify; there is no starting-XI section minimum. The club confirms eligible players in the catalogue. Drafts may be incomplete, but submissions, replacements and carried-forward squads must meet this minimum before they can score.'] : []),
     'A real player can be assigned to any fantasy slot. Their real-world cricket role does not restrict selection; the assigned fantasy slot controls scoring.',
     'Junior-only players are excluded. Juniors who also play senior cricket may be selected, subject to league-manager eligibility confirmation. The league manager maintains the eligible player pool for this season.',
     'Cricket roles are inferred from season batting and bowling contributions, with club-confirmed wicket keepers overriding the statistics. Players without enough evidence are labelled not yet classified. These labels do not restrict fantasy slots.',

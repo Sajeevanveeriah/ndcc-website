@@ -8,7 +8,7 @@ import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { getCachedDinoCoachSettings, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
 
-import { DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
+import { DINO_MANUAL_DOCX_PATH, DINO_MANUAL_PATH } from '@/lib/dino-coach/manual';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +62,7 @@ export default async function FantasyRulesPage({ searchParams: searchParamsPromi
                     Managers accept a specific rules version during registration. Material changes are communicated and recorded rather than silently changing accepted terms.
                   </p>
                   <a href={DINO_MANUAL_PATH} download className="btn-primary w-full mb-4">Download user manual (PDF)</a>
+                  <a href={DINO_MANUAL_DOCX_PATH} download className="btn-secondary w-full mb-4">Download user manual (Word)</a>
                   <Link href="/fantasy" className="btn-secondary w-full">
                     Dino Coach home
                   </Link>
