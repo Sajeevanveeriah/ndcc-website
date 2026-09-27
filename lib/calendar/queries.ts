@@ -10,7 +10,7 @@ import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 const CALENDAR_QUERY_TIMEOUT_MS = 15_000;
 
 export const CALENDAR_SELECT_COLUMNS =
-  'id,title,slug,description,start_at,end_at,all_day,location,venue_address,event_type,category,visibility,status,is_featured,show_on_home,show_on_contact,show_on_calendar,image_url,external_url,cta_label,cta_url,registration_required,ticket_price,capacity,colour,sort_order,recurrence_rule,recurrence_until,source,created_at,updated_at';
+  'id,source_event_id,title,slug,description,start_at,end_at,all_day,location,venue_address,event_type,category,visibility,status,is_featured,show_on_home,show_on_contact,show_on_calendar,image_url,external_url,cta_label,cta_url,registration_required,ticket_price,capacity,colour,sort_order,recurrence_rule,recurrence_until,source,created_at,updated_at';
 
 export type PublicCalendarQuery = {
   from?: string | null;

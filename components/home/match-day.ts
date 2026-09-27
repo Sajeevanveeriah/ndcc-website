@@ -150,6 +150,7 @@ export function formatClubTime(startsAt: string | null): string | null {
 }
 
 export type ComingUpItem = {
+  sourceEventId?: string | null;
   key: string;
   kind: 'fixture' | 'event' | 'calendar';
   /** ISO instant or YYYY-MM-DD used for ordering and the date column. */
@@ -181,18 +182,30 @@ export function fixturesWithinDays(entries: MatchDayEntry[], now: number, days =
 }
 
 /**
- * One date-ordered list. Items with the same title on the same Melbourne day
- * (a club event also published to the calendar) are shown once, preferring
- * the earlier source in the input order.
+ * Linked calendar entries and events share an identity even when their titles
+ * differ. Event records own the time/details; calendar cancellation always wins.
+ * Unlinked records retain the same-title/same-Melbourne-day fallback.
  */
 export function mergeComingUp(items: ComingUpItem[]): ComingUpItem[] {
   const seen = new Set<string>();
   const unique: ComingUpItem[] = [];
+  const linked = new Map<string, ComingUpItem>();
   for (const item of items) {
+    if (item.kind === 'fixture' || !item.sourceEventId) continue;
+    const previous = linked.get(item.sourceEventId);
+    const canonical = !previous || item.kind === 'event' ? item : previous;
+    const status = previous?.status === 'cancelled' || item.status === 'cancelled' ? 'cancelled' : previous?.status || item.status;
+    linked.set(item.sourceEventId, { ...canonical, status, ...(status === 'cancelled' ? { href: '/calendar', external: false } : {}) });
+  }
+  const seenIds = new Set<string>();
+  for (const candidate of items) {
+    if (candidate.kind !== 'fixture' && candidate.sourceEventId && seenIds.has(candidate.sourceEventId)) continue;
+    const item = candidate.kind !== 'fixture' && candidate.sourceEventId ? linked.get(candidate.sourceEventId)! : candidate;
     const time = Date.parse(item.startsAt);
     if (!Number.isFinite(time)) continue;
+    if (item.sourceEventId) seenIds.add(item.sourceEventId);
     const day = DATE_ONLY.test(item.startsAt) ? item.startsAt : melbourneDateKey(time);
-    const key = `${normaliseTeamName(item.title)}|${day}`;
+    const key = item.sourceEventId ? `event:${item.sourceEventId}` : `${normaliseTeamName(item.title)}|${day}`;
     if (item.kind !== 'fixture' && seen.has(key)) continue;
     seen.add(key);
     unique.push(item);

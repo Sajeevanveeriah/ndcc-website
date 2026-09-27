@@ -1,3 +1,4 @@
+import * as womenSelection from '../lib/dino-coach/women-selection.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
@@ -46,6 +47,7 @@ const Builder = load('app/fantasy/_components/SquadBuilder.tsx', {
   './WalletPanel': { default: () => null }, './PlayerStatsCard': { default: ({ player }) => React.createElement('p', null, player.display_name) },
   './useSeasonParam': { useSeasonParam: () => ({ query: '?season=season' }) },
   '@/lib/dino-coach/wallet': { squadWallet: () => ({ remaining: 14900000 }) },
+  '@/lib/dino-coach/women-selection': womenSelection,
   '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
   '@/lib/fantasy-browser': { fantasyJsonFetch: async (url, init) => {
     if (url.includes('/rules/accept')) {

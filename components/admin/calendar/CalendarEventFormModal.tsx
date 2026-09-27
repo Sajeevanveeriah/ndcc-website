@@ -82,6 +82,7 @@ const VISIBILITY_LABELS: Record<string, string> = {
 type CalendarEventFormModalProps = {
   isOpen: boolean;
   editing: boolean;
+  linkedEvent?: boolean;
   form: CalendarEventForm;
   errors: Record<string, string>;
   saving: boolean;
@@ -118,6 +119,7 @@ function CheckboxField({
 export default function CalendarEventFormModal({
   isOpen,
   editing,
+  linkedEvent = false,
   form,
   errors,
   saving,
@@ -147,8 +149,10 @@ export default function CalendarEventFormModal({
           rows={4}
         />
 
+        {linkedEvent && <p className="text-sm">This calendar entry is linked to an event. Change its start time in <a href="/admin/events" className="underline">Events</a>; it will update here automatically.</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
+            disabled={linkedEvent}
             id="calendar-start"
             label="Starts (Australia/Melbourne)"
             type="datetime-local"

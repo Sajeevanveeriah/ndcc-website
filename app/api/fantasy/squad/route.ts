@@ -11,6 +11,7 @@ import { buildSquadSlots, validateSquadAssignments, type DinoSquadAssignment } f
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
 import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
 import { revalidateDinoStandingsCache } from '@/lib/server/revalidate-public';
+import { womenSelectionStatus } from '@/lib/dino-coach/women-selection';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +93,8 @@ async function saveSquad(request: Request) {
   if (selection.some((item, index) => item.purchasePriceDinoDollars !== authoritativeSelection[index].purchasePriceDinoDollars)) return NextResponse.json({ success: false, error: 'Player prices changed. Reload before saving.' }, { status: 409 });
   const validation = validateSquadAssignments(authoritativeSelection, buildSquadSlots(settings.slot_counts), settings.budget_dino_dollars, { allowIncomplete: isDraft });
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
+  const women = womenSelectionStatus(authoritativeSelection, players, settings.women_rule_enabled);
+  if (!isDraft && !women.valid) return NextResponse.json({ success: false, error: women.errors.join(' ') }, { status: 400 });
   const { data, error } = await createServerClient().rpc('save_dino_coach_squad_v2', {
     target_manager_id: auth.manager.id, target_season_id: season.id, target_round_id: season.is_current ? roundLock.roundId : null,
     target_status: isDraft ? 'draft' : 'submitted', expected_budget: validation.budgetUsedDinoDollars, expected_updated_at: typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt : null,

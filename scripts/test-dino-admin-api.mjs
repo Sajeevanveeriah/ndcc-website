@@ -1,3 +1,4 @@
+import * as womenSelection from '../lib/dino-coach/women-selection.ts';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
@@ -9,6 +10,7 @@ new Function('exports',ts.transpileModule(readFileSync('lib/dino-coach/admin-act
 const eligibility={exports:{}};
 new Function('exports',ts.transpileModule(readFileSync('lib/dino-coach/manager-eligibility.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(eligibility.exports);
 const imports={
+  '@/lib/dino-coach/women-selection': womenSelection,
  '@/lib/dino-coach/manager-eligibility':eligibility.exports,
  '@/lib/server/revalidate-public':{revalidateDinoPublicCache:()=>{}},
  'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})},after:()=>{}},

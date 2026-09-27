@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 
 export type PlayerListEntry = {
+  women_eligible?: boolean | null;
   id: string;
   display_name: string;
   role: string;
@@ -36,6 +37,7 @@ function formScore(player: PlayerListEntry) {
 
 export default function PlayerListExplorer({ players, hasPublishedPoints }: { players: PlayerListEntry[]; hasPublishedPoints: boolean }) {
   const [search, setSearch] = useState('');
+  const [womenOnly, setWomenOnly] = useState(false);
   const [role, setRole] = useState('all');
   const [team, setTeam] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('name');
@@ -48,6 +50,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
   const visible = useMemo(() => {
     const query = search.trim().toLowerCase();
     const filtered = players.filter((player) => {
+      if (womenOnly && player.women_eligible !== true) return false;
       if (role !== 'all' && player.role !== role) return false;
       if (query && !player.display_name.toLowerCase().includes(query)) return false;
       if (team !== 'all' && (player.team_label || '') !== team) return false;
@@ -59,7 +62,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
     if (sortKey === 'points') sorted.sort((a, b) => b.total_points - a.total_points || a.display_name.localeCompare(b.display_name));
     if (sortKey === 'form') sorted.sort((a, b) => formScore(b) - formScore(a) || a.display_name.localeCompare(b.display_name));
     return sorted;
-  }, [players, search, team, role, sortKey]);
+  }, [players, search, team, role, sortKey, womenOnly]);
 
   return (
     <div className="space-y-4">
@@ -98,6 +101,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
         </label>
       </div>
 
+      {players.some(player => player.women_eligible === true) && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={womenOnly} onChange={event => setWomenOnly(event.target.checked)} />Show women eligible for the squad minimum</label>}
       <p className="font-body text-sm text-content-muted" role="status">
         Showing {visible.length} of {players.length} players
       </p>

@@ -24,6 +24,7 @@ export type FantasySettings = {
 };
 
 export type FantasyPlayerWithPrice = {
+  women_eligible?: boolean | null;
   id: string;
   display_name: string;
   role: FantasyRole | 'UNASSIGNED';
@@ -100,7 +101,7 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
   const [{ data: memberships, error: memberError }, prices] = await Promise.all([
     supabase
       .from('fantasy_season_players')
-      .select('player_id, role, team_label, active, selectable, fantasy_players(id, display_name)')
+      .select('player_id, role, team_label, women_eligible, active, selectable, fantasy_players(id, display_name)')
       .eq('season_id', targetSeasonId)
       .eq('active', true)
       .eq('selectable', true),
@@ -123,6 +124,7 @@ export async function getActivePlayersWithLatestPrices(seasonId?: string | null)
       display_name: row.fantasy_players.display_name,
       role: row.role as FantasyRole | 'UNASSIGNED',
       team_label: row.team_label,
+      women_eligible: row.women_eligible === true,
       price_million: priceByPlayer.get(row.player_id)?.legacy ?? 0,
       price_dino_dollars: priceByPlayer.get(row.player_id)?.dino ?? 0,
       source_status: priceByPlayer.get(row.player_id)?.source ?? 'pending_playhq',

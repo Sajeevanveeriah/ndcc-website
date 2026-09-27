@@ -161,6 +161,29 @@ await check('payment, checkout and availability reads do not opt into the public
   }
 });
 
+await check('a stalled JSON body is bounded and retried once; caller cancellation is not retried', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (_input, init) => {
+    calls += 1;
+    if (calls === 2) return json({ recoveredBody: true });
+    return new Response(new ReadableStream({ start(controller) {
+      init.signal.addEventListener('abort', () => controller.error(new DOMException('Body aborted', 'AbortError')), { once: true });
+    } }), { headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    assert.deepEqual(await (await createTimeoutFetch(20, true)(URL_A)).json(), { recoveredBody: true });
+    assert.equal(calls, 2);
+    calls = 0;
+    const caller = new AbortController();
+    const pending = createTimeoutFetch(1000, true)(URL_A, { signal: caller.signal });
+    await Promise.resolve();
+    caller.abort();
+    await assert.rejects(pending, /Body aborted/);
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 if (failures > 0) {
   console.error(`${failures} public read cache check(s) failed.`);
   process.exit(1);

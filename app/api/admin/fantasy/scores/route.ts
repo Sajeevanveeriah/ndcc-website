@@ -8,6 +8,7 @@ import { SCORING_SQUAD_STATUSES, selectScoringSquads } from '@/lib/dino-coach/ro
 import { fetchAllPages } from '@/lib/fantasy-paging';
 import { resolveSeason } from '@/lib/fantasy-seasons';
 import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
+import { womenSelectionStatus } from '@/lib/dino-coach/women-selection';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +79,14 @@ async function calculateRound(roundId: string, expectedSeasonId: string | null) 
       .in('id', chosenIds.slice(index, index + SQUAD_DETAIL_CHUNK));
     if (squadError) throw new Error(squadError.message);
     squads.push(...(data ?? []));
+  }
+
+  if (dinoSettings.women_rule_enabled) {
+    const { data: members, error: memberError } = await supabase.from('fantasy_season_players').select('player_id,women_eligible').eq('season_id', seasonId);
+    if (memberError) throw new Error(memberError.message);
+    const players = (members ?? []).map(member => ({ id: member.player_id, women_eligible: member.women_eligible }));
+    const invalid = squads.filter(squad => !womenSelectionStatus((squad.fantasy_squad_players ?? []).map((pick: any) => ({ playerId: pick.player_id, positionType: pick.position_type })), players, true).valid);
+    if (invalid.length) throw new ScoringInputError(`Cannot publish scores: ${invalid.length} squad(s) need at least two women, including one starter. Review: ${invalid.slice(0, 10).map(squad => squad.fantasy_managers?.team_name || squad.id).join(', ')}.`, 409);
   }
 
   const result = squads.map((squad: any) => {

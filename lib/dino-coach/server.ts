@@ -7,6 +7,8 @@ export type DinoCoachSettings = {
   brand_name: string;
   virtual_currency_name: string;
   rules_version: string;
+  women_rule_enabled: boolean;
+  women_update_deadline: string | null;
   entry_fee_cents: number;
   entry_fee_currency: 'AUD';
   minimum_age: number;
@@ -58,6 +60,8 @@ export async function getDinoCoachSettings(seasonId: string): Promise<DinoCoachS
   if (error || !data) throw new Error(error?.message || 'Dino Coach settings are unavailable.');
   return {
     ...data,
+    women_rule_enabled: data.women_rule_enabled === true,
+    women_update_deadline: data.women_update_deadline ?? null,
     entry_fee_cents: Number(data.entry_fee_cents), minimum_age: Number(data.minimum_age),
     budget_dino_dollars: Number(data.budget_dino_dollars),
     initial_price_floor_dino_dollars: Number(data.initial_price_floor_dino_dollars),

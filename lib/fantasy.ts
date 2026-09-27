@@ -18,6 +18,7 @@ export const FANTASY_MODULES: FantasyModule[] = [
 // fantasy_dino_settings row when available; each falls back to the published
 // copy so the page never shows a blank or placeholder.
 export type FantasyRuleValues = {
+  womenRuleEnabled?: boolean;
   seasonLabel?: string | null;
   sourceSeasonLabel?: string | null;
   entryFee?: string | null;
@@ -31,7 +32,7 @@ const RULE_DEFAULTS = {
   sourceSeasonLabel: '2025/2026',
   entryFee: 'AUD 25.00',
   budget: '15,000,000 Dino Dollars',
-  transferWindow: 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time',
+  transferWindow: 'Tuesday 00:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time',
   roundRobinPrize: '300 Dino Dollars',
 };
 
@@ -53,6 +54,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
   ] },
   { title: 'Squad and assigned roles', items: [
     'Each manager selects exactly 15 real NDCC players: a playing XI of 4 BAT, 2 AR, 1 WK and 4 BOWL, plus a bench of 1 BAT, 1 AR, 1 WK and 1 BOWL.',
+    ...(values.womenRuleEnabled ? ['Every squad must include at least two women, with at least one in the playing XI. The club confirms eligible players in the catalogue. Drafts may be incomplete, but submissions, replacements and carried-forward squads must meet this minimum before they can score.'] : []),
     'A real player can be assigned to any fantasy slot. Their real-world cricket role does not restrict selection; the assigned fantasy slot controls scoring.',
     'Junior-only players are excluded. Juniors who also play senior cricket may be selected, subject to league-manager eligibility confirmation. The league manager maintains the eligible player pool for this season.',
     'Cricket roles are inferred from season batting and bowling contributions, with club-confirmed wicket keepers overriding the statistics. Players without enough evidence are labelled not yet classified. These labels do not restrict fantasy slots.',
@@ -102,6 +104,7 @@ export const FANTASY_RULE_SECTIONS = fantasyRuleSections();
 
 type RuleSeason = { name?: string | null; slug?: string | null } | null | undefined;
 type RuleSettings = {
+  women_rule_enabled?: unknown;
   entry_fee_cents?: unknown; entry_fee_currency?: unknown; budget_dino_dollars?: unknown; round_robin_prize_dino_dollars?: unknown;
   transfer_timezone?: unknown; transfer_open_weekday?: unknown; transfer_open_minute?: unknown; transfer_close_weekday?: unknown; transfer_close_minute?: unknown;
 } | null | undefined;
@@ -123,6 +126,7 @@ export function fantasyRuleValuesFrom(season: RuleSeason, settings: RuleSettings
   const timezone = typeof settings?.transfer_timezone === 'string' && settings.transfer_timezone.trim() ? settings.transfer_timezone.trim() : null;
   return {
     seasonLabel,
+    womenRuleEnabled: settings?.women_rule_enabled === true,
     sourceSeasonLabel: previousSeasonYearsLabel(seasonLabel),
     entryFee: formatEntryFee(settings?.entry_fee_cents, settings?.entry_fee_currency),
     budget: budget !== null && budget > 0 ? formatDinoDollars(budget) : null,

@@ -18,6 +18,7 @@ type FantasyPlayer = {
   role: PlayerRole;
   team_label: string | null;
   active: boolean;
+  women_eligible: boolean | null;
   price_million: number;
   eligibility_exclusion?: string | null;
 };
@@ -28,6 +29,7 @@ type PlayerForm = {
   role: PlayerRole | '';
   team_label: string;
   active: boolean;
+  women_eligible: boolean | null;
   price_million: string;
   price_reason: string;
 };
@@ -38,6 +40,7 @@ const emptyPlayer: PlayerForm = {
   role: '',
   team_label: '',
   active: true,
+  women_eligible: null,
   price_million: '0.1',
   price_reason: '',
 };
@@ -98,6 +101,7 @@ export default function AdminFantasyPlayersPage() {
       role: player.role,
       team_label: player.team_label || '',
       active: player.active,
+      women_eligible: player.women_eligible ?? null,
       price_million: String(player.price_million),
       price_reason: '',
     });
@@ -126,6 +130,7 @@ export default function AdminFantasyPlayersPage() {
       role: form.role,
       team_label: form.team_label.trim() || null,
       active: form.active,
+      women_eligible: form.women_eligible,
       price_reason: form.price_reason.trim(),
       price_million: Number(Number(form.price_million).toFixed(6)),
     };
@@ -259,7 +264,7 @@ export default function AdminFantasyPlayersPage() {
               <TableRow key={player.id}>
                 <TableCell className="font-medium">{player.display_name}{player.eligibility_exclusion && <span className="block text-xs text-content-muted">Not selectable: {player.eligibility_exclusion}</span>}</TableCell>
                 <TableCell>{player.role}</TableCell>
-                <TableCell>{player.team_label || '—'}</TableCell>
+                <TableCell>{player.team_label || '—'}{player.women_eligible === true && <span className="block text-xs">Women’s selection</span>}</TableCell>
                 <TableCell>{String(player.price_million)}</TableCell>
                 <TableCell>{player.playhq_player_id || '—'}</TableCell>
                 <TableCell>{player.active ? <Badge variant="success">Active</Badge> : <Badge>Inactive</Badge>}</TableCell>
@@ -280,6 +285,12 @@ export default function AdminFantasyPlayersPage() {
           <Select id="fantasy-player-role" label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as PlayerRole })} options={roleOptions} error={formErrors.role} required />
           <Input id="fantasy-price-reason" label="Reason for manual change" value={form.price_reason} onChange={(e) => setForm({ ...form, price_reason: e.target.value })} />
           <Input id="fantasy-player-price" label="Price (million)" type="number" min="0.1" max="2" step="0.000001" value={form.price_million} onChange={(e) => setForm({ ...form, price_million: e.target.value })} error={formErrors.price_million} required />
+          <label className="block text-sm font-medium">Women selection minimum (current season)
+            <select className="form-input mt-1 w-full" value={form.women_eligible === null ? 'unreviewed' : String(form.women_eligible)} onChange={event => setForm({ ...form, women_eligible: event.target.value === 'unreviewed' ? null : event.target.value === 'true' })}>
+              <option value="unreviewed">Not reviewed</option><option value="true">Confirmed - counts towards the minimum</option><option value="false">Does not count towards the minimum</option>
+            </select>
+            <span className="mt-1 block text-xs text-content-muted">Use confirmed club records. Cricket role and team label do not determine this setting.</span>
+          </label>
           <Input id="fantasy-player-team" label="Team label (optional)" value={form.team_label} onChange={(e) => setForm({ ...form, team_label: e.target.value })} />
           <Input id="fantasy-player-playhq-id" label="PlayHQ player ID (optional)" value={form.playhq_player_id} onChange={(e) => setForm({ ...form, playhq_player_id: e.target.value })} />
           <label className="inline-flex items-center gap-2 text-sm">

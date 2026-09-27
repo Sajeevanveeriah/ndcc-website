@@ -73,7 +73,7 @@ export function createServerClient(options: ServerClientOptions = {}) {
   const timeoutMs = options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS;
   const baseFetch = options.fetchTimeoutMs === null ? undefined : options.publicReadCache
     ? createPublicReadTimeoutFetch(timeoutMs)
-    : createTimeoutFetch(timeoutMs, options.retryReads);
+    : createTimeoutFetch(timeoutMs, options.retryReads ?? true);
   const fetchImpl = options.publicReadCache ? withPublicReadCache(baseFetch ?? fetch, { scope: 'service' }) : baseFetch;
   const clientOptions = fetchImpl ? { fetch: fetchImpl } : {};
 
