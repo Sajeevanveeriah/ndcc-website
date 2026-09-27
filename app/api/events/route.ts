@@ -12,6 +12,7 @@ import {
 } from '@/lib/order-input-validation';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { isSongRequestEvent, normaliseSongRequests, songLabel, type SongRequest } from '@/lib/events/song-requests';
+import { getNotificationRecipients } from '@/lib/notification-recipients';
 
 export const dynamic = 'force-dynamic';
 
@@ -281,6 +282,40 @@ export async function POST(request: Request) {
         { success: false, error: 'Failed to register for event.' },
         { status: 500 }
       );
+    }
+
+    // Staff copy of every song entry (CMS: Song request entries; secretary by default).
+    // A notification failure never fails the entrant's registration.
+    if (songEvent) {
+      try {
+        const staff = await getNotificationRecipients('event_song_requests');
+        if (staff.length > 0) {
+          const row = (label: string, value: string) => `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:140px;">${label}</td><td style="padding:6px 0;font-size:14px;">${value}</td></tr>`;
+          await sendEmail({
+            to: staff,
+            replyTo: sanitiseInput(email),
+            subject: `Song entry - ${eventRow.title}: ${sanitiseInput(name)} (${songRequests.length} ${songRequests.length === 1 ? 'song' : 'songs'}) | NDCC Dinos`,
+            tags: [{ name: 'category', value: 'event-song-entry' }],
+            html: emailHtml(
+              'New song entry',
+              `<p style="font-size:15px;color:#374151;line-height:1.6;">A new song entry was submitted for <strong>${escapeEmailHtml(eventRow.title)}</strong>${eventRow.date ? ` on ${formatDateTime(eventRow.date)}` : ''}.</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                ${row('Name', escapeEmailHtml(sanitiseInput(name)))}
+                ${row('Email', escapeEmailHtml(sanitiseInput(email)))}
+                ${row('Phone', escapeEmailHtml(sanitiseInput(phone)))}
+                ${row('Songs', String(songRequests.length))}
+                ${row('Total', `$${totalCost.toFixed(2)}`)}
+                ${paymentReference ? row('Payment reference', escapeEmailHtml(paymentReference)) : ''}
+                ${row('Payment', isPaid ? 'Awaiting payment (card or bank transfer). Check Admin &gt; Orders before counting these songs.' : 'No payment required')}
+              </table>
+              <p style="font-size:14px;color:#374151;font-weight:bold;margin:16px 0 4px;">Song list</p>
+              <ol style="font-size:14px;color:#374151;line-height:1.6;">${songRequests.map((song) => `<li>${escapeEmailHtml(songLabel(song))}</li>`).join('')}</ol>`
+            ),
+          });
+        }
+      } catch (notifyError) {
+        console.error('Song entry staff notification failed:', notifyError);
+      }
     }
 
     if (!isPaid) await sendEmail({

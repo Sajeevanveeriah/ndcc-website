@@ -99,6 +99,7 @@ const route = load('app/api/events/route.ts', {
   '@/lib/order-input-validation': load('lib/order-input-validation.ts'),
   '@/lib/validation/uuid': load('lib/validation/uuid.ts'),
   '@/lib/events/song-requests': load('lib/events/song-requests.ts'),
+  '@/lib/notification-recipients': { getNotificationRecipients: async (type) => { assert.equal(type, 'event_song_requests'); return ['ndcc.secretary1@gmail.com']; } },
 }, { NEXT_PUBLIC_SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'isolated-test' });
 const submit = () => route.POST(new Request('https://example.invalid/api/events', {
   method: 'POST', body: JSON.stringify({ event_id: id, name: 'Test registrant', email: 'test@example.com',
@@ -148,14 +149,19 @@ assert.deepEqual(rpcCalls[0].args.p_song_requests, [
   { title: 'Thunderstruck', artist: 'AC/DC' }, { title: 'Mr Brightside', artist: '' }, { title: 'Dancing Queen', artist: 'ABBA' },
 ]);
 assert.equal(rpcCalls[0].args.p_order_id, 'order-test');
-console.log('PASS song entry charges $10 per named song, one order line per song, stored with the entry');
+assert.equal(sent.length, 1, 'paid song entry sends only the staff notification');
+assert.deepEqual(sent[0].to, ['ndcc.secretary1@gmail.com']);
+assert.equal(sent[0].replyTo, 'test@example.com');
+assert.match(sent[0].subject, /Song entry - Club event: Test registrant \(3 songs\)/);
+for (const label of ['Thunderstruck - AC/DC', 'Mr Brightside', 'Dancing Queen - ABBA', '0412345678', 'TEST-EVENT-1', '$30.00']) assert.ok(sent[0].html.includes(label), label);
+console.log('PASS song entry charges $10 per named song, one order line per song, stored with the entry, and emails the secretary the song list');
 
-writes = []; rpcCalls = [];
+writes = []; rpcCalls = []; sent = [];
 for (const [songs, extra] of [[undefined, { quantity: 2 }], [[], {}], [[{ title: '  ' }], {}], [Array.from({ length: 31 }, () => ({ title: 'A' })), {}]]) {
   response = await submitSongs(songs, extra);
   assert.equal(response.status, 400);
 }
-assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0); assert.equal(sent.length, 0, 'rejected entries notify nobody');
 row = { ...row, registration_mode: 'tickets' };
 assert.equal((await submitSongs([{ title: 'A' }])).status, 400, 'ticket events refuse song lists');
 assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
