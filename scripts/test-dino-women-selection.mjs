@@ -12,6 +12,10 @@ assert.equal(status([pick('w','bench'),pick('m','bench')]).valid, true, 'Both re
 assert.equal(status([pick('w'),pick('m','bench')]).valid, true);
 assert.equal(status([pick('w'),pick('m')]).valid, true);
 assert.equal(status([pick('w'),pick('unreviewed'),pick('unknown'),pick('other')]).valid, false, 'Do not infer men’s membership from unknown or false women’s membership');
-assert.equal(status([pick('both')]).valid, true, 'Explicit dual-section membership represents both sections');
+assert.equal(status([pick('both')]).valid, false, 'One dual-section player cannot represent both sections alone');
+assert.equal(status([pick('both'),pick('both','bench')]).valid, false, 'Duplicate picks of one dual-section player remain one player');
+assert.equal(status([pick('both'),pick('w')]).valid, true, 'Dual-section player can represent the men’s section beside a different women’s player');
+assert.equal(status([pick('both'),pick('m','bench')]).valid, true, 'Dual-section player can represent the women’s section beside a different men’s player');
+assert.equal(status([pick('both'),pick('unreviewed')]).valid, false, 'Unreviewed players never count as the second representative');
 assert.equal(womenSelectionStatus([pick('w'),pick('m')],players.map(p=>({...p,team_label:'NDCC',role:'BOWL'})),true).valid,true);
-console.log('PASS section representation: missing either section, bench, duplicate IDs, unknown and dual membership, season controls');
+console.log('PASS section representation: missing either section, bench, duplicate IDs, unknown membership, dual membership needs a second player, season controls');

@@ -64,9 +64,18 @@ BEGIN
  EXCEPTION WHEN check_violation THEN
   IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
  END;
- -- Explicit dual-section membership counts for both sections.
+ -- One dual-section player cannot represent both sections alone.
  UPDATE public.fantasy_season_players SET men_eligible=true WHERE season_id=sid AND player_id=ids[12];
+ BEGIN
+  PERFORM public.validate_dino_women_selection(sid,picks);
+  RAISE EXCEPTION 'A single dual-section player satisfied both sections';
+ EXCEPTION WHEN check_violation THEN
+  IF SQLERRM<>'All teams must include at least one player from the men’s and women’s sections in the squad' THEN RAISE; END IF;
+ END;
+ -- A second, different player in either section completes the minimum.
+ UPDATE public.fantasy_season_players SET women_eligible=true WHERE season_id=sid AND player_id=ids[14];
  PERFORM public.validate_dino_women_selection(sid,picks);
+ UPDATE public.fantasy_season_players SET women_eligible=NULL WHERE season_id=sid AND player_id=ids[14];
  -- With only men’s-section membership the squad must also fail.
  UPDATE public.fantasy_season_players SET women_eligible=false WHERE season_id=sid AND player_id=ids[12];
  BEGIN
@@ -78,7 +87,7 @@ BEGIN
  UPDATE public.fantasy_dino_settings SET women_rule_enabled=false WHERE season_id=sid;
  PERFORM public.save_dino_coach_squad(mid,sid,null,'submitted',1500000,picks);
  IF has_function_privilege('authenticated','public.validate_dino_women_selection(uuid,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'Browser role has validation RPC access'; END IF;
- RAISE NOTICE 'PASS section rule: drafts, both sections, bench/starter, swap rollback, scoring, disabled seasons and privileges';
+ RAISE NOTICE 'PASS section rule: drafts, both sections, two different players, bench/starter, swap rollback, scoring, disabled seasons and privileges';
 END;
 $$;
 ROLLBACK;
