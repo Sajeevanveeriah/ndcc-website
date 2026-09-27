@@ -414,6 +414,7 @@ async function ThisWeekSection() {
     .slice(0, 2)
     .map((event) => ({
       key: `event-${event.id}`,
+      sourceEventId: event.id,
       kind: 'event' as const,
       startsAt: event.date,
       title: event.title,
@@ -428,6 +429,7 @@ async function ThisWeekSection() {
     const target = cancelled ? null : event.cta_url || event.external_url;
     return {
       key: `calendar-${event.id}`,
+      sourceEventId: event.source_event_id,
       kind: 'calendar' as const,
       startsAt: event.start_at,
       title: event.title,

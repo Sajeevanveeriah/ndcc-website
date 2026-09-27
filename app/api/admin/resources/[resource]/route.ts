@@ -365,6 +365,9 @@ function seasonAppointmentsTableErrorResponse() {
 // friendly explanation instead.
 function databaseErrorResponse(resource: string, action: string, error: { code?: string; message: string; details?: string | null; hint?: string | null }) {
   console.error(`[admin/resources] ${action} ${resource} failed`, { code: error.code, message: error.message, details: error.details, hint: error.hint });
+  if (resource === 'calendarEvents' && error.code === '23514' && error.message === 'Change this start time in Events. The linked calendar uses the event start time.') {
+    return NextResponse.json({ success: false, error: 'Change the start time in Events; the linked calendar updates automatically.' }, { status: 400 });
+  }
   const friendly = friendlyDatabaseError(error);
   return NextResponse.json({ success: false, error: friendly.error }, { status: friendly.status });
 }

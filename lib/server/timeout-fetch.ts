@@ -16,6 +16,16 @@ export function createTimeoutFetch(timeoutMs: number, retryReads = false): typeo
           await response.body?.cancel();
           continue;
         }
+        // PostgREST returns JSON. Keep the deadline alive until the body has
+        // arrived, so a stalled/aborted body gets the same bounded read retry
+        // as a connection failure. Never replay a mutation or buffer media.
+        if (['GET', 'HEAD'].includes(method) && response.body && /(?:application\/json|\+json)(?:;|$)/i.test(response.headers.get('content-type') || '')) {
+          const body = await response.arrayBuffer();
+          const headers = new Headers(response.headers);
+          headers.delete('content-length');
+          headers.delete('content-encoding');
+          return new Response(body, { status: response.status, statusText: response.statusText, headers });
+        }
         return response;
       } catch (error) {
         // Never replay writes or an explicitly cancelled caller request.

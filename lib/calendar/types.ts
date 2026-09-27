@@ -22,6 +22,7 @@ export const CALENDAR_STATUSES = ['draft', 'published', 'cancelled', 'postponed'
 export type CalendarStatus = (typeof CALENDAR_STATUSES)[number];
 
 export interface CalendarEvent {
+  source_event_id?: string | null;
   id: string;
   title: string;
   slug: string | null;

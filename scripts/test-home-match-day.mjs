@@ -161,3 +161,14 @@ test('"This week" keeps fixtures within seven days and merges events by date', (
   assert.equal(allWithinDays(items, NOW), true);
   assert.equal(allWithinDays([...items, { ...items[0], key: 'later', startsAt: '2026-10-20T00:00:00Z' }], NOW), false);
 });
+
+test('linked events merge across different titles/times and preserve cancellation in either order', () => {
+  const event = { key: 'event-1', sourceEventId: '1', kind: 'event', startsAt: '2026-10-03T09:30:00Z', title: 'iPod Shuffle', detail: '7:30 pm', href: '/events/1', external: false, status: null };
+  const calendar = { ...event, key: 'calendar-1', kind: 'calendar', title: 'iPod Shuffle Night', startsAt: '2026-10-03T09:00:00Z', detail: '7:00 pm' };
+  for (const pair of [[event, calendar], [calendar, event]]) {
+    assert.deepEqual(mergeComingUp(pair), [event], 'Event owns the canonical details');
+    const cancelled = pair.map(item => item.kind === 'calendar' ? { ...item, status: 'cancelled' } : item);
+    assert.deepEqual(mergeComingUp(cancelled), [{ ...event, status: 'cancelled', href: '/calendar' }]);
+  }
+  assert.equal(mergeComingUp([event, { ...event, key: 'separate', sourceEventId: '2', href: '/events/2' }]).length, 2, 'Different events with identical titles are not discarded');
+});

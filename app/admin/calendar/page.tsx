@@ -318,6 +318,7 @@ export default function AdminCalendarPage() {
       filtered.map((event) => ({
         id: event.id,
         title: event.status === 'draft' ? `[Draft] ${event.title}` : event.title,
+        startEditable: !event.source_event_id,
         start: event.all_day ? utcToMelbourneFloating(event.start_at).slice(0, 10) : utcToMelbourneFloating(event.start_at),
         end: event.end_at
           ? event.all_day
@@ -563,6 +564,7 @@ export default function AdminCalendarPage() {
       <CalendarEventFormModal
         isOpen={modalOpen}
         editing={!!editingId}
+        linkedEvent={Boolean(events.find(event => event.id === editingId)?.source_event_id)}
         form={form}
         errors={formErrors}
         saving={saving}

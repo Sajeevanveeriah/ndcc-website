@@ -40,7 +40,7 @@ console.log('PASS formatting helpers: entry fee, clock, season years');
 const flat = sections => sections.flatMap(section => section.items).join('\n');
 const defaults = flat(fantasy.fantasyRuleSections());
 assert.equal(flat(fantasy.FANTASY_RULE_SECTIONS), defaults);
-for (const text of ['2026/2027 season', 'Entry costs AUD 25.00', 'The squad budget is 15,000,000 Dino Dollars.', 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2025/2026 statistics', 'leader prize is 300 Dino Dollars']) {
+for (const text of ['2026/2027 season', 'Entry costs AUD 25.00', 'The squad budget is 15,000,000 Dino Dollars.', 'Tuesday 00:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2025/2026 statistics', 'leader prize is 300 Dino Dollars']) {
   assert.ok(defaults.includes(text), `Default rules keep: ${text}`);
 }
 const liveSettings = { entry_fee_cents: 3000, entry_fee_currency: 'AUD', budget_dino_dollars: 16000000, round_robin_prize_dino_dollars: 500, transfer_timezone: 'Australia/Melbourne', transfer_open_weekday: 2, transfer_open_minute: 0, transfer_close_weekday: 6, transfer_close_minute: 660 };
@@ -66,7 +66,8 @@ assert.match(read('app/fantasy/rules/page.tsx'), /fantasyRuleSections\(fantasyRu
 assert.match(read('app/fantasy/_components/SquadBuilder.tsx'), /money\(Number\(settings\.budget_dino_dollars\)\)/);
 const email = read('lib/dino-coach/registration-email.ts');
 assert.match(email, /Your starting budget is \$\{budgetText\} virtual Dino Dollars\./);
-assert.match(email, /from\('fantasy_dino_settings'\)\.select\('budget_dino_dollars'\)/);
+assert.match(email, /from\('fantasy_dino_settings'\)\.select\('budget_dino_dollars,women_rule_enabled'\)/);
+assert.match(email, /womenRuleEnabled = !settings\.error && settings\.data\?\.women_rule_enabled === true/);
 assert.match(read('lib/dino-coach/pricing.ts'), /published \$\{seasonSummary\.sourceSeason\} season summary/);
 const reconciliation = read('app/admin/fantasy/reconciliation/page.tsx');
 assert.match(reconciliation, /previousSeasonYearsLabel\(seasonYearsLabel\(current\)\)/);
@@ -92,6 +93,7 @@ console.log('PASS Dino auth form: normalised email for sign in, sign up, resend 
 // ---- Squad POST error handling ----
 let settingsFailure = null;
 const squad = load('app/api/fantasy/squad/route.ts', {
+  '@/lib/dino-coach/women-selection': load('lib/dino-coach/women-selection.ts'),
   '@/lib/server/fantasy-mutation': { readFantasyMutation: async request => ({ body: await request.json() }) },
   '@/lib/dino-coach/manager-eligibility': { managerEligibilityIssues: () => [] },
   '@/lib/dino-coach/player-stats-server': {},

@@ -1,3 +1,4 @@
+import { womenSelectionStatus } from '@/lib/dino-coach/women-selection';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { managerEligibilityIssues } from '@/lib/dino-coach/manager-eligibility';
 import { NextResponse, after } from 'next/server';
@@ -75,6 +76,8 @@ export async function PATCH(request:Request) {
       const picks=body.selection.map((p:any)=>({...p,purchasePriceDinoDollars:costs.get(p.playerId)??prices.get(p.playerId)}));
       const validation=validateSquadAssignments(picks,buildSquadSlots(settings.slot_counts),settings.budget_dino_dollars,{allowIncomplete:body.status==='draft'});
       if(!validation.valid)return fail(validation.errors.join(' '));
+      const women=womenSelectionStatus(picks,players,settings.women_rule_enabled);
+      if(body.status!=='draft'&&!women.valid)return fail(women.errors.join(' '));
       budget=validation.budgetUsedDinoDollars;
       selection=picks.map((p:any)=>({player_id:p.playerId,slot_key:p.slotKey,assigned_role:p.assignedRole,position_type:p.positionType,is_captain:p.isCaptain===true,is_vice_captain:p.isViceCaptain===true}));
     }
