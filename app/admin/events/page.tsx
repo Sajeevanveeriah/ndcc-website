@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { formatDate, formatCurrency, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
@@ -450,6 +451,12 @@ export default function AdminEventsPage() {
                   </TableCell>
                   <TableCell className="font-mono text-xs">{registration.payment_reference || '-'}</TableCell>
                   <TableCell>
+                    {/* Song entries are paid through the order ledger so the pot stays exact. */}
+                    {registration.order_id && (registration.song_requests?.length ?? 0) > 0 ? (
+                      <Link href="/admin/orders" className="text-sm underline underline-offset-4">
+                        {registration.payment_status === 'paid' ? 'Paid (order)' : 'Record payment in Orders'}
+                      </Link>
+                    ) : (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -460,6 +467,7 @@ export default function AdminEventsPage() {
                     >
                       {registration.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                     </Button>
+                    )}
                   </TableCell>
                   <TableCell>
                     <label className="inline-flex items-center gap-2 text-xs">

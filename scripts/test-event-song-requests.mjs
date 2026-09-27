@@ -57,5 +57,6 @@ const adminEvents = readFileSync(new URL('../app/admin/events/page.tsx', import.
 assert.match(adminEvents, /sum \+ Number\(order\?\.total_amount \|\| 0\)/, 'the song pot uses paid order totals, not the current price');
 assert.match(adminEvents, /registration\.order_id && \(registration\.song_requests\?\.length \?\? 0\) > 0/, 'ticket registrations never enter the song pot');
 assert.match(adminEvents, /form\.registration_mode === 'song_requests' \|\| editingHasMode/, 'ticket saves omit registration_mode unless the row has it');
+assert.match(adminEvents, /registration\.order_id && \(registration\.song_requests\?\.length \?\? 0\) > 0 \? \(\s*<Link href="\/admin\/orders"/, 'song entry payments go through the order ledger, not the registration toggle');
 
 console.log('PASS event song requests: validation, limits, labels, per-song pricing, atomic storage and privileges');
