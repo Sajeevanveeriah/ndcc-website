@@ -9,6 +9,7 @@ import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { isAdultOnDate, moderateTeamName } from '@/lib/dino-coach/domain';
 import { sendRegistrationEmail } from '@/lib/dino-coach/registration-email';
 import { registrationEmailRetryDue } from '@/lib/dino-coach/registration-retry';
+import { revalidateDinoStandingsCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -160,6 +161,8 @@ export async function POST(request: Request) {
       }) : { status: 'retry_scheduled' };
 
     console.info('[fantasy-manager] Manager profile saved', { userId: user.id, managerId: manager.id, created: isNewManager });
+    // Team names appear in the cached public manager standings.
+    revalidateDinoStandingsCache();
     return NextResponse.json({
       success: true,
       manager,

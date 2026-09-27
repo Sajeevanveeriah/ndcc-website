@@ -47,6 +47,7 @@ const mocks = {
     throw new Error('The test must not send email');
   } },
   '@/lib/server/fantasy-mutation': {},
+  '@/lib/server/revalidate-public': { revalidateDinoStandingsCache: () => {} },
   '@/lib/dino-coach/manager-eligibility': {},
   '@/lib/dino-coach/domain': {},
   '@/lib/dino-coach/registration-retry': (() => {

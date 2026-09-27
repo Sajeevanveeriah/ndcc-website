@@ -7,7 +7,7 @@ import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { getDinoManagerStandings } from '@/lib/dino-coach/standings';
 import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
-import { DINO_PUBLIC_CACHE_SECONDS, DINO_PUBLIC_CACHE_TAG } from '@/lib/dino-coach/public-cache-tag';
+import { DINO_PUBLIC_CACHE_SECONDS, DINO_PUBLIC_CACHE_TAG, DINO_STANDINGS_CACHE_TAG } from '@/lib/dino-coach/public-cache-tag';
 import { getFantasySeasons, pickSeason, seasonStatusLabel, type FantasySeason, type SeasonPageContext } from '@/lib/fantasy-seasons';
 
 /**
@@ -90,7 +90,7 @@ export const getCachedPublishedLeaderboard = unstable_cache(
 export const getCachedManagerStandings = unstable_cache(
   async (seasonId: string | null) => getDinoManagerStandings(seasonId),
   ['dino-public-manager-standings-v1'],
-  options,
+  { ...options, tags: [DINO_PUBLIC_CACHE_TAG, DINO_STANDINGS_CACHE_TAG] },
 );
 
 // getPlayerStats returns a Map, which the cache cannot store; keep the entries.

@@ -13,7 +13,8 @@ assert.match(read('lib/dino-coach/public-cache-tag.ts'), /DINO_PUBLIC_CACHE_SECO
 const wrapped = cache.match(/unstable_cache\(/g) || [];
 assert.equal(wrapped.length, 8, 'eight cached public loaders');
 assert.match(cache, /const options = \{ revalidate: DINO_PUBLIC_CACHE_SECONDS, tags: \[DINO_PUBLIC_CACHE_TAG\] \};/);
-assert.equal((cache.match(/\n  options,\n\);/g) || []).length, 8, 'every loader uses the shared tag and lifetime');
+assert.equal((cache.match(/\n  options,\n\);/g) || []).length, 7, 'loaders use the shared tag and lifetime');
+assert.match(cache, /\['dino-public-manager-standings-v1'\],\n  \{ \.\.\.options, tags: \[DINO_PUBLIC_CACHE_TAG, DINO_STANDINGS_CACHE_TAG\] \},/, 'standings also carry their own tag');
 // A failed launch check throws (never cached) instead of returning "off".
 assert.match(cache, /if \(seasonError\) throw new Error/);
 assert.match(cache, /if \(settingsError\) throw new Error/);
@@ -51,4 +52,9 @@ for (const file of [
 assert.match(read('app/api/admin/fantasy/settings/route.ts'), /revalidatePublicContent\('fantasySettings'\)/);
 // Manual sync start and continue both process batches, so both clear the cache.
 assert.equal((read('app/api/admin/fantasy/sync/route.ts').match(/processFantasySyncBatch\([^\n]*\n(?:\s*\/\/[^\n]*\n)?\s*revalidateDinoPublicCache\(\);/g) || []).length, 2);
+// Participant saves refresh only the standings (squad value tiebreak, team names).
+assert.match(revalidate, /export function revalidateDinoStandingsCache\(\): void \{\n  safe\(\(\) => revalidateTag\(DINO_STANDINGS_CACHE_TAG\)\);/);
+for (const file of ['app/api/fantasy/squad/route.ts', 'app/api/fantasy/transfers/route.ts', 'app/api/fantasy/manager/route.ts']) {
+  assert.match(read(file), /revalidateDinoStandingsCache\(\);\n\s*return NextResponse\.json\(\{\s*success: ?true/, `${file} refreshes standings after a successful save`);
+}
 console.log('PASS admin and scheduled Dino writers clear the public cache');

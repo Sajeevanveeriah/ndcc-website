@@ -2,3 +2,6 @@
 // Kept in its own file so writers can clear it without importing the loaders.
 export const DINO_PUBLIC_CACHE_TAG = 'dino-public';
 export const DINO_PUBLIC_CACHE_SECONDS = 60;
+// Manager standings also carry their own tag so participant saves (squad,
+// transfers, profile) can refresh them without clearing the whole cache.
+export const DINO_STANDINGS_CACHE_TAG = 'dino-public-standings';

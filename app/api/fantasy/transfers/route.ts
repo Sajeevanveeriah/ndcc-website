@@ -8,6 +8,7 @@ import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coac
 import { buildSquadSlots, isTransferWindowOpen } from '@/lib/dino-coach/domain';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
+import { revalidateDinoStandingsCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
   if(issues.length) return NextResponse.json({error:issues.map(issue=>issue.message).join(' ')},{status:403});
   const result=await db.rpc('dino_market_action',{mid:auth.manager.id,sid:season.id,rid:lock.roundId,action,out_id:nullable(body.playerOutId),in_id:nullable(body.playerInId),slot:nullable(body.slotKey),expected_updated_at:nullable(body.expectedUpdatedAt),expected_price:Number.isSafeInteger(body.expectedPrice)?body.expectedPrice:null});
   if(result.error) { logRouteError('fantasy/transfers:rpc',result.error); return NextResponse.json({error:publicRpcErrorMessage(result.error,'Could not save the market action.')},{status:400}); }
+  revalidateDinoStandingsCache();
   return NextResponse.json({success:true,id:result.data});
  } catch(e) { logRouteError('fantasy/transfers:post',e); return NextResponse.json({error:'Could not save the market action.'},{status:400}); }
 }

@@ -3,7 +3,7 @@ import 'server-only';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { SITE_CHROME_TAG } from '@/lib/server/nav-visibility';
 import { SITEMAP_CACHE_TAG } from '@/lib/seo-sitemap';
-import { DINO_PUBLIC_CACHE_TAG } from '@/lib/dino-coach/public-cache-tag';
+import { DINO_PUBLIC_CACHE_TAG, DINO_STANDINGS_CACHE_TAG } from '@/lib/dino-coach/public-cache-tag';
 
 /**
  * On-demand revalidation for the ISR public pages.
@@ -102,6 +102,14 @@ export function revalidateSitemap(): void {
  */
 export function revalidateDinoPublicCache(): void {
   safe(() => revalidateTag(DINO_PUBLIC_CACHE_TAG));
+}
+
+/**
+ * Refresh only the cached public manager standings after a participant saves a
+ * squad, makes transfers or edits their team name.
+ */
+export function revalidateDinoStandingsCache(): void {
+  safe(() => revalidateTag(DINO_STANDINGS_CACHE_TAG));
 }
 
 /**
