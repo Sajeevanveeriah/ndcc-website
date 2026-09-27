@@ -84,8 +84,8 @@ DECLARE sid uuid; early_id uuid; late_id uuid; rid uuid; bid uuid; p uuid;
 BEGIN
  INSERT INTO public.fantasy_seasons(name,slug,is_public,auto_sync_enabled)
  VALUES('Later start pricing','later-start-'||gen_random_uuid(),false,false) RETURNING id INTO sid;
- INSERT INTO public.fantasy_dino_settings(season_id,pilot_notice,slot_counts,scoring_config,budget_dino_dollars,price_changes_start_round,price_point_value_dino_dollars)
- VALUES(sid,'Isolated later-start fixture','{}','{}',15000000,2,10000);
+ INSERT INTO public.fantasy_dino_settings(season_id,pilot_notice,slot_counts,scoring_config,budget_dino_dollars,initial_price_floor_dino_dollars,initial_price_ceiling_dino_dollars,price_changes_start_round,price_point_value_dino_dollars)
+ VALUES(sid,'Isolated later-start fixture','{}','{}',15000000,100000,2000000,2,10000);
  INSERT INTO public.fantasy_players(display_name,role) VALUES('Early grade '||gen_random_uuid(),'BAT') RETURNING id INTO early_id;
  INSERT INTO public.fantasy_players(display_name,role) VALUES('Later grade '||gen_random_uuid(),'BAT') RETURNING id INTO late_id;
  FOREACH p IN ARRAY ARRAY[early_id,late_id] LOOP
