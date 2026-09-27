@@ -5,8 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
-import { getSeasonPageContext } from '@/lib/fantasy-seasons';
-import { getDinoManagerStandings, type DinoManagerStanding } from '@/lib/dino-coach/standings';
+import { getCachedManagerStandings, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
+import type { DinoManagerStanding } from '@/lib/dino-coach/standings';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,11 +14,11 @@ export const metadata: Metadata = pageMetadata('/fantasy/manager-leaderboard', '
 
 export default async function FantasyManagerLeaderboardPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;
-  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const seasonContext = await getCachedSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   let rows: DinoManagerStanding[] = [];
   let loadFailed = false;
   try {
-    rows = await getDinoManagerStandings(seasonContext.selected?.id || null);
+    rows = await getCachedManagerStandings(seasonContext.selected?.id || null);
   } catch (err) {
     console.error('[fantasy/manager-leaderboard] Failed to load manager round scores; showing failure state:', err);
     loadFailed = true;

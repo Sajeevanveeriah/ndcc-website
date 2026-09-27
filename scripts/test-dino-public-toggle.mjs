@@ -6,8 +6,13 @@ const statusRoute = readFileSync('app/api/public/dino-coach-status/route.ts', 'u
 const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
 const sitemap = readFileSync('lib/server/sitemap-entries.ts', 'utf8');
 
-for (const source of [layout, statusRoute, sitemap]) {
+const launchCache = readFileSync('lib/server/dino-public-cache.ts', 'utf8');
+for (const source of [launchCache, sitemap]) {
   assert.match(source, /public_launch_enabled/, 'Public visibility reads the CMS launch flag.');
+}
+// The layout and status endpoint share the short-lived launch-state cache.
+for (const source of [layout, statusRoute]) {
+  assert.match(source, /getCachedDinoLaunchState\(\)/, 'Launch checks use the shared cached launch state.');
 }
 assert.match(layout, /notFound\(\)/, 'Disabled Dino Coach routes return not found.');
 assert.match(statusRoute, /enabled: false/, 'The public status endpoint fails closed.');

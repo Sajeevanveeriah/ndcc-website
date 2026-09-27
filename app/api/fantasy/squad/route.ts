@@ -10,6 +10,7 @@ import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fanta
 import { buildSquadSlots, validateSquadAssignments, type DinoSquadAssignment } from '@/lib/dino-coach/domain';
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
 import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
+import { revalidateDinoStandingsCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,5 +101,6 @@ async function saveSquad(request: Request) {
     logRouteError('fantasy/squad:save', error);
     return NextResponse.json({ success: false, error: publicRpcErrorMessage(error, 'Could not save your Dino Coach squad. Please reload and try again.') }, { status: /closed|eligibility|paid/i.test(error.message) ? 403 : 400 });
   }
+  revalidateDinoStandingsCache();
   return NextResponse.json({ success: true, squad: { id: data, status: isDraft ? 'draft' : 'submitted' }, selection: authoritativeSelection.map((item) => ({ ...item, displayName: players.find((player) => player.id === item.playerId)?.display_name })) });
 }

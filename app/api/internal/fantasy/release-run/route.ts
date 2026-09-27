@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
 import { retryFailedGames } from '@/lib/playhq/fantasy-sync';
 import { createServerClient } from '@/lib/supabase-server';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, action, jobId, requeued: result.requeued }, { headers: noStore });
     }
     const result = await runFantasyOrchestrator({ invokedBy: `release-token:${tokenId}` });
+    revalidateDinoPublicCache();
     return NextResponse.json({ success: true, ...result }, { headers: noStore });
   } catch (error) {
     console.error('[Dino Coach release runner] Orchestration failed', error);

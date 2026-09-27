@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { getFantasyImportBatchDetail, type FantasyImportStatus } from '@/lib/fantasy-leaderboard';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +89,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   revalidatePath('/fantasy/leaderboard');
   revalidatePath('/fantasy');
+  revalidateDinoPublicCache();
 
   return NextResponse.json({ success: true, batch: updated.data });
 }

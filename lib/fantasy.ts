@@ -80,7 +80,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
   ] },
   { title: 'Transfers and prices', items: [
     `Transfers are unlimited, free and carry no points penalty. The server-authoritative window is ${v.transferWindow}.`,
-    `Opening player prices reflect the supplied ${v.sourceSeasonLabel} statistics and are rounded upwards to the next 1,000 Dino Dollars. The highest-ranked player starts at 2,000,000 Dino Dollars. Players without historical statistics start at 100,000 Dino Dollars.`,
+    `Opening player prices reflect the supplied ${v.sourceSeasonLabel} statistics and are rounded to the nearest 1,000 Dino Dollars. The highest-ranked player starts at 2,000,000 Dino Dollars. Players without historical statistics start at 100,000 Dino Dollars.`,
     'All price reviews and manual price changes are rounded upwards to whole 1,000 Dino Dollars. Prices are reviewed automatically after every two regular rounds: rounds 2, 4, 6 and so on. Settlement becomes eligible on the following Monday at 09:00 Melbourne time and runs at the next daily pricing check once published results are available.',
     'Strong performances can increase a player price; weaker performances can reduce it. Prices stay between 100,000 and 2,000,000 Dino Dollars. A non-appearance does not count as a zero-score appearance. Finals do not change prices.',
     'Price reviews use published results available when the review runs. Late results enter a later review. Completed reviews are not charged or applied twice.',

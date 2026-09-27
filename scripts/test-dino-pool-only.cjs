@@ -17,7 +17,8 @@ const imports={
  '@/lib/fantasy-game':{getRoundLockState:async()=>({locked:false,roundId:null})},
  '@/lib/dino-coach/server':{getDinoCoachSettings:async()=>({rules_version:'current'})}, '@/lib/dino-coach/domain':{},
  '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'}),seasonAllowsTeamChanges:()=>true},
- '@/lib/server/public-errors':publicErrors
+ '@/lib/server/public-errors':publicErrors,
+ '@/lib/server/revalidate-public':{revalidateDinoStandingsCache:()=>{}}
 };
 const exports1={};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/api/fantasy/transfers/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:exports1,require:n=>{assert(n in imports,n);return imports[n];}});

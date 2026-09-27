@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { DEFAULT_SYNC_BATCH_SIZE, processFantasySyncBatch, retryFailedGames, startFantasySyncJob } from '@/lib/playhq/fantasy-sync';
 import { getFantasySyncHealth, previewFantasySeasonSync, runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -57,16 +58,20 @@ export async function POST(request: Request) {
         }, { headers: noStore });
       }
       const progress = await processFantasySyncBatch(started.job.id, Number(body.batchSize) || DEFAULT_SYNC_BATCH_SIZE);
+      // A batch can change roster team labels and match stats shown on public pages.
+      revalidateDinoPublicCache();
       return NextResponse.json({ success: true, jobId: started.job.id, queued: started.queued, ...progress }, { headers: noStore });
     }
     if (action === 'continue') {
       const jobId = String(body.jobId || '').trim();
       if (!jobId) return NextResponse.json({ success: false, error: 'jobId is required.' }, { status: 400, headers: noStore });
       const progress = await processFantasySyncBatch(jobId, Number(body.batchSize) || DEFAULT_SYNC_BATCH_SIZE);
+      revalidateDinoPublicCache();
       return NextResponse.json({ success: true, jobId, ...progress }, { headers: noStore });
     }
     if (action === 'orchestrate') {
       const result = await runFantasyOrchestrator({ invokedBy: `admin:${user.email}` });
+      revalidateDinoPublicCache();
       return NextResponse.json({ success: true, ...result }, { headers: noStore });
     }
     if (action === 'preview') {

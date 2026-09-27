@@ -103,6 +103,7 @@ const squad = load('app/api/fantasy/squad/route.ts', {
   '@/lib/dino-coach/domain': domain,
   '@/lib/dino-coach/server': { getDinoCoachSettings: async () => { if (settingsFailure) throw settingsFailure; return { rules_version: 'r1', public_launch_enabled: false, team_selection_open: false }; }, toPublicDinoCoachSettings: value => value },
   '@/lib/server/public-errors': { logRouteError: () => {}, publicRpcErrorMessage: (_error, fallback) => fallback },
+  '@/lib/server/revalidate-public': { revalidateDinoStandingsCache: () => {} },
 });
 (async () => {
   const post = () => squad.POST({ json: async () => ({ selection: [] }), url: 'https://example.invalid/api/fantasy/squad' });

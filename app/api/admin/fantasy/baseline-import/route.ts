@@ -9,6 +9,7 @@ import {
 } from '@/lib/dino-coach/baseline-import';
 import { getDinoReleaseReadiness } from '@/lib/dino-coach/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 const MAX_CSV_BYTES = 500_000;
@@ -151,6 +152,7 @@ export async function POST(request: Request) {
       throw new Error(applyResult.error.message);
     }
     const readiness = await getDinoReleaseReadiness(season.id).catch(() => null);
+    revalidateDinoPublicCache();
     return NextResponse.json({ success: true, batchId: batchResult.data.id, result: applyResult.data, readiness }, { headers: noStore });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Baseline import failed.' }, { status: 400, headers: noStore });

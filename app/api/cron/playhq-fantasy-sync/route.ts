@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
 import { isFantasySyncEnabled } from '@/lib/playhq/config';
 import { isAuthorizedCronRequest } from '@/lib/cron-auth';
+import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await runFantasyOrchestrator({ invokedBy: 'cron' });
+    revalidateDinoPublicCache();
     return NextResponse.json({ success: true, ran: result.ran, reason: result.reason ?? null, logs: result.logs });
   } catch (err) {
     return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Cron sync failed.' }, { status: 500 });

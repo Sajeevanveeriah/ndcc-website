@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getActivePlayersWithLatestPrices, getFantasySettings } from '@/lib/fantasy-game';
-import { resolveRequestSeason } from '@/lib/fantasy-seasons';
-import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
+import { toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
+import { getCachedActivePlayers, getCachedDinoCoachSettings, getCachedFantasySettings, resolveCachedRequestSeason } from '@/lib/server/dino-public-cache';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const season = await resolveRequestSeason(request);
+    const season = await resolveCachedRequestSeason(request);
     if (!season) return NextResponse.json({ success: false, error: 'No fantasy season is available.' }, { status: 404 });
-    const [settings, dinoSettings, players] = await Promise.all([getFantasySettings(season.id), getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id)]);
+    const [settings, dinoSettings, players] = await Promise.all([getCachedFantasySettings(season.id), getCachedDinoCoachSettings(season.id), getCachedActivePlayers(season.id)]);
     return NextResponse.json({
       success: true, season,
       settings: { ...settings, ...toPublicDinoCoachSettings(dinoSettings), is_registration_open: dinoSettings.public_launch_enabled && dinoSettings.registration_open, is_team_selection_open: dinoSettings.public_launch_enabled && dinoSettings.team_selection_open },

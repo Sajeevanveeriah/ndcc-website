@@ -3,6 +3,7 @@ import 'server-only';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { SITE_CHROME_TAG } from '@/lib/server/nav-visibility';
 import { SITEMAP_CACHE_TAG } from '@/lib/seo-sitemap';
+import { DINO_PUBLIC_CACHE_TAG, DINO_STANDINGS_CACHE_TAG } from '@/lib/dino-coach/public-cache-tag';
 
 /**
  * On-demand revalidation for the ISR public pages.
@@ -96,6 +97,22 @@ export function revalidateSitemap(): void {
 }
 
 /**
+ * Clear the shared 60-second public Dino Coach cache (seasons, settings, player
+ * prices, stats and leaderboards) after an admin or scheduled Dino write.
+ */
+export function revalidateDinoPublicCache(): void {
+  safe(() => revalidateTag(DINO_PUBLIC_CACHE_TAG));
+}
+
+/**
+ * Refresh only the cached public manager standings after a participant saves a
+ * squad, makes transfers or edits their team name.
+ */
+export function revalidateDinoStandingsCache(): void {
+  safe(() => revalidateTag(DINO_STANDINGS_CACHE_TAG));
+}
+
+/**
  * Revalidate the public pages affected by a change to `resource`.
  * Unknown or omitted resources revalidate the whole site (`/`, 'layout'),
  * which also covers the shared Navbar/Footer chrome.
@@ -103,6 +120,7 @@ export function revalidateSitemap(): void {
 export function revalidatePublicContent(resource?: string, detail?: Detail): void {
   // Any public content change can add or remove sitemap entries.
   revalidateSitemap();
+  if (!resource || resource.startsWith('fantasy')) revalidateDinoPublicCache();
   const paths = resource ? RESOURCE_PATHS[resource] : undefined;
   if (!resource || !paths) {
     safe(() => revalidatePath('/', 'layout'));

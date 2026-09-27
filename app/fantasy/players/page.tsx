@@ -1,15 +1,14 @@
-import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import Card, { CardContent } from '@/components/ui/Card';
-import { getActivePlayersWithLatestPrices, type FantasyPlayerWithPrice } from '@/lib/fantasy-game';
-import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
+import type { FantasyPlayerWithPrice } from '@/lib/fantasy-game';
 import { isServerSupabaseConfigured } from '@/lib/supabase-server';
 import FantasyBackLink from '@/components/fantasy/FantasyBackLink';
 import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 import PlayerListExplorer, { type PlayerListEntry } from '@/app/fantasy/_components/PlayerListExplorer';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
-import { getSeasonPageContext, seasonStatusLabel, type FantasySeason } from '@/lib/fantasy-seasons';
+import { seasonStatusLabel, type FantasySeason } from '@/lib/fantasy-seasons';
+import { getCachedActivePlayers, getCachedPlayerStats, getCachedPublishedLeaderboard, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,17 +19,17 @@ async function getPlayers(season: FantasySeason | null): Promise<{ players: Play
   if (!isServerSupabaseConfigured() || !season) return { players: [], hasPublishedPoints: false, loadFailed: false };
 
   try {
-    const roster: FantasyPlayerWithPrice[] = await getActivePlayersWithLatestPrices(season.id);
+    const roster: FantasyPlayerWithPrice[] = await getCachedActivePlayers(season.id);
     // Published leaderboard totals give the list its points/form sorting; a
     // failure here degrades to the plain roster rather than failing the page.
     let pointsByPlayer = new Map<string, { total: number; matches: number }>();
     try {
-      const leaderboard = await getPublishedFantasyLeaderboard(null, season.id);
+      const leaderboard = await getCachedPublishedLeaderboard(null, season.id);
       pointsByPlayer = new Map(leaderboard.rows.map((row) => [row.playerId, { total: row.totalFantasyPoints, matches: row.matchesCounted }]));
     } catch (err) {
       console.error('[fantasy/players] Failed to load published points; listing roster without points:', err);
     }
-    const stats = await getPlayerStats(season.id, roster);
+    const stats = await getCachedPlayerStats(season.id, roster);
     return {
       players: roster.map((player) => ({
         ...player,
@@ -49,7 +48,7 @@ async function getPlayers(season: FantasySeason | null): Promise<{ players: Play
 
 export default async function FantasyPlayersPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;
-  const seasonContext = await getSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
+  const seasonContext = await getCachedSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
   const { players, hasPublishedPoints, loadFailed } = await getPlayers(seasonContext.selected);
 
   return (
