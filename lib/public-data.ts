@@ -72,15 +72,20 @@ export function scheduledVisibilityFilter(now: number = Date.now()): string {
 // rows in production.
 async function getPublishedEventsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
-  const query = (scheduled: boolean) => {
+  const query = (scheduled: boolean, withMode = true) => {
     const base = supabase
       .from('events')
-      .select('id,title,description,date,location,capacity,ticket_price,published,image_url')
+      .select(withMode
+        ? 'id,title,description,date,location,capacity,ticket_price,published,image_url,registration_mode'
+        : 'id,title,description,date,location,capacity,ticket_price,published,image_url')
       .eq('published', true);
     return (scheduled ? base.or(scheduledVisibilityFilter()) : base).order('date', { ascending: true });
   };
   let { data, error } = await query(true);
-  if (isMissingPublishedAtColumn(error)) ({ data, error } = await query(false));
+  // registration_mode arrives with 20260927140000_event_song_requests; keep
+  // listing events (as ticket events) if the application deploys first.
+  if (/registration_mode/.test(error?.message || '')) ({ data, error } = await query(true, false));
+  if (isMissingPublishedAtColumn(error)) ({ data, error } = await query(false, false));
   return { data: data ?? [], error: error?.message ?? null };
 }
 
@@ -154,7 +159,7 @@ export async function getPublicEvents(): Promise<PublicDataResult<Event[]>> {
     // A successful empty result is live truth (e.g. every event unpublished) — the
     // page renders its empty state rather than resurrecting stale seed content.
     return {
-      data: (data as Event[]).map((event) => ({
+      data: (data as unknown as Event[]).map((event) => ({
         ...event,
         image_url: normalizeEventImage(event.title, event.image_url || null),
       })),

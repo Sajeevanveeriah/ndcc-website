@@ -42,13 +42,21 @@ const PREVIOUS = {
   raffle_staff: ['ndsc.cricket@gmail.com', 'ndcc.vicepres@gmail.com', 'ndcc.secretary1@gmail.com'],
   receipt_copy: ['ndcc.secretary1@gmail.com', 'ndsc.cricket@gmail.com'],
   contact: ['ndcc.secretary1@gmail.com'],
+  // Added with song-request events (20260927160000); not in the WP6a seed.
+  event_song_requests: ['ndcc.secretary1@gmail.com'],
 };
 
 const migration = readFileSync('supabase/migrations/20260927060000_notification_recipients.sql', 'utf8');
 
+const songMigration = readFileSync('supabase/migrations/20260927160000_notification_event_song_requests.sql', 'utf8');
+
 function seededRecipients() {
   const values = migration.split('insert into public.notification_recipients')[1].split(';')[0];
   const rows = [...values.matchAll(/\('([a-z_]+)', '([^']+)', (\d+)\)/g)].map(([, event_type, email, sort]) => ({ event_type, email, sort_order: Number(sort), active: true }));
+  // Later seeds use insert ... select 'type', 'email', sort.
+  for (const [, event_type, email, sort] of songMigration.matchAll(/select '([a-z_]+)', '([^']+)', (\d+)/g)) {
+    rows.push({ event_type, email, sort_order: Number(sort), active: true });
+  }
   return core.groupActiveRecipients(rows);
 }
 
@@ -64,7 +72,8 @@ await test('migration seeds exactly the fallback recipients, in order, so routin
 });
 
 await test('migration event type check list matches the application list', () => {
-  const check = migration.match(/event_type text not null check \(event_type in \(([\s\S]*?)\)\)/)[1];
+  // The latest migration that redefines the event_type check is authoritative.
+  const check = songMigration.match(/check \(event_type in \(([\s\S]*?)\)\)/)[1];
   assert.deepEqual([...check.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort(), Object.keys(PREVIOUS).sort());
 });
 

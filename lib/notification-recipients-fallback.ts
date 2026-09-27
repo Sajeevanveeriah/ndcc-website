@@ -13,6 +13,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   'raffle_staff',
   'receipt_copy',
   'contact',
+  'event_song_requests',
 ] as const;
 
 export type NotificationEventType = (typeof NOTIFICATION_EVENT_TYPES)[number];
@@ -46,6 +47,10 @@ export const NOTIFICATION_EVENT_LABELS: Readonly<Record<NotificationEventType, {
     label: 'Website enquiries',
     description: 'Receive enquiries submitted through the Contact page. The first address is the main recipient.',
   },
+  event_song_requests: {
+    label: 'Song request entries',
+    description: 'Receive each song-request event entry (for example iPod Shuffle) with the buyer and their song list.',
+  },
 };
 
 export const FALLBACK_SECRETARY_EMAIL = 'ndcc.secretary1@gmail.com';
@@ -58,6 +63,7 @@ export const FALLBACK_NOTIFICATION_RECIPIENTS: Readonly<Record<NotificationEvent
   raffle_staff: ['ndsc.cricket@gmail.com', 'ndcc.vicepres@gmail.com', FALLBACK_SECRETARY_EMAIL],
   receipt_copy: [FALLBACK_SECRETARY_EMAIL, 'ndsc.cricket@gmail.com'],
   contact: [FALLBACK_SECRETARY_EMAIL],
+  event_song_requests: [FALLBACK_SECRETARY_EMAIL],
 };
 
 export function isNotificationEventType(value: unknown): value is NotificationEventType {

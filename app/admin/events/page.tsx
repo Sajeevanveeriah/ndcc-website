@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { formatDate, formatCurrency, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
@@ -25,9 +26,12 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   location: '',
   capacity: null,
   ticket_price: 0,
+  registration_mode: 'tickets',
   image_url: '',
   published: false,
 };
+
+type SongPotOrder = { id: string; order_category?: string | null; payment_status?: string | null; total_amount?: number | string | null };
 
 function isScheduled(event: Event) {
   const at = (event as Event & { published_at?: string | null }).published_at;
@@ -40,6 +44,8 @@ function asSafeString(value: unknown) {
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  // undefined while loading, null if the load failed.
+  const [songPotOrders, setSongPotOrders] = useState<SongPotOrder[] | null | undefined>(undefined);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [registrationsLoading, setRegistrationsLoading] = useState(true);
@@ -57,11 +63,13 @@ export default function AdminEventsPage() {
   // Optional scheduled publishing (events.published_at). Blank = visible as soon as published.
   const [publishAt, setPublishAt] = useState('');
   const [editingHasSchedule, setEditingHasSchedule] = useState(false);
+  const [editingHasMode, setEditingHasMode] = useState(false);
   const draft = useDraftAutosave({ editor: 'events', recordId: editingId, value: form, active: modalOpen });
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
     const saved = draft.restoreDraft();
-    if (saved) setForm(saved);
+    // Drafts saved before registration_mode existed keep the form's current (live) mode.
+    if (saved) setForm((current) => ({ ...saved, registration_mode: saved.registration_mode ?? current.registration_mode }));
   };
 
   const fetchEvents = async () => {
@@ -94,10 +102,25 @@ export default function AdminEventsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The song pot uses the canonical paid orders, not the event's current price.
+  const hasSongEvent = events.some((event) => event.registration_mode === 'song_requests')
+    || registrations.some((registration) => (registration.song_requests?.length ?? 0) > 0);
+  useEffect(() => {
+    if (!hasSongEvent) return;
+    let cancelled = false;
+    // Include soft-deleted orders: a deleted paid order still holds collected money.
+    adminFetch('/api/admin/resources/orders?deleted=include', { cache: 'no-store' })
+      .then((response) => parseApiResponse<{ data?: SongPotOrder[] }>(response))
+      .then((result) => { if (!cancelled) setSongPotOrders((result.data || []).filter((order) => order.order_category === 'event')); })
+      .catch(() => { if (!cancelled) setSongPotOrders(null); });
+    return () => { cancelled = true; };
+  }, [hasSongEvent]);
+
   const openCreate = () => {
     setEditingId(null);
     setPublishAt('');
     setEditingHasSchedule(false);
+    setEditingHasMode(false);
     setForm(emptyEvent);
     setFormErrors({});
     setFeedback(null);
@@ -110,6 +133,9 @@ export default function AdminEventsPage() {
     const scheduledAt = (event as Event & { published_at?: string | null }).published_at;
     setPublishAt(typeof scheduledAt === 'string' && scheduledAt ? toDatetimeLocalInClubTimezone(scheduledAt) : '');
     setEditingHasSchedule('published_at' in event);
+    // Restored snapshots may predate registration_mode; take it from the live row.
+    const modeSource = 'registration_mode' in event ? event : events.find((current) => current.id === event.id);
+    setEditingHasMode(Boolean(modeSource && 'registration_mode' in modeSource));
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
@@ -117,6 +143,7 @@ export default function AdminEventsPage() {
       location: asSafeString(event.location),
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
+      registration_mode: (('registration_mode' in event ? event : events.find((current) => current.id === event.id)) ?? event).registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
       image_url: asSafeString(event.image_url),
       published: !!event.published,
     });
@@ -149,6 +176,11 @@ export default function AdminEventsPage() {
         location: asSafeString(form.location).trim(),
         capacity: form.capacity,
         ticket_price: form.ticket_price,
+        // Sent only for song events, or when the row already has the column, so
+        // ticket-event saves keep working before the song migration is applied.
+        ...(form.registration_mode === 'song_requests' || editingHasMode
+          ? { registration_mode: form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets' }
+          : {}),
         image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
         // Sent only when set, or when clearing an existing schedule, so saving
@@ -365,6 +397,30 @@ export default function AdminEventsPage() {
 
       <div className="mt-10">
         <h2 className="text-xl font-display font-bold text-content-primary mb-3">Event Registrations</h2>
+        {/* Keep pots visible for any event with song entries, even after a mode change. */}
+        {events.filter((event) => event.registration_mode === 'song_requests'
+          || registrations.some((registration) => registration.event_id === event.id && (registration.song_requests?.length ?? 0) > 0)).map((event) => {
+          const ordersById = new Map((songPotOrders || []).map((order) => [order.id, order]));
+          const paidEntries = registrations
+            // Only song entries count; earlier ticket registrations stay out of the pot.
+            .filter((registration) => registration.event_id === event.id && registration.order_id && (registration.song_requests?.length ?? 0) > 0)
+            .map((registration) => ({ registration, order: ordersById.get(registration.order_id as string) }))
+            .filter(({ order }) => order?.payment_status === 'paid');
+          const paidSongs = paidEntries.reduce((sum, { registration }) => sum + (registration.song_requests?.length ?? 0), 0);
+          const pot = paidEntries.reduce((sum, { order }) => sum + Number(order?.total_amount || 0), 0);
+          return (
+            <div key={event.id} className="bg-surface-card rounded-xl border border-edge-subtle p-4 mb-3 text-sm">
+              <p className="font-semibold text-content-primary">{event.title}: song pot</p>
+              {registrationsLoading || songPotOrders === undefined ? (
+                <p className="text-content-secondary">Loading paid orders...</p>
+              ) : songPotOrders === null ? (
+                <p className="text-content-secondary">Paid orders could not be loaded. Reload the page to see the pot.</p>
+              ) : (
+                <p className="text-content-secondary">Paid songs: {paidSongs}. Pot (paid order totals): {formatCurrency(pot)}. Half the pot: {formatCurrency(pot / 2)}. Unpaid entries are excluded.</p>
+              )}
+            </div>
+          );
+        })}
         {registrationsLoading ? (
           <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">Loading registrations...</div>
         ) : registrations.length === 0 ? (
@@ -373,10 +429,12 @@ export default function AdminEventsPage() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableHeader>Event</TableHeader>
                 <TableHeader>Name</TableHeader>
                 <TableHeader>Email</TableHeader>
                 <TableHeader>Phone</TableHeader>
                 <TableHeader>Qty</TableHeader>
+                <TableHeader>Songs</TableHeader>
                 <TableHeader>Payment Ref</TableHeader>
                 <TableHeader>Payment</TableHeader>
                 <TableHeader>Processed</TableHeader>
@@ -387,12 +445,31 @@ export default function AdminEventsPage() {
             <TableBody>
               {registrations.map((registration) => (
                 <TableRow key={registration.id}>
+                  <TableCell>{events.find((event) => event.id === registration.event_id)?.title || '-'}</TableCell>
                   <TableCell className="font-medium">{registration.name}</TableCell>
                   <TableCell>{registration.email}</TableCell>
                   <TableCell>{registration.phone || '-'}</TableCell>
                   <TableCell>{registration.quantity}</TableCell>
+                  <TableCell>
+                    {registration.song_requests?.length ? (
+                      <ol className="list-decimal pl-4 text-xs space-y-0.5">
+                        {registration.song_requests.map((song, index) => (
+                          <li key={index}>{song.artist ? `${song.title} - ${song.artist}` : song.title}</li>
+                        ))}
+                      </ol>
+                    ) : '-'}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{registration.payment_reference || '-'}</TableCell>
                   <TableCell>
+                    {/* Song entries are paid through the order ledger so the pot stays exact. */}
+                    {registration.order_id && (registration.song_requests?.length ?? 0) > 0 ? (
+                      <Link
+                        href={`/admin/orders?group=${encodeURIComponent(`event:${events.find((event) => event.id === registration.event_id)?.title || ''}`)}${registration.payment_reference ? `&reference=${encodeURIComponent(registration.payment_reference)}` : ''}`}
+                        className="text-sm underline underline-offset-4"
+                      >
+                        {registration.payment_status === 'paid' ? 'Paid (order)' : 'Record payment in Orders'}
+                      </Link>
+                    ) : (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -403,6 +480,7 @@ export default function AdminEventsPage() {
                     >
                       {registration.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                     </Button>
+                    )}
                   </TableCell>
                   <TableCell>
                     <label className="inline-flex items-center gap-2 text-xs">
@@ -491,7 +569,7 @@ export default function AdminEventsPage() {
             />
             <Input
               id="event-price"
-              label="Ticket Price ($)"
+              label={form.registration_mode === 'song_requests' ? 'Price per song ($)' : 'Ticket Price ($)'}
               type="number"
               min="0"
               step="0.01"
@@ -501,6 +579,18 @@ export default function AdminEventsPage() {
               }
               error={formErrors.ticket_price}
             />
+          </div>
+          <div className="w-full">
+            <label htmlFor="event-registration-mode" className="form-label">Registration type</label>
+            <select
+              id="event-registration-mode"
+              className="form-input"
+              value={form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets'}
+              onChange={(e) => setForm({ ...form, registration_mode: e.target.value === 'song_requests' ? 'song_requests' : 'tickets' })}
+            >
+              <option value="tickets">Tickets (price per ticket)</option>
+              <option value="song_requests">Song requests (entry by buying named songs, price per song)</option>
+            </select>
           </div>
           <ImageUploadField
             id="event-image-url"

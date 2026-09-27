@@ -96,6 +96,9 @@ export const validateEventPayload = combine(
   text({ field: 'location', label: 'Location', max: 200 }),
   number({ field: 'capacity', label: 'Capacity', nullable: true, integer: true, min: 0, max: 100000 }),
   number({ field: 'ticket_price', label: 'Ticket price', nullable: true, min: 0, max: 100000 }),
+  (payload) => supplied(payload, 'registration_mode') && !['tickets', 'song_requests'].includes(String(payload.registration_mode))
+    ? 'Registration type must be tickets or song requests.'
+    : null,
   bool('published', 'Published'),
 );
 
