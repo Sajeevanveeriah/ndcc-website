@@ -1,7 +1,9 @@
 -- Option 2: two women in the squad, including at least one in the playing XI.
--- Rollback: set women_rule_enabled=false for the affected season and restore
--- rules_version='2026-27-rev06'. Keep eligibility records and accepted versions;
--- never rewrite a manager's rules acceptance. Revert the application separately.
+-- Rollback: set women_rule_enabled=false for the affected season. Retain the
+-- current rules_version and every manager's recorded acceptance, so managers
+-- who accepted the current version remain eligible. Keep eligibility records.
+-- Communicate the suspended minimum and revert the application separately;
+-- never downgrade the required version or rewrite a manager's acceptance.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 
