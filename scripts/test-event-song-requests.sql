@@ -36,6 +36,16 @@ BEGIN
     RAISE EXCEPTION '31 songs accepted in one order';
   EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
   END;
+  -- Ticket registrations cannot be stored against a song event (mode checked under the row lock).
+  BEGIN
+    PERFORM public.ndcc_register_event_attendee(song_event,'F','f@example.invalid','0400000000',1,'pending_bank_transfer',null,null);
+    RAISE EXCEPTION 'Ticket registration accepted for a song event';
+  EXCEPTION WHEN SQLSTATE 'P0001' THEN
+    IF SQLERRM NOT LIKE 'Event registration unavailable%' THEN RAISE; END IF;
+  END;
+  IF coalesce(current_setting('ndcc.song_entry', true), '')<>'' THEN RAISE EXCEPTION 'Song entry marker leaked'; END IF;
+  -- Ticket events still register normally.
+  PERFORM public.ndcc_register_event_attendee(ticket_event,'F','f@example.invalid','0400000000',2,'pending_bank_transfer',null,null);
   BEGIN
     UPDATE public.events SET registration_mode='raffle' WHERE id=song_event;
     RAISE EXCEPTION 'Unknown registration mode accepted';

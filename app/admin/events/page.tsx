@@ -101,7 +101,8 @@ export default function AdminEventsPage() {
   }, []);
 
   // The song pot uses the canonical paid orders, not the event's current price.
-  const hasSongEvent = events.some((event) => event.registration_mode === 'song_requests');
+  const hasSongEvent = events.some((event) => event.registration_mode === 'song_requests')
+    || registrations.some((registration) => (registration.song_requests?.length ?? 0) > 0);
   useEffect(() => {
     if (!hasSongEvent) return;
     let cancelled = false;
@@ -391,7 +392,9 @@ export default function AdminEventsPage() {
 
       <div className="mt-10">
         <h2 className="text-xl font-display font-bold text-content-primary mb-3">Event Registrations</h2>
-        {events.filter((event) => event.registration_mode === 'song_requests').map((event) => {
+        {/* Keep pots visible for any event with song entries, even after a mode change. */}
+        {events.filter((event) => event.registration_mode === 'song_requests'
+          || registrations.some((registration) => registration.event_id === event.id && (registration.song_requests?.length ?? 0) > 0)).map((event) => {
           const ordersById = new Map((songPotOrders || []).map((order) => [order.id, order]));
           const paidEntries = registrations
             // Only song entries count; earlier ticket registrations stay out of the pot.

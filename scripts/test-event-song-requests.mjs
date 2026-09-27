@@ -54,6 +54,7 @@ assert.match(migration, /ndcc_register_event_attendee\(\s*p_event_id, p_name, p_
 const publicData = readFileSync(new URL('../lib/public-data.ts', import.meta.url), 'utf8');
 assert.match(publicData, /\/registration_mode\/\.test\(error\?\.message \|\| ''\)\) \(\{ data, error \} = await query\(true, false\)\)/, 'events still list if the registration_mode column is missing');
 const adminEvents = readFileSync(new URL('../app/admin/events/page.tsx', import.meta.url), 'utf8');
+assert.match(adminEvents, /\|\| registrations\.some\(\(registration\) => registration\.event_id === event\.id && \(registration\.song_requests\?\.length \?\? 0\) > 0\)/, 'pots stay visible after a mode change');
 assert.match(adminEvents, /sum \+ Number\(order\?\.total_amount \|\| 0\)/, 'the song pot uses paid order totals, not the current price');
 assert.match(adminEvents, /registration\.order_id && \(registration\.song_requests\?\.length \?\? 0\) > 0/, 'ticket registrations never enter the song pot');
 assert.match(adminEvents, /form\.registration_mode === 'song_requests' \|\| editingHasMode/, 'ticket saves omit registration_mode unless the row has it');
