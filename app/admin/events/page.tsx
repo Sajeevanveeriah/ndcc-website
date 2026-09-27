@@ -30,6 +30,8 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   published: false,
 };
 
+type SongPotOrder = { id: string; order_category?: string | null; payment_status?: string | null; total_amount?: number | string | null };
+
 function isScheduled(event: Event) {
   const at = (event as Event & { published_at?: string | null }).published_at;
   return typeof at === 'string' && Date.parse(at) > Date.now();
@@ -41,6 +43,7 @@ function asSafeString(value: unknown) {
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [songPotOrders, setSongPotOrders] = useState<SongPotOrder[] | null>([]);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [registrationsLoading, setRegistrationsLoading] = useState(true);
@@ -94,6 +97,18 @@ export default function AdminEventsPage() {
     fetchRegistrations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The song pot uses the canonical paid orders, not the event's current price.
+  const hasSongEvent = events.some((event) => event.registration_mode === 'song_requests');
+  useEffect(() => {
+    if (!hasSongEvent) return;
+    let cancelled = false;
+    adminFetch('/api/admin/resources/orders', { cache: 'no-store' })
+      .then((response) => parseApiResponse<{ data?: SongPotOrder[] }>(response))
+      .then((result) => { if (!cancelled) setSongPotOrders((result.data || []).filter((order) => order.order_category === 'event')); })
+      .catch(() => { if (!cancelled) setSongPotOrders(null); });
+    return () => { cancelled = true; };
+  }, [hasSongEvent]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -369,15 +384,21 @@ export default function AdminEventsPage() {
       <div className="mt-10">
         <h2 className="text-xl font-display font-bold text-content-primary mb-3">Event Registrations</h2>
         {events.filter((event) => event.registration_mode === 'song_requests').map((event) => {
-          const entries = registrations.filter((registration) => registration.event_id === event.id);
-          const paidSongs = entries
-            .filter((registration) => registration.payment_status === 'paid')
-            .reduce((sum, registration) => sum + (registration.song_requests?.length ?? 0), 0);
-          const pot = paidSongs * Number(event.ticket_price || 0);
+          const ordersById = new Map((songPotOrders || []).map((order) => [order.id, order]));
+          const paidEntries = registrations
+            .filter((registration) => registration.event_id === event.id && registration.order_id)
+            .map((registration) => ({ registration, order: ordersById.get(registration.order_id as string) }))
+            .filter(({ order }) => order?.payment_status === 'paid');
+          const paidSongs = paidEntries.reduce((sum, { registration }) => sum + (registration.song_requests?.length ?? 0), 0);
+          const pot = paidEntries.reduce((sum, { order }) => sum + Number(order?.total_amount || 0), 0);
           return (
             <div key={event.id} className="bg-surface-card rounded-xl border border-edge-subtle p-4 mb-3 text-sm">
               <p className="font-semibold text-content-primary">{event.title}: song pot</p>
-              <p className="text-content-secondary">Paid songs: {paidSongs}. Pot: {formatCurrency(pot)}. Half the pot: {formatCurrency(pot / 2)}. Unpaid entries are excluded.</p>
+              {songPotOrders === null ? (
+                <p className="text-content-secondary">Paid orders could not be loaded. Reload the page to see the pot.</p>
+              ) : (
+                <p className="text-content-secondary">Paid songs: {paidSongs}. Pot (paid order totals): {formatCurrency(pot)}. Half the pot: {formatCurrency(pot / 2)}. Unpaid entries are excluded.</p>
+              )}
             </div>
           );
         })}

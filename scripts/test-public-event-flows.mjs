@@ -138,9 +138,9 @@ assert.equal((await response.json()).total_amount, 30);
 assert.equal(writes[0].table, 'orders');
 assert.equal(writes[0].value.total_amount, 30);
 assert.deepEqual(writes[0].value.items.map(item => [item.name, item.size, item.quantity, item.price]), [
-  ['Club event song: Thunderstruck - AC/DC', 'song', 1, 10],
-  ['Club event song: Mr Brightside', 'song', 1, 10],
-  ['Club event song: Dancing Queen - ABBA', 'song', 1, 10],
+  ['Club event', 'Song: Thunderstruck - AC/DC', 1, 10],
+  ['Club event', 'Song: Mr Brightside', 1, 10],
+  ['Club event', 'Song: Dancing Queen - ABBA', 1, 10],
 ]);
 assert.equal(rpcCalls.length, 1);
 assert.equal(rpcCalls[0].name, 'ndcc_register_event_song_entry');

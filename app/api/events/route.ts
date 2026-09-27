@@ -194,9 +194,11 @@ export async function POST(request: Request) {
           customer_email: sanitiseInput(email),
           customer_phone: sanitiseInput(phone),
           items: songEvent
+            // The first item name is the event's purchase-group key
+            // (lib/orders/purchase-groups.ts), so it stays the event title.
             ? songRequests.map((song) => ({
-              name: `${eventRow.title} song: ${songLabel(song)}`,
-              size: 'song',
+              name: eventRow.title,
+              size: `Song: ${songLabel(song)}`,
               quantity: 1,
               price: ticketPrice,
             }))

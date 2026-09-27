@@ -40,7 +40,7 @@ assert.equal(isSongRequestEvent(null), false);
 const route = readFileSync(new URL('../app/api/events/route.ts', import.meta.url), 'utf8');
 assert.match(route, /songEvent !== hasSongs/, 'song events require songs and ticket events refuse them');
 assert.match(route, /const totalCents = ticketPriceCents \* unitCount/, 'song entries are charged per song');
-assert.match(route, /size: 'song'/, 'each song is its own order line');
+assert.match(route, /name: eventRow\.title,\s*size: `Song: \$\{songLabel\(song\)\}`/, 'each song is its own order line under the event purchase group');
 assert.match(route, /ndcc_register_event_song_entry/, 'songs are stored atomically with the entry');
 assert.match(route, /!songEvent && isMissingRegistrationRpc/, 'song entries never fall back to a plain insert without songs');
 
@@ -50,5 +50,10 @@ assert.match(migration, /jsonb_array_length\(song_requests\) between 1 and 30/);
 assert.match(migration, /revoke all on function public\.ndcc_register_event_song_entry[^;]+from public, anon, authenticated/);
 assert.match(migration, /grant execute on function public\.ndcc_register_event_song_entry[^;]+to service_role/);
 assert.match(migration, /ndcc_register_event_attendee\(\s*p_event_id, p_name, p_email, p_phone, 1,/, 'reuses the locked attendee function for one entrant');
+
+const publicData = readFileSync(new URL('../lib/public-data.ts', import.meta.url), 'utf8');
+assert.match(publicData, /\/registration_mode\/\.test\(error\?\.message \|\| ''\)\) \(\{ data, error \} = await query\(true, false\)\)/, 'events still list if the registration_mode column is missing');
+const adminEvents = readFileSync(new URL('../app/admin/events/page.tsx', import.meta.url), 'utf8');
+assert.match(adminEvents, /sum \+ Number\(order\?\.total_amount \|\| 0\)/, 'the song pot uses paid order totals, not the current price');
 
 console.log('PASS event song requests: validation, limits, labels, per-song pricing, atomic storage and privileges');

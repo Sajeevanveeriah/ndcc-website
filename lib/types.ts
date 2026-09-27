@@ -78,6 +78,7 @@ export interface EventRegistration {
   payment_reference?: string | null;
   processed?: boolean;
   song_requests?: Array<{ title: string; artist?: string }> | null;
+  order_id?: string | null;
   created_at: string;
 }
 
