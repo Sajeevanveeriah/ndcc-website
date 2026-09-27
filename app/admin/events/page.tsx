@@ -131,7 +131,9 @@ export default function AdminEventsPage() {
     const scheduledAt = (event as Event & { published_at?: string | null }).published_at;
     setPublishAt(typeof scheduledAt === 'string' && scheduledAt ? toDatetimeLocalInClubTimezone(scheduledAt) : '');
     setEditingHasSchedule('published_at' in event);
-    setEditingHasMode('registration_mode' in event);
+    // Restored snapshots may predate registration_mode; take it from the live row.
+    const modeSource = 'registration_mode' in event ? event : events.find((current) => current.id === event.id);
+    setEditingHasMode(Boolean(modeSource && 'registration_mode' in modeSource));
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
@@ -139,7 +141,7 @@ export default function AdminEventsPage() {
       location: asSafeString(event.location),
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
-      registration_mode: event.registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
+      registration_mode: (('registration_mode' in event ? event : events.find((current) => current.id === event.id)) ?? event).registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
       image_url: asSafeString(event.image_url),
       published: !!event.published,
     });

@@ -62,4 +62,6 @@ assert.match(adminEvents, /registration\.order_id && \(registration\.song_reques
 
 assert.match(adminEvents, /registrationsLoading \|\| songPotOrders === undefined/, 'no pot figure is shown until registrations and orders have loaded');
 
+assert.match(adminEvents, /const modeSource = 'registration_mode' in event \? event : events\.find/, 'restored snapshots take the registration mode from the live row');
+
 console.log('PASS event song requests: validation, limits, labels, per-song pricing, atomic storage and privileges');
