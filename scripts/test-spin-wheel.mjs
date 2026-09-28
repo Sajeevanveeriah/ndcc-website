@@ -1,0 +1,221 @@
+// Deterministic Spin the Wheel tests: weighted server pick, odds maths,
+// wheel geometry round trip, input validation mirrors, result references,
+// spin pass tokens, escaped emails, public data shape and route wiring.
+// No database, network, Stripe or email.
+import assert from 'node:assert/strict';
+import { deepEqual as loose } from 'node:assert';
+import crypto from 'node:crypto';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import ts from 'typescript';
+
+function load(file, dependencies = {}) {
+  const exports = {};
+  vm.runInNewContext(ts.transpileModule(readFileSync(file, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText, { exports, URL, Buffer, process, console, Intl, Date, Math, Number, Set, Map, Array, Object, String, JSON, Error,
+    require(name) { if (name === 'server-only') return {}; assert.ok(name in dependencies, `unexpected import ${name} in ${file}`); return dependencies[name]; },
+  });
+  return exports;
+}
+
+const rules = load('lib/spin-wheel/rules.ts');
+const random = load('lib/spin-wheel/random.ts', { 'node:crypto': crypto, '@/lib/spin-wheel/rules': rules });
+const pass = load('lib/spin-wheel/pass.ts', { 'node:crypto': crypto });
+const email = load('lib/spin-wheel/email.ts', { '@/lib/email-html': load('lib/email-html.ts') });
+const geometry = load('lib/prize-wheel/wheel-geometry.ts');
+
+// ---- Weighted pick: exact boundaries with an injected source ----
+const segs = [
+  { id: 'a', weight: 1, stock: null },
+  { id: 'b', weight: 0, stock: null },   // never
+  { id: 'c', weight: 3, stock: 0 },      // out of stock: never
+  { id: 'd', weight: 2, stock: 5 },
+  { id: 'e', weight: 7, stock: null },
+];
+// Pickable: a(1) d(2) e(7), total 10.
+const pickWith = value => random.pickWeightedSegment(segs, new Set(), (min, max) => { assert.equal(min, 0); assert.equal(max, 10); return value; }).segment.id;
+assert.equal(pickWith(0), 'a');
+assert.equal(pickWith(1), 'd');
+assert.equal(pickWith(2), 'd');
+assert.equal(pickWith(3), 'e');
+assert.equal(pickWith(9), 'e');
+assert.match(random.pickWeightedSegment(segs, new Set(), () => 4).randomSource, /^node:crypto\.randomInt\(0,10\)=4$/);
+assert.equal(random.pickWeightedSegment(segs, new Set(['e']), (min, max) => { assert.equal(max, 3); return 2; }).segment.id, 'd', 'excluded segments are skipped');
+assert.throws(() => random.pickWeightedSegment([{ id: 'x', weight: 0, stock: null }, { id: 'y', weight: 4, stock: 0 }]), /No segment/);
+assert.throws(() => random.pickWeightedSegment(segs, new Set(), () => 10), /outside/);
+assert.throws(() => random.pickWeightedSegment(segs, new Set(), () => -1), /outside/);
+
+// ---- Statistical sanity with the real CSPRNG ----
+const counts = { a: 0, d: 0, e: 0 };
+const draws = 100_000;
+for (let i = 0; i < draws; i += 1) counts[random.pickWeightedSegment(segs).segment.id] += 1;
+for (const [id, share] of [['a', 0.1], ['d', 0.2], ['e', 0.7]]) {
+  assert.ok(Math.abs(counts[id] / draws - share) < 0.01, `${id} frequency ${counts[id] / draws} should be near ${share}`);
+}
+
+// ---- Probabilities shown to the committee match the picker ----
+loose(rules.segmentProbabilities(segs).map(p => Math.round(p * 1000) / 1000), [0.1, 0, 0, 0.2, 0.7]);
+assert.equal(rules.formatPercent(0), '0%');
+assert.equal(rules.formatPercent(0.0005), '<0.1%');
+assert.equal(rules.formatPercent(0.05), '5.0%');
+assert.equal(rules.formatPercent(0.7), '70%');
+
+// ---- Geometry: the wheel lands on the recorded segment ----
+for (const count of [2, 8, 12, 24, 48]) {
+  let rotation = 0;
+  for (let target = 1; target <= count; target += 1) {
+    rotation = geometry.rotationForNumber(target, count, rotation, 6);
+    assert.equal(geometry.numberAtPointer(rotation, count), target, `${count} segments, target ${target}`);
+    const step = 360 / count;
+    for (const jitter of [-0.29 * step, 0.29 * step]) assert.equal(geometry.numberAtPointer(rotation - jitter, count), target, 'client jitter stays inside the segment');
+  }
+}
+
+// ---- Validation mirrors the database ----
+const segment = (over = {}) => ({ id: null, label: 'Try again', prize_name: null, prize_description: null, is_prize: false, weight: 1, stock: null, colour: 'maroon', ...over });
+const base = {
+  id: null, name: 'Dinos Spin', description: null, status: 'live', starts_at: null, ends_at: null, free_spins_per_account: 1,
+  spin_price_cents: 200, max_spins_per_order: 20, claim_instructions: null, public_visibility_mode: 'visible', public_opens_at: null,
+  segments: [segment(), segment({ label: 'Cap', is_prize: true, prize_name: 'Club cap', stock: 3 })],
+};
+loose(rules.validateSpinWheel(base), []);
+assert.ok(rules.validateSpinWheel({ ...base, segments: [segment()] }).some(e => e.includes('2 to 48 segments')));
+assert.ok(rules.validateSpinWheel({ ...base, segments: Array.from({ length: 49 }, () => segment()) }).some(e => e.includes('2 to 48 segments')));
+assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ weight: 0 }), segment({ weight: 0 })] }).some(e => e.includes('above 0')));
+assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ is_prize: true }), segment()] }).some(e => e.includes('needs a prize name')));
+assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ label: 'x'.repeat(25) }), segment()] }).some(e => e.includes('label')));
+assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ weight: 1.5 }), segment()] }).some(e => e.includes('odds weight')));
+assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ stock: -1 }), segment()] }).some(e => e.includes('stock')));
+assert.ok(rules.validateSpinWheel({ ...base, spin_price_cents: 49 }).some(e => e.includes('spin price')));
+loose(rules.validateSpinWheel({ ...base, spin_price_cents: null }), [], 'blank price turns paid spins off');
+assert.ok(rules.validateSpinWheel({ ...base, free_spins_per_account: 101 }).some(e => e.includes('Free spins')));
+assert.ok(rules.validateSpinWheel({ ...base, starts_at: '2026-10-02T00:00:00Z', ends_at: '2026-10-01T00:00:00Z' }).some(e => e.includes('after the start')));
+assert.ok(rules.validateSpinWheel({ ...base, public_visibility_mode: 'scheduled', public_opens_at: null }).some(e => e.includes('public page opens')));
+assert.equal(rules.normaliseSpinWheelInput({ ...base, status: 'bogus', segments: [{ colour: 'purple' }] }).status, 'draft');
+assert.equal(rules.normaliseSpinWheelInput({ ...base, segments: [{ colour: 'purple' }] }).segments[0].colour, 'maroon');
+assert.equal(rules.normaliseSpinWheelInput({ ...base, public_visibility_mode: 'visible', public_opens_at: '2026-10-01T00:00:00Z' }).public_opens_at, null);
+assert.equal(rules.normaliseSpinWheelInput(null), null);
+assert.equal(rules.normaliseSpinWheelInput({ name: 'x' }), null);
+assert.ok(rules.spinWheelWarnings({ ...base, segments: [segment({ stock: 0 }), segment({ weight: 0 })] }).some(w => w.includes('nobody can spin')));
+assert.ok(rules.spinWheelWarnings({ ...base, free_spins_per_account: 0, spin_price_cents: null }).some(w => w.includes('committee-granted')));
+
+// ---- Live window and public visibility ----
+const at = iso => new Date(iso);
+const wheel = { status: 'live', starts_at: '2026-10-01T00:00:00Z', ends_at: '2026-10-02T00:00:00Z', public_visibility_mode: 'visible', public_opens_at: null };
+assert.equal(rules.isSpinWheelLive(wheel, at('2026-09-30T23:59:59Z')), false);
+assert.equal(rules.isSpinWheelLive(wheel, at('2026-10-01T00:00:00Z')), true);
+assert.equal(rules.isSpinWheelLive(wheel, at('2026-10-02T00:00:00Z')), false, 'end is exclusive, as in the RPC');
+assert.equal(rules.isSpinWheelLive({ ...wheel, status: 'paused' }, at('2026-10-01T12:00:00Z')), false);
+assert.equal(rules.spinWheelPhase(wheel, at('2026-09-30T00:00:00Z')), 'upcoming');
+assert.equal(rules.spinWheelPhase({ ...wheel, status: 'paused' }, at('2026-10-01T12:00:00Z')), 'paused');
+assert.equal(rules.spinWheelPhase(wheel, at('2026-10-03T00:00:00Z')), 'ended');
+assert.equal(rules.isSpinWheelPubliclyVisible({ ...wheel, status: 'draft' }, at('2026-10-01T12:00:00Z')), false);
+assert.equal(rules.isSpinWheelPubliclyVisible({ ...wheel, public_visibility_mode: 'hidden' }, at('2026-10-01T12:00:00Z')), false);
+assert.equal(rules.isSpinWheelPubliclyVisible({ ...wheel, public_visibility_mode: 'scheduled', public_opens_at: '2026-10-01T06:00:00Z' }, at('2026-10-01T05:59:00Z')), false);
+assert.equal(rules.isSpinWheelPubliclyVisible({ ...wheel, public_visibility_mode: 'scheduled', public_opens_at: '2026-10-01T06:00:00Z' }, at('2026-10-01T06:00:00Z')), true);
+assert.equal(rules.isSpinWheelPubliclyVisible(wheel, at('2026-10-02T00:00:00Z')), false, 'closed wheels leave the public page');
+const chosen = rules.choosePublicSpinWheel([
+  { ...wheel, id: 'paused', status: 'paused', starts_at: '2026-10-01T06:00:00Z' },
+  { ...wheel, id: 'live' },
+  { ...wheel, id: 'hidden', public_visibility_mode: 'hidden' },
+], at('2026-10-01T12:00:00Z'));
+assert.equal(chosen.id, 'live', 'a live wheel wins over a paused one');
+
+// ---- Public data never carries odds or stock ----
+const published = rules.publicSegments([
+  { id: 's2', position: 2, label: 'Cap', prize_name: 'Club cap', prize_description: null, is_prize: true, weight: 5, stock: 0, colour: 'gold' },
+  { id: 's1', position: 1, label: 'Again', prize_name: null, prize_description: null, is_prize: false, weight: 95, stock: null, colour: 'navy' },
+]);
+loose(published.map(item => item.position), [1, 2]);
+for (const item of published) {
+  loose(Object.keys(item).sort(), ['available', 'colour', 'is_prize', 'label', 'position', 'prize_description', 'prize_name']);
+}
+assert.equal(published[1].available, false, 'out of stock shows as unavailable');
+
+// ---- Result references and quantities ----
+const refs = new Set();
+for (let i = 0; i < 10_000; i += 1) {
+  const ref = random.spinResultReference();
+  assert.ok(rules.isSpinResultReference(ref), ref);
+  assert.doesNotMatch(ref.slice(5), /[ILOU]/);
+  refs.add(ref);
+}
+assert.ok(refs.size > 9_990, 'references are effectively unique');
+assert.equal(rules.validSpinQuantity(1, 20), true);
+assert.equal(rules.validSpinQuantity(21, 20), false);
+assert.equal(rules.validSpinQuantity(0, 20), false);
+assert.equal(rules.validSpinQuantity(2.5, 20), false);
+
+// ---- Spin passes: re-derivable token, only the hash is stored ----
+const env = { SPIN_WHEEL_PASS_SECRET: 'test-secret-value' };
+const passId = '7d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11';
+const token = pass.spinPassToken(passId, env);
+assert.equal(token, pass.spinPassToken(passId, env), 'same pass id gives the same token, so links can be re-sent');
+assert.notEqual(token, pass.spinPassToken('8d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11', env));
+assert.notEqual(token, pass.spinPassToken(passId, { SPIN_WHEEL_PASS_SECRET: 'other' }));
+assert.equal(pass.isSpinPassToken(token), true);
+assert.equal(pass.isSpinPassToken(`${token}x`), false);
+const hashed = pass.hashSpinPassToken(token);
+assert.match(hashed, /^[0-9a-f]{64}$/);
+assert.ok(!hashed.includes(token));
+assert.equal(pass.spinPassToken(passId, { SUPABASE_SERVICE_ROLE_KEY: 'fallback' }), pass.spinPassToken(passId, { SUPABASE_SERVICE_ROLE_KEY: 'fallback' }));
+assert.throws(() => pass.spinPassToken(passId, {}), /not configured/);
+assert.equal(pass.spinPassUrl('https://www.ndcc.com.au/', token), `https://www.ndcc.com.au/spin-the-wheel?pass=${token}`);
+
+// ---- Emails escape every value ----
+const passHtml = email.spinPassEmailBody({ name: '<b>x</b>', wheelName: 'Wheel & Co', spins: 3, link: 'https://example.invalid/?a="1"' });
+assert.ok(!passHtml.includes('<b>x</b>') && passHtml.includes('&lt;b&gt;') && passHtml.includes('Wheel &amp; Co') && !passHtml.includes('"1"'));
+const winHtml = email.spinWinnerEmailBody({ name: null, wheelName: 'Wheel', reference: 'SPIN-ABC123', prizeName: '<i>Cap</i>', prizeDescription: null, claimInstructions: 'Line 1\n<script>' });
+assert.ok(!winHtml.includes('<i>Cap</i>') && !winHtml.includes('<script>') && winHtml.includes('Line 1<br>'));
+assert.ok(email.spinWinnerEmailBody({ name: 'A', wheelName: 'W', reference: 'SPIN-ABC123', prizeName: 'Cap', prizeDescription: null, claimInstructions: null }).includes('reply to this email'));
+
+// ---- Error mapping ----
+assert.equal(rules.spinErrorMessage('spin_wheel:segment_out_of_stock').retrySegment, true);
+assert.equal(rules.spinErrorMessage('spin_wheel:no_spins_left').status, 409);
+assert.equal(rules.spinErrorMessage('boom').status, 503);
+
+// ---- Route and payment wiring (source checks) ----
+const read = file => readFileSync(file, 'utf8');
+const spinRoute = read('app/api/spin-wheel/spin/route.ts');
+assert.ok(spinRoute.indexOf("rpc('record_spin_wheel_result'") > 0 && spinRoute.indexOf("rpc('record_spin_wheel_result'") < spinRoute.indexOf('spinReply({ success: true'), 'the result is recorded before the reply');
+assert.match(spinRoute, /pickWeightedSegment/);
+const publicRoute = read('app/api/spin-wheel/route.ts');
+assert.match(publicRoute, /publicSegments\(segments\)/);
+assert.doesNotMatch(publicRoute, /\.weight\b|\.stock\b|\bweight:|\bstock:/, 'public wheel route never serialises odds or stock');
+for (const file of ['app/api/admin/spin-wheel/route.ts', 'app/api/admin/spin-wheel/[id]/route.ts', 'app/api/admin/spin-wheel/[id]/grant/route.ts', 'app/api/admin/spin-wheel/[id]/results/route.ts']) {
+  const source = read(file);
+  const handlers = source.match(/export async function (GET|POST|PATCH|DELETE)/g) || [];
+  const guards = source.match(/requirePermissionResult\('raffle'\)/g) || [];
+  assert.ok(handlers.length > 0 && guards.length === handlers.length, `${file}: every handler checks the raffle permission`);
+}
+const checkout = read('app/api/spin-wheel/checkout/route.ts');
+assert.match(checkout, /order_category: SPIN_ORDER_CATEGORY/);
+assert.match(checkout, /generateUniquePaymentReference\('general'\)/);
+assert.doesNotMatch(checkout, /stripe\.checkout|getStripe/, 'spin orders are paid through the shared order checkout, not a new Stripe path');
+assert.equal(rules.SPIN_ORDER_CATEGORY, 'spin_wheel');
+const session = read('app/api/payments/checkout-session/route.ts');
+assert.match(session, /spin_wheel: '\/spin-the-wheel'/);
+assert.match(session, /path === '\/spin-the-wheel'/);
+assert.match(read('app/payment/page.tsx'), /value === '\/spin-the-wheel'/);
+assert.doesNotMatch(read('app/api/stripe/webhook/route.ts'), /spin/i, 'the Stripe webhook is unchanged');
+const migration = read('supabase/migrations/20260928100000_spin_the_wheel.sql');
+assert.match(migration, /after update of payment_status, deleted_at on public\.orders/);
+assert.match(migration, /if v_payment_status = 'paid' and v_deleted is null then/);
+assert.match(migration, /on conflict \(wheel_id, auth_user_id, seq\) where source = 'free' do nothing/);
+assert.match(migration, /segment_id uuid references public\.spin_wheel_segments\(id\) on delete set null/);
+assert.match(migration, /exception when others then\s+raise warning/);
+const cron = JSON.parse(read('vercel.json')).crons.map(item => item.path);
+assert.ok(cron.includes('/api/cron/spin-wheel-passes'));
+assert.match(read('components/layout/Navbar.tsx'), /\(spinWheelEnabled \|\| link\.href !== '\/spin-the-wheel'\)/);
+assert.match(read('components/layout/Footer.tsx'), /spinWheelEnabled === true \|\| !link\.href\.startsWith\('\/spin-the-wheel'\)/);
+assert.match(read('lib/server/sitemap-entries.ts'), /isSpinWheelPublicStrict/);
+
+// ---- ASCII hyphens only in the new files ----
+function files(dir) { return readdirSync(dir).flatMap(name => { const full = path.join(dir, name); return statSync(full).isDirectory() ? files(full) : [full]; }); }
+const newFiles = [...files('app/spin-the-wheel'), ...files('app/api/spin-wheel'), ...files('app/api/admin/spin-wheel'), ...files('app/admin/raffle/spin-wheel'),
+  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql'];
+for (const file of newFiles) assert.doesNotMatch(read(file), /[–—]/, `${file}: ASCII hyphens only`);
+
+console.log('Spin the Wheel pick, odds, geometry, validation, visibility, public shape, references, passes, emails and wiring checks passed.');

@@ -30,6 +30,10 @@
     {
       "path": "/api/cron/gallery-metadata",
       "schedule": "20 5 * * *"
+    },
+    {
+      "path": "/api/cron/spin-wheel-passes",
+      "schedule": "25 5 * * *"
     }
   ]
 }

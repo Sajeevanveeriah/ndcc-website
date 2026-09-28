@@ -38,6 +38,7 @@ const CATEGORY_RETURN_PATHS: Record<string, string> = {
   kitchen: '/kitchen',
   membership: '/join',
   event: '/events',
+  spin_wheel: '/spin-the-wheel',
 };
 
 const CHECKOUT_DURATION_SECONDS = 60 * 60;
@@ -60,7 +61,7 @@ function getSafeReturnPath(value: unknown, orderCategory: string): string {
   if (typeof value !== 'string') return fallback;
 
   const path = value.trim();
-  if (path === '/sponsors/donate' || path === '/merchandise' || path === '/kitchen' || path === '/join' || path === '/events') {
+  if (path === '/sponsors/donate' || path === '/merchandise' || path === '/kitchen' || path === '/join' || path === '/events' || path === '/spin-the-wheel') {
     return path;
   }
   if (/^\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(path)) {

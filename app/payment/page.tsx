@@ -17,7 +17,7 @@ type PaymentResultPageProps = {
 
 function safeReturnPath(value: string | undefined): string {
   if (!value) return '/';
-  if (value === '/sponsors/donate' || value === '/merchandise' || value === '/kitchen' || value === '/join' || value === '/events') {
+  if (value === '/sponsors/donate' || value === '/merchandise' || value === '/kitchen' || value === '/join' || value === '/events' || value === '/spin-the-wheel') {
     return value;
   }
   if (/^\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
@@ -55,9 +55,11 @@ export default async function PaymentResultPage({ searchParams: searchParamsProm
                   ? 'Stripe has returned you to the club website. The signed payment notification is being matched to your order.'
                   : returnPath === '/sponsors/donate'
                     ? 'Your donation checkout was cancelled. You can return to Sponsors whenever you are ready.'
-                    : 'No card payment was completed. Check your order to choose an available payment method.'}
+                    : returnPath === '/spin-the-wheel'
+                      ? 'No card payment was completed and no spins were bought. You can return to the wheel whenever you are ready.'
+                      : 'No card payment was completed. Check your order to choose an available payment method.'}
               </p>
-              {!submitted && <Link href="/pay-balance" className="block underline">Find your order and choose bank deposit</Link>}
+              {!submitted && returnPath !== '/spin-the-wheel' && <Link href="/pay-balance" className="block underline">Find your order and choose bank deposit</Link>}
               {returnPath === '/kitchen' && <MealPaymentSummary />}
               <Link href={returnPath} className="btn-primary inline-flex justify-center">
                 Return to the previous page

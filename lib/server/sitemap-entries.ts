@@ -4,6 +4,7 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 import { isRaffleVisibleAt } from '@/lib/raffle-visibility-rules';
 import { RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_CAMPAIGN_CODE } from '@/lib/raffle-constants';
 import { isPrizeWheelPublicStrict } from '@/lib/prize-wheel/server';
+import { isSpinWheelPublicStrict } from '@/lib/spin-wheel/visibility';
 import { buildDetailEntries } from '@/lib/seo-sitemap';
 import { SITE_URL } from '@/lib/seo';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
@@ -127,6 +128,8 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   }
   // Prize wheel: only while an active, publicly visible wheel campaign exists.
   if (await isPrizeWheelPublicStrict()) staticEntries.push({ url: `${baseUrl}/prize-wheel`, changeFrequency: 'daily', priority: 0.6 });
+  // Spin the Wheel: only while a wheel's public page is open.
+  if (await isSpinWheelPublicStrict()) staticEntries.push({ url: `${baseUrl}/spin-the-wheel`, changeFrequency: 'daily', priority: 0.6 });
 
   const detailEntries = await getPublishedDetailEntries(baseUrl);
   return [...staticEntries, ...detailEntries];
