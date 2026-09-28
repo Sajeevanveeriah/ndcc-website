@@ -33,8 +33,14 @@ import './globals.css';
 // Fonts. Latin is preloaded here; other scripts and the metric-matched
 // fallback come from inter.css and follow var(--font-inter) in the font stack.
 const inter = localFont({
-  src: './fonts/inter/inter-latin.woff2',
-  weight: '400 900',
+  // Same discrete weights as before, so e.g. SVG text at 800 still renders at 900.
+  src: [
+    { path: './fonts/inter/inter-latin.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '700', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '900', style: 'normal' },
+  ],
   variable: '--font-inter',
   display: 'swap',
   adjustFontFallback: false,

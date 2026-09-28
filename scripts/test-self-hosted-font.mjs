@@ -10,8 +10,11 @@ const tailwind = readFileSync('tailwind.config.ts', 'utf8');
 
 assert.doesNotMatch(layout, /next\/font\/google/, 'No build-time Google Fonts download');
 assert.match(layout, /from 'next\/font\/local'/);
-assert.match(layout, /src: '\.\/fonts\/inter\/inter-latin\.woff2'/);
-assert.match(layout, /weight: '400 900'/);
+for (const weight of ['400', '500', '600', '700', '900']) {
+  assert.match(layout, new RegExp(`\\{ path: '\\./fonts/inter/inter-latin\\.woff2', weight: '${weight}', style: 'normal' \\}`));
+  assert.equal(css.split(`font-weight: ${weight};`).length - 1, 6, `six other-script faces at ${weight}`);
+}
+assert.doesNotMatch(css, /font-weight: 400 900/, 'Discrete weights keep 800 rendering at 900 as before');
 assert.match(layout, /variable: '--font-inter'/);
 assert.match(layout, /display: 'swap'/);
 assert.match(layout, /import '\.\/fonts\/inter\/inter\.css';/);
