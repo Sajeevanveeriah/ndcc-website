@@ -72,11 +72,17 @@ DECLARE source text; revised text;
       WHERE (item->>''player_id'')::uuid=owned.player_id);
   END IF;
   IF actual_budget>cfg.budget_dino_dollars+public.dino_realised_sale_profit(target_manager_id,target_season_id) OR actual_budget<>target_budget_dino_dollars THEN';
-  -- Manager saves compare with their latest saved squad, as save_dino_coach_squad_v2, dino_market_action
-  -- and the squad API do, so retained costs, references and sales share one source. CMS corrections of a
-  -- past round keep using that round's own squad, which the admin API prices.
+  -- The previous squad and the squad written are always the same row, so retained costs, references and
+  -- sales come from the squad being replaced. A manager save without a round (a reopened past season)
+  -- reads and writes the latest squad, as save_dino_coach_squad_v2 and the squad API do. Every other save
+  -- (current-season rounds, CMS corrections) keeps the round's own squad, as before.
   old_prior text := 'ORDER BY (round_id IS NOT DISTINCT FROM target_round_id) DESC,created_at DESC LIMIT 1;';
-  new_prior text := 'ORDER BY (coalesce(current_setting(''ndcc.dino_admin_edit'',true),'''')=''on'' AND round_id IS NOT DISTINCT FROM target_round_id) DESC,created_at DESC LIMIT 1;';
+  new_prior text := 'ORDER BY ((target_round_id IS NOT NULL OR coalesce(current_setting(''ndcc.dino_admin_edit'',true),'''')=''on'') AND round_id IS NOT DISTINCT FROM target_round_id) DESC,created_at DESC LIMIT 1;';
+  old_target text := 'AND round_id IS NOT DISTINCT FROM target_round_id
+  LIMIT 1 FOR UPDATE;';
+  new_target text := 'AND CASE WHEN target_round_id IS NULL AND coalesce(current_setting(''ndcc.dino_admin_edit'',true),'''')<>''on''
+    THEN id=prior_squad_id ELSE round_id IS NOT DISTINCT FROM target_round_id END
+  LIMIT 1 FOR UPDATE;';
   old_retain text := 'item || jsonb_build_object(''retained_cost'',owned.purchase_price_dino_dollars)';
   new_retain text := 'item || jsonb_build_object(''retained_cost'',owned.purchase_price_dino_dollars,''retained_reference'',owned.sale_reference_dino_dollars)';
   old_columns text := 'slot_key,assigned_role,purchase_price_dino_dollars)';
@@ -86,17 +92,17 @@ DECLARE source text; revised text;
     COALESCE((item->>''retained_reference'')::bigint,(item->>''retained_cost'')::bigint,p.price_dino_dollars)';
 BEGIN
   SELECT pg_get_functiondef('public.save_dino_coach_squad(uuid,uuid,uuid,text,bigint,jsonb)'::regprocedure) INTO source;
-  IF strpos(source, old_check)=0 OR strpos(source, old_prior)=0 OR strpos(source, old_retain)=0 OR strpos(source, old_columns)=0 OR strpos(source, old_values)=0 THEN
+  IF strpos(source, old_check)=0 OR strpos(source, old_prior)=0 OR strpos(source, old_target)=0 OR strpos(source, old_retain)=0 OR strpos(source, old_columns)=0 OR strpos(source, old_values)=0 THEN
     RAISE EXCEPTION 'Unexpected save_dino_coach_squad definition; no changes applied.';
   END IF;
-  revised := replace(replace(replace(replace(replace(source, old_check, new_check), old_prior, new_prior), old_retain, new_retain), old_columns, new_columns), old_values, new_values);
+  revised := replace(replace(replace(replace(replace(replace(source, old_check, new_check), old_prior, new_prior), old_target, new_target), old_retain, new_retain), old_columns, new_columns), old_values, new_values);
   EXECUTE revised;
 END $migration$;
 
 COMMIT;
 
 -- Rollback (after reverting the application): restore the pre-change definition by
--- reversing the five replacements above, then
+-- reversing the six replacements above, then
 --   DROP FUNCTION public.dino_realised_sale_profit(uuid,uuid);
 --   DROP TABLE public.fantasy_dino_sales;
 --   ALTER TABLE public.fantasy_squad_players DROP COLUMN sale_reference_dino_dollars;

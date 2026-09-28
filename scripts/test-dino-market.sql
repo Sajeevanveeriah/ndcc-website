@@ -90,7 +90,7 @@ BEGIN
  PERFORM public.dino_market_action(ma,sid,null,'buy',null,ids[12],keys[12],av,100000);
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  -- Reopened season: a later round squad exists beside the preseason (null-round) squad. A save aimed at
- -- the null round must retain costs from, and sell against, the latest squad (as the v2 RPC checks).
+ -- the null round must retain costs from, sell against and write to the latest squad (as the v2 RPC checks).
  INSERT INTO public.fantasy_rounds(season_id,round_number,name,status) VALUES(sid,1,'Round 1','open') RETURNING id INTO rid;
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  rq:=public.save_dino_coach_squad_v2(ma,sid,rid,'draft',(SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=qa),av,
@@ -101,7 +101,15 @@ BEGIN
    (SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=rq AND player_id<>ids[10]),av,
    (SELECT sum(purchase_price_dino_dollars) FROM public.fantasy_squad_players WHERE squad_id=rq AND player_id<>ids[10])::bigint);
  IF NOT EXISTS(SELECT 1 FROM public.fantasy_dino_sales WHERE manager_id=ma AND player_id=ids[10] AND squad_id=rq) THEN RAISE EXCEPTION 'Reopened-season sale not taken from the latest squad'; END IF;
- IF (SELECT purchase_price_dino_dollars FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id=ids[11])<>100000 THEN RAISE EXCEPTION 'Retained cost not carried from the latest squad'; END IF;
+ IF EXISTS(SELECT 1 FROM public.fantasy_squad_players WHERE squad_id=rq AND player_id=ids[10]) THEN RAISE EXCEPTION 'Reopened-season save not written to the latest squad'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id=ids[10]) THEN RAISE EXCEPTION 'Reopened-season save changed the preseason squad'; END IF;
+ IF (SELECT purchase_price_dino_dollars FROM public.fantasy_squad_players WHERE squad_id=rq AND player_id=ids[11])<>100000 THEN RAISE EXCEPTION 'Retained cost not carried from the latest squad'; END IF;
+ -- Repeating the same save books no second sale.
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=rq;
+ PERFORM public.save_dino_coach_squad_v2(ma,sid,null,'draft',
+   (SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=rq),av,
+   (SELECT sum(purchase_price_dino_dollars) FROM public.fantasy_squad_players WHERE squad_id=rq)::bigint);
+ IF (SELECT count(*) FROM public.fantasy_dino_sales WHERE manager_id=ma AND player_id=ids[10])<>1 THEN RAISE EXCEPTION 'Repeated reopened-season save booked a second sale'; END IF;
  UPDATE public.fantasy_player_prices SET price_dino_dollars=100000,price_million=.1 WHERE season_id=sid AND player_id=ids[11];
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  -- CMS corrections never book a sale.
