@@ -69,7 +69,7 @@ export default function SeasonHighlightsVideo() {
           >
             <Image
               src={POSTER}
-              alt=""
+              alt="Title card: the Newcomb and District Cricket Club dinosaur badge above the words The 2025/26 Season, Grinter Reserve, Moolap"
               fill
               sizes="(min-width: 1152px) 1152px, 100vw"
               className="object-cover"

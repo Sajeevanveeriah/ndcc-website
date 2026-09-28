@@ -28,6 +28,8 @@ assert.match(component, /canPlayType\('video\/mp4; codecs="avc1\.64001F, mp4a\.4
 assert.match(component, /onError=\{\(\) => \{[\s\S]*?getAttribute\('src'\) === SEASON_SLIDESHOW_VIDEO\)[\s\S]*?video\.src = SEASON_SLIDESHOW_WEBM;[\s\S]*?setFailed\(true\);/, 'video-level errors retry the WebM once, then show the message');
 assert.doesNotMatch(component, /<source /, 'no <source> elements: their error events miss decode failures');
 assert.match(component, /aria-label=\{`Play \$\{TITLE\} slideshow video \(5 minutes 12 seconds, with sound\)`\}/);
+assert.match(component, /alt="Title card: the Newcomb and District Cricket Club dinosaur badge above the words The 2025\/26 Season, Grinter Reserve, Moolap"/, 'poster has meaningful alt text (AGENTS.md)');
+assert.doesNotMatch(component, /alt=""/);
 assert.doesNotMatch(component, /download=|href=\{SEASON_SLIDESHOW_VIDEO\}/, 'no download link');
 
 assert.match(gallery, /<section id="season-highlights"/);
