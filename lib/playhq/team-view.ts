@@ -55,8 +55,9 @@ export function matchPlayHQTeam(cms: CmsTeamLike, playhqTeams: PlayHQTeam[]): Pl
   }
   // Junior teams carry an age group rather than an ordinal: "Junior Boys -
   // Under 13s" matches the one NDCC PlayHQ side for that age group, if unique.
-  // A boys card never takes a girls side (or the reverse).
-  const source = juniorAge(cms.name) !== null ? cms.name : cms.grade;
+  // A boys card never takes a girls side (or the reverse); the age and the
+  // boys/girls marker may sit in either the card name or its grade.
+  const source = `${cms.name} ${cms.grade || ''}`;
   if (juniorAge(source) !== null) {
     // PlayHQ may mark boys/girls only in the grade name.
     const candidates = club.filter((team) => sameJuniorSide(source, `${team.name} ${team.gradeName || ''}`));
@@ -79,7 +80,7 @@ export function teamsAwaitingPlayHQ<T extends CmsTeamLike>(cmsTeams: readonly T[
     const category = teamCategory(team.name, team.grade);
     const sameCategory = club.filter((candidate) => teamCategory(candidate.name, candidate.gradeName) === category);
     const ordinal = teamMatchKey(team.name).ordinal ?? teamMatchKey(team.grade).ordinal;
-    const ageSource = juniorAge(team.name) !== null ? team.name : team.grade;
+    const ageSource = `${team.name} ${team.grade || ''}`;
     const age = juniorAge(ageSource);
     if (ordinal === null && age === null) return sameCategory.length === 0;
     return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && sameJuniorSide(ageSource, `${candidate.name} ${candidate.gradeName || ''}`)));
