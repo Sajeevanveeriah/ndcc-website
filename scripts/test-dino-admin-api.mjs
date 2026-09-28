@@ -15,6 +15,7 @@ const imports={
  '@/lib/auth/guard':{requirePermission:async()=>user}, '@/lib/supabase-server':{createServerClient:()=>db}, '@/lib/fantasy-paging':{fetchAllPages:async()=>[]},
  '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'})}, '@/lib/fantasy-game':{},
  '@/lib/dino-coach/server':{getDinoCoachSettings:async()=>({minimum_age:18})},
+ '@/lib/dino-coach/sales-server':{getRealisedSaleProfit:async()=>0},
  '@/lib/dino-coach/domain':{isAdultOnDate:dob=>dob==='2000-01-01'}, '@/lib/dino-coach/lifecycle':{},
  '@/lib/dino-coach/admin-actions':actions.exports,
  '@/lib/dino-coach/notifications':{}, '@/lib/dino-coach/registration-email':{},

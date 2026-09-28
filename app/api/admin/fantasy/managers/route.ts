@@ -8,6 +8,7 @@ import { fetchAllPages } from '@/lib/fantasy-paging';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices } from '@/lib/fantasy-game';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
+import { getRealisedSaleProfit } from '@/lib/dino-coach/sales-server';
 import { buildSquadSlots, isAdultOnDate, validateSquadAssignments } from '@/lib/dino-coach/domain';
 import { initialSquadStatus } from '@/lib/dino-coach/lifecycle';
 import { defaultManagerActionReason } from '@/lib/dino-coach/admin-actions';
@@ -73,7 +74,9 @@ export async function PATCH(request:Request) {
       const previous=squads?.find(s=>s.round_id===(body.roundId||null))||squads?.[0];
       const costs=new Map((previous?.fantasy_squad_players||[]).map(p=>[p.player_id,Number(p.purchase_price_dino_dollars)]));
       const picks=body.selection.map((p:any)=>({...p,purchasePriceDinoDollars:costs.get(p.playerId)??prices.get(p.playerId)}));
-      const validation=validateSquadAssignments(picks,buildSquadSlots(settings.slot_counts),settings.budget_dino_dollars,{allowIncomplete:body.status==='draft'});
+      // CMS corrections book no sales, so the limit is the starting budget plus profit already realised.
+      const spendingPower=settings.budget_dino_dollars+await getRealisedSaleProfit(body.id,season.id);
+      const validation=validateSquadAssignments(picks,buildSquadSlots(settings.slot_counts),spendingPower,{allowIncomplete:body.status==='draft'});
       if(!validation.valid)return fail(validation.errors.join(' '));
       budget=validation.budgetUsedDinoDollars;
       selection=picks.map((p:any)=>({player_id:p.playerId,slot_key:p.slotKey,assigned_role:p.assignedRole,position_type:p.positionType,is_captain:p.isCaptain===true,is_vice_captain:p.isViceCaptain===true}));
