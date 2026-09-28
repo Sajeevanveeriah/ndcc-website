@@ -1,0 +1,22 @@
+-- Record of live Dino Coach changes for Ruby Moreland (manager 09d04f70-8bc7-48dd-b3c3-5f7cc11e7c9e,
+-- team OGDINOKIDS), season 75425550-0622-4ecb-87c4-69ab5ca40a53, 28 September 2026, requested by Saj.
+-- Already applied; kept for audit and rollback. Do not re-run the apply block.
+--
+-- 1. Team name approved (was left on the legacy 'pending' status) through admin_edit_dino_manager,
+--    audit event f45b545d-ef4b-44a7-b4ec-cafb33c97aae.
+-- 2. Complimentary entry. She had no entry row, which admin_edit_dino_manager could not waive
+--    before migration 20260928160000, so the entry was created as admin_register_dino_manager does:
+--    entry 30b3e1f9-e3dc-4d30-9e1e-f30d0067bf77, audit event 9db6b455-4ecd-47de-9eb4-0e7356757301,
+--    manager notice job de39e714-62ae-4f46-9d16-5dfd4ceb5f90.
+
+-- Apply (as run):
+-- SELECT public.admin_edit_dino_manager('09d04f70-8bc7-48dd-b3c3-5f7cc11e7c9e','75425550-0622-4ecb-87c4-69ab5ca40a53',
+--   'e2a32e8c-0de7-4f80-9d1c-69dd8392c915','2026-09-28 05:31:02.91421+00','{"team_name_status":"approved"}'::jsonb,
+--   null,null,null,null,'Team name approved after the team was restored.');
+-- INSERT INTO public.fantasy_entries(manager_id,season_id,entry_fee_cents,currency,fee_waived,fee_waiver_reason,fee_waived_by,fee_waived_at)
+--   VALUES ('09d04f70-8bc7-48dd-b3c3-5f7cc11e7c9e','75425550-0622-4ecb-87c4-69ab5ca40a53',2500,'AUD',true,
+--   'Complimentary entry approved by the administrator.','e2a32e8c-0de7-4f80-9d1c-69dd8392c915',now());
+-- plus the matching fantasy_admin_events row and admin_change notification job.
+
+-- Rollback: in the CMS Manager review, untick Complimentary entry for OGDINOKIDS (administrator only).
+-- She then needs to pay the entry fee to keep selecting a squad.

@@ -6,5 +6,7 @@ export function defaultManagerActionReason(changes: Record<string, unknown>, has
   if (changes.deleted === true && keys.length === 1) return 'Team deleted by the administrator.';
   if (changes.deleted === false && changes.is_active === true && keys.length === 2) return 'Team restored by the administrator.';
   if (changes.reactivate === true && changes.is_active === true && keys.length === 2) return 'Team reactivated by the club.';
+  if (changes.fee_waived === true && keys.length === 1) return 'Complimentary entry approved by the administrator.';
+  if (changes.fee_waived === false && keys.length === 1) return 'Complimentary entry removed by the administrator.';
   return '';
 }
