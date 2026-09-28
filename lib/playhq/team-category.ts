@@ -64,3 +64,19 @@ export function groupByCategory<T>(items: readonly T[], categoryOf: (item: T) =>
     items: items.filter((item) => categoryOf(item) === category),
   }));
 }
+
+/** "girls" or "boys" when a name marks a junior side's gender, otherwise null. */
+export function juniorGender(value: string | null | undefined): 'girls' | 'boys' | null {
+  const list = words(value);
+  if (list.includes('girls') || list.includes('female')) return 'girls';
+  if (list.includes('boys')) return 'boys';
+  return null;
+}
+
+/** Same junior age group, and no conflicting boys/girls marker. */
+export function sameJuniorSide(a: string | null | undefined, b: string | null | undefined, ageA = juniorAge(a)): boolean {
+  if (ageA === null || juniorAge(b) !== ageA) return false;
+  const genderA = juniorGender(a);
+  const genderB = juniorGender(b);
+  return !genderA || !genderB || genderA === genderB;
+}

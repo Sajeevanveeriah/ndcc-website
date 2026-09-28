@@ -1,7 +1,7 @@
 // Men's / women's / junior classification used by the home page next-matches
 // board and the /fixtures category filter (lib/playhq/team-category.ts).
 import assert from 'node:assert/strict';
-import { groupByCategory, juniorAge, teamCategory, TEAM_CATEGORY_LABELS } from '../lib/playhq/team-category.ts';
+import { groupByCategory, juniorAge, juniorGender, sameJuniorSide, teamCategory, TEAM_CATEGORY_LABELS } from '../lib/playhq/team-category.ts';
 
 // Recorded live PlayHQ teams (production feed, 28 September 2026).
 assert.equal(teamCategory('Newcomb & District 1sts', 'GCA 4 1st XI'), 'men');
@@ -32,4 +32,10 @@ assert.deepEqual(groups.map((group) => [group.label, group.items]), [
   ['Juniors', ['Junior Boys - Under 13s']],
 ]);
 assert.deepEqual(Object.values(TEAM_CATEGORY_LABELS), ["Men's", "Women's", 'Juniors']);
+assert.equal(juniorGender('Junior Boys - Under 15s'), 'boys');
+assert.equal(juniorGender('Newcomb & District U15 Girls'), 'girls');
+assert.equal(juniorGender('Newcomb & District U15'), null);
+assert.equal(sameJuniorSide('Junior Boys - Under 15s', 'Newcomb & District U15 Girls'), false);
+assert.equal(sameJuniorSide('Junior Boys - Under 15s', 'Newcomb & District U15'), true);
+assert.equal(sameJuniorSide('Under 13s', 'Newcomb & District U15'), false);
 console.log('Team category: men, women and junior classification, age groups and grouping order passed.');

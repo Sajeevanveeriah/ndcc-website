@@ -1,7 +1,7 @@
 // Pure helpers for public team pages and the /fixtures team filter (no I/O).
 // Unit tested in scripts/test-playhq-mapping.mjs.
 import { isClubTeamName, normaliseClubText } from './season-match';
-import { juniorAge, teamCategory } from './team-category';
+import { juniorAge, sameJuniorSide, teamCategory } from './team-category';
 import type { PlayHQFixture, PlayHQLadderRow, PlayHQTeam } from './types';
 
 const MELBOURNE = 'Australia/Melbourne';
@@ -54,10 +54,11 @@ export function matchPlayHQTeam(cms: CmsTeamLike, playhqTeams: PlayHQTeam[]): Pl
     if (candidates.length > 1) return null;
   }
   // Junior teams carry an age group rather than an ordinal: "Junior Boys -
-  // Under 13s" matches the one NDCC PlayHQ team for that age group, if unique.
-  const age = juniorAge(cms.name) ?? juniorAge(cms.grade);
-  if (age !== null) {
-    const candidates = club.filter((team) => juniorAge(team.name) === age);
+  // Under 13s" matches the one NDCC PlayHQ side for that age group, if unique.
+  // A boys card never takes a girls side (or the reverse).
+  const source = juniorAge(cms.name) !== null ? cms.name : cms.grade;
+  if (juniorAge(source) !== null) {
+    const candidates = club.filter((team) => sameJuniorSide(source, team.name));
     if (candidates.length === 1) return candidates[0];
   }
   return null;
@@ -77,9 +78,10 @@ export function teamsAwaitingPlayHQ<T extends CmsTeamLike>(cmsTeams: readonly T[
     const category = teamCategory(team.name, team.grade);
     const sameCategory = club.filter((candidate) => teamCategory(candidate.name, candidate.gradeName) === category);
     const ordinal = teamMatchKey(team.name).ordinal ?? teamMatchKey(team.grade).ordinal;
-    const age = juniorAge(team.name) ?? juniorAge(team.grade);
+    const ageSource = juniorAge(team.name) !== null ? team.name : team.grade;
+    const age = juniorAge(ageSource);
     if (ordinal === null && age === null) return sameCategory.length === 0;
-    return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && juniorAge(candidate.name) === age));
+    return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && sameJuniorSide(ageSource, candidate.name)));
   });
 }
 

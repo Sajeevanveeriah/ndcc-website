@@ -1,6 +1,7 @@
 import 'server-only';
 import type { createServerClient } from '@/lib/supabase-server';
 import { isSpinCheckoutOpen, SPIN_CHECKOUT_CLOSE_MINUTES, type SpinWheelRow } from '@/lib/spin-wheel/rules';
+import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
 
 type Db = ReturnType<typeof createServerClient>;
 type LinkedWheel = Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at' | 'spin_price_cents' | 'public_visibility_mode' | 'public_opens_at'>;
@@ -11,6 +12,12 @@ type LinkedWheel = Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at' | 'spin
  * sales have closed. Returns an error message, or null when payment may go ahead.
  */
 export async function spinOrderCheckoutFailure(db: Db, orderId: string): Promise<string | null> {
+  // The CMS show/hide switch closes spin sales too, including orders created
+  // before it was turned off. Read fresh here: payment is never allowed on a
+  // cached "shown". A missing column (migration not applied) keeps sales open.
+  const { data: settings, error: settingsError } = await db.from('club_settings').select('spin_wheel_enabled').eq('id', 'default').maybeSingle();
+  if (settingsError && !isMissingSchemaError(settingsError)) return 'Spin sales could not be checked. Please try again.';
+  if ((settings as { spin_wheel_enabled?: unknown } | null)?.spin_wheel_enabled === false) return 'Spin the Wheel is not available at the moment. No payment was taken.';
   const { data, error } = await db.from('spin_wheel_orders')
     .select('wheel:spin_wheels(status,starts_at,ends_at,spin_price_cents,public_visibility_mode,public_opens_at)').eq('order_id', orderId).maybeSingle();
   if (error) return 'Spin sales could not be checked. Please try again.';

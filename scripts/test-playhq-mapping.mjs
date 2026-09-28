@@ -158,6 +158,12 @@ test('CMS teams match PlayHQ teams by link, exact name or unique ordinal', () =>
   assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Senior Women' }, { name: 'Senior Men' }], teams).map((team) => team.name), []);
   assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys' }], teams).map((team) => team.name), ['Junior Boys']);
   assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Women 3rds' }], teams).map((team) => team.name), ['Women 3rds']);
+  // Junior boys and girls sides of one age group never cross-match.
+  const girls = [...teams, { id: 'u15g', name: 'Newcomb & District U15 Girls', gradeId: 'g15', gradeName: 'Under 15 Girls' }];
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Boys - Under 15s' }, girls), null);
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Girls - Under 15s' }, girls)?.id, 'u15g');
+  assert.equal(view.matchPlayHQTeam({ name: 'Under 15s' }, girls)?.id, 'u15g', 'no gender on the card: the only U15 side');
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys - Under 15s' }], girls).map((team) => team.name), ['Junior Boys - Under 15s']);
 });
 
 test('team fixtures, next match and home/away from the recording', () => {

@@ -59,7 +59,8 @@ assert.match(home, /selectMatchDayBoard\(/, 'match-day board uses the tested sel
 // Next event hero: picked by the tested helper, honours a cancellation or
 // postponement on the linked calendar entry, and says when events could not load.
 assert.match(home, /selectNextEvent\(events, Date\.now\(\)\)/);
-assert.match(home, /entry\.source_event_id === event\.id/);
+assert.match(home, /\.from\('calendar_events'\)\.select\('status'\)\.eq\('source_event_id', eventId\)/, 'hero reads the event\'s own calendar status, not the capped preview list');
+assert.match(home, /const status = await linkedCalendarStatus\(event\.id\)/);
 assert.match(home, /status === 'cancelled' \? \(\s*<Link href="\/calendar"/, 'no booking button for a cancelled event');
 assert.match(home, /Events could not be loaded right now/);
 assert.ok(!/alt=""/.test(home), 'home images carry meaningful alt text');

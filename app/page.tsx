@@ -35,6 +35,7 @@ import { getPublicEvents, getPublicGallery, getPublicSponsors } from '@/lib/publ
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
 import { CALENDAR_EVENT_TYPE_LABELS } from '@/lib/calendar/types';
 import { getClubSettings } from '@/lib/club-settings';
+import { createServerClient } from '@/lib/supabase-server';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
@@ -218,6 +219,22 @@ function NextEventSkeleton() {
   );
 }
 
+// Status of the calendar entries linked to one event (read directly, not
+// from the capped "Coming up" list). Null when none is cancelled or
+// postponed, or when the read fails.
+async function linkedCalendarStatus(eventId: string): Promise<'cancelled' | 'postponed' | null> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const { data, error } = await createServerClient({ publicReadCache: true, fetchTimeoutMs: 8_000 })
+      .from('calendar_events').select('status').eq('source_event_id', eventId);
+    if (error || !Array.isArray(data)) return null;
+    const statuses = data.map((row) => (row as { status?: unknown }).status);
+    return statuses.includes('cancelled') ? 'cancelled' : statuses.includes('postponed') ? 'postponed' : null;
+  } catch {
+    return null;
+  }
+}
+
 function EventFact({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
     <div className="flex items-start gap-2.5">
@@ -228,7 +245,7 @@ function EventFact({ icon: Icon, label, children }: { icon: LucideIcon; label: s
 }
 
 async function NextEventSection() {
-  const [{ data: events, degraded }, calendarResult] = await Promise.all([getHomeEvents(), getHomeCalendar()]);
+  const { data: events, degraded } = await getHomeEvents();
   const event = selectNextEvent(events, Date.now());
   if (!event && degraded) {
     return (
@@ -261,10 +278,9 @@ async function NextEventSection() {
   const venue = event.location?.trim();
   const price = Number(event.ticket_price);
   const songs = event.registration_mode === 'song_requests';
-  // A cancellation or postponement recorded on the linked calendar entry wins,
-  // so the hero never keeps advertising booking for a cancelled event.
-  const linked = (calendarResult.degraded ? [] : calendarResult.data).filter((entry) => entry.source_event_id === event.id);
-  const status = linked.some((entry) => entry.status === 'cancelled') ? 'cancelled' : linked.some((entry) => entry.status === 'postponed') ? 'postponed' : null;
+  // A cancellation or postponement recorded on the event's own calendar
+  // entries wins, so the hero never keeps advertising booking for it.
+  const status = await linkedCalendarStatus(event.id);
   return (
     <aside className="next-event-card" aria-labelledby="next-event-title">
       <p className="club-kicker">Next event{status && <span className="ml-2 rounded-full bg-maroon-700 px-2 py-0.5 text-white dark:bg-maroon-300 dark:text-maroon-950">{status === 'cancelled' ? 'Cancelled' : 'Postponed'}</span>}</p>

@@ -298,6 +298,23 @@ assert.match(read('app/admin/raffle/spin-wheel/page.tsx'), /Show Spin the Wheel 
   await assert.rejects(outage.isSpinWheelPublicStrict(), /unavailable/);
 }
 
+// Checkout of an existing spin order also respects the switch (read fresh).
+{
+  const openWheel = { status: 'live', starts_at: null, ends_at: null, spin_price_cents: 200, public_visibility_mode: 'visible', public_opens_at: null };
+  const guard = (setting) => load('lib/spin-wheel/checkout-guard.ts', {
+    '@/lib/spin-wheel/rules': rules,
+    '@/lib/supabase-schema-errors': { isMissingSchemaError: error => ['42703', 'PGRST204'].includes(error?.code || '') },
+  }).spinOrderCheckoutFailure({ from(table) {
+    const query = { select() { return query; }, eq() { return query; },
+      maybeSingle() { return Promise.resolve(table === 'club_settings' ? setting : { data: { wheel: openWheel }, error: null }); } };
+    return query;
+  } }, 'order-1');
+  assert.equal(await guard({ data: { spin_wheel_enabled: true }, error: null }), null);
+  assert.match(await guard({ data: { spin_wheel_enabled: false }, error: null }), /not available at the moment\. No payment was taken/);
+  assert.equal(await guard({ data: null, error: { code: '42703', message: 'column does not exist' } }), null);
+  assert.match(await guard({ data: null, error: { code: '57014', message: 'timeout' } }), /could not be checked/);
+}
+
 // ---- Review follow-ups (#278) ----
 const checkoutRoute = read('app/api/spin-wheel/checkout/route.ts');
 assert.match(checkoutRoute, /if \(!isSpinCheckoutOpen\(wheel\)\)/, 'checkout refuses inside the closing window');
