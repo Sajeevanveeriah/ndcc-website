@@ -9,14 +9,14 @@
 --     free bonus spin instead: no stock is used and no prize is recorded.
 --     Wins are matched by prize name across once-per-person segments, by the
 --     spinner's email, account and spin link; voided wins do not count.
---   * spin_wheel_daily_capacity(): what the checkout and the page use to stop
---     people buying more spins than they can use today.
+--   * spin_wheel_daily_capacity(): advisory figures for checkout and the page
+--     (spins used today, spins held, bonus spins for this account or link).
 --   * Winner receipts are copied to the new 'spin_wheel_winners' notification
 --     list (editable in the CMS), seeded with the addresses the club supplied.
 --
 -- Rollback (export results first):
 --   begin;
---   drop function public.spin_wheel_daily_capacity(uuid,uuid,text);
+--   drop function public.spin_wheel_daily_capacity(uuid,uuid,uuid,text);
 --   -- re-run record_spin_wheel_result and save_spin_wheel from
 --   -- 20260928100000_spin_the_wheel.sql, then:
 --   delete from public.spin_wheel_entitlements where source = 'bonus';
@@ -165,11 +165,15 @@ end $$;
 revoke all on function public.record_spin_wheel_result(uuid,uuid,uuid,uuid,text,text,text,text) from public, anon, authenticated;
 grant execute on function public.record_spin_wheel_result(uuid,uuid,uuid,uuid,text,text,text,text) to service_role;
 
--- ---- How many more spins a person can buy today ----
--- limit null = no daily limit. Otherwise remaining = limit - non-bonus spins
--- used today - unused non-bonus spins held - spins in unpaid orders from the
--- last 65 minutes (card checkouts that may still be paid).
-create function public.spin_wheel_daily_capacity(target_wheel uuid, target_user uuid, target_email text)
+-- ---- Today's spins for one person ----
+-- The hard rule is enforced by record_spin_wheel_result (atomic, per person).
+-- This is advisory for checkout and the page: limit null = no daily limit;
+-- remaining = limit - non-bonus spins used today - unused non-bonus spins held
+-- (account and every spin link with this email). Unpaid orders are not
+-- counted, so an abandoned card checkout never blocks a new one; spins bought
+-- beyond today's allowance carry over to later days. Bonus spins are counted
+-- only for the exact account or spin link in use, as only those can be spent.
+create function public.spin_wheel_daily_capacity(target_wheel uuid, target_user uuid, target_pass uuid, target_email text)
 returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -177,7 +181,6 @@ declare
   v_key text := lower(trim(coalesce(target_email, '')));
   v_used integer;
   v_open integer;
-  v_pending integer;
   v_bonus integer;
 begin
   select max_spins_per_day into v_limit from public.spin_wheels where id = target_wheel;
@@ -186,30 +189,28 @@ begin
     join public.spin_wheel_entitlements e on e.id = r.entitlement_id
     where r.wheel_id = target_wheel and r.created_at >= public.spin_wheel_melbourne_day_start()
       and e.source <> 'bonus'
-      and ((v_key <> '' and lower(r.spinner_email) = v_key) or (target_user is not null and r.auth_user_id = target_user));
-  select count(*) filter (where e.source <> 'bonus'), count(*) filter (where e.source = 'bonus')
-    into v_open, v_bonus
+      and ((v_key <> '' and lower(r.spinner_email) = v_key)
+        or (target_user is not null and r.auth_user_id = target_user)
+        or (target_pass is not null and r.pass_id = target_pass));
+  select count(*) into v_open
     from public.spin_wheel_entitlements e
     left join public.spin_wheel_passes p on p.id = e.pass_id
-    where e.wheel_id = target_wheel and e.used_at is null and e.revoked_at is null
-      and ((target_user is not null and e.auth_user_id = target_user) or (v_key <> '' and lower(p.email) = v_key));
-  select coalesce(sum(so.quantity), 0) into v_pending
-    from public.spin_wheel_orders so
-    join public.orders o on o.id = so.order_id
-    left join public.spin_wheel_passes p on p.id = so.pass_id
-    where so.wheel_id = target_wheel and so.paid_at is null
-      and o.payment_status is distinct from 'paid' and o.deleted_at is null
-      and coalesce(o.order_status, '') <> 'cancelled'
-      and so.created_at > now() - interval '65 minutes'
-      and ((target_user is not null and so.auth_user_id = target_user)
-        or (v_key <> '' and (lower(p.email) = v_key or lower(o.customer_email) = v_key)));
+    where e.wheel_id = target_wheel and e.used_at is null and e.revoked_at is null and e.source <> 'bonus'
+      and ((target_user is not null and e.auth_user_id = target_user)
+        or (target_pass is not null and e.pass_id = target_pass)
+        or (v_key <> '' and lower(p.email) = v_key));
+  select count(*) into v_bonus
+    from public.spin_wheel_entitlements e
+    where e.wheel_id = target_wheel and e.used_at is null and e.revoked_at is null and e.source = 'bonus'
+      and ((target_user is not null and e.auth_user_id = target_user)
+        or (target_pass is not null and e.pass_id = target_pass));
   return jsonb_build_object(
-    'limit', v_limit, 'used_today', v_used, 'open_spins', v_open, 'bonus_spins', v_bonus, 'pending_spins', v_pending,
-    'remaining', case when v_limit is null then null else greatest(v_limit - v_used - v_open - v_pending, 0) end,
+    'limit', v_limit, 'used_today', v_used, 'open_spins', v_open, 'bonus_spins', v_bonus,
+    'remaining', case when v_limit is null then null else greatest(v_limit - v_used - v_open, 0) end,
     'can_spin_today', v_limit is null or v_used < v_limit or v_bonus > 0);
 end $$;
-revoke all on function public.spin_wheel_daily_capacity(uuid,uuid,text) from public, anon, authenticated;
-grant execute on function public.spin_wheel_daily_capacity(uuid,uuid,text) to service_role;
+revoke all on function public.spin_wheel_daily_capacity(uuid,uuid,uuid,text) from public, anon, authenticated;
+grant execute on function public.spin_wheel_daily_capacity(uuid,uuid,uuid,text) to service_role;
 
 -- ---- Save a wheel and its segments (replaces 20260928100000) ----
 create or replace function public.save_spin_wheel(payload jsonb, actor_id uuid)

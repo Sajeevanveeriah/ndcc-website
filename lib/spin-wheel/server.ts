@@ -86,20 +86,21 @@ export async function spinsLeft(db: Db, wheel: SpinWheelRow, spinner: Spinner): 
   return error ? null : count ?? 0;
 }
 
-export type SpinDailyCapacity = { limit: number | null; usedToday: number; openSpins: number; pendingSpins: number; remaining: number | null; canSpinToday: boolean };
+export type SpinDailyCapacity = { limit: number | null; usedToday: number; openSpins: number; remaining: number | null; canSpinToday: boolean };
 
 /**
- * Today's spins for one person (by email, plus their club account when
- * signed in). remaining = spins they may still buy today; null = no limit.
+ * Today's spins for one person (by email, plus the club account or spin link
+ * in use). Advisory: the per-day rule itself is enforced when spinning.
+ * remaining = spins still usable today after those already held; null = no limit.
  */
-export async function spinDailyCapacity(db: Db, wheelId: string, userId: string | null, email: string): Promise<SpinDailyCapacity | null> {
-  const { data, error } = await db.rpc('spin_wheel_daily_capacity', { target_wheel: wheelId, target_user: userId, target_email: email });
+export async function spinDailyCapacity(db: Db, wheelId: string, who: { userId?: string | null; passId?: string | null }, email: string): Promise<SpinDailyCapacity | null> {
+  const { data, error } = await db.rpc('spin_wheel_daily_capacity', { target_wheel: wheelId, target_user: who.userId ?? null, target_pass: who.passId ?? null, target_email: email });
   if (error || !data || typeof data !== 'object') return null;
   const row = data as Record<string, unknown>;
   const count = (value: unknown) => Math.max(0, Number(value) || 0);
   return {
     limit: row.limit === null || row.limit === undefined ? null : count(row.limit),
-    usedToday: count(row.used_today), openSpins: count(row.open_spins), pendingSpins: count(row.pending_spins),
+    usedToday: count(row.used_today), openSpins: count(row.open_spins),
     remaining: row.remaining === null || row.remaining === undefined ? null : count(row.remaining),
     canSpinToday: row.can_spin_today !== false,
   };

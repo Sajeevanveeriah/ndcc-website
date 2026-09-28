@@ -258,7 +258,7 @@ const adminDelete = read('app/api/admin/spin-wheel/[id]/route.ts');
 for (const table of ['spin_wheel_results', 'spin_wheel_orders', 'spin_wheel_passes', 'spin_wheel_entitlements']) assert.ok(adminDelete.includes(`'${table}'`), `delete checks ${table}`);
 const cronRoute = read('app/api/cron/spin-wheel-passes/route.ts');
 // Daily limit enforced before an order is created; winner receipts copied to the committee list.
-assert.match(checkoutRoute, /spinDailyCapacity\(db, wheel\.id, authUserId, email\)/);
+assert.match(checkoutRoute, /spinDailyCapacity\(db, wheel\.id, \{ userId: authUserId \}, email\)/);
 assert.ok(checkoutRoute.indexOf('spinDailyCapacity(') < checkoutRoute.indexOf("from('orders').insert"), 'daily limit checked before the order is created');
 const serverSource = read('lib/spin-wheel/server.ts');
 assert.match(serverSource, /getNotificationRecipients\('spin_wheel_winners'\)/);

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     if (!spinner) return spinReply({ success: true, signedIn: false, spinsLeft: 0, results: [] });
     const [left, results, daily] = await Promise.all([
       spinsLeft(db, wheel, spinner), spinnerResults(db, wheel.id, spinner),
-      wheel.max_spins_per_day ? spinDailyCapacity(db, wheel.id, spinner.kind === 'user' ? spinner.userId : null, spinner.email) : Promise.resolve(null),
+      wheel.max_spins_per_day ? spinDailyCapacity(db, wheel.id, spinner.kind === 'user' ? { userId: spinner.userId } : { passId: spinner.passId }, spinner.email) : Promise.resolve(null),
     ]);
     if (left === null || results === null) return spinReply({ success: false, error: 'Your spins could not be loaded. Please retry.' }, 503);
     return spinReply({ success: true, signedIn: true, via: spinner.kind, email: spinner.email, spinsLeft: left, results, daily });
