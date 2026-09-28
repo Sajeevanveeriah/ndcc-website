@@ -35,7 +35,7 @@ export async function GET(request:Request) {
         db.from('fantasy_notification_jobs').select('id,kind,created_at,sent_at,cancelled_at,last_error,attempts').eq('manager_id',id).order('created_at',{ascending:false}).limit(30),
       ]);
       for(const r of [manager,entry,squads,rounds,events,jobs])if(r.error)throw new Error(r.error.message);
-      return NextResponse.json({success:true,season,eligibilityIssues:managerEligibilityIssues(manager.data!,entry.data,settings.rules_version),manager:manager.data,entry:entry.data,squads:squads.data,players,slots:buildSquadSlots(settings.slot_counts),budget:settings.budget_dino_dollars,rounds:rounds.data,events:events.data,notifications:jobs.data,isAdmin:user.role==='admin'},{headers:noStore});
+      return NextResponse.json({success:true,season,eligibilityIssues:managerEligibilityIssues(manager.data!,entry.data,settings.rules_version),manager:manager.data,entry:entry.data,squads:squads.data,players,slots:buildSquadSlots(settings.slot_counts),budget:settings.budget_dino_dollars+await getRealisedSaleProfit(id,season.id),startingBudget:settings.budget_dino_dollars,rounds:rounds.data,events:events.data,notifications:jobs.data,isAdmin:user.role==='admin'},{headers:noStore});
     }
     // Paged: unpaged reads stop at 1000 rows, hiding managers and squads.
     const [managers,entries,squads]=await Promise.all([
