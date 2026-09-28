@@ -263,6 +263,9 @@ assert.match(toggleRoute, /typeof enabled !== 'boolean'/);
 assert.match(toggleRoute, /\.update\(\{ spin_wheel_enabled: enabled \}\)/);
 assert.doesNotMatch(toggleRoute, /from\('spin_wheel/, 'The switch never writes wheel tables');
 assert.match(toggleRoute, /revalidatePublicContent\('clubSettings'\)/);
+assert.match(toggleRoute, /revalidateTag\(SPIN_SWITCH_CACHE_TAG\)/, 'the switch clears its cached value immediately');
+assert.match(visibilitySource, /unstable_cache\([\s\S]*revalidate: 60, tags: \[SPIN_SWITCH_CACHE_TAG\]/, 'no extra database read per public request');
+assert.match(read('app/api/admin/resources/[resource]/route.ts'), /clubSettings: \['club-settings'\]/, 'club details saves clear the same tag');
 assert.match(read('app/admin/raffle/spin-wheel/page.tsx'), /Show Spin the Wheel on the public website/);
 
 // Behaviour: the switch hides the live wheel from every public read and
@@ -271,6 +274,7 @@ assert.match(read('app/admin/raffle/spin-wheel/page.tsx'), /Show Spin the Wheel 
   const liveWheel = { id: 'w1', name: 'Live', status: 'live', ends_at: null, public_visibility_mode: 'visible', public_opens_at: null, starts_at: null, created_at: '2026-09-01T00:00:00Z' };
   const makeVisibility = (setting) => load('lib/spin-wheel/visibility.ts', {
     react: { cache: fn => fn },
+    'next/cache': { unstable_cache: fn => fn },
     '@/lib/supabase-schema-errors': { isMissingSchemaError: error => ['42703', 'PGRST204'].includes(error?.code || '') },
     '@/lib/spin-wheel/rules': rules,
     '@/lib/supabase-server': { createServerClient: () => ({ from(table) {

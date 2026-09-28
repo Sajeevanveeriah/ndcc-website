@@ -182,8 +182,12 @@ export default async function FixturesPage() {
     const awaiting = awaitingTeams.filter((team) => teamCategory(team.name, team.grade) === category)
       .sort((a, b) => (juniorAge(a.name) ?? 99) - (juniorAge(b.name) ?? 99));
     if (items.length === 0 && awaiting.length === 0) return [];
+    // Overview: the next three fixtures per team and the latest results; each
+    // team's own tab keeps its full list, so the page does not repeat it all.
     const categoryFixtures = playhq.fixtures.filter((fixture) => items.some((team) => fixturesForTeam([fixture], team).length > 0));
-    const { upcoming: categoryUpcoming, results: categoryResults } = splitTeamFixtures(categoryFixtures);
+    const { upcoming: allCategoryUpcoming, results: categoryResults } = splitTeamFixtures(categoryFixtures);
+    const nextPerTeam = new Set(items.flatMap((team) => splitTeamFixtures(fixturesForTeam(categoryFixtures, team)).upcoming.slice(0, 3).map((fixture) => fixture.id)));
+    const categoryUpcoming = allCategoryUpcoming.filter((fixture) => nextPerTeam.has(fixture.id));
     // "Upcoming junior fixtures", "Upcoming men's fixtures".
     const lower = category === 'junior' ? 'junior' : label.toLowerCase();
     const overview = (
@@ -209,8 +213,13 @@ export default async function FixturesPage() {
         )}
         {items.length > 0 && (
           <section>
-            <h3 className="mb-3 text-xl font-display font-bold text-content-primary">Upcoming {lower} fixtures</h3>
-            {categoryUpcoming.length ? <FixtureList fixtures={categoryUpcoming} showGrade label={`Upcoming ${lower} fixtures`} /> : <p className="font-body text-content-muted">No upcoming {lower} fixtures are currently listed.</p>}
+            <h3 className="mb-3 text-xl font-display font-bold text-content-primary">Next {lower} fixtures</h3>
+            {categoryUpcoming.length ? (
+              <>
+                <FixtureList fixtures={categoryUpcoming} showGrade label={`Next ${lower} fixtures`} />
+                <p className="mt-2 font-body text-sm text-content-muted">Showing the next three for each team. Choose a team above for its full fixture list, results and ladder.</p>
+              </>
+            ) : <p className="font-body text-content-muted">No upcoming {lower} fixtures are currently listed.</p>}
           </section>
         )}
         {categoryResults.length > 0 && (

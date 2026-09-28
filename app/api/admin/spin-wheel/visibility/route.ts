@@ -5,6 +5,8 @@ import { revalidatePublicContent } from '@/lib/server/revalidate-public';
 import { scheduleAdminAudit } from '@/lib/revisions/server';
 import { spinReply } from '@/lib/spin-wheel/server';
 import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
+import { revalidateTag } from 'next/cache';
+import { SPIN_SWITCH_CACHE_TAG } from '@/lib/spin-wheel/visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +40,7 @@ export async function POST(request: Request) {
     if (error && isMissingSchemaError(error)) return spinReply({ success: false, error: 'Apply the Spin the Wheel show/hide migration first. Nothing was saved.' }, 409);
     if (error || !data) return spinReply({ success: false, error: 'The setting could not be saved.' }, 503);
     scheduleAdminAudit({ actor: auth.user, action: 'update', resource: 'club_settings', recordId: 'default', summary: `Spin the Wheel ${enabled ? 'shown on' : 'hidden from'} the website` });
+    revalidateTag(SPIN_SWITCH_CACHE_TAG);
     revalidatePublicContent('clubSettings');
     return spinReply({ success: true, enabled: (data as { spin_wheel_enabled?: unknown }).spin_wheel_enabled !== false });
   } catch {

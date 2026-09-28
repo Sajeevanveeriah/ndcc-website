@@ -119,6 +119,7 @@ const hooks = registerHooks({ resolve(specifier, context, next) {
   if (specifier === 'next/server') return { url: 'data:text/javascript,' + encodeURIComponent(`export class NextResponse extends Response { static json(body, init) { return Response.json(body, init); } }`), shortCircuit: true };
   if (specifier === '@/lib/supabase-server') return { url: stub, shortCircuit: true };
   if (specifier === 'server-only') return { url: 'data:text/javascript,', shortCircuit: true };
+  if (specifier === 'next/cache') return { url: 'data:text/javascript,' + encodeURIComponent(`export const unstable_cache = (fn) => fn; export const revalidateTag = () => {}; export const revalidatePath = () => {};`), shortCircuit: true };
   if (specifier.startsWith('@/')) return next(pathToFileURL(resolve(specifier.slice(2) + '.ts')).href, context);
   return next(specifier, context);
 }});

@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { isMissingSchemaError } from '@/lib/supabase-schema-errors';
 import { choosePublicSpinWheel, type SpinWheelRow } from '@/lib/spin-wheel/rules';
@@ -19,11 +20,20 @@ async function readSpinWheelSwitch(): Promise<{ enabled: boolean; error: boolean
   return { enabled: (data as { spin_wheel_enabled?: unknown } | null)?.spin_wheel_enabled !== false, error: false };
 }
 
+// Cached for up to a minute across requests so the per-request Spin the
+// Wheel page and APIs do not add a database read each; the CMS switch clears
+// the 'club-settings' tag, so hiding or showing applies straight away. A
+// failed read throws, which stores nothing, and the caller fails closed.
+export const SPIN_SWITCH_CACHE_TAG = 'club-settings';
+const readCachedSpinWheelSwitch = unstable_cache(async () => {
+  const setting = await readSpinWheelSwitch();
+  if (setting.error) throw new Error('Spin the Wheel switch unavailable');
+  return setting.enabled;
+}, ['spin-wheel-public-switch-v1'], { revalidate: 60, tags: [SPIN_SWITCH_CACHE_TAG] });
+
 async function getSpinWheelEnabledUncached(): Promise<boolean> {
   try {
-    const setting = await readSpinWheelSwitch();
-    // A failed read fails closed like the wheel query below.
-    return setting.enabled && !setting.error;
+    return await readCachedSpinWheelSwitch();
   } catch {
     return false;
   }
