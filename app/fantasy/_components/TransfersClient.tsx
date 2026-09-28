@@ -7,7 +7,6 @@ import { fantasyJsonFetch } from '@/lib/fantasy-browser';
 import { formatDinoDollars as money, isoWeekdayLabel } from '@/lib/dino-coach/domain';
 import { useSeasonParam } from './useSeasonParam';
 import WalletPanel from './WalletPanel';
-import { womenSelectionStatus } from '@/lib/dino-coach/women-selection';
 import { marketPreview } from '@/lib/dino-coach/wallet';
 
 export default function TransfersClient() {
@@ -27,7 +26,6 @@ export default function TransfersClient() {
  };
  if(!data) return <div className="card p-6"><p role="status">{error||'Loading the player market...'}</p>{error&&<><Button onClick={()=>void load()}>Retry</Button><Link href="/fantasy/login">Sign in</Link></>}</div>;
  const picks=data.squad?.fantasy_squad_players||[]; const owned=new Set(picks.map((p:any)=>p.player_id));
- const women=womenSelectionStatus(picks.map((p:any)=>({playerId:p.player_id,positionType:p.position_type})),data.players,data.settings.women_rule_enabled===true);
  const refund=Number(picks.find((p:any)=>p.player_id===out)?.purchase_price_dino_dollars||0);
  const cost=Number(data.players.find((p:any)=>p.id===incoming)?.price_dino_dollars||0);
  const remaining=Number(data.settings.budget_dino_dollars)-Number(data.squad?.budget_used_dino_dollars||0);
@@ -38,13 +36,11 @@ export default function TransfersClient() {
   <WalletPanel query={query} refreshKey={data.squad?.updated_at} onExternalChange={()=>void load()}/>
   <p role="status">{data.windowOpen?'The transfer window is open.':'The transfer window is closed.'} {isoWeekdayLabel(data.settings.transfer_open_weekday)} {clock(data.settings.transfer_open_minute)} to before {isoWeekdayLabel(data.settings.transfer_close_weekday)} {clock(data.settings.transfer_close_minute)}, {data.settings.transfer_timezone==='Australia/Melbourne'?'Melbourne':data.settings.transfer_timezone} time. Round locks also apply.</p>
   <p>Players are bought from and sold back to the shared player pool. Sales refund the original purchase cost shown below. Purchases use the current published price. Player market value is separate from available money. All transactions use virtual Dino Dollars.</p>
-  {data.settings.women_rule_enabled && <p role="status">All teams must include at least one player from the men’s and women’s sections in the squad. Two different players are needed; a player recorded in both sections counts for only one of them. Section counts: men’s {women.menCount}/1 minimum; women’s {women.squadCount}/1 minimum. Bench players qualify. Replacements must retain representation from both sections. Use My squad to make several changes together, or save a draft while rebuilding.</p>}
-  {data.settings.women_rule_enabled && !women.valid && data.settings.women_update_deadline && <p className="font-semibold">Update and submit your squad by {new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Melbourne' }).format(new Date(data.settings.women_update_deadline))} (Melbourne time).</p>}
   <section className="card p-5 space-y-4"><h2 className="text-xl font-display font-bold">Buy, sell or replace a player</h2>
    {!data.squad&&<p><Link className="underline" href={`/fantasy/squad${query}`}>Build your first squad</Link> to use the market.</p>}
    <div className="grid gap-4 md:grid-cols-2">
     <label>Player to sell<select className="form-input mt-1 w-full" value={out} onChange={e=>setOut(e.target.value)}><option value="">Choose a player</option>{picks.map((p:any)=><option key={p.player_id} value={p.player_id}>{p.fantasy_players?.display_name} - refund {money(Number(p.purchase_price_dino_dollars))}</option>)}</select></label>
-    <label>Player to buy<select className="form-input mt-1 w-full" value={incoming} onChange={e=>setIncoming(e.target.value)}><option value="">Choose a player</option>{data.players.filter((p:any)=>!owned.has(p.id)&&p.published_at).map((p:any)=><option key={p.id} value={p.id}>{p.display_name}{data.settings?.women_rule_enabled && p.women_eligible ? ' (women’s section)' : ''}{data.settings?.women_rule_enabled && p.men_eligible ? ' (men’s section)' : ''} - {money(p.price_dino_dollars)}</option>)}</select></label>
+    <label>Player to buy<select className="form-input mt-1 w-full" value={incoming} onChange={e=>setIncoming(e.target.value)}><option value="">Choose a player</option>{data.players.filter((p:any)=>!owned.has(p.id)&&p.published_at).map((p:any)=><option key={p.id} value={p.id}>{p.display_name} - {money(p.price_dino_dollars)}</option>)}</select></label>
    </div>
    <p aria-live="polite">Sale refund: {money(refund)}. Purchase: {money(cost)}. After replacement: {money(marketPreview(remaining,refund,cost))}.</p>
    <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={closed||!out} onClick={()=>void act('sell')}>Sell back to pool</Button><Button disabled={closed||!out||!incoming||remaining+refund<cost} onClick={()=>void act('swap')}>Sell and buy replacement</Button></div>

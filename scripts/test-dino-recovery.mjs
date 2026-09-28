@@ -1,4 +1,3 @@
-import * as womenSelection from '../lib/dino-coach/women-selection.ts';
 // Real request helper and React handlers, with isolated network fixtures only.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -68,7 +67,6 @@ const Builder = load('app/fantasy/_components/SquadBuilder.tsx', {
   ...shared, './WalletPanel': { default: () => null }, './PlayerStatsCard': { default: ({ player }) => React.createElement('p', null, player.display_name) },
   './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
   '@/lib/dino-coach/wallet': load('lib/dino-coach/wallet.ts', {}),
-  '@/lib/dino-coach/women-selection': womenSelection,
   '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
   '@/lib/fantasy-browser': { fantasyJsonFetch: async (url, init) => {
     if (init?.method === 'POST') {

@@ -15,12 +15,10 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
   if (details.error) throw new Error(details.error.message);
   // Budget from the season settings; keep the published figure if unavailable.
   let budgetText = '15,000,000';
-  let womenRuleEnabled = false;
   if (!job.delivery && details.data.season_id) {
     try {
-      const settings = await supabase.from('fantasy_dino_settings').select('budget_dino_dollars,women_rule_enabled').eq('season_id', details.data.season_id).maybeSingle();
+      const settings = await supabase.from('fantasy_dino_settings').select('budget_dino_dollars').eq('season_id', details.data.season_id).maybeSingle();
       const budget = Number(settings.data?.budget_dino_dollars);
-      womenRuleEnabled = !settings.error && settings.data?.women_rule_enabled === true;
       if (!settings.error && Number.isFinite(budget) && budget > 0) budgetText = Math.round(budget).toLocaleString('en-AU');
     } catch { /* Keep the published budget figure. */ }
   }
@@ -39,7 +37,6 @@ export async function sendRegistrationEmail(supabase: ServerClient, entryId: str
       <p>Your manager registration for <strong>${escapeEmailHtml(job.team_name)}</strong> has been recorded.</p>
       ${details.data.fee_waived ? '<p>Your complimentary entry is approved. No payment is required. Sign in using the password supplied by the administrator, then choose Change password in your account.</p>' : details.data.is_demo ? '<p>Your demo entry does not require payment.</p>' : `<p>The entry fee is AUD ${(job.entry_fee_cents / 100).toFixed(2)}. If you have already paid, your account shows your payment status. Team selection unlocks after payment settles and your team name is approved.</p>`}
       <p>Your starting budget is ${budgetText} virtual Dino Dollars. Choose 15 players, including a captain and vice-captain, and submit your squad before the round locks. There is no registration expiry for an incomplete squad.</p>
-      ${womenRuleEnabled ? '<p>All teams must include at least one player from the men’s and women’s sections in the squad. Bench players qualify. Check both section counts before submitting.</p>' : ''}
       <p>Your Dino Coach user manual is attached. It covers registration, squad selection, scoring, the live wallet, selling back to the player pool, competition rules and help. You can also <a href="${DINO_MANUAL_URL}">download the user manual (PDF)</a>.</p>
       <p><a href="https://www.ndcc.com.au/fantasy/account">Open your Dino Coach account</a> to complete payment or pick your squad.</p>`),
   };

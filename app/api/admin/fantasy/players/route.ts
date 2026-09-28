@@ -16,8 +16,6 @@ type PlayerPayload = {
   role?: FantasyRole;
   team_label?: string | null;
   active?: boolean;
-  women_eligible?: boolean | null;
-  men_eligible?: boolean | null;
   price_million?: number | string | null;
 };
 
@@ -36,8 +34,6 @@ function normalisePayload(raw: PlayerPayload) {
   const price = raw.price_million === '' || raw.price_million === null || raw.price_million === undefined ? null : Number(raw.price_million);
   const errors: string[] = [];
 
-  if (raw.women_eligible !== undefined && raw.women_eligible !== null && typeof raw.women_eligible !== 'boolean') errors.push('Women’s section eligibility must be confirmed, not counted or unreviewed.');
-  if (raw.men_eligible !== undefined && raw.men_eligible !== null && typeof raw.men_eligible !== 'boolean') errors.push('Men’s section eligibility must be confirmed, not counted or unreviewed.');
   if (!displayName) errors.push('Player name is required.');
   if (!role || !roles.has(role)) errors.push('Role must be WK, BAT, AR, BOWL or UNASSIGNED.');
   if (price !== null && (!Number.isFinite(price) || price < 0.1 || price > 2)) errors.push('Price must be between 0.1 and 2.0 million Dino Dollars.');
@@ -59,14 +55,14 @@ async function playersWithPrices(supabase: ReturnType<typeof createServerClient>
   const seasonId = await currentSeasonId(supabase);
   if (!seasonId) throw new Error('Current season not found.');
   const [{ data: members, error: memberError }, { data: prices, error: priceError }] = await Promise.all([
-    supabase.from('fantasy_season_players').select('player_id,role,team_label,active,selectable,women_eligible,men_eligible,eligibility_exclusion,fantasy_players(*)').eq('season_id',seasonId),
+    supabase.from('fantasy_season_players').select('player_id,role,team_label,active,selectable,eligibility_exclusion,fantasy_players(*)').eq('season_id',seasonId),
     supabase.from('fantasy_player_prices').select('player_id,price_dino_dollars,created_at').eq('season_id',seasonId).not('published_at','is',null).order('created_at',{ascending:false}),
   ]);
   if (memberError) throw new Error(memberError.message);
   if (priceError) throw new Error(priceError.message);
   const latest = new Map<string,number>();
   for (const p of prices || []) if (!latest.has(p.player_id)) latest.set(p.player_id,Number(p.price_dino_dollars)/1000000);
-  return (members || []).map(m => ({...(Array.isArray(m.fantasy_players)?m.fantasy_players[0]:m.fantasy_players),id:m.player_id,role:m.role,team_label:m.team_label,active:m.active,women_eligible:m.women_eligible,men_eligible:m.men_eligible,selectable:m.selectable,eligibility_exclusion:m.eligibility_exclusion,price_million:latest.get(m.player_id) || 0}));
+  return (members || []).map(m => ({...(Array.isArray(m.fantasy_players)?m.fantasy_players[0]:m.fantasy_players),id:m.player_id,role:m.role,team_label:m.team_label,active:m.active,selectable:m.selectable,eligibility_exclusion:m.eligibility_exclusion,price_million:latest.get(m.player_id) || 0}));
 }
 
 async function requireFantasyPlayers() {
@@ -97,16 +93,16 @@ async function upsertPrice(supabase: ReturnType<typeof createServerClient>, play
   if (result.error) throw new Error(result.error.message);
 }
 
-async function syncSeasonMembership(supabase: ReturnType<typeof createServerClient>, playerId: string, player: { role?: FantasyRole; team_label?: string | null; active: boolean; playhq_player_id?: string | null }, seasonId: string | null, womenEligible?: boolean | null, menEligible?: boolean | null) {
+async function syncSeasonMembership(supabase: ReturnType<typeof createServerClient>, playerId: string, player: { role?: FantasyRole; team_label?: string | null; active: boolean; playhq_player_id?: string | null }, seasonId: string | null) {
   if (!seasonId) return;
   const { data: existing, error: readError } = await supabase.from('fantasy_season_players').select('id,active,selectable,eligibility_exclusion').eq('season_id', seasonId).eq('player_id', playerId).limit(1).maybeSingle();
   if (readError) throw new Error(readError.message);
-  // Changing classification must not re-enable a junior or excluded player.
+  // Editing a player must not re-enable a junior or excluded player.
   const selectable = existing?.active === player.active ? existing.selectable : player.active && !existing?.eligibility_exclusion;
-  const values = { ...(menEligible !== undefined ? { men_eligible: menEligible } : {}), ...(womenEligible !== undefined ? { women_eligible: womenEligible } : {}), role: player.role, team_label: player.team_label ?? null, active: player.active, selectable, playhq_player_id: player.playhq_player_id ?? null };
+  const values = { role: player.role, team_label: player.team_label ?? null, active: player.active, selectable, playhq_player_id: player.playhq_player_id ?? null };
   const result = existing
-    ? await supabase.from('fantasy_season_players').update(values).eq('id', existing.id).select('women_eligible,men_eligible,active,selectable,eligibility_exclusion').single()
-    : await supabase.from('fantasy_season_players').insert({ ...values, season_id: seasonId, player_id: playerId, source: 'admin' }).select('women_eligible,men_eligible,active,selectable,eligibility_exclusion').single();
+    ? await supabase.from('fantasy_season_players').update(values).eq('id', existing.id).select('active,selectable,eligibility_exclusion').single()
+    : await supabase.from('fantasy_season_players').insert({ ...values, season_id: seasonId, player_id: playerId, source: 'admin' }).select('active,selectable,eligibility_exclusion').single();
   if (result.error) throw new Error(result.error.message);
   return result.data;
 }
@@ -129,7 +125,7 @@ export async function POST(request: Request) {
       const { data, error } = await supabase.from('fantasy_players').insert(parsed.player).select().single();
       if (error) throw new Error(error.message);
       await upsertPrice(supabase, data.id, parsed.price, seasonId, user.id, row.price_reason || 'Manual player creation');
-      const membership = await syncSeasonMembership(supabase, data.id, parsed.player, seasonId, row.women_eligible, row.men_eligible);
+      const membership = await syncSeasonMembership(supabase, data.id, parsed.player, seasonId);
       saved.push({ ...data, ...membership });
     }
     revalidateFantasy();
@@ -159,7 +155,7 @@ export async function PATCH(request: Request) {
     const { data, error } = await supabase.from('fantasy_players').update(parsed.player).eq('id', body.id).select().single();
     if (error) throw new Error(error.message);
     await upsertPrice(supabase, body.id, parsed.price, seasonId, user.id, body.price_reason || '');
-    const membership = await syncSeasonMembership(supabase, body.id, parsed.player, seasonId, body.women_eligible, body.men_eligible);
+    const membership = await syncSeasonMembership(supabase, body.id, parsed.player, seasonId);
     revalidateFantasy();
     return NextResponse.json({ success: true, data: { ...data, ...membership, price_million: parsed.price ?? 0 } });
   } catch (err) {

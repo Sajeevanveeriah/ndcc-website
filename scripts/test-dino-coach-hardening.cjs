@@ -66,8 +66,7 @@ assert.match(read('app/fantasy/rules/page.tsx'), /fantasyRuleSections\(fantasyRu
 assert.match(read('app/fantasy/_components/SquadBuilder.tsx'), /money\(Number\(settings\.budget_dino_dollars\)\)/);
 const email = read('lib/dino-coach/registration-email.ts');
 assert.match(email, /Your starting budget is \$\{budgetText\} virtual Dino Dollars\./);
-assert.match(email, /from\('fantasy_dino_settings'\)\.select\('budget_dino_dollars,women_rule_enabled'\)/);
-assert.match(email, /womenRuleEnabled = !settings\.error && settings\.data\?\.women_rule_enabled === true/);
+assert.match(email, /from\('fantasy_dino_settings'\)\.select\('budget_dino_dollars'\)/);
 assert.match(read('lib/dino-coach/pricing.ts'), /published \$\{seasonSummary\.sourceSeason\} season summary/);
 const reconciliation = read('app/admin/fantasy/reconciliation/page.tsx');
 assert.match(reconciliation, /previousSeasonYearsLabel\(seasonYearsLabel\(current\)\)/);
@@ -93,7 +92,6 @@ console.log('PASS Dino auth form: normalised email for sign in, sign up, resend 
 // ---- Squad POST error handling ----
 let settingsFailure = null;
 const squad = load('app/api/fantasy/squad/route.ts', {
-  '@/lib/dino-coach/women-selection': load('lib/dino-coach/women-selection.ts'),
   '@/lib/server/fantasy-mutation': { readFantasyMutation: async request => ({ body: await request.json() }) },
   '@/lib/dino-coach/manager-eligibility': { managerEligibilityIssues: () => [] },
   '@/lib/dino-coach/player-stats-server': {},
