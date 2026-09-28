@@ -69,6 +69,13 @@ Admin grants create a new pass for the email and email the link; if email fails,
 
 `spin_wheel_results.segment_id` is nullable with `on delete set null`; each result stores the position, label, prize name, prize description and prize flag at spin time. `save_spin_wheel` saves the wheel and the full ordered segment list atomically (deletes removed segments, reorders with a deferred unique constraint). Removing a segment that has already won keeps its results intact.
 
+## 7a. Daily limit, once-per-person prizes and prize receipts (`20260928150000`)
+
+- **Spins per person per day** (`spin_wheels.max_spins_per_day`, blank = no limit). A person is matched by email across their club account and spin links, plus their account. Days follow Australia/Melbourne. `record_spin_wheel_result` enforces the limit under a per-person lock and refuses a spin over it with `spin_wheel:daily_limit`; nothing is used. Checkout calls `spin_wheel_daily_capacity` first, which is advisory. It refuses to sell more than can still be used today, counting spins used today and unused spins held. Unpaid orders are not counted, so an abandoned card checkout never blocks a new one. Spins bought beyond today's allowance, for example from two checkouts at once, carry over to later days; they never allow more than the limit per day. Bonus spins count only for the exact account or spin link that can use them.
+- **Once per person** (`spin_wheel_segments.once_per_spinner`, prize segments only). Wins are matched by prize name, by the same email, account or spin link; voided wins do not count. Landing on a prize already won records a `repeat_bonus` result with no prize and no stock used, and grants one `bonus` spin (`bonus_from_result`). Bonus spins are used first and do not count towards the daily limit.
+- **Prize receipts.** The winner email is a prize receipt: reference, prize, time won (Melbourne) and winner. It says to show it at the club bar. A private copy (BCC) goes to the `spin_wheel_winners` notification list, which is editable in the CMS and seeded with the addresses the club supplied.
+- Tests: `scripts/test-spin-wheel-daily.sql` (run by `npm run test:migration-replay`) and the rules, receipt and wiring checks in `scripts/test-spin-wheel.mjs`.
+
 ## 8. Data model
 
 Migrations: `supabase/migrations/20260928100000_spin_the_wheel.sql`, `20260928110000_spin_the_wheel_single_live.sql`, `20260928120000_spin_the_wheel_cron_work.sql` and `20260928130000_spin_the_wheel_settlement_guard.sql` (rollback SQL in each header).

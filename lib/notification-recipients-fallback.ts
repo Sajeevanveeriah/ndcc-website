@@ -14,6 +14,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   'receipt_copy',
   'contact',
   'event_song_requests',
+  'spin_wheel_winners',
 ] as const;
 
 export type NotificationEventType = (typeof NOTIFICATION_EVENT_TYPES)[number];
@@ -51,6 +52,10 @@ export const NOTIFICATION_EVENT_LABELS: Readonly<Record<NotificationEventType, {
     label: 'Song request entries',
     description: 'Receive each song-request event entry (for example iPod Shuffle) with the buyer and their song list.',
   },
+  spin_wheel_winners: {
+    label: 'Spin the Wheel prize receipts',
+    description: 'Receive a private copy (BCC) of every Spin the Wheel prize receipt emailed to a winner.',
+  },
 };
 
 export const FALLBACK_SECRETARY_EMAIL = 'ndcc.secretary1@gmail.com';
@@ -64,6 +69,7 @@ export const FALLBACK_NOTIFICATION_RECIPIENTS: Readonly<Record<NotificationEvent
   receipt_copy: [FALLBACK_SECRETARY_EMAIL, 'ndsc.cricket@gmail.com'],
   contact: [FALLBACK_SECRETARY_EMAIL],
   event_song_requests: [FALLBACK_SECRETARY_EMAIL],
+  spin_wheel_winners: [FALLBACK_SECRETARY_EMAIL, 'ndsc.cricket@gmail.com'],
 };
 
 export function isNotificationEventType(value: unknown): value is NotificationEventType {

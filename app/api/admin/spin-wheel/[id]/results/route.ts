@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 500;
 const EXPORT_PAGE_SIZE = 1000;
-const RESULT_COLUMNS = 'id,reference,segment_position,segment_label,prize_name,is_prize,spinner_email,spinner_name,auth_user_id,pass_id,created_at,claimed_at,voided_at,void_reason,winner_emailed_at';
+const RESULT_COLUMNS = 'id,reference,segment_position,segment_label,prize_name,is_prize,repeat_bonus,spinner_email,spinner_name,auth_user_id,pass_id,created_at,claimed_at,voided_at,void_reason,winner_emailed_at';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requirePermissionResult('raffle');

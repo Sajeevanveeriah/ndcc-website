@@ -8,7 +8,7 @@ import { sanitiseInput, validateEmail, validatePhone } from '@/lib/utils';
 import { getAuthUserFromRequest } from '@/lib/fantasy-manager-auth';
 import { hashSpinPassToken, spinPassToken } from '@/lib/spin-wheel/pass';
 import { isSpinCheckoutOpen, isSpinWheelLive, SPIN_CHECKOUT_CLOSE_MINUTES, SPIN_ORDER_CATEGORY, validSpinQuantity } from '@/lib/spin-wheel/rules';
-import { spinReply } from '@/lib/spin-wheel/server';
+import { spinDailyCapacity, spinReply } from '@/lib/spin-wheel/server';
 import { getPublicSpinWheel } from '@/lib/spin-wheel/visibility';
 
 export const dynamic = 'force-dynamic';
@@ -69,6 +69,20 @@ export async function POST(request: Request) {
     const db = createServerClient();
     if (!deriveCapabilities(await loadMerchPaymentSettings(db)).card) {
       return spinReply({ success: false, error: 'Card payments are not currently available.' }, 503);
+    }
+    // Daily limit (advisory here; spinning enforces it): do not sell more
+    // spins than this person can still use today.
+    if (wheel.max_spins_per_day) {
+      const daily = await spinDailyCapacity(db, wheel.id, { userId: authUserId }, email);
+      if (!daily || daily.remaining === null) return spinReply({ success: false, error: 'Your spins for today could not be checked. Please try again.' }, 503);
+      if (quantity > daily.remaining) {
+        return spinReply({
+          success: false,
+          error: daily.remaining > 0
+            ? `Each person can spin ${wheel.max_spins_per_day} times a day. You can buy ${daily.remaining} more ${daily.remaining === 1 ? 'spin' : 'spins'} today.`
+            : `Each person can spin ${wheel.max_spins_per_day} times a day, counting spins you already hold. Please use those first, or come back tomorrow (Melbourne time).`,
+        }, 409);
+      }
     }
     const reference = await generateUniquePaymentReference('general');
     const unit = wheel.spin_price_cents as number;

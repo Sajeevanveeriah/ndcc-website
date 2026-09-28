@@ -8,7 +8,7 @@ import { choosePublicSpinWheel, type SpinWheelRow } from '@/lib/spin-wheel/rules
 // or auth imports). Every read degrades to "no wheel" when the Spin the Wheel
 // migration is not applied yet, so the rest of the site keeps working.
 
-export const SPIN_WHEEL_COLUMNS = 'id,name,description,status,starts_at,ends_at,free_spins_per_account,spin_price_cents,max_spins_per_order,claim_instructions,public_visibility_mode,public_opens_at,created_at,updated_at';
+export const SPIN_WHEEL_COLUMNS = 'id,name,description,status,starts_at,ends_at,free_spins_per_account,spin_price_cents,max_spins_per_order,max_spins_per_day,claim_instructions,public_visibility_mode,public_opens_at,created_at,updated_at';
 
 async function getPublicSpinWheelUncached(): Promise<SpinWheelRow | null> {
   try {

@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUserFromRequest } from '@/lib/fantasy-manager-auth';
 import { emailHtml, sendEmail } from '@/lib/email';
+import { getNotificationRecipients } from '@/lib/notification-recipients';
 import { SITE_URL } from '@/lib/seo';
 import { hashSpinPassToken, isSpinPassToken, spinPassToken, spinPassUrl } from '@/lib/spin-wheel/pass';
 import { spinPassEmailBody, spinPassEmailSubject, spinWinnerEmailBody, spinWinnerEmailSubject } from '@/lib/spin-wheel/email';
-import { type SpinResultView, type SpinSegmentRow, type SpinWheelRow } from '@/lib/spin-wheel/rules';
+import { formatMelbourneDateTime, type SpinResultView, type SpinSegmentRow, type SpinWheelRow } from '@/lib/spin-wheel/rules';
 import { SPIN_WHEEL_COLUMNS } from '@/lib/spin-wheel/visibility';
 
 
@@ -15,7 +16,7 @@ import { SPIN_WHEEL_COLUMNS } from '@/lib/spin-wheel/visibility';
 
 type Db = ReturnType<typeof createServerClient>;
 
-const SPIN_SEGMENT_COLUMNS = 'id,wheel_id,position,label,prize_name,prize_description,is_prize,weight,stock,colour';
+const SPIN_SEGMENT_COLUMNS = 'id,wheel_id,position,label,prize_name,prize_description,is_prize,once_per_spinner,weight,stock,colour';
 const SPIN_PASS_HEADER = 'x-spin-pass';
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -85,10 +86,30 @@ export async function spinsLeft(db: Db, wheel: SpinWheelRow, spinner: Spinner): 
   return error ? null : count ?? 0;
 }
 
+export type SpinDailyCapacity = { limit: number | null; usedToday: number; openSpins: number; remaining: number | null; canSpinToday: boolean };
+
+/**
+ * Today's spins for one person (by email, plus the club account or spin link
+ * in use). Advisory: the per-day rule itself is enforced when spinning.
+ * remaining = spins still usable today after those already held; null = no limit.
+ */
+export async function spinDailyCapacity(db: Db, wheelId: string, who: { userId?: string | null; passId?: string | null }, email: string): Promise<SpinDailyCapacity | null> {
+  const { data, error } = await db.rpc('spin_wheel_daily_capacity', { target_wheel: wheelId, target_user: who.userId ?? null, target_pass: who.passId ?? null, target_email: email });
+  if (error || !data || typeof data !== 'object') return null;
+  const row = data as Record<string, unknown>;
+  const count = (value: unknown) => Math.max(0, Number(value) || 0);
+  return {
+    limit: row.limit === null || row.limit === undefined ? null : count(row.limit),
+    usedToday: count(row.used_today), openSpins: count(row.open_spins),
+    remaining: row.remaining === null || row.remaining === undefined ? null : count(row.remaining),
+    canSpinToday: row.can_spin_today !== false,
+  };
+}
+
 export async function spinnerResults(db: Db, wheelId: string, spinner: Spinner): Promise<SpinResultView[] | null> {
   const [column, value] = spinnerColumn(spinner);
   const { data, error } = await db.from('spin_wheel_results')
-    .select('reference,segment_position,segment_label,prize_name,prize_description,is_prize,created_at,claimed_at,voided_at')
+    .select('reference,segment_position,segment_label,prize_name,prize_description,is_prize,repeat_bonus,created_at,claimed_at,voided_at')
     .eq('wheel_id', wheelId).eq(column, value).order('created_at', { ascending: false }).limit(50);
   return error || !Array.isArray(data) ? null : data as SpinResultView[];
 }
@@ -177,11 +198,16 @@ export async function sendSpinPassEmail(db: Db, passId: string, wheelName: strin
   }
 }
 
-/** Winner email, sent once per result. A failure never undoes the spin. */
+/**
+ * Winner prize receipt, sent once per result and copied (BCC) to the
+ * 'spin_wheel_winners' notification list. A failure never undoes the spin.
+ */
 export async function sendSpinWinnerEmail(db: Db, resultId: string, spinner: { email: string; name: string | null }, wheel: Pick<SpinWheelRow, 'name' | 'claim_instructions'>): Promise<boolean> {
   const { data: result, error } = await db.from('spin_wheel_results')
-    .select('id,reference,prize_name,prize_description,is_prize,winner_emailed_at').eq('id', resultId).maybeSingle();
+    .select('id,reference,prize_name,prize_description,is_prize,winner_emailed_at,created_at').eq('id', resultId).maybeSingle();
   if (error || !result || !result.is_prize || !result.prize_name || result.winner_emailed_at) return false;
+  const copies = (await getNotificationRecipients('spin_wheel_winners').catch(() => [] as string[]))
+    .filter(address => address.toLowerCase() !== spinner.email.trim().toLowerCase());
   return sendOrRelease(
     async () => {
       const claimed = await db.from('spin_wheel_results').update({ winner_emailed_at: new Date().toISOString() })
@@ -191,9 +217,11 @@ export async function sendSpinWinnerEmail(db: Db, resultId: string, spinner: { e
     () => db.from('spin_wheel_results').update({ winner_emailed_at: null }).eq('id', result.id),
     () => sendEmail({
       to: spinner.email,
-      subject: spinWinnerEmailSubject({ wheelName: wheel.name, prizeName: result.prize_name }),
+      bcc: copies.length ? copies : undefined,
+      subject: spinWinnerEmailSubject({ wheelName: wheel.name, prizeName: result.prize_name, reference: result.reference }),
       html: emailHtml(wheel.name, spinWinnerEmailBody({
-        name: spinner.name, wheelName: wheel.name, reference: result.reference, prizeName: result.prize_name,
+        name: spinner.name, email: spinner.email, wheelName: wheel.name, reference: result.reference, prizeName: result.prize_name,
+        wonAt: formatMelbourneDateTime(result.created_at) || result.created_at,
         prizeDescription: result.prize_description, claimInstructions: wheel.claim_instructions,
       })),
       idempotencyKey: `spin-wheel-winner-${result.id}`,
