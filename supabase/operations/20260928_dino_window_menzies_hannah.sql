@@ -9,7 +9,7 @@
 -- 3. Hannah Allan (52bfe5f5-aba4-4f01-b8e9-09ea761ffedf) added as the admin player
 --    form does: role UNASSIGNED, team NDCC, selectable, opening price 100,000
 --    (audit row 74a75f8d-ebf7-4772-ad20-d58265849110). No statistics were
---    supplied; women_eligible is left NULL (not reviewed).
+--    supplied. Saj then confirmed her as women eligible (women_eligible=true).
 
 -- Apply (as run):
 -- UPDATE public.fantasy_dino_settings SET transfer_open_weekday=1, transfer_open_minute=540, updated_at=now()
@@ -21,6 +21,8 @@
 --   VALUES ('75425550-0622-4ecb-87c4-69ab5ca40a53','52bfe5f5-aba4-4f01-b8e9-09ea761ffedf','UNASSIGNED','NDCC',true,true,'admin');
 -- SELECT public.override_dino_player_price('75425550-0622-4ecb-87c4-69ab5ca40a53','52bfe5f5-aba4-4f01-b8e9-09ea761ffedf',100000,
 --   'Manual player creation requested by Saj 2026-09-28; no verified statistics, opening floor price','Saj-authorised Dino Coach update 2026-09-28');
+-- UPDATE public.fantasy_season_players SET women_eligible=true, updated_at=now()
+--   WHERE season_id='75425550-0622-4ecb-87c4-69ab5ca40a53' AND player_id='52bfe5f5-aba4-4f01-b8e9-09ea761ffedf';
 
 -- Rollback (only after a club decision; check squads first):
 -- UPDATE public.fantasy_dino_settings SET transfer_open_weekday=2, transfer_open_minute=0, updated_at=now()
