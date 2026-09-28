@@ -247,10 +247,26 @@ assert.match(client, /sessionStorage/);
 assert.match(client, /result\.emailed \?/, 'the page only claims an email was sent when it was');
 assert.match(read('app/api/spin-wheel/spin/route.ts'), /spinsLeft: left, emailed \}/);
 
+// ---- Second review round (#278) ----
+const session2 = read('app/api/payments/checkout-session/route.ts');
+assert.ok(session2.includes("order.order_category === 'spin_wheel'") && session2.includes('spinOrderCheckoutFailure(supabase, order.id)'), 'each Stripe session re-checks the spin wheel');
+assert.match(read('lib/spin-wheel/checkout-guard.ts'), /isSpinCheckoutOpen\(wheel\)/);
+const editor = read('app/admin/raffle/spin-wheel/[id]/page.tsx');
+assert.match(editor, /datetimeLocalToClubIso/, 'admin dates are Melbourne time whatever the browser zone');
+assert.match(editor, /toDatetimeLocalInClubTimezone/);
+assert.doesNotMatch(editor, /getTimezoneOffset/);
+const results = read('app/api/admin/spin-wheel/[id]/results/route.ts');
+assert.doesNotMatch(results, /\.limit\(/, 'results are paged, never capped');
+assert.match(results, /\.range\(offset, offset \+ size - 1\)/);
+assert.match(adminSave, /Only one wheel can be live at a time/);
+const followUp = read('supabase/migrations/20260928110000_spin_the_wheel_single_live.sql');
+assert.match(followUp, /create unique index spin_wheels_single_live on public\.spin_wheels \(\(true\)\) where status = 'live'/);
+assert.match(followUp, /keep := greatest\(allowance - used_count, 0\);/);
+
 // ---- ASCII hyphens only in the new files ----
 function files(dir) { return readdirSync(dir).flatMap(name => { const full = path.join(dir, name); return statSync(full).isDirectory() ? files(full) : [full]; }); }
 const newFiles = [...files('app/spin-the-wheel'), ...files('app/api/spin-wheel'), ...files('app/api/admin/spin-wheel'), ...files('app/admin/raffle/spin-wheel'),
-  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql'];
+  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql', 'supabase/migrations/20260928110000_spin_the_wheel_single_live.sql'];
 for (const file of newFiles) assert.doesNotMatch(read(file), /[–—]/, `${file}: ASCII hyphens only`);
 
 console.log('Spin the Wheel pick, odds, geometry, validation, visibility, public shape, references, passes, emails and wiring checks passed.');

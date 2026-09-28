@@ -35,6 +35,7 @@ export function saveSpinWheelPayload(input: SpinWheelInput, id: string | null) {
 export function spinAdminDatabaseMessage(message: string | undefined, fallback: string): string {
   const text = String(message || '');
   if (text.includes('spin_wheel:segment_count')) return 'The wheel needs 2 to 48 segments.';
+  if (text.includes('spin_wheels_single_live')) return 'Only one wheel can be live at a time. Pause or end the other live wheel first.';
   if (text.includes('spin_wheel:not_found')) return 'That wheel no longer exists. Reload the page.';
   if (text.includes('spin_wheel:segment_not_found')) return 'A segment was removed by someone else. Reload the page and try again.';
   if (text.includes('violates check constraint')) return 'One of the values is outside what the wheel allows. Check the highlighted fields.';

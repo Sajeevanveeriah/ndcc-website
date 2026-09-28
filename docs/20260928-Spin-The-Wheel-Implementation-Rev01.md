@@ -44,7 +44,7 @@ Because they are normal orders, the existing, reviewed payment code handles ever
 - **Receipts (finding 2).** The standard `order_payment` receipt goes out through the existing durable outbox; `spin_wheel` normalises to the general category, which the outbox already accepts. No change to the outbox.
 - **Refunds and disputes (finding 4).** `handleFinancialEvent` already recognises order payments. When a refund or withheld dispute moves the order off `'paid'`, the same trigger revokes every unused spin from that order. Spins already used stay on record. If the order returns to `'paid'` the revoked spins are restored.
 
-**Checkout cannot outlive the wheel.** Paid spin sales stop `SPIN_CHECKOUT_CLOSE_MINUTES` (70) before a wheel's close time, longer than the 60-minute Stripe Checkout Session. Taking a live wheel off live, or moving its close time inside that window, asks the committee member to confirm when paid spins are unused or card checkouts are in progress, because those buyers may need refunds from Orders.
+**Checkout cannot outlive the wheel.** Paid spin sales stop `SPIN_CHECKOUT_CLOSE_MINUTES` (70) before a wheel's close time, longer than the 60-minute Stripe Checkout Session. The shared checkout-session route re-checks the linked wheel (`lib/spin-wheel/checkout-guard.ts`) every time it creates a Stripe session, so an order id kept from earlier cannot be paid after sales close. Taking a live wheel off live, or moving its close time inside that window, asks the committee member to confirm when paid spins are unused or card checkouts are in progress, because those buyers may need refunds from Orders.
 
 The trigger never blocks a payment: any error is logged as a warning and the order update still commits. `GET /api/spin-wheel/orders/[id]` and the daily cron call `sync_spin_wheel_order_entitlements` again, so spins self-heal.
 
@@ -62,7 +62,7 @@ Admin grants create a new pass for the email and email the link; if email fails,
 
 ## 6. Free spins (fixes finding 5)
 
-`ensure_spin_wheel_free_entitlements` inserts slots `1..free_spins_per_account` with `on conflict do nothing` against a unique index on `(wheel_id, auth_user_id, seq) where source = 'free'`. Concurrent balance and spin requests cannot over-grant, and used free spins are never re-granted. Purchased spins use the same pattern on `(spin_order_id, seq)`, so webhook retries and re-syncs cannot over-grant either.
+`ensure_spin_wheel_free_entitlements` inserts slots `1..free_spins_per_account` with `on conflict do nothing` against a unique index on `(wheel_id, auth_user_id, seq) where source = 'free'`. Concurrent balance and spin requests cannot over-grant, and used free spins are never re-granted. An account may hold (allowance minus free spins already used) unused free spins: lowering the allowance revokes the surplus and raising it restores them (`20260928110000_spin_the_wheel_single_live.sql`). Purchased spins use the same pattern on `(spin_order_id, seq)`, so webhook retries and re-syncs cannot over-grant either.
 
 ## 7. Editing segments (fixes finding 6)
 
@@ -70,7 +70,7 @@ Admin grants create a new pass for the email and email the link; if email fails,
 
 ## 8. Data model
 
-Migration: `supabase/migrations/20260928100000_spin_the_wheel.sql` (rollback SQL in its header).
+Migrations: `supabase/migrations/20260928100000_spin_the_wheel.sql` and `20260928110000_spin_the_wheel_single_live.sql` (rollback SQL in each header).
 
 | Table | Purpose |
 |---|---|
@@ -85,6 +85,8 @@ Functions (service role only): `ensure_spin_wheel_free_entitlements`, `sync_spin
 
 ## 9. Public page and navigation
 
+- Only one wheel can be live at a time (unique index `spin_wheels_single_live`, plus a friendly check when saving), because the page, balances, spins and checkout all use the single public wheel.
+
 - `/spin-the-wheel` is a server page (404 when no wheel is public) with the client `SpinWheelClient.tsx` and the shared SVG `components/spin-wheel/SpinWheelGraphic.tsx`.
 - Prizes, dates, prices and claim instructions are HTML text, not only in the graphic. Sold-out prizes are dimmed and marked "(all won)".
 - The public API never returns weights or stock counts.
@@ -92,11 +94,12 @@ Functions (service role only): `ensure_spin_wheel_free_entitlements`, `sync_spin
 
 ## 10. Admin
 
+- Date and time fields are Melbourne time whatever the browser's zone (`datetimeLocalToClubIso`, `toDatetimeLocalInClubTimezone`).
 - Settings, segment table with live chance per segment and total weight, reorder, add, remove, colour; warnings (not blocks) when nobody can win or no spins are available.
 - Preview dialog with a test spin that records nothing.
 - Grant spins to an email.
 - Delete is only allowed for a wheel with no spins, orders, spin links or granted spins; otherwise set it to Ended.
-- Results: prizes won, unclaimed, every spin; mark claimed, undo, void with reason; CSV download (formula-injection safe).
+- Results: prizes won, unclaimed, every spin; mark claimed, undo, void with reason; CSV download of every matching row (formula-injection safe); the on-screen list pages 500 at a time.
 - All changes are recorded with `scheduleAdminAudit`.
 
 ## 11. Tests and validation

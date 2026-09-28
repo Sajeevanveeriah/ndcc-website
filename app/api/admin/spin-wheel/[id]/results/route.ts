@@ -7,6 +7,8 @@ import { spinReply, UUID_PATTERN } from '@/lib/spin-wheel/server';
 
 export const dynamic = 'force-dynamic';
 
+const PAGE_SIZE = 500;
+const EXPORT_PAGE_SIZE = 1000;
 const RESULT_COLUMNS = 'id,reference,segment_position,segment_label,prize_name,is_prize,spinner_email,spinner_name,auth_user_id,pass_id,created_at,claimed_at,voided_at,void_reason,winner_emailed_at';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -15,24 +17,38 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   if (!UUID_PATTERN.test(id)) return spinReply({ success: false, error: 'Wheel not found.' }, 404);
   const url = new URL(request.url);
-  try {
-    let query = createServerClient().from('spin_wheel_results').select(RESULT_COLUMNS).eq('wheel_id', id);
+  const db = createServerClient();
+  // Stable newest-first order (created_at, id) so pages never skip or repeat rows.
+  const pageOf = (offset: number, size: number) => {
+    let query = db.from('spin_wheel_results').select(RESULT_COLUMNS).eq('wheel_id', id);
     if (url.searchParams.get('winners') === '1') query = query.eq('is_prize', true);
     if (url.searchParams.get('unclaimed') === '1') query = query.eq('is_prize', true).is('claimed_at', null).is('voided_at', null);
     const from = url.searchParams.get('from');
     const to = url.searchParams.get('to');
     if (from && !Number.isNaN(new Date(from).getTime())) query = query.gte('created_at', new Date(from).toISOString());
     if (to && !Number.isNaN(new Date(to).getTime())) query = query.lt('created_at', new Date(to).toISOString());
-    const { data, error } = await query.order('created_at', { ascending: false }).limit(5000);
-    if (error) return spinReply({ success: false, error: 'Results could not be loaded.' }, 503);
-    const rows = (data || []) as SpinAdminResult[];
+    return query.order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + size - 1);
+  };
+  try {
     if (url.searchParams.get('format') === 'csv') {
+      // The export pages through every matching row.
+      const rows: SpinAdminResult[] = [];
+      for (let offset = 0; ; offset += EXPORT_PAGE_SIZE) {
+        const { data, error } = await pageOf(offset, EXPORT_PAGE_SIZE);
+        if (error) return spinReply({ success: false, error: 'Results could not be exported.' }, 503);
+        rows.push(...((data || []) as SpinAdminResult[]));
+        if ((data || []).length < EXPORT_PAGE_SIZE) break;
+      }
       return new Response(spinResultsCsv(rows), { headers: {
         'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'private, no-store',
         'Content-Disposition': `attachment; filename="spin-wheel-results-${id.slice(0, 8)}.csv"`,
       } });
     }
-    return spinReply({ success: true, results: rows });
+    const page = Math.max(0, Math.min(10_000, Number.parseInt(url.searchParams.get('page') || '0', 10) || 0));
+    const { data, error } = await pageOf(page * PAGE_SIZE, PAGE_SIZE + 1);
+    if (error) return spinReply({ success: false, error: 'Results could not be loaded.' }, 503);
+    const rows = (data || []) as SpinAdminResult[];
+    return spinReply({ success: true, results: rows.slice(0, PAGE_SIZE), hasMore: rows.length > PAGE_SIZE, page });
   } catch {
     return spinReply({ success: false, error: 'Results could not be loaded.' }, 503);
   }

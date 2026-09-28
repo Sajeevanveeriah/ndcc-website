@@ -39,6 +39,13 @@ export async function POST(request: Request) {
   if (errors.length) return spinReply({ success: false, errors }, 400);
   try {
     const db = createServerClient();
+    if (input.status === 'live') {
+      let others = db.from('spin_wheels').select('id,name').eq('status', 'live');
+      if (input.id) others = others.neq('id', input.id);
+      const { data: live, error: liveError } = await others.limit(1);
+      if (liveError) return spinReply({ success: false, error: 'Live wheels could not be checked. Nothing was saved.' }, 503);
+      if (live?.length) return spinReply({ success: false, errors: [`Only one wheel can be live at a time. Pause or end "${live[0].name}" first.`] }, 409);
+    }
     if (input.id) {
       const current = await loadSpinWheel(db, input.id);
       if (!current) return spinReply({ success: false, error: 'That wheel no longer exists. Reload the page.' }, 404);

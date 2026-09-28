@@ -1,6 +1,7 @@
 import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
 import { isMealCollectionWindow, mealContractMatches, MEAL_COLLECTION_REQUIRED_MESSAGE, MEAL_COLLECTION_TIME_ZONE } from '@/lib/meal-collection';
 import { getClubSettings } from '@/lib/club-settings';
+import { spinOrderCheckoutFailure } from '@/lib/spin-wheel/checkout-guard';
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
@@ -225,6 +226,11 @@ export async function POST(request: Request) {
 
     if (order.order_category === 'donation' && !(await getClubSettings()).donations_enabled) {
       return NextResponse.json({ success: false, error: 'Donations are currently unavailable.' }, { status: 404 });
+    }
+
+    if (order.order_category === 'spin_wheel') {
+      const spinFailure = await spinOrderCheckoutFailure(supabase, order.id);
+      if (spinFailure) return NextResponse.json({ success: false, error: spinFailure }, { status: 409 });
     }
 
     const balanceDue = Number(order.total_amount) - Number(order.amount_paid ?? 0);

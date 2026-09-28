@@ -125,6 +125,31 @@ begin
     if sqlerrm not like '%spin_wheel:segment_count%' then raise; end if;
   end;
 
+  -- Only one wheel can be live at a time.
+  update public.spin_wheels set status = 'live' where id = wheel;
+  begin
+    insert into public.spin_wheels(name, status) values ('Second wheel', 'live');
+    raise exception 'second live wheel accepted';
+  exception when unique_violation then null; end;
+  insert into public.spin_wheels(name, status) values ('Draft wheel', 'draft');
+
+  -- Lowering the free allowance revokes unused free spins above it; raising restores them.
+  user_a := gen_random_uuid();
+  update public.spin_wheels set free_spins_per_account = 3 where id = wheel;
+  perform public.ensure_spin_wheel_free_entitlements(wheel, user_a);
+  perform public.record_spin_wheel_result(wheel, user_a, null, seg_again, 'test', 'SPIN-DDDDD1', null, null);
+  update public.spin_wheels set free_spins_per_account = 1 where id = wheel;
+  perform public.ensure_spin_wheel_free_entitlements(wheel, user_a);
+  if (select count(*) from public.spin_wheel_entitlements where auth_user_id = user_a and used_at is null and revoked_at is null) <> 0 then
+    raise exception 'lowered allowance left unused free spins';
+  end if;
+  if (select count(*) from public.spin_wheel_entitlements where auth_user_id = user_a and used_at is not null) <> 1 then raise exception 'used free spin lost'; end if;
+  update public.spin_wheels set free_spins_per_account = 3 where id = wheel;
+  perform public.ensure_spin_wheel_free_entitlements(wheel, user_a);
+  if (select count(*) from public.spin_wheel_entitlements where auth_user_id = user_a and used_at is null and revoked_at is null) <> 2 then
+    raise exception 'raised allowance did not restore free spins';
+  end if;
+
   -- Browser roles have no direct access.
   if has_table_privilege('anon', 'public.spin_wheel_results', 'select') or has_table_privilege('authenticated', 'public.spin_wheel_entitlements', 'insert')
      or has_function_privilege('anon', 'public.record_spin_wheel_result(uuid,uuid,uuid,uuid,text,text,text,text)', 'execute')

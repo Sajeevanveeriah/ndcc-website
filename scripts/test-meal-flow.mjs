@@ -118,6 +118,7 @@ const mocks = {
   '@/lib/stripe': { getStripe:()=>stripe },
   '@/lib/server/request-guards': { enforceRateLimit:()=>true, enforceHoneypotAndTiming:()=>true, getClientIp:()=> 'test' },
   '@/lib/club-settings': { getClubSettings:async()=>({}) },
+  '@/lib/spin-wheel/checkout-guard': { spinOrderCheckoutFailure: async () => { throw new Error('Kitchen checkout must not check spin wheel sales'); } },
   // CMS recipient table unreadable: fall back to the hardcoded lists.
   '@/lib/notification-recipients': (() => {
     const fallback = plain('lib/notification-recipients-fallback.ts');

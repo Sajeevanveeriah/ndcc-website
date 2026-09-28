@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import SpinWheelGraphic from '@/components/spin-wheel/SpinWheelGraphic';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
+import { datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { rotationForNumber } from '@/lib/prize-wheel/wheel-geometry';
 import {
   SPIN_ANIMATION_MS,
@@ -39,12 +40,9 @@ type Result = {
   claimed_at: string | null; voided_at: string | null; void_reason: string | null; winner_emailed_at: string | null;
 };
 
-const toLocal = (value: string | null) => {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
-};
-const fromLocal = (value: string) => (value ? new Date(value).toISOString() : null);
+// The inputs are labelled Melbourne time, whatever the browser's own zone is.
+const toLocal = (value: string | null) => (value ? toDatetimeLocalInClubTimezone(value) : '');
+const fromLocal = (value: string) => (value ? datetimeLocalToClubIso(value) : null);
 const dollarsToCents = (value: string) => (/^\d+(\.\d{1,2})?$/.test(value.trim()) ? Math.round(Number(value) * 100) : NaN);
 let keyCounter = 0;
 const nextKey = () => `segment-${keyCounter += 1}`;
@@ -315,17 +313,29 @@ function GrantSpins({ wheelId, onGranted }: { wheelId: string; onGranted: () => 
 function Results({ wheelId }: { wheelId: string }) {
   const [filter, setFilter] = useState<'all' | 'winners' | 'unclaimed'>('winners');
   const [rows, setRows] = useState<Result[] | null>(null);
+  const [pages, setPages] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const query = filter === 'winners' ? '?winners=1' : filter === 'unclaimed' ? '?unclaimed=1' : '';
+  useEffect(() => { setPages(1); }, [query]);
+  // Reloads every page shown so far, so claims and voids stay in place.
   const load = useCallback(async () => {
     try {
-      const data = await parseApiResponse<{ results: Result[] }>(await adminFetch(`/api/admin/spin-wheel/${encodeURIComponent(wheelId)}/results${query}`));
-      setRows(data.results); setError('');
+      const all: Result[] = [];
+      let more = false;
+      for (let page = 0; page < pages; page += 1) {
+        const separator = query ? '&' : '?';
+        const data = await parseApiResponse<{ results: Result[]; hasMore: boolean }>(await adminFetch(`/api/admin/spin-wheel/${encodeURIComponent(wheelId)}/results${query}${separator}page=${page}`));
+        all.push(...data.results);
+        more = data.hasMore;
+        if (!more) break;
+      }
+      setRows(all); setHasMore(more); setError('');
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Results could not be loaded.');
     }
-  }, [wheelId, query]);
+  }, [wheelId, query, pages]);
   useEffect(() => { void load(); }, [load]);
 
   async function act(resultId: string, action: 'claim' | 'unclaim' | 'void') {
@@ -390,5 +400,6 @@ function Results({ wheelId }: { wheelId: string }) {
         </>}</td>
       </tr>)}</tbody>
     </table></div>)}
+    {rows && hasMore && <Button type="button" variant="secondary" size="sm" onClick={() => setPages(count => count + 1)}>Show more results</Button>}
   </section>;
 }
