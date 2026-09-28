@@ -248,6 +248,52 @@ assert.match(read('components/layout/Navbar.tsx'), /\(spinWheelEnabled \|\| link
 assert.match(read('components/layout/Footer.tsx'), /spinWheelEnabled === true \|\| !link\.href\.startsWith\('\/spin-the-wheel'\)/);
 assert.match(read('lib/server/sitemap-entries.ts'), /isSpinWheelPublicStrict/);
 
+// ---- CMS show/hide switch ----
+const toggleMigration = read('supabase/migrations/20260928180000_spin_wheel_public_toggle.sql');
+assert.match(toggleMigration, /add column if not exists spin_wheel_enabled boolean not null default true/);
+assert.doesNotMatch(toggleMigration, /\b(delete|drop|truncate|update)\b/i, 'Hiding must never touch wheel data');
+const visibilitySource = read('lib/spin-wheel/visibility.ts');
+assert.match(visibilitySource, /select\('spin_wheel_enabled'\)/);
+assert.match(visibilitySource, /if \(!enabled \|\| error \|\| !Array\.isArray\(data\)\) return null;/, 'Every public surface reads getPublicSpinWheel, so the switch gates them all');
+assert.match(visibilitySource, /spin_wheel_enabled !== false/, 'Only an explicit false hides the feature');
+assert.match(visibilitySource, /if \(!setting\.enabled\) return false;/, 'Sitemap respects the switch');
+const toggleRoute = read('app/api/admin/spin-wheel/visibility/route.ts');
+assert.equal((toggleRoute.match(/requirePermissionResult\('raffle'\)/g) || []).length, 2);
+assert.match(toggleRoute, /typeof enabled !== 'boolean'/);
+assert.match(toggleRoute, /\.update\(\{ spin_wheel_enabled: enabled \}\)/);
+assert.doesNotMatch(toggleRoute, /from\('spin_wheel/, 'The switch never writes wheel tables');
+assert.match(toggleRoute, /revalidatePublicContent\('clubSettings'\)/);
+assert.match(read('app/admin/raffle/spin-wheel/page.tsx'), /Show Spin the Wheel on the public website/);
+
+// Behaviour: the switch hides the live wheel from every public read and
+// showing it again returns the same wheel; a missing column keeps it shown.
+{
+  const liveWheel = { id: 'w1', name: 'Live', status: 'live', ends_at: null, public_visibility_mode: 'visible', public_opens_at: null, starts_at: null, created_at: '2026-09-01T00:00:00Z' };
+  const makeVisibility = (setting) => load('lib/spin-wheel/visibility.ts', {
+    react: { cache: fn => fn },
+    '@/lib/supabase-schema-errors': { isMissingSchemaError: error => ['42703', 'PGRST204'].includes(error?.code || '') },
+    '@/lib/spin-wheel/rules': rules,
+    '@/lib/supabase-server': { createServerClient: () => ({ from(table) {
+      const query = { select() { return query; }, eq() { return query; }, in() { return Promise.resolve({ data: [liveWheel], error: null }); },
+        maybeSingle() { return Promise.resolve(setting); } };
+      assert.ok(['club_settings', 'spin_wheels'].includes(table));
+      return query;
+    } }) },
+  });
+  const shown = makeVisibility({ data: { spin_wheel_enabled: true }, error: null });
+  assert.equal((await shown.getPublicSpinWheel())?.id, 'w1');
+  assert.equal(await shown.isSpinWheelPublicStrict(), true);
+  const hidden = makeVisibility({ data: { spin_wheel_enabled: false }, error: null });
+  assert.equal(await hidden.getPublicSpinWheel(), null);
+  assert.equal(await hidden.isSpinWheelPublic(), false);
+  assert.equal(await hidden.isSpinWheelPublicStrict(), false);
+  const premigration = makeVisibility({ data: null, error: { code: '42703', message: 'column does not exist' } });
+  assert.equal((await premigration.getPublicSpinWheel())?.id, 'w1');
+  const outage = makeVisibility({ data: null, error: { code: '57014', message: 'timeout' } });
+  assert.equal(await outage.getPublicSpinWheel(), null);
+  await assert.rejects(outage.isSpinWheelPublicStrict(), /unavailable/);
+}
+
 // ---- Review follow-ups (#278) ----
 const checkoutRoute = read('app/api/spin-wheel/checkout/route.ts');
 assert.match(checkoutRoute, /if \(!isSpinCheckoutOpen\(wheel\)\)/, 'checkout refuses inside the closing window');

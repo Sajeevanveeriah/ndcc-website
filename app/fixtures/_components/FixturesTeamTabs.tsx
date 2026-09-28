@@ -9,8 +9,10 @@ export type FixturesTab = { id: string; label: string; content: ReactNode };
  * Home/End, roving tabindex). Panel content is rendered on the server and
  * passed in, so every fixture is in the HTML; this island only toggles which
  * panel is visible. The first tab ("All teams") is shown before hydration.
+ * Nested filters (category, then team) pass a distinct idPrefix so tab and
+ * panel ids stay unique; `compact` renders the smaller second-level buttons.
  */
-export default function FixturesTeamTabs({ tabs, label }: { tabs: FixturesTab[]; label: string }) {
+export default function FixturesTeamTabs({ tabs, label, idPrefix = 'fixtures', compact = false }: { tabs: FixturesTab[]; label: string; idPrefix?: string; compact?: boolean }) {
   const [active, setActive] = useState(0);
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -29,7 +31,7 @@ export default function FixturesTeamTabs({ tabs, label }: { tabs: FixturesTab[];
 
   return (
     <div>
-      <div role="tablist" aria-label={label} className="mb-6 flex flex-wrap gap-2">
+      <div role="tablist" aria-label={label} className={`${compact ? 'mb-4' : 'mb-6'} flex flex-wrap gap-2`}>
         {tabs.map((tab, index) => {
           const selected = index === active;
           return (
@@ -38,13 +40,13 @@ export default function FixturesTeamTabs({ tabs, label }: { tabs: FixturesTab[];
               ref={(element) => { buttons.current[index] = element; }}
               type="button"
               role="tab"
-              id={`fixtures-tab-${index}`}
+              id={`${idPrefix}-tab-${index}`}
               aria-selected={selected}
-              aria-controls={`fixtures-panel-${index}`}
+              aria-controls={`${idPrefix}-panel-${index}`}
               tabIndex={selected ? 0 : -1}
               onClick={() => setActive(index)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className={`min-h-[44px] rounded-lg border px-4 py-2 font-body text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${selected
+              className={`min-h-[44px] rounded-lg border ${compact ? 'px-3 py-1.5' : 'px-4 py-2'} font-body text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${selected
                 ? 'border-maroon-700 bg-maroon-700 text-white dark:border-maroon-300 dark:bg-maroon-300 dark:text-maroon-950'
                 : 'border-edge-strong bg-surface-card text-content-primary hover:border-maroon-700 dark:hover:border-maroon-300'}`}
             >
@@ -57,11 +59,11 @@ export default function FixturesTeamTabs({ tabs, label }: { tabs: FixturesTab[];
         <div
           key={tab.id}
           role="tabpanel"
-          id={`fixtures-panel-${index}`}
-          aria-labelledby={`fixtures-tab-${index}`}
+          id={`${idPrefix}-panel-${index}`}
+          aria-labelledby={`${idPrefix}-tab-${index}`}
           hidden={index !== active}
           tabIndex={0}
-          className="space-y-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-4 rounded-lg"
+          className={`${compact ? 'space-y-6' : 'space-y-8'} focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-4 rounded-lg`}
         >
           {tab.content}
         </div>

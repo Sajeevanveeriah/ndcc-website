@@ -1,6 +1,7 @@
 // Pure helpers for public team pages and the /fixtures team filter (no I/O).
 // Unit tested in scripts/test-playhq-mapping.mjs.
 import { isClubTeamName, normaliseClubText } from './season-match';
+import { juniorAge } from './team-category';
 import type { PlayHQFixture, PlayHQLadderRow, PlayHQTeam } from './types';
 
 const MELBOURNE = 'Australia/Melbourne';
@@ -52,7 +53,23 @@ export function matchPlayHQTeam(cms: CmsTeamLike, playhqTeams: PlayHQTeam[]): Pl
     if (candidates.length === 1) return candidates[0];
     if (candidates.length > 1) return null;
   }
+  // Junior teams carry an age group rather than an ordinal: "Junior Boys -
+  // Under 13s" matches the one NDCC PlayHQ team for that age group, if unique.
+  const age = juniorAge(cms.name) ?? juniorAge(cms.grade);
+  if (age !== null) {
+    const candidates = club.filter((team) => juniorAge(team.name) === age);
+    if (candidates.length === 1) return candidates[0];
+  }
   return null;
+}
+
+/**
+ * Website team cards with no team in the current PlayHQ season, such as
+ * junior teams before GCA publishes the junior competitions. Shown as "not
+ * yet published" so a whole age group never silently disappears.
+ */
+export function teamsAwaitingPlayHQ<T extends CmsTeamLike>(cmsTeams: readonly T[], playhqTeams: PlayHQTeam[]): T[] {
+  return cmsTeams.filter((team) => team.name?.trim() && !matchPlayHQTeam(team, playhqTeams));
 }
 
 export function fixtureInvolvesTeam(fixture: PlayHQFixture, team: Pick<PlayHQTeam, 'id' | 'name'>): boolean {

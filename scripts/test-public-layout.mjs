@@ -37,6 +37,17 @@ assert.match(cookieDoughPage, /How it works/);
 assert.match(cookieDoughPage, /COOKIE_DOUGH_FUNDRAISER_LINK/);
 assert.doesNotMatch(cookieDoughPage, /stripe|checkout\.sessions|payment_intent/i, 'Fundraiser payments must remain on the official provider platform.');
 assert.match(navbar, /Cookie Dough Fundraiser.*\/fundraising\/cookie-dough/);
+// Every fundraiser sits under one "Fund Raiser" top menu (desktop and mobile
+// render the same groups); Cookie Dough moved there from Get Involved.
+assert.match(navbar, /const FUND_RAISER_GROUP = 'Fund Raiser';/);
+assert.doesNotMatch(navbar, /label: 'Raffles'/);
+const fundRaiserGroup = navbar.match(/\{ label: FUND_RAISER_GROUP, links: \[([\s\S]*?)\] \},/);
+assert.ok(fundRaiserGroup, 'Fund Raiser group must exist');
+for (const href of ['/raffle', '/reverse-raffle', '/prize-wheel', '/spin-the-wheel', '/fundraising/cookie-dough']) {
+  assert.ok(fundRaiserGroup[1].includes(`href: '${href}'`), `${href} belongs in Fund Raiser`);
+}
+assert.ok(!/label: 'Get Involved'[^\n]*cookie-dough/.test(navbar), 'Cookie Dough must not stay under Get Involved');
+assert.match(navbar, /groups\.find\(\(group\) => group\.label === FUND_RAISER_GROUP\)/);
 assert.match(homepage, /CookieDoughFundraiserFeature/);
 assert.match(sitemap, /\/fundraising\/cookie-dough/);
 assert.match(migration, /WHERE NOT EXISTS/);

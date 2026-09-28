@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
   const { data: plan } = await supabase
     .from('social_membership_plans')
-    .select('id, name, price')
+    .select('id, name, price, product_code')
     .eq('id', membership_plan_id)
     .eq('is_active', true)
     .single();
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
   const totalAmount = totalCents / 100;
 
   const orderItems = [
-    { name: plan.name, size: 'membership', quantity: 1, price: planPrice.value / 100 },
+    { name: plan.name, size: 'membership', quantity: 1, price: planPrice.value / 100, ...(plan.product_code ? { product_code: plan.product_code } : {}) },
     ...validatedAddons.map((item) => ({
       name: item.addon.name,
       size: 'addon',

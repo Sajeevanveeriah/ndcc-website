@@ -118,6 +118,29 @@ assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, ord
 assert.equal(sent.length, 1);
 payment.payment_reference = 'NDCCMER-2026-000002';
 
+// Pot Club is sold as a membership plan: its receipt must name the Pot Club
+// product, while a genuine social membership keeps its own label.
+const merchOrder = { ...order };
+for (const [items, expected] of [
+  [[{ name: 'Pot Club 2026/2027', size: 'membership', quantity: 1, price: 100, product_code: 'pot_club_2026_27' }], 'Pot Club 2026/2027'],
+  [[{ name: 'Pot Club 2026/2027', size: 'membership', quantity: 1, price: 100 }], 'Pot Club 2026/2027'],
+  [[{ name: 'Social Membership', size: 'membership', quantity: 1, price: 60 }, { name: 'Club T-Shirt', size: 'addon', quantity: 1, price: 30 }], 'Social Membership'],
+]) {
+  Object.assign(order, { order_category: 'membership', payment_reference: 'NDCCMEM-2026-000001', items, payment_status: 'paid' });
+  marker = {}; sent = []; legacyMapping = null; payment.payment_reference = 'NDCCMEM-2026-000002';
+  assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'sent');
+  assert.equal(pdfData.paymentType, expected);
+  assert.ok(sent[0].html.includes(`for ${expected.toLowerCase()}.`));
+  assert.ok(!pdfData.descriptionLines.some((line) => line.includes('(membership)')));
+  if (expected !== 'Social Membership') assert.ok(!sent[0].html.toLowerCase().includes('social membership'));
+}
+// Only membership orders are relabelled: a merch item named "Pot Club" stays Merchandise.
+Object.assign(order, { order_category: 'merch', payment_reference: 'NDCCMER-2026-000001', items: [{ name: 'Pot Club mug', size: 'M', quantity: 1, price: 20 }] });
+marker = {}; sent = []; payment.payment_reference = 'NDCCMER-2026-000002';
+assert.equal((await sender.sendOrderPaymentReceiptForPayment(db, payment.id, order.id)).status, 'sent');
+assert.equal(pdfData.paymentType, 'Merchandise');
+Object.assign(order, merchOrder); payment.payment_reference = 'NDCCMER-2026-000002';
+
 const compatibility = moduleAt('lib/order-notifications.ts', {
   '@/lib/email': { sendEmail: () => { throw new Error('A second staff email is forbidden'); } },
   '@/lib/order-notification-content': content,

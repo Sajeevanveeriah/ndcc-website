@@ -12,7 +12,8 @@ import { getPublicTeamsWithSlugs } from '@/lib/public-teams';
 import { formatFixtureTime } from '@/lib/playhq/normalise';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
-import { fixturesForTeam, ladderForGrade, matchPlayHQTeam, shortTeamLabel, splitTeamFixtures, teamMatchKey } from '@/lib/playhq/team-view';
+import { fixturesForTeam, ladderForGrade, matchPlayHQTeam, shortTeamLabel, splitTeamFixtures, teamMatchKey, teamsAwaitingPlayHQ } from '@/lib/playhq/team-view';
+import { groupByCategory, teamCategory, TEAM_CATEGORY_LABELS } from '@/lib/playhq/team-category';
 import type { PlayHQFixture, PlayHQTeam } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 import FixturesTeamTabs, { type FixturesTab } from './_components/FixturesTeamTabs';
@@ -126,6 +127,10 @@ export default async function FixturesPage() {
     if (match && !teamPageByPlayHQId.has(match.id)) teamPageByPlayHQId.set(match.id, { slug: team.slug, name: team.name });
   }
   const ungradedTeams = clubTeams.filter((team) => !team.gradeId);
+  // Website team cards PlayHQ does not list yet (junior age groups before GCA
+  // publishes the junior competitions). Only claimed when PlayHQ answered.
+  const awaitingTeams = playhq.configured && !playhq.error ? teamsAwaitingPlayHQ(teams, playhq.teams) : [];
+  const categoryOfTeam = (team: { name: string; gradeName?: string | null }) => teamCategory(team.name, team.gradeName);
   const teamTabs: FixturesTab[] = clubTeams.map((team) => {
     const page = teamPageByPlayHQId.get(team.id);
     const split = team.gradeId ? splitTeamFixtures(fixturesForTeam(playhq.fixtures, team)) : null;
@@ -138,7 +143,7 @@ export default async function FixturesPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-2xl font-display font-bold text-content-primary">{team.name}</h2>
-              {team.gradeName && <p className="font-body text-content-secondary">{team.gradeName}</p>}
+              <p className="font-body text-content-secondary">{[TEAM_CATEGORY_LABELS[categoryOfTeam(team)], team.gradeName].filter(Boolean).join(' · ')}</p>
             </div>
             {page && <Link href={`/teams/${page.slug}`} className="font-body text-sm font-semibold text-maroon-700 underline-offset-2 hover:underline dark:text-maroon-200">{page.name} team page</Link>}
           </div>
@@ -167,6 +172,62 @@ export default async function FixturesPage() {
         </>
       ),
     };
+  });
+
+  // Category filter (Men's / Women's / Juniors), each with its own team filter.
+  // Every category a team belongs to is listed, including junior teams still
+  // awaiting their PlayHQ competition, so no age group silently disappears.
+  const teamTabById = new Map(clubTeams.map((team, index) => [team.id, teamTabs[index]]));
+  const categoryTabs: FixturesTab[] = groupByCategory(clubTeams, categoryOfTeam).flatMap(({ category, label, items }) => {
+    const awaiting = awaitingTeams.filter((team) => teamCategory(team.name, team.grade) === category);
+    if (items.length === 0 && awaiting.length === 0) return [];
+    const categoryFixtures = playhq.fixtures.filter((fixture) => items.some((team) => fixturesForTeam([fixture], team).length > 0));
+    const { upcoming: categoryUpcoming, results: categoryResults } = splitTeamFixtures(categoryFixtures);
+    const lower = label.toLowerCase();
+    const overview = (
+      <>
+        {awaiting.length > 0 && (
+          <div className="surface-panel p-5">
+            <h3 className="text-lg font-display font-bold text-content-primary">{items.length ? `More ${lower} teams` : `${label} fixtures`}</h3>
+            <p className="mt-1 font-body text-content-secondary">
+              {category === 'junior' ? 'Junior fixtures have not been published by GCA on PlayHQ yet.' : 'These fixtures have not been published by GCA on PlayHQ yet.'}{' '}
+              They will appear here automatically once released.
+            </p>
+            <ul className="mt-3 space-y-1 font-body">
+              {awaiting.map((team) => (
+                <li key={team.id || team.name}>
+                  <Link href={`/teams/${team.slug}`} className="font-semibold text-maroon-700 underline-offset-2 hover:underline dark:text-maroon-200">{team.name}</Link>
+                  {team.grade && <span className="text-content-muted"> · {team.grade}</span>}
+                  <span className="text-content-muted">: fixture not yet published</span>
+                </li>
+              ))}
+            </ul>
+            <a href={playhqCtaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex font-body text-sm font-semibold text-maroon-700 underline-offset-2 hover:underline dark:text-maroon-200">Check the club on PlayHQ<span className="sr-only"> (opens in a new tab)</span></a>
+          </div>
+        )}
+        {items.length > 0 && (
+          <section>
+            <h3 className="mb-3 text-xl font-display font-bold text-content-primary">Upcoming {lower} fixtures</h3>
+            {categoryUpcoming.length ? <FixtureList fixtures={categoryUpcoming} showGrade label={`Upcoming ${lower} fixtures`} /> : <p className="font-body text-content-muted">No upcoming {lower} fixtures are currently listed.</p>}
+          </section>
+        )}
+        {categoryResults.length > 0 && (
+          <section>
+            <h3 className="mb-3 text-xl font-display font-bold text-content-primary">Recent {lower} results</h3>
+            <FixtureList fixtures={categoryResults.slice(0, 6)} showGrade label={`Recent ${lower} results`} />
+          </section>
+        )}
+      </>
+    );
+    const perTeam = items.map((team) => teamTabById.get(team.id)).filter((tab): tab is FixturesTab => Boolean(tab));
+    const count = items.length + awaiting.length;
+    return [{
+      id: `category-${category}`,
+      label: `${label} (${count})`,
+      content: perTeam.length > 0
+        ? <FixturesTeamTabs idPrefix={`fixtures-${category}`} compact label={`Filter ${lower} fixtures by team`} tabs={[{ id: `${category}-all`, label: `All ${lower}`, content: overview }, ...perTeam]} />
+        : overview,
+    }];
   });
 
   // Unfiltered view: the original upcoming/results layout, grouped by grade.
@@ -220,11 +281,11 @@ export default async function FixturesPage() {
             <Card><CardContent className="p-8 text-center"><h2 className="text-xl font-display font-bold text-content-primary">Fixtures are not available here yet</h2><p className="mt-2 text-content-muted font-body">Check the club on PlayHQ for the latest published fixtures. Previous seasons will not be shown as the current season.</p><div className="mt-6"><PlayHQCtaLink href={playhqCtaUrl} label={playhqCtaLabel} /></div></CardContent></Card>
           ) : (
             teamTabs.length > 0
-              ? <FixturesTeamTabs label="Filter fixtures by team" tabs={[{ id: 'all', label: 'All teams', content: allTeamsPanel }, ...teamTabs]} />
+              ? <FixturesTeamTabs label="Filter fixtures by team category" tabs={[{ id: 'all', label: 'All teams', content: allTeamsPanel }, ...categoryTabs]} />
               : <div className="space-y-8">{allTeamsPanel}</div>
           )}
 
-          {playhq.configured && ungradedTeams.length > 0 && (
+          {playhq.configured && (ungradedTeams.length > 0 || awaitingTeams.length > 0) && (
             <section aria-labelledby="awaiting-gca" className="surface-panel p-6">
               <h2 id="awaiting-gca" className="text-xl font-display font-bold text-content-primary">Awaiting GCA fixtures</h2>
               <ul className="mt-3 space-y-1 font-body text-content-secondary">
@@ -236,6 +297,12 @@ export default async function FixturesPage() {
                     </li>
                   );
                 })}
+                {awaitingTeams.map((team) => (
+                  <li key={team.id || team.name}>
+                    <Link href={`/teams/${team.slug}`} className="font-semibold text-maroon-700 underline-offset-2 hover:underline dark:text-maroon-200">{team.name}</Link>
+                    {' '}({TEAM_CATEGORY_LABELS[teamCategory(team.name, team.grade)]}): Fixture not yet published by GCA on PlayHQ.
+                  </li>
+                ))}
               </ul>
             </section>
           )}

@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils';
 import Accordion from '@/components/common/Accordion';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getMembershipOptions } from '@/lib/public-form-options';
+import { SOCIAL_MEMBERSHIP_ELIGIBILITY } from '@/lib/social-membership';
 import SocialMembershipForm from './SocialMembershipForm';
 
 // Server component: membership plans/add-ons and the hero copy are read
@@ -45,6 +46,7 @@ export default async function JoinPage() {
             <Card>
               <CardContent className="p-6 space-y-3">
                 <h2 className="text-2xl font-display font-bold">Social Membership</h2>
+                <p className="font-semibold text-content-blue">{SOCIAL_MEMBERSHIP_ELIGIBILITY}</p>
                 <p className="text-content-muted">Apply online, then choose secure card payment or bank transfer.</p>
                 <p className="font-semibold">From {plans.length ? formatCurrency(plans[0].price) : '...'}</p>
               </CardContent>
@@ -74,7 +76,7 @@ export default async function JoinPage() {
                 question: 'How does social membership work?',
                 answer: (
                   <p>
-                    Apply online using the form below. After submission, choose secure card payment or use the generated bank transfer reference.
+                    {SOCIAL_MEMBERSHIP_ELIGIBILITY}. Apply online using the form below. After submission, choose secure card payment or use the generated bank transfer reference.
                   </p>
                 ),
               },

@@ -6,6 +6,44 @@ import { formatAud, formatMelbourneDateTime, type SpinWheelRow } from '@/lib/spi
 
 type Row = SpinWheelRow & { spin_wheel_segments?: Array<{ count: number }>; spin_wheel_results?: Array<{ count: number }> };
 
+// CMS show/hide switch for the whole feature. Hiding keeps every wheel,
+// prize, pass, order and result; showing again restores it as configured.
+function PublicSwitch() {
+  const [state, setState] = useState<{ enabled: boolean; available: boolean } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  useEffect(() => {
+    adminFetch('/api/admin/spin-wheel/visibility').then(response => parseApiResponse<{ enabled: boolean; available: boolean }>(response))
+      .then(data => setState({ enabled: data.enabled, available: data.available }))
+      .catch(failure => setMessage(failure instanceof Error ? failure.message : 'The setting could not be loaded.'));
+  }, []);
+  const save = async (enabled: boolean) => {
+    setSaving(true);
+    setMessage('');
+    try {
+      const data = await adminFetch('/api/admin/spin-wheel/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) })
+        .then(response => parseApiResponse<{ enabled: boolean }>(response));
+      setState(previous => ({ available: previous?.available ?? true, enabled: data.enabled }));
+      setMessage(data.enabled ? 'Spin the Wheel is shown on the website.' : 'Spin the Wheel is hidden from the website. All wheels and results are kept.');
+    } catch (failure) {
+      setMessage(failure instanceof Error ? failure.message : 'The setting could not be saved.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  return <section aria-labelledby="spin-public-switch" className="rounded-xl border border-edge-subtle p-4">
+    <h2 id="spin-public-switch" className="font-display text-lg font-semibold">Show on website</h2>
+    {state && !state.available && <p role="status" className="mt-1 text-sm">Apply the Spin the Wheel show/hide migration to use this switch. The feature is shown as before until then.</p>}
+    {state && state.available && <label className="mt-2 flex items-start gap-3">
+      <input type="checkbox" className="mt-1 h-5 w-5 accent-maroon-700" checked={state.enabled} disabled={saving} onChange={event => void save(event.target.checked)} aria-describedby="spin-public-switch-help" />
+      <span><span className="font-semibold">Show Spin the Wheel on the public website</span>
+        <span id="spin-public-switch-help" className="block text-sm text-content-muted">When off, the page, menu link, member dashboard link and spins are hidden. Wheels, prizes, passes, paid spins, orders and results are kept, and each wheel&apos;s own visibility applies again when it is turned back on.</span></span>
+    </label>}
+    {!state && !message && <p role="status" className="mt-1 text-sm">Loading setting...</p>}
+    {message && <p role="status" className="mt-2 text-sm font-semibold">{message}</p>}
+  </section>;
+}
+
 const STATUS_LABELS: Record<string, string> = { draft: 'Draft', live: 'Live', paused: 'Paused', ended: 'Ended' };
 
 export default function SpinWheelListPage() {
@@ -26,6 +64,7 @@ export default function SpinWheelListPage() {
       </div>
       {available && <Link href="/admin/raffle/spin-wheel/new" className="btn-primary">New wheel</Link>}
     </div>
+    <PublicSwitch />
     {error && <p role="alert">{error}</p>}
     {!available && <p role="status">Spin the Wheel is not set up in the database yet. Apply the Spin the Wheel migration first.</p>}
     {!wheels && !error && <p role="status">Loading wheels...</p>}

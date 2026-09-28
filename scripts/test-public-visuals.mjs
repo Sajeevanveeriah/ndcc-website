@@ -40,7 +40,7 @@ assert.match(home, /\{ href: '\/join', label: 'Join the club' \}/, 'Get involved
 assert.match(home, /href="\/sponsors" className="btn-secondary">\s*View all sponsors/);
 assert.match(home, /href="\/sponsors#enquiry-form" className="btn-primary">\s*Become a sponsor/);
 assert.match(readFileSync('app/sponsors/page.tsx', 'utf8'), /id="enquiry-form"/, 'Become a sponsor anchor exists');
-const order = ['<ThisWeekSection />', '<ClubUpdatesSection />', '<SponsorsSection />', '<FantasyTeaserSection />'].map((marker) => home.indexOf(marker));
+const order = ['<FixturesSection />', '<ComingUpPreview />', '<ClubNewsPreview />', '<SponsorsSection />', '<FantasyTeaserSection />'].map((marker) => home.indexOf(marker));
 assert.ok(order.every((index) => index > 0) && order.every((index, i) => i === 0 || index > order[i - 1]), 'Dino Coach block follows news, events and sponsors');
 assert.ok(!/2026-10-13/.test(home), 'voucher dates live in lib/home-promotions.ts');
 // Home refresh: one sponsor "View all" link, no eyebrow pills, honest

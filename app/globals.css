@@ -502,9 +502,9 @@ body.marquee-page-hidden .homepage-marquee-track {
   /* Home hero ball: large, partly off the top-right edge, behind the content. */
   .cricket-ball-hero {
     @apply pointer-events-none absolute -z-10 hidden sm:block;
-    width: clamp(15rem, 30vw, 30rem);
-    right: clamp(-9rem, -6vw, -4rem);
-    top: clamp(-9rem, -6vw, -4rem);
+    width: clamp(11rem, 18vw, 17rem);
+    right: clamp(-7rem, -4.5vw, -3rem);
+    top: clamp(-7rem, -4.5vw, -3rem);
     filter: drop-shadow(0 30px 45px rgb(45 0 0 / 0.28));
   }
   .dark .cricket-ball-hero { opacity: 0.78; filter: drop-shadow(0 30px 50px rgb(0 0 0 / 0.55)); }
@@ -531,9 +531,12 @@ body.marquee-page-hidden .homepage-marquee-track {
   .dark .involve-tile { @apply bg-white/[0.035] border-white/10; }
   .involve-icon { @apply flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-maroon-50 text-maroon-700; }
   .dark .involve-icon { @apply bg-maroon-900/60 text-maroon-100; }
-  .club-home-copy { @apply min-w-0 py-2; }
+  .club-home-copy { @apply min-w-0; }
+  /* Next event beside the home title: a solid card so the details stay easy to read over the hero light. */
+  .next-event-card { @apply relative rounded-3xl border border-edge-subtle bg-surface-card p-5 sm:p-6; box-shadow: 0 1px 2px rgba(29, 29, 31, 0.05), 0 24px 44px -30px rgba(45, 0, 0, 0.35); }
+  .dark .next-event-card { @apply border-white/10; }
   .club-kicker { @apply block text-xs font-semibold uppercase leading-relaxed tracking-[0.16em] text-maroon-700 dark:text-sky_accent; }
-  .club-home-title { font-size: clamp(2.75rem, 5.6vw, 5.25rem); line-height: 1.0; letter-spacing: -.05em; text-wrap: balance; @apply mt-5 font-display font-semibold text-content-primary; }
+  .club-home-title { font-size: clamp(1.6rem, 3.6vw, 3.25rem); line-height: 1.02; letter-spacing: -.045em; text-wrap: balance; @apply mt-2 font-display font-semibold text-content-primary; }
   .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-700/25 decoration-1 underline-offset-[6px] transition-[text-decoration-color] duration-200 hover:decoration-maroon-700 dark:text-sky_accent dark:decoration-sky_accent/30 dark:hover:decoration-sky_accent; }
   .club-disclosure { @apply rounded-2xl border border-edge-subtle bg-surface-card; }
   .club-disclosure > summary { @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary; }
