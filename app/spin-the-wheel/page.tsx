@@ -28,7 +28,8 @@ export default async function SpinTheWheelPage() {
   const ends = formatMelbourneDateTime(wheel.ends_at);
   const subtitle = [
     wheel.free_spins_per_account > 0 ? `${wheel.free_spins_per_account} free ${wheel.free_spins_per_account === 1 ? 'spin' : 'spins'} with a club account.` : '',
-    wheel.spin_price_cents ? `Extra spins ${formatAud(wheel.spin_price_cents)} AUD each.` : '',
+    wheel.spin_price_cents ? `${wheel.free_spins_per_account > 0 ? 'Extra spins' : 'Spins'} ${formatAud(wheel.spin_price_cents)} AUD each.` : '',
+    wheel.max_spins_per_day ? `Up to ${wheel.max_spins_per_day} ${wheel.max_spins_per_day === 1 ? 'spin' : 'spins'} per person per day.` : '',
   ].filter(Boolean).join(' ');
 
   return <>
@@ -40,7 +41,7 @@ export default async function SpinTheWheelPage() {
       <SpinWheelClient
         wheel={{
           id: wheel.id, name: wheel.name, phase, freeSpins: wheel.free_spins_per_account,
-          priceCents: wheel.spin_price_cents, maxPerOrder: wheel.max_spins_per_order, checkoutOpen: isSpinCheckoutOpen(wheel),
+          priceCents: wheel.spin_price_cents, maxPerOrder: wheel.max_spins_per_order, perDay: wheel.max_spins_per_day, checkoutOpen: isSpinCheckoutOpen(wheel),
         }}
         segments={segments}
       />
@@ -50,7 +51,7 @@ export default async function SpinTheWheelPage() {
           <h2 id="spin-prizes" className="font-display text-2xl font-bold mb-3">Prizes on the wheel</h2>
           {prizes.length ? <ul className="space-y-2">
             {prizes.map(prize => <li key={prize.position} className="border-b border-edge-subtle pb-2 last:border-0">
-              <strong>{prize.prize_name}</strong>{!prize.available && <span className="ml-2 text-sm text-content-muted">(all won)</span>}
+              <strong>{prize.prize_name}</strong>{prize.once_per_spinner && <span className="ml-2 text-sm">(once per person)</span>}{!prize.available && <span className="ml-2 text-sm text-content-muted">(all won)</span>}
               {prize.prize_description && <span className="block text-sm text-content-muted">{prize.prize_description}</span>}
             </li>)}
           </ul> : <p>This wheel has no prize segments.</p>}
@@ -63,8 +64,10 @@ export default async function SpinTheWheelPage() {
             {starts && <div><dt className="font-semibold">Opens</dt><dd>{starts}</dd></div>}
             {ends && <div><dt className="font-semibold">Closes</dt><dd>{ends}</dd></div>}
             <div><dt className="font-semibold">Free spins</dt><dd>{wheel.free_spins_per_account > 0 ? `${wheel.free_spins_per_account} per club account` : 'None on this wheel'}</dd></div>
+            {wheel.max_spins_per_day && <div><dt className="font-semibold">Spins per day</dt><dd>Up to {wheel.max_spins_per_day} per person per day (Melbourne time)</dd></div>}
             <div><dt className="font-semibold">Buying spins</dt><dd>{wheel.spin_price_cents ? `${formatAud(wheel.spin_price_cents)} AUD per spin, paid by card${wheel.ends_at ? `. Sales close ${SPIN_CHECKOUT_CLOSE_MINUTES} minutes before the wheel closes` : ''}` : 'Not available on this wheel'}</dd></div>
           </dl>
+          {prizes.some(prize => prize.once_per_spinner) && <p>Prizes marked once per person can be won once. If the wheel lands on one you have already won, you get a free spin instead.</p>}
           <p className="text-sm text-content-muted">Each result is chosen by the website&apos;s secure random generator and recorded before the wheel turns. Segment sizes on the wheel are for display; prizes that have all been won can no longer come up.</p>
           {wheel.claim_instructions && <div><h3 className="font-semibold">Claiming a prize</h3><p className="whitespace-pre-line">{wheel.claim_instructions}</p></div>}
         </section>

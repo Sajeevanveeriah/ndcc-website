@@ -16,6 +16,7 @@ export function saveSpinWheelPayload(input: SpinWheelInput, id: string | null) {
     free_spins_per_account: input.free_spins_per_account,
     spin_price_cents: input.spin_price_cents === null ? '' : input.spin_price_cents,
     max_spins_per_order: input.max_spins_per_order,
+    max_spins_per_day: input.max_spins_per_day === null ? '' : input.max_spins_per_day,
     claim_instructions: input.claim_instructions || '',
     public_visibility_mode: input.public_visibility_mode,
     public_opens_at: input.public_opens_at ? new Date(input.public_opens_at).toISOString() : '',
@@ -25,6 +26,7 @@ export function saveSpinWheelPayload(input: SpinWheelInput, id: string | null) {
       prize_name: segment.prize_name || '',
       prize_description: segment.prize_description || '',
       is_prize: segment.is_prize,
+      once_per_spinner: segment.is_prize && segment.once_per_spinner,
       weight: segment.weight,
       stock: segment.stock === null ? '' : segment.stock,
       colour: segment.colour,
@@ -92,16 +94,16 @@ const csvCell = (value: unknown) => {
 
 export type SpinAdminResult = {
   id: string; reference: string; segment_position: number; segment_label: string; prize_name: string | null;
-  is_prize: boolean; spinner_email: string | null; spinner_name: string | null; auth_user_id: string | null; pass_id: string | null;
+  is_prize: boolean; repeat_bonus?: boolean; spinner_email: string | null; spinner_name: string | null; auth_user_id: string | null; pass_id: string | null;
   created_at: string; claimed_at: string | null; voided_at: string | null; void_reason: string | null; winner_emailed_at: string | null;
 };
 
 export function spinResultsCsv(rows: readonly SpinAdminResult[]): string {
-  const header = ['Reference', 'Spun (Melbourne)', 'Name', 'Email', 'Via', 'Segment', 'Label', 'Prize', 'Claimed (Melbourne)', 'Voided', 'Void reason'];
+  const header = ['Reference', 'Spun (Melbourne)', 'Name', 'Email', 'Via', 'Segment', 'Label', 'Prize', 'Outcome', 'Claimed (Melbourne)', 'Voided', 'Void reason'];
   const when = (value: string | null) => (value ? new Date(value).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' }) : '');
   const lines = rows.map(row => [
     row.reference, when(row.created_at), row.spinner_name || '', row.spinner_email || '', row.auth_user_id ? 'Club account' : 'Spin link',
-    row.segment_position, row.segment_label, row.is_prize ? row.prize_name || '' : '', when(row.claimed_at), row.voided_at ? 'Yes' : '', row.void_reason || '',
+    row.segment_position, row.segment_label, row.is_prize ? row.prize_name || '' : '', row.repeat_bonus ? `Repeat of ${row.prize_name || 'a once-per-person prize'} - bonus spin given` : row.is_prize ? 'Prize' : 'No prize', when(row.claimed_at), row.voided_at ? 'Yes' : '', row.void_reason || '',
   ].map(csvCell).join(','));
   return [header.join(','), ...lines].join('\r\n') + '\r\n';
 }

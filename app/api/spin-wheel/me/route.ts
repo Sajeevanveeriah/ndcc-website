@@ -1,6 +1,6 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
-import { resolveSpinner, spinnerResults, spinReply, spinsLeft } from '@/lib/spin-wheel/server';
+import { resolveSpinner, spinDailyCapacity, spinnerResults, spinReply, spinsLeft } from '@/lib/spin-wheel/server';
 import { getPublicSpinWheel } from '@/lib/spin-wheel/visibility';
 
 export const dynamic = 'force-dynamic';
@@ -15,9 +15,12 @@ export async function GET(request: Request) {
     const { spinner, error, status } = await resolveSpinner(request, db, wheel.id);
     if (error) return spinReply({ success: false, error }, status);
     if (!spinner) return spinReply({ success: true, signedIn: false, spinsLeft: 0, results: [] });
-    const [left, results] = await Promise.all([spinsLeft(db, wheel, spinner), spinnerResults(db, wheel.id, spinner)]);
+    const [left, results, daily] = await Promise.all([
+      spinsLeft(db, wheel, spinner), spinnerResults(db, wheel.id, spinner),
+      wheel.max_spins_per_day ? spinDailyCapacity(db, wheel.id, spinner.kind === 'user' ? spinner.userId : null, spinner.email) : Promise.resolve(null),
+    ]);
     if (left === null || results === null) return spinReply({ success: false, error: 'Your spins could not be loaded. Please retry.' }, 503);
-    return spinReply({ success: true, signedIn: true, via: spinner.kind, email: spinner.email, spinsLeft: left, results });
+    return spinReply({ success: true, signedIn: true, via: spinner.kind, email: spinner.email, spinsLeft: left, results, daily });
   } catch {
     return spinReply({ success: false, error: 'Your spins could not be loaded. Please retry.' }, 503);
   }

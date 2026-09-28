@@ -88,6 +88,18 @@ assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ is_prize: true
 assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ label: 'x'.repeat(25) }), segment()] }).some(e => e.includes('label')));
 assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ weight: 1.5 }), segment()] }).some(e => e.includes('odds weight')));
 assert.ok(rules.validateSpinWheel({ ...base, segments: [segment({ stock: -1 }), segment()] }).some(e => e.includes('stock')));
+// Daily limit: blank or 1 to 100 whole spins.
+loose(rules.validateSpinWheel({ ...base, max_spins_per_day: null }), []);
+loose(rules.validateSpinWheel({ ...base, max_spins_per_day: 3 }), []);
+for (const bad of [0, 101, 2.5]) assert.ok(rules.validateSpinWheel({ ...base, max_spins_per_day: bad }).some(e => e.includes('per person per day')), `daily limit ${bad} rejected`);
+const normalised = rules.normaliseSpinWheelInput({ ...base, max_spins_per_day: '3', segments: [
+  { label: 'Raffle', is_prize: true, prize_name: 'Raffle entry', once_per_spinner: true, weight: 1, colour: 'gold' },
+  { label: 'Try again', is_prize: false, once_per_spinner: true, weight: 1, colour: 'navy' },
+] });
+assert.equal(normalised.max_spins_per_day, 3);
+assert.equal(normalised.segments[0].once_per_spinner, true);
+assert.equal(normalised.segments[1].once_per_spinner, false, 'once per person applies to prize segments only');
+assert.equal(rules.normaliseSpinWheelInput({ ...base, max_spins_per_day: '' }).max_spins_per_day, null);
 assert.ok(rules.validateSpinWheel({ ...base, spin_price_cents: 49 }).some(e => e.includes('spin price')));
 loose(rules.validateSpinWheel({ ...base, spin_price_cents: null }), [], 'blank price turns paid spins off');
 assert.ok(rules.validateSpinWheel({ ...base, free_spins_per_account: 101 }).some(e => e.includes('Free spins')));
@@ -147,7 +159,7 @@ const published = rules.publicSegments([
 ]);
 loose(published.map(item => item.position), [1, 2]);
 for (const item of published) {
-  loose(Object.keys(item).sort(), ['available', 'colour', 'is_prize', 'label', 'position', 'prize_description', 'prize_name']);
+  loose(Object.keys(item).sort(), ['available', 'colour', 'is_prize', 'label', 'once_per_spinner', 'position', 'prize_description', 'prize_name']);
 }
 assert.equal(published[1].available, false, 'out of stock shows as unavailable');
 
@@ -184,13 +196,20 @@ assert.equal(pass.spinPassUrl('https://www.ndcc.com.au/', token), `https://www.n
 // ---- Emails escape every value ----
 const passHtml = email.spinPassEmailBody({ name: '<b>x</b>', wheelName: 'Wheel & Co', spins: 3, link: 'https://example.invalid/?a="1"' });
 assert.ok(!passHtml.includes('<b>x</b>') && passHtml.includes('&lt;b&gt;') && passHtml.includes('Wheel &amp; Co') && !passHtml.includes('"1"'));
-const winHtml = email.spinWinnerEmailBody({ name: null, wheelName: 'Wheel', reference: 'SPIN-ABC123', prizeName: '<i>Cap</i>', prizeDescription: null, claimInstructions: 'Line 1\n<script>' });
+const winHtml = email.spinWinnerEmailBody({ name: null, email: 'w@example.invalid', wonAt: 'Monday 28 September 2026 at 7:00 pm', wheelName: 'Wheel', reference: 'SPIN-ABC123', prizeName: '<i>Cap</i>', prizeDescription: null, claimInstructions: 'Line 1\n<script>' });
 assert.ok(!winHtml.includes('<i>Cap</i>') && !winHtml.includes('<script>') && winHtml.includes('Line 1<br>'));
-assert.ok(email.spinWinnerEmailBody({ name: 'A', wheelName: 'W', reference: 'SPIN-ABC123', prizeName: 'Cap', prizeDescription: null, claimInstructions: null }).includes('reply to this email'));
+assert.ok(email.spinWinnerEmailBody({ name: 'A', email: 'a@example.invalid', wonAt: 'now', wheelName: 'W', reference: 'SPIN-ABC123', prizeName: 'Cap', prizeDescription: null, claimInstructions: null }).includes('reply to this email'));
+// Winner email is a prize receipt: reference, prize, time, winner and the bar.
+const receipt = email.spinWinnerEmailBody({ name: 'Sam <x>', email: 's@example.invalid', wonAt: 'Monday 28 September 2026 at 7:00 pm', wheelName: 'Dino Wheel', reference: 'SPIN-ABC123', prizeName: 'Raffle entry', prizeDescription: 'One entry', claimInstructions: 'Show at the bar' });
+for (const part of ['prize receipt', 'SPIN-ABC123', 'Raffle entry', 'One entry', 'Monday 28 September 2026 at 7:00 pm', 's@example.invalid', 'club bar']) assert.ok(receipt.includes(part), `receipt shows ${part}`);
+assert.ok(!receipt.includes('Sam <x>') && receipt.includes('Sam &lt;x&gt;'));
+assert.equal(email.spinWinnerEmailSubject({ wheelName: 'Dino Wheel', prizeName: 'Raffle entry', reference: 'SPIN-ABC123' }), 'Prize receipt SPIN-ABC123 - Dino Wheel: Raffle entry');
 
 // ---- Error mapping ----
 assert.equal(rules.spinErrorMessage('spin_wheel:segment_out_of_stock').retrySegment, true);
 assert.equal(rules.spinErrorMessage('spin_wheel:no_spins_left').status, 409);
+assert.match(rules.spinErrorMessage('spin_wheel:daily_limit').message, /today.*midnight/);
+assert.equal(rules.spinErrorMessage('spin_wheel:daily_limit').retrySegment, false);
 assert.equal(rules.spinErrorMessage('boom').status, 503);
 
 // ---- Route and payment wiring (source checks) ----
@@ -238,6 +257,13 @@ assert.match(adminSave, /confirm_close !== true/);
 const adminDelete = read('app/api/admin/spin-wheel/[id]/route.ts');
 for (const table of ['spin_wheel_results', 'spin_wheel_orders', 'spin_wheel_passes', 'spin_wheel_entitlements']) assert.ok(adminDelete.includes(`'${table}'`), `delete checks ${table}`);
 const cronRoute = read('app/api/cron/spin-wheel-passes/route.ts');
+// Daily limit enforced before an order is created; winner receipts copied to the committee list.
+assert.match(checkoutRoute, /spinDailyCapacity\(db, wheel\.id, authUserId, email\)/);
+assert.ok(checkoutRoute.indexOf('spinDailyCapacity(') < checkoutRoute.indexOf("from('orders').insert"), 'daily limit checked before the order is created');
+const serverSource = read('lib/spin-wheel/server.ts');
+assert.match(serverSource, /getNotificationRecipients\('spin_wheel_winners'\)/);
+assert.match(serverSource, /bcc: copies\.length \? copies : undefined/);
+assert.match(read('app/api/spin-wheel/me/route.ts'), /spinDailyCapacity/);
 assert.match(cronRoute, /spin_wheel_orders_needing_work/, 'cron works through every outstanding order');
 assert.doesNotMatch(cronRoute, /\.limit\(500\)/, 'no single capped query');
 assert.match(cronRoute, /sendSpinWinnerEmail/, 'cron retries winner emails');

@@ -21,24 +21,33 @@ export function spinPassEmailBody(input: SpinPassEmailInput): string {
 
 export type SpinWinnerEmailInput = {
   name: string | null;
+  email: string;
   wheelName: string;
   reference: string;
+  wonAt: string;
   prizeName: string;
   prizeDescription: string | null;
   claimInstructions: string | null;
 };
 
-export function spinWinnerEmailSubject(input: Pick<SpinWinnerEmailInput, 'wheelName' | 'prizeName'>): string {
-  return `${input.wheelName}: ${input.prizeName}`;
+export function spinWinnerEmailSubject(input: Pick<SpinWinnerEmailInput, 'wheelName' | 'prizeName' | 'reference'>): string {
+  return `Prize receipt ${input.reference} - ${input.wheelName}: ${input.prizeName}`;
 }
 
 export function spinWinnerEmailBody(input: SpinWinnerEmailInput): string {
   const e = escapeEmailHtml;
   const greeting = input.name ? `<p>Hi ${e(input.name)},</p>` : '<p>Hi,</p>';
+  const row = (label: string, value: string) => `<tr><th align="left" style="padding:6px 12px 6px 0;color:#162845;">${label}</th><td style="padding:6px 0;">${value}</td></tr>`;
   return greeting
-    + `<p>Your spin on the ${e(input.wheelName)} landed on <strong>${e(input.prizeName)}</strong>.</p>`
-    + (input.prizeDescription ? `<p>${e(input.prizeDescription)}</p>` : '')
-    + `<p>Result reference: <strong>${e(input.reference)}</strong></p>`
+    + `<p>Your spin on the ${e(input.wheelName)} landed on <strong>${e(input.prizeName)}</strong>. This email is your prize receipt.</p>`
+    + '<table role="presentation" style="border-collapse:collapse;margin:12px 0;border-top:3px solid #edc266;">'
+    + row('Receipt', `<strong>${e(input.reference)}</strong>`)
+    + row('Prize', `<strong>${e(input.prizeName)}</strong>`)
+    + (input.prizeDescription ? row('Details', e(input.prizeDescription)) : '')
+    + row('Won', e(input.wonAt))
+    + row('Winner', e(input.name ? `${input.name} (${input.email})` : input.email))
+    + '</table>'
+    + '<p><strong>Show this receipt at the club bar to claim your prize.</strong> Each receipt can be claimed once.</p>'
     + (input.claimInstructions
       ? `<p><strong>How to claim</strong><br>${e(input.claimInstructions).replace(/\n/g, '<br>')}</p>`
       : '<p>Please reply to this email to arrange your prize.</p>');

@@ -13,6 +13,7 @@ const SPIN_MIN_PRICE_CENTS = 50;
 const SPIN_MAX_PRICE_CENTS = 100_000;
 const SPIN_MAX_FREE_SPINS = 100;
 const SPIN_MAX_SPINS_PER_ORDER = 100;
+const SPIN_MAX_SPINS_PER_DAY = 100;
 export const SPIN_ORDER_CATEGORY = 'spin_wheel';
 export const SPIN_RETURN_PATH = '/spin-the-wheel';
 export const SPIN_ANIMATION_MS = 6000;
@@ -44,6 +45,8 @@ export type SpinSegmentInput = {
   prize_name: string | null;
   prize_description: string | null;
   is_prize: boolean;
+  /** Win once per person; landing on it again gives a free bonus spin. */
+  once_per_spinner: boolean;
   weight: number;
   stock: number | null;
   colour: SpinColour;
@@ -59,6 +62,8 @@ export type SpinWheelInput = {
   free_spins_per_account: number;
   spin_price_cents: number | null;
   max_spins_per_order: number;
+  /** Spins per person per Melbourne day; null = no limit. */
+  max_spins_per_day: number | null;
   claim_instructions: string | null;
   public_visibility_mode: SpinVisibilityMode;
   public_opens_at: string | null;
@@ -75,6 +80,7 @@ export type SpinWheelRow = {
   free_spins_per_account: number;
   spin_price_cents: number | null;
   max_spins_per_order: number;
+  max_spins_per_day: number | null;
   claim_instructions: string | null;
   public_visibility_mode: SpinVisibilityMode;
   public_opens_at: string | null;
@@ -91,6 +97,7 @@ export type PublicSpinSegment = {
   prize_name: string | null;
   prize_description: string | null;
   is_prize: boolean;
+  once_per_spinner: boolean;
   colour: SpinColour;
   available: boolean;
 };
@@ -102,6 +109,8 @@ export type SpinResultView = {
   prize_name: string | null;
   prize_description: string | null;
   is_prize: boolean;
+  /** Landed on a once-per-person prize already won: a free bonus spin instead. */
+  repeat_bonus?: boolean;
   created_at: string;
   claimed_at?: string | null;
   voided_at?: string | null;
@@ -133,6 +142,7 @@ export function normaliseSpinWheelInput(value: unknown): SpinWheelInput | null {
     free_spins_per_account: Number(row.free_spins_per_account ?? 0),
     spin_price_cents: optionalInteger(row.spin_price_cents),
     max_spins_per_order: Number(row.max_spins_per_order ?? 20),
+    max_spins_per_day: optionalInteger(row.max_spins_per_day),
     claim_instructions: optionalText(row.claim_instructions),
     public_visibility_mode: mode,
     public_opens_at: mode === 'scheduled' ? optionalText(row.public_opens_at) : null,
@@ -144,6 +154,7 @@ export function normaliseSpinWheelInput(value: unknown): SpinWheelInput | null {
         prize_name: optionalText(item.prize_name),
         prize_description: optionalText(item.prize_description),
         is_prize: item.is_prize === true,
+        once_per_spinner: item.is_prize === true && item.once_per_spinner === true,
         weight: Number(item.weight),
         stock: optionalInteger(item.stock),
         colour: isSpinColour(item.colour) ? item.colour : 'maroon',
@@ -168,6 +179,10 @@ export function validateSpinWheel(input: SpinWheelInput): string[] {
     errors.push('Enter a spin price between $0.50 and $1,000, or leave it blank to turn paid spins off.');
   }
   if (!inRange(input.max_spins_per_order, 1, SPIN_MAX_SPINS_PER_ORDER)) errors.push(`Spins per order must be 1 to ${SPIN_MAX_SPINS_PER_ORDER}.`);
+  const perDay = input.max_spins_per_day ?? null;
+  if (perDay !== null && !inRange(perDay, 1, SPIN_MAX_SPINS_PER_DAY)) {
+    errors.push(`Spins per person per day must be 1 to ${SPIN_MAX_SPINS_PER_DAY}, or blank for no limit.`);
+  }
   if (input.public_visibility_mode === 'scheduled' && !validDate(input.public_opens_at)) errors.push('Choose when the public page opens.');
   if (input.segments.length < SPIN_MIN_SEGMENTS || input.segments.length > SPIN_MAX_SEGMENTS) {
     errors.push(`The wheel needs ${SPIN_MIN_SEGMENTS} to ${SPIN_MAX_SEGMENTS} segments.`);
@@ -286,6 +301,7 @@ export function publicSegments(segments: readonly SpinSegmentRow[]): PublicSpinS
     prize_name: segment.prize_name,
     prize_description: segment.prize_description,
     is_prize: segment.is_prize,
+    once_per_spinner: segment.is_prize && segment.once_per_spinner === true,
     colour: segment.colour,
     available: segment.weight > 0 && (segment.stock === null || segment.stock > 0),
   }));
@@ -305,6 +321,7 @@ export function isSpinResultReference(value: unknown): value is string {
 /** Map a database exception to a message safe to show the person spinning. */
 export function spinErrorMessage(message: string | undefined): { message: string; status: number; retrySegment: boolean } {
   const textValue = String(message || '');
+  if (textValue.includes('spin_wheel:daily_limit')) return { message: 'You have used today\'s spins. Your remaining spins can be used from midnight (Melbourne time).', status: 409, retrySegment: false };
   if (textValue.includes('spin_wheel:no_spins_left')) return { message: 'You have no spins left on this wheel.', status: 409, retrySegment: false };
   if (textValue.includes('spin_wheel:not_live')) return { message: 'This wheel is not open for spins right now.', status: 409, retrySegment: false };
   if (textValue.includes('spin_wheel:segment_out_of_stock') || textValue.includes('spin_wheel:segment_unavailable')) {

@@ -29,13 +29,13 @@ import {
 } from '@/lib/spin-wheel/rules';
 
 type Stats = { spins: number; prizes: number; unclaimed: number; paidOrders: number; openSpins: number };
-type SegmentDraft = { key: string; id: string | null; label: string; prize_name: string; prize_description: string; is_prize: boolean; weight: string; stock: string; colour: SpinColour };
+type SegmentDraft = { key: string; id: string | null; label: string; prize_name: string; prize_description: string; is_prize: boolean; once_per_spinner: boolean; weight: string; stock: string; colour: SpinColour };
 type Draft = {
   name: string; description: string; status: SpinWheelStatus; starts: string; ends: string; freeSpins: string; price: string;
-  maxPerOrder: string; claim: string; visibility: SpinVisibilityMode; opensAt: string; segments: SegmentDraft[];
+  maxPerOrder: string; perDay: string; claim: string; visibility: SpinVisibilityMode; opensAt: string; segments: SegmentDraft[];
 };
 type Result = {
-  id: string; reference: string; segment_position: number; segment_label: string; prize_name: string | null; is_prize: boolean;
+  id: string; reference: string; segment_position: number; segment_label: string; prize_name: string | null; is_prize: boolean; repeat_bonus?: boolean;
   spinner_email: string | null; spinner_name: string | null; auth_user_id: string | null; created_at: string;
   claimed_at: string | null; voided_at: string | null; void_reason: string | null; winner_emailed_at: string | null;
 };
@@ -46,10 +46,10 @@ const fromLocal = (value: string) => (value ? datetimeLocalToClubIso(value) : nu
 const dollarsToCents = (value: string) => (/^\d+(\.\d{1,2})?$/.test(value.trim()) ? Math.round(Number(value) * 100) : NaN);
 let keyCounter = 0;
 const nextKey = () => `segment-${keyCounter += 1}`;
-const blankSegment = (colour: SpinColour, label = ''): SegmentDraft => ({ key: nextKey(), id: null, label, prize_name: '', prize_description: '', is_prize: false, weight: '1', stock: '', colour });
+const blankSegment = (colour: SpinColour, label = ''): SegmentDraft => ({ key: nextKey(), id: null, label, prize_name: '', prize_description: '', is_prize: false, once_per_spinner: false, weight: '1', stock: '', colour });
 
 const emptyDraft = (): Draft => ({
-  name: '', description: '', status: 'draft', starts: '', ends: '', freeSpins: '1', price: '', maxPerOrder: '20', claim: '',
+  name: '', description: '', status: 'draft', starts: '', ends: '', freeSpins: '1', price: '', maxPerOrder: '20', perDay: '', claim: '',
   visibility: 'hidden', opensAt: '',
   segments: [blankSegment('maroon'), blankSegment('blue'), blankSegment('gold'), blankSegment('navy')],
 });
@@ -58,11 +58,11 @@ function draftFrom(wheel: SpinWheelRow, segments: SpinSegmentRow[]): Draft {
   return {
     name: wheel.name, description: wheel.description || '', status: wheel.status, starts: toLocal(wheel.starts_at), ends: toLocal(wheel.ends_at),
     freeSpins: String(wheel.free_spins_per_account), price: wheel.spin_price_cents === null ? '' : (wheel.spin_price_cents / 100).toFixed(2),
-    maxPerOrder: String(wheel.max_spins_per_order), claim: wheel.claim_instructions || '', visibility: wheel.public_visibility_mode,
+    maxPerOrder: String(wheel.max_spins_per_order), perDay: wheel.max_spins_per_day === null ? '' : String(wheel.max_spins_per_day), claim: wheel.claim_instructions || '', visibility: wheel.public_visibility_mode,
     opensAt: toLocal(wheel.public_opens_at),
     segments: [...segments].sort((a, b) => a.position - b.position).map(segment => ({
       key: nextKey(), id: segment.id, label: segment.label, prize_name: segment.prize_name || '', prize_description: segment.prize_description || '',
-      is_prize: segment.is_prize, weight: String(segment.weight), stock: segment.stock === null ? '' : String(segment.stock), colour: segment.colour,
+      is_prize: segment.is_prize, once_per_spinner: segment.once_per_spinner === true, weight: String(segment.weight), stock: segment.stock === null ? '' : String(segment.stock), colour: segment.colour,
     })),
   };
 }
@@ -72,11 +72,11 @@ function inputFrom(draft: Draft, id: string | null): SpinWheelInput | null {
     id, name: draft.name, description: draft.description, status: draft.status, starts_at: fromLocal(draft.starts), ends_at: fromLocal(draft.ends),
     free_spins_per_account: draft.freeSpins.trim() === '' ? 0 : Number(draft.freeSpins),
     spin_price_cents: draft.price.trim() === '' ? null : dollarsToCents(draft.price),
-    max_spins_per_order: Number(draft.maxPerOrder), claim_instructions: draft.claim, public_visibility_mode: draft.visibility,
+    max_spins_per_order: Number(draft.maxPerOrder), max_spins_per_day: draft.perDay.trim() === '' ? null : Number(draft.perDay), claim_instructions: draft.claim, public_visibility_mode: draft.visibility,
     public_opens_at: fromLocal(draft.opensAt),
     segments: draft.segments.map(segment => ({
       id: segment.id, label: segment.label, prize_name: segment.prize_name, prize_description: segment.prize_description,
-      is_prize: segment.is_prize, weight: segment.weight.trim() === '' ? NaN : Number(segment.weight),
+      is_prize: segment.is_prize, once_per_spinner: segment.once_per_spinner, weight: segment.weight.trim() === '' ? NaN : Number(segment.weight),
       stock: segment.stock.trim() === '' ? null : Number(segment.stock), colour: segment.colour,
     })),
   });
@@ -185,6 +185,7 @@ export default function SpinWheelEditorPage() {
         <Input id="spin-free" label="Free spins per club account" type="number" min={0} max={100} value={draft.freeSpins} onChange={e => set({ freeSpins: e.target.value })} />
         <Input id="spin-price" label="Price per extra spin in AUD (blank = no paid spins)" inputMode="decimal" value={draft.price} onChange={e => set({ price: e.target.value })} />
         <Input id="spin-max" label="Most spins in one order" type="number" min={1} max={100} value={draft.maxPerOrder} onChange={e => set({ maxPerOrder: e.target.value })} />
+        <Input id="spin-per-day" label="Spins per person per day - Melbourne time (blank = no limit)" type="number" min={1} max={100} value={draft.perDay} onChange={e => set({ perDay: e.target.value })} />
         <label className="block"><span className="form-label">Public page</span>
           <select className="form-input" value={draft.visibility} onChange={e => set({ visibility: e.target.value as SpinVisibilityMode })}>
             <option value="hidden">Hidden</option><option value="scheduled">Scheduled</option><option value="visible">Visible</option>
@@ -213,6 +214,7 @@ export default function SpinWheelEditorPage() {
             {segment.is_prize && <>
               <input aria-label={`Segment ${index + 1} prize name`} placeholder="Prize name" className="form-input" maxLength={120} value={segment.prize_name} onChange={e => setSegment(index, { prize_name: e.target.value })} />
               <input aria-label={`Segment ${index + 1} prize description`} placeholder="Prize description (optional)" className="form-input" maxLength={500} value={segment.prize_description} onChange={e => setSegment(index, { prize_description: e.target.value })} />
+              <label className="flex items-center gap-2"><input type="checkbox" checked={segment.once_per_spinner} onChange={e => setSegment(index, { once_per_spinner: e.target.checked })} /> Once per person (a repeat gives a free spin)</label>
             </>}
           </td>
           <td className="p-2"><input aria-label={`Segment ${index + 1} odds weight`} className="form-input w-28" type="number" min={0} step={1} value={segment.weight} onChange={e => setSegment(index, { weight: e.target.value })} /></td>
@@ -392,7 +394,7 @@ function Results({ wheelId }: { wheelId: string }) {
       <tbody>{rows.map(row => <tr key={row.id} className={`border-t border-edge-subtle ${row.voided_at ? 'text-content-muted line-through' : ''}`}>
         <td className="p-2 font-mono">{row.reference}</td>
         <td className="p-2">{row.spinner_name || '-'}<br />{row.spinner_email || ''}<br /><span className="text-xs">{row.auth_user_id ? 'Club account' : 'Spin link'}</span></td>
-        <td className="p-2">{row.is_prize ? <strong>{row.prize_name}</strong> : row.segment_label}<br /><span className="text-xs">Segment {row.segment_position}</span></td>
+        <td className="p-2">{row.is_prize ? <strong>{row.prize_name}</strong> : row.repeat_bonus ? `${row.segment_label} (already won - bonus spin given)` : row.segment_label}<br /><span className="text-xs">Segment {row.segment_position}</span></td>
         <td className="p-2">{formatMelbourneDateTime(row.created_at)}</td>
         <td className="p-2">{row.voided_at ? `Voided: ${row.void_reason}` : row.is_prize ? (row.claimed_at ? `Claimed ${formatMelbourneDateTime(row.claimed_at)}` : 'Not claimed') : '-'}
           {row.is_prize && !row.voided_at && <><br /><span className="text-xs">{row.winner_emailed_at ? 'Winner emailed' : 'Winner email not sent'}</span></>}</td>

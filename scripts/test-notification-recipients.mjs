@@ -44,11 +44,14 @@ const PREVIOUS = {
   contact: ['ndcc.secretary1@gmail.com'],
   // Added with song-request events (20260927160000); not in the WP6a seed.
   event_song_requests: ['ndcc.secretary1@gmail.com'],
+  // Added with the Dino Wheel (20260928150000): addresses supplied by the club.
+  spin_wheel_winners: ['ndcc.secretary1@gmail.com', 'ndsc.cricket@gmail.com'],
 };
 
 const migration = readFileSync('supabase/migrations/20260927060000_notification_recipients.sql', 'utf8');
 
 const songMigration = readFileSync('supabase/migrations/20260927160000_notification_event_song_requests.sql', 'utf8');
+const spinMigration = readFileSync('supabase/migrations/20260928150000_spin_wheel_daily_limit_repeat_bonus.sql', 'utf8');
 
 function seededRecipients() {
   const values = migration.split('insert into public.notification_recipients')[1].split(';')[0];
@@ -56,6 +59,11 @@ function seededRecipients() {
   // Later seeds use insert ... select 'type', 'email', sort.
   for (const [, event_type, email, sort] of songMigration.matchAll(/select '([a-z_]+)', '([^']+)', (\d+)/g)) {
     rows.push({ event_type, email, sort_order: Number(sort), active: true });
+  }
+  // The Spin the Wheel seed selects from a values list.
+  const spinSeed = spinMigration.split("select 'spin_wheel_winners', v.email, v.sort_order")[1].split(';')[0];
+  for (const [, email, sort] of spinSeed.matchAll(/\('([^']+)', (\d+)\)/g)) {
+    rows.push({ event_type: 'spin_wheel_winners', email, sort_order: Number(sort), active: true });
   }
   return core.groupActiveRecipients(rows);
 }
@@ -73,7 +81,7 @@ await test('migration seeds exactly the fallback recipients, in order, so routin
 
 await test('migration event type check list matches the application list', () => {
   // The latest migration that redefines the event_type check is authoritative.
-  const check = songMigration.match(/check \(event_type in \(([\s\S]*?)\)\)/)[1];
+  const check = spinMigration.match(/check \(event_type in \(([\s\S]*?)\)\)/)[1];
   assert.deepEqual([...check.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort(), Object.keys(PREVIOUS).sort());
 });
 

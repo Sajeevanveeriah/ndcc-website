@@ -9,11 +9,12 @@ import { rotationForNumber } from '@/lib/prize-wheel/wheel-geometry';
 import { formatAud, SPIN_ANIMATION_MS, SPIN_RETURN_PATH, type PublicSpinSegment, type SpinResultView, type SpinWheelPhase } from '@/lib/spin-wheel/rules';
 
 type Props = {
-  wheel: { id: string; name: string; phase: SpinWheelPhase; freeSpins: number; priceCents: number | null; maxPerOrder: number; checkoutOpen: boolean };
+  wheel: { id: string; name: string; phase: SpinWheelPhase; freeSpins: number; priceCents: number | null; maxPerOrder: number; perDay: number | null; checkoutOpen: boolean };
   segments: PublicSpinSegment[];
 };
 
-type Me = { signedIn: boolean; via?: 'user' | 'pass'; email?: string; spinsLeft: number; results: SpinResultView[] };
+type Daily = { limit: number | null; usedToday: number; remaining: number | null; canSpinToday: boolean };
+type Me = { signedIn: boolean; via?: 'user' | 'pass'; email?: string; spinsLeft: number; results: SpinResultView[]; daily: Daily | null };
 
 const PASS_KEY = 'ndcc-spin-pass';
 const ORDER_KEY = 'ndcc-spin-order';
@@ -81,7 +82,7 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
         if (response.status === 401 && pass) { storageSet(PASS_KEY, null); setPass(null); }
         throw new Error(String(data.error || 'Your spins could not be loaded.'));
       }
-      setMe({ signedIn: Boolean(data.signedIn), via: data.via as Me['via'], email: data.email as string | undefined, spinsLeft: Number(data.spinsLeft) || 0, results: (data.results as SpinResultView[]) || [] });
+      setMe({ signedIn: Boolean(data.signedIn), via: data.via as Me['via'], email: data.email as string | undefined, spinsLeft: Number(data.spinsLeft) || 0, results: (data.results as SpinResultView[]) || [], daily: (data.daily as Daily | null) || null });
       setLoadError('');
     } catch (failure) {
       setLoadError(failure instanceof Error ? failure.message : 'Your spins could not be loaded.');
@@ -136,6 +137,8 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
         setResult({ ...recorded, emailed: data.emailed === true });
         setSpinning(false);
         setMe(current => current ? { ...current, spinsLeft: Number(data.spinsLeft) || 0, results: [{ ...recorded }, ...current.results] } : current);
+        // Refresh today's count (bonus spins do not use it).
+        void loadMe();
       }, reducedMotion ? 0 : SPIN_ANIMATION_MS);
     } catch (failure) {
       setSpinError(failure instanceof Error ? failure.message : 'The spin could not be recorded.');
@@ -150,7 +153,8 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
     setMe(null);
   }
 
-  const canSpin = wheel.phase === 'live' && !spinning && (me?.spinsLeft || 0) > 0;
+  const dailyReached = Boolean(me?.daily && !me.daily.canSpinToday);
+  const canSpin = wheel.phase === 'live' && !spinning && (me?.spinsLeft || 0) > 0 && !dailyReached;
   const status = wheel.phase === 'upcoming' ? 'This wheel is not open yet.'
     : wheel.phase === 'paused' ? 'Spins are paused at the moment.'
       : wheel.phase === 'ended' ? 'This wheel has closed.' : '';
@@ -172,6 +176,8 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
             : <p>{wheel.freeSpins > 0
               ? <><Link href="/club-account" className="underline">Sign in to your club account</Link> for {wheel.freeSpins} free {wheel.freeSpins === 1 ? 'spin' : 'spins'}, or open the spin link from your email.</>
               : <>Buy spins below, or open the spin link from your email.</>}</p>}
+          {me.daily && me.daily.limit !== null && <p>Spins today: <strong>{me.daily.usedToday}</strong> of {me.daily.limit} (Melbourne time).</p>}
+          {dailyReached && me.spinsLeft > 0 && <p role="status" className="font-semibold">You have used today&apos;s spins. Your remaining {me.spinsLeft === 1 ? 'spin' : 'spins'} can be used from midnight (Melbourne time).</p>}
           <Button type="button" size="lg" className="w-full" onClick={() => void spin()} disabled={!canSpin} aria-describedby="spin-help">{spinning ? 'Spinning...' : 'Spin the wheel'}</Button>
           <p id="spin-help" className="text-sm text-content-muted">The result is recorded as soon as you press the button.</p>
           {me.via === 'pass' && <button type="button" className="text-sm underline" onClick={forgetPass}>Stop using this spin link on this device</button>}
@@ -181,13 +187,14 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
           {result && <div className="rounded-lg bg-maroon-700 p-4 text-white">
             <p className="text-sm uppercase tracking-widest">Result {result.reference}</p>
             <p className="font-display text-2xl font-bold">{result.is_prize ? result.prize_name : result.segment_label}</p>
+            {result.repeat_bonus && <p>You have already won {result.prize_name || 'this prize'}, so you get a free spin instead. Spin again!</p>}
             {result.is_prize && result.prize_description && <p>{result.prize_description}</p>}
-            {result.is_prize && <p className="mt-2 text-sm">{result.emailed ? 'We have emailed you the details of how to claim.' : 'Keep this result reference. See Claiming a prize on this page; we will also email you the details.'}</p>}
+            {result.is_prize && <p className="mt-2 text-sm">{result.emailed ? 'We have emailed your prize receipt. Show it at the club bar to claim.' : 'Keep this result reference. We will also email your prize receipt; show it at the club bar to claim.'}</p>}
           </div>}
         </div>
       </section>
 
-      {wheel.priceCents && wheel.checkoutOpen && <BuySpins wheelName={wheel.name} priceCents={wheel.priceCents} maxPerOrder={wheel.maxPerOrder}
+      {wheel.priceCents && wheel.checkoutOpen && <BuySpins wheelName={wheel.name} priceCents={wheel.priceCents} maxPerOrder={wheel.maxPerOrder} perDay={wheel.perDay}
         signedInAccount={me?.via === 'user'} authHeaders={headers}
         onStarted={(orderId, passToken) => { if (passToken) { storageSet(PASS_KEY, passToken); } storageSet(ORDER_KEY, orderId); }} />}
 
@@ -197,7 +204,7 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
         <h2 id="spin-history" className="font-display text-xl font-bold mb-2">Your results</h2>
         <ul className="space-y-1 text-sm">
           {me.results.map(item => <li key={item.reference} className={item.voided_at ? 'line-through text-content-muted' : ''}>
-            <span className="font-mono">{item.reference}</span>: {item.is_prize ? <strong>{item.prize_name}</strong> : item.segment_label}
+            <span className="font-mono">{item.reference}</span>: {item.is_prize ? <strong>{item.prize_name}</strong> : item.repeat_bonus ? `${item.segment_label} (already won - free spin given)` : item.segment_label}
             {item.is_prize && item.claimed_at ? ' (claimed)' : ''}{item.voided_at ? ' (voided)' : ''}
           </li>)}
         </ul>
@@ -206,8 +213,8 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
   </div>;
 }
 
-function BuySpins({ wheelName, priceCents, maxPerOrder, signedInAccount, authHeaders, onStarted }: {
-  wheelName: string; priceCents: number; maxPerOrder: number; signedInAccount: boolean;
+function BuySpins({ wheelName, priceCents, maxPerOrder, perDay, signedInAccount, authHeaders, onStarted }: {
+  wheelName: string; priceCents: number; maxPerOrder: number; perDay: number | null; signedInAccount: boolean;
   authHeaders: () => Promise<Record<string, string>>; onStarted: (orderId: string, passToken: string | null) => void;
 }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', quantity: 1 });
@@ -247,7 +254,7 @@ function BuySpins({ wheelName, priceCents, maxPerOrder, signedInAccount, authHea
 
   return <form onSubmit={submit} className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-4" aria-labelledby="spin-buy">
     <h2 id="spin-buy" className="font-display text-xl font-bold">Buy spins</h2>
-    <p>{formatAud(priceCents)} AUD per spin on the {wheelName}. {signedInAccount ? 'Spins are added to your club account.' : 'We email you a spin link once payment is confirmed.'}</p>
+    <p>{formatAud(priceCents)} AUD per spin on the {wheelName}. {signedInAccount ? 'Spins are added to your club account.' : 'We email you a spin link once payment is confirmed.'}{perDay ? ` Up to ${perDay} ${perDay === 1 ? 'spin' : 'spins'} per person per day.` : ''}</p>
     <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
       <legend className="sr-only">Your details</legend>
       <Input id="spin-buy-name" label="Name" required autoComplete="name" maxLength={120} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
