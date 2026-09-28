@@ -2,7 +2,7 @@
 -- the Dino wallet migration applied. Never run on production.
 BEGIN;
 DO $$
-DECLARE sid uuid; ma uuid; mb uuid; late_manager uuid; late_squad uuid; pid uuid; qa uuid; qb uuid; offer uuid; a jsonb:='[]'; b jsonb:='[]'; ids uuid[]:='{}'; i int; av timestamptz; bv timestamptz; before_cost bigint;
+DECLARE rid uuid; rq uuid; sid uuid; ma uuid; mb uuid; late_manager uuid; late_squad uuid; pid uuid; qa uuid; qb uuid; offer uuid; a jsonb:='[]'; b jsonb:='[]'; ids uuid[]:='{}'; i int; av timestamptz; bv timestamptz; before_cost bigint;
  keys text[]:=ARRAY['XI_BAT_1','XI_BAT_2','XI_BAT_3','XI_BAT_4','XI_AR_1','XI_AR_2','XI_WK_1','XI_BOWL_1','XI_BOWL_2','XI_BOWL_3','XI_BOWL_4','BENCH_BAT_1','BENCH_AR_1','BENCH_WK_1','BENCH_BOWL_1'];
  item jsonb;
 BEGIN
@@ -89,12 +89,27 @@ BEGIN
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  PERFORM public.dino_market_action(ma,sid,null,'buy',null,ids[12],keys[12],av,100000);
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
+ -- Reopened season: a later round squad exists beside the preseason (null-round) squad. A save aimed at
+ -- the null round must retain costs from, and sell against, the latest squad (as the v2 RPC checks).
+ INSERT INTO public.fantasy_rounds(season_id,round_number,name,status) VALUES(sid,1,'Round 1','open') RETURNING id INTO rid;
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
+ rq:=public.save_dino_coach_squad_v2(ma,sid,rid,'draft',(SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=qa),av,
+   (SELECT sum(purchase_price_dino_dollars) FROM public.fantasy_squad_players WHERE squad_id=qa)::bigint);
+ UPDATE public.fantasy_player_prices SET price_dino_dollars=130000,price_million=.13 WHERE season_id=sid AND player_id=ids[11];
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=rq;
+ PERFORM public.save_dino_coach_squad_v2(ma,sid,null,'draft',
+   (SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=rq AND player_id<>ids[10]),av,
+   (SELECT sum(purchase_price_dino_dollars) FROM public.fantasy_squad_players WHERE squad_id=rq AND player_id<>ids[10])::bigint);
+ IF NOT EXISTS(SELECT 1 FROM public.fantasy_dino_sales WHERE manager_id=ma AND player_id=ids[10] AND squad_id=rq) THEN RAISE EXCEPTION 'Reopened-season sale not taken from the latest squad'; END IF;
+ IF (SELECT purchase_price_dino_dollars FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id=ids[11])<>100000 THEN RAISE EXCEPTION 'Retained cost not carried from the latest squad'; END IF;
+ UPDATE public.fantasy_player_prices SET price_dino_dollars=100000,price_million=.1 WHERE season_id=sid AND player_id=ids[11];
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  -- CMS corrections never book a sale.
  PERFORM set_config('ndcc.dino_admin_edit','on',true);
  PERFORM public.save_dino_coach_squad(ma,sid,null,'draft',(SELECT sum(purchase_price_dino_dollars) FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id<>ids[13])::bigint,
    (SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id<>ids[13]));
  PERFORM set_config('ndcc.dino_admin_edit','off',true);
- IF (SELECT count(*) FROM public.fantasy_dino_sales WHERE manager_id=ma AND season_id=sid)<>3 THEN RAISE EXCEPTION 'Admin correction booked a sale'; END IF;
+ IF (SELECT count(*) FROM public.fantasy_dino_sales WHERE manager_id=ma AND season_id=sid)<>4 THEN RAISE EXCEPTION 'Admin correction booked a sale'; END IF;
  BEGIN
   PERFORM public.dino_trade_action(ma,sid,null,'propose',null,mb,ids[1],ids[16]);
   RAISE EXCEPTION 'Inter-team trading still enabled';
