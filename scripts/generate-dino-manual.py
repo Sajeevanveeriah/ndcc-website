@@ -28,6 +28,7 @@ REVISION = 'Rev00'
 RULES_VERSION = '2026-27-rev07'
 OUT = Path('public/documents')
 LOGO = Path('public/images/logo.jpg')
+LOGO_ALT = 'Newcomb and District Cricket Club logo'
 CHROME = os.environ.get('CHROME', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
 
 MAROON, GOLD, SKY, NAVY, CREAM = '880000', 'EDC266', '8CC6D1', '162845', 'FBF7F0'
@@ -469,7 +470,9 @@ def build_docx(path):
         shade(cell, MAROON)
         cell_borders(cell, GOLD, size=36, sides=('bottom',))
         cell_margins(cell, 260, 260, 260, 200)
-    logo_cell.paragraphs[0].add_run().add_picture(io.BytesIO(logo_bytes()), width=Cm(3.4))
+    logo = logo_cell.paragraphs[0].add_run().add_picture(io.BytesIO(logo_bytes()), width=Cm(3.4))
+    logo._inline.docPr.set('descr', LOGO_ALT)
+    logo._inline.docPr.set('title', LOGO_ALT)
     title = title_cell.paragraphs[0]
     spacing(title, 0, 2)
     run(title, 'Dino Coach user manual', bold=True, colour='FFFFFF', size=26)
@@ -613,7 +616,7 @@ aside p {{ margin: 0; }}
 aside .label {{ font-size: 7.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #{MAROON}; }}
 aside .title {{ font-weight: 700; font-size: 11pt; margin-bottom: 2px; }}
 </style></head><body>
-<header class="cover"><img src="data:image/jpeg;base64,{logo}" alt="Newcomb and District Cricket Club logo">
+<header class="cover"><img src="data:image/jpeg;base64,{logo}" alt="{e(LOGO_ALT)}">
 <div><h1>Dino Coach user manual</h1><p class="sub">Rules and manager guide | 2026/2027</p>
 <p class="meta">Newcomb and District Cricket Club | {DATE}</p></div></header>
 <div class="stripe"></div>
