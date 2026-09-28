@@ -229,12 +229,13 @@ export function isSpinCheckoutOpen(wheel: Pick<SpinWheelRow, 'status' | 'starts_
 }
 
 /**
- * Whether saving `next` over `current` stops people using spins: taking a live
- * wheel off live, or moving its close time inside the checkout window.
+ * Whether saving `next` over `current` stops people using spins: a wheel that
+ * is open now stops being open (status, a later start or an earlier close),
+ * or its close time moves inside the checkout window.
  */
-export function closesSpinWheel(current: Pick<SpinWheelRow, 'status' | 'ends_at'>, next: Pick<SpinWheelInput, 'status' | 'ends_at'>, now: Date = new Date()): boolean {
-  if (current.status !== 'live') return false;
-  if (next.status !== 'live') return true;
+export function closesSpinWheel(current: Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at'>, next: Pick<SpinWheelInput, 'status' | 'starts_at' | 'ends_at'>, now: Date = new Date()): boolean {
+  if (!isSpinWheelLive(current, now)) return false;
+  if (!isSpinWheelLive(next, now)) return true;
   if (!next.ends_at) return false;
   const nextEnds = new Date(next.ends_at).getTime();
   const currentEnds = current.ends_at ? new Date(current.ends_at).getTime() : Number.POSITIVE_INFINITY;

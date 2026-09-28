@@ -167,6 +167,25 @@ begin
   update public.spin_wheel_orders set pass_emailed_at = now() where id = link;
   if exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100) w where w.id = link) then raise exception 'finished order still listed'; end if;
 
+  -- A refunded guest order is not listed for a link email, even with paid_at set.
+  update public.spin_wheel_orders set pass_emailed_at = null where id = link;
+  insert into public.order_payments(order_id, amount, method, status, received_at, recorded_by, payment_reference) values (ord, 2.00, 'bank_transfer', 'refunded', now(), 'test', 'NDCCPAY-2026-990011');
+  if exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100) w where w.id = link) then raise exception 'refunded guest order still listed for a link email'; end if;
+
+  -- Close impact counts in-progress card checkouts from the ledger and unused paid spins.
+  insert into public.orders(customer_name, customer_email, customer_phone, items, total_amount, order_category, order_status, payment_status, payment_reference)
+    values ('Card buyer', 'card@example.invalid', '', '[]'::jsonb, 2.00, 'spin_wheel', 'submitted', 'pending_bank_transfer', 'NDCCPAY-2026-990020')
+    returning id into ord;
+  insert into public.spin_wheel_orders(wheel_id, order_id, pass_id, quantity, unit_price_cents, created_at) values (wheel, ord, pass_a, 1, 200, now() - interval '3 hours') returning id into link;
+  insert into public.order_payments(order_id, amount, method, provider, provider_reference, status) values (ord, 2.00, 'stripe', 'stripe', 'cs_test_spin_active', 'pending');
+  if (select active_checkouts from public.spin_wheel_close_impact(wheel)) <> 1 then raise exception 'active checkout on an old order not counted'; end if;
+
+  -- A payment settling after the wheel ended flags the order for a refund.
+  update public.spin_wheels set status = 'ended' where id = wheel;
+  insert into public.order_payments(order_id, amount, method, status, received_at, recorded_by, payment_reference) values (ord, 2.00, 'bank_transfer', 'settled', now(), 'test', 'NDCCPAY-2026-990021');
+  if (select payment_status from public.orders where id = ord) <> 'paid' then raise exception 'late payment not settled'; end if;
+  if (select needs_review_reason from public.orders where id = ord) not like 'Spin the Wheel closed before this payment settled%' then raise exception 'late payment not flagged for refund'; end if;
+
   -- Browser roles have no direct access.
   if has_table_privilege('anon', 'public.spin_wheel_results', 'select') or has_table_privilege('authenticated', 'public.spin_wheel_entitlements', 'insert')
      or has_function_privilege('anon', 'public.record_spin_wheel_result(uuid,uuid,uuid,uuid,text,text,text,text)', 'execute')

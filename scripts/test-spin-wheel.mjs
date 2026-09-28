@@ -284,10 +284,24 @@ assert.match(serverLib, /update\(\{ token_hash: hash \}\)\.eq\('id', passId\)\.n
 assert.equal((serverLib.match(/await currentPassLink\(db, pass\.id\)/g) || []).length, 2, 'both link emails use the current link');
 assert.match(read('supabase/migrations/20260928120000_spin_the_wheel_cron_work.sql'), /create function public\.spin_wheel_orders_needing_work\(since timestamptz, max_rows integer, skip_ids uuid\[\] default '\{\}'\)/);
 
+// ---- Fourth review round (#278) ----
+const liveNow = at('2026-10-01T12:00:00Z');
+assert.equal(rules.closesSpinWheel({ status: 'live', starts_at: null, ends_at: null }, { status: 'live', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, liveNow), true, 'moving the start later closes an open wheel');
+assert.equal(rules.closesSpinWheel({ status: 'live', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, { status: 'paused', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, liveNow), false, 'a wheel not open yet closes nothing');
+assert.equal(rules.closesSpinWheel({ status: 'live', starts_at: null, ends_at: null }, { status: 'live', starts_at: '2026-09-01T00:00:00Z', ends_at: null }, liveNow), false, 'moving the start earlier keeps it open');
+assert.match(read('app/api/admin/spin-wheel/route.ts'), /rpc\('spin_wheel_close_impact'/, 'in-progress checkouts come from the payment ledger');
+assert.match(read('app/api/payments/bank-transfer/route.ts'), /order\.order_category === 'spin_wheel'/, 'spin orders cannot switch to bank deposit');
+const server4 = read('lib/spin-wheel/server.ts');
+assert.match(server4, /linked\.payment_status !== 'paid'/, 'no link email after a refund');
+assert.match(server4, /spins: openSpins/, 'the email states the spins still open');
+const guard = read('supabase/migrations/20260928130000_spin_the_wheel_settlement_guard.sql');
+assert.match(guard, /v_wheel\.status = 'ended' or \(v_wheel\.ends_at is not null and v_wheel\.ends_at <= now\(\)\)/);
+assert.match(guard, /needs_review_reason = 'Spin the Wheel closed before this payment settled/);
+
 // ---- ASCII hyphens only in the new files ----
 function files(dir) { return readdirSync(dir).flatMap(name => { const full = path.join(dir, name); return statSync(full).isDirectory() ? files(full) : [full]; }); }
 const newFiles = [...files('app/spin-the-wheel'), ...files('app/api/spin-wheel'), ...files('app/api/admin/spin-wheel'), ...files('app/admin/raffle/spin-wheel'),
-  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql', 'supabase/migrations/20260928110000_spin_the_wheel_single_live.sql', 'supabase/migrations/20260928120000_spin_the_wheel_cron_work.sql'];
+  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql', 'supabase/migrations/20260928110000_spin_the_wheel_single_live.sql', 'supabase/migrations/20260928120000_spin_the_wheel_cron_work.sql', 'supabase/migrations/20260928130000_spin_the_wheel_settlement_guard.sql'];
 for (const file of newFiles) assert.doesNotMatch(read(file), /[–—]/, `${file}: ASCII hyphens only`);
 
 console.log('Spin the Wheel pick, odds, geometry, validation, visibility, public shape, references, passes, emails and wiring checks passed.');

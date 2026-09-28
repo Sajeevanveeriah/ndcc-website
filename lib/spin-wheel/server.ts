@@ -126,9 +126,16 @@ async function sendOrRelease(claim: () => Promise<boolean>, release: () => Promi
  */
 export async function sendSpinOrderPassEmail(db: Db, spinOrderId: string): Promise<boolean> {
   const { data: order, error } = await db.from('spin_wheel_orders')
-    .select('id,quantity,paid_at,pass_emailed_at,pass:spin_wheel_passes(id,email,name),wheel:spin_wheels(name)')
+    .select('id,quantity,paid_at,pass_emailed_at,pass:spin_wheel_passes(id,email,name),wheel:spin_wheels(name),order:orders(payment_status,deleted_at)')
     .eq('id', spinOrderId).maybeSingle();
   if (error || !order || !order.paid_at || order.pass_emailed_at) return false;
+  // Only while the order is still paid (not refunded or disputed), and only
+  // for the spins from it that are still open.
+  const linked = (Array.isArray(order.order) ? order.order[0] : order.order) as { payment_status: string; deleted_at: string | null } | null;
+  if (!linked || linked.payment_status !== 'paid' || linked.deleted_at) return false;
+  const { count: openSpins, error: openError } = await db.from('spin_wheel_entitlements').select('id', { count: 'exact', head: true })
+    .eq('spin_order_id', order.id).is('used_at', null).is('revoked_at', null);
+  if (openError || !openSpins) return false;
   const pass = (Array.isArray(order.pass) ? order.pass[0] : order.pass) as { id: string; email: string; name: string | null } | null;
   const wheel = (Array.isArray(order.wheel) ? order.wheel[0] : order.wheel) as { name: string } | null;
   if (!pass || !wheel) return false;
@@ -145,7 +152,7 @@ export async function sendSpinOrderPassEmail(db: Db, spinOrderId: string): Promi
     () => sendEmail({
       to: pass.email,
       subject: spinPassEmailSubject({ wheelName: wheel.name }),
-      html: emailHtml('Your spins', spinPassEmailBody({ name: pass.name, wheelName: wheel.name, spins: order.quantity, link })),
+      html: emailHtml('Your spins', spinPassEmailBody({ name: pass.name, wheelName: wheel.name, spins: openSpins, link })),
       idempotencyKey: `spin-wheel-pass-order-${order.id}-${hash.slice(0, 12)}`,
     }),
   );

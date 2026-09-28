@@ -44,7 +44,7 @@ Because they are normal orders, the existing, reviewed payment code handles ever
 - **Receipts (finding 2).** The standard `order_payment` receipt goes out through the existing durable outbox; `spin_wheel` normalises to the general category, which the outbox already accepts. No change to the outbox.
 - **Refunds and disputes (finding 4).** `handleFinancialEvent` already recognises order payments. When a refund or withheld dispute moves the order off `'paid'`, the same trigger revokes every unused spin from that order. Spins already used stay on record. If the order returns to `'paid'` the revoked spins are restored.
 
-**Checkout cannot outlive the wheel.** Paid spin sales stop `SPIN_CHECKOUT_CLOSE_MINUTES` (70) before a wheel's close time, longer than the 60-minute Stripe Checkout Session. The shared checkout-session route re-checks the linked wheel (`lib/spin-wheel/checkout-guard.ts`) every time it creates a Stripe session, so an order id kept from earlier cannot be paid after sales close. Taking a live wheel off live, or moving its close time inside that window, asks the committee member to confirm when paid spins are unused or card checkouts are in progress, because those buyers may need refunds from Orders.
+**Checkout cannot outlive the wheel.** Paid spin sales stop `SPIN_CHECKOUT_CLOSE_MINUTES` (70) before a wheel's close time, longer than the 60-minute Stripe Checkout Session. The shared checkout-session route re-checks the linked wheel (`lib/spin-wheel/checkout-guard.ts`) every time it creates a Stripe session, so an order id kept from earlier cannot be paid after sales close. Taking an open wheel out of play (status, a later start, or a close time inside that window) asks the committee member to confirm when paid spins are unused or card checkouts are in progress (`spin_wheel_close_impact()`, from the payment ledger), because those buyers may need refunds from Orders. Spin orders cannot switch to bank deposit. Whatever the payment path, a spin order that becomes paid after its wheel has ended is flagged on the Orders screen ("refund the buyer") by `sync_spin_wheel_order_entitlements` (`20260928130000_spin_the_wheel_settlement_guard.sql`), and a guest link is only emailed while the order is still paid, for the spins still open.
 
 The trigger never blocks a payment: any error is logged as a warning and the order update still commits. `GET /api/spin-wheel/orders/[id]` and the daily cron call `sync_spin_wheel_order_entitlements` again, so spins self-heal.
 
@@ -71,7 +71,7 @@ Admin grants create a new pass for the email and email the link; if email fails,
 
 ## 8. Data model
 
-Migrations: `supabase/migrations/20260928100000_spin_the_wheel.sql`, `20260928110000_spin_the_wheel_single_live.sql` and `20260928120000_spin_the_wheel_cron_work.sql` (rollback SQL in each header).
+Migrations: `supabase/migrations/20260928100000_spin_the_wheel.sql`, `20260928110000_spin_the_wheel_single_live.sql`, `20260928120000_spin_the_wheel_cron_work.sql` and `20260928130000_spin_the_wheel_settlement_guard.sql` (rollback SQL in each header).
 
 | Table | Purpose |
 |---|---|

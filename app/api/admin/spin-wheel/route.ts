@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { revalidatePublicContent } from '@/lib/server/revalidate-public';
 import { scheduleAdminAudit } from '@/lib/revisions/server';
-import { closesSpinWheel, normaliseSpinWheelInput, SPIN_CHECKOUT_CLOSE_MINUTES, validateSpinWheel } from '@/lib/spin-wheel/rules';
+import { closesSpinWheel, normaliseSpinWheelInput, validateSpinWheel } from '@/lib/spin-wheel/rules';
 import { saveSpinWheelPayload, spinAdminDatabaseMessage } from '@/lib/spin-wheel/admin';
 import { spinReply, UUID_PATTERN } from '@/lib/spin-wheel/server';
 import { loadSpinWheel } from '@/lib/spin-wheel/server';
@@ -52,14 +52,13 @@ export async function POST(request: Request) {
       // Taking a live wheel off live (or closing it within the checkout window)
       // strands paid spins and in-progress card checkouts: say so first.
       if (closesSpinWheel(current, input) && body.value.confirm_close !== true) {
-        const since = new Date(Date.now() - SPIN_CHECKOUT_CLOSE_MINUTES * 60_000).toISOString();
-        const [pending, unused] = await Promise.all([
-          db.from('spin_wheel_orders').select('id', { count: 'exact', head: true }).eq('wheel_id', input.id).is('paid_at', null).gte('created_at', since),
-          db.from('spin_wheel_entitlements').select('id', { count: 'exact', head: true }).eq('wheel_id', input.id).eq('source', 'purchase').is('used_at', null).is('revoked_at', null),
-        ]);
-        if (pending.error || unused.error) return spinReply({ success: false, error: 'Paid spins could not be checked. Nothing was saved.' }, 503);
-        const pendingCheckouts = pending.count || 0;
-        const unusedPaidSpins = unused.count || 0;
+        // In-progress card checkouts come from the payment ledger (pending
+        // Stripe attempts inside the checkout window), not from order age.
+        const { data: impact, error: impactError } = await db.rpc('spin_wheel_close_impact', { target_wheel: input.id });
+        const row = (Array.isArray(impact) ? impact[0] : impact) as { active_checkouts: number; unused_paid_spins: number } | null;
+        if (impactError || !row) return spinReply({ success: false, error: 'Paid spins could not be checked. Nothing was saved.' }, 503);
+        const pendingCheckouts = Number(row.active_checkouts) || 0;
+        const unusedPaidSpins = Number(row.unused_paid_spins) || 0;
         if (pendingCheckouts > 0 || unusedPaidSpins > 0) {
           return spinReply({
             success: false, needsConfirmation: true, pendingCheckouts, unusedPaidSpins,
