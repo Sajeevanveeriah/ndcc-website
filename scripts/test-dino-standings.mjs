@@ -53,17 +53,18 @@ new Function('require', 'module', 'exports', source)(id => {
 }, module, module.exports);
 const load = module.exports.getDinoManagerStandings;
 const rows = await load('current');
-assert.deepEqual(rows.map(row => row.managerId), ['b', 'c', 'a']);
+// Drafts lock and count, so a's latest squad (the draft, valued 1,000,000) breaks the points tie.
+assert.deepEqual(rows.map(row => row.managerId), ['a', 'b', 'c']);
 assert.deepEqual(rows.map(row => row.rank), [1, 2, 3]);
-assert.equal(rows[2].totalPoints, 100);
-assert.equal(rows[2].squadValueDinoDollars, 100000);
-assert.equal(rows[2].totalNetPoints, 100);
+assert.equal(rows[0].totalPoints, 100);
+assert.equal(rows[0].squadValueDinoDollars, 1000000);
+assert.equal(rows[0].totalNetPoints, 100);
 for (const table of ['fantasy_manager_round_scores', 'fantasy_squads', 'fantasy_squad_players', 'fantasy_player_prices']) {
   assert.ok(rangeCalls.some(([name, from, to]) => name === table && from === 0 && to === 999), `${table} is read in 1000-row pages`);
 }
-console.log('PASS public demo exclusion, season isolation, score aggregation, value then team-name ties, latest submitted squad and published prices');
+console.log('PASS public demo exclusion, season isolation, score aggregation, value then team-name ties, latest saved squad including drafts and published prices');
 const league = await load('current', { members: members.filter(row => ['a', 'c', 'demo', 'empty'].includes(row.managerId)), includeDemo: true });
-assert.deepEqual(league.map(row => row.managerId), ['demo', 'c', 'a', 'empty']);
+assert.deepEqual(league.map(row => row.managerId), ['demo', 'a', 'c', 'empty']);
 assert.equal(league.at(-1).totalPoints, 0);
 assert.deepEqual(await load('current', { members: [] }), []);
 console.log('PASS private membership scope, zero-score members and private demo practice');

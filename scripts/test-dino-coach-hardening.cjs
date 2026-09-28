@@ -40,13 +40,13 @@ console.log('PASS formatting helpers: entry fee, clock, season years');
 const flat = sections => sections.flatMap(section => section.items).join('\n');
 const defaults = flat(fantasy.fantasyRuleSections());
 assert.equal(flat(fantasy.FANTASY_RULE_SECTIONS), defaults);
-for (const text of ['2026/2027 season', 'Entry costs AUD 25.00', 'The squad budget is 15,000,000 Dino Dollars.', 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2025/2026 statistics', 'leader prize is 300 Dino Dollars']) {
+for (const text of ['2026/2027 season', 'Entry costs AUD 25.00', 'The starting budget is 15,000,000 Dino Dollars.', 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2025/2026 statistics', 'leader prize is 300 Dino Dollars', 'The price moves by 10,000 Dino Dollars for each point']) {
   assert.ok(defaults.includes(text), `Default rules keep: ${text}`);
 }
-const liveSettings = { entry_fee_cents: 3000, entry_fee_currency: 'AUD', budget_dino_dollars: 16000000, round_robin_prize_dino_dollars: 500, transfer_timezone: 'Australia/Melbourne', transfer_open_weekday: 2, transfer_open_minute: 0, transfer_close_weekday: 6, transfer_close_minute: 660 };
+const liveSettings = { entry_fee_cents: 3000, entry_fee_currency: 'AUD', budget_dino_dollars: 16000000, round_robin_prize_dino_dollars: 500, price_point_value_dino_dollars: 12000, transfer_timezone: 'Australia/Melbourne', transfer_open_weekday: 2, transfer_open_minute: 0, transfer_close_weekday: 6, transfer_close_minute: 660 };
 const values = fantasy.fantasyRuleValuesFrom({ name: 'NDCC Fantasy 2027/2028', slug: '2027-28' }, liveSettings);
 const live = flat(fantasy.fantasyRuleSections(values));
-for (const text of ['2027/2028 season', 'Entry costs AUD 30.00', 'The squad budget is 16,000,000 Dino Dollars.', 'Tuesday 00:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2026/2027 statistics', 'leader prize is 500 Dino Dollars']) {
+for (const text of ['2027/2028 season', 'Entry costs AUD 30.00', 'The starting budget is 16,000,000 Dino Dollars.', 'Tuesday 00:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2026/2027 statistics', 'leader prize is 500 Dino Dollars', 'The price moves by 12,000 Dino Dollars for each point']) {
   assert.ok(live.includes(text), `Settings drive: ${text}`);
 }
 assert.ok(!live.includes('2026/2027 season') && !live.includes('AUD 25.00') && !live.includes('15,000,000 Dino Dollars'));
@@ -104,6 +104,8 @@ const squad = load('app/api/fantasy/squad/route.ts', {
   '@/lib/dino-coach/server': { getDinoCoachSettings: async () => { if (settingsFailure) throw settingsFailure; return { rules_version: 'r1', public_launch_enabled: false, team_selection_open: false }; }, toPublicDinoCoachSettings: value => value },
   '@/lib/server/public-errors': { logRouteError: () => {}, publicRpcErrorMessage: (_error, fallback) => fallback },
   '@/lib/server/revalidate-public': { revalidateDinoStandingsCache: () => {} },
+  '@/lib/dino-coach/sales-server': { getRealisedSaleProfit: async () => 0, getLatestPublishedPrices: async () => [], walletSummary: (budget, profit) => ({ startingBudgetDinoDollars: budget, realisedProfitDinoDollars: profit, spendingPowerDinoDollars: budget + profit }) },
+  '@/lib/dino-coach/wallet': { pendingSaleProfit: () => 0 },
 });
 (async () => {
   const post = () => squad.POST({ json: async () => ({ selection: [] }), url: 'https://example.invalid/api/fantasy/squad' });

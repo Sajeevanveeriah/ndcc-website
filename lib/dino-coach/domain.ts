@@ -178,15 +178,30 @@ export function calculateInitialPrice(playerAverage: number, bestAverage: number
   return Math.max(floor, Math.min(ceiling, Math.round((floor + ratio * (ceiling - floor)) / 1000) * 1000));
 }
 
-export function calculateRollingPerformance(priorBaseline: number, recentPoints: number[], baselineWeight = 0.5, recentGameWeight = 0.25) {
+// Mirrors settle_dino_price_windows. A review (rounds 2, 4, 6 ...) blends the
+// player's opening per-match baseline with the games played since the previous
+// review: two or more games average as 0.5 x baseline + 0.5 x game average, one
+// game counts as 0.75 x baseline + 0.25 x game, and no games keep the previous
+// rolling figure. The price moves by the change from the previous review's
+// rolling figure (round 2 for the round 4 review), times the point value.
+export function calculateRollingPerformance(priorBaseline: number, recentPoints: number[], baselineWeight = 0.5, recentGameWeight = 0.25, previousRolling?: number) {
   const baseline = finite(priorBaseline);
-  const game1 = Number.isFinite(recentPoints?.[0]) ? Number(recentPoints[0]) : baseline;
-  const game2 = Number.isFinite(recentPoints?.[1]) ? Number(recentPoints[1]) : baseline;
-  return Number((baseline * baselineWeight + game1 * recentGameWeight + game2 * recentGameWeight).toFixed(4));
+  const games = (recentPoints ?? []).filter((value) => Number.isFinite(value)).map(Number);
+  if (games.length === 0) return Number(finite(previousRolling ?? baseline).toFixed(4));
+  if (games.length === 1) return Number((baseline * (baselineWeight + recentGameWeight) + games[0] * recentGameWeight).toFixed(4));
+  const average = games.reduce((sum, value) => sum + value, 0) / games.length;
+  return Number((baseline * baselineWeight + average * 2 * recentGameWeight).toFixed(4));
 }
 
 export function calculatePriceMovement(previousRolling: number, newRolling: number, pointValueDinoDollars = 1000) {
   return Math.round((finite(newRolling) - finite(previousRolling)) * finite(pointValueDinoDollars));
+}
+
+// Reviewed price: previous price plus the rolling movement, rounded upwards to a
+// whole 1,000 Dino Dollars and kept between the price floor and ceiling.
+export function calculateReviewedPrice(previousPrice: number, previousRolling: number, newRolling: number, pointValueDinoDollars: number, floor: number, ceiling: number) {
+  const raw = finite(previousPrice) + (finite(newRolling) - finite(previousRolling)) * finite(pointValueDinoDollars);
+  return Math.max(finite(floor), Math.min(finite(ceiling), Math.ceil(raw / 1000) * 1000));
 }
 
 export function isAdultOnDate(dateOfBirth: string, referenceDate: string, minimumAge = 18) {

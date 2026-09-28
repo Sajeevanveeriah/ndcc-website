@@ -4,7 +4,7 @@ import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { calculateAssignedRolePoints } from '@/lib/dino-coach/domain';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
-import { SCORING_SQUAD_STATUSES, selectScoringSquads } from '@/lib/dino-coach/round-scoring';
+import { SCORING_SQUAD_STATUSES, applyBenchCover, selectScoringSquads } from '@/lib/dino-coach/round-scoring';
 import { fetchAllPages } from '@/lib/fantasy-paging';
 import { resolveSeason } from '@/lib/fantasy-seasons';
 import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
@@ -54,8 +54,8 @@ async function calculateRound(roundId: string, expectedSeasonId: string | null) 
   if (seasonRoundsError) throw new Error(seasonRoundsError.message);
   const roundNumbers = new Map<string, number | null>((seasonRounds ?? []).map((item: any) => [item.id, item.round_number === null || item.round_number === undefined ? null : Number(item.round_number)]));
 
-  // Light candidate list first (every submitted/locked squad of active
-  // managers this season), then full details only for the chosen squads.
+  // Light candidate list first (every saved squad of active managers this
+  // season, drafts included), then full details only for the chosen squads.
   const candidates = await fetchAllPages<any>((from, to) => supabase
     .from('fantasy_squads')
     .select('id, manager_id, round_id, status, created_at, fantasy_managers!inner(is_active, deleted_at)')
@@ -74,7 +74,7 @@ async function calculateRound(roundId: string, expectedSeasonId: string | null) 
   for (let index = 0; index < chosenIds.length; index += SQUAD_DETAIL_CHUNK) {
     const { data, error: squadError } = await supabase
       .from('fantasy_squads')
-      .select('id, manager_id, round_id, season_id, fantasy_managers!inner(display_name, team_name, is_active, deleted_at), fantasy_squad_players(player_id, position_type, assigned_role, is_captain, is_vice_captain, fantasy_players(display_name))')
+      .select('id, manager_id, round_id, season_id, status, fantasy_managers!inner(display_name, team_name, is_active, deleted_at), fantasy_squad_players(player_id, slot_key, position_type, assigned_role, is_captain, is_vice_captain, fantasy_players(display_name))')
       .in('id', chosenIds.slice(index, index + SQUAD_DETAIL_CHUNK));
     if (squadError) throw new Error(squadError.message);
     squads.push(...(data ?? []));
@@ -82,8 +82,8 @@ async function calculateRound(roundId: string, expectedSeasonId: string | null) 
 
   const result = squads.map((squad: any) => {
     let total = 0;
-    for (const squadPlayer of squad.fantasy_squad_players ?? []) {
-      if (squadPlayer.position_type !== 'starter') continue;
+    const { starters, promoted } = applyBenchCover<any>(squad.fantasy_squad_players ?? [], dinoSettings.slot_counts.starter);
+    for (const squadPlayer of starters) {
       const leadershipMultiplier=squadPlayer.is_captain?dinoSettings.scoring_config.captainMultiplier:squadPlayer.is_vice_captain?dinoSettings.scoring_config.viceCaptainMultiplier:undefined;
       for(const stat of statsByPlayer.get(squadPlayer.player_id)??[]) total+=calculateAssignedRolePoints(stat,squadPlayer.assigned_role,dinoSettings.scoring_config,leadershipMultiplier!==undefined,leadershipMultiplier);
     }
@@ -98,6 +98,9 @@ async function calculateRound(roundId: string, expectedSeasonId: string | null) 
       netPoints: Number((total - transferPenalty).toFixed(2)),
       chips: [],
       carriedForward: squad.round_id !== roundId,
+      squadStatus: squad.status as string,
+      startersCounted: starters.length,
+      benchCover: promoted.map((player: any) => player.fantasy_players?.display_name || 'Bench player'),
     };
   }).sort((a, b) => b.netPoints - a.netPoints);
   return { seasonId, rows: result };

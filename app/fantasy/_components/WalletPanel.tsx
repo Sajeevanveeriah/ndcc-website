@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fantasyJsonFetch, fantasyBrowserClient } from '@/lib/fantasy-browser';
 import { formatDinoDollars } from '@/lib/dino-coach/domain';
 
-type Snapshot = { managerId: string; settings: { budget_dino_dollars: number }; squad: { updated_at: string; budget_used_dino_dollars: number } | null };
+type Snapshot = { managerId: string; settings: { budget_dino_dollars: number }; squad: { updated_at: string; budget_used_dino_dollars: number } | null; wallet?: { realisedProfitDinoDollars: number; spendingPowerDinoDollars: number } };
 export default function WalletPanel({ query, previewRemaining, refreshKey, onExternalChange }: { query: string; refreshKey?: string | null; previewRemaining?: number; onExternalChange?: () => void }) {
  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
  const [status, setStatus] = useState('Connecting');
@@ -33,9 +33,10 @@ export default function WalletPanel({ query, previewRemaining, refreshKey, onExt
   return () => { active=false; clearInterval(timer); window.removeEventListener('focus',focus); if(channel && fantasyBrowserClient) void fantasyBrowserClient.removeChannel(channel); };
  }, [query, refreshKey]);
  const budget=Number(snapshot?.settings.budget_dino_dollars || 0); const spent=Number(snapshot?.squad?.budget_used_dino_dollars || 0);
+ const profit=Number(snapshot?.wallet?.realisedProfitDinoDollars || 0); const power=budget+profit;
  return <section aria-label="Team wallet" className="rounded-xl border border-maroon-200 bg-surface-card p-5">
   <div className="flex justify-between gap-3"><h2 className="font-display text-xl font-bold">Team wallet</h2><span className="text-sm" role="status">{status}</span></div>
-  {snapshot ? <dl className="mt-4 grid gap-4 sm:grid-cols-3"><div><dt>Starting budget</dt><dd className="font-semibold">{formatDinoDollars(budget)}</dd></div><div><dt>Saved spending</dt><dd>{formatDinoDollars(spent)}</dd></div><div><dt>Saved money available</dt><dd aria-live="polite" className="font-semibold">{formatDinoDollars(budget-spent)}</dd></div></dl> : <p>Loading saved balance...</p>}
+  {snapshot ? <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div><dt>Starting budget</dt><dd className="font-semibold">{formatDinoDollars(budget)}</dd></div><div><dt>Profit or loss from sales</dt><dd className={profit<0?'text-red-700':''}>{profit>0?'+':''}{formatDinoDollars(profit)}</dd></div><div><dt>Saved spending</dt><dd>{formatDinoDollars(spent)}</dd></div><div><dt>Saved money available</dt><dd aria-live="polite" className="font-semibold">{formatDinoDollars(power-spent)}</dd></div></dl> : <p>Loading saved balance...</p>}
   {previewRemaining!==undefined && <p aria-live="polite" className={`mt-3 font-semibold ${previewRemaining<0 ? 'text-red-700' : ''}`}>After your unsaved selections: {formatDinoDollars(previewRemaining)}</p>}
   {error && <p role="alert" className="mt-3 text-red-700">{error}</p>}
  </section>;

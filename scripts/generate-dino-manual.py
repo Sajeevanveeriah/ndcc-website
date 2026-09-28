@@ -22,9 +22,9 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 from PIL import Image
 
-STEM = '20260928-Dino-Coach-User-Manual-Rev01'
+STEM = '20260928-Dino-Coach-User-Manual-Rev02'
 DATE = '28 September 2026'
-REVISION = 'Rev01'
+REVISION = 'Rev02'
 RULES_VERSION = '2026-27-rev07'
 OUT = Path('public/documents')
 LOGO = Path('public/images/logo.jpg')
@@ -48,7 +48,8 @@ CONTENT = [
         ['Starting budget', '15,000,000 virtual Dino Dollars'],
         ['Squad', '15 different players: 11 starters and 4 bench players'],
         ['Leadership', 'One captain and one vice-captain; both score double'],
-        ['Sales', 'Original purchase cost refunded'],
+        ['Sales', 'Cost plus any price rise, or minus any fall; profit can take you above 15,000,000'],
+        ['Round lock', 'Every team locks at the deadline as saved, drafts included'],
         ['Player pool', 'Buy from and sell back to the pool; no inter-team trades'],
         ['Weekly window', 'Monday 09:00 to before Saturday 11:00, Melbourne time'],
     ]),
@@ -80,7 +81,8 @@ CONTENT = [
           'teams are not eligible for prizes.'),
     ('h2', 'Finish your first squad on time'),
     ('p', 'Your registration does not expire if your first squad is incomplete. Save a draft as you build your team, '
-          'then fill all 15 slots and submit before the round locks. Normal competition and transfer rules still apply.'),
+          'then fill all 15 slots and submit before the round locks. If the deadline passes first, your team locks as '
+          'last saved, draft or not, and counts towards the standings; empty slots score zero.'),
     ('note', 'Something not saving?', 'If a technical issue prevents saving, use the Dino Coach feedback form. Include '
              'your team name, registration email and the error shown beside the save buttons.'),
     ('h2', 'When the rules change'),
@@ -111,9 +113,9 @@ CONTENT = [
         'Check 15/15 slots, an affordable balance and both leadership choices. Select Submit squad and wait for '
         'confirmation. Reopen My squad to check the saved team.',
     ]),
-    ('tip', 'Drafts', 'Save draft keeps incomplete work. After your first full squad, edits must be saved within the '
-            'transfer window and before the round deadline. A changed squad in another session requires a reload '
-            'before saving.'),
+    ('tip', 'Drafts', 'Save draft keeps incomplete work, and a saved draft still plays: at the round deadline your team '
+            'locks exactly as saved. After your first full squad, edits must be saved within the transfer window and '
+            'before the round deadline. A changed squad in another session requires a reload before saving.'),
     ('h2', 'Read the player cards'),
     ('p', 'Cards show batting runs, bowling wickets and fielding catches, with match records, stumpings, run-outs and '
           'maidens where available. The source period appears on each card. Historical totals are used until '
@@ -122,7 +124,9 @@ CONTENT = [
 
     ('h1', 'How points are awarded'),
     ('p', 'Your assigned fantasy role determines points for runs, wickets and catches. The table applies to starters. '
-          'Bench players earn zero.'),
+          'Bench players earn zero unless they cover an empty playing slot: an empty batter, all-rounder, wicket '
+          'keeper or bowler slot is filled by your bench player of the same role, who then scores in that role '
+          'without a captain or vice-captain bonus.'),
     ('table', ['Event', 'BAT', 'AR', 'WK', 'BOWL'], [
         ['Each run', '1.75', '1.5', '1.5', '1'],
         ['Each wicket', '10', '15', '10', '20'],
@@ -148,7 +152,10 @@ CONTENT = [
             'vice-captain, they earn 290 points.'),
 
     ('h1', 'Your wallet and player sales'),
-    ('p', 'Every team starts with 15,000,000 virtual Dino Dollars. The Team wallet shows the starting budget, saved '
+    ('p', 'Every team starts with 15,000,000 virtual Dino Dollars. After that, running your team is like running a '
+          'business: a sale returns what you paid plus any price rise, or minus any price fall, since you bought the '
+          'player. Profits add to your money and losses reduce it, so after price reviews you can have more or less '
+          'than 15,000,000 to spend. The Team wallet shows the starting budget, profit or loss from sales, saved '
           'spending and saved money available. My squad also shows the balance after your unsaved selections.'),
     ('p', 'Selecting or removing players changes the preview immediately. Save draft or Submit squad confirms those '
           'edits. Market transactions update the saved wallet after they succeed. The live connection receives '
@@ -156,19 +163,19 @@ CONTENT = [
           'may be out of date, reconnect and check it before acting.'),
     ('table', ['Action', 'Money available'], [
         ['Buy a player', 'Decreases by the current published purchase price'],
-        ['Sell a player', "Increases by that player's original purchase cost"],
-        ['Price review', "Unchanged; the player's market value may change"],
+        ['Sell a player', 'Increases by what you paid plus any price rise, or minus any price fall'],
+        ['Price review', 'Unchanged until you sell; the sale value of your players moves with their price'],
         ['Unsaved squad edit', 'Preview only until the save succeeds'],
     ]),
     ('h2', 'Example in Dino Dollars'),
     ('table', ['Step', 'Available money'], [
         ['Starting balance', '15,000,000'],
         ['Buy a player for 800,000', '14,200,000'],
-        ['Their market price rises to 1,200,000', '14,200,000'],
-        ['Sell that player for the original 800,000 cost', '15,000,000'],
+        ['Their price rises to 1,200,000 at a review', '14,200,000'],
+        ['Sell that player for 1,200,000 (400,000 profit)', '15,400,000'],
     ]),
     ('h2', 'Sell or buy separately'),
-    ('p', 'Open Transfers. Choose Player to sell and check the displayed refund, then select Sell back to pool. To fill '
+    ('p', 'Open Transfers. Choose Player to sell and check the displayed sale value, then select Sell back to pool. To fill '
           'an empty slot, choose Player to buy, select the empty slot and choose Buy into empty slot. A sale or '
           'separate purchase leaves your squad as a draft. Return to My squad, fill all slots, check leadership and '
           'submit before the deadline.'),
@@ -183,8 +190,8 @@ CONTENT = [
     ('h2', 'Sell back to the pool'),
     ('steps', [
         'Open Transfers during the open window and choose Player to sell.',
-        "Check the refund shown. Selling returns the original purchase cost, even if the player's current published "
-        'value has changed.',
+        'Check the sale value shown: what you paid plus any price rise, or minus any price fall, since you bought '
+        'the player.',
         'Select Sell back to pool and wait for confirmation. Your saved money available increases after the sale succeeds.',
         'Fill the empty slot from the pool and submit your complete squad before the deadline.',
     ]),
@@ -194,9 +201,9 @@ CONTENT = [
     ('p', "The same cricketer can appear in several managers' squads. Another team selecting a player does not remove "
           'that player from the pool or prevent your team from selecting them.'),
     ('table', ['Action', 'Effect'], [
-        ['Sell back to pool', 'Refunds original purchase cost; leaves an empty slot'],
+        ['Sell back to pool', 'Returns the sale value; leaves an empty slot'],
         ['Buy from pool', 'Charges current price; fills an empty slot'],
-        ['Sell and buy replacement', 'Refund and purchase complete together'],
+        ['Sell and buy replacement', 'Sale and purchase complete together'],
         ['Another team selects a player', 'Player remains available in the shared pool'],
     ]),
     ('p', 'Earlier pending inter-team offers are cancelled. They do not move players or money. Existing squads and '
@@ -223,22 +230,33 @@ CONTENT = [
     ('p', 'Reviews occur after every two regular rounds: rounds 2, 4, 6 and so on. A review becomes eligible on the '
           'following Monday at 09:00 Melbourne time and runs at the next daily pricing check once published results '
           'are available.'),
+    ('p', "Each review uses a rolling average: half the player's opening per-match average plus half their average "
+          'across the games since the previous review (with one game, three quarters opening average and one '
+          'quarter that game). The price moves by 10,000 Dino Dollars for each point the rolling average rises or '
+          'falls against the previous review, so round 4 is compared with round 2.'),
+    ('table', ['Review', 'Games (points)', 'Rolling average', 'Price'], [
+        ['Opening', 'Opening average 30', '30', '500,000'],
+        ['Round 2', '50 and 70 (average 60)', '0.5 x 30 + 0.5 x 60 = 45', '+15 x 10,000 = 650,000'],
+        ['Round 4', '20 and 40 (average 30)', '0.5 x 30 + 0.5 x 30 = 30', '-15 x 10,000 = 500,000'],
+    ]),
     ('p', 'Strong performances can raise prices and weaker performances can lower them. Prices stay between 100,000 '
           'and 2,000,000 Dino Dollars. Before a player or grade starts, unplayed weeks do not count as zero '
           'appearances or lower the performance average or price. Finals do not change prices. Late results enter a '
           'later review. Completed reviews are not applied twice. The league manager may make recorded price or '
           'eligibility corrections; automatic changes resume at the next review.'),
-    ('h2', 'Purchase cost and market value'),
-    ('p', "Purchase cost is what your wallet paid for a player and what a sale refunds. Market value is the player's "
-          'current published value, used for squad-value comparisons and standings ties. A price rise does not add '
-          'cash to the wallet. Retaining a player while saving your squad preserves their purchase cost.'),
+    ('h2', 'Purchase cost, sale value and market value'),
+    ('p', "Purchase cost is what your wallet paid for a player. Sale value is that cost plus the player's price "
+          'movement since you bought them; for players already in your squad when sales at market value began on 28 '
+          'September 2026, the movement counts from their price on that date. Market value is the current published '
+          'price, used for squad-value comparisons and standings ties. Retaining a player while saving your squad '
+          'preserves their purchase cost.'),
 
     ('h1', 'Standings and competition rules'),
     ('table', ['Standings', 'What they show'], [
         ['Player Standings', 'Real NDCC cricketers ranked by published base performance points, without '
                              'assigned-slot or captain bonuses.'],
         ['Manager Standings', 'Fantasy teams ranked by their playing XI points, including assigned roles and both '
-                              'leadership bonuses. Bench players contribute zero.'],
+                              'leadership bonuses. Bench players add points only when covering an empty slot.'],
     ]),
     ('p', 'The same cricketer can show a different score in Player Standings and your fantasy team. Check the '
           'selected season and published round before comparing totals.'),

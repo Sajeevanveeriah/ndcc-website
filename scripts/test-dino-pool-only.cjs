@@ -18,7 +18,8 @@ const imports={
  '@/lib/dino-coach/server':{getDinoCoachSettings:async()=>({rules_version:'current'})}, '@/lib/dino-coach/domain':{},
  '@/lib/fantasy-seasons':{resolveRequestSeason:async()=>({id:'season'}),seasonAllowsTeamChanges:()=>true},
  '@/lib/server/public-errors':publicErrors,
- '@/lib/server/revalidate-public':{revalidateDinoStandingsCache:()=>{}}
+ '@/lib/server/revalidate-public':{revalidateDinoStandingsCache:()=>{}},
+ '@/lib/dino-coach/sales-server':{getRealisedSaleProfit:async()=>0,getLatestPublishedPrices:async()=>[],walletSummary:(budget,profit)=>({startingBudgetDinoDollars:budget,realisedProfitDinoDollars:profit,spendingPowerDinoDollars:budget+profit})}
 };
 const exports1={};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/api/fantasy/transfers/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:exports1,require:n=>{assert(n in imports,n);return imports[n];}});
