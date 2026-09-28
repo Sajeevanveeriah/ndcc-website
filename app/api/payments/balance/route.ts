@@ -51,9 +51,12 @@ export async function POST(request: Request) {
     // Reuse the existing reservation, idempotency and signed-webhook flow.
     // Neither the browser nor this lookup can mark the order paid.
     return createCheckout(new Request(new URL('/api/payments/checkout-session',request.url), {
-      method:'POST',headers:request.headers,body:JSON.stringify({order_id:order.id,...(order.order_category === 'kitchen' ? {meal_draft_token:order.meal_draft_token,meal_revision:order.meal_revision} : {}),return_path: order.order_category === 'kitchen' ? '/kitchen' : order.order_category === 'membership' ? '/join' : order.order_category === 'donation' ? '/sponsors/donate' : order.order_category === 'event' ? '/events' : '/merchandise'}),
+      method:'POST',headers:request.headers,body:JSON.stringify({order_id:order.id,...(order.order_category === 'kitchen' ? {meal_draft_token:order.meal_draft_token,meal_revision:order.meal_revision} : {}),return_path: order.order_category === 'kitchen' ? '/kitchen' : order.order_category === 'membership' ? '/join' : order.order_category === 'donation' ? '/sponsors/donate' : order.order_category === 'event' ? '/events' : order.order_category === 'spin_wheel' ? '/spin-the-wheel' : '/merchandise'}),
     }));
   }
-  const capabilities = deriveCapabilities(await loadMerchPaymentSettings(db));
+  const derived = deriveCapabilities(await loadMerchPaymentSettings(db));
+  // Spin the Wheel orders are card only: never offer or show bank details, so
+  // a deposit cannot arrive after the wheel closes.
+  const capabilities = order.order_category === 'spin_wheel' ? { ...derived, bank_transfer: false } : derived;
   return NextResponse.json({order_id: order.id, bank_details: capabilities.bank_transfer ? configuredBankDetails() : null, capabilities, bank_transfer_selected: Boolean(order.bank_transfer_selected_at), reference:order.payment_reference,total:Number(order.total_amount),paid:Number(order.amount_paid),balance:Number(order.balance_due),status:order.payment_status,cancelled:order.order_status==='cancelled'}, {headers:noStore});
 }

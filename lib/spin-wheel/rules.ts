@@ -223,19 +223,27 @@ export function isSpinWheelLive(wheel: Pick<SpinWheelRow, 'status' | 'starts_at'
 }
 
 /** Whether spins may be bought now: live, priced, and not closing within the checkout window. */
-export function isSpinCheckoutOpen(wheel: Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at' | 'spin_price_cents'>, now: Date = new Date()): boolean {
-  if (!wheel.spin_price_cents || !isSpinWheelLive(wheel, now)) return false;
+export function isSpinCheckoutOpen(wheel: Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at' | 'spin_price_cents' | 'public_visibility_mode' | 'public_opens_at'>, now: Date = new Date()): boolean {
+  if (!wheel.spin_price_cents || !isSpinWheelOpen(wheel, now)) return false;
   return !wheel.ends_at || new Date(wheel.ends_at).getTime() - now.getTime() > SPIN_CHECKOUT_CLOSE_MINUTES * 60_000;
+}
+
+type OpenFields = Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at' | 'public_visibility_mode' | 'public_opens_at'>;
+
+/** Open to the public: live now and its public page is showing. */
+export function isSpinWheelOpen(wheel: OpenFields, now: Date = new Date()): boolean {
+  return isSpinWheelLive(wheel, now) && isSpinWheelPubliclyVisible(wheel, now);
 }
 
 /**
  * Whether saving `next` over `current` stops people using spins: a wheel that
- * is open now stops being open (status, a later start or an earlier close),
- * or its close time moves inside the checkout window.
+ * is open now stops being open (status, a later start, an earlier close, or
+ * hiding or rescheduling its public page), or its close time moves inside the
+ * checkout window.
  */
-export function closesSpinWheel(current: Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at'>, next: Pick<SpinWheelInput, 'status' | 'starts_at' | 'ends_at'>, now: Date = new Date()): boolean {
-  if (!isSpinWheelLive(current, now)) return false;
-  if (!isSpinWheelLive(next, now)) return true;
+export function closesSpinWheel(current: OpenFields, next: Pick<SpinWheelInput, 'status' | 'starts_at' | 'ends_at' | 'public_visibility_mode' | 'public_opens_at'>, now: Date = new Date()): boolean {
+  if (!isSpinWheelOpen(current, now)) return false;
+  if (!isSpinWheelOpen(next, now)) return true;
   if (!next.ends_at) return false;
   const nextEnds = new Date(next.ends_at).getTime();
   const currentEnds = current.ends_at ? new Date(current.ends_at).getTime() : Number.POSITIVE_INFINITY;

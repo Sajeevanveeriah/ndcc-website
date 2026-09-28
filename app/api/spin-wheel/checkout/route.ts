@@ -104,8 +104,11 @@ export async function POST(request: Request) {
       }).select('id').single()
       : null;
     if (!link || link.error || !link.data) {
-      // Nothing can be paid for without the spin link row: cancel the order.
+      // Nothing can be paid for without the spin link row: cancel the order
+      // and remove the unused guest pass (a stray pass would block deleting
+      // an otherwise unused wheel).
       await db.from('orders').update({ order_status: 'cancelled' }).eq('id', order.id);
+      if (passId) await db.from('spin_wheel_passes').delete().eq('id', passId);
       throw new Error('link');
     }
     return spinReply({ success: true, order_id: order.id, spin_order_id: link.data.id, payment_reference: reference, pass_token: passToken });
