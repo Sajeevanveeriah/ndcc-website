@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "node scripts/run-all-tests.mjs",
+    "test:self-hosted-font": "node scripts/test-self-hosted-font.mjs",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-routes.mjs",
     "test:email": "node scripts/test-email.mjs",
