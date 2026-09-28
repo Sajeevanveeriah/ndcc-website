@@ -89,6 +89,14 @@ psql(DB, readFileSync(new URL('./test-dino-market.sql', import.meta.url), 'utf8'
 check('Dino wallet pool purchases, sales and disabled inter-team trading', true);
 psql(DB, readFileSync(new URL('./test-dino-section-rule-removed.sql', import.meta.url), 'utf8'));
 check('Dino section rule removed: no validator, score trigger or settings flag; submissions need no section minimum', true);
+psql(DB, readFileSync(new URL('../supabase/operations/20260928_dino_section_rule_rollback.sql', import.meta.url), 'utf8'));
+check('Section rule rollback restores the validator, save check, score trigger and settings flag', psql(DB, `select to_regprocedure('public.validate_dino_women_selection(uuid,jsonb)') is not null
+  and exists(select 1 from pg_trigger where tgname='enforce_dino_score_women_selection')
+  and strpos(pg_get_functiondef('public.save_dino_coach_squad(uuid,uuid,uuid,text,bigint,jsonb)'::regprocedure),'validate_dino_women_selection')>0
+  and exists(select 1 from information_schema.columns where table_schema='public' and table_name='fantasy_dino_settings' and column_name='women_rule_enabled')`) === 't');
+applyMigrations(DB, ['20260928140000_remove_dino_section_rule.sql']);
+psql(DB, readFileSync(new URL('./test-dino-section-rule-removed.sql', import.meta.url), 'utf8'));
+check('Removal migration re-applies cleanly after a rollback', true);
 psql(DB, readFileSync(new URL('./test-event-song-requests.sql', import.meta.url), 'utf8'));
 check('Event song entries: atomic storage, ticket events refused, limits, closing time and privileges', true);
 const runPsql = promisify(execFile);

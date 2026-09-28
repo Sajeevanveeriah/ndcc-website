@@ -4,9 +4,10 @@
 -- Existing squads, purchase costs, rules_version and every manager's recorded
 -- acceptance are unchanged. The women_eligible and men_eligible membership
 -- columns are kept as recorded club data only; nothing reads them for rules.
--- Rollback: re-apply 20260927110000, 20260927120000 and 20260927130000 in
--- order on a replica first (they add the settings columns, validator, save
--- check and score trigger), then enable the flag with a reviewed operation.
+-- Rollback: run supabase/operations/20260928_dino_section_rule_rollback.sql
+-- (restores only the removed objects; the earlier migrations cannot be
+-- re-applied because the membership columns are retained) and revert the
+-- application change, then enable the flag with a reviewed operation.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 
