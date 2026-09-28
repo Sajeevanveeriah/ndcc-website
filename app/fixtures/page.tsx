@@ -13,7 +13,7 @@ import { formatFixtureTime } from '@/lib/playhq/normalise';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import { fixturesForTeam, ladderForGrade, matchPlayHQTeam, shortTeamLabel, splitTeamFixtures, teamMatchKey, teamsAwaitingPlayHQ } from '@/lib/playhq/team-view';
-import { groupByCategory, teamCategory, TEAM_CATEGORY_LABELS } from '@/lib/playhq/team-category';
+import { groupByCategory, juniorAge, teamCategory, TEAM_CATEGORY_LABELS } from '@/lib/playhq/team-category';
 import type { PlayHQFixture, PlayHQTeam } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 import FixturesTeamTabs, { type FixturesTab } from './_components/FixturesTeamTabs';
@@ -179,18 +179,20 @@ export default async function FixturesPage() {
   // awaiting their PlayHQ competition, so no age group silently disappears.
   const teamTabById = new Map(clubTeams.map((team, index) => [team.id, teamTabs[index]]));
   const categoryTabs: FixturesTab[] = groupByCategory(clubTeams, categoryOfTeam).flatMap(({ category, label, items }) => {
-    const awaiting = awaitingTeams.filter((team) => teamCategory(team.name, team.grade) === category);
+    const awaiting = awaitingTeams.filter((team) => teamCategory(team.name, team.grade) === category)
+      .sort((a, b) => (juniorAge(a.name) ?? 99) - (juniorAge(b.name) ?? 99));
     if (items.length === 0 && awaiting.length === 0) return [];
     const categoryFixtures = playhq.fixtures.filter((fixture) => items.some((team) => fixturesForTeam([fixture], team).length > 0));
     const { upcoming: categoryUpcoming, results: categoryResults } = splitTeamFixtures(categoryFixtures);
-    const lower = label.toLowerCase();
+    // "Upcoming junior fixtures", "Upcoming men's fixtures".
+    const lower = category === 'junior' ? 'junior' : label.toLowerCase();
     const overview = (
       <>
         {awaiting.length > 0 && (
           <div className="surface-panel p-5">
-            <h3 className="text-lg font-display font-bold text-content-primary">{items.length ? `More ${lower} teams` : `${label} fixtures`}</h3>
+            <h3 className="text-lg font-display font-bold text-content-primary">{items.length ? `More ${lower} teams` : `${category === 'junior' ? 'Junior' : label} fixtures`}</h3>
             <p className="mt-1 font-body text-content-secondary">
-              {category === 'junior' ? 'Junior fixtures have not been published by GCA on PlayHQ yet.' : 'These fixtures have not been published by GCA on PlayHQ yet.'}{' '}
+              {items.length ? 'Fixtures for these teams have not been published by GCA on PlayHQ yet.' : `${category === 'junior' ? 'Junior' : label} fixtures have not been published by GCA on PlayHQ yet.`}{' '}
               They will appear here automatically once released.
             </p>
             <ul className="mt-3 space-y-1 font-body">
@@ -225,7 +227,7 @@ export default async function FixturesPage() {
       id: `category-${category}`,
       label: `${label} (${count})`,
       content: perTeam.length > 0
-        ? <FixturesTeamTabs idPrefix={`fixtures-${category}`} compact label={`Filter ${lower} fixtures by team`} tabs={[{ id: `${category}-all`, label: `All ${lower}`, content: overview }, ...perTeam]} />
+        ? <FixturesTeamTabs idPrefix={`fixtures-${category}`} compact label={`Filter ${lower} fixtures by team`} tabs={[{ id: `${category}-all`, label: `All ${label.toLowerCase()}`, content: overview }, ...perTeam]} />
         : overview,
     }];
   });

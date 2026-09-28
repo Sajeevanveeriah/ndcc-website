@@ -422,6 +422,12 @@ body.marquee-page-hidden .homepage-marquee-track {
   .homepage-marquee-track > [aria-hidden='true'] {
     display: none;
   }
+  /* The static sponsor grid uses smaller logo tiles (two per row on phones)
+     so it does not become a long single column. */
+  .homepage-marquee-track .sponsor-chip {
+    height: 5rem;
+    width: 9.5rem;
+  }
   /* Reduced motion replaces the scroll with a static wrapped grid, so the
      pause/play control has nothing to act on. */
   .season-appointments-marquee-toggle,

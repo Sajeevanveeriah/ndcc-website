@@ -46,7 +46,7 @@ export default function SponsorsMarquee({
                       width={320}
                       height={160}
                       sizes="240px"
-                      className="h-32 w-60 rounded-2xl"
+                      className="sponsor-chip h-32 w-60 rounded-2xl"
                       imageClassName="max-h-full max-w-full w-auto h-auto"
                       fallback={brandedFallback}
                     />

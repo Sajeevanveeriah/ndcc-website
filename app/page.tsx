@@ -41,7 +41,7 @@ import { sponsorMarqueeDurationSeconds } from '@/lib/sponsor-marquee';
 import { isDinoCoachPublic } from '@/lib/dino-coach/public-visibility';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { shortTeamLabel, teamMatchKey, teamsAwaitingPlayHQ } from '@/lib/playhq/team-view';
-import { groupByCategory, teamCategory } from '@/lib/playhq/team-category';
+import { groupByCategory, juniorAge, teamCategory } from '@/lib/playhq/team-category';
 import { getPublicTeamsWithSlugs } from '@/lib/public-teams';
 import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
 import { getJuniorGetActiveVouchers, type JuniorGetActiveVouchers } from '@/lib/home-promotions';
@@ -316,9 +316,11 @@ function ExternalLinkIcon() {
   return <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />;
 }
 
-// Men's by ordinal (1sts, 2nds ...), then by name, within each category.
+// Within each category: by ordinal (1sts, 2nds ...) or junior age group
+// (U11, U13 ...), then by name.
 function sortBoardRows(rows: BoardRow[]) {
-  return [...rows].sort((a, b) => (teamMatchKey(a.teamName).ordinal ?? 99) - (teamMatchKey(b.teamName).ordinal ?? 99) || a.teamName.localeCompare(b.teamName));
+  const rank = (row: BoardRow) => teamMatchKey(row.teamName).ordinal ?? juniorAge(row.teamName) ?? 99;
+  return [...rows].sort((a, b) => rank(a) - rank(b) || a.teamName.localeCompare(b.teamName));
 }
 
 function MatchRow({ row, clubPlayHQUrl }: { row: BoardRow; clubPlayHQUrl: string }) {
@@ -326,16 +328,14 @@ function MatchRow({ row, clubPlayHQUrl }: { row: BoardRow; clubPlayHQUrl: string
   const grade = row.gradeName && row.gradeName !== row.teamName ? row.gradeName : null;
   const fixture = row.fixture;
   const team = (
-    <div className="min-w-0">
-      <p className="font-display text-lg font-semibold leading-snug tracking-[-0.01em] text-content-primary">
-        {row.state === 'awaiting' ? <Link href={row.href} className="hover:underline">{label}</Link> : label}
-      </p>
-      {grade && <p className="text-sm text-content-muted">{grade}</p>}
-    </div>
+    <p className="min-w-0 font-display text-lg font-semibold leading-snug tracking-[-0.01em] text-content-primary">
+      {row.state === 'awaiting' ? <Link href={row.href} className="hover:underline">{label}</Link> : label}
+      {grade && <span className="ml-2 font-body text-sm font-normal tracking-normal text-content-muted sm:ml-0 sm:block">{grade}</span>}
+    </p>
   );
   if (!fixture) {
     return (
-      <li className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+      <li className="grid gap-0.5 px-4 py-2.5 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center sm:gap-4 sm:py-3">
         {team}
         <p className="text-sm text-content-muted">
           {row.state === 'unavailable' ? (
@@ -349,9 +349,9 @@ function MatchRow({ row, clubPlayHQUrl }: { row: BoardRow; clubPlayHQUrl: string
   }
   const home = fixture.homeAway === 'Home';
   return (
-    <li className="grid gap-2 px-4 py-3 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
       {team}
-      <div className="min-w-0 text-base">
+      <div className="col-span-2 row-start-2 min-w-0 text-base sm:col-span-1 sm:col-start-2 sm:row-start-1">
         <p className="text-content-secondary">
           <span className="text-content-muted">v</span> <span className="font-semibold text-content-primary">{fixture.opponent}</span>{' '}
           <span className={`${home ? 'badge-home' : 'badge-away'} ml-1 align-middle`}>{fixture.homeAway}</span>
@@ -361,7 +361,7 @@ function MatchRow({ row, clubPlayHQUrl }: { row: BoardRow; clubPlayHQUrl: string
           {fixture.venue && <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" aria-hidden="true" />{fixture.venue}</span>}
         </p>
       </div>
-      <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link gap-1.5 text-sm font-semibold sm:justify-self-end">
+      <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="club-text-link col-start-2 row-start-1 gap-1.5 justify-self-end text-sm font-semibold sm:col-start-3">
         PlayHQ<span className="sr-only">: {row.teamName} v {fixture.opponent} (opens in a new tab)</span>
         <ExternalLinkIcon />
       </a>
@@ -593,7 +593,7 @@ async function ClubNewsPreview() {
               <span className="min-w-0">
                 {lead.published_at && <span className="block text-sm text-content-muted"><time dateTime={lead.published_at}>{formatDate(lead.published_at)}</time></span>}
                 <span className="block font-semibold leading-snug text-content-primary group-hover:underline">{lead.title}</span>
-                <span className="mt-0.5 line-clamp-2 block text-sm text-content-secondary">{truncateText(lead.content, 120)}</span>
+                <span className="mt-0.5 line-clamp-2 text-sm text-content-secondary">{truncateText(lead.content, 120)}</span>
               </span>
             </Link>
           </li>
@@ -698,7 +698,7 @@ function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, vouchers, 
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="get-involved-title" title={title} />
         {intro && <p className="-mt-2 mb-4 max-w-2xl text-base text-content-secondary">{intro}</p>}
-        <ul className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5" data-reveal-stagger="">
+        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 xl:grid-cols-5 [&>li:last-child]:col-span-2 sm:[&>li:last-child]:col-span-1" data-reveal-stagger="">
           {GET_INVOLVED_LINKS.map((link) => {
             const Icon = GET_INVOLVED_ICONS[link.href] || ArrowRight;
             return (
