@@ -152,7 +152,7 @@ async function createDinoCheckout(request: Request) {
       && existing.currency?.toLowerCase() === 'aud'
       && existing.client_reference_id === paymentReference
       && existingMetadata.ndcc_reference_version === '1'
-      && existingMetadata.receipt_email_version === '1'
+      && existingMetadata.receipt_email_version === '2'
       && existingMetadata.ndcc_payment_reference === paymentReference
       && existingMetadata.item_number === paymentReference
       && existingMetadata.ndcc_payment_type === 'dino_coach'
@@ -188,7 +188,7 @@ async function createDinoCheckout(request: Request) {
     ndcc_payment_type: 'dino_coach',
     ndcc_order_id: entry.id,
     ndcc_reference_version: '1',
-    receipt_email_version: '1',
+    receipt_email_version: '2',
     item_number: paymentReference,
     product: 'Dino Coach',
     manager_id: manager.id,
@@ -205,7 +205,9 @@ async function createDinoCheckout(request: Request) {
     success_url: `${siteUrl}/fantasy/account?payment=submitted&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/fantasy/account?payment=cancelled`,
     metadata: paymentMetadata,
-    payment_intent_data: { receipt_email: manager.email, description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
+    // No receipt_email: the club sends its own PDF receipt once the entry is
+    // paid, so a Stripe receipt would be a duplicate (as on the other checkouts).
+    payment_intent_data: { description: `${paymentReference} - NDCC Dino Coach`, metadata: paymentMetadata },
   });
   const payloadDigest = createHash('sha256')
     .update(JSON.stringify(checkoutParams))
@@ -233,7 +235,7 @@ async function createDinoCheckout(request: Request) {
     || session.metadata?.ndcc_payment_reference !== paymentReference
     || session.metadata?.item_number !== paymentReference
     || session.metadata?.ndcc_reference_version !== '1'
-    || session.metadata?.receipt_email_version !== '1'
+    || session.metadata?.receipt_email_version !== '2'
     || session.metadata?.ndcc_payment_type !== 'dino_coach'
     || session.metadata?.ndcc_order_id !== entry.id
     || session.metadata?.payment_reference !== paymentReference
