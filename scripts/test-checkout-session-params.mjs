@@ -128,7 +128,7 @@ const dinoRoute = load('app/api/fantasy/checkout/route.ts', {
 function expectedDinoParams() {
   const metadata = {
     ndcc_payment_reference: reference, ndcc_payment_type: 'dino_coach', ndcc_order_id: 'entry-1',
-    ndcc_reference_version: '1', receipt_email_version: '1', item_number: reference, product: 'Dino Coach',
+    ndcc_reference_version: '1', receipt_email_version: '2', item_number: reference, product: 'Dino Coach',
     manager_id: manager.id, season_id: season.id, entry_id: 'entry-1', rules_version: 'r1',
     expected_amount_cents: '2500', payment_reference: reference,
   };
@@ -139,7 +139,7 @@ function expectedDinoParams() {
     success_url: 'https://www.ndcc.com.au/fantasy/account?payment=submitted&session_id={CHECKOUT_SESSION_ID}',
     cancel_url: 'https://www.ndcc.com.au/fantasy/account?payment=cancelled',
     metadata,
-    payment_intent_data: { receipt_email: manager.email, description: `${reference} - NDCC Dino Coach`, metadata },
+    payment_intent_data: { description: `${reference} - NDCC Dino Coach`, metadata },
   };
 }
 const digest = createHash('sha256').update(JSON.stringify(expectedDinoParams())).digest('hex').slice(0, 32);
