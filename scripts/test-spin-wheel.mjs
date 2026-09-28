@@ -133,12 +133,12 @@ assert.equal(rules.isSpinCheckoutOpen({ ...priced, spin_price_cents: null }, at(
 assert.equal(rules.isSpinCheckoutOpen({ ...priced, status: 'paused' }, at('2026-10-01T12:00:00Z')), false);
 // Closing detection for the admin confirmation.
 const now = at('2026-10-01T12:00:00Z');
-assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'paused', ends_at: null }, now), true);
-assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'ended', ends_at: null }, now), true);
-assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'live', ends_at: '2026-10-01T12:30:00Z' }, now), true, 'close moved inside the window');
-assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'live', ends_at: '2026-10-05T12:00:00Z' }, now), false, 'close far away');
-assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: '2026-10-01T12:30:00Z' }, { status: 'live', ends_at: '2026-10-01T12:30:00Z' }, now), false, 'unchanged close time');
-assert.equal(rules.closesSpinWheel({ status: 'paused', ends_at: null }, { status: 'ended', ends_at: null }, now), false, 'already not live');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'paused', ends_at: null }, now), true);
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'ended', ends_at: null }, now), true);
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: '2026-10-01T12:30:00Z' }, now), true, 'close moved inside the window');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: '2026-10-05T12:00:00Z' }, now), false, 'close far away');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: '2026-10-01T12:30:00Z' }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'live', ends_at: '2026-10-01T12:30:00Z' }, now), false, 'unchanged close time');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'paused', ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'ended', ends_at: null }, now), false, 'already not live');
 
 // ---- Public data never carries odds or stock ----
 const published = rules.publicSegments([
@@ -286,9 +286,9 @@ assert.match(read('supabase/migrations/20260928120000_spin_the_wheel_cron_work.s
 
 // ---- Fourth review round (#278) ----
 const liveNow = at('2026-10-01T12:00:00Z');
-assert.equal(rules.closesSpinWheel({ status: 'live', starts_at: null, ends_at: null }, { status: 'live', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, liveNow), true, 'moving the start later closes an open wheel');
-assert.equal(rules.closesSpinWheel({ status: 'live', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, { status: 'paused', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, liveNow), false, 'a wheel not open yet closes nothing');
-assert.equal(rules.closesSpinWheel({ status: 'live', starts_at: null, ends_at: null }, { status: 'live', starts_at: '2026-09-01T00:00:00Z', ends_at: null }, liveNow), false, 'moving the start earlier keeps it open');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', starts_at: null, ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'live', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, liveNow), true, 'moving the start later closes an open wheel');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'paused', starts_at: '2026-10-02T00:00:00Z', ends_at: null }, liveNow), false, 'a wheel not open yet closes nothing');
+assert.equal(rules.closesSpinWheel({ public_visibility_mode: 'visible', public_opens_at: null, status: 'live', starts_at: null, ends_at: null }, { public_visibility_mode: 'visible', public_opens_at: null, status: 'live', starts_at: '2026-09-01T00:00:00Z', ends_at: null }, liveNow), false, 'moving the start earlier keeps it open');
 assert.match(read('app/api/admin/spin-wheel/route.ts'), /rpc\('spin_wheel_close_impact'/, 'in-progress checkouts come from the payment ledger');
 assert.match(read('app/api/payments/bank-transfer/route.ts'), /order\.order_category === 'spin_wheel'/, 'spin orders cannot switch to bank deposit');
 const server4 = read('lib/spin-wheel/server.ts');
@@ -297,6 +297,22 @@ assert.match(server4, /spins: openSpins/, 'the email states the spins still open
 const guard = read('supabase/migrations/20260928130000_spin_the_wheel_settlement_guard.sql');
 assert.match(guard, /v_wheel\.status = 'ended' or \(v_wheel\.ends_at is not null and v_wheel\.ends_at <= now\(\)\)/);
 assert.match(guard, /needs_review_reason = 'Spin the Wheel closed before this payment settled/);
+
+// ---- Post-merge review (#278, head 7768189) ----
+const openLive = { status: 'live', starts_at: null, ends_at: null, public_visibility_mode: 'visible', public_opens_at: null };
+assert.equal(rules.closesSpinWheel(openLive, { ...openLive, public_visibility_mode: 'hidden' }, liveNow), true, 'hiding the public page closes an open wheel');
+assert.equal(rules.closesSpinWheel(openLive, { ...openLive, public_visibility_mode: 'scheduled', public_opens_at: '2026-10-05T00:00:00Z' }, liveNow), true, 'rescheduling the page later closes it');
+assert.equal(rules.closesSpinWheel({ ...openLive, public_visibility_mode: 'hidden' }, { ...openLive, status: 'ended' }, liveNow), false, 'a hidden wheel closes nothing');
+assert.equal(rules.isSpinCheckoutOpen({ ...openLive, spin_price_cents: 200, public_visibility_mode: 'hidden' }, liveNow), false, 'no sales while the page is hidden');
+assert.equal(rules.isSpinCheckoutOpen({ ...openLive, spin_price_cents: 200 }, liveNow), true);
+assert.match(read('lib/spin-wheel/checkout-guard.ts'), /public_visibility_mode,public_opens_at/, 'the Stripe session guard sees visibility');
+const balance = read('app/api/payments/balance/route.ts');
+assert.match(balance, /order\.order_category === 'spin_wheel' \? \{ \.\.\.derived, bank_transfer: false \}/, 'pay-balance never shows bank details for spin orders');
+assert.match(balance, /order\.order_category === 'spin_wheel' \? '\/spin-the-wheel'/);
+const statusRoute = read('app/api/spin-wheel/orders/[id]/route.ts');
+assert.match(statusRoute, /if \(sync\.error\) return spinReply\(\{ success: false/, 'a failed re-sync is not reported as spins added');
+assert.match(statusRoute, /\(count \|\| 0\) < link\.quantity/);
+assert.match(read('app/api/spin-wheel/checkout/route.ts'), /if \(passId\) await db\.from\('spin_wheel_passes'\)\.delete\(\)\.eq\('id', passId\)/, 'failed checkout removes the guest pass');
 
 // ---- ASCII hyphens only in the new files ----
 function files(dir) { return readdirSync(dir).flatMap(name => { const full = path.join(dir, name); return statSync(full).isDirectory() ? files(full) : [full]; }); }

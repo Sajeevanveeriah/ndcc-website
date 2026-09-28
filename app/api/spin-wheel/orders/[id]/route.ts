@@ -25,7 +25,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!owns) return spinReply({ success: false, error: 'Order not found.' }, 404);
     const order = (Array.isArray(link.order) ? link.order[0] : link.order) as { payment_status: string } | null;
     const paid = order?.payment_status === 'paid';
-    await db.rpc('sync_spin_wheel_order_entitlements', { target_order: link.order_id });
+    const sync = await db.rpc('sync_spin_wheel_order_entitlements', { target_order: link.order_id });
+    // Never report "spins added" unless the spins are actually recorded.
+    if (sync.error) return spinReply({ success: false, error: 'Your payment is recorded but the spins could not be added yet. Please check again shortly.' }, 503);
+    if (paid) {
+      const { count, error: countError } = await db.from('spin_wheel_entitlements').select('id', { count: 'exact', head: true }).eq('spin_order_id', link.id);
+      if (countError || (count || 0) < link.quantity) return spinReply({ success: false, error: 'Your payment is recorded but the spins could not be added yet. Please check again shortly.' }, 503);
+    }
     if (paid && link.pass_id) await sendSpinOrderPassEmail(db, link.id).catch(() => false);
     return spinReply({ success: true, paid, quantity: link.quantity });
   } catch {
