@@ -249,7 +249,7 @@ assert.match(read('components/layout/Footer.tsx'), /spinWheelEnabled === true \|
 assert.match(read('lib/server/sitemap-entries.ts'), /isSpinWheelPublicStrict/);
 
 // ---- CMS show/hide switch ----
-const toggleMigration = read('supabase/migrations/20260928180000_spin_wheel_public_toggle.sql');
+const toggleMigration = read('supabase/migrations/20260928113301_spin_wheel_public_toggle.sql');
 assert.match(toggleMigration, /add column if not exists spin_wheel_enabled boolean not null default true/);
 assert.doesNotMatch(toggleMigration, /\b(delete|drop|truncate|update)\b/i, 'Hiding must never touch wheel data');
 const visibilitySource = read('lib/spin-wheel/visibility.ts');
