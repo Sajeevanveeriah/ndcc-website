@@ -281,9 +281,12 @@ async function NextEventSection() {
   // A cancellation or postponement recorded on the event's own calendar
   // entries wins, so the hero never keeps advertising booking for it.
   const status = await linkedCalendarStatus(event.id);
+  // Registration closes at the start time, so an event that is on now keeps
+  // a neutral details link rather than offering booking.
+  const started = Date.parse(event.date) <= Date.now();
   return (
     <aside className="next-event-card" aria-labelledby="next-event-title">
-      <p className="club-kicker">Next event{(status === 'cancelled' || status === 'postponed') && <span className="ml-2 rounded-full bg-maroon-700 px-2 py-0.5 text-white dark:bg-maroon-300 dark:text-maroon-950">{status === 'cancelled' ? 'Cancelled' : 'Postponed'}</span>}</p>
+      <p className="club-kicker">{started && status !== 'cancelled' && status !== 'postponed' ? 'On now' : 'Next event'}{(status === 'cancelled' || status === 'postponed') && <span className="ml-2 rounded-full bg-maroon-700 px-2 py-0.5 text-white dark:bg-maroon-300 dark:text-maroon-950">{status === 'cancelled' ? 'Cancelled' : 'Postponed'}</span>}</p>
       <h2 id="next-event-title" className={`mt-2 font-display text-2xl font-semibold tracking-[-0.02em] text-content-primary sm:text-3xl ${status === 'cancelled' ? 'line-through' : ''}`}>{event.title}</h2>
       <dl className="mt-3 space-y-1.5 text-base text-content-secondary">
         {day && <EventFact icon={CalendarDays} label="Date"><time dateTime={event.date}>{day}</time></EventFact>}
@@ -296,7 +299,7 @@ async function NextEventSection() {
           <Link href="/calendar" className="btn-secondary">Check the club calendar</Link>
         ) : (
           <Link href={`/events/${event.id}`} className="btn-primary">
-            {status === 'postponed' || status === 'unknown' ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
+            {started || status === 'postponed' || status === 'unknown' ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         )}
