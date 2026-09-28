@@ -80,6 +80,13 @@ const nextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      // public/media files are versioned by name (YYYYMMDD-Title-RevNN), so a
+      // name never changes content: browsers and the CDN may keep them a year
+      // instead of revalidating every play.
+      {
+        source: '/media/:file*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
     ];
   },
 };
