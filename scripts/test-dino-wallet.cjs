@@ -28,6 +28,8 @@ assert.equal(saleValue(800000,800000,1200000),1200000);
 assert.equal(saleValue(800000,800000,600000),600000);
 assert.equal(saleValue(502000,975000,975000),502000,'Pre-change correction gives no windfall');
 assert.equal(saleValue(502000,975000,1075000),602000,'Later rise counts from the reference');
+assert.equal(saleValue(502000,975000,100000),0,'A sale is never worth less than nothing');
+assert.equal(pendingSaleProfit([{playerId:'x',purchasePriceDinoDollars:502000,saleReferenceDinoDollars:975000}],[],[{id:'x',price_dino_dollars:100000}]),-502000,'Loss capped at purchase cost');
 const owned=[{playerId:'one',purchasePriceDinoDollars:800000,saleReferenceDinoDollars:800000},{playerId:'two',purchasePriceDinoDollars:100000,saleReferenceDinoDollars:250000}];
 assert.equal(pendingSaleProfit(owned,['one','two'],prices),0,'Kept players realise nothing');
 assert.equal(pendingSaleProfit(owned,['two'],prices),400000,'Removing one realises its profit');
@@ -42,4 +44,4 @@ const external=JSON.parse(fs.readFileSync('data/dino-coach-external-baselines-20
 const harvey=external.players.find(p=>p.name==='Harvey Cliff');
 assert.equal(historicalPlayerStats(harvey.playerId,harvey.name,season).runs,null);
 assert.equal(historicalPlayerStats(harvey.playerId,harvey.name,'other-season'),null);
-console.log('PASS 21 wallet and statistic checks: budget uplift, buy, sell at market value, sale references, pending profit, spending power above budget, retained cost, market value, overspend and unknown statistics');
+console.log('PASS 23 wallet and statistic checks: budget uplift, buy, sell at market value, sale references, pending profit, spending power above budget, retained cost, market value, overspend and unknown statistics');

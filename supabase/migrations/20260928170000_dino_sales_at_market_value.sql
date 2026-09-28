@@ -5,6 +5,7 @@
 -- 15,000,000 starting budget.
 --
 -- Spending power = starting budget + realised sale profit - purchase cost of players held.
+-- A sale never returns less than zero, so a loss is capped at the purchase cost.
 --
 -- The sale reference is the price that profit is measured from:
 --   * players already held when this migration runs: their published price now, so
@@ -36,7 +37,8 @@ CREATE TABLE public.fantasy_dino_sales (
   purchase_price_dino_dollars bigint NOT NULL,
   sale_reference_dino_dollars bigint NOT NULL,
   sale_price_dino_dollars bigint NOT NULL CHECK (sale_price_dino_dollars > 0),
-  profit_dino_dollars bigint GENERATED ALWAYS AS (sale_price_dino_dollars - sale_reference_dino_dollars) STORED,
+  -- A sale is never worth less than nothing: the loss is capped at the purchase cost.
+  profit_dino_dollars bigint GENERATED ALWAYS AS (GREATEST(sale_price_dino_dollars - sale_reference_dino_dollars, -purchase_price_dino_dollars)) STORED,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX fantasy_dino_sales_manager_season_idx ON public.fantasy_dino_sales(manager_id, season_id);

@@ -79,12 +79,22 @@ BEGIN
  PERFORM public.dino_market_action(ma,sid,null,'buy',null,ids[14],keys[14],av,50000);
  SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  UPDATE public.fantasy_dino_settings SET budget_dino_dollars=15000000 WHERE season_id=sid;
+ -- A sale is never worth less than nothing: a reference above cost with a big fall caps the loss at cost.
+ UPDATE public.fantasy_squad_players SET sale_reference_dino_dollars=300000 WHERE squad_id=qa AND player_id=ids[12];
+ UPDATE public.fantasy_player_prices SET price_dino_dollars=50000,price_million=.05 WHERE season_id=sid AND player_id=ids[12];
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
+ PERFORM public.dino_market_action(ma,sid,null,'sell',ids[12],null,null,av,null);
+ IF (SELECT profit_dino_dollars FROM public.fantasy_dino_sales WHERE manager_id=ma AND player_id=ids[12])<>-100000 THEN RAISE EXCEPTION 'Sale loss not capped at purchase cost'; END IF;
+ UPDATE public.fantasy_player_prices SET price_dino_dollars=100000,price_million=.1 WHERE season_id=sid AND player_id=ids[12];
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
+ PERFORM public.dino_market_action(ma,sid,null,'buy',null,ids[12],keys[12],av,100000);
+ SELECT updated_at INTO av FROM public.fantasy_squads WHERE id=qa;
  -- CMS corrections never book a sale.
  PERFORM set_config('ndcc.dino_admin_edit','on',true);
  PERFORM public.save_dino_coach_squad(ma,sid,null,'draft',(SELECT sum(purchase_price_dino_dollars) FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id<>ids[13])::bigint,
    (SELECT jsonb_agg(jsonb_build_object('player_id',player_id,'slot_key',slot_key,'assigned_role',assigned_role,'position_type',position_type,'is_captain',is_captain,'is_vice_captain',is_vice_captain)) FROM public.fantasy_squad_players WHERE squad_id=qa AND player_id<>ids[13]));
  PERFORM set_config('ndcc.dino_admin_edit','off',true);
- IF (SELECT count(*) FROM public.fantasy_dino_sales WHERE manager_id=ma AND season_id=sid)<>2 THEN RAISE EXCEPTION 'Admin correction booked a sale'; END IF;
+ IF (SELECT count(*) FROM public.fantasy_dino_sales WHERE manager_id=ma AND season_id=sid)<>3 THEN RAISE EXCEPTION 'Admin correction booked a sale'; END IF;
  BEGIN
   PERFORM public.dino_trade_action(ma,sid,null,'propose',null,mb,ids[1],ids[16]);
   RAISE EXCEPTION 'Inter-team trading still enabled';

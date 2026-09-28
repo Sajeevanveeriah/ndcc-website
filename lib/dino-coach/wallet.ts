@@ -12,9 +12,13 @@ export function squadWallet(budget: number, picks: WalletPick[], prices: WalletP
 }
 
 // A sale returns the purchase cost plus the price movement since the player's
-// sale reference (the price when bought, or when sales at market value began).
+// sale reference (the price when bought, or when sales at market value began),
+// never less than zero, matching fantasy_dino_sales.profit_dino_dollars.
+export function saleProfit(purchasePrice: number, saleReference: number, currentPrice: number) {
+  return Math.max(currentPrice - saleReference, -purchasePrice);
+}
 export function saleValue(purchasePrice: number, saleReference: number, currentPrice: number) {
-  return purchasePrice + currentPrice - saleReference;
+  return purchasePrice + saleProfit(purchasePrice, saleReference, currentPrice);
 }
 
 // Profit or loss that unsaved removals of owned players will realise on save.
@@ -23,7 +27,7 @@ export function pendingSaleProfit(owned: OwnedPlayer[], selectedPlayerIds: Itera
   return owned.reduce((sum, player) => {
     if (selected.has(player.playerId)) return sum;
     const price = prices.find((p) => p.id === player.playerId)?.price_dino_dollars;
-    return price === undefined ? sum : sum + price - player.saleReferenceDinoDollars;
+    return price === undefined ? sum : sum + saleProfit(player.purchasePriceDinoDollars, player.saleReferenceDinoDollars, price);
   }, 0);
 }
 
