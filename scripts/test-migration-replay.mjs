@@ -87,8 +87,8 @@ psql(DB, readFileSync(new URL('./test-dino-no-expiry.sql', import.meta.url), 'ut
 check('Dino no-expiry save, consent, account and payment gates', true);
 psql(DB, readFileSync(new URL('./test-dino-market.sql', import.meta.url), 'utf8'));
 check('Dino wallet pool purchases, sales and disabled inter-team trading', true);
-psql(DB, readFileSync(new URL('./test-dino-women-selection.sql', import.meta.url), 'utf8'));
-check('Dino men’s and women’s section representation, drafts, bench, transfer rollback and carried-forward scoring', true);
+psql(DB, readFileSync(new URL('./test-dino-section-rule-removed.sql', import.meta.url), 'utf8'));
+check('Dino section rule removed: no validator, score trigger or settings flag; submissions need no section minimum', true);
 psql(DB, readFileSync(new URL('./test-event-song-requests.sql', import.meta.url), 'utf8'));
 check('Event song entries: atomic storage, ticket events refused, limits, closing time and privileges', true);
 const runPsql = promisify(execFile);

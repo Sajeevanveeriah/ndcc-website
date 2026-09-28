@@ -8,7 +8,7 @@ import DataLoadErrorCard from '@/components/common/DataLoadErrorCard';
 import PlayerListExplorer, { type PlayerListEntry } from '@/app/fantasy/_components/PlayerListExplorer';
 import SeasonSelector from '@/components/fantasy/SeasonSelector';
 import { seasonStatusLabel, type FantasySeason } from '@/lib/fantasy-seasons';
-import { getCachedActivePlayers, getCachedDinoCoachSettings, getCachedPlayerStats, getCachedPublishedLeaderboard, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
+import { getCachedActivePlayers, getCachedPlayerStats, getCachedPublishedLeaderboard, getCachedSeasonPageContext } from '@/lib/server/dino-public-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,10 +49,7 @@ async function getPlayers(season: FantasySeason | null): Promise<{ players: Play
 export default async function FantasyPlayersPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ season?: string }> }) {
   const searchParams = await searchParamsPromise;
   const seasonContext = await getCachedSeasonPageContext(searchParams?.season || null).catch(() => ({ seasons: [], selected: null, options: [] }));
-  const [{ players, hasPublishedPoints, loadFailed }, settings] = await Promise.all([
-    getPlayers(seasonContext.selected),
-    seasonContext.selected ? getCachedDinoCoachSettings(seasonContext.selected.id).catch(() => null) : Promise.resolve(null),
-  ]);
+  const { players, hasPublishedPoints, loadFailed } = await getPlayers(seasonContext.selected);
 
   return (
     <section className="section-padding">
@@ -102,7 +99,7 @@ export default async function FantasyPlayersPage({ searchParams: searchParamsPro
             </CardContent>
           </Card>
         ) : (
-          <PlayerListExplorer players={players} hasPublishedPoints={hasPublishedPoints} womenRuleEnabled={settings?.women_rule_enabled === true} />
+          <PlayerListExplorer players={players} hasPublishedPoints={hasPublishedPoints} />
         )}
       </div>
     </section>

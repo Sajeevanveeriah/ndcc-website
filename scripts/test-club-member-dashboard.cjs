@@ -180,28 +180,30 @@ const req = (body, search = '') => new Request(`https://example.invalid/api/club
   assert.equal(tree.root.findAllByType('input').length, 0);
   await act(async () => tree.unmount());
 
-  const icons = Object.fromEntries(['CalendarDays', 'ShoppingBag', 'HeartHandshake', 'Newspaper', 'Utensils', 'Ticket', 'UserRound', 'Settings', 'Trophy', 'ClipboardList'].map(name => [name, props => React.createElement('span', props)]));
-  let degraded = false, dinoLaunch = false;
+  const icons = Object.fromEntries(['CalendarDays', 'ShoppingBag', 'HeartHandshake', 'Newspaper', 'Utensils', 'Ticket', 'UserRound', 'Settings', 'Trophy', 'ClipboardList', 'Gift'].map(name => [name, props => React.createElement('span', props)]));
+  let degraded = false, dinoLaunch = false, spinLive = false;
   const Dashboard = load('components/club-account/MemberDashboard.tsx', { ...common, 'lucide-react': icons,
     '@/components/calendar/UpcomingEventsStrip': { default: props => React.createElement('p', null, props.events.length ? 'Events loaded' : props.emptyMessage) },
     '@/components/calendar/AddToCalendarButton': { default: () => React.createElement('button', null, 'Add calendar') },
     './MemberInterests': { default: () => React.createElement('p', null, 'Interest controls') }, './MemberPurchases': { default: () => React.createElement('p', null, 'Purchase history') }, './ShareLink': { default: () => null },
     './AccountSettings': { default: () => React.createElement('p', null, 'Account settings') }, './MemberBalance': { default: () => React.createElement('p', null, 'Balance summary') },
     './MemberDinoCoach': { default: () => React.createElement('p', null, 'Dino summary') },
-  }, { fetch: async url => ({ ok: true, json: async () => url.includes('dino-coach-status') ? { enabled: dinoLaunch } : ({ success: true, degraded, data: url.includes('/news') ? [{ id: 'news', title: 'Published club update', published_at: null }] : [] }) }), AbortController }).default;
+  }, { fetch: async url => url.endsWith('/api/spin-wheel') ? (spinLive ? { ok: true, json: async () => ({ success: true, wheel: { id: 'wheel' } }) } : { ok: false, json: async () => ({ success: false }) }) : ({ ok: true, json: async () => url.includes('dino-coach-status') ? { enabled: dinoLaunch } : ({ success: true, degraded, data: url.includes('/news') ? [{ id: 'news', title: 'Published club update', published_at: null }] : [] }) }), AbortController }).default;
   await act(async () => { tree = create(React.createElement(Dashboard, { email: 'owner@example.invalid', name: 'Test Member', status: 'pending', profileComplete: true }, React.createElement('p', null, 'Edit details form'))); });
   assert.match(content(tree), /Published club update/); assert.match(content(tree), /awaiting review/);
   assert.ok(tree.root.findAllByProps({ href: '/kitchen' }).length);
   assert.equal(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 0);
+  assert.equal(tree.root.findAllByProps({ href: '/spin-the-wheel' }).length, 0, 'Spin the Wheel stays hidden when no wheel is public');
   assert.match(content(tree), /Balance summary/);
   assert.equal(button(tree, 'Dino Coach'), undefined, 'Dino Coach tab stays hidden until public launch');
   assert.equal(button(tree, 'Volunteer tools'), undefined, 'Volunteer tools are for active members only');
   await act(async () => button(tree, 'My purchases and tickets').props.onClick()); assert.match(content(tree), /Purchase history/);
   await act(async () => button(tree, 'My details').props.onClick()); assert.match(content(tree), /Edit details form/); assert.match(content(tree), /Account settings/);
   assert.ok(tree.root.findAllByProps({ href: '/club-account/reset-password' }).length);
-  await act(async () => tree.unmount()); dinoLaunch = true;
+  await act(async () => tree.unmount()); dinoLaunch = true; spinLive = true;
   await act(async () => { tree = create(React.createElement(Dashboard, { email: 'owner@example.invalid', name: 'Active Member', status: 'active', profileComplete: true }, null)); });
   assert.equal(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 0, 'Cash sales live in the Volunteer tools tab, not the overview');
+  assert.ok(tree.root.findAllByProps({ href: '/spin-the-wheel' }).length, 'A public wheel appears in the club account services');
   await act(async () => button(tree, 'Volunteer tools').props.onClick());
   assert.ok(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 'Active members reach cash sales from Volunteer tools');
   await act(async () => button(tree, 'Dino Coach').props.onClick()); assert.match(content(tree), /Dino summary/);

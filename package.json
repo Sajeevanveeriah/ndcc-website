@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "node scripts/run-all-tests.mjs",
-    "test:dino-women-selection": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-dino-women-selection.mjs",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-routes.mjs",
     "test:email": "node scripts/test-email.mjs",

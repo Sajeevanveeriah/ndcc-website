@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CalendarDays, ShoppingBag, HeartHandshake, Newspaper, Utensils, Ticket, UserRound, Settings, Trophy, ClipboardList } from 'lucide-react';
+import { CalendarDays, ShoppingBag, HeartHandshake, Newspaper, Utensils, Ticket, UserRound, Settings, Trophy, ClipboardList, Gift } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import UpcomingEventsStrip from '@/components/calendar/UpcomingEventsStrip';
 import AddToCalendarButton from '@/components/calendar/AddToCalendarButton';
@@ -29,6 +29,8 @@ const services = [
   { href: '/pot-club', title: 'Pot Club', detail: 'Find out about the club glass and drinks offer.', icon: Ticket },
   { href: '/volunteer', title: 'Help around the club', detail: 'Let the committee know how you can help.', icon: HeartHandshake },
 ];
+// Shown only while a wheel is public (live or paused); /api/spin-wheel returns 404 otherwise.
+const spinWheelService = { href: '/spin-the-wheel', title: 'Spin the Wheel', detail: 'Use your club account spins on the club prize wheel.', icon: Gift };
 export default function MemberDashboard({ email, name, status, profileComplete, children }: {
   email: string; name: string; status: string; profileComplete: boolean; children: React.ReactNode;
 }) {
@@ -36,11 +38,14 @@ export default function MemberDashboard({ email, name, status, profileComplete, 
   const [news, setNews] = useState<News[] | null>(null); const [events, setEvents] = useState<CalendarFeedEvent[] | null>(null);
   const [newsError, setNewsError] = useState(false); const [eventsError, setEventsError] = useState(false); const [retry, setRetry] = useState(0);
   const [dinoEnabled, setDinoEnabled] = useState(false);
+  const [spinWheelLive, setSpinWheelLive] = useState(false);
   useEffect(() => {
     // The Dino Coach tab only appears once its public launch is enabled.
     let active = true;
     fetch('/api/public/dino-coach-status', { cache: 'no-store' }).then(response => response.json())
       .then(data => { if (active) setDinoEnabled(data?.enabled === true); }).catch(() => { if (active) setDinoEnabled(false); });
+    fetch('/api/spin-wheel', { cache: 'no-store' }).then(response => response.ok ? response.json() : null)
+      .then(data => { if (active) setSpinWheelLive(data?.success === true); }).catch(() => { if (active) setSpinWheelLive(false); });
     return () => { active = false; };
   }, []);
   const visibleSections = sections.filter(([key]) => (key !== 'dino' || dinoEnabled) && (key !== 'volunteer' || status === 'active'));
@@ -76,7 +81,7 @@ export default function MemberDashboard({ email, name, status, profileComplete, 
       {activeSection === 'overview' && <div className="space-y-8">
         {!profileComplete && <div className="rounded-xl bg-surface-muted p-4"><p className="font-semibold">Finish setting up your account</p><p className="my-2 text-sm">Save your details, then choose your interests and how you would like to help.</p><Button size="sm" onClick={() => setSection('details')}>Complete my details</Button></div>}
         <MemberBalance showPurchases={() => setSection('purchases')} />
-        <section aria-labelledby="member-actions-heading"><h2 id="member-actions-heading" className="text-2xl font-bold">What would you like to do?</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{services.map(({ href, title, detail, icon: Icon }) => <Link href={href} key={href} className="group rounded-xl border border-edge-subtle p-4 transition-colors hover:border-maroon-400 hover:bg-surface-muted"><Icon className="mb-3 h-5 w-5 text-maroon-700 dark:text-maroon-200" aria-hidden="true" /><h3 className="font-semibold group-hover:underline">{title}</h3><p className="mt-2 text-sm leading-relaxed text-content-secondary">{detail}</p></Link>)}</div></section>
+        <section aria-labelledby="member-actions-heading"><h2 id="member-actions-heading" className="text-2xl font-bold">What would you like to do?</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{(spinWheelLive ? [spinWheelService, ...services] : services).map(({ href, title, detail, icon: Icon }) => <Link href={href} key={href} className="group rounded-xl border border-edge-subtle p-4 transition-colors hover:border-maroon-400 hover:bg-surface-muted"><Icon className="mb-3 h-5 w-5 text-maroon-700 dark:text-maroon-200" aria-hidden="true" /><h3 className="font-semibold group-hover:underline">{title}</h3><p className="mt-2 text-sm leading-relaxed text-content-secondary">{detail}</p></Link>)}</div></section>
         <div className="grid gap-8 lg:grid-cols-2">
           <section aria-labelledby="member-events-heading"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 id="member-events-heading" className="text-xl font-bold">Coming up at the club</h2><Link href="/calendar" className="text-sm underline">Full calendar</Link></div>
             {eventsError ? <p role="alert">The calendar is temporarily unavailable. <button className="underline" onClick={() => setRetry(retry + 1)}>Retry club updates</button></p> : events === null ? <p role="status">Loading events...</p> : <UpcomingEventsStrip events={events} compact showViewAll={false} emptyMessage="No upcoming events have been published yet. Check back soon." />}

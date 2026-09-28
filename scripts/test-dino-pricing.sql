@@ -89,8 +89,8 @@ BEGIN
  INSERT INTO public.fantasy_players(display_name,role) VALUES('Early grade '||gen_random_uuid(),'BAT') RETURNING id INTO early_id;
  INSERT INTO public.fantasy_players(display_name,role) VALUES('Later grade '||gen_random_uuid(),'BAT') RETURNING id INTO late_id;
  FOREACH p IN ARRAY ARRAY[early_id,late_id] LOOP
-  INSERT INTO public.fantasy_season_players(season_id,player_id,role,active,selectable,stats_status,women_eligible)
-  VALUES(sid,p,'BAT',true,true,'unrated',p=late_id);
+  INSERT INTO public.fantasy_season_players(season_id,player_id,role,active,selectable,stats_status)
+  VALUES(sid,p,'BAT',true,true,'unrated');
   INSERT INTO public.fantasy_player_prices(season_id,player_id,price_dino_dollars,price_million,prior_baseline_points,rolling_performance_points,published_at,created_at)
   VALUES(sid,p,500000,0.5,20,20,now(),now()-interval '1 day');
  END LOOP;
