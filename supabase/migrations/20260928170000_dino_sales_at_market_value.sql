@@ -59,16 +59,19 @@ GRANT EXECUTE ON FUNCTION public.dino_realised_sale_profit(uuid,uuid) TO service
 DO $migration$
 DECLARE source text; revised text;
   old_check text := '  IF actual_budget>cfg.budget_dino_dollars OR actual_budget<>target_budget_dino_dollars THEN';
-  new_check text := '  -- Players in the saved squad but not in this selection are sold at their current published price.
+  new_check text := '  -- Players in the manager''''s latest saved squad (the one save_dino_coach_squad_v2 checks) but not in
+  -- this selection are sold at their current published price.
   IF prior_squad_id IS NOT NULL AND coalesce(current_setting(''ndcc.dino_admin_edit'',true),'''')<>''on'' THEN
+    WITH source AS (SELECT id FROM public.fantasy_squads WHERE manager_id=target_manager_id AND season_id=target_season_id
+      ORDER BY created_at DESC LIMIT 1)
     INSERT INTO public.fantasy_dino_sales(season_id,manager_id,round_id,squad_id,player_id,purchase_price_dino_dollars,sale_reference_dino_dollars,sale_price_dino_dollars)
-    SELECT target_season_id,target_manager_id,target_round_id,prior_squad_id,owned.player_id,owned.purchase_price_dino_dollars,
+    SELECT target_season_id,target_manager_id,target_round_id,source.id,owned.player_id,owned.purchase_price_dino_dollars,
       coalesce(owned.sale_reference_dino_dollars,owned.purchase_price_dino_dollars),price.price_dino_dollars
-    FROM public.fantasy_squad_players owned
+    FROM source JOIN public.fantasy_squad_players owned ON owned.squad_id=source.id
     JOIN LATERAL (SELECT p.price_dino_dollars FROM public.fantasy_player_prices p
       WHERE p.season_id=target_season_id AND p.player_id=owned.player_id AND p.published_at IS NOT NULL AND p.price_dino_dollars>0
       ORDER BY p.created_at DESC LIMIT 1) price ON TRUE
-    WHERE owned.squad_id=prior_squad_id AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(selected_players) item
+    WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(selected_players) item
       WHERE (item->>''player_id'')::uuid=owned.player_id);
   END IF;
   IF actual_budget>cfg.budget_dino_dollars+public.dino_realised_sale_profit(target_manager_id,target_season_id) OR actual_budget<>target_budget_dino_dollars THEN';
