@@ -58,7 +58,8 @@ export function matchPlayHQTeam(cms: CmsTeamLike, playhqTeams: PlayHQTeam[]): Pl
   // A boys card never takes a girls side (or the reverse).
   const source = juniorAge(cms.name) !== null ? cms.name : cms.grade;
   if (juniorAge(source) !== null) {
-    const candidates = club.filter((team) => sameJuniorSide(source, team.name));
+    // PlayHQ may mark boys/girls only in the grade name.
+    const candidates = club.filter((team) => sameJuniorSide(source, `${team.name} ${team.gradeName || ''}`));
     if (candidates.length === 1) return candidates[0];
   }
   return null;
@@ -81,7 +82,7 @@ export function teamsAwaitingPlayHQ<T extends CmsTeamLike>(cmsTeams: readonly T[
     const ageSource = juniorAge(team.name) !== null ? team.name : team.grade;
     const age = juniorAge(ageSource);
     if (ordinal === null && age === null) return sameCategory.length === 0;
-    return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && sameJuniorSide(ageSource, candidate.name)));
+    return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && sameJuniorSide(ageSource, `${candidate.name} ${candidate.gradeName || ''}`)));
   });
 }
 

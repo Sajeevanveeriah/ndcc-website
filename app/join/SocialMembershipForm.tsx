@@ -61,6 +61,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
     const payload = {
       ...formData,
       membership_plan_id: selectedPlan,
+      pot_club: isPotClub,
       addons: isPotClub ? [] : Object.keys(selectedAddons).filter((id) => selectedAddons[id]).map((addon_id) => ({ addon_id, quantity: 1 })),
     };
 

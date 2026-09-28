@@ -164,6 +164,9 @@ test('CMS teams match PlayHQ teams by link, exact name or unique ordinal', () =>
   assert.equal(view.matchPlayHQTeam({ name: 'Junior Girls - Under 15s' }, girls)?.id, 'u15g');
   assert.equal(view.matchPlayHQTeam({ name: 'Under 15s' }, girls)?.id, 'u15g', 'no gender on the card: the only U15 side');
   assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys - Under 15s' }], girls).map((team) => team.name), ['Junior Boys - Under 15s']);
+  // Gender only in the PlayHQ grade name still keeps the sides apart.
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Girls - Under 13s' }, juniorTeams), null, 'U13 grade is "Under 13 Boys"');
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Girls - Under 13s' }], juniorTeams).map((team) => team.name), ['Junior Girls - Under 13s']);
 });
 
 test('team fixtures, next match and home/away from the recording', () => {
