@@ -17,12 +17,21 @@ function PublicSwitch() {
       .then(data => setState({ enabled: data.enabled, available: data.available }))
       .catch(failure => setMessage(failure instanceof Error ? failure.message : 'The setting could not be loaded.'));
   }, []);
-  const save = async (enabled: boolean) => {
+  const save = async (enabled: boolean, confirmClose = false) => {
     setSaving(true);
     setMessage('');
     try {
-      const data = await adminFetch('/api/admin/spin-wheel/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) })
-        .then(response => parseApiResponse<{ enabled: boolean }>(response));
+      const response = await adminFetch('/api/admin/spin-wheel/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled, confirm_close: confirmClose }) });
+      if (response.status === 409) {
+        const body = await response.clone().json().catch(() => null) as { needsConfirmation?: boolean; error?: string } | null;
+        if (body?.needsConfirmation) {
+          setSaving(false);
+          if (window.confirm(`${body.error}\n\nHide Spin the Wheel anyway?`)) await save(enabled, true);
+          else setMessage('Nothing was changed.');
+          return;
+        }
+      }
+      const data = await parseApiResponse<{ enabled: boolean }>(response);
       setState(previous => ({ available: previous?.available ?? true, enabled: data.enabled }));
       setMessage(data.enabled ? 'Spin the Wheel is shown on the website.' : 'Spin the Wheel is hidden from the website. All wheels and results are kept.');
     } catch (failure) {
