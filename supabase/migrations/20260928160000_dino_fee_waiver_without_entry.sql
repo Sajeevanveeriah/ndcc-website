@@ -2,7 +2,8 @@
 -- admin_edit_dino_manager could only waive the fee on an existing entry row, so a
 -- manager who never started checkout could not be made complimentary. Granting
 -- complimentary entry now creates the season entry when none exists, recorded in
--- the same audit event and manager notice. The administrator-only check and the
+-- the same audit event and manager notice (the new-registration welcome, written for
+-- CMS-created accounts, is not sent). The administrator-only check and the
 -- pending Stripe checkout guard are unchanged; squad edits still need an entry.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
@@ -17,6 +18,11 @@ DECLARE source text; revised text;
         select p_manager,p_season,cfg.entry_fee_cents,cfg.entry_fee_currency,true,p_reason,p_actor,now()
         from public.fantasy_dino_settings cfg where cfg.season_id=p_season;
       if not found then raise exception ''Season settings unavailable.''; end if;
+      -- The entry trigger queues the new-registration welcome, whose complimentary copy refers to an
+      -- administrator-supplied password. This manager already has an account; the admin-change
+      -- notice below tells them about the complimentary entry instead.
+      delete from public.fantasy_registration_emails r using public.fantasy_entries e
+        where r.entry_id=e.id and e.manager_id=p_manager and e.season_id=p_season and r.sent_at is null;
     end if;
     update public.fantasy_entries set fee_waived=(p_changes->>''fee_waived'')::boolean,';
 BEGIN

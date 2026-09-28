@@ -8,6 +8,10 @@
 --    before migration 20260928160000, so the entry was created as admin_register_dino_manager does:
 --    entry 30b3e1f9-e3dc-4d30-9e1e-f30d0067bf77, audit event 9db6b455-4ecd-47de-9eb4-0e7356757301,
 --    manager notice job de39e714-62ae-4f46-9d16-5dfd4ceb5f90.
+--    The entry insert also fired queue_fantasy_registration_email, and the complimentary welcome
+--    (written for CMS-created accounts) was sent to her at 2026-09-28 05:47:50 UTC. It says to use an
+--    administrator-supplied password; she keeps her existing password. Migration 20260928160000
+--    suppresses that welcome for this path.
 
 -- Apply (as run):
 -- SELECT public.admin_edit_dino_manager('09d04f70-8bc7-48dd-b3c3-5f7cc11e7c9e','75425550-0622-4ecb-87c4-69ab5ca40a53',
