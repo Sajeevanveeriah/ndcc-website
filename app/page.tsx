@@ -219,19 +219,19 @@ function NextEventSkeleton() {
   );
 }
 
-// Status of the calendar entries linked to one event (read directly, not
-// from the capped "Coming up" list). Null when none is cancelled or
-// postponed, or when the read fails.
-async function linkedCalendarStatus(eventId: string): Promise<'cancelled' | 'postponed' | null> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+// Status of the calendar entries linked to one event, read directly (not
+// from the capped "Coming up" list). 'unknown' when the read fails, so the
+// hero falls back to a neutral details link instead of advertising booking.
+async function linkedCalendarStatus(eventId: string): Promise<'cancelled' | 'postponed' | 'unknown' | null> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return 'unknown';
   try {
     const { data, error } = await createServerClient({ publicReadCache: true, fetchTimeoutMs: 8_000 })
       .from('calendar_events').select('status').eq('source_event_id', eventId);
-    if (error || !Array.isArray(data)) return null;
+    if (error || !Array.isArray(data)) return 'unknown';
     const statuses = data.map((row) => (row as { status?: unknown }).status);
     return statuses.includes('cancelled') ? 'cancelled' : statuses.includes('postponed') ? 'postponed' : null;
   } catch {
-    return null;
+    return 'unknown';
   }
 }
 
@@ -283,7 +283,7 @@ async function NextEventSection() {
   const status = await linkedCalendarStatus(event.id);
   return (
     <aside className="next-event-card" aria-labelledby="next-event-title">
-      <p className="club-kicker">Next event{status && <span className="ml-2 rounded-full bg-maroon-700 px-2 py-0.5 text-white dark:bg-maroon-300 dark:text-maroon-950">{status === 'cancelled' ? 'Cancelled' : 'Postponed'}</span>}</p>
+      <p className="club-kicker">Next event{(status === 'cancelled' || status === 'postponed') && <span className="ml-2 rounded-full bg-maroon-700 px-2 py-0.5 text-white dark:bg-maroon-300 dark:text-maroon-950">{status === 'cancelled' ? 'Cancelled' : 'Postponed'}</span>}</p>
       <h2 id="next-event-title" className={`mt-2 font-display text-2xl font-semibold tracking-[-0.02em] text-content-primary sm:text-3xl ${status === 'cancelled' ? 'line-through' : ''}`}>{event.title}</h2>
       <dl className="mt-3 space-y-1.5 text-base text-content-secondary">
         {day && <EventFact icon={CalendarDays} label="Date"><time dateTime={event.date}>{day}</time></EventFact>}
@@ -296,7 +296,7 @@ async function NextEventSection() {
           <Link href="/calendar" className="btn-secondary">Check the club calendar</Link>
         ) : (
           <Link href={`/events/${event.id}`} className="btn-primary">
-            {status === 'postponed' ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
+            {status === 'postponed' || status === 'unknown' ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         )}
