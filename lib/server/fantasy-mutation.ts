@@ -1,6 +1,6 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
-import { enforceRateLimit } from '@/lib/server/request-guards';
+import { takeRateLimit } from '@/lib/server/request-guards';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const WINDOW_MS = 60_000;
@@ -15,9 +15,9 @@ function reject(error: string, status: number) {
 
 /** Call only after authentication; the actor must come from the verified session. */
 export async function readFantasyMutation(request: Request, actorId: string, action: keyof typeof LIMITS) {
-  if (!await enforceRateLimit(`fantasy-write-${action}:${actorId}`, LIMITS[action], WINDOW_MS)) {
-    return reject('Too many changes. Please wait a minute and try again.', 429);
-  }
+  const permit = await takeRateLimit(`fantasy-write-${action}:${actorId}`, LIMITS[action], WINDOW_MS);
+  if (permit === 'limited') return reject('Too many changes. Please wait a minute and try again.', 429);
+  if (permit === 'unavailable') return reject('Dino Coach is temporarily unavailable. Please try again in a minute.', 503);
   if (Number(request.headers.get('content-length')) > MAX_BODY_BYTES) {
     return reject('The request is too large.', 413);
   }

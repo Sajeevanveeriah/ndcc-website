@@ -20,7 +20,7 @@ const limits = [];
 const next = { NextResponse: { json: Response.json } };
 const guard = load('lib/server/fantasy-mutation.ts', {
   'server-only': {}, 'next/server': next,
-  '@/lib/server/request-guards': { enforceRateLimit: async (...args) => { limits.push(args); return allowed; } },
+  '@/lib/server/request-guards': { takeRateLimit: async (...args) => { limits.push(args); return allowed === true ? 'allowed' : allowed === false ? 'limited' : allowed; } },
 });
 const request = (body, headers = {}) => new Request('https://example.invalid/api/fantasy/squad', {
   method: 'POST', body, headers,
@@ -42,6 +42,11 @@ allowed = false;
 const denied = await guard.readFantasyMutation({ get headers() { throw new Error('must not read body after rate rejection'); } }, 'owner', 'squad');
 assert.equal(denied.response.status, 429);
 assert.equal(denied.response.headers.get('retry-after'), '60');
+// An unreachable limiter still refuses the write, but reports an outage, not too many changes.
+allowed = 'unavailable';
+const unavailable = await guard.readFantasyMutation({ get headers() { throw new Error('must not read body when the limiter is down'); } }, 'owner', 'squad');
+assert.equal(unavailable.response.status, 503);
+assert.match((await unavailable.response.json()).error, /temporarily unavailable/);
 allowed = true;
 
 // Execute every route with the actual guard. Any downstream business/DB call

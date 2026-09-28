@@ -19,6 +19,7 @@ async function readLoginResponse(response: Response) {
 
 function stageLabel(stage?: string) {
   const labels: Record<string, string> = {
+    rate_limit: 'Sign-in protection check',
     supabase_config: 'Supabase configuration',
     credential_rpc: 'Credential verification',
     session_insert: 'Session creation',

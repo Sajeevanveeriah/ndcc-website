@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { withSupabaseOperationRetry } from '@/lib/supabase-operation';
 import { createAuthCookie, generateSessionToken, hashSessionToken, sessionExpiryDate } from '@/lib/auth/session';
-import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { getClientIp, takeRateLimit } from '@/lib/server/request-guards';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -10,8 +10,8 @@ export const maxDuration = 60;
 const CREDENTIAL_RPC_TIMEOUT_MS = 4_500;
 const SESSION_INSERT_TIMEOUT_MS = 4_500;
 const UNAVAILABLE_MESSAGE = 'Admin login service is temporarily unavailable';
-type LoginUnavailableStage = 'supabase_config' | 'credential_rpc' | 'session_insert' | 'unexpected';
-type LoginDiagnosticCode = 'SUPABASE_SERVER_CONFIG_MISSING' | 'CREDENTIAL_RPC_FAILED' | 'SESSION_INSERT_FAILED' | 'UNEXPECTED_LOGIN_ERROR';
+type LoginUnavailableStage = 'rate_limit' | 'supabase_config' | 'credential_rpc' | 'session_insert' | 'unexpected';
+type LoginDiagnosticCode = 'RATE_LIMIT_UNAVAILABLE' | 'SUPABASE_SERVER_CONFIG_MISSING' | 'CREDENTIAL_RPC_FAILED' | 'SESSION_INSERT_FAILED' | 'UNEXPECTED_LOGIN_ERROR';
 const OPERATION_TIMEOUT_ERROR = { code: 'AbortError', message: 'Supabase operation timed out' };
 
 function jsonNoStore(body: Record<string, unknown>, status = 200) {
@@ -72,12 +72,18 @@ export async function POST(request: Request) {
     // spraying bad passwords at that address, so the account bucket is keyed
     // on the caller's IP as well.
     const permits = await Promise.all([
-      enforceRateLimit(`admin-login-ip:${ip}`, 8, 60_000),
-      enforceRateLimit(`admin-login-email-ip:${emailKey}|${ip}`, 6, 60_000),
+      takeRateLimit(`admin-login-ip:${ip}`, 8, 60_000),
+      takeRateLimit(`admin-login-email-ip:${emailKey}|${ip}`, 6, 60_000),
     ]);
-    if (permits.some((allowed) => !allowed)) {
+    if (permits.includes('limited')) {
       logAuthStage('request validation', { requestId: id, httpStatus: 429, elapsedMs: elapsedMs(startedAt) });
       return jsonNoStore({ success: false, error: 'Too many login attempts. Please wait and try again.', requestId: id }, 429);
+    }
+    // The limiter fails closed. When it cannot be reached, say so: the user has
+    // not made too many attempts and can retry once the service recovers.
+    if (permits.includes('unavailable')) {
+      logAuthStage('rate limit', { requestId: id, httpStatus: 503, elapsedMs: elapsedMs(startedAt) });
+      return unavailableJson(id, 'rate_limit', 'RATE_LIMIT_UNAVAILABLE');
     }
 
     if (!email || !password) {
