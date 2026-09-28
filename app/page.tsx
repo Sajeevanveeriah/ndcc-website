@@ -927,7 +927,10 @@ async function GalleryPreviewSection() {
     <section className="bg-surface-card py-8 sm:py-10" aria-labelledby="gallery-title">
       <div className="container-width px-4 sm:px-6 lg:px-8">
         <SectionHeading id="gallery-title" title="Gallery">
-          <Link href="/gallery" className={headingLinkClass}>View full gallery</Link>
+          <span className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+            <Link href="/gallery#season-highlights" className={headingLinkClass}>Watch the 2025/26 season video</Link>
+            <Link href="/gallery" className={headingLinkClass}>View full gallery</Link>
+          </span>
         </SectionHeading>
         <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {preview.map((photo) => (
