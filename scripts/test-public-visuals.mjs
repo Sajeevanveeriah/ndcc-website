@@ -56,6 +56,13 @@ assert.match(home, /QUICK_LINK_ICONS\[icon\.trim\(\)\]\) \|\| ArrowRight/, 'unma
 assert.ok(!/salary cap/i.test(home) && !/Build an XI/i.test(home), 'Dino Coach teaser does not describe an XI under a salary cap');
 assert.match(home, /15-player NDCC squad with Dino Dollars/);
 assert.match(home, /selectMatchDayBoard\(/, 'match-day board uses the tested selection helper');
+// Next event hero: picked by the tested helper, honours a cancellation or
+// postponement on the linked calendar entry, and says when events could not load.
+assert.match(home, /selectNextEvent\(events, Date\.now\(\)\)/);
+assert.match(home, /entry\.source_event_id === event\.id/);
+assert.match(home, /status === 'cancelled' \? \(\s*<Link href="\/calendar"/, 'no booking button for a cancelled event');
+assert.match(home, /Events could not be loaded right now/);
+assert.ok(!/alt=""/.test(home), 'home images carry meaningful alt text');
 assert.match(home, /Fixture not yet released by GCA/);
 const homeDefaults = home.replace(/const GENERIC_CMS_COPY = \[[\s\S]*?\]\.map/, '');
 for (const generic of ['Stay up to date with everything happening at NDCC.', 'Latest from NDCC', 'Explore the Club', 'seasoned cricketer']) {

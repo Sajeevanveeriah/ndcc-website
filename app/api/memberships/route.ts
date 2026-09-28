@@ -1,6 +1,7 @@
 import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
+import { getPotClubProductCode } from '@/lib/server/pot-club';
 import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
@@ -77,12 +78,15 @@ export async function POST(request: Request) {
 
   const supabase = createServerClient();
 
-  const { data: plan } = await supabase
-    .from('social_membership_plans')
-    .select('id, name, price, product_code')
-    .eq('id', membership_plan_id)
-    .eq('is_active', true)
-    .single();
+  const [{ data: plan }, potClubProductCode] = await Promise.all([
+    supabase
+      .from('social_membership_plans')
+      .select('id, name, price, product_code')
+      .eq('id', membership_plan_id)
+      .eq('is_active', true)
+      .single(),
+    getPotClubProductCode(),
+  ]);
 
   if (!plan) {
     return NextResponse.json({ success: false, error: 'Selected membership plan is unavailable.' }, { status: 400 });
@@ -135,7 +139,13 @@ export async function POST(request: Request) {
   const totalAmount = totalCents / 100;
 
   const orderItems = [
-    { name: plan.name, size: 'membership', quantity: 1, price: planPrice.value / 100, ...(plan.product_code ? { product_code: plan.product_code } : {}) },
+    {
+      name: plan.name, size: 'membership', quantity: 1, price: planPrice.value / 100,
+      // Receipts name the product from these: the CMS-selected Pot Club plan
+      // is labelled as Pot Club, never as a social membership.
+      ...(plan.product_code ? { product_code: plan.product_code } : {}),
+      ...(plan.product_code && plan.product_code === potClubProductCode ? { product_kind: 'pot_club' } : {}),
+    },
     ...validatedAddons.map((item) => ({
       name: item.addon.name,
       size: 'addon',

@@ -9,6 +9,7 @@ import Input, { Textarea } from '@/components/ui/Input';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency } from '@/lib/utils';
 import { SOCIAL_MEMBERSHIP_ELIGIBILITY } from '@/lib/social-membership';
+import { DEFAULT_POT_CLUB_PRODUCT_CODE } from '@/lib/pot-club';
 import type { MembershipAddonOption, MembershipPlanOption } from '@/lib/public-form-options';
 
 // Shown wherever a social membership buyer can see it before paying: beside
@@ -32,7 +33,7 @@ type OrderConfirmation = {
 // Client island for the social membership application: plan/add-on
 // selection, honeypot, submission and payment options. Plans and add-ons are
 // read server-side by the page and passed in.
-export default function SocialMembershipForm({ plans, addons }: { plans: MembershipPlanOption[]; addons: MembershipAddonOption[] }) {
+export default function SocialMembershipForm({ plans, addons, potClubProductCode = DEFAULT_POT_CLUB_PRODUCT_CODE }: { plans: MembershipPlanOption[]; addons: MembershipAddonOption[]; potClubProductCode?: string }) {
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id || '');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
@@ -41,7 +42,8 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
   const [loading, setLoading] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
 
-  const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === 'pot_club_2026_27';
+  // The Pot Club plan is the one selected in the CMS (/admin/promotions).
+  const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === potClubProductCode;
   const total = useMemo(() => {
     const planPrice = plans.find((p) => p.id === selectedPlan)?.price || 0;
     const addonTotal = isPotClub ? 0 : addons.filter((a) => selectedAddons[a.id]).reduce((sum, a) => sum + a.price, 0);

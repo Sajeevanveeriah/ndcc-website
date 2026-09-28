@@ -202,8 +202,10 @@ function HeroView({
   );
 }
 
-// Published events, read once per render and shared by the hero and "Coming up".
+// Published events and home calendar entries, read once per render and shared
+// by the hero and "Coming up".
 const getHomeEvents = cache(() => getPublicEvents());
+const getHomeCalendar = cache(() => getUpcomingCalendarEvents({ limit: 6, home: true }));
 
 function NextEventSkeleton() {
   return (
@@ -226,8 +228,21 @@ function EventFact({ icon: Icon, label, children }: { icon: LucideIcon; label: s
 }
 
 async function NextEventSection() {
-  const { data: events } = await getHomeEvents();
+  const [{ data: events, degraded }, calendarResult] = await Promise.all([getHomeEvents(), getHomeCalendar()]);
   const event = selectNextEvent(events, Date.now());
+  if (!event && degraded) {
+    return (
+      <aside className="next-event-card" aria-labelledby="next-event-title">
+        <p className="club-kicker">Next event</p>
+        <h2 id="next-event-title" className="mt-2 font-display text-xl font-semibold text-content-primary">Events could not be loaded right now</h2>
+        <p className="mt-2 text-base text-content-secondary">Please try again shortly, or check the events page and club calendar.</p>
+        <div className="mt-3 flex flex-wrap gap-x-6">
+          <Link href="/events" className="club-text-link text-sm font-semibold">All events</Link>
+          <Link href="/calendar" className="club-text-link text-sm font-semibold">Club calendar</Link>
+        </div>
+      </aside>
+    );
+  }
   if (!event) {
     return (
       <aside className="next-event-card" aria-labelledby="next-event-title">
@@ -246,10 +261,14 @@ async function NextEventSection() {
   const venue = event.location?.trim();
   const price = Number(event.ticket_price);
   const songs = event.registration_mode === 'song_requests';
+  // A cancellation or postponement recorded on the linked calendar entry wins,
+  // so the hero never keeps advertising booking for a cancelled event.
+  const linked = (calendarResult.degraded ? [] : calendarResult.data).filter((entry) => entry.source_event_id === event.id);
+  const status = linked.some((entry) => entry.status === 'cancelled') ? 'cancelled' : linked.some((entry) => entry.status === 'postponed') ? 'postponed' : null;
   return (
     <aside className="next-event-card" aria-labelledby="next-event-title">
-      <p className="club-kicker">Next event</p>
-      <h2 id="next-event-title" className="mt-2 font-display text-2xl font-semibold tracking-[-0.02em] text-content-primary sm:text-3xl">{event.title}</h2>
+      <p className="club-kicker">Next event{status && <span className="ml-2 rounded-full bg-maroon-700 px-2 py-0.5 text-white dark:bg-maroon-300 dark:text-maroon-950">{status === 'cancelled' ? 'Cancelled' : 'Postponed'}</span>}</p>
+      <h2 id="next-event-title" className={`mt-2 font-display text-2xl font-semibold tracking-[-0.02em] text-content-primary sm:text-3xl ${status === 'cancelled' ? 'line-through' : ''}`}>{event.title}</h2>
       <dl className="mt-3 space-y-1.5 text-base text-content-secondary">
         {day && <EventFact icon={CalendarDays} label="Date"><time dateTime={event.date}>{day}</time></EventFact>}
         <EventFact icon={Clock} label="Time">{time || 'Time to be confirmed'}</EventFact>
@@ -257,10 +276,14 @@ async function NextEventSection() {
         {Number.isFinite(price) && <EventFact icon={Ticket} label="Price">{price > 0 ? `${formatCurrency(price)}${songs ? ' per song' : ''}` : 'Free entry'}</EventFact>}
       </dl>
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1">
-        <Link href={`/events/${event.id}`} className="btn-primary">
-          {songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
+        {status === 'cancelled' ? (
+          <Link href="/calendar" className="btn-secondary">Check the club calendar</Link>
+        ) : (
+          <Link href={`/events/${event.id}`} className="btn-primary">
+            {status === 'postponed' ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        )}
         <Link href="/events" className="club-text-link text-sm font-semibold">All events</Link>
       </div>
     </aside>
@@ -500,7 +523,7 @@ async function ComingUpPreview() {
   const now = Date.now();
   const [{ data: events }, calendarResult] = await Promise.all([
     getHomeEvents(),
-    getUpcomingCalendarEvents({ limit: 6, home: true }),
+    getHomeCalendar(),
   ]);
   const featured = selectNextEvent(events, now);
 
@@ -576,6 +599,7 @@ async function ClubNewsPreview() {
   return (
     <PreviewPanel id="club-news-title">
       <PreviewHeading id="club-news-title" title={cmsCopy(blocks['home.welcome']?.title) || 'Club news'} href="/news" linkLabel="club news" />
+      {cmsCopy(blocks['home.welcome']?.body) && <p className="mb-1 line-clamp-3 text-sm text-content-secondary">{cmsCopy(blocks['home.welcome']?.body)}</p>}
       {lead ? (
         <ul className="divide-y divide-edge-subtle dark:divide-white/10">
           <li>
@@ -583,7 +607,7 @@ async function ClubNewsPreview() {
               <span className="relative block aspect-square overflow-hidden rounded-lg bg-surface-page">
                 <SafeImage
                   src={lead.image_url || lead.image || '/images/Womens_Team.jpg'}
-                  alt=""
+                  alt={lead.title}
                   fill
                   className="object-cover"
                   sizes="72px"

@@ -125,6 +125,8 @@ for (const [items, expected] of [
   [[{ name: 'Pot Club 2026/2027', size: 'membership', quantity: 1, price: 100, product_code: 'pot_club_2026_27' }], 'Pot Club 2026/2027'],
   [[{ name: 'Pot Club 2026/2027', size: 'membership', quantity: 1, price: 100 }], 'Pot Club 2026/2027'],
   [[{ name: 'Social Membership', size: 'membership', quantity: 1, price: 60 }, { name: 'Club T-Shirt', size: 'addon', quantity: 1, price: 30 }], 'Social Membership'],
+  // A CMS-selected Pot Club plan with its own code and name.
+  [[{ name: 'Season Glass 2027/2028', size: 'membership', quantity: 1, price: 110, product_code: 'season_glass', product_kind: 'pot_club' }], 'Season Glass 2027/2028'],
 ]) {
   Object.assign(order, { order_category: 'membership', payment_reference: 'NDCCMEM-2026-000001', items, payment_status: 'paid' });
   marker = {}; sent = []; legacyMapping = null; payment.payment_reference = 'NDCCMEM-2026-000002';
@@ -133,6 +135,7 @@ for (const [items, expected] of [
   assert.ok(sent[0].html.includes(`for ${expected.toLowerCase()}.`));
   assert.ok(!pdfData.descriptionLines.some((line) => line.includes('(membership)')));
   if (expected !== 'Social Membership') assert.ok(!sent[0].html.toLowerCase().includes('social membership'));
+  else assert.equal(pdfData.paymentType, 'Social Membership');
 }
 // Only membership orders are relabelled: a merch item named "Pot Club" stays Merchandise.
 Object.assign(order, { order_category: 'merch', payment_reference: 'NDCCMER-2026-000001', items: [{ name: 'Pot Club mug', size: 'M', quantity: 1, price: 20 }] });

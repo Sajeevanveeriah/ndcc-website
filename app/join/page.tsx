@@ -6,6 +6,7 @@ import Accordion from '@/components/common/Accordion';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getMembershipOptions } from '@/lib/public-form-options';
 import { SOCIAL_MEMBERSHIP_ELIGIBILITY } from '@/lib/social-membership';
+import { getPotClubProductCode } from '@/lib/server/pot-club';
 import SocialMembershipForm from './SocialMembershipForm';
 
 // Server component: membership plans/add-ons and the hero copy are read
@@ -13,9 +14,10 @@ import SocialMembershipForm from './SocialMembershipForm';
 // ISR is configured in ./layout.tsx. Only the application form is a client
 // island.
 export default async function JoinPage() {
-  const [{ plans, addons }, blocks] = await Promise.all([
+  const [{ plans, addons }, blocks, potClubProductCode] = await Promise.all([
     getMembershipOptions(),
     getContentBlocks(['join.hero']),
+    getPotClubProductCode(),
   ]);
   const heroTitle = blocks['join.hero']?.title || 'Join the Club';
   const heroBody = blocks['join.hero']?.body || 'Choose player registration via PlayHQ or apply for social membership below.';
@@ -85,7 +87,7 @@ export default async function JoinPage() {
         </ScrollReveal>
 
         <div className="flex flex-wrap gap-4"><Link href="/club-account" className="btn-secondary">Create or manage your club account</Link><Link href="/pot-club" className="btn-primary">Order a Pot Club pot</Link></div>
-        <SocialMembershipForm plans={plans} addons={addons} />
+        <SocialMembershipForm plans={plans} addons={addons} potClubProductCode={potClubProductCode} />
       </div>
     </>
   );

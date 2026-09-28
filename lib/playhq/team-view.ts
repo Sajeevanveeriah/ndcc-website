@@ -1,7 +1,7 @@
 // Pure helpers for public team pages and the /fixtures team filter (no I/O).
 // Unit tested in scripts/test-playhq-mapping.mjs.
 import { isClubTeamName, normaliseClubText } from './season-match';
-import { juniorAge } from './team-category';
+import { juniorAge, teamCategory } from './team-category';
 import type { PlayHQFixture, PlayHQLadderRow, PlayHQTeam } from './types';
 
 const MELBOURNE = 'Australia/Melbourne';
@@ -66,10 +66,21 @@ export function matchPlayHQTeam(cms: CmsTeamLike, playhqTeams: PlayHQTeam[]): Pl
 /**
  * Website team cards with no team in the current PlayHQ season, such as
  * junior teams before GCA publishes the junior competitions. Shown as "not
- * yet published" so a whole age group never silently disappears.
+ * yet published" so a whole age group never silently disappears. A card that
+ * could be one of several PlayHQ sides (e.g. "Senior Women" beside Women
+ * 1sts and 2nds) is ambiguous, not unpublished, so it is left out.
  */
 export function teamsAwaitingPlayHQ<T extends CmsTeamLike>(cmsTeams: readonly T[], playhqTeams: PlayHQTeam[]): T[] {
-  return cmsTeams.filter((team) => team.name?.trim() && !matchPlayHQTeam(team, playhqTeams));
+  const club = playhqTeams.filter((team) => isClubTeamName(team.name));
+  return cmsTeams.filter((team) => {
+    if (!team.name?.trim() || matchPlayHQTeam(team, playhqTeams)) return false;
+    const category = teamCategory(team.name, team.grade);
+    const sameCategory = club.filter((candidate) => teamCategory(candidate.name, candidate.gradeName) === category);
+    const ordinal = teamMatchKey(team.name).ordinal ?? teamMatchKey(team.grade).ordinal;
+    const age = juniorAge(team.name) ?? juniorAge(team.grade);
+    if (ordinal === null && age === null) return sameCategory.length === 0;
+    return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && juniorAge(candidate.name) === age));
+  });
 }
 
 export function fixtureInvolvesTeam(fixture: PlayHQFixture, team: Pick<PlayHQTeam, 'id' | 'name'>): boolean {

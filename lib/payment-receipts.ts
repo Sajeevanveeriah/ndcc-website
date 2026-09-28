@@ -30,6 +30,7 @@ export type PaymentReceiptSendResult =
 type OrderItem = {
   name?: unknown;
   product_code?: unknown;
+  product_kind?: unknown;
   quantity?: unknown;
   size?: unknown;
   applied_options?: unknown;
@@ -45,10 +46,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // Pot Club is sold as a membership plan, so its orders share the
 // 'membership' category with genuine social memberships. The purchased plan
-// (product code, or its name for orders placed before codes were stored on
-// items) decides the receipt type: a Pot Club order reads "Pot Club
-// 2026/2027", not "Social Membership".
+// decides the receipt type: orders mark the CMS-selected Pot Club plan with
+// product_kind 'pot_club'; older orders are recognised by the original
+// product code or the "Pot Club" plan name. A Pot Club order reads by its
+// plan name ("Pot Club 2026/2027"), never "Social Membership".
 function isPotClubItem(item: OrderItem) {
+  if (item.product_kind === 'pot_club') return true;
   const code = typeof item.product_code === 'string' ? item.product_code.trim() : '';
   return code.startsWith('pot_club') || /^pot club\b/i.test(String(item.name ?? '').trim());
 }
@@ -57,8 +60,7 @@ function receiptPaymentType(category: unknown, items: unknown): string {
   const key = String(category ?? '');
   if (key === 'membership' && Array.isArray(items)) {
     const potClub = (items as OrderItem[]).find((item) => item && typeof item === 'object' && item.size === 'membership' && isPotClubItem(item));
-    const name = potClub ? String(potClub.name ?? '').trim() : '';
-    if (potClub) return name && /^pot club\b/i.test(name) ? name.slice(0, 55) : 'Pot Club';
+    if (potClub) return String(potClub.name ?? '').trim().slice(0, 55) || 'Pot Club';
   }
   return CATEGORY_LABELS[key] || 'Club Payment';
 }

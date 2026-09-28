@@ -153,6 +153,11 @@ test('CMS teams match PlayHQ teams by link, exact name or unique ordinal', () =>
   const cmsJuniors = [{ name: 'Junior Boys - Under 11s' }, { name: 'Junior Boys - Under 13s' }, { name: 'Junior Boys - Under 17s' }, { name: '1st XI' }];
   assert.deepEqual(view.teamsAwaitingPlayHQ(cmsJuniors, juniorTeams).map((team) => team.name), ['Junior Boys - Under 11s', 'Junior Boys - Under 17s']);
   assert.deepEqual(view.teamsAwaitingPlayHQ(cmsJuniors, teams).map((team) => team.name), ['Junior Boys - Under 11s', 'Junior Boys - Under 13s', 'Junior Boys - Under 17s']);
+  // Category-level or ambiguous cards are not "unpublished" while PlayHQ lists
+  // sides they could be; they are only flagged when the category is absent.
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Senior Women' }, { name: 'Senior Men' }], teams).map((team) => team.name), []);
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys' }], teams).map((team) => team.name), ['Junior Boys']);
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Women 3rds' }], teams).map((team) => team.name), ['Women 3rds']);
 });
 
 test('team fixtures, next match and home/away from the recording', () => {
