@@ -9,7 +9,7 @@ import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-sea
 import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fantasy-game';
 import { buildSquadSlots, validateSquadAssignments, type DinoSquadAssignment } from '@/lib/dino-coach/domain';
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
-import { getRealisedSaleProfit, walletSummary } from '@/lib/dino-coach/sales-server';
+import { getLatestPublishedPrices, getRealisedSaleProfit, walletSummary } from '@/lib/dino-coach/sales-server';
 import { pendingSaleProfit } from '@/lib/dino-coach/wallet';
 import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
 import { revalidateDinoStandingsCache } from '@/lib/server/revalidate-public';
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Could not check your entry status. Please try again.' }, { status: 503 });
     }
     const eligibilityIssues = managerEligibilityIssues(auth.manager, entry.data, settings.rules_version);
-    const stats = await getPlayerStats(season.id, players);
-    return NextResponse.json({ success: true, eligibilityIssues, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad, wallet: walletSummary(settings.budget_dino_dollars, realisedProfit) }, { headers: { 'Cache-Control': 'no-store' } });
+    const [stats, ownedPrices] = await Promise.all([getPlayerStats(season.id, players), getLatestPublishedPrices(season.id, (squad?.fantasy_squad_players || []).map((item) => item.player_id))]);
+    return NextResponse.json({ success: true, eligibilityIssues, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad, ownedPrices, wallet: walletSummary(settings.budget_dino_dollars, realisedProfit) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     logRouteError('fantasy/squad:get', error);
     return NextResponse.json({ success: false, error: 'Could not load Dino Coach squad.' }, { status: 500 });
@@ -96,7 +96,7 @@ async function saveSquad(request: Request) {
   // that selling any owned players left out of this selection realises on save.
   const owned = (previous?.fantasy_squad_players || []).map((item) => ({ playerId: item.player_id, purchasePriceDinoDollars: Number(item.purchase_price_dino_dollars), saleReferenceDinoDollars: Number(item.sale_reference_dino_dollars ?? item.purchase_price_dino_dollars) }));
   const spendingPower = settings.budget_dino_dollars + await getRealisedSaleProfit(auth.manager.id, season.id)
-    + pendingSaleProfit(owned, authoritativeSelection.map((item) => item.playerId), players.map((player) => ({ id: player.id, price_dino_dollars: Number(player.price_dino_dollars) })));
+    + pendingSaleProfit(owned, authoritativeSelection.map((item) => item.playerId), await getLatestPublishedPrices(season.id, owned.map((player) => player.playerId)));
   const validation = validateSquadAssignments(authoritativeSelection, buildSquadSlots(settings.slot_counts), spendingPower, { allowIncomplete: isDraft });
   if (!validation.valid) return NextResponse.json({ success: false, error: validation.errors.join(' ') }, { status: 400 });
   const { data, error } = await createServerClient().rpc('save_dino_coach_squad_v2', {

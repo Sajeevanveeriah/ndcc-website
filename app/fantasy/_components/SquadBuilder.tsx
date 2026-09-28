@@ -35,7 +35,7 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
 
   const applySnapshot = useCallback((result: any) => {
     setEligibilityIssues(result.eligibilityIssues || []);
-    setPlayers(result.players || []); setSlots(result.slots || []); setSettings({ ...result.settings, squadVersion: result.squad?.updated_at ?? null, managerId: result.managerId, savedSpent: Number(result.squad?.budget_used_dino_dollars || 0), costs: Object.fromEntries((result.squad?.fantasy_squad_players || []).map((p: any) => [p.player_id, Number(p.purchase_price_dino_dollars)])), owned: (result.squad?.fantasy_squad_players || []).map((p: any) => ({ playerId: p.player_id, purchasePriceDinoDollars: Number(p.purchase_price_dino_dollars), saleReferenceDinoDollars: Number(p.sale_reference_dino_dollars ?? p.purchase_price_dino_dollars) })), spendingPower: Number(result.wallet?.spendingPowerDinoDollars ?? result.settings?.budget_dino_dollars ?? 0) });
+    setPlayers(result.players || []); setSlots(result.slots || []); setSettings({ ...result.settings, squadVersion: result.squad?.updated_at ?? null, managerId: result.managerId, savedSpent: Number(result.squad?.budget_used_dino_dollars || 0), costs: Object.fromEntries((result.squad?.fantasy_squad_players || []).map((p: any) => [p.player_id, Number(p.purchase_price_dino_dollars)])), owned: (result.squad?.fantasy_squad_players || []).map((p: any) => ({ playerId: p.player_id, purchasePriceDinoDollars: Number(p.purchase_price_dino_dollars), saleReferenceDinoDollars: Number(p.sale_reference_dino_dollars ?? p.purchase_price_dino_dollars) })), spendingPower: Number(result.wallet?.spendingPowerDinoDollars ?? result.settings?.budget_dino_dollars ?? 0), ownedPrices: result.ownedPrices || [] });
     setSelection((result.squad?.fantasy_squad_players || []).map((item: any) => ({
       displayName: item.fantasy_players?.display_name, slotKey: item.slot_key, playerId: item.player_id, assignedRole: item.assigned_role, positionType: item.position_type,
       isCaptain: item.is_captain, isViceCaptain: item.is_vice_captain, purchasePriceDinoDollars: Number(item.purchase_price_dino_dollars),
@@ -65,7 +65,7 @@ export default function SquadBuilder({ readonlyMode = false }: { readonlyMode?: 
     .sort((a, b) => sort === 'price-high' ? b.price_dino_dollars - a.price_dino_dollars : sort === 'price-low' ? a.price_dino_dollars - b.price_dino_dollars : a.display_name.localeCompare(b.display_name)), [players, search, sort]);
   const ineligible = selection.filter((pick) => !players.some((player) => player.id === pick.playerId));
   // Spending power plus the profit or loss that removing owned players realises on save.
-  const { remaining } = squadWallet(Number(settings?.spendingPower ?? settings?.budget_dino_dollars ?? 0) + pendingSaleProfit(settings?.owned || [], selection.map((p) => p.playerId), players), selection, players);
+  const { remaining } = squadWallet(Number(settings?.spendingPower ?? settings?.budget_dino_dollars ?? 0) + pendingSaleProfit(settings?.owned || [], selection.map((p) => p.playerId), settings?.ownedPrices || []), selection, players);
 
   const assign = (slot: Slot, playerId: string) => {
     if (editingDisabled || !playerId) return;

@@ -26,7 +26,7 @@ export default function TransfersClient() {
  };
  if(!data) return <div className="card p-6"><p role="status">{error||'Loading the player market...'}</p>{error&&<><Button onClick={()=>void load()}>Retry</Button><Link href="/fantasy/login">Sign in</Link></>}</div>;
  const picks=data.squad?.fantasy_squad_players||[]; const owned=new Set(picks.map((p:any)=>p.player_id));
- const priceOf=(id:string)=>Number(data.players.find((p:any)=>p.id===id)?.price_dino_dollars||0);
+ const priceOf=(id:string)=>Number((data.ownedPrices||[]).find((p:any)=>p.id===id)?.price_dino_dollars??data.players.find((p:any)=>p.id===id)?.price_dino_dollars??0);
  const valueOf=(p:any)=>saleValue(Number(p.purchase_price_dino_dollars),Number(p.sale_reference_dino_dollars??p.purchase_price_dino_dollars),priceOf(p.player_id)||Number(p.purchase_price_dino_dollars));
  const outgoing=picks.find((p:any)=>p.player_id===out);
  const refund=outgoing?valueOf(outgoing):0;

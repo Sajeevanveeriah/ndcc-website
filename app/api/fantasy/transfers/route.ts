@@ -5,7 +5,7 @@ import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fantasy-game';
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
-import { getRealisedSaleProfit, walletSummary } from '@/lib/dino-coach/sales-server';
+import { getLatestPublishedPrices, getRealisedSaleProfit, walletSummary } from '@/lib/dino-coach/sales-server';
 import { buildSquadSlots, isTransferWindowOpen } from '@/lib/dino-coach/domain';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
@@ -25,8 +25,9 @@ export async function GET(request: Request) {
    getRealisedSaleProfit(auth.manager.id,season.id),
   ]);
   if(squad.error) throw new Error(squad.error.message);
+  const ownedPrices=await getLatestPublishedPrices(season.id,(squad.data?.fantasy_squad_players||[]).map((item:{player_id:string})=>item.player_id));
   const windowOpen=seasonAllowsTeamChanges(season)&&!lock.locked&&settings.public_launch_enabled&&settings.team_selection_open&&isTransferWindowOpen(new Date(),{timezone:settings.transfer_timezone,openWeekday:settings.transfer_open_weekday,openMinute:settings.transfer_open_minute,closeWeekday:settings.transfer_close_weekday,closeMinute:settings.transfer_close_minute});
-  return NextResponse.json({success:true,managerId:auth.manager.id,season,settings:toPublicDinoCoachSettings(settings),slots:buildSquadSlots(settings.slot_counts),players,squad:squad.data,wallet:walletSummary(settings.budget_dino_dollars,realisedProfit),windowOpen},{headers:{'Cache-Control':'no-store'}});
+  return NextResponse.json({success:true,managerId:auth.manager.id,season,settings:toPublicDinoCoachSettings(settings),slots:buildSquadSlots(settings.slot_counts),players,squad:squad.data,ownedPrices,wallet:walletSummary(settings.budget_dino_dollars,realisedProfit),windowOpen},{headers:{'Cache-Control':'no-store'}});
  } catch(e) { logRouteError('fantasy/transfers:get',e); return NextResponse.json({error:'Could not load the market.'},{status:500}); }
 }
 export async function POST(request: Request) {
