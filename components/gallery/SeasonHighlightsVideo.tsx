@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Play } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // 720p web copies of the 2025/26 season slideshow (Share Rev04), with the
 // title card as its poster. The page shows only the poster until someone
@@ -15,14 +15,25 @@ const POSTER = '/media/20260928-NDCC-Season-Slideshow-Poster-Rev00.webp';
 const TITLE = 'The 2025/26 season';
 
 export default function SeasonHighlightsVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [started, setStarted] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  // The source is set only once play is pressed. The MP4 is H.264 High,
+  // level 3.1 (avc1.64001F) with AAC: probe exactly that.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!started || failed || !video || video.getAttribute('src')) return;
+    video.src = video.canPlayType('video/mp4; codecs="avc1.64001F, mp4a.40.2"') ? SEASON_SLIDESHOW_VIDEO : SEASON_SLIDESHOW_WEBM;
+    void video.play().catch(() => undefined);
+  }, [started, failed]);
 
   return (
     <figure className="m-0 overflow-hidden rounded-2xl border border-edge-subtle bg-gray-900 shadow-[0_1px_2px_rgba(29,29,31,0.05),0_30px_60px_-30px_rgba(45,0,0,0.35)]">
       <div className="relative aspect-video w-full" onContextMenu={(event) => event.preventDefault()}>
         {started && !failed ? (
           <video
+            ref={videoRef}
             poster={POSTER}
             width={1280}
             height={720}
@@ -36,11 +47,19 @@ export default function SeasonHighlightsVideo() {
             disableRemotePlayback
             aria-label={`${TITLE}: photo slideshow video`}
             className="absolute inset-0 h-full w-full bg-gray-900 object-contain"
-          >
-            <source src={SEASON_SLIDESHOW_VIDEO} type='video/mp4; codecs="avc1.64001F, mp4a.40.2"' />
-            {/* Fires only when every source has failed (the last one's error). */}
-            <source src={SEASON_SLIDESHOW_WEBM} type='video/webm; codecs="vp9, opus"' onError={() => setFailed(true)} />
-          </video>
+            onError={() => {
+              const video = videoRef.current;
+              // Any load or decode failure lands here (not on a <source>). A
+              // browser can claim H.264 and still fail: try the WebM once,
+              // then show the message; the poster button offers a retry.
+              if (video && video.getAttribute('src') === SEASON_SLIDESHOW_VIDEO) {
+                video.src = SEASON_SLIDESHOW_WEBM;
+                void video.play().catch(() => undefined);
+                return;
+              }
+              setFailed(true);
+            }}
+          />
         ) : (
           <button
             type="button"

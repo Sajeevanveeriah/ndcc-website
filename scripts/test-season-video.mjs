@@ -24,7 +24,9 @@ assert.match(component, /controlsList="nodownload noplaybackrate"/);
 assert.match(component, /disablePictureInPicture/);
 assert.match(component, /onContextMenu=\{\(event\) => event\.preventDefault\(\)\}/);
 assert.match(component, /preload="none"/);
-assert.match(component, /<source src=\{SEASON_SLIDESHOW_VIDEO\} type='video\/mp4[^']*' \/>\s*\{[^}]*\}\s*<source src=\{SEASON_SLIDESHOW_WEBM\} type='video\/webm[^']*' onError=/, 'MP4 first, WebM fallback, failure shown only after both');
+assert.match(component, /canPlayType\('video\/mp4; codecs="avc1\.64001F, mp4a\.40\.2"'\) \? SEASON_SLIDESHOW_VIDEO : SEASON_SLIDESHOW_WEBM/, 'MP4 when H.264 plays, else WebM');
+assert.match(component, /onError=\{\(\) => \{[\s\S]*?getAttribute\('src'\) === SEASON_SLIDESHOW_VIDEO\)[\s\S]*?video\.src = SEASON_SLIDESHOW_WEBM;[\s\S]*?setFailed\(true\);/, 'video-level errors retry the WebM once, then show the message');
+assert.doesNotMatch(component, /<source /, 'no <source> elements: their error events miss decode failures');
 assert.match(component, /aria-label=\{`Play \$\{TITLE\} slideshow video \(5 minutes 12 seconds, with sound\)`\}/);
 assert.doesNotMatch(component, /download=|href=\{SEASON_SLIDESHOW_VIDEO\}/, 'no download link');
 
