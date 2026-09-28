@@ -1,6 +1,7 @@
 import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
 import { isMealCollectionWindow, mealContractMatches, MEAL_COLLECTION_REQUIRED_MESSAGE, MEAL_COLLECTION_TIME_ZONE } from '@/lib/meal-collection';
 import { getClubSettings } from '@/lib/club-settings';
+import { spinOrderCheckoutFailure } from '@/lib/spin-wheel/checkout-guard';
 import { NextResponse } from 'next/server';
 import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { getStripe } from '@/lib/stripe';
@@ -38,6 +39,7 @@ const CATEGORY_RETURN_PATHS: Record<string, string> = {
   kitchen: '/kitchen',
   membership: '/join',
   event: '/events',
+  spin_wheel: '/spin-the-wheel',
 };
 
 const CHECKOUT_DURATION_SECONDS = 60 * 60;
@@ -60,7 +62,7 @@ function getSafeReturnPath(value: unknown, orderCategory: string): string {
   if (typeof value !== 'string') return fallback;
 
   const path = value.trim();
-  if (path === '/sponsors/donate' || path === '/merchandise' || path === '/kitchen' || path === '/join' || path === '/events') {
+  if (path === '/sponsors/donate' || path === '/merchandise' || path === '/kitchen' || path === '/join' || path === '/events' || path === '/spin-the-wheel') {
     return path;
   }
   if (/^\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(path)) {
@@ -224,6 +226,11 @@ export async function POST(request: Request) {
 
     if (order.order_category === 'donation' && !(await getClubSettings()).donations_enabled) {
       return NextResponse.json({ success: false, error: 'Donations are currently unavailable.' }, { status: 404 });
+    }
+
+    if (order.order_category === 'spin_wheel') {
+      const spinFailure = await spinOrderCheckoutFailure(supabase, order.id);
+      if (spinFailure) return NextResponse.json({ success: false, error: spinFailure }, { status: 409 });
     }
 
     const balanceDue = Number(order.total_amount) - Number(order.amount_paid ?? 0);

@@ -38,6 +38,9 @@ export async function POST(request: Request) {
       .eq('id', order_id).is('deleted_at', null).maybeSingle();
     if (error) return reply({ error: 'Bank transfer selection is temporarily unavailable.' }, 503);
     if (!order || (tokenAuthorised ? order.order_category !== 'merch' : String(order.customer_email).trim().toLowerCase() !== String(email).trim().toLowerCase())) return reply({ error: 'No matching order was found.' }, 404);
+    // Spin the Wheel orders are paid by card before the wheel closes; a later
+    // bank deposit could settle after the spins stop working.
+    if (order.order_category === 'spin_wheel') return reply({ error: 'Spins are paid by card on the Spin the Wheel page.' }, 409);
     if (action === 'read') return reply({ selected: Boolean(order.bank_transfer_selected_at) });
     if (!TRANSFER_PAYABLE_STATUSES.includes(order.payment_status) || order.order_status === 'cancelled'
       || Number(order.balance_due ?? (Number(order.total_amount) - Number(order.amount_paid || 0))) <= 0) return reply({ error: 'This order is no longer awaiting payment. Refresh your order.' }, 409);

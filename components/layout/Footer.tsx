@@ -73,7 +73,7 @@ export default async function Footer() {
   const acknowledgement = acknowledgementBlock?.body;
   const acknowledgementImage = acknowledgementBlock?.image_url;
 
-  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled, prizeWheelPublic: prizeWheelEnabled } = nav;
+  const { dinoCoachPublic: dinoCoachEnabled, rafflePublic: raffleEnabled, reverseRafflePublic: reverseRaffleEnabled, prizeWheelPublic: prizeWheelEnabled, spinWheelPublic: spinWheelEnabled } = nav;
   // CMS campaign dates when known; otherwise the built-in deadline.
   const cookie: CookieWindow = nav.cookieDoughOpen === undefined
     ? { open: isCookieDoughOpen(), endsAt: COOKIE_DOUGH_ENDS_AT }
@@ -83,7 +83,8 @@ export default async function Footer() {
     && (dinoCoachEnabled || !link.href.startsWith('/fantasy'))
     && (raffleEnabled || !link.href.startsWith('/raffle'))
     && (reverseRaffleEnabled || !link.href.startsWith('/reverse-raffle'))
-    && (prizeWheelEnabled === true || !link.href.startsWith('/prize-wheel'));
+    && (prizeWheelEnabled === true || !link.href.startsWith('/prize-wheel'))
+    && (spinWheelEnabled === true || !link.href.startsWith('/spin-the-wheel'));
   const quickLinks = resolveLinks(cmsQuickLinks).filter(hideDisabledFeatures);
   const getInvolvedLinks = resolveLinks(cmsGetInvolvedLinks).filter(hideDisabledFeatures);
   const affiliationLinks = resolveLinks(cmsAffiliationLinks).filter(hideDisabledFeatures);
