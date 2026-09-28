@@ -36,7 +36,7 @@ assert.equal((await mod.exports.PATCH({body:{id:'m',expectedUpdatedAt:'date',rea
 assert.equal((await mod.exports.PATCH({body:{id:'m',expectedUpdatedAt:'date',reason:'test',changes:{deleted:'true'}}})).status,400);
 rpcError=null;
 const patch=body=>mod.exports.PATCH({body:{id:'m',expectedUpdatedAt:'date',...body}});
-for(const [changes,expected] of [[{deleted:true},'Team deleted by the administrator.'],[{deleted:false,is_active:true},'Team restored by the administrator.'],[{reactivate:true,is_active:true},'Team reactivated by the club.']]) {
+for(const [changes,expected] of [[{deleted:true},'Team deleted by the administrator.'],[{deleted:false,is_active:true},'Team restored by the administrator.'],[{reactivate:true,is_active:true},'Team reactivated by the club.'],[{fee_waived:true},'Complimentary entry approved by the administrator.'],[{fee_waived:false},'Complimentary entry removed by the administrator.']]) {
  for(const reason of [undefined,'','  ']) {
   assert.equal((await patch({changes,reason,confirmation:'DELETE TEAM'})).status,200);
   assert.equal(lastRpc.args.p_reason,expected);
@@ -54,12 +54,15 @@ for(const body of [
  {changes:{deleted:true},confirmation:'DELETE TEAM',selection:[]},
  {changes:{team_name:'Unexplained edit'}},
  {changes:{reactivate:true,is_active:true,hidden:true}},
+ {changes:{fee_waived:true,team_name:'Unexplained edit'}},
+ {changes:{fee_waived:'true'}},
 ])assert.equal((await patch(body)).status,400);
 assert.equal(dbCalls,priorCalls);
 user={id:'reviewer',role:'committee'};
 assert.equal((await patch({changes:{deleted:true},confirmation:'DELETE TEAM'})).status,403);
 assert.equal((await patch({changes:{deleted:false,is_active:true}})).status,403);
+for(const fee_waived of [true,false])assert.equal((await patch({changes:{fee_waived}})).status,403);
 assert.equal((await patch({changes:{reactivate:true,is_active:true}})).status,200);
 user={id:'admin',role:'admin'};rpcError={code:'40001',message:'Team changed since opening'};
 assert.equal((await patch({changes:{deleted:true},confirmation:'DELETE TEAM'})).status,409);
-console.log('PASS admin/reviewer boundaries, complimentary registration and compensation, delete/restore/reactivate with blank reasons, custom reasons, typed confirmation, mixed-edit rejection and stale-version conflict');
+console.log('PASS admin/reviewer boundaries, complimentary registration and compensation, admin-only complimentary entry with default reasons, delete/restore/reactivate with blank reasons, custom reasons, typed confirmation, mixed-edit rejection and stale-version conflict');
