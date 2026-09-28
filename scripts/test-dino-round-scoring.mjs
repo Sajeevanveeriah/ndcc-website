@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { selectScoringSquads } from '../lib/dino-coach/round-scoring.ts';
+import { applyBenchCover, selectScoringSquads } from '../lib/dino-coach/round-scoring.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
@@ -25,9 +25,12 @@ assert.deepEqual(ids(selectScoringSquads([squad('c0', 'c', null, 'submitted', '2
 assert.deepEqual(ids(selectScoringSquads([squad('d0', 'd', null)], target('w2', 2))), ['d:d0']);
 // Later rounds never score an earlier round.
 assert.deepEqual(selectScoringSquads([squad('e3', 'e', 'w3')], target('w2', 2)), []);
-// Drafts never score; an unfinished draft for this round falls back to the last submitted squad.
-assert.deepEqual(ids(selectScoringSquads([squad('f2', 'f', 'w2', 'draft'), squad('f1', 'f', 'w1', 'locked')], target('w2', 2))), ['f:f1']);
-assert.deepEqual(selectScoringSquads([squad('g1', 'g', 'w1', 'draft')], target('w2', 2)), []);
+// Every team is locked at the deadline as saved, drafts included: this round's draft scores.
+assert.deepEqual(ids(selectScoringSquads([squad('f2', 'f', 'w2', 'draft'), squad('f1', 'f', 'w1', 'locked')], target('w2', 2))), ['f:f2']);
+// A draft from an earlier round carries forward like a submitted squad.
+assert.deepEqual(ids(selectScoringSquads([squad('g1', 'g', 'w1', 'draft')], target('w2', 2))), ['g:g1']);
+// Unknown statuses are ignored.
+assert.deepEqual(selectScoringSquads([squad('g9', 'g', 'w2', 'archived')], target('w2', 2)), []);
 // Rounds outside this season (unknown number) are ignored.
 assert.deepEqual(selectScoringSquads([squad('h9', 'h', 'other-season'), squad('h8', 'h', 'missing')], target('w2', 2)), []);
 // Round with no number: exact and legacy only.
@@ -38,10 +41,32 @@ assert.deepEqual(ids(selectScoringSquads([squad('j-old', 'j', 'w1', 'submitted',
 const many = selectScoringSquads([squad('z1', 'z', 'w1'), squad('a1', 'a', 'w1'), squad('m2', 'm', 'w2')], { roundId: 'w2', roundNumber: 2, roundNumbers: { w1: 1, w2: 2 } });
 assert.deepEqual(ids(many), ['a:a1', 'm:m2', 'z:z1']);
 assert.deepEqual(selectScoringSquads([], target('w1', 1)), []);
-console.log('PASS round scoring: exact round, carry-forward, legacy fallback, drafts, other seasons, ties');
+console.log('PASS round scoring: exact round, carry-forward, legacy fallback, drafts count, other seasons, ties');
+
+// Bench cover: an empty playing slot takes the bench player of the same role.
+const counts = { BAT: 4, AR: 2, WK: 1, BOWL: 4 };
+const pick = (player_id, position_type, assigned_role, extra = {}) => ({ player_id, position_type, assigned_role, ...extra });
+const fullXI = [...['b1', 'b2', 'b3', 'b4'].map((id) => pick(id, 'starter', 'BAT')), pick('a1', 'starter', 'AR'), pick('a2', 'starter', 'AR'), pick('w1', 'starter', 'WK'), ...['o1', 'o2', 'o3', 'o4'].map((id) => pick(id, 'starter', 'BOWL'))];
+const bench = [pick('bb', 'bench', 'BAT', { is_captain: true }), pick('ba', 'bench', 'AR'), pick('bw', 'bench', 'WK'), pick('bo', 'bench', 'BOWL')];
+let cover = applyBenchCover([...fullXI, ...bench], counts);
+assert.equal(cover.starters.length, 11, 'A full XI keeps the bench out');
+assert.deepEqual(cover.promoted, []);
+cover = applyBenchCover([...fullXI.filter((p) => p.player_id !== 'b4'), ...bench], counts);
+assert.deepEqual(cover.promoted.map((p) => p.player_id), ['bb'], 'Missing batter replaced by the bench batter');
+assert.equal(cover.starters.length, 11);
+assert.equal(cover.promoted[0].is_captain, false, 'A promoted bench player never carries leadership');
+cover = applyBenchCover([...fullXI.filter((p) => p.player_id !== 'b4' && p.player_id !== 'b3'), ...bench], counts);
+assert.deepEqual(cover.promoted.map((p) => p.player_id), ['bb'], 'Only one bench batter can cover two missing batters');
+assert.equal(cover.starters.length, 10);
+cover = applyBenchCover([...fullXI.filter((p) => p.player_id !== 'w1'), pick('bb', 'bench', 'BAT')], counts);
+assert.deepEqual(cover.promoted, [], 'A bench batter never covers the wicket-keeper slot');
+cover = applyBenchCover([pick('bo', 'bench', 'BOWL')], counts);
+assert.deepEqual(cover.promoted.map((p) => p.player_id), ['bo'], 'Sparse drafts still use bench cover');
+console.log('PASS bench cover: same-role promotion only into empty slots, no leadership, full XI unchanged');
 
 const route = read('app/api/admin/fantasy/scores/route.ts');
 assert.match(route, /selectScoringSquads\(/, 'Scoring uses the tested carry-forward selection');
+assert.match(route, /applyBenchCover</, 'Scoring applies bench cover before counting points');
 assert.doesNotMatch(route, /round_id\.eq\.\$\{roundId\},round_id\.is\.null/, 'Scoring no longer limits squads to this round or null');
 assert.match(route, /That round is not part of the selected season\./, 'Round must belong to the season');
 assert.match(route, /\.from\('fantasy_rounds'\)\.select\('id, round_number, name, season_id'\)\.eq\('season_id', season\.id\)/, 'GET round list is season filtered');

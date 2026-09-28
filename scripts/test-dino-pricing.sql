@@ -115,4 +115,31 @@ BEGIN
   RAISE EXCEPTION 'First real appearance was diluted by earlier unplayed weeks';
  END IF;
 END $$;
+DO $$
+-- Saj's rule: prices change after every second round from a rolling average, and
+-- the round 4 review measures the change from the round 2 rolling figure.
+DECLARE sid uuid; pid uuid; r uuid[]:='{}'; bid uuid; rid uuid; value bigint; prev numeric; rolling numeric; i int; pts int[]:=ARRAY[40,48,12,16];
+BEGIN
+ INSERT INTO public.fantasy_seasons(name,slug,is_public,auto_sync_enabled) VALUES('Rolling regression','rolling-regression-'||gen_random_uuid(),false,false) RETURNING id INTO sid;
+ INSERT INTO public.fantasy_dino_settings(season_id,pilot_notice,slot_counts,scoring_config,budget_dino_dollars,initial_price_floor_dino_dollars,initial_price_ceiling_dino_dollars,price_changes_start_round,price_point_value_dino_dollars)
+ VALUES(sid,'Regression fixture','{}','{}',15000000,100000,2000000,2,10000);
+ INSERT INTO public.fantasy_players(display_name,role) VALUES('Rolling fixture '||gen_random_uuid(),'BAT') RETURNING id INTO pid;
+ INSERT INTO public.fantasy_season_players(season_id,player_id,role,active,selectable,stats_status) VALUES(sid,pid,'BAT',true,true,'unrated');
+ INSERT INTO public.fantasy_player_prices(season_id,player_id,price_dino_dollars,price_million,prior_baseline_points,rolling_performance_points,published_at,created_at)
+ VALUES(sid,pid,500000,0.5,30,30,now(),now()-interval '60 days');
+ INSERT INTO public.fantasy_import_batches(season_id,status) VALUES(sid,'published') RETURNING id INTO bid;
+ FOR i IN 1..4 LOOP
+  INSERT INTO public.fantasy_rounds(season_id,round_number,name,deadline_at,status) VALUES(sid,i,'Round '||i,now()-make_interval(days=>50-7*i),'scored') RETURNING id INTO rid;
+  r:=array_append(r,rid);
+  INSERT INTO public.fantasy_match_stats(season_id,round_id,player_id,import_batch_id,match_date,runs) VALUES(sid,rid,pid,bid,current_date-(50-7*i),pts[i]);
+ END LOOP;
+ PERFORM public.settle_dino_price_windows(sid);
+ -- Round 2 (runs below 50, so no batting bonus): games 40 and 48 average 44; rolling 0.5 x 30 + 0.5 x 44 = 37; +7 x 10,000.
+ SELECT price_dino_dollars,previous_rolling_performance_points,rolling_performance_points INTO value,prev,rolling FROM public.fantasy_player_prices WHERE season_id=sid AND effective_round_id=r[2];
+ IF value<>570000 OR prev<>30 OR rolling<>37 THEN RAISE EXCEPTION 'Round 2 review wrong: price %, previous %, rolling %',value,prev,rolling; END IF;
+ -- Round 4: games 12 and 16 average 14; rolling 0.5 x 30 + 0.5 x 14 = 22; measured from round 2's 37: -15 x 10,000.
+ SELECT price_dino_dollars,previous_rolling_performance_points,rolling_performance_points INTO value,prev,rolling FROM public.fantasy_player_prices WHERE season_id=sid AND effective_round_id=r[4];
+ IF value<>420000 OR prev<>37 OR rolling<>22 THEN RAISE EXCEPTION 'Round 4 review wrong: price %, previous %, rolling %',value,prev,rolling; END IF;
+ IF EXISTS(SELECT 1 FROM public.fantasy_player_prices WHERE season_id=sid AND effective_round_id IN (r[1],r[3])) THEN RAISE EXCEPTION 'Odd round changed a price'; END IF;
+END $$;
 ROLLBACK;

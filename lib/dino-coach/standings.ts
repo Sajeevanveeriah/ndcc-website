@@ -63,7 +63,7 @@ export async function getDinoManagerStandings(
   }
   if (!grouped.size) return [];
   const squads = await fetchAllPages<SquadRow>((from, to) => supabase.from('fantasy_squads')
-    .select('id,manager_id,created_at').eq('season_id', seasonId).eq('status', 'submitted')
+    .select('id,manager_id,created_at').eq('season_id', seasonId).in('status', ['draft', 'submitted', 'locked'])
     .in('manager_id', Array.from(grouped.keys())).order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to));
   const latestSquad = new Map<string, string>();
   for (const squad of squads) if (!latestSquad.has(squad.manager_id)) latestSquad.set(squad.manager_id, squad.id);

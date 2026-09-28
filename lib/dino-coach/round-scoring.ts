@@ -1,16 +1,17 @@
 // Pure squad selection for Dino Coach round scoring (tested in
 // scripts/test-dino-round-scoring.mjs). Kept free of imports.
 //
-// Squads are saved one row per round. A manager who does not touch their team
-// for a new round keeps playing the squad they last submitted, so scoring
-// carries it forward:
-//   1. the manager's submitted/locked squad for this round;
-//   2. otherwise their most recent submitted/locked squad from an earlier
-//      round of the same season (highest round number, then newest row);
+// Squads are saved one row per round and cannot change once the round's
+// deadline passes, so the saved row is the team locked for that round. Every
+// team counts towards the tally as it stood at the lock, including drafts and
+// incomplete squads (empty slots score nothing). A manager who does not touch
+// their team for a new round keeps playing their most recent squad:
+//   1. the manager's squad for this round;
+//   2. otherwise their most recent squad from an earlier round of the same
+//      season (highest round number, then newest row);
 //   3. otherwise their season-wide squad saved without a round (legacy).
-// Drafts never score.
 
-export const SCORING_SQUAD_STATUSES = ['submitted', 'locked'] as const;
+export const SCORING_SQUAD_STATUSES = ['draft', 'submitted', 'locked'] as const;
 
 export type ScoringSquadCandidate = {
   id: string;
@@ -62,4 +63,36 @@ export function selectScoringSquads<T extends ScoringSquadCandidate>(squads: T[]
     if (better) best.set(squad.manager_id, { squad, rank, roundNumber });
   }
   return [...best.values()].map((item) => item.squad).sort((a, b) => a.manager_id.localeCompare(b.manager_id));
+}
+
+export type ScoringSquadPlayer = {
+  player_id: string;
+  position_type: string;
+  assigned_role: string | null;
+  is_captain?: boolean | null;
+  is_vice_captain?: boolean | null;
+  slot_key?: string | null;
+};
+
+// Bench cover: an empty playing-XI slot is filled by the bench player saved in
+// the bench slot of the same role (for example an empty batter slot takes the
+// bench batter). The promoted player scores in that role without a captain or
+// vice-captain multiplier. Filled starter slots are never replaced, and bench
+// players who are not needed still score nothing.
+export function applyBenchCover<T extends ScoringSquadPlayer>(players: T[], starterSlotCounts: Record<string, number>): { starters: T[]; promoted: T[] } {
+  const starters = players.filter((player) => player.position_type === 'starter');
+  const bench = players.filter((player) => player.position_type === 'bench');
+  const filled = new Map<string, number>();
+  for (const player of starters) if (player.assigned_role) filled.set(player.assigned_role, (filled.get(player.assigned_role) ?? 0) + 1);
+  const promoted: T[] = [];
+  for (const [role, count] of Object.entries(starterSlotCounts)) {
+    let open = Math.max(0, Number(count) - (filled.get(role) ?? 0));
+    for (const player of bench) {
+      if (open === 0) break;
+      if (player.assigned_role !== role || promoted.includes(player)) continue;
+      promoted.push({ ...player, is_captain: false, is_vice_captain: false });
+      open -= 1;
+    }
+  }
+  return { starters: [...starters, ...promoted], promoted };
 }

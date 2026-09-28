@@ -5,6 +5,7 @@ import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
 import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fantasy-game';
 import { getDinoCoachSettings, toPublicDinoCoachSettings } from '@/lib/dino-coach/server';
+import { getRealisedSaleProfit, walletSummary } from '@/lib/dino-coach/sales-server';
 import { buildSquadSlots, isTransferWindowOpen } from '@/lib/dino-coach/domain';
 import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
 import { logRouteError, publicRpcErrorMessage } from '@/lib/server/public-errors';
@@ -18,13 +19,14 @@ export async function GET(request: Request) {
   const season=await resolveRequestSeason(request);
   if(!season) return NextResponse.json({error:'No Dino Coach season is available.'},{status:404});
   const db=createServerClient();
-  const [settings,players,lock,squad]=await Promise.all([
+  const [settings,players,lock,squad,realisedProfit]=await Promise.all([
    getDinoCoachSettings(season.id),getActivePlayersWithLatestPrices(season.id),getRoundLockState(season.id),
-   db.from('fantasy_squads').select('id,manager_id,status,updated_at,budget_used_dino_dollars,fantasy_squad_players(player_id,slot_key,assigned_role,position_type,purchase_price_dino_dollars,fantasy_players(display_name))').eq('season_id',season.id).eq('manager_id',auth.manager.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+   db.from('fantasy_squads').select('id,manager_id,status,updated_at,budget_used_dino_dollars,fantasy_squad_players(player_id,slot_key,assigned_role,position_type,purchase_price_dino_dollars,sale_reference_dino_dollars,fantasy_players(display_name))').eq('season_id',season.id).eq('manager_id',auth.manager.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+   getRealisedSaleProfit(auth.manager.id,season.id),
   ]);
   if(squad.error) throw new Error(squad.error.message);
   const windowOpen=seasonAllowsTeamChanges(season)&&!lock.locked&&settings.public_launch_enabled&&settings.team_selection_open&&isTransferWindowOpen(new Date(),{timezone:settings.transfer_timezone,openWeekday:settings.transfer_open_weekday,openMinute:settings.transfer_open_minute,closeWeekday:settings.transfer_close_weekday,closeMinute:settings.transfer_close_minute});
-  return NextResponse.json({success:true,managerId:auth.manager.id,season,settings:toPublicDinoCoachSettings(settings),slots:buildSquadSlots(settings.slot_counts),players,squad:squad.data,windowOpen},{headers:{'Cache-Control':'no-store'}});
+  return NextResponse.json({success:true,managerId:auth.manager.id,season,settings:toPublicDinoCoachSettings(settings),slots:buildSquadSlots(settings.slot_counts),players,squad:squad.data,wallet:walletSummary(settings.budget_dino_dollars,realisedProfit),windowOpen},{headers:{'Cache-Control':'no-store'}});
  } catch(e) { logRouteError('fantasy/transfers:get',e); return NextResponse.json({error:'Could not load the market.'},{status:500}); }
 }
 export async function POST(request: Request) {

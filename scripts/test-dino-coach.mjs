@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   DEFAULT_SCORING_CONFIG, DEFAULT_SLOT_COUNTS, buildSquadSlots,
   calculateBasePerformancePoints, calculateAssignedRolePoints, calculateInitialPrice,
-  calculateRollingPerformance, calculatePriceMovement, isAdultOnDate,
+  calculateRollingPerformance, calculatePriceMovement, calculateReviewedPrice, isAdultOnDate,
   isTransferWindowOpen, moderateTeamName, validateSquadAssignments,
   fantasyWeekFromMatchDate, classifyRoundKind, evaluateReleaseReadiness,
   resolveExactIdentityCandidate,
@@ -49,6 +49,18 @@ test('calculates rolling price movement at 1000 Dino Dollars per point', () => {
   assert.equal(calculateRollingPerformance(80, [100, 100], 0.5, 0.25), 90);
   assert.equal(calculatePriceMovement(82, 95, 1000), 13000);
   assert.equal(calculatePriceMovement(82, 77, 1000), -5000);
+  // Rolling reviews mirror settle_dino_price_windows: round 4 is measured against round 2.
+  const round2 = calculateRollingPerformance(30, [50, 70]); // 0.5 x 30 + 0.5 x 60
+  assert.equal(round2, 45);
+  assert.equal(calculateReviewedPrice(500000, 30, round2, 10000, 100000, 2000000), 650000);
+  const round4 = calculateRollingPerformance(30, [20, 40], 0.5, 0.25, round2); // 0.5 x 30 + 0.5 x 30
+  assert.equal(round4, 30);
+  assert.equal(calculateReviewedPrice(650000, round2, round4, 10000, 100000, 2000000), 500000);
+  assert.equal(calculateRollingPerformance(20, [80]), 35); // one game: 0.75 x 20 + 0.25 x 80
+  assert.equal(calculateRollingPerformance(20, [], 0.5, 0.25, 35), 35); // no games: unchanged
+  assert.equal(calculateReviewedPrice(500000, 0, 0.25, 10000, 100000, 2000000), 503000); // rounds upwards
+  assert.equal(calculateReviewedPrice(1990000, 30, 40, 10000, 100000, 2000000), 2000000); // ceiling
+  assert.equal(calculateReviewedPrice(150000, 40, 30, 10000, 100000, 2000000), 100000); // floor
 });
 
 test('scales initial price from floor to the best-player ceiling', () => {

@@ -45,7 +45,7 @@ const Builder = load('app/fantasy/_components/SquadBuilder.tsx', {
   '@/components/ui/Card': { default: div, CardContent: div },
   './WalletPanel': { default: () => null }, './PlayerStatsCard': { default: ({ player }) => React.createElement('p', null, player.display_name) },
   './useSeasonParam': { useSeasonParam: () => ({ query: '?season=season' }) },
-  '@/lib/dino-coach/wallet': { squadWallet: () => ({ remaining: 14900000 }) },
+  '@/lib/dino-coach/wallet': { squadWallet: () => ({ remaining: 14900000 }), pendingSaleProfit: () => 0 },
   '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },
   '@/lib/fantasy-browser': { fantasyJsonFetch: async (url, init) => {
     if (url.includes('/rules/accept')) {

@@ -12,7 +12,7 @@ function load(file) {
  vm.runInNewContext(code,{exports,require:(name)=>{let target=name.startsWith('@/')?path.resolve(name.slice(2)):path.resolve(path.dirname(file),name);if(!path.extname(target))target+='.ts';return load(target);}});
  return exports;
 }
-const {squadWallet,marketPreview}=load('lib/dino-coach/wallet.ts');
+const {squadWallet,marketPreview,saleValue,pendingSaleProfit}=load('lib/dino-coach/wallet.ts');
 let picks=[{playerId:'one',purchasePriceDinoDollars:800000},{playerId:'two',purchasePriceDinoDollars:100000}];
 let prices=[{id:'one',price_dino_dollars:1200000},{id:'two',price_dino_dollars:200000}];
 let wallet=squadWallet(15000000,picks,prices);
@@ -23,6 +23,17 @@ assert.equal(squadWallet(15000000,[...picks,{playerId:'three',purchasePriceDinoD
 assert.equal(squadWallet(15000000,picks,prices).remaining-squadWallet(10000000,picks,prices).remaining,5000000);
 assert.equal(marketPreview(100000,100000,200001),-1);
 assert.throws(()=>marketPreview(1,NaN,1));assert.throws(()=>marketPreview(1,-1,1));
+// Sales at market value: cost plus movement since the sale reference.
+assert.equal(saleValue(800000,800000,1200000),1200000);
+assert.equal(saleValue(800000,800000,600000),600000);
+assert.equal(saleValue(502000,975000,975000),502000,'Pre-change correction gives no windfall');
+assert.equal(saleValue(502000,975000,1075000),602000,'Later rise counts from the reference');
+const owned=[{playerId:'one',purchasePriceDinoDollars:800000,saleReferenceDinoDollars:800000},{playerId:'two',purchasePriceDinoDollars:100000,saleReferenceDinoDollars:250000}];
+assert.equal(pendingSaleProfit(owned,['one','two'],prices),0,'Kept players realise nothing');
+assert.equal(pendingSaleProfit(owned,['two'],prices),400000,'Removing one realises its profit');
+assert.equal(pendingSaleProfit(owned,[],prices),350000,'Loss on two nets against profit on one');
+// Spending power above the starting budget: 15,000,000 + 400,000 profit.
+assert.equal(squadWallet(15000000+pendingSaleProfit(owned,['two'],prices),[picks[1]],prices).remaining,15300000);
 const {historicalPlayerStats}=load('lib/dino-coach/player-stats.ts');
 const season='75425550-0622-4ecb-87c4-69ab5ca40a53';
 assert.equal(historicalPlayerStats('unknown','Unknown',season),null);
@@ -31,4 +42,4 @@ const external=JSON.parse(fs.readFileSync('data/dino-coach-external-baselines-20
 const harvey=external.players.find(p=>p.name==='Harvey Cliff');
 assert.equal(historicalPlayerStats(harvey.playerId,harvey.name,season).runs,null);
 assert.equal(historicalPlayerStats(harvey.playerId,harvey.name,'other-season'),null);
-console.log('PASS 13 wallet and statistic checks: budget uplift, buy, sell, retained cost, market value, overspend and unknown statistics');
+console.log('PASS 21 wallet and statistic checks: budget uplift, buy, sell at market value, sale references, pending profit, spending power above budget, retained cost, market value, overspend and unknown statistics');
