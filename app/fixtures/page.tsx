@@ -128,8 +128,10 @@ export default async function FixturesPage() {
   }
   const ungradedTeams = clubTeams.filter((team) => !team.gradeId);
   // Website team cards PlayHQ does not list yet (junior age groups before GCA
-  // publishes the junior competitions). Only claimed when PlayHQ answered.
-  const awaitingTeams = playhq.configured && !playhq.error ? teamsAwaitingPlayHQ(teams, playhq.teams) : [];
+  // publishes the junior competitions). Only claimed when PlayHQ answered and
+  // every current competition's teams were read.
+  const discoveryComplete = !(playhq.warnings || []).some((warning) => /^Team discovery failed/i.test(warning));
+  const awaitingTeams = playhq.configured && !playhq.error && discoveryComplete ? teamsAwaitingPlayHQ(teams, playhq.teams) : [];
   const categoryOfTeam = (team: { name: string; gradeName?: string | null }) => teamCategory(team.name, team.gradeName);
   const teamTabs: FixturesTab[] = clubTeams.map((team) => {
     const page = teamPageByPlayHQId.get(team.id);

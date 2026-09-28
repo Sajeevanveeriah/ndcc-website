@@ -65,6 +65,10 @@ assert.match(home, /status === 'postponed' \|\| status === 'unknown' \? 'Event d
 assert.match(home, /status === 'cancelled' \? \(\s*<Link href="\/calendar"/, 'no booking button for a cancelled event');
 assert.match(home, /Events could not be loaded right now/);
 assert.ok(!/alt=""/.test(home), 'home images carry meaningful alt text');
+assert.match(home, /Dates could not be loaded right now/, 'a calendar outage is not reported as an empty schedule');
+for (const source of [home, readFileSync('app/fixtures/page.tsx', 'utf8')]) {
+  assert.match(source, /\/\^Team discovery failed\/i\.test\(warning\)/, 'no "not yet published" claims from an incomplete team list');
+}
 assert.match(home, /Fixture not yet released by GCA/);
 const homeDefaults = home.replace(/const GENERIC_CMS_COPY = \[[\s\S]*?\]\.map/, '');
 for (const generic of ['Stay up to date with everything happening at NDCC.', 'Latest from NDCC', 'Explore the Club', 'seasoned cricketer']) {

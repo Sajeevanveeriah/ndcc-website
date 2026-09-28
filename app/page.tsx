@@ -342,7 +342,10 @@ const getHomeMatchDay = cache(async (): Promise<HomeMatchDay> => {
   ]);
   if (!playhq || !playhq.configured || playhq.error) return null;
   const board: BoardRow[] = selectMatchDayBoard(playhq.teams, playhq.fixtures, Date.now(), unavailableGradesFromWarnings(playhq.warnings));
-  for (const team of teamsAwaitingPlayHQ(cmsTeams, playhq.teams)) {
+  // A failed team discovery leaves the team list incomplete, so "not yet
+  // published" is only claimed when every competition was read.
+  const discoveryComplete = !(playhq.warnings || []).some((warning) => /^Team discovery failed/i.test(warning));
+  for (const team of discoveryComplete ? teamsAwaitingPlayHQ(cmsTeams, playhq.teams) : []) {
     board.push({ state: 'awaiting', teamId: `cms-${team.id || team.slug}`, teamName: team.name.trim(), gradeName: team.grade?.trim() || null, fixture: null, href: `/teams/${team.slug}` });
   }
   if (board.length === 0) return null;
@@ -537,7 +540,7 @@ function PreviewSkeleton({ id, title, href }: { id: string; title: string; href:
 
 async function ComingUpPreview() {
   const now = Date.now();
-  const [{ data: events }, calendarResult] = await Promise.all([
+  const [{ data: events, degraded: eventsDegraded }, calendarResult] = await Promise.all([
     getHomeEvents(),
     getHomeCalendar(),
   ]);
@@ -595,7 +598,9 @@ async function ComingUpPreview() {
           {items.map((item) => <ComingUpRow key={item.key} item={item} kindLabel={calendarTypeLabels.get(item.key) ?? COMING_UP_KIND_LABEL[item.kind]} />)}
         </ul>
       ) : (
-        <p className="py-2 text-sm text-content-muted">Nothing else is scheduled yet. <Link href="/events" className="underline">See all events</Link>.</p>
+        eventsDegraded || calendarResult.degraded
+          ? <p className="py-2 text-sm text-content-muted">Dates could not be loaded right now. <Link href="/calendar" className="underline">Try the club calendar</Link>.</p>
+          : <p className="py-2 text-sm text-content-muted">Nothing else is scheduled yet. <Link href="/events" className="underline">See all events</Link>.</p>
       )}
     </PreviewPanel>
   );
