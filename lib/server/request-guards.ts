@@ -9,8 +9,15 @@ export function getClientIp(request: Request): string {
   return request.headers.get('x-real-ip') || 'unknown';
 }
 
-/** One atomic counter shared by all function instances; never persist raw IPs or emails. */
-export async function enforceRateLimit(key: string, maxRequests: number, windowMs: number): Promise<boolean> {
+export type RateLimitResult = 'allowed' | 'limited' | 'unavailable';
+
+/**
+ * One atomic counter shared by all function instances; never persist raw IPs or emails.
+ * 'unavailable' means the limiter could not be reached. Callers must still refuse
+ * the request, but can say the service is temporarily unavailable rather than
+ * blaming the user for too many attempts.
+ */
+export async function takeRateLimit(key: string, maxRequests: number, windowMs: number): Promise<RateLimitResult> {
   try {
     // The atomic RPC is a write: allow cold connections to finish, but never
     // replay it or bypass the limiter when the service is unavailable.
@@ -20,7 +27,7 @@ export async function enforceRateLimit(key: string, maxRequests: number, windowM
       p_window_ms: windowMs,
     });
     if (error) throw error;
-    return data === true;
+    return data === true ? 'allowed' : 'limited';
   } catch (error) {
     // Fail closed: a provider outage must not remove the login or payment
     // abuse controls, so the request is refused (callers answer 429).
@@ -36,8 +43,13 @@ export async function enforceRateLimit(key: string, maxRequests: number, windowM
       code: typeof detail.code === 'string' ? detail.code : undefined,
       error: typeof detail.message === 'string' ? detail.message.slice(0, 160) : typeof detail.name === 'string' ? detail.name : 'unknown',
     });
-    return false;
+    return 'unavailable';
   }
+}
+
+/** Fails closed: true only when the shared limiter admitted the request. */
+export async function enforceRateLimit(key: string, maxRequests: number, windowMs: number): Promise<boolean> {
+  return (await takeRateLimit(key, maxRequests, windowMs)) === 'allowed';
 }
 
 export function enforceHoneypotAndTiming(honeypot?: string, submittedAt?: number, minMs = 1200): boolean {

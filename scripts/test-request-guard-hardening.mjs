@@ -84,7 +84,14 @@ await test('rate limiter fails closed and logs one structured [rate_limit_unavai
   } finally {
     console.error = originalError;
   }
-  assert.equal(lines.length, 1);
+  const unavailableLines = lines.length;
+  console.error = () => {};
+  try {
+    assert.equal(await guards.takeRateLimit('admin-login-ip:203.0.113.9', 8, 60_000), 'unavailable', 'an outage is distinguishable from a limit');
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(unavailableLines, 1);
   assert.equal(lines[0][0], '[rate_limit_unavailable]');
   assert.equal(lines[0][1].scope, 'admin-login-ip');
   assert.equal(lines[0][1].code, 'PGRST301');
