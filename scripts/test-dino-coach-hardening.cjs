@@ -40,7 +40,7 @@ console.log('PASS formatting helpers: entry fee, clock, season years');
 const flat = sections => sections.flatMap(section => section.items).join('\n');
 const defaults = flat(fantasy.fantasyRuleSections());
 assert.equal(flat(fantasy.FANTASY_RULE_SECTIONS), defaults);
-for (const text of ['2026/2027 season', 'Entry costs AUD 25.00', 'The squad budget is 15,000,000 Dino Dollars.', 'Tuesday 00:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2025/2026 statistics', 'leader prize is 300 Dino Dollars']) {
+for (const text of ['2026/2027 season', 'Entry costs AUD 25.00', 'The squad budget is 15,000,000 Dino Dollars.', 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time', 'supplied 2025/2026 statistics', 'leader prize is 300 Dino Dollars']) {
   assert.ok(defaults.includes(text), `Default rules keep: ${text}`);
 }
 const liveSettings = { entry_fee_cents: 3000, entry_fee_currency: 'AUD', budget_dino_dollars: 16000000, round_robin_prize_dino_dollars: 500, transfer_timezone: 'Australia/Melbourne', transfer_open_weekday: 2, transfer_open_minute: 0, transfer_close_weekday: 6, transfer_close_minute: 660 };

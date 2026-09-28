@@ -22,9 +22,9 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 from PIL import Image
 
-STEM = '20260928-Dino-Coach-User-Manual-Rev00'
+STEM = '20260928-Dino-Coach-User-Manual-Rev01'
 DATE = '28 September 2026'
-REVISION = 'Rev00'
+REVISION = 'Rev01'
 RULES_VERSION = '2026-27-rev07'
 OUT = Path('public/documents')
 LOGO = Path('public/images/logo.jpg')
@@ -50,7 +50,7 @@ CONTENT = [
         ['Leadership', 'One captain and one vice-captain; both score double'],
         ['Sales', 'Original purchase cost refunded'],
         ['Player pool', 'Buy from and sell back to the pool; no inter-team trades'],
-        ['Weekly window', 'Tuesday 00:00 to before Saturday 11:00, Melbourne time'],
+        ['Weekly window', 'Monday 09:00 to before Saturday 11:00, Melbourne time'],
     ]),
     ('h2', 'Start here'),
     ('p', 'Register and confirm your email, complete your manager profile and pay your entry fee. Fill all 15 slots, '
@@ -206,10 +206,10 @@ CONTENT = [
 
     ('h1', 'Transfer windows and player prices'),
     ('table', ['Melbourne time', 'Availability'], [
-        ['Tuesday 00:00', 'Window opens'],
-        ['Tuesday to Friday', 'Open, subject to competition controls'],
+        ['Monday 09:00', 'Window opens'],
+        ['Monday to Friday', 'Open, subject to competition controls'],
         ['Saturday before 11:00', 'Open until the closing time'],
-        ['Saturday 11:00 to Tuesday before 00:00', 'Closed'],
+        ['Saturday 11:00 to Monday before 09:00', 'Closed'],
     ]),
     ('p', 'Transfers, purchases and sales are unlimited and free, with no points penalty. All times use '
           'Australia/Melbourne, including daylight saving. The website checks the window when you save; beginning '
@@ -308,6 +308,10 @@ def logo_bytes():
 
 
 HEADER_TEXT = f'NDCC / DINO COACH 2026/2027    {DATE} | {REVISION} | Rules {RULES_VERSION}'
+# Cover wording; scripts/generate-club-account-guide.py reuses this generator with its own values.
+TITLE = 'Dino Coach user manual'
+SUBTITLE = 'Rules and manager guide | 2026/2027'
+SUBJECT = f'Rules and manager guide 2026/2027, {REVISION}'
 
 
 # ---------------------------------------------------------------- Word (DOCX)
@@ -475,10 +479,10 @@ def build_docx(path):
     logo._inline.docPr.set('title', LOGO_ALT)
     title = title_cell.paragraphs[0]
     spacing(title, 0, 2)
-    run(title, 'Dino Coach user manual', bold=True, colour='FFFFFF', size=26)
+    run(title, TITLE, bold=True, colour='FFFFFF', size=26)
     subtitle = title_cell.add_paragraph()
     spacing(subtitle, 0, 2)
-    run(subtitle, 'Rules and manager guide | 2026/2027', bold=True, colour=GOLD, size=13)
+    run(subtitle, SUBTITLE, bold=True, colour=GOLD, size=13)
     club = title_cell.add_paragraph()
     spacing(club, 0, 0)
     run(club, f'Newcomb and District Cricket Club  |  {DATE}', colour='FFFFFF', size=10)
@@ -534,8 +538,8 @@ def build_docx(path):
         elif kind == 'links':
             data_table(document, ['Page', 'Address'], [list(item) for item in block[1]], NAVY)
     schema_order(document)
-    document.core_properties.title = 'Dino Coach user manual'
-    document.core_properties.subject = f'Rules and manager guide 2026/2027, {REVISION}'
+    document.core_properties.title = TITLE
+    document.core_properties.subject = SUBJECT
     document.core_properties.author = 'Newcomb and District Cricket Club'
     document.save(path)
 
@@ -572,7 +576,7 @@ def build_html():
             parts.append(f'<aside class="{kind}"><p class="label">{label}</p><p class="title">{e(block[1])}</p>'
                          f'<p>{e(block[2])}</p></aside>')
     parts.append('</section>')
-    return f'''<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><title>Dino Coach user manual</title>
+    return f'''<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><title>{e(TITLE)}</title>
 <style>
 @page {{ size: A4; margin: 20mm 18mm 18mm;
   @top-left {{ content: "{e(HEADER_TEXT)}"; font: 700 7.5pt Arial, sans-serif; color: #{MAROON}; }}
@@ -617,7 +621,7 @@ aside .label {{ font-size: 7.5pt; font-weight: 700; letter-spacing: .08em; text-
 aside .title {{ font-weight: 700; font-size: 11pt; margin-bottom: 2px; }}
 </style></head><body>
 <header class="cover"><img src="data:image/jpeg;base64,{logo}" alt="{e(LOGO_ALT)}">
-<div><h1>Dino Coach user manual</h1><p class="sub">Rules and manager guide | 2026/2027</p>
+<div><h1>{e(TITLE)}</h1><p class="sub">{e(SUBTITLE)}</p>
 <p class="meta">Newcomb and District Cricket Club | {DATE}</p></div></header>
 <div class="stripe"></div>
 <p class="intro">{e(INTRO)}</p>

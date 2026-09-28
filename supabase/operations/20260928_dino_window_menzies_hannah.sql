@@ -1,0 +1,31 @@
+-- Record of live Dino Coach data changes applied on 28 September 2026 (season
+-- 75425550-0622-4ecb-87c4-69ab5ca40a53, Dino Coach 2026/2027), requested by Saj.
+-- Already applied; kept for audit and rollback. Do not re-run the apply block.
+--
+-- 1. Transfer window opened Tuesday 00:00 (ISO weekday 2, minute 0). It now opens
+--    Monday 09:00 (weekday 1, minute 540) and still closes before Saturday 11:00.
+-- 2. James Menzies (b681ac7d-64c8-4d41-a1e2-6b53b05c4152): 502,000 -> 975,000 Dino
+--    Dollars through override_dino_player_price (audit row f70f0a53-49fe-4bc0-8ae8-c07bc94f5f3f).
+-- 3. Hannah Allan (52bfe5f5-aba4-4f01-b8e9-09ea761ffedf) added as the admin player
+--    form does: role UNASSIGNED, team NDCC, selectable, opening price 100,000
+--    (audit row 74a75f8d-ebf7-4772-ad20-d58265849110). No statistics were
+--    supplied; women_eligible is left NULL (not reviewed).
+
+-- Apply (as run):
+-- UPDATE public.fantasy_dino_settings SET transfer_open_weekday=1, transfer_open_minute=540, updated_at=now()
+--   WHERE season_id='75425550-0622-4ecb-87c4-69ab5ca40a53' AND transfer_open_weekday=2 AND transfer_open_minute=0;
+-- SELECT public.override_dino_player_price('75425550-0622-4ecb-87c4-69ab5ca40a53','b681ac7d-64c8-4d41-a1e2-6b53b05c4152',975000,
+--   'Manual price set to 975,000 Dino Dollars as requested by Saj 2026-09-28','Saj-authorised Dino Coach update 2026-09-28');
+-- INSERT INTO public.fantasy_players(display_name,role,team_label,active) VALUES ('Hannah Allan','UNASSIGNED','NDCC',true);
+-- INSERT INTO public.fantasy_season_players(season_id,player_id,role,team_label,active,selectable,source)
+--   VALUES ('75425550-0622-4ecb-87c4-69ab5ca40a53','52bfe5f5-aba4-4f01-b8e9-09ea761ffedf','UNASSIGNED','NDCC',true,true,'admin');
+-- SELECT public.override_dino_player_price('75425550-0622-4ecb-87c4-69ab5ca40a53','52bfe5f5-aba4-4f01-b8e9-09ea761ffedf',100000,
+--   'Manual player creation requested by Saj 2026-09-28; no verified statistics, opening floor price','Saj-authorised Dino Coach update 2026-09-28');
+
+-- Rollback (only after a club decision; check squads first):
+-- UPDATE public.fantasy_dino_settings SET transfer_open_weekday=2, transfer_open_minute=0, updated_at=now()
+--   WHERE season_id='75425550-0622-4ecb-87c4-69ab5ca40a53';
+-- SELECT public.override_dino_player_price('75425550-0622-4ecb-87c4-69ab5ca40a53','b681ac7d-64c8-4d41-a1e2-6b53b05c4152',502000,
+--   'Rollback of 2026-09-28 manual price','Saj-authorised Dino Coach rollback');
+-- Hannah Allan: if no squad holds her, set her season membership inactive in the
+-- admin players page (Active off) rather than deleting rows with price and audit history.

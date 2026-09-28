@@ -31,7 +31,7 @@ const RULE_DEFAULTS = {
   sourceSeasonLabel: '2025/2026',
   entryFee: 'AUD 25.00',
   budget: '15,000,000 Dino Dollars',
-  transferWindow: 'Tuesday 00:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time',
+  transferWindow: 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time',
   roundRobinPrize: '300 Dino Dollars',
 };
 
