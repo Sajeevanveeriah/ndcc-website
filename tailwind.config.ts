@@ -86,9 +86,10 @@ const config: Config = {
         lift: '0 16px 38px -14px rgba(45,0,0,0.30)',
       },
       fontFamily: {
-        // CSS variables provided by next/font in app/layout.tsx.
-        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        body: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        // --font-inter comes from next/font/local in app/layout.tsx; the other
+        // Inter scripts and the metric-matched fallback from app/fonts/inter/inter.css.
+        display: ['var(--font-inter)', '"Inter Subsets"', '"Inter Fallback"', 'system-ui', 'sans-serif'],
+        body: ['var(--font-inter)', '"Inter Subsets"', '"Inter Fallback"', 'system-ui', 'sans-serif'],
       },
     },
   },

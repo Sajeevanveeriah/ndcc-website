@@ -21,6 +21,7 @@ import {
 import { getCheckoutSiteUrl } from '@/lib/payments/site-url';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
+import { potClubOrderName } from '@/lib/pot-club';
 
 export const dynamic = 'force-dynamic';
 
@@ -207,7 +208,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,deleted_at')
+      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,items,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,deleted_at')
       .eq('id', orderId)
       .maybeSingle();
     if (orderError || !order || order.deleted_at) {
@@ -509,7 +510,10 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    const frozenCategoryLabel = ORDER_CATEGORY_LABELS[checkoutContract.orderCategory] || 'club order';
+    // A Pot Club order is a 'membership' order, but the buyer sees the plan
+    // name ("Pot Club 2026/2027") on the Stripe page, as on the receipt.
+    const categoryLabel = ORDER_CATEGORY_LABELS[checkoutContract.orderCategory] || 'club order';
+    const potClubLabel = potClubOrderName(checkoutContract.orderCategory, order.items);
     const publicPaymentReference = checkoutContract.referenceVersion === '2'
       ? checkoutContract.orderReference : paymentReference;
     const paymentMetadata = {
@@ -537,42 +541,49 @@ export async function POST(request: Request) {
     const idempotencyKey = buildCheckoutIdempotencyKey({
       paymentReference,
     });
-    const session = await createPaymentCheckoutSession(
-      stripe,
-      buildPaymentCheckoutSessionParams({
-        client_reference_id: publicPaymentReference,
-        line_items: [
-          {
-            price_data: {
-              currency: 'aud',
-              product_data: {
-                name: validation.isPartial
-                  ? `Part payment - ${publicPaymentReference}`
-                  : `Payment - ${publicPaymentReference}`,
-                description: `Newcomb & District Cricket Club ${frozenCategoryLabel}; order ${checkoutContract.orderReference}`,
-              },
-              unit_amount: validation.amountCents,
+    const sessionParams = (frozenCategoryLabel: string) => buildPaymentCheckoutSessionParams({
+      client_reference_id: publicPaymentReference,
+      line_items: [
+        {
+          price_data: {
+            currency: 'aud',
+            product_data: {
+              name: validation.isPartial
+                ? `Part payment - ${publicPaymentReference}`
+                : `Payment - ${publicPaymentReference}`,
+              description: `Newcomb & District Cricket Club ${frozenCategoryLabel}; order ${checkoutContract.orderReference}`,
             },
-            quantity: 1,
+            unit_amount: validation.amountCents,
           },
-        ],
-        success_url: checkoutContract.returnPath === '/merchandise'
-          ? `${checkoutContract.origin}/merchandise?payment=submitted&session_id={CHECKOUT_SESSION_ID}`
-          : `${checkoutContract.origin}/payment?status=submitted&return_path=${encodeURIComponent(checkoutContract.returnPath)}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: checkoutContract.returnPath === '/merchandise'
-          ? `${checkoutContract.origin}/merchandise?payment=cancelled`
-          : `${checkoutContract.origin}/payment?status=cancelled&return_path=${encodeURIComponent(checkoutContract.returnPath)}`,
-        expires_at: checkoutExpiresAtUnix,
-        // Omitted (not sent) when empty, as before.
-        customer_email: checkoutContract.customerEmail ? checkoutContract.customerEmail : undefined,
-        metadata: paymentMetadata,
-        payment_intent_data: {
-          description: `${publicPaymentReference} - NDCC ${frozenCategoryLabel}`,
-          metadata: paymentMetadata,
+          quantity: 1,
         },
-      }),
-      idempotencyKey,
-    );
+      ],
+      success_url: checkoutContract.returnPath === '/merchandise'
+        ? `${checkoutContract.origin}/merchandise?payment=submitted&session_id={CHECKOUT_SESSION_ID}`
+        : `${checkoutContract.origin}/payment?status=submitted&return_path=${encodeURIComponent(checkoutContract.returnPath)}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: checkoutContract.returnPath === '/merchandise'
+        ? `${checkoutContract.origin}/merchandise?payment=cancelled`
+        : `${checkoutContract.origin}/payment?status=cancelled&return_path=${encodeURIComponent(checkoutContract.returnPath)}`,
+      expires_at: checkoutExpiresAtUnix,
+      // Omitted (not sent) when empty, as before.
+      customer_email: checkoutContract.customerEmail ? checkoutContract.customerEmail : undefined,
+      metadata: paymentMetadata,
+      payment_intent_data: {
+        description: `${publicPaymentReference} - NDCC ${frozenCategoryLabel}`,
+        metadata: paymentMetadata,
+      },
+    });
+    let session: Awaited<ReturnType<typeof createPaymentCheckoutSession>>;
+    try {
+      session = await createPaymentCheckoutSession(stripe, sessionParams(potClubLabel || categoryLabel), idempotencyKey);
+    } catch (createError) {
+      // A reservation made before Pot Club orders carried their own label may
+      // retry its idempotency key; Stripe rejects the new wording for that
+      // key, so the retry repeats the original parameters instead. The key is
+      // unchanged, so this can never create a second Session.
+      if (!potClubLabel || (createError as { type?: unknown })?.type !== 'StripeIdempotencyError') throw createError;
+      session = await createPaymentCheckoutSession(stripe, sessionParams(categoryLabel), idempotencyKey);
+    }
 
     // Stripe may return an earlier Session for the same idempotency key. Its
     // metadata, not the newly reserved sequence value, is authoritative.

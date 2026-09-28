@@ -3,7 +3,7 @@ import { SITE_URL, ORGANIZATION_ID } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { serializeJsonLd } from '@/lib/json-ld';
 import { Suspense } from 'react';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { getNavVisibility } from '@/lib/server/nav-visibility';
@@ -23,12 +23,29 @@ import {
   FACEBOOK_URL,
   PLAYHQ_ORG_URL,
 } from '@/lib/constants';
+import './fonts/inter/inter.css';
 import './globals.css';
 
 // One self-hosted family keeps headings clear and avoids an extra font download.
 // Weights match the utilities actually used: font-normal/medium/semibold/bold
 // (400-700) and font-black (900). No font-thin/extralight/light/extrabold.
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700', '900'], variable: '--font-inter', display: 'swap' });
+// The files are committed (app/fonts/inter), so builds never fetch Google
+// Fonts. Latin is preloaded here; other scripts and the metric-matched
+// fallback come from inter.css and follow var(--font-inter) in the font stack.
+const inter = localFont({
+  // Same discrete weights as before, so e.g. SVG text at 800 still renders at 900.
+  src: [
+    { path: './fonts/inter/inter-latin.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '700', style: 'normal' },
+    { path: './fonts/inter/inter-latin.woff2', weight: '900', style: 'normal' },
+  ],
+  variable: '--font-inter',
+  display: 'swap',
+  adjustFontFallback: false,
+  declarations: [{ prop: 'unicode-range', value: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD' }],
+});
 const fontVariables = inter.variable;
 
 const organizationJsonLd = {

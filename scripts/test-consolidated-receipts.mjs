@@ -54,7 +54,9 @@ const payment = {
 const db = { from(table) { return { select() { return this; }, eq() { return this; }, limit() { return this; },
   async maybeSingle() { return { data: table === 'orders' ? order : table === 'order_payments' ? payment : table === 'legacy_payment_receipt_references' ? legacyMapping : null, error: null }; },
 }; } };
+const potClub = moduleAt('lib/pot-club.ts');
 const sender = moduleAt('lib/payment-receipts.ts', {
+  '@/lib/pot-club': potClub,
   '@/lib/meal-collection': mealCollection,
   '@/lib/email-html': emailHtmlModule,
   '@/lib/notification-recipients': notificationRecipients,
@@ -202,6 +204,7 @@ for (const version of ['new', '1', '2']) {
     '@/lib/payments/reference': { ...references, generateUniquePaymentReference: async () => internalReference },
     '@/lib/payments/site-url': { getCheckoutSiteUrl: () => 'https://www.ndcc.com.au' },
     '@/lib/order-input-validation': { readLimitedJsonObject: async () => ({ ok: true, value: { order_id: order.id, amount: 55 } }) },
+    '@/lib/pot-club': potClub,
   });
   const result = await route.POST({});
   assert.equal(result.status, 200, JSON.stringify(result));
@@ -236,6 +239,70 @@ for (const version of ['new', '1', '2']) {
   assert.equal(JSON.stringify(payloadOptions), JSON.stringify({ idempotencyKey: `ndcc:checkout:v3:${internalReference}` }));
 }
 console.log('Actual Checkout route: new v2 public reference parity and frozen v1/v2 retry compatibility passed.');
+
+// Pot Club orders show the plan name on the Stripe page. A retry of a key
+// first used with the old "social membership" wording repeats that wording
+// under the same key, so it can never open a second Session.
+for (const scenario of ['pot_club', 'pot_club_legacy_retry', 'social', 'other_error']) {
+  const now = Math.floor(Date.now() / 1000);
+  const internalReference = 'NDCCMEM-2026-000009';
+  const items = scenario === 'social'
+    ? [{ name: 'Social Membership', size: 'membership', quantity: 1, price: 55 }]
+    : [{ name: 'Pot Club 2026/2027', size: 'membership', quantity: 1, price: 55, product_code: 'pot_club_2026_27', product_kind: 'pot_club' }];
+  const membershipOrder = { ...order, order_category: 'membership', payment_reference: 'NDCCMEM-2026-000001', items, amount_paid: 0, payment_status: 'unpaid', order_status: 'open' };
+  const calls = [];
+  const checkoutDb = {
+    async rpc() { return { data: [{ payment_id: 'reserved', checkout_expires_at_unix: now + 3600 }] }; },
+    from(table) { return {
+      select() { return this; }, eq() { return this; }, is() { return this; }, update() { return this; },
+      async order() { return { data: [] }; },
+      async maybeSingle() { return { data: table === 'orders' ? membershipOrder : {
+        id: 'reserved', order_id: order.id, amount: 55, payment_reference: internalReference, provider_reference: 'cs_test',
+      } }; },
+      then(resolve) { resolve({ error: null }); },
+    }; },
+  };
+  const route = moduleAt('app/api/payments/checkout-session/route.ts', {
+    '@/lib/kitchen-ordering-settings': {}, '@/lib/meal-collection': mealCollection,
+    '@/lib/spin-wheel/checkout-guard': { spinOrderCheckoutFailure: async () => null },
+    '@/lib/club-settings': {}, 'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
+    '@/lib/supabase-server': { createServerClient: () => checkoutDb, isServerSupabaseConfigured: () => true },
+    '@/lib/stripe': { getStripe: () => ({ checkout: { sessions: { create: async (value, options) => {
+      calls.push({ value, options });
+      const newWording = value.payment_intent_data.description.endsWith('Pot Club 2026/2027');
+      if (scenario === 'other_error') throw Object.assign(new Error('card declined'), { type: 'StripeCardError' });
+      if (scenario === 'pot_club_legacy_retry' && newWording) throw Object.assign(new Error('Keys for idempotent requests can only be used with the same parameters'), { type: 'StripeIdempotencyError' });
+      return { ...value, id: 'cs_test', url: 'https://checkout.stripe.com/test', status: 'open', amount_total: 5500, currency: 'aud' };
+    } } } }) },
+    '@/lib/server/request-guards': { getClientIp: () => 'test', enforceRateLimit: () => true },
+    '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({ minimum_partial_amount: 5 }), deriveCapabilities: () => ({ card: true, partial_payments: true }) },
+    '@/lib/payments/partial': partial, '@/lib/payments/stripe-checkout': checkoutKeys,
+    '@/lib/validation/uuid': moduleAt('lib/validation/uuid.ts'),
+    '@/lib/payments/reference': { ...references, generateUniquePaymentReference: async () => internalReference },
+    '@/lib/payments/site-url': { getCheckoutSiteUrl: () => 'https://www.ndcc.com.au' },
+    '@/lib/order-input-validation': { readLimitedJsonObject: async () => ({ ok: true, value: { order_id: order.id, amount: 55, return_path: '/join' } }) },
+    '@/lib/pot-club': potClub,
+  });
+  const result = await route.POST({});
+  const labels = calls.map(({ value }) => value.payment_intent_data.description.replace('NDCCMEM-2026-000001 - NDCC ', ''));
+  const products = calls.map(({ value }) => value.line_items[0].price_data.product_data.description);
+  assert.ok(calls.every(({ options }) => options.idempotencyKey === `ndcc:checkout:v3:${internalReference}`), 'Every attempt reuses the one idempotency key');
+  if (scenario === 'other_error') {
+    assert.equal(result.status, 500);
+    assert.deepEqual(labels, ['Pot Club 2026/2027'], 'Only an idempotency mismatch repeats the old wording');
+    continue;
+  }
+  assert.equal(result.status, 200, JSON.stringify(result));
+  if (scenario === 'pot_club') {
+    assert.deepEqual(labels, ['Pot Club 2026/2027']);
+    assert.deepEqual(products, ['Newcomb & District Cricket Club Pot Club 2026/2027; order NDCCMEM-2026-000001']);
+  } else if (scenario === 'pot_club_legacy_retry') {
+    assert.deepEqual(labels, ['Pot Club 2026/2027', 'social membership']);
+  } else {
+    assert.deepEqual(labels, ['social membership']);
+  }
+}
+console.log('Actual Checkout route: Pot Club plan name on the Stripe page, social membership unchanged, legacy-key retry repeats the original wording.');
 
 const cashOrder={id:'cash-fixture',status:'paid',currency:'AUD',amount_cents:1000,quantity:2,paid_at:'2026-09-24T10:00:00Z',payment_reference:'NDCCRAF-2026-000123',payment_method:'cash',cash_received_by:'staff-fixture',cash_received_at:'2026-09-24T10:00:00Z',cash_sale_key:'sale-fixture',stripe_payment_intent_id:null,stripe_checkout_session_id:null,customer_name:'Cash <buyer>',customer_email:'cash@example.invalid',raffle_campaigns:{name:'Trailer raffle',price_cents:500,draw_label:null},raffle_tickets:[{ticket_reference:'NDCCTRO-20260001',ticket_number:1},{ticket_reference:'NDCCTRO-20260002',ticket_number:2}]};
 const cashDb={from(table){assert.equal(table,'raffle_orders','Cash receipts must not require a Stripe event');let patch;return {select(){return this;},eq(){return this;},single:async()=>({data:cashOrder}),update(value){patch=value;return this;},async is(){Object.assign(cashOrder,patch);return {error:null};}};}};
