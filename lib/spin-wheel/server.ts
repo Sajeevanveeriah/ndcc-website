@@ -153,7 +153,7 @@ export async function sendSpinPassEmail(db: Db, passId: string, wheelName: strin
 }
 
 /** Winner email, sent once per result. A failure never undoes the spin. */
-export async function sendSpinWinnerEmail(db: Db, resultId: string, spinner: Spinner, wheel: Pick<SpinWheelRow, 'name' | 'claim_instructions'>): Promise<boolean> {
+export async function sendSpinWinnerEmail(db: Db, resultId: string, spinner: { email: string; name: string | null }, wheel: Pick<SpinWheelRow, 'name' | 'claim_instructions'>): Promise<boolean> {
   const { data: result, error } = await db.from('spin_wheel_results')
     .select('id,reference,prize_name,prize_description,is_prize,winner_emailed_at').eq('id', resultId).maybeSingle();
   if (error || !result || !result.is_prize || !result.prize_name || result.winner_emailed_at) return false;

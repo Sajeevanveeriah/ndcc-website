@@ -50,13 +50,11 @@ export async function POST(request: Request) {
       });
       if (!rpcError && data) {
         const result = data as { id: string; is_prize: boolean; spins_left: number } & Record<string, unknown>;
-        if (result.is_prize) {
-          // A failed email never undoes the spin; the result stays on record.
-          await sendSpinWinnerEmail(db, result.id, spinner, wheel).catch(() => false);
-        }
+        // A failed email never undoes the spin; the daily cron retries it.
+        const emailed = result.is_prize ? await sendSpinWinnerEmail(db, result.id, spinner, wheel).catch(() => false) : false;
         const { id: _id, spins_left: left, ...view } = result;
         void _id;
-        return spinReply({ success: true, result: view, spinsLeft: left });
+        return spinReply({ success: true, result: view, spinsLeft: left, emailed });
       }
       const mapped = spinErrorMessage(rpcError?.message);
       if (mapped.retrySegment) { exclude.add(picked.segment.id); continue; }

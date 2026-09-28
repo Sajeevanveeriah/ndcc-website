@@ -22,7 +22,7 @@ Scope decision (Saj, 28 September 2026): build the full feature now without extr
 | Admin editor, results, grants | `/admin/raffle/spin-wheel/[id]` (`new` creates) |
 | Public API | `GET /api/spin-wheel`, `GET /api/spin-wheel/me`, `POST /api/spin-wheel/spin`, `POST /api/spin-wheel/checkout`, `GET /api/spin-wheel/orders/[id]`, `POST /api/spin-wheel/pass/resend` |
 | Admin API | `GET/POST /api/admin/spin-wheel`, `GET/DELETE /api/admin/spin-wheel/[id]`, `POST /api/admin/spin-wheel/[id]/grant`, `GET/PATCH /api/admin/spin-wheel/[id]/results` |
-| Daily cron | `GET /api/cron/spin-wheel-passes` (05:25 UTC, `vercel.json`) |
+| Daily cron | `GET /api/cron/spin-wheel-passes` (05:25 UTC, `vercel.json`): pages through the last 60 days of spin orders (re-sync, unsent spin links) and retries failed winner emails |
 
 Admin pages sit under `/admin/raffle/` so they inherit the existing `raffle` permission; every admin API handler calls `requirePermissionResult('raffle')`, and CSRF is enforced by `middleware.ts` for all `/api/admin/*`.
 
@@ -44,6 +44,8 @@ Because they are normal orders, the existing, reviewed payment code handles ever
 - **Receipts (finding 2).** The standard `order_payment` receipt goes out through the existing durable outbox; `spin_wheel` normalises to the general category, which the outbox already accepts. No change to the outbox.
 - **Refunds and disputes (finding 4).** `handleFinancialEvent` already recognises order payments. When a refund or withheld dispute moves the order off `'paid'`, the same trigger revokes every unused spin from that order. Spins already used stay on record. If the order returns to `'paid'` the revoked spins are restored.
 
+**Checkout cannot outlive the wheel.** Paid spin sales stop `SPIN_CHECKOUT_CLOSE_MINUTES` (70) before a wheel's close time, longer than the 60-minute Stripe Checkout Session. Taking a live wheel off live, or moving its close time inside that window, asks the committee member to confirm when paid spins are unused or card checkouts are in progress, because those buyers may need refunds from Orders.
+
 The trigger never blocks a payment: any error is logged as a warning and the order update still commits. `GET /api/spin-wheel/orders/[id]` and the daily cron call `sync_spin_wheel_order_entitlements` again, so spins self-heal.
 
 The Stripe webhook route is unchanged. The only payment-code change is adding `/spin-the-wheel` to the allowed return paths in `app/api/payments/checkout-session/route.ts` and `app/payment/page.tsx`.
@@ -52,7 +54,7 @@ The Stripe webhook route is unchanged. The only payment-code change is adding `/
 
 A guest buyer gets a new pass per order. The link token is `HMAC-SHA256(SPIN_WHEEL_PASS_SECRET, pass id)` (falls back to the service role key with a domain-separation label), and the database stores only `SHA-256(token)`. Because the token is re-derivable from the pass id:
 
-- the checkout response hands the token to the buyer's browser immediately (stored in `localStorage`, removed from the address bar);
+- the checkout response hands the token to the buyer's browser immediately (kept in `sessionStorage` for that tab only, so a shared device does not keep it, and removed from the address bar);
 - the spin link email is sent when the order is paid, from the order status check or the daily cron, and a failed send is retried (`pass_emailed_at` is claimed, then released on failure);
 - "Lost your spin link?" re-sends links for that email's passes that still have spins (rate limited, same reply either way).
 
@@ -93,6 +95,7 @@ Functions (service role only): `ensure_spin_wheel_free_entitlements`, `sync_spin
 - Settings, segment table with live chance per segment and total weight, reorder, add, remove, colour; warnings (not blocks) when nobody can win or no spins are available.
 - Preview dialog with a test spin that records nothing.
 - Grant spins to an email.
+- Delete is only allowed for a wheel with no spins, orders, spin links or granted spins; otherwise set it to Ended.
 - Results: prizes won, unclaimed, every spin; mark claimed, undo, void with reason; CSV download (formula-injection safe).
 - All changes are recorded with `scheduleAdminAudit`.
 

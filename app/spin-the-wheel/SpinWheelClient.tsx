@@ -9,7 +9,7 @@ import { rotationForNumber } from '@/lib/prize-wheel/wheel-geometry';
 import { formatAud, SPIN_ANIMATION_MS, SPIN_RETURN_PATH, type PublicSpinSegment, type SpinResultView, type SpinWheelPhase } from '@/lib/spin-wheel/rules';
 
 type Props = {
-  wheel: { id: string; name: string; phase: SpinWheelPhase; freeSpins: number; priceCents: number | null; maxPerOrder: number };
+  wheel: { id: string; name: string; phase: SpinWheelPhase; freeSpins: number; priceCents: number | null; maxPerOrder: number; checkoutOpen: boolean };
   segments: PublicSpinSegment[];
 };
 
@@ -18,13 +18,16 @@ type Me = { signedIn: boolean; via?: 'user' | 'pass'; email?: string; spinsLeft:
 const PASS_KEY = 'ndcc-spin-pass';
 const ORDER_KEY = 'ndcc-spin-order';
 
+// The spin link is a bearer credential: keep it for this tab only, so a
+// shared device does not keep it after the browser closes. The emailed link
+// (or "Lost your spin link?") brings it back.
 function storageGet(key: string): string | null {
-  try { return window.localStorage.getItem(key); } catch { return null; }
+  try { return window.sessionStorage.getItem(key); } catch { return null; }
 }
 function storageSet(key: string, value: string | null) {
   try {
-    if (value === null) window.localStorage.removeItem(key);
-    else window.localStorage.setItem(key, value);
+    if (value === null) window.sessionStorage.removeItem(key);
+    else window.sessionStorage.setItem(key, value);
   } catch { /* storage unavailable: the emailed link still works */ }
 }
 
@@ -39,7 +42,7 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
   const [loadError, setLoadError] = useState('');
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState<SpinResultView | null>(null);
+  const [result, setResult] = useState<(SpinResultView & { emailed?: boolean }) | null>(null);
   const [spinError, setSpinError] = useState('');
   const [reducedMotion, setReducedMotion] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<string | null>(null);
@@ -130,7 +133,7 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
       const target = rotationForNumber(recorded.segment_position, segments.length, rotation, reducedMotion ? 1 : 6) - jitter;
       setRotation(target);
       timer.current = window.setTimeout(() => {
-        setResult(recorded);
+        setResult({ ...recorded, emailed: data.emailed === true });
         setSpinning(false);
         setMe(current => current ? { ...current, spinsLeft: Number(data.spinsLeft) || 0, results: [{ ...recorded }, ...current.results] } : current);
       }, reducedMotion ? 0 : SPIN_ANIMATION_MS);
@@ -179,12 +182,12 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
             <p className="text-sm uppercase tracking-widest">Result {result.reference}</p>
             <p className="font-display text-2xl font-bold">{result.is_prize ? result.prize_name : result.segment_label}</p>
             {result.is_prize && result.prize_description && <p>{result.prize_description}</p>}
-            {result.is_prize && <p className="mt-2 text-sm">We have emailed you the details of how to claim.</p>}
+            {result.is_prize && <p className="mt-2 text-sm">{result.emailed ? 'We have emailed you the details of how to claim.' : 'Keep this result reference. See Claiming a prize on this page; we will also email you the details.'}</p>}
           </div>}
         </div>
       </section>
 
-      {wheel.priceCents && wheel.phase === 'live' && <BuySpins wheelName={wheel.name} priceCents={wheel.priceCents} maxPerOrder={wheel.maxPerOrder}
+      {wheel.priceCents && wheel.checkoutOpen && <BuySpins wheelName={wheel.name} priceCents={wheel.priceCents} maxPerOrder={wheel.maxPerOrder}
         signedInAccount={me?.via === 'user'} authHeaders={headers}
         onStarted={(orderId, passToken) => { if (passToken) { storageSet(PASS_KEY, passToken); } storageSet(ORDER_KEY, orderId); }} />}
 

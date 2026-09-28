@@ -31,13 +31,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!UUID_PATTERN.test(id)) return spinReply({ success: false, error: 'Wheel not found.' }, 404);
   try {
     const db = createServerClient();
-    const [results, orders] = await Promise.all([
-      db.from('spin_wheel_results').select('id', { count: 'exact', head: true }).eq('wheel_id', id),
-      db.from('spin_wheel_orders').select('id', { count: 'exact', head: true }).eq('wheel_id', id),
-    ]);
-    if (results.error || orders.error) return spinReply({ success: false, error: 'The wheel could not be checked.' }, 503);
-    if ((results.count || 0) > 0 || (orders.count || 0) > 0) {
-      return spinReply({ success: false, error: 'This wheel has spins or orders on record, so it cannot be deleted. Set its status to Ended instead.' }, 409);
+    // Any spin, order, spin link or granted spin keeps the wheel: deleting
+    // would cascade away spins already promised to people.
+    const checks = await Promise.all(['spin_wheel_results', 'spin_wheel_orders', 'spin_wheel_passes', 'spin_wheel_entitlements']
+      .map(table => db.from(table).select('id', { count: 'exact', head: true }).eq('wheel_id', id)));
+    if (checks.some(check => check.error)) return spinReply({ success: false, error: 'The wheel could not be checked.' }, 503);
+    if (checks.some(check => (check.count || 0) > 0)) {
+      return spinReply({ success: false, error: 'This wheel has spins, orders, spin links or granted spins on record, so it cannot be deleted. Set its status to Ended instead.' }, 409);
     }
     const { error } = await db.from('spin_wheels').delete().eq('id', id);
     if (error) return spinReply({ success: false, error: 'The wheel could not be deleted.' }, 409);

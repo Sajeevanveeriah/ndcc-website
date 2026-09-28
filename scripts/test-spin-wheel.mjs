@@ -123,6 +123,23 @@ const chosen = rules.choosePublicSpinWheel([
 ], at('2026-10-01T12:00:00Z'));
 assert.equal(chosen.id, 'live', 'a live wheel wins over a paused one');
 
+// ---- Paid spin sales stop before the checkout window can outlive the wheel ----
+const priced = { ...wheel, spin_price_cents: 200 };
+assert.equal(rules.SPIN_CHECKOUT_CLOSE_MINUTES, 70, 'longer than the 60 minute Stripe Checkout Session');
+assert.equal(rules.isSpinCheckoutOpen(priced, at('2026-10-01T22:49:00Z')), true, '71 minutes before close');
+assert.equal(rules.isSpinCheckoutOpen(priced, at('2026-10-01T22:50:00Z')), false, 'exactly 70 minutes before close');
+assert.equal(rules.isSpinCheckoutOpen({ ...priced, ends_at: null }, at('2026-10-01T22:50:00Z')), true, 'no close time');
+assert.equal(rules.isSpinCheckoutOpen({ ...priced, spin_price_cents: null }, at('2026-10-01T12:00:00Z')), false);
+assert.equal(rules.isSpinCheckoutOpen({ ...priced, status: 'paused' }, at('2026-10-01T12:00:00Z')), false);
+// Closing detection for the admin confirmation.
+const now = at('2026-10-01T12:00:00Z');
+assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'paused', ends_at: null }, now), true);
+assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'ended', ends_at: null }, now), true);
+assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'live', ends_at: '2026-10-01T12:30:00Z' }, now), true, 'close moved inside the window');
+assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: null }, { status: 'live', ends_at: '2026-10-05T12:00:00Z' }, now), false, 'close far away');
+assert.equal(rules.closesSpinWheel({ status: 'live', ends_at: '2026-10-01T12:30:00Z' }, { status: 'live', ends_at: '2026-10-01T12:30:00Z' }, now), false, 'unchanged close time');
+assert.equal(rules.closesSpinWheel({ status: 'paused', ends_at: null }, { status: 'ended', ends_at: null }, now), false, 'already not live');
+
 // ---- Public data never carries odds or stock ----
 const published = rules.publicSegments([
   { id: 's2', position: 2, label: 'Cap', prize_name: 'Club cap', prize_description: null, is_prize: true, weight: 5, stock: 0, colour: 'gold' },
@@ -211,6 +228,24 @@ assert.ok(cron.includes('/api/cron/spin-wheel-passes'));
 assert.match(read('components/layout/Navbar.tsx'), /\(spinWheelEnabled \|\| link\.href !== '\/spin-the-wheel'\)/);
 assert.match(read('components/layout/Footer.tsx'), /spinWheelEnabled === true \|\| !link\.href\.startsWith\('\/spin-the-wheel'\)/);
 assert.match(read('lib/server/sitemap-entries.ts'), /isSpinWheelPublicStrict/);
+
+// ---- Review follow-ups (#278) ----
+const checkoutRoute = read('app/api/spin-wheel/checkout/route.ts');
+assert.match(checkoutRoute, /if \(!isSpinCheckoutOpen\(wheel\)\)/, 'checkout refuses inside the closing window');
+const adminSave = read('app/api/admin/spin-wheel/route.ts');
+assert.ok(adminSave.indexOf('closesSpinWheel(current, input)') > 0 && adminSave.indexOf('closesSpinWheel(current, input)') < adminSave.indexOf("rpc('save_spin_wheel'"), 'closing is confirmed before saving');
+assert.match(adminSave, /confirm_close !== true/);
+const adminDelete = read('app/api/admin/spin-wheel/[id]/route.ts');
+for (const table of ['spin_wheel_results', 'spin_wheel_orders', 'spin_wheel_passes', 'spin_wheel_entitlements']) assert.ok(adminDelete.includes(`'${table}'`), `delete checks ${table}`);
+const cronRoute = read('app/api/cron/spin-wheel-passes/route.ts');
+assert.match(cronRoute, /\.range\(offset, offset \+ PAGE_SIZE - 1\)/, 'cron pages through every row');
+assert.doesNotMatch(cronRoute, /\.limit\(/);
+assert.match(cronRoute, /sendSpinWinnerEmail/, 'cron retries winner emails');
+const client = read('app/spin-the-wheel/SpinWheelClient.tsx');
+assert.doesNotMatch(client, /localStorage/, 'spin links are not kept after the browser closes');
+assert.match(client, /sessionStorage/);
+assert.match(client, /result\.emailed \?/, 'the page only claims an email was sent when it was');
+assert.match(read('app/api/spin-wheel/spin/route.ts'), /spinsLeft: left, emailed \}/);
 
 // ---- ASCII hyphens only in the new files ----
 function files(dir) { return readdirSync(dir).flatMap(name => { const full = path.join(dir, name); return statSync(full).isDirectory() ? files(full) : [full]; }); }

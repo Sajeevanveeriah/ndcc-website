@@ -4,7 +4,7 @@ import { pageMetadata } from '@/lib/seo';
 import { createServerClient } from '@/lib/supabase-server';
 import { loadSpinSegments } from '@/lib/spin-wheel/server';
 import { getPublicSpinWheel } from '@/lib/spin-wheel/visibility';
-import { formatAud, formatMelbourneDateTime, publicSegments, spinWheelPhase } from '@/lib/spin-wheel/rules';
+import { formatAud, formatMelbourneDateTime, isSpinCheckoutOpen, publicSegments, SPIN_CHECKOUT_CLOSE_MINUTES, spinWheelPhase } from '@/lib/spin-wheel/rules';
 import SpinWheelClient from './SpinWheelClient';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +40,7 @@ export default async function SpinTheWheelPage() {
       <SpinWheelClient
         wheel={{
           id: wheel.id, name: wheel.name, phase, freeSpins: wheel.free_spins_per_account,
-          priceCents: wheel.spin_price_cents, maxPerOrder: wheel.max_spins_per_order,
+          priceCents: wheel.spin_price_cents, maxPerOrder: wheel.max_spins_per_order, checkoutOpen: isSpinCheckoutOpen(wheel),
         }}
         segments={segments}
       />
@@ -63,7 +63,7 @@ export default async function SpinTheWheelPage() {
             {starts && <div><dt className="font-semibold">Opens</dt><dd>{starts}</dd></div>}
             {ends && <div><dt className="font-semibold">Closes</dt><dd>{ends}</dd></div>}
             <div><dt className="font-semibold">Free spins</dt><dd>{wheel.free_spins_per_account > 0 ? `${wheel.free_spins_per_account} per club account` : 'None on this wheel'}</dd></div>
-            <div><dt className="font-semibold">Buying spins</dt><dd>{wheel.spin_price_cents ? `${formatAud(wheel.spin_price_cents)} AUD per spin, paid by card` : 'Not available on this wheel'}</dd></div>
+            <div><dt className="font-semibold">Buying spins</dt><dd>{wheel.spin_price_cents ? `${formatAud(wheel.spin_price_cents)} AUD per spin, paid by card${wheel.ends_at ? `. Sales close ${SPIN_CHECKOUT_CLOSE_MINUTES} minutes before the wheel closes` : ''}` : 'Not available on this wheel'}</dd></div>
           </dl>
           <p className="text-sm text-content-muted">Each result is chosen by the website&apos;s secure random generator and recorded before the wheel turns. Segment sizes on the wheel are for display; prizes that have all been won can no longer come up.</p>
           {wheel.claim_instructions && <div><h3 className="font-semibold">Claiming a prize</h3><p className="whitespace-pre-line">{wheel.claim_instructions}</p></div>}

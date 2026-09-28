@@ -7,7 +7,7 @@ import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sanitiseInput, validateEmail, validatePhone } from '@/lib/utils';
 import { getAuthUserFromRequest } from '@/lib/fantasy-manager-auth';
 import { hashSpinPassToken, spinPassToken } from '@/lib/spin-wheel/pass';
-import { isSpinWheelLive, SPIN_ORDER_CATEGORY, validSpinQuantity } from '@/lib/spin-wheel/rules';
+import { isSpinCheckoutOpen, isSpinWheelLive, SPIN_CHECKOUT_CLOSE_MINUTES, SPIN_ORDER_CATEGORY, validSpinQuantity } from '@/lib/spin-wheel/rules';
 import { spinReply } from '@/lib/spin-wheel/server';
 import { getPublicSpinWheel } from '@/lib/spin-wheel/visibility';
 
@@ -38,6 +38,11 @@ export async function POST(request: Request) {
   if (!wheel || !isSpinWheelLive(wheel) || !wheel.spin_price_cents) {
     return spinReply({ success: false, error: 'Spins are not on sale right now.' }, 409);
   }
+  // A card checkout stays open for up to an hour: never sell spins that could
+  // be paid for after the wheel closes.
+  if (!isSpinCheckoutOpen(wheel)) {
+    return spinReply({ success: false, error: `Spin sales close ${SPIN_CHECKOUT_CLOSE_MINUTES} minutes before the wheel closes.` }, 409);
+  }
   const quantity = Number(body.quantity);
   if (!validSpinQuantity(quantity, wheel.max_spins_per_order)) {
     return spinReply({ success: false, error: `Choose between 1 and ${wheel.max_spins_per_order} spins.` }, 400);
@@ -66,7 +71,7 @@ export async function POST(request: Request) {
       return spinReply({ success: false, error: 'Card payments are not currently available.' }, 503);
     }
     const reference = await generateUniquePaymentReference('general');
-    const unit = wheel.spin_price_cents;
+    const unit = wheel.spin_price_cents as number;
     const totalAmount = (quantity * unit) / 100;
     const { data: order, error: orderError } = await db.from('orders').insert({
       customer_name: sanitiseInput(name),

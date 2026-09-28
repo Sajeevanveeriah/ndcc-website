@@ -126,15 +126,20 @@ export default function SpinWheelEditorPage() {
   };
   const totalWeight = input.segments.reduce((sum, segment) => sum + (Number.isFinite(segment.weight) && segment.weight > 0 ? segment.weight : 0), 0);
 
-  async function save() {
+  async function save(confirmClose = false) {
     if (!input || busy) return;
     const problems = validateSpinWheel(input);
     setErrors(problems); setMessage('');
     if (problems.length) return;
     setBusy(true);
     try {
-      const response = await adminFetch('/api/admin/spin-wheel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+      const response = await adminFetch('/api/admin/spin-wheel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...input, confirm_close: confirmClose }) });
       const data = await response.json().catch(() => ({}));
+      if (response.status === 409 && data.needsConfirmation && !confirmClose) {
+        setBusy(false);
+        if (window.confirm(`${data.error} Save anyway?`)) await save(true);
+        return;
+      }
       if (!response.ok) { setErrors(Array.isArray(data.errors) ? data.errors : [data.error || 'The wheel could not be saved.']); return; }
       setMessage('Wheel saved.');
       if (isNew) router.replace(`/admin/raffle/spin-wheel/${data.id}`);

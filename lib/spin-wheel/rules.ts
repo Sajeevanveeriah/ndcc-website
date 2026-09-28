@@ -16,6 +16,10 @@ const SPIN_MAX_SPINS_PER_ORDER = 100;
 export const SPIN_ORDER_CATEGORY = 'spin_wheel';
 export const SPIN_RETURN_PATH = '/spin-the-wheel';
 export const SPIN_ANIMATION_MS = 6000;
+// Paid spin sales stop this long before a wheel closes, so every Stripe
+// Checkout Session (60 minutes, see app/api/payments/checkout-session) has
+// completed or expired while the spins can still be used.
+export const SPIN_CHECKOUT_CLOSE_MINUTES = 70;
 const MELBOURNE_TIME_ZONE = 'Australia/Melbourne';
 
 const SPIN_STATUSES = ['draft', 'live', 'paused', 'ended'] as const;
@@ -216,6 +220,25 @@ export function isSpinWheelLive(wheel: Pick<SpinWheelRow, 'status' | 'starts_at'
   if (wheel.starts_at && at < new Date(wheel.starts_at).getTime()) return false;
   if (wheel.ends_at && at >= new Date(wheel.ends_at).getTime()) return false;
   return true;
+}
+
+/** Whether spins may be bought now: live, priced, and not closing within the checkout window. */
+export function isSpinCheckoutOpen(wheel: Pick<SpinWheelRow, 'status' | 'starts_at' | 'ends_at' | 'spin_price_cents'>, now: Date = new Date()): boolean {
+  if (!wheel.spin_price_cents || !isSpinWheelLive(wheel, now)) return false;
+  return !wheel.ends_at || new Date(wheel.ends_at).getTime() - now.getTime() > SPIN_CHECKOUT_CLOSE_MINUTES * 60_000;
+}
+
+/**
+ * Whether saving `next` over `current` stops people using spins: taking a live
+ * wheel off live, or moving its close time inside the checkout window.
+ */
+export function closesSpinWheel(current: Pick<SpinWheelRow, 'status' | 'ends_at'>, next: Pick<SpinWheelInput, 'status' | 'ends_at'>, now: Date = new Date()): boolean {
+  if (current.status !== 'live') return false;
+  if (next.status !== 'live') return true;
+  if (!next.ends_at) return false;
+  const nextEnds = new Date(next.ends_at).getTime();
+  const currentEnds = current.ends_at ? new Date(current.ends_at).getTime() : Number.POSITIVE_INFINITY;
+  return nextEnds < currentEnds && nextEnds - now.getTime() <= SPIN_CHECKOUT_CLOSE_MINUTES * 60_000;
 }
 
 export type SpinWheelPhase = 'upcoming' | 'live' | 'paused' | 'ended';
