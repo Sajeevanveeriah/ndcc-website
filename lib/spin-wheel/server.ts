@@ -93,6 +93,20 @@ export async function spinnerResults(db: Db, wheelId: string, spinner: Spinner):
   return error || !Array.isArray(data) ? null : data as SpinResultView[];
 }
 
+/**
+ * The link for a pass under the current secret. If the secret was rotated,
+ * the stored hash is moved to the new token first (the old link stops
+ * working, the new one works). Returns null when that update fails, so a
+ * dead link is never sent.
+ */
+async function currentPassLink(db: Db, passId: string): Promise<{ link: string; hash: string } | null> {
+  const token = spinPassToken(passId);
+  const hash = hashSpinPassToken(token);
+  const { error } = await db.from('spin_wheel_passes').update({ token_hash: hash }).eq('id', passId).neq('token_hash', hash);
+  if (error) return null;
+  return { link: spinPassUrl(spinSiteUrl(), token), hash };
+}
+
 async function sendOrRelease(claim: () => Promise<boolean>, release: () => PromiseLike<unknown>, send: () => Promise<{ status: string }>): Promise<boolean> {
   if (!await claim()) return false;
   try {
@@ -118,7 +132,9 @@ export async function sendSpinOrderPassEmail(db: Db, spinOrderId: string): Promi
   const pass = (Array.isArray(order.pass) ? order.pass[0] : order.pass) as { id: string; email: string; name: string | null } | null;
   const wheel = (Array.isArray(order.wheel) ? order.wheel[0] : order.wheel) as { name: string } | null;
   if (!pass || !wheel) return false;
-  const link = spinPassUrl(spinSiteUrl(), spinPassToken(pass.id));
+  const current = await currentPassLink(db, pass.id);
+  if (!current) return false;
+  const { link, hash } = current;
   return sendOrRelease(
     async () => {
       const claimed = await db.from('spin_wheel_orders').update({ pass_emailed_at: new Date().toISOString() })
@@ -130,7 +146,7 @@ export async function sendSpinOrderPassEmail(db: Db, spinOrderId: string): Promi
       to: pass.email,
       subject: spinPassEmailSubject({ wheelName: wheel.name }),
       html: emailHtml('Your spins', spinPassEmailBody({ name: pass.name, wheelName: wheel.name, spins: order.quantity, link })),
-      idempotencyKey: `spin-wheel-pass-order-${order.id}`,
+      idempotencyKey: `spin-wheel-pass-order-${order.id}-${hash.slice(0, 12)}`,
     }),
   );
 }
@@ -139,7 +155,9 @@ export async function sendSpinOrderPassEmail(db: Db, spinOrderId: string): Promi
 export async function sendSpinPassEmail(db: Db, passId: string, wheelName: string, spins: number): Promise<boolean> {
   const { data: pass, error } = await db.from('spin_wheel_passes').select('id,email,name').eq('id', passId).maybeSingle();
   if (error || !pass) return false;
-  const link = spinPassUrl(spinSiteUrl(), spinPassToken(pass.id));
+  const current = await currentPassLink(db, pass.id);
+  if (!current) return false;
+  const { link } = current;
   try {
     const result = await sendEmail({
       to: pass.email,

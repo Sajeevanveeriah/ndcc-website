@@ -150,6 +150,23 @@ begin
     raise exception 'raised allowance did not restore free spins';
   end if;
 
+  -- The cron's work list holds only orders that still need work.
+  alter table public.orders disable trigger spin_wheel_order_payment;
+  insert into public.orders(customer_name, customer_email, customer_phone, items, total_amount, order_category, order_status, payment_status, payment_reference)
+    values ('Guest two', 'guest2@example.invalid', '', '[]'::jsonb, 2.00, 'spin_wheel', 'submitted', 'pending_bank_transfer', 'NDCCPAY-2026-990010')
+    returning id into ord;
+  insert into public.spin_wheel_orders(wheel_id, order_id, pass_id, quantity, unit_price_cents) values (wheel, ord, pass_a, 1, 200) returning id into link;
+  if exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100) w where w.id = link) then raise exception 'unpaid order listed as work'; end if;
+  update public.orders set payment_status = 'paid', amount_paid = 2.00 where id = ord;  -- trigger off: spins missing
+  if not exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100) w where w.id = link) then raise exception 'paid order with missing spins not listed'; end if;
+  if exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100, array[link]) w where w.id = link) then raise exception 'skip_ids ignored'; end if;
+  alter table public.orders enable trigger spin_wheel_order_payment;
+  perform public.sync_spin_wheel_order_entitlements(ord);
+  -- Synced, but the guest link is still unsent: still listed.
+  if not exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100) w where w.id = link) then raise exception 'unsent guest link not listed'; end if;
+  update public.spin_wheel_orders set pass_emailed_at = now() where id = link;
+  if exists (select 1 from public.spin_wheel_orders_needing_work(now() - interval '1 day', 100) w where w.id = link) then raise exception 'finished order still listed'; end if;
+
   -- Browser roles have no direct access.
   if has_table_privilege('anon', 'public.spin_wheel_results', 'select') or has_table_privilege('authenticated', 'public.spin_wheel_entitlements', 'insert')
      or has_function_privilege('anon', 'public.record_spin_wheel_result(uuid,uuid,uuid,uuid,text,text,text,text)', 'execute')

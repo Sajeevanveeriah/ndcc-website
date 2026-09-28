@@ -238,8 +238,8 @@ assert.match(adminSave, /confirm_close !== true/);
 const adminDelete = read('app/api/admin/spin-wheel/[id]/route.ts');
 for (const table of ['spin_wheel_results', 'spin_wheel_orders', 'spin_wheel_passes', 'spin_wheel_entitlements']) assert.ok(adminDelete.includes(`'${table}'`), `delete checks ${table}`);
 const cronRoute = read('app/api/cron/spin-wheel-passes/route.ts');
-assert.match(cronRoute, /\.range\(offset, offset \+ PAGE_SIZE - 1\)/, 'cron pages through every row');
-assert.doesNotMatch(cronRoute, /\.limit\(/);
+assert.match(cronRoute, /spin_wheel_orders_needing_work/, 'cron works through every outstanding order');
+assert.doesNotMatch(cronRoute, /\.limit\(500\)/, 'no single capped query');
 assert.match(cronRoute, /sendSpinWinnerEmail/, 'cron retries winner emails');
 const client = read('app/spin-the-wheel/SpinWheelClient.tsx');
 assert.doesNotMatch(client, /localStorage/, 'spin links are not kept after the browser closes');
@@ -256,17 +256,38 @@ assert.match(editor, /datetimeLocalToClubIso/, 'admin dates are Melbourne time w
 assert.match(editor, /toDatetimeLocalInClubTimezone/);
 assert.doesNotMatch(editor, /getTimezoneOffset/);
 const results = read('app/api/admin/spin-wheel/[id]/results/route.ts');
-assert.doesNotMatch(results, /\.limit\(/, 'results are paged, never capped');
-assert.match(results, /\.range\(offset, offset \+ size - 1\)/);
+assert.doesNotMatch(results, /\.limit\(5000\)/, 'results are paged, never capped');
+assert.match(results, /nextCursor/);
 assert.match(adminSave, /Only one wheel can be live at a time/);
 const followUp = read('supabase/migrations/20260928110000_spin_the_wheel_single_live.sql');
 assert.match(followUp, /create unique index spin_wheels_single_live on public\.spin_wheels \(\(true\)\) where status = 'live'/);
 assert.match(followUp, /keep := greatest\(allowance - used_count, 0\);/);
 
+// ---- Third review round (#278) ----
+const adminLib = load('lib/spin-wheel/admin.ts');
+const cursor = adminLib.parseSpinCursor('2026-09-28T00:12:00.123456+00:00|7d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11');
+assert.equal(cursor.createdAt, '2026-09-28T00:12:00.123456+00:00', 'microseconds are kept exactly');
+assert.equal(adminLib.spinCursorOf({ created_at: cursor.createdAt, id: cursor.id }), '2026-09-28T00:12:00.123456+00:00|7d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11');
+assert.equal(adminLib.spinKeysetFilter(cursor, 'desc'), 'created_at.lt."2026-09-28T00:12:00.123456+00:00",and(created_at.eq."2026-09-28T00:12:00.123456+00:00",id.lt.7d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11)');
+assert.match(adminLib.spinKeysetFilter(cursor, 'asc'), /^created_at\.gt\.".*id\.gt\./);
+for (const bad of [null, '', 'x|y', '2026-09-28T00:12:00Z', '2026-09-28T00:12:00Z|not-a-uuid', '2026-09-28T00:12:00Z",id.gt.x|7d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11', '2026-09-28T00:12:00Z|7d7f4c1e-8a44-4d5b-9a1e-0f7a6c3e2b11|x']) {
+  assert.equal(adminLib.parseSpinCursor(bad), null, `rejects cursor ${bad}`);
+}
+const resultsRoute = read('app/api/admin/spin-wheel/[id]/results/route.ts');
+assert.match(resultsRoute, /spinKeysetFilter\(cursor, 'desc'\)/, 'results page from the last row shown');
+assert.doesNotMatch(resultsRoute, /\.range\(/, 'no offset paging for results');
+const cron3 = read('app/api/cron/spin-wheel-passes/route.ts');
+assert.match(cron3, /rpc\('spin_wheel_orders_needing_work', \{ since, max_rows: PAGE_SIZE, skip_ids: \[\.\.\.attempted\] \}\)/, 'cron queries only outstanding work');
+assert.doesNotMatch(cron3, /\.range\(/);
+const serverLib = read('lib/spin-wheel/server.ts');
+assert.match(serverLib, /update\(\{ token_hash: hash \}\)\.eq\('id', passId\)\.neq\('token_hash', hash\)/, 're-sent links move the stored hash to the current secret');
+assert.equal((serverLib.match(/await currentPassLink\(db, pass\.id\)/g) || []).length, 2, 'both link emails use the current link');
+assert.match(read('supabase/migrations/20260928120000_spin_the_wheel_cron_work.sql'), /create function public\.spin_wheel_orders_needing_work\(since timestamptz, max_rows integer, skip_ids uuid\[\] default '\{\}'\)/);
+
 // ---- ASCII hyphens only in the new files ----
 function files(dir) { return readdirSync(dir).flatMap(name => { const full = path.join(dir, name); return statSync(full).isDirectory() ? files(full) : [full]; }); }
 const newFiles = [...files('app/spin-the-wheel'), ...files('app/api/spin-wheel'), ...files('app/api/admin/spin-wheel'), ...files('app/admin/raffle/spin-wheel'),
-  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql', 'supabase/migrations/20260928110000_spin_the_wheel_single_live.sql'];
+  ...files('lib/spin-wheel'), ...files('components/spin-wheel'), 'app/api/cron/spin-wheel-passes/route.ts', 'supabase/migrations/20260928100000_spin_the_wheel.sql', 'supabase/migrations/20260928110000_spin_the_wheel_single_live.sql', 'supabase/migrations/20260928120000_spin_the_wheel_cron_work.sql'];
 for (const file of newFiles) assert.doesNotMatch(read(file), /[–—]/, `${file}: ASCII hyphens only`);
 
 console.log('Spin the Wheel pick, odds, geometry, validation, visibility, public shape, references, passes, emails and wiring checks passed.');

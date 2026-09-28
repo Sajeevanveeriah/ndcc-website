@@ -313,30 +313,33 @@ function GrantSpins({ wheelId, onGranted }: { wheelId: string; onGranted: () => 
 function Results({ wheelId }: { wheelId: string }) {
   const [filter, setFilter] = useState<'all' | 'winners' | 'unclaimed'>('winners');
   const [rows, setRows] = useState<Result[] | null>(null);
-  const [pages, setPages] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const query = filter === 'winners' ? '?winners=1' : filter === 'unclaimed' ? '?unclaimed=1' : '';
-  useEffect(() => { setPages(1); }, [query]);
-  // Reloads every page shown so far, so claims and voids stay in place.
+  const fetchPage = useCallback(async (after: string | null) => {
+    const separator = query ? '&' : '?';
+    const suffix = after ? `${separator}after=${encodeURIComponent(after)}` : '';
+    return parseApiResponse<{ results: Result[]; nextCursor: string | null }>(await adminFetch(`/api/admin/spin-wheel/${encodeURIComponent(wheelId)}/results${query}${suffix}`));
+  }, [wheelId, query]);
   const load = useCallback(async () => {
     try {
-      const all: Result[] = [];
-      let more = false;
-      for (let page = 0; page < pages; page += 1) {
-        const separator = query ? '&' : '?';
-        const data = await parseApiResponse<{ results: Result[]; hasMore: boolean }>(await adminFetch(`/api/admin/spin-wheel/${encodeURIComponent(wheelId)}/results${query}${separator}page=${page}`));
-        all.push(...data.results);
-        more = data.hasMore;
-        if (!more) break;
-      }
-      setRows(all); setHasMore(more); setError('');
+      const data = await fetchPage(null);
+      setRows(data.results); setNextCursor(data.nextCursor); setError('');
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Results could not be loaded.');
     }
-  }, [wheelId, query, pages]);
+  }, [fetchPage]);
   useEffect(() => { void load(); }, [load]);
+  async function showMore() {
+    if (!nextCursor) return;
+    try {
+      const data = await fetchPage(nextCursor);
+      setRows(current => [...(current || []), ...data.results]); setNextCursor(data.nextCursor);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Results could not be loaded.');
+    }
+  }
 
   async function act(resultId: string, action: 'claim' | 'unclaim' | 'void') {
     let reason = '';
@@ -346,10 +349,11 @@ function Results({ wheelId }: { wheelId: string }) {
     }
     setBusy(resultId); setError('');
     try {
-      await parseApiResponse(await adminFetch(`/api/admin/spin-wheel/${encodeURIComponent(wheelId)}/results`, {
+      const data = await parseApiResponse<{ result: Result }>(await adminFetch(`/api/admin/spin-wheel/${encodeURIComponent(wheelId)}/results`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resultId, action, reason }),
       }));
-      await load();
+      // Update the row in place so every page already shown stays put.
+      setRows(current => current?.map(row => (row.id === resultId ? data.result : row)) ?? current);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'The result could not be updated.');
     } finally {
@@ -400,6 +404,6 @@ function Results({ wheelId }: { wheelId: string }) {
         </>}</td>
       </tr>)}</tbody>
     </table></div>)}
-    {rows && hasMore && <Button type="button" variant="secondary" size="sm" onClick={() => setPages(count => count + 1)}>Show more results</Button>}
+    {rows && nextCursor && <Button type="button" variant="secondary" size="sm" onClick={() => void showMore()}>Show more results</Button>}
   </section>;
 }

@@ -22,7 +22,7 @@ Scope decision (Saj, 28 September 2026): build the full feature now without extr
 | Admin editor, results, grants | `/admin/raffle/spin-wheel/[id]` (`new` creates) |
 | Public API | `GET /api/spin-wheel`, `GET /api/spin-wheel/me`, `POST /api/spin-wheel/spin`, `POST /api/spin-wheel/checkout`, `GET /api/spin-wheel/orders/[id]`, `POST /api/spin-wheel/pass/resend` |
 | Admin API | `GET/POST /api/admin/spin-wheel`, `GET/DELETE /api/admin/spin-wheel/[id]`, `POST /api/admin/spin-wheel/[id]/grant`, `GET/PATCH /api/admin/spin-wheel/[id]/results` |
-| Daily cron | `GET /api/cron/spin-wheel-passes` (05:25 UTC, `vercel.json`): pages through the last 60 days of spin orders (re-sync, unsent spin links) and retries failed winner emails |
+| Daily cron | `GET /api/cron/spin-wheel-passes` (05:25 UTC, `vercel.json`): asks `spin_wheel_orders_needing_work()` for only the last 60 days' spin orders that still need a re-sync or an unsent spin link, and retries failed winner emails |
 
 Admin pages sit under `/admin/raffle/` so they inherit the existing `raffle` permission; every admin API handler calls `requirePermissionResult('raffle')`, and CSRF is enforced by `middleware.ts` for all `/api/admin/*`.
 
@@ -57,6 +57,7 @@ A guest buyer gets a new pass per order. The link token is `HMAC-SHA256(SPIN_WHE
 - the checkout response hands the token to the buyer's browser immediately (kept in `sessionStorage` for that tab only, so a shared device does not keep it, and removed from the address bar);
 - the spin link email is sent when the order is paid, from the order status check or the daily cron, and a failed send is retried (`pass_emailed_at` is claimed, then released on failure);
 - "Lost your spin link?" re-sends links for that email's passes that still have spins (rate limited, same reply either way).
+- Whenever a link is issued, the stored hash is moved to the token under the current secret, so rotating `SPIN_WHEEL_PASS_SECRET` (or the service role key) only invalidates old links; re-sent links always work.
 
 Admin grants create a new pass for the email and email the link; if email fails, the admin screen shows the link to send manually.
 
@@ -70,7 +71,7 @@ Admin grants create a new pass for the email and email the link; if email fails,
 
 ## 8. Data model
 
-Migrations: `supabase/migrations/20260928100000_spin_the_wheel.sql` and `20260928110000_spin_the_wheel_single_live.sql` (rollback SQL in each header).
+Migrations: `supabase/migrations/20260928100000_spin_the_wheel.sql`, `20260928110000_spin_the_wheel_single_live.sql` and `20260928120000_spin_the_wheel_cron_work.sql` (rollback SQL in each header).
 
 | Table | Purpose |
 |---|---|
@@ -99,7 +100,7 @@ Functions (service role only): `ensure_spin_wheel_free_entitlements`, `sync_spin
 - Preview dialog with a test spin that records nothing.
 - Grant spins to an email.
 - Delete is only allowed for a wheel with no spins, orders, spin links or granted spins; otherwise set it to Ended.
-- Results: prizes won, unclaimed, every spin; mark claimed, undo, void with reason; CSV download of every matching row (formula-injection safe); the on-screen list pages 500 at a time.
+- Results: prizes won, unclaimed, every spin; mark claimed, undo, void with reason; CSV download of every matching row (formula-injection safe); the on-screen list shows 500 at a time. Both page from the last row seen on `(created_at, id)`, so spins recorded meanwhile never repeat or skip rows.
 - All changes are recorded with `scheduleAdminAudit`.
 
 ## 11. Tests and validation
@@ -114,7 +115,7 @@ Before completion, per `AGENTS.md`: `npm ci`, `npm test`, `npm run lint`, `npx t
 ## 12. Deferred by decision
 
 - Legal and compliance review of paid spins under Victorian gaming rules, age confirmation and terms (not blocked in code, as instructed).
-- Set `SPIN_WHEEL_PASS_SECRET` in Vercel (optional; the service role key is used otherwise, and rotating either invalidates old links, which can be re-sent from the page).
+- Set `SPIN_WHEEL_PASS_SECRET` in Vercel (optional; the service role key is used otherwise). Rotating either invalidates old links; re-sent links work.
 - Apply the migration to the production Supabase project before creating a wheel (the site treats a missing migration as "no wheel").
 
 ## 13. Rollback

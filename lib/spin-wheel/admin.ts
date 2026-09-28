@@ -56,6 +56,34 @@ export async function loadSpinWheelStats(db: Db, wheelId: string): Promise<SpinW
   return { spins: spins.count || 0, prizes: prizes.count || 0, unclaimed: unclaimed.count || 0, paidOrders: paidOrders.count || 0, openSpins: openSpins.count || 0 };
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export type SpinCursor = { createdAt: string; id: string };
+
+// Timestamps are kept exactly as the database returns them (microseconds):
+// rounding through a JS Date would drop precision and skip rows. The pattern
+// also keeps the value safe inside a PostgREST filter.
+const TIMESTAMP = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)?$/;
+
+/** Parse a "created_at|id" cursor from a query string; null when absent or invalid. */
+export function parseSpinCursor(value: string | null): SpinCursor | null {
+  if (!value) return null;
+  const [createdAt, id, extra] = value.split('|');
+  if (!createdAt || !id || extra !== undefined || !TIMESTAMP.test(createdAt) || !UUID.test(id)) return null;
+  return { createdAt, id };
+}
+
+export const spinCursorOf = (row: { created_at: string; id: string }) => `${row.created_at}|${row.id}`;
+
+/**
+ * PostgREST filter for keyset paging on (created_at, id): rows strictly after
+ * the cursor in the given direction. Stable while new rows are inserted.
+ */
+export function spinKeysetFilter(cursor: SpinCursor, direction: 'asc' | 'desc'): string {
+  const op = direction === 'asc' ? 'gt' : 'lt';
+  return `created_at.${op}."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.${op}.${cursor.id})`;
+}
+
 const csvCell = (value: unknown) => {
   const text = String(value ?? '');
   const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
