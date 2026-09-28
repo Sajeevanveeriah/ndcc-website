@@ -40,7 +40,7 @@ assert.match(home, /\{ href: '\/join', label: 'Join the club' \}/, 'Get involved
 assert.match(home, /href="\/sponsors" className="btn-secondary">\s*View all sponsors/);
 assert.match(home, /href="\/sponsors#enquiry-form" className="btn-primary">\s*Become a sponsor/);
 assert.match(readFileSync('app/sponsors/page.tsx', 'utf8'), /id="enquiry-form"/, 'Become a sponsor anchor exists');
-const order = ['<ThisWeekSection />', '<ClubUpdatesSection />', '<SponsorsSection />', '<FantasyTeaserSection />'].map((marker) => home.indexOf(marker));
+const order = ['<FixturesSection />', '<ComingUpPreview />', '<ClubNewsPreview />', '<SponsorsSection />', '<FantasyTeaserSection />'].map((marker) => home.indexOf(marker));
 assert.ok(order.every((index) => index > 0) && order.every((index, i) => i === 0 || index > order[i - 1]), 'Dino Coach block follows news, events and sponsors');
 assert.ok(!/2026-10-13/.test(home), 'voucher dates live in lib/home-promotions.ts');
 // Home refresh: one sponsor "View all" link, no eyebrow pills, honest
@@ -56,6 +56,20 @@ assert.match(home, /QUICK_LINK_ICONS\[icon\.trim\(\)\]\) \|\| ArrowRight/, 'unma
 assert.ok(!/salary cap/i.test(home) && !/Build an XI/i.test(home), 'Dino Coach teaser does not describe an XI under a salary cap');
 assert.match(home, /15-player NDCC squad with Dino Dollars/);
 assert.match(home, /selectMatchDayBoard\(/, 'match-day board uses the tested selection helper');
+// Next event hero: picked by the tested helper, honours a cancellation or
+// postponement on the linked calendar entry, and says when events could not load.
+assert.match(home, /selectNextEvent\(events, Date\.now\(\)\)/);
+assert.match(home, /\.from\('calendar_events'\)\.select\('status'\)\.eq\('source_event_id', eventId\)/, 'hero reads the event\'s own calendar status, not the capped preview list');
+assert.match(home, /const status = await linkedCalendarStatus\(event\.id\)/);
+assert.match(home, /started \|\| status === 'postponed' \|\| status === 'unknown' \? 'Event details'/, 'no booking once started, postponed or unreadable');
+assert.match(home, /const started = Date\.parse\(event\.date\) <= Date\.now\(\);/);
+assert.match(home, /status === 'cancelled' \? \(\s*<Link href="\/calendar"/, 'no booking button for a cancelled event');
+assert.match(home, /Events could not be loaded right now/);
+assert.ok(!/alt=""/.test(home), 'home images carry meaningful alt text');
+assert.match(home, /Dates could not be loaded right now/, 'a calendar outage is not reported as an empty schedule');
+for (const source of [home, readFileSync('app/fixtures/page.tsx', 'utf8')]) {
+  assert.match(source, /\/\^Team discovery failed\/i\.test\(warning\)/, 'no "not yet published" claims from an incomplete team list');
+}
 assert.match(home, /Fixture not yet released by GCA/);
 const homeDefaults = home.replace(/const GENERIC_CMS_COPY = \[[\s\S]*?\]\.map/, '');
 for (const generic of ['Stay up to date with everything happening at NDCC.', 'Latest from NDCC', 'Explore the Club', 'seasoned cricketer']) {

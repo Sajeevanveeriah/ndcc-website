@@ -16,6 +16,6 @@ export default async function PotClubPage() {
  return <section className="section-padding"><div className="container-width max-w-2xl space-y-6"><h1 className="section-title">Pot Club</h1>
  {intro&&<p>{intro}</p>}
  <p>Order below and choose secure card payment or bank transfer. You can leave an engraving preference in the notes. For engraving and collection arrangements, <Link href="/contact" className="underline">contact the club</Link>.</p>
- {pots.length?<SocialMembershipForm plans={pots} addons={[]} />:<p role="alert">Pot Club ordering is temporarily unavailable. Please retry shortly or contact the club.</p>}
+ {pots.length?<SocialMembershipForm plans={pots} addons={[]} potClubProductCode={productCode} />:<p role="alert">Pot Club ordering is temporarily unavailable. Please retry shortly or contact the club.</p>}
  </div></section>;
 }

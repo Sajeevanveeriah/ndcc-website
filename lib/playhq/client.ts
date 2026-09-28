@@ -242,6 +242,12 @@ async function getMappedPublicData(
   };
 }
 
+// Current-season competitions read per refresh. GCA runs men's, women's,
+// junior boys', girls' and T20 competitions as separate PlayHQ seasons, so a
+// cap of 5 could drop the junior competitions once all are published; 8
+// matches Dino Coach discovery. Only current-year seasons count.
+const MAX_CURRENT_SEASONS = 8;
+
 export async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
   const config = getPlayHQConfig();
   const fetchedAt = new Date().toISOString();
@@ -256,7 +262,7 @@ export async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
     // Saved admin mappings take over only once at least one row is enabled;
     // until then the automatic discovery below runs unchanged.
     const mappings = await loadPlayHQMappings(clubSeason?.id);
-    if (hasActiveMappings(mappings)) return await getMappedPublicData(mappings, seasons, currentSeasons.map((season) => season.id).slice(0, 5), fetchedAt, clubSeason?.name);
+    if (hasActiveMappings(mappings)) return await getMappedPublicData(mappings, seasons, currentSeasons.map((season) => season.id).slice(0, MAX_CURRENT_SEASONS), fetchedAt, clubSeason?.name);
     const preferredSeasonId = currentSeasons[0]?.id;
     if (!preferredSeasonId) return { configured: true, message: `Fixtures for ${clubSeason?.name || 'the current season'} are not available here yet. Check the club on PlayHQ for the latest published information.`, fetchedAt, seasons, selectedSeasonId: null, teams: [], grades: [], fixtures: [], ladders: [], error: null };
 
@@ -266,7 +272,7 @@ export async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
     const candidateIds = [preferredSeasonId, ...[...currentSeasons]
       .sort((a, b) => (Date.parse(b.startDate || '') || 0) - (Date.parse(a.startDate || '') || 0))
       .map((season) => season.id)
-      .filter((id) => id !== preferredSeasonId)].slice(0, 5);
+      .filter((id) => id !== preferredSeasonId)].slice(0, MAX_CURRENT_SEASONS);
 
     const warnings: string[] = [];
     const discovered = await Promise.all(candidateIds.map(async candidateId => {

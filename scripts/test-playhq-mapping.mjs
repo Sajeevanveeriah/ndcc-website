@@ -26,7 +26,8 @@ const seasonMatch = load('lib/playhq/season-match.ts');
 const normalise = load('lib/playhq/normalise.ts');
 const mapping = load('lib/playhq/mapping.ts', { './season-match': seasonMatch });
 const slug = load('lib/playhq/team-slug.ts');
-const view = load('lib/playhq/team-view.ts', { './season-match': seasonMatch, './team-slug': slug });
+const teamCategory = load('lib/playhq/team-category.ts');
+const view = load('lib/playhq/team-view.ts', { './season-match': seasonMatch, './team-slug': slug, './team-category': teamCategory });
 
 const MEN = '19591b3d-f4e6-4ab6-b13f-552f31b75b5d';
 const WOMEN = '1b6c27bb-d578-41f0-a113-0ab2e5cc79aa';
@@ -144,6 +145,32 @@ test('CMS teams match PlayHQ teams by link, exact name or unique ordinal', () =>
   assert.equal(view.matchPlayHQTeam({ name: 'Anything', playhq_team_id: women2.id.toUpperCase() }, teams)?.id, women2.id);
   assert.equal(view.matchPlayHQTeam({ name: '1st XI', playhq_team_id: '00000000-0000-4000-8000-00000000abcd' }, teams), null, 'a saved link is never overridden by name matching');
   assert.equal(view.matchPlayHQTeam({ name: 'Under 12' }, teams), null);
+  // Juniors: the CMS age-group card matches the one NDCC junior team for that
+  // age; unmatched cards are reported as awaiting PlayHQ, never dropped.
+  const juniorTeams = [...teams, { id: 'u13', name: 'Newcomb & District U13', gradeId: 'g13', gradeName: 'Under 13 Boys' }];
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Boys - Under 13s', grade: 'GCA Junior Competition' }, juniorTeams)?.id, 'u13');
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Boys - Under 17s' }, juniorTeams), null);
+  const cmsJuniors = [{ name: 'Junior Boys - Under 11s' }, { name: 'Junior Boys - Under 13s' }, { name: 'Junior Boys - Under 17s' }, { name: '1st XI' }];
+  assert.deepEqual(view.teamsAwaitingPlayHQ(cmsJuniors, juniorTeams).map((team) => team.name), ['Junior Boys - Under 11s', 'Junior Boys - Under 17s']);
+  assert.deepEqual(view.teamsAwaitingPlayHQ(cmsJuniors, teams).map((team) => team.name), ['Junior Boys - Under 11s', 'Junior Boys - Under 13s', 'Junior Boys - Under 17s']);
+  // Category-level or ambiguous cards are not "unpublished" while PlayHQ lists
+  // sides they could be; they are only flagged when the category is absent.
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Senior Women' }, { name: 'Senior Men' }], teams).map((team) => team.name), []);
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys' }], teams).map((team) => team.name), ['Junior Boys']);
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Women 3rds' }], teams).map((team) => team.name), ['Women 3rds']);
+  // Junior boys and girls sides of one age group never cross-match.
+  const girls = [...teams, { id: 'u15g', name: 'Newcomb & District U15 Girls', gradeId: 'g15', gradeName: 'Under 15 Girls' }];
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Boys - Under 15s' }, girls), null);
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Girls - Under 15s' }, girls)?.id, 'u15g');
+  assert.equal(view.matchPlayHQTeam({ name: 'Under 15s' }, girls)?.id, 'u15g', 'no gender on the card: the only U15 side');
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys - Under 15s' }], girls).map((team) => team.name), ['Junior Boys - Under 15s']);
+  // Gender only in the PlayHQ grade name still keeps the sides apart.
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Girls - Under 13s' }, juniorTeams), null, 'U13 grade is "Under 13 Boys"');
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Girls - Under 13s' }], juniorTeams).map((team) => team.name), ['Junior Girls - Under 13s']);
+  // Age in the grade and gender in the name (or the reverse) are read together.
+  assert.equal(view.matchPlayHQTeam({ name: 'Junior Boys', grade: 'Under 15s' }, girls), null);
+  assert.equal(view.matchPlayHQTeam({ name: 'Under 15s', grade: 'Girls' }, girls)?.id, 'u15g');
+  assert.deepEqual(view.teamsAwaitingPlayHQ([{ name: 'Junior Boys', grade: 'Under 15s' }], girls).map((team) => team.name), ['Junior Boys']);
 });
 
 test('team fixtures, next match and home/away from the recording', () => {

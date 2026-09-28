@@ -218,3 +218,39 @@ export function allWithinDays(items: ComingUpItem[], now: number, days = 7): boo
   const horizon = now + days * DAY_MS;
   return items.every((item) => Date.parse(item.startsAt) <= horizon);
 }
+
+// ---------------------------------------------------------------------------
+// Next club event for the home hero.
+
+/** An event stays "next" for a few hours after it starts, while it is on. */
+export const NEXT_EVENT_GRACE_MS = 3 * 60 * 60 * 1000;
+
+type EventLike = { id: string; title: string; date: string; published?: boolean | null };
+
+/**
+ * The next published event: the earliest one starting no more than
+ * NEXT_EVENT_GRACE_MS ago. Undated, unparseable and unpublished rows are
+ * ignored; ties keep the input order. Returns null when nothing is upcoming.
+ */
+export function selectNextEvent<T extends EventLike>(events: readonly T[], now: number): T | null {
+  let next: T | null = null;
+  let nextTime = Infinity;
+  for (const event of events) {
+    if (event.published === false || !event.title?.trim()) continue;
+    const time = Date.parse(String(event.date || ''));
+    if (!Number.isFinite(time) || time < now - NEXT_EVENT_GRACE_MS) continue;
+    if (time < nextTime) { next = event; nextTime = time; }
+  }
+  return next;
+}
+
+/** "Saturday 3 October 2026" in Melbourne time; date-only values are not shifted. */
+export function formatEventDay(startsAt: string | null | undefined): string | null {
+  if (!startsAt) return null;
+  const time = Date.parse(startsAt);
+  if (!Number.isFinite(time)) return null;
+  const timeZone = DATE_ONLY.test(startsAt) ? 'UTC' : CLUB_TIME_ZONE;
+  const parts = new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone }).formatToParts(new Date(time));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((row) => row.type === type)?.value || '';
+  return `${part('weekday')} ${part('day')} ${part('month')} ${part('year')}`;
+}

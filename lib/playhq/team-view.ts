@@ -1,6 +1,7 @@
 // Pure helpers for public team pages and the /fixtures team filter (no I/O).
 // Unit tested in scripts/test-playhq-mapping.mjs.
 import { isClubTeamName, normaliseClubText } from './season-match';
+import { juniorAge, sameJuniorSide, teamCategory } from './team-category';
 import type { PlayHQFixture, PlayHQLadderRow, PlayHQTeam } from './types';
 
 const MELBOURNE = 'Australia/Melbourne';
@@ -52,7 +53,38 @@ export function matchPlayHQTeam(cms: CmsTeamLike, playhqTeams: PlayHQTeam[]): Pl
     if (candidates.length === 1) return candidates[0];
     if (candidates.length > 1) return null;
   }
+  // Junior teams carry an age group rather than an ordinal: "Junior Boys -
+  // Under 13s" matches the one NDCC PlayHQ side for that age group, if unique.
+  // A boys card never takes a girls side (or the reverse); the age and the
+  // boys/girls marker may sit in either the card name or its grade.
+  const source = `${cms.name} ${cms.grade || ''}`;
+  if (juniorAge(source) !== null) {
+    // PlayHQ may mark boys/girls only in the grade name.
+    const candidates = club.filter((team) => sameJuniorSide(source, `${team.name} ${team.gradeName || ''}`));
+    if (candidates.length === 1) return candidates[0];
+  }
   return null;
+}
+
+/**
+ * Website team cards with no team in the current PlayHQ season, such as
+ * junior teams before GCA publishes the junior competitions. Shown as "not
+ * yet published" so a whole age group never silently disappears. A card that
+ * could be one of several PlayHQ sides (e.g. "Senior Women" beside Women
+ * 1sts and 2nds) is ambiguous, not unpublished, so it is left out.
+ */
+export function teamsAwaitingPlayHQ<T extends CmsTeamLike>(cmsTeams: readonly T[], playhqTeams: PlayHQTeam[]): T[] {
+  const club = playhqTeams.filter((team) => isClubTeamName(team.name));
+  return cmsTeams.filter((team) => {
+    if (!team.name?.trim() || matchPlayHQTeam(team, playhqTeams)) return false;
+    const category = teamCategory(team.name, team.grade);
+    const sameCategory = club.filter((candidate) => teamCategory(candidate.name, candidate.gradeName) === category);
+    const ordinal = teamMatchKey(team.name).ordinal ?? teamMatchKey(team.grade).ordinal;
+    const ageSource = `${team.name} ${team.grade || ''}`;
+    const age = juniorAge(ageSource);
+    if (ordinal === null && age === null) return sameCategory.length === 0;
+    return !sameCategory.some((candidate) => (ordinal !== null && teamMatchKey(candidate.name).ordinal === ordinal) || (age !== null && sameJuniorSide(ageSource, `${candidate.name} ${candidate.gradeName || ''}`)));
+  });
 }
 
 export function fixtureInvolvesTeam(fixture: PlayHQFixture, team: Pick<PlayHQTeam, 'id' | 'name'>): boolean {

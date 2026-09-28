@@ -17,18 +17,22 @@ type HeaderLink = NavHeaderLink;
 type PublicNavGroup = { label: string; href?: string; links?: Array<{ label: string; href: string }> };
 
 // Information architecture: Calendar sits with fixtures under Cricket, club
-// and player sponsors share one Sponsors group, and both raffles share one
-// Raffles group (shown only while at least one raffle is publicly visible).
-// Contact appears once, as the final top-level item.
+// and player sponsors share one Sponsors group, and every fundraiser (raffles,
+// wheels and the Cookie Dough drive) shares one Fund Raiser group, shown only
+// while at least one of them is publicly visible. Contact appears once, as the
+// final top-level item.
+const FUND_RAISER_GROUP = 'Fund Raiser';
+
 const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Home', href: '/' },
   { label: 'Cricket', links: [{ label: 'Teams', href: '/teams' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Calendar', href: '/calendar' }, { label: 'Fantasy', href: '/fantasy' }] },
   { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'Facilities', href: '/facilities' }, { label: 'History', href: '/about#club-history' }] },
-  { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }, { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
+  { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }] },
   { label: 'Community', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }] },
   { label: 'Sponsors', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pot Club', href: '/pot-club' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }] },
-  { label: 'Raffles', links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }, { label: 'Prize Wheel', href: '/prize-wheel' }, { label: 'Spin the Wheel', href: '/spin-the-wheel' }] },
+  { label: FUND_RAISER_GROUP, links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }, { label: 'Prize Wheel', href: '/prize-wheel' }, { label: 'Spin the Wheel', href: '/spin-the-wheel' },
+    { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
   { label: 'Contact', href: '/contact' },
 ];
 
@@ -44,7 +48,7 @@ function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffle
       .map((link) => resolveLink(navLinks, link)) });
   // Management access follows the authenticated permission, never public sales
   // visibility. Staff use their committee session rather than a member login.
-  const raffles = groups.find((group) => group.label === 'Raffles');
+  const raffles = groups.find((group) => group.label === FUND_RAISER_GROUP);
   if (manageRaffles && raffles?.links) {
     raffles.links = [
       { label: 'Raffle administration', href: '/admin/raffle' },

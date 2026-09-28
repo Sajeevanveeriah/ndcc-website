@@ -2,13 +2,26 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Info, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
 import Input, { Textarea } from '@/components/ui/Input';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency } from '@/lib/utils';
+import { SOCIAL_MEMBERSHIP_ELIGIBILITY } from '@/lib/social-membership';
+import { DEFAULT_POT_CLUB_PRODUCT_CODE } from '@/lib/pot-club';
 import type { MembershipAddonOption, MembershipPlanOption } from '@/lib/public-form-options';
+
+// Shown wherever a social membership buyer can see it before paying: beside
+// the plan choice and again with the payment options.
+function EligibilityNote({ id }: { id?: string }) {
+  return (
+    <p id={id} className="flex items-start gap-2 rounded-lg border border-sky_accent/60 bg-surface-blue-subtle px-3 py-2 text-sm font-semibold text-content-blue">
+      <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      {SOCIAL_MEMBERSHIP_ELIGIBILITY}
+    </p>
+  );
+}
 
 type OrderConfirmation = {
   order_id: string;
@@ -20,7 +33,7 @@ type OrderConfirmation = {
 // Client island for the social membership application: plan/add-on
 // selection, honeypot, submission and payment options. Plans and add-ons are
 // read server-side by the page and passed in.
-export default function SocialMembershipForm({ plans, addons }: { plans: MembershipPlanOption[]; addons: MembershipAddonOption[] }) {
+export default function SocialMembershipForm({ plans, addons, potClubProductCode = DEFAULT_POT_CLUB_PRODUCT_CODE }: { plans: MembershipPlanOption[]; addons: MembershipAddonOption[]; potClubProductCode?: string }) {
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id || '');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '', notes: '', hp_field: '', submitted_at: Date.now() });
@@ -29,7 +42,8 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
   const [loading, setLoading] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
 
-  const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === 'pot_club_2026_27';
+  // The Pot Club plan is the one selected in the CMS (/admin/promotions).
+  const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === potClubProductCode;
   const total = useMemo(() => {
     const planPrice = plans.find((p) => p.id === selectedPlan)?.price || 0;
     const addonTotal = isPotClub ? 0 : addons.filter((a) => selectedAddons[a.id]).reduce((sum, a) => sum + a.price, 0);
@@ -47,6 +61,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
     const payload = {
       ...formData,
       membership_plan_id: selectedPlan,
+      pot_club: isPotClub,
       addons: isPotClub ? [] : Object.keys(selectedAddons).filter((id) => selectedAddons[id]).map((addon_id) => ({ addon_id, quantity: 1 })),
     };
 
@@ -92,9 +107,10 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
 
           <div>
             <label htmlFor="membership_plan" className="form-label">Membership Plan</label>
-            <select id="membership_plan" className="form-input" value={selectedPlan} onChange={(e) => { setSelectedPlan(e.target.value); setSelectedAddons({}); }}>
+            <select id="membership_plan" className="form-input" aria-describedby={isPotClub ? undefined : 'membership-eligibility'} value={selectedPlan} onChange={(e) => { setSelectedPlan(e.target.value); setSelectedAddons({}); }}>
               {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} - {formatCurrency(plan.price)}</option>)}
             </select>
+            {!isPotClub && <div className="mt-2"><EligibilityNote id="membership-eligibility" /></div>}
           </div>
 
           <div className="space-y-2">
@@ -124,6 +140,7 @@ export default function SocialMembershipForm({ plans, addons }: { plans: Members
                   <p className="text-green-700 font-body text-sm mt-1">{message}</p>
                 </div>
               </div>
+              {!isPotClub && <EligibilityNote />}
               {orderConfirmation?.order_id && orderConfirmation.total_amount > 0 && (
                 <OrderPaymentOptions
                   orderId={orderConfirmation.order_id}

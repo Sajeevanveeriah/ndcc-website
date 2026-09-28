@@ -10,11 +10,14 @@ import {
   comingUpDateParts,
   fixturesWithinDays,
   formatClubTime,
+  formatEventDay,
   formatMatchDayDate,
+  NEXT_EVENT_GRACE_MS,
   isUpcomingFixture,
   melbourneDateKey,
   mergeComingUp,
   selectMatchDayBoard,
+  selectNextEvent,
   unavailableGradesFromWarnings,
 } from '../components/home/match-day.ts';
 
@@ -171,4 +174,26 @@ test('linked events merge across different titles/times and preserve cancellatio
     assert.deepEqual(mergeComingUp(cancelled), [{ ...event, status: 'cancelled', href: '/calendar' }]);
   }
   assert.equal(mergeComingUp([event, { ...event, key: 'separate', sourceEventId: '2', href: '/events/2' }]).length, 2, 'Different events with identical titles are not discarded');
+});
+
+test('the hero shows the next published event (live events, 28 September 2026)', () => {
+  // Published events as listed in production on 28 September 2026 (UTC instants).
+  const events = [
+    { id: 'snail', title: 'Snail Racing', date: '2026-10-24T08:30:00Z', published: true },
+    { id: 'ipod', title: 'iPod Shuffle', date: '2026-10-03T09:00:00Z', published: true },
+    { id: 'halloween', title: 'Halloween', date: '2026-10-31T08:30:00Z', published: true },
+  ];
+  const monday = Date.parse('2026-09-28T10:00:00Z');
+  assert.equal(selectNextEvent(events, monday)?.title, 'iPod Shuffle');
+  assert.equal(formatEventDay('2026-10-03T09:00:00Z'), 'Saturday 3 October 2026');
+  assert.equal(formatClubTime('2026-10-03T09:00:00Z'), '7:00 pm');
+  // Still shown while it is on, then the following event takes over.
+  const start = Date.parse('2026-10-03T09:00:00Z');
+  assert.equal(selectNextEvent(events, start + NEXT_EVENT_GRACE_MS - 1)?.id, 'ipod');
+  assert.equal(selectNextEvent(events, start + NEXT_EVENT_GRACE_MS + 1)?.id, 'snail');
+  // Unpublished, untitled and undated rows are never selected; nothing left is null.
+  assert.equal(selectNextEvent([{ id: 'x', title: 'Draft', date: '2026-10-01T00:00:00Z', published: false }, { id: 'y', title: ' ', date: '2026-10-01T00:00:00Z' }, { id: 'z', title: 'Bad', date: 'soon' }], monday), null);
+  assert.equal(selectNextEvent([], monday), null);
+  assert.equal(formatEventDay('2027-01-23'), 'Saturday 23 January 2027', 'date-only values are not shifted');
+  assert.equal(formatEventDay('nope'), null);
 });

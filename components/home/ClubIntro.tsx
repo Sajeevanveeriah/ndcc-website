@@ -111,10 +111,10 @@ export default function ClubIntro() {
   }, [play]);
 
   return (
-    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-3xl border border-edge-subtle bg-surface-muted shadow-[0_1px_2px_rgba(29,29,31,0.05),0_30px_60px_-30px_rgba(45,0,0,0.35)]" aria-label="NDCC dinosaur logo reveal">
+    <figure className="m-0 flex min-w-0 flex-col overflow-hidden rounded-2xl border border-edge-subtle bg-surface-muted shadow-[0_1px_2px_rgba(29,29,31,0.05),0_30px_60px_-30px_rgba(45,0,0,0.35)]" aria-label="NDCC dinosaur logo reveal">
       <div className="flex flex-1 items-center">
       <div ref={frameRef} className="relative aspect-video w-full overflow-hidden">
-        <Image src={POSTER} alt="Newcomb and District Cricket Club dinosaur badge" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-contain" priority />
+        <Image src={POSTER} alt="Newcomb and District Cricket Club dinosaur badge" fill sizes="(min-width: 1024px) 256px, (min-width: 640px) 224px, 256px" className="object-contain" priority />
         <video
           ref={videoRef}
           width={960}
@@ -153,11 +153,11 @@ export default function ClubIntro() {
         />
       </div>
       </div>
-      <figcaption className="relative isolate flex min-h-16 items-center justify-between gap-5 overflow-hidden bg-maroon-800 px-5 py-3 text-white">
+      <figcaption className="relative isolate flex min-h-12 items-center justify-between gap-4 overflow-hidden bg-maroon-800 px-4 py-1 text-white">
         <svg aria-hidden="true" focusable="false" viewBox="0 0 180 120" className="pointer-events-none absolute -right-5 bottom-0 -z-10 h-full w-28 text-sky_accent sm:w-44">
           <path d="M0 0h28l62 76L152 0h28L90 112Z" fill="currentColor" />
         </svg>
-        <span className="relative block pr-2 font-display text-xl font-bold tracking-wide">DINOS<span aria-hidden="true" className="sr-only" /></span>
+        <span className="relative block pr-2 font-display text-lg font-bold tracking-wide">DINOS<span aria-hidden="true" className="sr-only" /></span>
         <span className="sr-only">A blue dinosaur walks into view and reveals the NDCC badge. This introduction has no sound.</span>
         {ready && !failed && (
           <button type="button" className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/70 bg-maroon-800 text-white transition-colors hover:bg-white hover:text-maroon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:opacity-60" disabled={loading} onClick={() => playing ? videoRef.current?.pause() : play()} aria-label={loading ? 'Loading club intro' : playing ? 'Pause club intro' : ended ? 'Replay club intro' : played ? 'Resume club intro' : 'Play club intro'} title={loading ? 'Loading intro' : playing ? 'Pause intro' : ended ? 'Replay intro' : played ? 'Resume intro' : 'Play intro'}>
