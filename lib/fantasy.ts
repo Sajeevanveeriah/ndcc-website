@@ -24,6 +24,7 @@ export type FantasyRuleValues = {
   budget?: string | null;
   transferWindow?: string | null;
   roundRobinPrize?: string | null;
+  pricePointValue?: string | null;
 };
 
 const RULE_DEFAULTS = {
@@ -33,6 +34,7 @@ const RULE_DEFAULTS = {
   budget: '15,000,000 Dino Dollars',
   transferWindow: 'Monday 09:00 inclusive to Saturday 11:00 exclusive in Australia/Melbourne time',
   roundRobinPrize: '300 Dino Dollars',
+  pricePointValue: '10,000 Dino Dollars',
 };
 
 export function fantasyRuleSections(values: FantasyRuleValues = {}) {
@@ -43,6 +45,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
     budget: values.budget || RULE_DEFAULTS.budget,
     transferWindow: values.transferWindow || RULE_DEFAULTS.transferWindow,
     roundRobinPrize: values.roundRobinPrize || RULE_DEFAULTS.roundRobinPrize,
+    pricePointValue: values.pricePointValue || RULE_DEFAULTS.pricePointValue,
   };
   return [
   { title: 'Entry and pilot', items: [
@@ -83,7 +86,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
     `Transfers are unlimited, free and carry no points penalty. The server-authoritative window is ${v.transferWindow}.`,
     `Opening player prices reflect the supplied ${v.sourceSeasonLabel} statistics and are rounded to the nearest 1,000 Dino Dollars. The highest-ranked player starts at 2,000,000 Dino Dollars. Players without historical statistics start at 100,000 Dino Dollars.`,
     'All price reviews and manual price changes are rounded upwards to whole 1,000 Dino Dollars. Prices are reviewed automatically after every two regular rounds: rounds 2, 4, 6 and so on. Settlement becomes eligible on the following Monday at 09:00 Melbourne time and runs at the next daily pricing check once published results are available.',
-    'Each review uses a rolling average: half the player\'s opening per-match average plus half their average across the games played since the previous review (with a single game, three quarters opening average and one quarter that game; with none, unchanged). The price moves by 10,000 Dino Dollars for each point the rolling average rises or falls against the previous review, so the round 4 review compares against round 2.',
+    `Each review uses a rolling average: half the player's opening per-match average plus half their average across the games played since the previous review (with a single game, three quarters opening average and one quarter that game; with none, unchanged). The price moves by ${v.pricePointValue} for each point the rolling average rises or falls against the previous review, so the round 4 review compares against round 2.`,
     'Strong performances can increase a player price; weaker performances can reduce it. Prices stay between 100,000 and 2,000,000 Dino Dollars. Before a player or grade starts, unplayed weeks do not count as zero appearances or lower the performance average or price. Finals do not change prices.',
     'Price reviews use published results available when the review runs. Late results enter a later review. Completed reviews are not charged or applied twice.',
     'The league manager can make manual price and eligibility corrections. Price overrides are recorded with the old price, new price, reason and administrator. Automatic changes resume at the next review.',
@@ -104,7 +107,7 @@ export const FANTASY_RULE_SECTIONS = fantasyRuleSections();
 
 type RuleSeason = { name?: string | null; slug?: string | null } | null | undefined;
 type RuleSettings = {
-  entry_fee_cents?: unknown; entry_fee_currency?: unknown; budget_dino_dollars?: unknown; round_robin_prize_dino_dollars?: unknown;
+  entry_fee_cents?: unknown; entry_fee_currency?: unknown; budget_dino_dollars?: unknown; round_robin_prize_dino_dollars?: unknown; price_point_value_dino_dollars?: unknown;
   transfer_timezone?: unknown; transfer_open_weekday?: unknown; transfer_open_minute?: unknown; transfer_close_weekday?: unknown; transfer_close_minute?: unknown;
 } | null | undefined;
 
@@ -118,6 +121,7 @@ export function fantasyRuleValuesFrom(season: RuleSeason, settings: RuleSettings
   };
   const budget = numeric(settings?.budget_dino_dollars);
   const prize = numeric(settings?.round_robin_prize_dino_dollars);
+  const pricePoint = numeric(settings?.price_point_value_dino_dollars);
   const openDay = isoWeekdayLabel(numeric(settings?.transfer_open_weekday));
   const closeDay = isoWeekdayLabel(numeric(settings?.transfer_close_weekday));
   const openClock = formatMinuteOfDay(numeric(settings?.transfer_open_minute));
@@ -129,6 +133,7 @@ export function fantasyRuleValuesFrom(season: RuleSeason, settings: RuleSettings
     entryFee: formatEntryFee(settings?.entry_fee_cents, settings?.entry_fee_currency),
     budget: budget !== null && budget > 0 ? formatDinoDollars(budget) : null,
     roundRobinPrize: prize !== null && prize >= 0 ? formatDinoDollars(prize) : null,
+    pricePointValue: pricePoint !== null && pricePoint > 0 ? formatDinoDollars(pricePoint) : null,
     transferWindow: openDay && closeDay && openClock && closeClock && timezone ? `${openDay} ${openClock} inclusive to ${closeDay} ${closeClock} exclusive in ${timezone} time` : null,
   };
 }
