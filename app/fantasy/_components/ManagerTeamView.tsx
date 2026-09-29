@@ -67,6 +67,7 @@ function TeamColumn({ team, shared, sharedLabel, ownTeam = false, wide }: { team
       <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">{ownTeam ? 'Your team' : 'Manager team'}</p>
       <h2 id={headingId} className="mt-1 text-2xl font-display font-bold text-content-primary break-words">{team.teamName}</h2>
       <p className="font-body text-content-secondary">Manager: {team.displayName}</p>
+      {team.roundName && <p className="mt-1 text-sm font-body text-content-muted">Team locked for {team.roundName}</p>}
       <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-edge-subtle pt-4 text-center">
         <div><dt className="text-xs font-semibold uppercase text-content-muted">Rank</dt><dd className="mt-1 text-xl font-display font-bold">{team.rank ?? '-'}</dd></div>
         <div><dt className="text-xs font-semibold uppercase text-content-muted">Points</dt><dd className="mt-1 text-xl font-display font-bold text-maroon-800 dark:text-maroon-200">{number(team.totalPoints)}</dd></div>

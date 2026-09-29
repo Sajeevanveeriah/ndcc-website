@@ -1,28 +1,29 @@
 import type { PlayerStats } from './player-stats';
 
-// Viewing another manager's Dino Coach team. Each manager has one live squad,
-// so rival squads are shown only while nobody can change a team; otherwise a
-// manager could copy picks before the round deadline.
+// Viewing another manager's Dino Coach team. Squads are saved one row per
+// round and are fixed once that round's deadline passes, so a rival is shown
+// with the squad that counts for the latest locked round, never their live
+// edits for a round still open. The weekly selection window and committee
+// switches play no part: they can reopen before a deadline.
 
-export type TeamRevealState = {
-  seasonStatus: string;
-  isCurrentSeason: boolean;
-  roundLocked: boolean;
-};
+export type RevealRound = { id: string; name: string; round_number: number | null; status: string; deadline_at: string | null };
 
-/**
- * True only once squads are fixed for good: the current season's round is
- * locked (deadline passed, round closed or the weekly window shut), or the
- * season is finished. Committee switches such as team_selection_open or
- * public_launch_enabled never reveal teams, because they can be switched back
- * on before the deadline and picks seen meanwhile could then be copied.
- */
-export function teamsRevealed(state: TeamRevealState): boolean {
-  if (state.seasonStatus === 'completed' || state.seasonStatus === 'archived') return true;
-  return state.isCurrentSeason && state.roundLocked;
+const CLOSED_ROUND_STATUSES = new Set(['locked', 'scored', 'final']);
+
+/** The latest round whose squads are fixed for good: closed, or open with its deadline passed. */
+export function latestLockedRound(rounds: RevealRound[], nowMs: number = Date.now()): RevealRound | null {
+  const locked = rounds.filter((round) => CLOSED_ROUND_STATUSES.has(round.status)
+    || (round.status === 'open' && round.deadline_at !== null && Date.parse(round.deadline_at) <= nowMs));
+  const order = (round: RevealRound) => [round.round_number ?? Number.NEGATIVE_INFINITY, round.deadline_at ? Date.parse(round.deadline_at) : Number.NEGATIVE_INFINITY];
+  return locked.sort((a, b) => { const [an, ad] = order(a); const [bn, bd] = order(b); return bn - an || bd - ad; })[0] ?? null;
 }
 
-export const TEAMS_HIDDEN_MESSAGE = 'Other teams are revealed once the round deadline passes. Check back after the deadline.';
+/** A finished season's squads can no longer change, so its latest squads are shown. */
+export function seasonFinished(status: string): boolean {
+  return status === 'completed' || status === 'archived';
+}
+
+export const TEAMS_HIDDEN_MESSAGE = 'Other teams are revealed once the first round deadline passes. Check back after the deadline.';
 
 export type TeamViewPlayer = {
   id: string;
@@ -68,6 +69,8 @@ export type TeamView = {
   rank: number | null;
   totalPoints: number;
   squadValueDinoDollars: number;
+  // The locked round this squad is shown for; null for a live or finished-season squad.
+  roundName: string | null;
   picks: TeamViewPick[];
 };
 
