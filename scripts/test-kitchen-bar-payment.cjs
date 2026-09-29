@@ -77,6 +77,29 @@ const call = body => route.POST(new Request('https://example.invalid/api/kitchen
   assert.equal((await call({ selected: true })).status, 429);
   rate = true;
 
+  // The bank deposit route clears the bar choice on kitchen orders, so both
+  // routes keep one payment choice whichever order the two writes land in.
+  const bankRoute = load('app/api/payments/bank-transfer/route.ts', {
+    'next/server': { NextResponse }, '@/lib/supabase-server': { createServerClient: () => db },
+    '@/lib/server/request-guards': { enforceRateLimit: async () => true, getClientIp: () => 'test' },
+    '@/lib/order-input-validation': { readLimitedJsonObject: async request => ({ ok: true, value: await request.json() }) },
+    '@/lib/payments/capabilities': { deriveCapabilities: () => ({ bank_transfer: true }), loadMerchPaymentSettings: async () => ({}) },
+    '@/lib/payments/bank-transfer': { configuredBankDetails: () => ({ bsb: '000000', account_number: '00000000' }), TRANSFER_PAYABLE_STATUSES: ['unpaid', 'pending', 'pending_bank_transfer', 'part_paid'] },
+  });
+  const bank = body => bankRoute.POST(new Request('https://example.invalid/api/payments/bank-transfer', { method: 'POST', body: JSON.stringify({ order_id: id, email: 'buyer@example.invalid', ...body }) }));
+  order = { ...original, customer_email: 'buyer@example.invalid', bank_transfer_selected_at: null };
+  await call({ selected: true });
+  assert.ok(order.bar_payment_selected_at && !order.bank_transfer_selected_at);
+  assert.equal((await bank({ selected: true })).status, 200);
+  assert.ok(order.bank_transfer_selected_at, 'bank choice recorded');
+  assert.equal(order.bar_payment_selected_at, null, 'bank choice clears the bar choice on kitchen orders');
+  await call({ selected: true });
+  assert.ok(order.bar_payment_selected_at && order.bank_transfer_selected_at === null, 'and the bar choice clears the bank choice again');
+  order = { ...original, order_category: 'merch', customer_email: 'buyer@example.invalid', bank_transfer_selected_at: null, bar_payment_selected_at: undefined };
+  await bank({ selected: true });
+  assert.deepEqual(Object.keys(writes.at(-1)), ['bank_transfer_selected_at'], 'non-kitchen bank writes are unchanged');
+  order = { ...original };
+
   // Panel wiring: only the kitchen (meal draft token) shows the bar choice, and a bar choice hides the bank deposit panel.
   const panel = fs.readFileSync('components/payments/OrderPaymentOptions.tsx', 'utf8');
   assert.match(panel, /mealDraftToken && orderId && \(\s*<BarPaymentChoice/);
@@ -92,5 +115,5 @@ const call = body => route.POST(new Request('https://example.invalid/api/kitchen
   assert.match(migration, /bar_payment_selected_at is null or order_category = 'kitchen'/);
   const exportRoute = fs.readFileSync('app/api/admin/kitchen/orders/export/route.ts', 'utf8');
   assert.match(exportRoute, /bar_payment_selected_at/);
-  console.log('PASS: kitchen pay-at-bar authorisation, intent-only writes, bank replacement, payable guards, errors, rate limits, panel and export wiring.');
+  console.log('PASS: kitchen pay-at-bar authorisation, intent-only writes, two-way bank/bar exclusion, payable guards, errors, rate limits, panel and export wiring.');
 })().catch(error => { console.error(error); process.exit(1); });

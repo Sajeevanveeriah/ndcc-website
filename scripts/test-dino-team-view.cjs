@@ -13,13 +13,12 @@ function load(file, mocks) {
 }
 const view = load('lib/dino-coach/team-view.ts', { './player-stats': {} });
 
-// 1. Reveal rule: hidden only while a squad could still be saved.
-const open = { seasonAllowsTeamChanges: true, launchEnabled: true, selectionOpen: true, isCurrentSeason: true, roundLocked: false };
-assert.equal(view.teamsRevealed(open), false, 'open selection hides rival teams');
-for (const change of [{ seasonAllowsTeamChanges: false }, { launchEnabled: false }, { selectionOpen: false }, { roundLocked: true }]) {
-  assert.equal(view.teamsRevealed({ ...open, ...change }), true, JSON.stringify(change));
-}
-assert.equal(view.teamsRevealed({ ...open, isCurrentSeason: false, roundLocked: true }), false, 'round locks apply to the current season only, as in the save route');
+// 1. Reveal rule: only an irreversible lock or a finished season reveals teams.
+assert.equal(view.teamsRevealed({ seasonStatus: 'active', isCurrentSeason: true, roundLocked: false }), false, 'open round hides rival teams');
+assert.equal(view.teamsRevealed({ seasonStatus: 'active', isCurrentSeason: true, roundLocked: true }), true, 'locked round reveals teams');
+for (const status of ['completed', 'archived']) assert.equal(view.teamsRevealed({ seasonStatus: status, isCurrentSeason: false, roundLocked: false }), true, `${status} season reveals teams`);
+for (const status of ['draft', 'upcoming', 'active']) assert.equal(view.teamsRevealed({ seasonStatus: status, isCurrentSeason: false, roundLocked: true }), false, `non-current ${status} season stays hidden`);
+assert.doesNotMatch(fs.readFileSync('lib/dino-coach/team-view.ts', 'utf8'), /team_selection_open\b.*=>|launchEnabled|selectionOpen/, 'committee switches do not feed the reveal rule');
 
 // 2. Picks follow the slot layout (XI then bench) and survive players leaving the pool.
 const slots = [{ key: 'XI_BAT_1', label: 'Batter 1', positionType: 'starter', order: 1 }, { key: 'XI_BOWL_1', label: 'Bowler 1', positionType: 'starter', order: 2 }, { key: 'BENCH_BAT_1', label: 'Bench Batter', positionType: 'bench', order: 3 }];
@@ -41,7 +40,7 @@ let authed = true, settings, lock, season, managerRow, demoRow, squads, calls;
 const reset = () => {
   authed = true; calls = [];
   settings = { public_launch_enabled: true, team_selection_open: false, slot_counts: {} };
-  lock = { locked: false }; season = { id: 'season-1', name: '2026/27', slug: '2026-27', is_current: true };
+  lock = { locked: true }; season = { id: 'season-1', name: '2026/27', slug: '2026-27', is_current: true, status: 'active' };
   managerRow = { id: rivalId, display_name: 'Rival', team_name: 'Rival XI', is_active: true, deleted_at: null, hidden_at: null };
   demoRow = { is_demo: false };
   squads = { [rivalId]: [row('p1', 'XI_BAT_1', { is_captain: true }), row('p2', 'XI_BOWL_1')], [me.id]: [row('p2', 'XI_BAT_1')] };
@@ -80,14 +79,18 @@ const get = (id = rivalId) => route.GET(new Request(`https://example.invalid/api
   reset();
   assert.equal((await get('not-a-uuid')).status, 404);
 
-  reset(); settings.team_selection_open = true;
+  reset(); lock = { locked: false };
   const hidden = await get();
-  assert.equal(hidden.status, 403, 'open selection window hides rivals');
+  assert.equal(hidden.status, 403, 'open round hides rivals');
   assert.equal((await hidden.json()).error, view.TEAMS_HIDDEN_MESSAGE);
   assert.ok(!calls.includes('fantasy_squads'), 'no squad is read while hidden');
   assert.equal((await get(me.id)).status, 200, 'your own team is always visible');
 
-  reset(); settings.team_selection_open = true; lock = { locked: true };
+  reset(); lock = { locked: false }; settings.team_selection_open = false; settings.public_launch_enabled = false;
+  assert.equal((await get()).status, 403, 'committee switches alone never reveal teams (they can be switched back on)');
+  reset(); lock = { locked: false }; season = { ...season, is_current: false, status: 'completed' };
+  assert.equal((await get()).status, 200, 'finished season reveals teams');
+  reset();
   assert.equal((await get()).status, 200, 'locked round reveals teams');
 
   for (const change of [{ hidden_at: '2026-09-01' }, { deleted_at: '2026-09-01' }, { is_active: false }]) {

@@ -48,7 +48,12 @@ export async function POST(request: Request) {
     // Only intent can change here. Settlement is exclusively the existing
     // authorised payment ledger / signed Stripe webhook workflow.
     const timestamp = selected ? order.bank_transfer_selected_at || new Date().toISOString() : null;
-    const updated = await db.from('orders').update({ bank_transfer_selected_at: timestamp })
+    // A kitchen order has one payment choice: choosing a bank deposit clears
+    // pay-at-the-bar in the same write (the bar route does the reverse).
+    const patch = selected && order.order_category === 'kitchen'
+      ? { bank_transfer_selected_at: timestamp, bar_payment_selected_at: null }
+      : { bank_transfer_selected_at: timestamp };
+    const updated = await db.from('orders').update(patch)
       .eq('id', order.id).eq('customer_email', order.customer_email).eq('payment_status', order.payment_status)
       .neq('order_status', 'cancelled').is('deleted_at', null).select('id').maybeSingle();
     if (updated.error) return reply({ error: 'Your selection could not be saved. Please retry.' }, 503);

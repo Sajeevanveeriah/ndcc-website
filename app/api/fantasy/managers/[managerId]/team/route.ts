@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { resolveFantasyManagerAuth } from '@/lib/fantasy-manager-auth';
 import { createServerClient } from '@/lib/supabase-server';
-import { resolveRequestSeason, seasonAllowsTeamChanges } from '@/lib/fantasy-seasons';
+import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getActivePlayersWithLatestPrices, getRoundLockState } from '@/lib/fantasy-game';
 import { buildSquadSlots } from '@/lib/dino-coach/domain';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
@@ -28,8 +28,8 @@ async function loadSquadPicks(managerId: string, seasonId: string): Promise<Squa
   return data ? (data.fantasy_squad_players ?? []) as SquadPickRow[] : null;
 }
 
-// Signed-in managers can open any public manager's team once team selection
-// has closed for the round, like viewing another club in an ultimate-team game.
+// Signed-in managers can open any public manager's team once the round is
+// locked or the season is finished, like viewing another club in an ultimate-team game.
 export async function GET(request: Request, { params }: { params: Promise<{ managerId: string }> }) {
   const { auth, errorMessage, errorStatus } = await resolveFantasyManagerAuth(request);
   if (!auth) return reply({ success: false, error: errorMessage }, errorStatus ?? 401);
@@ -46,13 +46,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ mana
       getDinoCoachSettings(season.id),
       season.is_current ? getRoundLockState(season.id) : Promise.resolve({ locked: false }),
     ]);
-    const revealed = teamsRevealed({
-      seasonAllowsTeamChanges: seasonAllowsTeamChanges(season),
-      launchEnabled: settings.public_launch_enabled,
-      selectionOpen: settings.team_selection_open,
-      isCurrentSeason: season.is_current,
-      roundLocked: roundLock.locked,
-    });
+    const revealed = teamsRevealed({ seasonStatus: season.status, isCurrentSeason: season.is_current, roundLocked: roundLock.locked });
     if (!isSelf && !revealed) return reply({ success: false, revealed: false, error: TEAMS_HIDDEN_MESSAGE }, 403);
 
     const db = createServerClient();

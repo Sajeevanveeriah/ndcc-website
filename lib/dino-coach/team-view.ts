@@ -5,21 +5,24 @@ import type { PlayerStats } from './player-stats';
 // manager could copy picks before the round deadline.
 
 export type TeamRevealState = {
-  seasonAllowsTeamChanges: boolean;
-  launchEnabled: boolean;
-  selectionOpen: boolean;
+  seasonStatus: string;
   isCurrentSeason: boolean;
   roundLocked: boolean;
 };
 
-/** True when squads cannot be saved, mirroring every gate the squad save route applies. */
+/**
+ * True only once squads are fixed for good: the current season's round is
+ * locked (deadline passed, round closed or the weekly window shut), or the
+ * season is finished. Committee switches such as team_selection_open or
+ * public_launch_enabled never reveal teams, because they can be switched back
+ * on before the deadline and picks seen meanwhile could then be copied.
+ */
 export function teamsRevealed(state: TeamRevealState): boolean {
-  const changesAllowed = state.seasonAllowsTeamChanges && state.launchEnabled && state.selectionOpen
-    && !(state.isCurrentSeason && state.roundLocked);
-  return !changesAllowed;
+  if (state.seasonStatus === 'completed' || state.seasonStatus === 'archived') return true;
+  return state.isCurrentSeason && state.roundLocked;
 }
 
-export const TEAMS_HIDDEN_MESSAGE = 'Other teams are revealed when team selection closes for the round. Check back after the deadline.';
+export const TEAMS_HIDDEN_MESSAGE = 'Other teams are revealed once the round deadline passes. Check back after the deadline.';
 
 export type TeamViewPlayer = {
   id: string;
