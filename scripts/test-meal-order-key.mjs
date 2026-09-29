@@ -22,6 +22,7 @@ assert.match(client, /isPastService\(order\.service_date, mealServiceDate\(\)\)/
 assert.match(client, /if \(\(!order\.editing \|\| !saved\) && order\.draft\)/, 'a new tab shows the saved order even mid-edit');
 assert.match(client, /response\.status === 410\)[\s\S]{0,200}setDraftToken\(crypto\.randomUUID\(\)\)/, 'a removed order rotates the key on resume');
 assert.match(client, /res\.status === 410\) \{ setDraftToken\(crypto\.randomUUID\(\)\)/, 'a removed order rotates the key on submit');
+assert.match(client, /if \(response\.status === 410\) \{\s*\/\/[^\n]*\n\s*setDraftToken\(crypto\.randomUUID\(\)\); setOrderConfirmation\(null\)/, 'a removed order rotates the key on edit');
 const route = readFileSync('app/api/kitchen/orders/route.ts', 'utf8');
 assert.match(route, /if \(order\.deleted_at\) return NextResponse\.json\(\{ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true \}, \{ status: 410 \}\)/, 'resume and edit refuse removed orders');
 assert.ok(route.indexOf("if (order.deleted_at)") < route.indexOf("if (action === 'resume')"), 'the removed check runs before resume returns');

@@ -140,6 +140,11 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
       const response = await fetch('/api/kitchen/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'edit', draft_token: draftToken, revision: orderConfirmation.revision }) });
       const result = await response.json();
+      if (response.status === 410) {
+        // The club removed this order: forget its key and start a fresh order.
+        setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setSubmitStatus('idle'); setStatus(result.error);
+        return;
+      }
       if (!response.ok) throw new Error(result.error);
       setOrderConfirmation(result); setStatus('Edit your order, then save it before payment.');
     } catch (error) { setFormError(error instanceof Error ? error.message : 'Unable to edit order.'); }
