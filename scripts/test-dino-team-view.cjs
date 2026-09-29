@@ -123,10 +123,15 @@ const get = (id = rivalId) => route.GET(new Request(`https://example.invalid/api
   // No squad at or before the locked round.
   reset(); squads[rivalId] = [squads[rivalId][0]];
   assert.equal((await get()).status, 404, 'a squad saved only for the open round is never shown');
-  // A finished season shows each team's final squad.
-  reset(); season = { ...season, is_current: false, status: 'completed' }; rounds = [];
+  // A finished season shows the squad for its latest locked round, not one saved for a round that never locked.
+  reset(); season = { ...season, is_current: false, status: 'completed' };
   const finished = await (await get()).json();
-  assert.deepEqual(finished.team.picks.map(p => p.playerId), ['p9']); assert.equal(finished.team.roundName, null);
+  assert.deepEqual(finished.team.picks.map(p => p.playerId), ['p1', 'p2'], 'cancelled open round squad is not shown');
+  assert.equal(finished.team.roundName, 'Round 1');
+  // Only with no locked round at all does a finished season fall back to the newest squad.
+  reset(); season = { ...season, is_current: false, status: 'completed' }; rounds = [];
+  const noRounds = await (await get()).json();
+  assert.deepEqual(noRounds.team.picks.map(p => p.playerId), ['p9']); assert.equal(noRounds.team.roundName, null);
 
   for (const change of [{ hidden_at: '2026-09-01' }, { deleted_at: '2026-09-01' }, { is_active: false }]) {
     reset(); Object.assign(managerRow, change);

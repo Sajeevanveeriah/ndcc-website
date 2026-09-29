@@ -54,7 +54,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ mana
     ]);
     if (rounds.error) throw new Error(rounds.error.message);
     const finished = seasonFinished(season.status);
-    const lockedRound = finished ? null : latestLockedRound((rounds.data ?? []) as RevealRound[]);
+    // Finished seasons also use their latest locked round, so squads saved for a
+    // round cancelled at season end are never shown as the final team.
+    const lockedRound = latestLockedRound((rounds.data ?? []) as RevealRound[]);
     if (!isSelf && !finished && !lockedRound) return reply({ success: false, revealed: false, error: TEAMS_HIDDEN_MESSAGE }, 403);
 
     const [target, demo] = await Promise.all([
