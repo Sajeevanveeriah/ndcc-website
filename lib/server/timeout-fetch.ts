@@ -1,3 +1,20 @@
+/** An abortable jittered pause keeps retries from hitting the small DB together. */
+function retryPause(signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
+      reject(new DOMException('This operation was aborted', 'AbortError'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, 200 + Math.floor(Math.random() * 200));
+    if (signal?.aborted) abort();
+    else signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
 /** Bounded, uncached fetch. Only explicitly opted-in reads may be retried. */
 export function createTimeoutFetch(timeoutMs: number, retryReads = false): typeof fetch {
   return async (input, init = {}) => {
@@ -5,6 +22,7 @@ export function createTimeoutFetch(timeoutMs: number, retryReads = false): typeo
     const canRetry = retryReads && ['GET', 'HEAD'].includes(method);
     const upstreamSignal = init.signal || (input instanceof Request ? input.signal : undefined);
     for (let attempt = 0; ; attempt += 1) {
+      if (attempt > 0) await retryPause(upstreamSignal);
       const controller = new AbortController();
       const abort = () => controller.abort();
       const timeout = setTimeout(abort, timeoutMs);

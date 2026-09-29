@@ -56,7 +56,7 @@ assert.ok(!/\$\{|undefined|null/.test(live), 'No template or placeholder text le
 console.log('PASS rules copy: settings-driven values with published fallbacks');
 
 // ---- Pages use settings, not hardcoded values ----
-const read = file => fs.readFileSync(file, 'utf8');
+const read = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const home = read('app/fantasy/page.tsx');
 assert.match(home, /Entry is \{entryFee\}/);
 assert.match(home, /Pay \{entryFee\} through Stripe-hosted Checkout\./);

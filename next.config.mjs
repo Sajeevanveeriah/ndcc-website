@@ -43,7 +43,7 @@ const securityHeaders = [
 const nextConfig = {
   poweredByHeader: false,
   images: {
-    // Next.js 15.5.24 is the patched release for GHSA-2xp9-vwfh-vxw4.
+    // Next.js 15.5.26 retains the patched protection for GHSA-2xp9-vwfh-vxw4.
     // Its AVIF input protection must remain in place; output only WebP.
     // See https://nextjs.org/blog/august-2026-security-release
     unoptimized: false,

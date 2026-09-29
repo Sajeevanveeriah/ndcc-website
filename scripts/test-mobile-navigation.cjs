@@ -41,6 +41,7 @@ require(name) {
   assert.equal(tree.root.findByType('nav').findByProps({ href: '/club-account' }).type, dependencies['next/link'].default);
   assert.equal(tree.root.findAllByProps({ href: '/raffle/cash' }).length, 0, 'Public navigation no longer lists raffle cash sales');
   assert.ok(tree.root.findAllByProps({ href: '/raffle' }).length);
+  for (const link of tree.root.findAllByType(dependencies['next/link'].default)) assert.equal(link.props.prefetch, false, 'Navigation must not speculatively execute destination routes');
   for (const scrollY of [0, 800, 2400]) {
     windowStub.scrollY = scrollY;
     await act(async () => listeners.scroll());

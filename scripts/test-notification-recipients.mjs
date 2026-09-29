@@ -48,7 +48,7 @@ const PREVIOUS = {
   spin_wheel_winners: ['ndcc.secretary1@gmail.com', 'ndsc.cricket@gmail.com'],
 };
 
-const migration = readFileSync('supabase/migrations/20260927060000_notification_recipients.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20260927060000_notification_recipients.sql', 'utf8').replace(/\r\n/g, '\n');
 
 const songMigration = readFileSync('supabase/migrations/20260927160000_notification_event_song_requests.sql', 'utf8');
 const spinMigration = readFileSync('supabase/migrations/20260928150000_spin_wheel_daily_limit_repeat_bonus.sql', 'utf8');
@@ -199,7 +199,7 @@ await test('email footer uses club settings with the previous footer as fallback
 });
 
 await test('admin notifications API is full-access only and revalidates the recipient cache', () => {
-  const route = readFileSync('app/api/admin/notifications/route.ts', 'utf8');
+  const route = readFileSync('app/api/admin/notifications/route.ts', 'utf8').replace(/\r\n/g, '\n');
   assert.match(route, /requirePermission\('dashboard', FULL_ACCESS_ROLES\)/);
   for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
     assert.match(route, new RegExp(`export async function ${method}\\([^)]*\\) \\{\\n  if \\(!await authorise\\(\\)\\) return json\\(\\{ success: false, error: 'Forbidden\\.' \\}, 403\\);`), method);

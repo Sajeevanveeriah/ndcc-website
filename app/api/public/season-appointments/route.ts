@@ -14,7 +14,9 @@ const noStoreHeaders = {
 export async function GET() {
   try {
     const data = await getPublicSeasonAppointments();
-    return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+    return NextResponse.json({ success: true, data }, {
+      headers: { ...noStoreHeaders, 'Vercel-CDN-Cache-Control': 'public, s-maxage=30' },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Season appointments are unavailable.';
     return NextResponse.json({ success: false, error: message }, { status: 503, headers: noStoreHeaders });
