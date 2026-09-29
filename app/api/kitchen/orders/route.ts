@@ -126,6 +126,8 @@ export async function POST(request: Request) {
   if (saveError || !saved?.id) {
     return NextResponse.json({ error: 'Unable to save this order. A payment may be pending or another tab changed it. Refresh and try again.' }, { status: 409 });
   }
+  // The RPC returns the row it locked, so this also catches a removal made after the check above.
+  if (saved.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
 
   const kitchenItemListHtml = orderItems
     .map((i) =>
@@ -172,7 +174,7 @@ export async function POST(request: Request) {
 type SavedMeal = {
   id: string; payment_reference: string; total_amount: number; meal_collection_window: string;
   meal_service_date: string; meal_revision: number; meal_editing: boolean;
-  payment_status: string; meal_request: unknown;
+  payment_status: string; meal_request: unknown; deleted_at?: string | null;
 };
 
 function mealResponse(order: SavedMeal) {

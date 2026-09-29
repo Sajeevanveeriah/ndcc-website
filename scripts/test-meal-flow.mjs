@@ -195,6 +195,15 @@ await test('an order the club removed cannot be resumed, reopened or saved again
   order.deleted_at=null;
   assert.equal((await kitchen.POST(request({action:'resume',draft_token:token}))).status,200);
 });
+await test('a removal that lands between the check and the save still gets no confirmation',async()=>{
+  reset();savedArgs=null;const sent=emails.length;
+  const original=db.rpc;
+  db.rpc=async(name,args)=>{const result=await original.call(db,name,args);if(name==='save_meal_order'&&result.data)result.data={...result.data,deleted_at:new Date().toISOString()};return result;};
+  try {
+    const saved=await kitchen.POST(request({...payload,collection_window:'juniors'}));
+    assert.equal(saved.status,410);assert.equal(emails.length,sent);
+  } finally { db.rpc=original; }
+});
 await test('checkout rejects missing selection, wrong token, stale revision and editing state',async()=>{
   for(const change of [{meal_collection_window:null},{meal_collection_window:'invalid'},{meal_editing:true}]) {
     reset();Object.assign(order,change);assert.equal((await checkout.POST(request({order_id:orderId,meal_draft_token:token,meal_revision:1}))).status,400);assert.equal(created,0);
