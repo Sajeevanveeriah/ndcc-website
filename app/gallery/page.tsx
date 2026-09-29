@@ -6,7 +6,7 @@ import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import { getPublicGallery, getPublicGalleryAlbums } from '@/lib/public-data';
 import GalleryClient from './GalleryClient';
-import SeasonHighlightsVideo from '@/components/gallery/SeasonHighlightsVideo';
+import SeasonHighlightsVideo, { SEASON_LAUNCH } from '@/components/gallery/SeasonHighlightsVideo';
 
 export const metadata: Metadata = pageMetadata("/gallery", "Photo gallery", "Browse NDCC photo albums, match-day photos and club memories from Newcomb and the Geelong community.");
 
@@ -39,6 +39,14 @@ export default async function GalleryPage() {
           <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">
             Match-day photos, team shots and memories from life at the Dinos.
           </p></ScrollReveal>
+        </div>
+      </section>
+
+      <section id="season-launch" className="section-padding pb-0 scroll-mt-24" aria-labelledby="season-launch-heading">
+        <div className="container-width max-w-4xl mx-auto">
+          <h2 id="season-launch-heading" className="section-title text-center mb-2">Season Launch</h2>
+          <p className="text-center text-content-muted font-body mb-6">More Than the Flag: the 2026/27 season launch presentation.</p>
+          <SeasonHighlightsVideo video={SEASON_LAUNCH} />
         </div>
       </section>
 
