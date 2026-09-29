@@ -119,8 +119,10 @@ export default function AdminKitchenPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...patch }),
       });
-      await parseApiResponse(res);
-      setMessage('Kitchen order updated.');
+      const result = await parseApiResponse<{ already_paid?: boolean; customer_receipt_status?: string | null }>(res);
+      setMessage(patch.payment_status === 'paid'
+        ? result.already_paid ? 'This order was already paid.' : `Cash payment recorded. Receipt: ${result.customer_receipt_status || 'queued'}.`
+        : 'Kitchen order updated.');
       loadOrders();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to update kitchen order.');
