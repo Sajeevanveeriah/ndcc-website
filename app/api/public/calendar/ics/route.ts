@@ -117,6 +117,9 @@ export async function GET() {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
+      // Share public successful feeds for 30s at Vercel only. Browsers still
+      // revalidate; failures above never enter the CDN cache.
+      'Vercel-CDN-Cache-Control': 'public, s-maxage=30',
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       Pragma: 'no-cache',
       Expires: '0',

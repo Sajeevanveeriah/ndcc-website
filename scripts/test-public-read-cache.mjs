@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createPublicReadCacheState, withPublicReadCache } from '../lib/server/public-read-cache.ts';
+import { createPublicReadCacheState, withPublicReadCache, PUBLIC_READ_MAX_BYTES } from '../lib/server/public-read-cache.ts';
 import { createTimeoutFetch } from '../lib/server/timeout-fetch.ts';
 
 let failures = 0;
@@ -90,6 +90,9 @@ await check('errors without a good copy reach every caller and are never stored'
   });
   const results = await Promise.allSettled([h.fetchImpl(URL_A), h.fetchImpl(URL_A)]);
   assert.deepEqual(results.map((r) => r.status), ['rejected', 'rejected']);
+  assert.equal((await h.fetchImpl(URL_A)).status, 503, 'cold failures cool down without caching an error body');
+  assert.equal(h.calls, 1);
+  h.advance(30_001);
   assert.deepEqual(await (await h.fetchImpl(URL_A)).json(), { recovered: true });
   assert.equal(h.calls, 2);
 });
@@ -182,6 +185,63 @@ await check('a stalled JSON body is bounded and retried once; caller cancellatio
     await assert.rejects(pending, /Body aborted/);
     assert.equal(calls, 1);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+
+await check('outage cooldown serves last good content without more upstream calls, then probes once', async () => {
+  let recover = false;
+  const h = harness(n => n === 1 || recover ? json({ n }) : json({ message: 'unavailable' }, 503));
+  await h.fetchImpl(URL_A);
+  h.advance(6_000);
+  assert.deepEqual(await (await h.fetchImpl(URL_A)).json(), { n: 1 });
+  for (let i = 0; i < 50; i++) assert.deepEqual(await (await h.fetchImpl(URL_A)).json(), { n: 1 });
+  assert.equal(h.calls, 2, '50 outage reads do not trigger 50 retry pairs');
+  recover = true;
+  h.advance(30_001);
+  const responses = await Promise.all(Array.from({ length: 20 }, () => h.fetchImpl(URL_A)));
+  assert.equal(h.calls, 3, 'one recovery probe is shared');
+  assert.deepEqual(await responses[0].json(), { n: 3 });
+});
+
+await check('permission failures never serve or retain old public data', async () => {
+  const h = harness(n => n === 1 ? json({ sensitive: 'removed' }) : json({ message: 'forbidden' }, 403));
+  await h.fetchImpl(URL_A);
+  h.advance(6_000);
+  assert.equal((await h.fetchImpl(URL_A)).status, 403);
+  assert.equal((await h.fetchImpl(URL_A)).status, 403);
+  assert.equal(h.calls, 3);
+});
+
+await check('successful empty data replaces the old response', async () => {
+  const h = harness(n => json(n === 1 ? [{ id: 'unpublished' }] : []));
+  await h.fetchImpl(URL_A);
+  h.advance(6_000);
+  assert.deepEqual(await (await h.fetchImpl(URL_A)).json(), []);
+  assert.deepEqual(await (await h.fetchImpl(URL_A)).json(), []);
+  assert.equal(h.calls, 2);
+});
+
+await check('retained response bytes and outage keys are bounded', async () => {
+  const state = createPublicReadCacheState();
+  const cached = withPublicReadCache(async () => new Response('x'.repeat(900_000)), { scope: 'budget', state });
+  for (let i = 0; i < 25; i++) await cached(`${URL_A}&row=${i}`);
+  assert.ok(state.bytes <= PUBLIC_READ_MAX_BYTES);
+  assert.equal(state.bytes, [...state.entries.values()].reduce((n, row) => n + row.body.byteLength, 0));
+  assert.ok(!state.entries.has(`budget ${URL_A}&row=0 accept=&accept-profile=&prefer=&range=`));
+  const failing = withPublicReadCache(async () => json({}, 503), { scope: 'failure-budget', state });
+  for (let i = 0; i < 350; i++) await failing(`${URL_A}&failure=${i}`);
+  assert.ok(state.retryAfter.size <= 300);
+});
+
+await check('caller abort during retry backoff prevents a second request', async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  const caller = new AbortController();
+  globalThis.fetch = async () => { calls++; setTimeout(() => caller.abort(), 20); return json({}, 503); };
+  try {
+    await assert.rejects(createTimeoutFetch(1_000, true)(URL_A, { signal: caller.signal }), /aborted/);
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = original; }
 });
 
 if (failures > 0) {

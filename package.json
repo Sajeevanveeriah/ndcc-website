@@ -111,6 +111,7 @@
     "test:dino-rules-recovery": "node scripts/test-dino-rules-recovery.mjs",
     "test:cms-reliability": "node scripts/test-cms-reliability.mjs",
     "test:public-read-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-read-cache.mjs",
+    "test:public-api-cache": "node scripts/test-public-api-cache.cjs",
     "test:dino-recovery": "node scripts/test-dino-recovery.mjs",
     "test:club-services": "node scripts/test-club-services.mjs",
     "test:notification-recipients": "node scripts/test-notification-recipients.mjs",
@@ -150,13 +151,13 @@
     "@vercel/analytics": "2.0.1",
     "framer-motion": "12.40.0",
     "lucide-react": "^0.577.0",
-    "next": "15.5.24",
+    "next": "15.5.26",
     "next-themes": "^0.4.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "resend": "^6.12.3",
     "server-only": "^0.0.1",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "stripe": "^22.4.0"
   },
   "devDependencies": {
@@ -165,15 +166,15 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
-    "eslint-config-next": "15.5.24",
+    "eslint-config-next": "15.5.26",
     "knip": "^6.37.0",
-    "postcss": "8.5.26",
+    "postcss": "8.5.28",
     "react-test-renderer": "19.3.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "8.5.26",
+    "postcss": "8.5.28",
     "ws": "8.21.0"
   }
 }

@@ -38,7 +38,7 @@ function loader(mocks = {}) {
   return (file) => load(path.join(root, file));
 }
 
-const read = (file) => readFileSync(path.join(root, file), 'utf8');
+const read = (file) => readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
 const load = loader();
 let passed = 0;
 function test(name, fn) {

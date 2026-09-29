@@ -297,11 +297,11 @@ export default function Navbar({ nav }: NavbarProps) {
           {settings.ground_name}, {settings.address}
         </span>
         <div className="flex shrink-0 items-center gap-3 sm:gap-4 ml-auto">
-          <Link href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
+          <Link prefetch={false} href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
             <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
             My Account
           </Link>
-          <Link href="/privacy" className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy</Link>
+          <Link prefetch={false} href="/privacy" className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy</Link>
           <a
             href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
             target="_blank"
@@ -323,7 +323,7 @@ export default function Navbar({ nav }: NavbarProps) {
       <div className="container-width px-4 sm:px-6 lg:px-5 xl:px-8">
         <div className="flex items-center justify-between gap-3 xl:gap-4 h-16 lg:h-[4.75rem]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0" aria-label={`${settings.club_short} Home`}>
+          <Link prefetch={false} href="/" className="flex items-center gap-3 shrink-0" aria-label={`${settings.club_short} Home`}>
             <Image
               src="/images/logo.jpg"
               alt="NDCC Logo"
@@ -347,7 +347,7 @@ export default function Navbar({ nav }: NavbarProps) {
             {navGroups.map((group) => {
               if (group.href) {
                 return (
-                  <Link
+                  <Link prefetch={false}
                     key={`${group.href}-${group.label}`}
                     href={group.href}
                     aria-current={pathname === group.href ? 'page' : undefined}
@@ -418,7 +418,7 @@ export default function Navbar({ nav }: NavbarProps) {
                   >
                     <div className="min-w-[210px] rounded-2xl border border-edge-subtle bg-surface-elevated/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(29,29,31,0.35)] backdrop-blur-xl">
                       {group.links?.map((link) => (
-                        <Link key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
+                        <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
                           {link.label}
                         </Link>
                       ))}
@@ -469,7 +469,7 @@ export default function Navbar({ nav }: NavbarProps) {
                   )}
                 >
                   <div className="min-w-[190px] rounded-2xl border border-edge-subtle bg-surface-elevated/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(29,29,31,0.35)] backdrop-blur-xl">
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
+                    <Link prefetch={false} href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
                     <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
                       Log out
                     </button>
@@ -481,7 +481,7 @@ export default function Navbar({ nav }: NavbarProps) {
             <ThemeToggle className="ml-0.5 xl:ml-1 shrink-0" />
 
             {/* Seasonal registration replaces the existing CTA slot when published. */}
-            <Link
+            <Link prefetch={false}
               href={registrationNavigation?.href || '/join'}
               className={cn(
                 'ml-1.5 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-maroon-700 px-3.5 xl:px-4 text-center text-xs xl:text-sm font-semibold leading-none text-white transition-colors duration-200 hover:bg-maroon-800 focus-ring',
@@ -544,20 +544,20 @@ export default function Navbar({ nav }: NavbarProps) {
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-nav px-4 py-4 space-y-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                <Link href="/club-account" onClick={() => setIsOpen(false)} className="flex items-center gap-2 rounded-xl px-4 py-3 text-base font-body font-semibold text-content-blue focus-ring">
+                <Link prefetch={false} href="/club-account" onClick={() => setIsOpen(false)} className="flex items-center gap-2 rounded-xl px-4 py-3 text-base font-body font-semibold text-content-blue focus-ring">
                   <UserRound className="h-5 w-5" aria-hidden="true" />My Account
                 </Link>
           {navGroups.map((group) => group.href ? (
-            <Link key={`${group.href}-${group.label}`} href={group.href} aria-current={pathname === group.href ? 'page' : undefined} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
+            <Link prefetch={false} key={`${group.href}-${group.label}`} href={group.href} aria-current={pathname === group.href ? 'page' : undefined} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
               {group.label}
             </Link>
           ) : (
             <section key={group.label} className="border-b border-edge-subtle/70 py-2">
               <h2 className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.16em] text-content-muted">{group.label}</h2>
-              {group.links?.map((link) => <Link key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
+              {group.links?.map((link) => <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
             </section>
           ))}
-      <Link
+      <Link prefetch={false}
         href={registrationNavigation?.href || '/join'}
         className="block px-4 py-3 mt-3 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-full hover:bg-maroon-800 transition-colors focus-ring"
         aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
@@ -566,7 +566,7 @@ export default function Navbar({ nav }: NavbarProps) {
       </Link>
           {sessionUser && (
             <>
-              <Link href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
+              <Link prefetch={false} href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
                 {sessionUser.full_name} ({sessionUser.role})
               </Link>
               <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">

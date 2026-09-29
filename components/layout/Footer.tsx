@@ -36,7 +36,7 @@ type CookieWindow = { open: boolean; endsAt: number | null };
 
 function FooterLink({ link, className, cookie }: { link: PageLinkCard; className: string; cookie: CookieWindow }) {
   if (isCookieDoughLink(link.href)) {
-    return <CookieDoughVisibility initialOpen={cookie.open} endsAt={cookie.endsAt}><Link href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
+    return <CookieDoughVisibility initialOpen={cookie.open} endsAt={cookie.endsAt}><Link prefetch={false} href={link.href} className={className}>{link.title}</Link></CookieDoughVisibility>;
   }
   const external = isExternalLink(link);
   const content = (
@@ -59,7 +59,7 @@ function FooterLink({ link, className, cookie }: { link: PageLinkCard; className
     );
   }
 
-  return <Link href={link.href} className={className}>{content}</Link>;
+  return <Link prefetch={false} href={link.href} className={className}>{content}</Link>;
 }
 
 export default async function Footer() {
@@ -111,7 +111,7 @@ export default async function Footer() {
           <ScrollReveal stagger className="grid grid-cols-2 gap-8 lg:grid-cols-4 lg:gap-12">
             {/* Club Info */}
             <ScrollRevealItem className="col-span-2 lg:col-span-1">
-              <Link href="/" className="mb-3 flex items-center gap-3">
+              <Link prefetch={false} href="/" className="mb-3 flex items-center gap-3">
                 <Image
                   src="/images/logo.jpg"
                   alt="NDCC Logo"

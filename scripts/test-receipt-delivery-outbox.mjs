@@ -243,7 +243,7 @@ test('outbox data and RPCs are service-role only', () => {
 
 test('all privileged functions pin an empty search path', () => {
   const definers = migration.match(/security definer/g) || [];
-  const pinned = migration.match(/security definer\nset search_path = ''/g) || [];
+  const pinned = migration.match(/security definer\r?\nset search_path = ''/g) || [];
   assert.ok(definers.length >= 9);
   assert.equal(pinned.length, definers.length);
 });

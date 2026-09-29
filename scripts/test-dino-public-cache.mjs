@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const read = (file) => readFileSync(file, 'utf8');
+const read = (file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const cache = read('lib/server/dino-public-cache.ts');
 const CACHE_IMPORT = /@\/lib\/server\/dino-public-cache/;
 
