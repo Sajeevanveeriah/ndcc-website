@@ -67,7 +67,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Failed to load your leagues.' }, { status: 500 });
   }
   try {
-    const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues, leaderboard: await leagueLeaderboard(item.league_id, season.id) })));
+    // Demo teams practise inside leagues but have no public team view, so their rows are flagged and not linked.
+    const demos = await supabase.from('fantasy_entries').select('manager_id').eq('season_id', season.id).eq('is_demo', true);
+    if (demos.error) throw new Error(demos.error.message);
+    const demoIds = new Set((demos.data ?? []).map((row) => row.manager_id));
+    const leagues = await Promise.all((memberships ?? []).map(async (item: any) => ({ ...item.fantasy_leagues,
+      leaderboard: (await leagueLeaderboard(item.league_id, season.id)).map((row) => ({ ...row, isDemo: demoIds.has(row.managerId) })) })));
     return NextResponse.json({ success: true, season, leagues });
   } catch (error) {
     console.error('[fantasy/leagues] Failed to load standings:', error);

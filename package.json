@@ -10,6 +10,8 @@
     "test": "node scripts/run-all-tests.mjs",
     "test:self-hosted-font": "node scripts/test-self-hosted-font.mjs",
     "test:season-video": "node scripts/test-season-video.mjs",
+    "test:kitchen-bar-payment": "node scripts/test-kitchen-bar-payment.cjs",
+    "test:dino-team-view": "node scripts/test-dino-team-view.cjs",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-routes.mjs",
     "test:email": "node scripts/test-email.mjs",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import BankTransferChoice from './BankTransferChoice';
+import BarPaymentChoice from './BarPaymentChoice';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 
@@ -49,6 +50,7 @@ export default function OrderPaymentOptions({
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
+  const [barSelected, setBarSelected] = useState(false);
 
   useEffect(() => {
     let stale = false;
@@ -106,7 +108,11 @@ export default function OrderPaymentOptions({
         </div>
       )}
 
-      {capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
+      {mealDraftToken && orderId && (
+        <BarPaymentChoice key={orderId} orderId={orderId} draftToken={mealDraftToken} onChange={setBarSelected} />
+      )}
+
+      {!barSelected && capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
         <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
           <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} />
           <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer details</p>
