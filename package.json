@@ -149,6 +149,7 @@
     "@fullcalendar/timegrid": "^6.1.21",
     "@supabase/supabase-js": "^2.99.1",
     "@vercel/analytics": "2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "framer-motion": "12.40.0",
     "lucide-react": "^0.577.0",
     "next": "15.5.26",

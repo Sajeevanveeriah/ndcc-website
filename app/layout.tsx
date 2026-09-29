@@ -11,6 +11,7 @@ import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
 import RevealObserver from '@/components/common/RevealObserver';
 import SiteAnalytics from '@/components/common/SiteAnalytics';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
 import {
   CLUB_NAME,
@@ -143,6 +144,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* Footer queries must not delay the first paint of every public page. */}
           <Suspense fallback={null}><Footer /></Suspense>
           <Suspense fallback={null}><SiteAnalytics /></Suspense>
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
