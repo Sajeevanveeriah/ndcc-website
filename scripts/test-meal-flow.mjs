@@ -204,6 +204,15 @@ await test('a removal that lands between the check and the save still gets no co
     assert.equal(saved.status,410);assert.equal(emails.length,sent);
   } finally { db.rpc=original; }
 });
+await test('a removal that lands during the edit checks does not reopen the order',async()=>{
+  reset();
+  const original=db.rpc;
+  db.rpc=async(name,args)=>{const result=await original.call(db,name,args);if(name==='begin_meal_order_edit'&&result.data)result.data={...result.data,deleted_at:new Date().toISOString()};return result;};
+  try {
+    const edited=await kitchen.POST(request({action:'edit',draft_token:token,revision:order.meal_revision}));
+    assert.equal(edited.status,410);assert.equal((await edited.json()).deleted,true);
+  } finally { db.rpc=original; }
+});
 await test('checkout rejects missing selection, wrong token, stale revision and editing state',async()=>{
   for(const change of [{meal_collection_window:null},{meal_collection_window:'invalid'},{meal_editing:true}]) {
     reset();Object.assign(order,change);assert.equal((await checkout.POST(request({order_id:orderId,meal_draft_token:token,meal_revision:1}))).status,400);assert.equal(created,0);

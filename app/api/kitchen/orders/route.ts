@@ -230,5 +230,7 @@ async function resumeOrEdit(request: Request, token: string, action: 'resume' | 
   }
   const edited = await supabase.rpc('begin_meal_order_edit', { target_token: token, target_revision: revision });
   if (edited.error || !edited.data?.id) return NextResponse.json({ error: 'A payment started or the order changed. Refresh and try again.' }, { status: 409 });
+  // The RPC returns the row it locked, so a removal made during the checks above is caught here too.
+  if (edited.data.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
   return NextResponse.json(mealResponse(edited.data));
 }
