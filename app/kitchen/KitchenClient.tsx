@@ -8,7 +8,8 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import MealCollectionSelector from '@/components/payments/MealCollectionSelector';
-import { isMealCollectionWindow, mealCollectionLabel, mealServiceLabel, type MealCollectionWindow } from '@/lib/meal-collection';
+import { isMealCollectionWindow, mealCollectionLabel, mealServiceDate, mealServiceLabel, type MealCollectionWindow } from '@/lib/meal-collection';
+import { MEAL_ORDER_STORAGE_NAME, isPastService, parseStoredOrderKey, serialiseOrderKey } from '@/lib/meal-order-key';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 
@@ -81,16 +82,26 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
     void (async () => {
       try {
         const saved = JSON.parse(sessionStorage.getItem('ndcc-meal-draft-v1') || 'null');
-        const token = saved?.token || crypto.randomUUID();
+        // A new tab of the same browser picks up the order key too, so a retry
+        // (for example after a failed card payment) resumes the same order.
+        let remembered: string | null = null;
+        try { remembered = parseStoredOrderKey(localStorage.getItem(MEAL_ORDER_STORAGE_NAME), Date.now()); } catch { /* storage blocked: tab-only drafts still work */ }
+        const token = saved?.token || remembered || crypto.randomUUID();
         setDraftToken(token);
         if (saved) {
           setCart(saved.cart || {}); setName(saved.name || ''); setEmail(saved.email || ''); setPhone(saved.phone || '');
           setCollection(isMealCollectionWindow(saved.collection) ? saved.collection : '');
+        }
+        if (saved || remembered) {
           const response = await fetch('/api/kitchen/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'resume', draft_token: token }) });
           if (!active) return;
-          if (response.ok) {
-            const order = await response.json();
+          const order = response.ok ? await response.json() : null;
+          if (!active) return;
+          if (order && isPastService(order.service_date, mealServiceDate())) {
+            // Last week's order is finished with: start a fresh order for this service.
+            setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
+          } else if (order) {
             setOrderConfirmation(order); setSubmitStatus('success'); setStatus('Your saved kitchen order is available below.');
             if (!order.editing && order.draft) {
               setCollection(order.collection_window); setName(order.draft.name); setEmail(order.draft.email); setPhone(order.draft.phone);
@@ -113,6 +124,8 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
     try {
       sessionStorage.setItem('ndcc-meal-draft-v1', JSON.stringify({ token: draftToken, cart, name, email, phone, collection }));
     } catch { setStorageError('Your meal draft could not be saved in this browser. Reload before continuing.'); }
+    // Only the random key and a timestamp; contact details stay in this tab.
+    try { localStorage.setItem(MEAL_ORDER_STORAGE_NAME, serialiseOrderKey(draftToken, Date.now())); } catch { /* optional */ }
   }, [restored, draftToken, cart, name, email, phone, collection]);
 
   async function editOrder() {

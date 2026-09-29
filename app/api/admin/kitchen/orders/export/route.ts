@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { isThursdayServiceDate, kitchenOrdersCsv } from '@/lib/kitchen-export';
 
 export const dynamic = 'force-dynamic';
-const EXPORT_COLUMNS = 'customer_name,payment_reference,meal_service_date,meal_collection_window,payment_status,items,total_amount,amount_paid,balance_due,bank_transfer_selected_at,bar_payment_selected_at';
+const EXPORT_COLUMNS = 'customer_name,payment_reference,meal_service_date,meal_collection_window,payment_status,items,total_amount,amount_paid,balance_due,bank_transfer_selected_at,bar_payment_selected_at,customer_email';
 
 export async function GET(request: Request) {
   const user = await requirePermission('kitchen');
