@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { isThursdayServiceDate, kitchenOrdersCsv } from '@/lib/kitchen-export';
 
 export const dynamic = 'force-dynamic';
+const EXPORT_COLUMNS = 'customer_name,payment_reference,meal_service_date,meal_collection_window,payment_status,items,total_amount,amount_paid,balance_due,bank_transfer_selected_at,bar_payment_selected_at';
 
 export async function GET(request: Request) {
   const user = await requirePermission('kitchen');
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   // Paginate so busy weeks are not silently truncated by the database row limit.
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase.from('orders')
-      .select('customer_name,payment_reference,meal_service_date,meal_collection_window,payment_status,items').is('deleted_at', null)
+      .select(EXPORT_COLUMNS).is('deleted_at', null)
       .eq('order_category', 'kitchen').eq('meal_service_date', date)
       .order('id', { ascending: true }).range(offset, offset + 499);
     if (error) return NextResponse.json({ error: 'Could not export orders. Please try again.' }, { status: 500 });

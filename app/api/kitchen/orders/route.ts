@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     html: emailHtml(
       'Kitchen Order Confirmation',
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(customer_name))},</p>
-      <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe, or use the bank transfer details below.</p>
+      <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe or to choose to pay cash at the bar when you collect, or use the bank transfer details below.</p>
       <p><strong>Collection:</strong> ${escapeEmailHtml(mealCollectionLabel(saved.meal_collection_window))}<br>${escapeEmailHtml(mealServiceLabel(saved.meal_service_date))} (Australia/Melbourne)</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <thead>
