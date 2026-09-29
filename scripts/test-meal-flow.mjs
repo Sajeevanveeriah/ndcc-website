@@ -184,6 +184,17 @@ await test('each window is passed to atomic save with server Thursday and catalo
     assert.equal(email.idempotencyKey, `meal-order-${orderId}-1`);
   }
 });
+await test('an order the club removed cannot be resumed, reopened or saved again through its key',async()=>{
+  reset();order.deleted_at=new Date().toISOString();savedArgs=null;const sent=emails.length;
+  for(const action of ['resume','edit']) {
+    const response=await kitchen.POST(request({action,draft_token:token,revision:1}));
+    assert.equal(response.status,410);assert.equal((await response.json()).deleted,true);
+  }
+  const saved=await kitchen.POST(request({...payload,collection_window:'juniors'}));
+  assert.equal(saved.status,410);assert.equal(savedArgs,null);assert.equal(emails.length,sent);
+  order.deleted_at=null;
+  assert.equal((await kitchen.POST(request({action:'resume',draft_token:token}))).status,200);
+});
 await test('checkout rejects missing selection, wrong token, stale revision and editing state',async()=>{
   for(const change of [{meal_collection_window:null},{meal_collection_window:'invalid'},{meal_editing:true}]) {
     reset();Object.assign(order,change);assert.equal((await checkout.POST(request({order_id:orderId,meal_draft_token:token,meal_revision:1}))).status,400);assert.equal(created,0);

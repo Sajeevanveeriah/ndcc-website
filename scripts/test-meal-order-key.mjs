@@ -19,6 +19,14 @@ assert.match(client, /parseStoredOrderKey\(localStorage\.getItem\(MEAL_ORDER_STO
 assert.match(client, /const token = saved\?\.token \|\| remembered \|\| crypto\.randomUUID\(\)/, 'tab draft first, then the remembered key');
 assert.match(client, /if \(saved \|\| remembered\)/, 'a remembered key resumes the order');
 assert.match(client, /isPastService\(order\.service_date, mealServiceDate\(\)\)/, 'past-service orders start fresh');
+assert.match(client, /if \(\(!order\.editing \|\| !saved\) && order\.draft\)/, 'a new tab shows the saved order even mid-edit');
+assert.match(client, /response\.status === 410\)[\s\S]{0,200}setDraftToken\(crypto\.randomUUID\(\)\)/, 'a removed order rotates the key on resume');
+assert.match(client, /res\.status === 410\) \{ setDraftToken\(crypto\.randomUUID\(\)\)/, 'a removed order rotates the key on submit');
+const route = readFileSync('app/api/kitchen/orders/route.ts', 'utf8');
+assert.match(route, /if \(order\.deleted_at\) return NextResponse\.json\(\{ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true \}, \{ status: 410 \}\)/, 'resume and edit refuse removed orders');
+assert.ok(route.indexOf("if (order.deleted_at)") < route.indexOf("if (action === 'resume')"), 'the removed check runs before resume returns');
+assert.match(route, /select\('id,deleted_at'\)\.eq\('meal_draft_token', token\)[\s\S]{0,300}existing\.data\?\.deleted_at\) return NextResponse\.json\(\{ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true \}, \{ status: 410 \}\)/, 'saving refuses a removed order key');
+assert.ok(route.indexOf("existing.data?.deleted_at") < route.indexOf("rpc('save_meal_order'"), 'the removed check runs before the save');
 assert.match(client, /localStorage\.setItem\(MEAL_ORDER_STORAGE_NAME, serialiseOrderKey\(draftToken, Date\.now\(\)\)\)/);
 assert.doesNotMatch(client, /localStorage\.setItem\([^)]*(name|email|phone)/, 'contact details never go to local storage');
 console.log('PASS: kitchen order key resumes retries across tabs, expires after 12 hours, stores no contact details and ignores past services.');

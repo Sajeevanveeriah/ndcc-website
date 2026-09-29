@@ -18,6 +18,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+const DELETED_MEAL_ORDER_MESSAGE = 'This order was removed by the club. Please start a new order.';
+
 export async function POST(request: Request) {
   const rawBody = await readLimitedJsonObject(request);
   if (!rawBody.ok) {
@@ -106,6 +108,11 @@ export async function POST(request: Request) {
   }
   const total = totalCents / 100;
 
+  // The save RPC updates by key, so a key whose order the club removed must not revive it.
+  const existing = await supabase.from('orders').select('id,deleted_at').eq('meal_draft_token', token).maybeSingle();
+  if (existing.error) return NextResponse.json({ error: 'Unable to save this order. Refresh and try again.' }, { status: 503 });
+  if (existing.data?.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
+
   const paymentReference = await generateUniquePaymentReference('kitchen');
 
   const { data: saved, error: saveError } = await supabase.rpc('save_meal_order', {
@@ -186,6 +193,8 @@ async function resumeOrEdit(request: Request, token: string, action: 'resume' | 
   const { data: order, error } = await supabase.from('orders').select('*').eq('meal_draft_token', token).maybeSingle();
   if (error) return NextResponse.json({ error: 'Unable to load order.' }, { status: 503 });
   if (!order) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+  // An order the club removed is never shown or reopened through its key.
+  if (order.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
   if (action === 'resume') return NextResponse.json(mealResponse(order), { headers: { 'Cache-Control': 'no-store' } });
   const window = await getLiveKitchenOrderWindow();
   if (!window.open || order.meal_service_date !== window.serviceDate) {

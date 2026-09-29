@@ -103,10 +103,15 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
             setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
           } else if (order) {
             setOrderConfirmation(order); setSubmitStatus('success'); setStatus('Your saved kitchen order is available below.');
-            if (!order.editing && order.draft) {
+            // A new tab has no tab draft, so it shows the saved order even mid-edit.
+            if ((!order.editing || !saved) && order.draft) {
               setCollection(order.collection_window); setName(order.draft.name); setEmail(order.draft.email); setPhone(order.draft.phone);
               setCart(Object.fromEntries(order.draft.items.map((item: { item_id: string; quantity: number }) => [item.item_id, item.quantity])));
             }
+          } else if (response.status === 410) {
+            // The club removed this order: forget its key and start a fresh order.
+            setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
+            setStatus('Your previous order was removed by the club. Please start a new order.');
           } else if (response.status !== 404) {
             throw new Error('Unable to restore your saved order. Reload before continuing.');
           }
@@ -188,6 +193,8 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
       if (!res.ok) {
         setSubmitStatus('error');
         setStatus(data.error || 'Unable to submit kitchen order.');
+        // The club removed the order behind this key: the next submit starts a new order.
+        if (res.status === 410) { setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); }
         return;
       }
       setSubmitStatus('success');
