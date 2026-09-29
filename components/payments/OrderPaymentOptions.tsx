@@ -51,6 +51,14 @@ export default function OrderPaymentOptions({
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
   const [barSelected, setBarSelected] = useState(false);
+  // One payment choice at a time: each control is locked while the other is
+  // saving, and after either saves both re-read the stored choice, so the page
+  // always shows what the server kept (a bar choice clears a bank choice and
+  // the reverse).
+  const [barBusy, setBarBusy] = useState(false);
+  const [bankBusy, setBankBusy] = useState(false);
+  const [choiceRefresh, setChoiceRefresh] = useState(0);
+  const refreshChoices = () => setChoiceRefresh((value) => value + 1);
 
   useEffect(() => {
     let stale = false;
@@ -109,12 +117,12 @@ export default function OrderPaymentOptions({
       )}
 
       {mealDraftToken && orderId && (
-        <BarPaymentChoice key={orderId} orderId={orderId} draftToken={mealDraftToken} onChange={setBarSelected} />
+        <BarPaymentChoice key={orderId} orderId={orderId} draftToken={mealDraftToken} onChange={setBarSelected} disabled={bankBusy} refreshKey={choiceRefresh} onBusyChange={setBarBusy} onSaved={refreshChoices} />
       )}
 
       {!barSelected && capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
         <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
-          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} />
+          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} {...(mealDraftToken ? { disabled: barBusy, refreshKey: choiceRefresh, onBusyChange: setBankBusy, onSaved: refreshChoices } : {})} />
           <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer details</p>
           {bankDetails.account_name && <p>Account name: {bankDetails.account_name}</p>}
           <p>BSB: {bankDetails.bsb}</p>
