@@ -84,8 +84,11 @@ const call = body => route.POST(new Request('https://example.invalid/api/kitchen
   const choice = fs.readFileSync('components/payments/BarPaymentChoice.tsx', 'utf8');
   assert.match(choice, /I will pay cash at the bar/);
   assert.match(choice, /\/api\/kitchen\/orders\/bar-payment/);
-  const migration = fs.readFileSync('supabase/migrations/20260929120000_kitchen_bar_payment_selection.sql', 'utf8');
-  assert.match(migration, /add column bar_payment_selected_at timestamptz/);
+  const migrationFile = fs.readdirSync('supabase/migrations').filter(name => name.endsWith('_kitchen_bar_payment_selection.sql'));
+  assert.equal(migrationFile.length, 1, 'exactly one bar-payment migration');
+  const migration = fs.readFileSync(`supabase/migrations/${migrationFile[0]}`, 'utf8');
+  assert.match(migration, /add column if not exists bar_payment_selected_at timestamptz/);
+  assert.match(migration, /if not exists \(select 1 from pg_constraint where conname = 'orders_bar_payment_kitchen_only'\)/, 'constraint is idempotent');
   assert.match(migration, /bar_payment_selected_at is null or order_category = 'kitchen'/);
   const exportRoute = fs.readFileSync('app/api/admin/kitchen/orders/export/route.ts', 'utf8');
   assert.match(exportRoute, /bar_payment_selected_at/);
