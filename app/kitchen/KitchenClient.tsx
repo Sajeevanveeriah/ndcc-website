@@ -86,35 +86,42 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
         // (for example after a failed card payment) resumes the same order.
         let remembered: string | null = null;
         try { remembered = parseStoredOrderKey(localStorage.getItem(MEAL_ORDER_STORAGE_NAME), Date.now()); } catch { /* storage blocked: tab-only drafts still work */ }
-        const token = saved?.token || remembered || crypto.randomUUID();
+        // Try this tab's key first, then the browser's remembered key, so a stale
+        // or never-submitted tab draft cannot hide the order another tab placed.
+        const candidates = [...new Set([saved?.token, remembered].filter((key): key is string => typeof key === 'string' && key.length > 0))];
+        const removedKeys = new Set<string>();
+        let order = null;
+        let token: string | null = null;
+        for (const candidate of candidates) {
+          const response = await fetch('/api/kitchen/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'resume', draft_token: candidate }) });
+          if (!active) return;
+          if (response.ok) { order = await response.json(); token = candidate; break; }
+          if (response.status === 410) removedKeys.add(candidate);
+          else if (response.status !== 404) throw new Error('Unable to restore your saved order. Reload before continuing.');
+        }
+        if (!active) return;
+        token ??= candidates.find((key) => !removedKeys.has(key)) || crypto.randomUUID();
         setDraftToken(token);
-        if (saved) {
+        const tabDraft = Boolean(saved) && token === saved?.token;
+        if (tabDraft) {
           setCart(saved.cart || {}); setName(saved.name || ''); setEmail(saved.email || ''); setPhone(saved.phone || '');
           setCollection(isMealCollectionWindow(saved.collection) ? saved.collection : '');
         }
-        if (saved || remembered) {
-          const response = await fetch('/api/kitchen/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'resume', draft_token: token }) });
-          if (!active) return;
-          const order = response.ok ? await response.json() : null;
-          if (!active) return;
-          if (order && isPastService(order.service_date, mealServiceDate())) {
-            // Last week's order is finished with: start a fresh order for this service.
-            setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
-          } else if (order) {
-            setOrderConfirmation(order); setSubmitStatus('success'); setStatus('Your saved kitchen order is available below.');
-            // A new tab has no tab draft, so it shows the saved order even mid-edit.
-            if ((!order.editing || !saved) && order.draft) {
-              setCollection(order.collection_window); setName(order.draft.name); setEmail(order.draft.email); setPhone(order.draft.phone);
-              setCart(Object.fromEntries(order.draft.items.map((item: { item_id: string; quantity: number }) => [item.item_id, item.quantity])));
-            }
-          } else if (response.status === 410) {
-            // The club removed this order: forget its key and start a fresh order.
-            setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
-            setStatus('Your previous order was removed by the club. Please start a new order.');
-          } else if (response.status !== 404) {
-            throw new Error('Unable to restore your saved order. Reload before continuing.');
+        if (order && isPastService(order.service_date, mealServiceDate())) {
+          // Last week's order is finished with: start a fresh order for this service.
+          setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
+        } else if (order) {
+          setOrderConfirmation(order); setSubmitStatus('success'); setStatus('Your saved kitchen order is available below.');
+          // Without this tab's own draft, show the saved order, even mid-edit.
+          if ((!order.editing || !tabDraft) && order.draft) {
+            setCollection(order.collection_window); setName(order.draft.name); setEmail(order.draft.email); setPhone(order.draft.phone);
+            setCart(Object.fromEntries(order.draft.items.map((item: { item_id: string; quantity: number }) => [item.item_id, item.quantity])));
           }
+        } else if (removedKeys.size > 0) {
+          // The club removed the order behind a key: that key is dropped and a fresh order starts.
+          if (remembered && removedKeys.has(remembered)) { try { localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ } }
+          setSubmitStatus('error'); setStatus('Your previous order was removed by the club. Please start a new order.');
         }
         if (active) setRestored(true);
       } catch {
@@ -129,9 +136,12 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
     try {
       sessionStorage.setItem('ndcc-meal-draft-v1', JSON.stringify({ token: draftToken, cart, name, email, phone, collection }));
     } catch { setStorageError('Your meal draft could not be saved in this browser. Reload before continuing.'); }
-    // Only the random key and a timestamp; contact details stay in this tab.
-    try { localStorage.setItem(MEAL_ORDER_STORAGE_NAME, serialiseOrderKey(draftToken, Date.now())); } catch { /* optional */ }
-  }, [restored, draftToken, cart, name, email, phone, collection]);
+    // Only the key of a submitted order is remembered for the browser (the random key and a
+    // timestamp, never contact details), so an unsubmitted tab never replaces it.
+    if (orderConfirmation) {
+      try { localStorage.setItem(MEAL_ORDER_STORAGE_NAME, serialiseOrderKey(draftToken, Date.now())); } catch { /* optional */ }
+    }
+  }, [restored, draftToken, cart, name, email, phone, collection, orderConfirmation]);
 
   async function editOrder() {
     if (!orderConfirmation || submitLock.current) return;
@@ -142,7 +152,8 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
       const result = await response.json();
       if (response.status === 410) {
         // The club removed this order: forget its key and start a fresh order.
-        setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setSubmitStatus('idle'); setStatus(result.error);
+        setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setSubmitStatus('error'); setStatus(result.error);
+        try { localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ }
         return;
       }
       if (!response.ok) throw new Error(result.error);
@@ -199,7 +210,10 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
         setSubmitStatus('error');
         setStatus(data.error || 'Unable to submit kitchen order.');
         // The club removed the order behind this key: the next submit starts a new order.
-        if (res.status === 410) { setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); }
+        if (res.status === 410) {
+          setDraftToken(crypto.randomUUID()); setOrderConfirmation(null);
+          try { localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ }
+        }
         return;
       }
       setSubmitStatus('success');

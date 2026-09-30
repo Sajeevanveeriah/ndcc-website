@@ -16,12 +16,16 @@ for (const value of ['2026-10-01', '2026-10-08', null, undefined, 'garbage']) as
 
 const client = readFileSync('app/kitchen/KitchenClient.tsx', 'utf8');
 assert.match(client, /parseStoredOrderKey\(localStorage\.getItem\(MEAL_ORDER_STORAGE_NAME\), Date\.now\(\)\)/, 'new tabs read the remembered key');
-assert.match(client, /const token = saved\?\.token \|\| remembered \|\| crypto\.randomUUID\(\)/, 'tab draft first, then the remembered key');
-assert.match(client, /if \(saved \|\| remembered\)/, 'a remembered key resumes the order');
+assert.match(client, /const candidates = \[\.\.\.new Set\(\[saved\?\.token, remembered\]/, 'tab key first, then the remembered key');
+assert.match(client, /for \(const candidate of candidates\)[\s\S]{0,400}if \(response\.ok\) \{ order = await response\.json\(\); token = candidate; break; \}/, 'the first key with an order wins, so a stale tab falls back to the remembered order');
+assert.match(client, /if \(response\.status === 410\) removedKeys\.add\(candidate\)/, 'a removed order key is dropped');
+assert.match(client, /token \?\?= candidates\.find\(\(key\) => !removedKeys\.has\(key\)\) \|\| crypto\.randomUUID\(\)/, 'no order: keep an unremoved key or start fresh');
+assert.match(client, /const tabDraft = Boolean\(saved\) && token === saved\?\.token/, 'tab fields only restore for the tab key');
+assert.match(client, /if \(orderConfirmation\) \{\s*try \{ localStorage\.setItem/, 'only submitted orders are remembered for the browser');
 assert.match(client, /isPastService\(order\.service_date, mealServiceDate\(\)\)/, 'past-service orders start fresh');
-assert.match(client, /if \(\(!order\.editing \|\| !saved\) && order\.draft\)/, 'a new tab shows the saved order even mid-edit');
-assert.match(client, /response\.status === 410\)[\s\S]{0,200}setDraftToken\(crypto\.randomUUID\(\)\)/, 'a removed order rotates the key on resume');
-assert.match(client, /res\.status === 410\) \{ setDraftToken\(crypto\.randomUUID\(\)\)/, 'a removed order rotates the key on submit');
+assert.match(client, /if \(\(!order\.editing \|\| !tabDraft\) && order\.draft\)/, 'a new tab shows the saved order even mid-edit');
+assert.match(client, /res\.status === 410\) \{\s*setDraftToken\(crypto\.randomUUID\(\)\); setOrderConfirmation\(null\);\s*try \{ localStorage\.removeItem\(MEAL_ORDER_STORAGE_NAME\)/, 'a removed order rotates the key on submit and forgets it');
+assert.match(client, /removedKeys\.has\(remembered\)\) \{ try \{ localStorage\.removeItem\(MEAL_ORDER_STORAGE_NAME\)[\s\S]{0,120}setSubmitStatus\('error'\); setStatus\('Your previous order was removed by the club/, 'a removed remembered key is forgotten and the customer is told');
 assert.match(client, /if \(response\.status === 410\) \{\s*\/\/[^\n]*\n\s*setDraftToken\(crypto\.randomUUID\(\)\); setOrderConfirmation\(null\)/, 'a removed order rotates the key on edit');
 const route = readFileSync('app/api/kitchen/orders/route.ts', 'utf8');
 assert.match(route, /if \(order\.deleted_at\) return NextResponse\.json\(\{ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true \}, \{ status: 410 \}\)/, 'resume and edit refuse removed orders');
