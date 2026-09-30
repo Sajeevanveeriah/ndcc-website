@@ -103,6 +103,20 @@ export function toDatetimeLocalInClubTimezone(value: string): string {
   return `${y}-${m}-${d}T${h}:${min}`;
 }
 
+/**
+ * Whether a Melbourne wall time from a datetime-local input maps to exactly
+ * one instant: 'skipped' in the hour lost when clocks go forward, 'repeated'
+ * in the hour that happens twice when clocks go back, otherwise null.
+ */
+export function clubWallTimeProblem(value: string): 'skipped' | 'repeated' | null {
+  const utcMs = melbourneWallClockToUtcMs(value);
+  if (utcMs === null) return null;
+  if (toDatetimeLocalInClubTimezone(new Date(utcMs).toISOString()) !== value) return 'skipped';
+  const hour = 60 * 60 * 1000;
+  const twice = [utcMs - hour, utcMs + hour].some((other) => toDatetimeLocalInClubTimezone(new Date(other).toISOString()) === value);
+  return twice ? 'repeated' : null;
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency',

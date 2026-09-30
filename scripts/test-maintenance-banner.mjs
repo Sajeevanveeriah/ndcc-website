@@ -5,7 +5,7 @@ import {
   MAINTENANCE_MESSAGE_MAX, cleanMessage, formatMaintenanceWindow, maintenanceBannerText, maintenancePhase,
   nextMaintenanceChange, publicMaintenanceBanner, validateMaintenanceInput,
 } from '../lib/maintenance-banner.ts';
-import { datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '../lib/utils.ts';
+import { clubWallTimeProblem, datetimeLocalToClubIso } from '../lib/utils.ts';
 
 // Saturday 3 October 2026, 8:00 pm to 10:00 pm AEST (UTC+10; daylight saving starts on the 4th).
 const start = '2026-10-03T10:00:00.000Z';
@@ -76,7 +76,7 @@ assert.equal(validateMaintenanceInput({ enabled: false, starts_at: '2026-09-01T0
 const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
 assert.match(navbar, /<MaintenanceBanner \/>\s*\{\/\* Utility bar/, 'banner is the first thing in the fixed header');
 const component = readFileSync('components/layout/MaintenanceBanner.tsx', 'utf8');
-assert.match(component, /useState\(\(\) => \(banner \? maintenancePhase\(banner, banner\.checkedAt\) : 'ended'\)\)/, 'first render uses the server read time, so it matches the server HTML');
+assert.match(component, /useState\(\(\) => \(serverBanner \? maintenancePhase\(serverBanner, serverBanner\.checkedAt\) : 'ended'\)\)/, 'first render uses the server read time, so it matches the server HTML');
 assert.match(component, /export function MaintenanceBannerSpacer\(\) \{\s*const text = useContext\(MaintenanceTextContext\);\s*return text \? <Notice text=\{text\} hidden \/> : null;/, 'the spacer lays out the same notice, hidden');
 assert.match(component, /'aria-hidden': true/, 'the spacer copy is hidden from screen readers');
 const layout = readFileSync('app/layout.tsx', 'utf8');
@@ -87,13 +87,23 @@ assert.match(draw, /fixed inset-0 z-\[100\][^\n]*\n[^\n]*\n\s*<MaintenanceBanner
 assert.match(navbar, /aria-label="Site menu"\s*>\s*\{\/\*[^*]*\*\/\}\s*<div className="shrink-0"><MaintenanceBanner standalone \/><\/div>/, 'the mobile menu repeats the notice');
 assert.match(readFileSync('app/globals.css', 'utf8'), /scroll-behavior: smooth;[\s\S]{0,200}scroll-padding-top: var\(--site-banner-h, 0px\);/, 'section links land below the notice');
 const card = readFileSync('app/admin/club-details/MaintenanceBannerCard.tsx', 'utf8');
-// The editor's skipped-hour check: 2:30 am on 4 October 2026 does not exist in Melbourne.
-const realClubTime = (value) => toDatetimeLocalInClubTimezone(datetimeLocalToClubIso(value)) === value;
-assert.equal(realClubTime('2026-10-04T02:30'), false, 'skipped hour rejected');
-for (const value of ['2026-10-04T01:59', '2026-10-04T03:00', '2027-04-04T02:30', '2026-10-10T21:00']) assert.equal(realClubTime(value), true, value);
+// Daylight saving: 2:30 am on 4 October 2026 does not exist in Melbourne, and 2:00-2:59 am on 4 April 2027 happens twice.
+assert.equal(clubWallTimeProblem('2026-10-04T02:30'), 'skipped');
+for (const value of ['2027-04-04T02:00', '2027-04-04T02:30', '2027-04-04T02:59']) assert.equal(clubWallTimeProblem(value), 'repeated', value);
+for (const value of ['2026-10-04T01:59', '2026-10-04T03:00', '2027-04-04T01:59', '2027-04-04T03:00', '2026-10-10T21:00']) assert.equal(clubWallTimeProblem(value), null, value);
 assert.equal(datetimeLocalToClubIso('2026-10-10T21:00'), '2026-10-10T10:00:00.000Z', 'AEDT is UTC+11');
-assert.match(card, /const isRealClubTime = \(value: string\) => !value \|\| toDatetimeLocalInClubTimezone\(datetimeLocalToClubIso\(value\)\) === value;/);
-assert.match(card, /if \(timeError\) \{ setFeedback\(\{ type: 'error', message: timeError \}\); return; \}/, 'a skipped-hour time is never saved');
+assert.match(card, /const timeError = clubTimeError\('start', form\.starts\) \|\| clubTimeError\('end', form\.ends\);/, 'both daylight saving problems are checked for both times');
+assert.match(card, /problem === 'repeated'\) return `The \$\{label\} time happens twice in Melbourne/);
+// Pages already open pick up CMS changes on page change and on return to the tab.
+assert.match(component, /const response = await fetch\('\/api\/public\/maintenance-banner', \{ cache: 'no-store' \}\);/);
+assert.match(component, /useEffect\(\(\) => \{\s*if \(lastCheck\.current === null\) \{ lastCheck\.current = Date\.now\(\); return; \}\s*void recheck\.current\(\);\s*\}, \[pathname\]\);/, 'page changes re-check, the first page uses the server setting');
+assert.match(component, /if \(lastCheck\.current !== null && now - lastCheck\.current < RECHECK_GAP_MS\) return;/, 're-checks are throttled');
+assert.match(component, /const onReturn = \(\) => \{ if \(document\.visibilityState !== 'hidden'\) void recheck\.current\(\); \};/, 'returning to the tab re-checks');
+const publicRoute = readFileSync('app/api/public/maintenance-banner/route.ts', 'utf8');
+assert.match(publicRoute, /const \{ banner, failed \} = await getPublicMaintenanceBanner\(\);/, 'reads the setting itself, with its failure state');
+assert.match(publicRoute, /if \(failed\) return NextResponse\.json\(\{ error: [^}]+\}, \{ status: 503, headers \}\);/, 'a failed read is an error, never "no banner"');
+assert.match(component, /if \(!response\.ok\) return;/, 'an error response keeps the current notice');
+assert.match(card, /if \(enabled && timeError\) \{ setFeedback\(\{ type: 'error', message: timeError \}\); return; \}/, 'a daylight saving problem time is never saved on, and never blocks switching off');
 const nav = readFileSync('lib/server/nav-visibility.ts', 'utf8');
 assert.match(nav, /getPublicMaintenanceBanner\(\),/);
 assert.match(nav, /\|\| maintenance\.failed;/, 'a failed read is never cached as "no banner"');

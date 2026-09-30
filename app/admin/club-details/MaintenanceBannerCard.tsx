@@ -6,7 +6,7 @@ import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
-import { datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '@/lib/utils';
+import { clubWallTimeProblem, datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { MAINTENANCE_MESSAGE_MAX, maintenanceBannerText, maintenancePhase, type MaintenanceSettings } from '@/lib/maintenance-banner';
 
 type Form = { enabled: boolean; starts: string; ends: string; message: string };
@@ -21,9 +21,13 @@ const toForm = (settings: MaintenanceSettings): Form => ({
 
 const toIso = (value: string) => (value ? datetimeLocalToClubIso(value) : null);
 
-/** A Melbourne wall time that does not exist (the hour skipped when clocks go forward) would silently move an hour. */
-const isRealClubTime = (value: string) => !value || toDatetimeLocalInClubTimezone(datetimeLocalToClubIso(value)) === value;
-const SKIPPED_HOUR = 'does not exist in Melbourne because the clocks go forward then. Choose another time.';
+/** Times in the hour skipped or repeated at a daylight saving change would silently map to the wrong instant. */
+function clubTimeError(label: string, value: string): string {
+  const problem = value ? clubWallTimeProblem(value) : null;
+  if (problem === 'skipped') return `The ${label} time does not exist in Melbourne because the clocks go forward then. Choose another time.`;
+  if (problem === 'repeated') return `The ${label} time happens twice in Melbourne because the clocks go back then. Choose a time outside that hour.`;
+  return '';
+}
 
 /** CMS control for the maintenance banner shown at the top of every page. */
 export default function MaintenanceBannerCard() {
@@ -42,11 +46,11 @@ export default function MaintenanceBannerCard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const timeError = !isRealClubTime(form.starts) ? `The start time ${SKIPPED_HOUR}` : !isRealClubTime(form.ends) ? `The end time ${SKIPPED_HOUR}` : '';
+  const timeError = clubTimeError('start', form.starts) || clubTimeError('end', form.ends);
 
   // Exactly what visitors will read, worded for the current time.
   const preview = useMemo(() => {
-    if (!isRealClubTime(form.starts) || !isRealClubTime(form.ends)) return null;
+    if (clubTimeError('start', form.starts) || clubTimeError('end', form.ends)) return null;
     const startsAt = toIso(form.starts);
     if (!startsAt || Number.isNaN(Date.parse(startsAt))) return null;
     const banner = { startsAt, endsAt: toIso(form.ends), message: form.message.trim() || null };
@@ -59,7 +63,8 @@ export default function MaintenanceBannerCard() {
     : 'Off';
 
   async function save(enabled: boolean) {
-    if (timeError) { setFeedback({ type: 'error', message: timeError }); return; }
+    // Switching off never depends on the times, so an older saved time cannot block it.
+    if (enabled && timeError) { setFeedback({ type: 'error', message: timeError }); return; }
     setSaving(true); setFeedback(null);
     try {
       const response = await adminFetch('/api/admin/maintenance-banner', {
