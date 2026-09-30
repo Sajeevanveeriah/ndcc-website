@@ -99,7 +99,7 @@ assert.match(nav, /maintenance: maintenance\.banner,/);
 const route = readFileSync('app/api/admin/maintenance-banner/route.ts', 'utf8');
 assert.equal((route.match(/requirePermissionResult\('club\.details'\)/g) || []).length, 2, 'GET and PUT need the club details permission');
 assert.match(route, /revalidatePublicContent\('clubSettings'\)/, 'saving refreshes every cached page');
-const migration = readFileSync('supabase/migrations/20260930010000_maintenance_banner.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20260930011731_maintenance_banner.sql', 'utf8');
 assert.match(migration, /add column if not exists maintenance_banner_enabled boolean not null default false/, 'off by default');
 
 console.log('PASS: maintenance banner phases, Melbourne wording, admin validation and site-wide wiring.');
