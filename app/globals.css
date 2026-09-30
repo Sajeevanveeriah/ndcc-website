@@ -570,3 +570,11 @@ body.marquee-page-hidden .homepage-marquee-track {
 @media (prefers-reduced-motion: reduce), print {
   .cricket-ball-turn { animation: none; }
 }
+
+/* Page content sits below the fixed header, plus the maintenance banner when
+   one is shown. MaintenanceBanner publishes its exact height in
+   --site-banner-h; the :has() values cover the first paint before that. */
+:root:has(#site-maintenance-banner) { --site-banner-h: 4.5rem; }
+@media (min-width: 640px) { :root:has(#site-maintenance-banner) { --site-banner-h: 2.75rem; } }
+.site-main-offset { padding-top: calc(6rem + var(--site-banner-h, 0px)); }
+@media (min-width: 1024px) { .site-main-offset { padding-top: calc(7rem + var(--site-banner-h, 0px)); } }

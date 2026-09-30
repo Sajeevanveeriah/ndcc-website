@@ -11,6 +11,7 @@ import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import type { NavHeaderLink, NavVisibility } from '@/lib/server/nav-visibility';
+import MaintenanceBanner from '@/components/layout/MaintenanceBanner';
 
 type HeaderLink = NavHeaderLink;
 
@@ -291,6 +292,7 @@ export default function Navbar({ nav }: NavbarProps) {
       )}
       aria-label="Main navigation"
     >
+      <MaintenanceBanner banner={nav.maintenance ?? null} />
       {/* Utility bar: quiet secondary links above the main navigation. */}
       <div className="px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between border-b border-edge-subtle/70">
         <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-muted font-body">

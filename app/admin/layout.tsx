@@ -60,7 +60,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/season/new', label: 'Start New Season', plainLabel: 'Season setup wizard', icon: CalendarDays },
     { href: '/admin/season/registration', label: 'Player Registration', plainLabel: 'Seasonal registration page and terms', icon: ClipboardCheck },
     { href: '/admin/season/playhq', label: 'PlayHQ Links', plainLabel: 'Link PlayHQ seasons, grades and teams; refresh fixtures', icon: Trophy },
-    { href: '/admin/club-details', label: 'Club & Contact Details', plainLabel: 'Club name, contact details and settings', icon: Settings },
+    { href: '/admin/club-details', label: 'Club & Contact Details', plainLabel: 'Club name, contact details, settings and maintenance banner', icon: Settings },
     { href: '/admin/teams', label: 'Teams', plainLabel: 'Teams and grades', icon: Users },
     { href: '/admin/season-appointments', label: 'Appointments', plainLabel: 'Coaches and appointments', icon: UserRoundCheck },
     { href: '/admin/calendar', label: 'Training & Calendar', icon: CalendarDays },
@@ -315,7 +315,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <InactivityGuard onLogout={handleSignOut} />
       {/* Sticky (not fixed) so the sidebar scrolls in-flow and never floats
           over the site footer at the bottom of long admin pages. */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-28 lg:self-start lg:h-[calc(100vh-7rem)] bg-maroon-800 border-r border-maroon-900/60">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-[calc(7rem_+_var(--site-banner-h,0px))] lg:self-start lg:h-[calc(100vh_-_7rem_-_var(--site-banner-h,0px))] bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href={getDefaultAdminHref(user)} className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
           <p className="text-xs uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>

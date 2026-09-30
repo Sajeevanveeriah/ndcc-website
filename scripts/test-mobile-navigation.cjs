@@ -25,6 +25,7 @@ const dependencies = {
   '@/lib/club-settings-types': { fallbackClubSettings: {} },
   '@/lib/utils': { cn: (...parts) => parts.filter(Boolean).join(' ') },
   '@/components/common/ThemeToggle': { default: () => null },
+  '@/components/layout/MaintenanceBanner': { default: () => null },
 };
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('components/layout/Navbar.tsx', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },

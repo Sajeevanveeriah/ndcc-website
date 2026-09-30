@@ -140,7 +140,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </Suspense>
           <RevealObserver />
           <Navbar nav={nav} />
-          <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
+          <main id="main-content" className="flex-1 site-main-offset">{children}</main>
           {/* Footer queries must not delay the first paint of every public page. */}
           <Suspense fallback={null}><Footer /></Suspense>
           <Suspense fallback={null}><SiteAnalytics /></Suspense>
