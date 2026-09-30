@@ -63,7 +63,8 @@ export default function MaintenanceBannerCard() {
     : 'Off';
 
   async function save(enabled: boolean) {
-    if (timeError) { setFeedback({ type: 'error', message: timeError }); return; }
+    // Switching off never depends on the times, so an older saved time cannot block it.
+    if (enabled && timeError) { setFeedback({ type: 'error', message: timeError }); return; }
     setSaving(true); setFeedback(null);
     try {
       const response = await adminFetch('/api/admin/maintenance-banner', {
