@@ -29,6 +29,12 @@ export function serialiseOrderKey(token: string, nowMs: number): string {
   return JSON.stringify({ token, savedAt: nowMs });
 }
 
+/** True when the stored value still names this order key, whatever its age. */
+export function storedOrderKeyIs(raw: string | null | undefined, token: string): boolean {
+  if (!raw) return false;
+  try { return (JSON.parse(raw) as { token?: unknown })?.token === token; } catch { return false; }
+}
+
 /** An order for an earlier Thursday is finished with; the page starts a fresh order instead. */
 export function isPastService(orderServiceDate: unknown, currentServiceDate: string): boolean {
   return typeof orderServiceDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(orderServiceDate) && orderServiceDate < currentServiceDate;

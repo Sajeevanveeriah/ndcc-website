@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import MealCollectionSelector from '@/components/payments/MealCollectionSelector';
 import { isMealCollectionWindow, mealCollectionLabel, mealServiceDate, mealServiceLabel, type MealCollectionWindow } from '@/lib/meal-collection';
-import { MEAL_ORDER_STORAGE_NAME, isPastService, parseStoredOrderKey, serialiseOrderKey } from '@/lib/meal-order-key';
+import { MEAL_ORDER_STORAGE_NAME, isPastService, parseStoredOrderKey, serialiseOrderKey, storedOrderKeyIs } from '@/lib/meal-order-key';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 
@@ -32,6 +32,12 @@ const FALLBACK_KITCHEN_MENU = {
   menuName: 'Kitchen Menu',
   items: [] as KitchenItem[],
 };
+
+// Forget the browser's remembered key only while it still names this order,
+// so a newer order placed in another tab stays remembered.
+function forgetOrderKey(token: string) {
+  try { if (storedOrderKeyIs(localStorage.getItem(MEAL_ORDER_STORAGE_NAME), token)) localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ }
+}
 
 export default function KitchenPage({ initialMenuName, initialItems }: { initialMenuName: string; initialItems: KitchenItem[] }) {
   const [menuName, setMenuName] = useState(initialMenuName);
@@ -120,7 +126,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
           }
         } else if (removedKeys.size > 0) {
           // The club removed the order behind a key: that key is dropped and a fresh order starts.
-          if (remembered && removedKeys.has(remembered)) { try { localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ } }
+          for (const key of removedKeys) forgetOrderKey(key);
           setSubmitStatus('error'); setStatus('Your previous order was removed by the club. Please start a new order.');
         }
         if (active) setRestored(true);
@@ -152,8 +158,8 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
       const result = await response.json();
       if (response.status === 410) {
         // The club removed this order: forget its key and start a fresh order.
+        forgetOrderKey(draftToken);
         setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setSubmitStatus('error'); setStatus(result.error);
-        try { localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ }
         return;
       }
       if (!response.ok) throw new Error(result.error);
@@ -211,8 +217,8 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
         setStatus(data.error || 'Unable to submit kitchen order.');
         // The club removed the order behind this key: the next submit starts a new order.
         if (res.status === 410) {
+          forgetOrderKey(draftToken);
           setDraftToken(crypto.randomUUID()); setOrderConfirmation(null);
-          try { localStorage.removeItem(MEAL_ORDER_STORAGE_NAME); } catch { /* optional */ }
         }
         return;
       }
@@ -306,6 +312,8 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
                 </fieldset>
               </form>
               {orderConfirmation?.payment_status === 'paid' && <Button type="button" variant="secondary" onClick={() => {
+                // The paid order is finished with, so a reload keeps the new draft instead of resuming it.
+                forgetOrderKey(draftToken);
                 setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setCart({}); setCollection('');
                 setCollectionError(false); setSubmitStatus('idle'); setStatus(''); setSubmittedAt(Date.now());
               }}>Start a new meal order</Button>}
