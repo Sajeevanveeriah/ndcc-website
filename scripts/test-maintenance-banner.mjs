@@ -100,7 +100,9 @@ assert.match(component, /useEffect\(\(\) => \{\s*if \(lastCheck\.current === nul
 assert.match(component, /if \(lastCheck\.current !== null && now - lastCheck\.current < RECHECK_GAP_MS\) return;/, 're-checks are throttled');
 assert.match(component, /const onReturn = \(\) => \{ if \(document\.visibilityState !== 'hidden'\) void recheck\.current\(\); \};/, 'returning to the tab re-checks');
 const publicRoute = readFileSync('app/api/public/maintenance-banner/route.ts', 'utf8');
-assert.match(publicRoute, /const nav = await getNavVisibility\(\);\s*return NextResponse\.json\(\{ banner: nav\.maintenance \?\? null \}/, 'served from the shared, CMS-refreshed snapshot');
+assert.match(publicRoute, /const \{ banner, failed \} = await getPublicMaintenanceBanner\(\);/, 'reads the setting itself, with its failure state');
+assert.match(publicRoute, /if \(failed\) return NextResponse\.json\(\{ error: [^}]+\}, \{ status: 503, headers \}\);/, 'a failed read is an error, never "no banner"');
+assert.match(component, /if \(!response\.ok\) return;/, 'an error response keeps the current notice');
 assert.match(card, /if \(timeError\) \{ setFeedback\(\{ type: 'error', message: timeError \}\); return; \}/, 'a skipped-hour time is never saved');
 const nav = readFileSync('lib/server/nav-visibility.ts', 'utf8');
 assert.match(nav, /getPublicMaintenanceBanner\(\),/);
