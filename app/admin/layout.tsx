@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard, Trash2, History } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard, Trash2, History, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -55,12 +55,13 @@ const adminGroups: AdminGroup[] = [
   { title: 'Home', icon: Home, links: [
     { href: '/admin', label: 'Dashboard', plainLabel: 'Home dashboard', icon: LayoutDashboard },
     { href: '/admin/raffle', label: 'Raffles & Cash Sales', plainLabel: 'Trailer and reverse raffle tickets and collections', icon: Ticket },
+    { href: '/admin/maintenance', label: 'Maintenance Banner', plainLabel: 'Site-wide maintenance notice with times', icon: Wrench },
   ] },
   { title: 'Season', icon: ClipboardList, links: [
     { href: '/admin/season/new', label: 'Start New Season', plainLabel: 'Season setup wizard', icon: CalendarDays },
     { href: '/admin/season/registration', label: 'Player Registration', plainLabel: 'Seasonal registration page and terms', icon: ClipboardCheck },
     { href: '/admin/season/playhq', label: 'PlayHQ Links', plainLabel: 'Link PlayHQ seasons, grades and teams; refresh fixtures', icon: Trophy },
-    { href: '/admin/club-details', label: 'Club & Contact Details', plainLabel: 'Club name, contact details, settings and maintenance banner', icon: Settings },
+    { href: '/admin/club-details', label: 'Club & Contact Details', plainLabel: 'Club name, contact details and settings', icon: Settings },
     { href: '/admin/teams', label: 'Teams', plainLabel: 'Teams and grades', icon: Users },
     { href: '/admin/season-appointments', label: 'Appointments', plainLabel: 'Coaches and appointments', icon: UserRoundCheck },
     { href: '/admin/calendar', label: 'Training & Calendar', icon: CalendarDays },
