@@ -17,6 +17,7 @@ type KitchenExportOrder = {
   items: Array<{ name?: string; quantity?: number }> | null;
   total_amount?: number | string | null; amount_paid?: number | string | null; balance_due?: number | string | null;
   bar_payment_selected_at?: string | null; bank_transfer_selected_at?: string | null;
+  customer_email?: string | null;
 };
 
 /** Settled status wins; otherwise the purchaser's recorded intent, bar before bank. */
@@ -34,9 +35,23 @@ export function kitchenAmountDue(order: KitchenExportOrder): number {
   return Math.max(0, Math.round(Number(due) * 100) / 100);
 }
 
+/**
+ * An unpaid order whose purchaser email also has another order for the same
+ * service may be an abandoned retry (for example after a failed card payment
+ * in another browser). It is only flagged for staff to check, never removed.
+ */
+export function possibleDuplicateNote(order: KitchenExportOrder, orders: KitchenExportOrder[]): string {
+  const email = (order.customer_email ?? '').trim().toLowerCase();
+  if (!email || order.payment_status === 'paid') return '';
+  const others = orders.filter((other) => other !== order && other.meal_service_date === order.meal_service_date
+    && (other.customer_email ?? '').trim().toLowerCase() === email);
+  return others.length ? `Possible duplicate: same email as ${others.map((other) => other.payment_reference || 'another order').join(', ')}` : '';
+}
+
 export function kitchenOrdersCsv(orders: KitchenExportOrder[]): string {
-  const rows: unknown[][] = [['Service date', 'Order reference', 'Purchaser name', 'Collection window', 'Meal', 'Quantity', 'Payment status', 'Payment method', 'Order total', 'Collect at bar']];
+  const rows: unknown[][] = [['Service date', 'Order reference', 'Purchaser name', 'Collection window', 'Meal', 'Quantity', 'Payment status', 'Payment method', 'Order total', 'Collect at bar', 'Check']];
   for (const order of orders) {
+    const check = possibleDuplicateNote(order, orders);
     const window = order.meal_collection_window === 'juniors' ? 'Juniors - 6:00 pm' : order.meal_collection_window === 'seniors' ? 'Seniors - 7:30 pm' : 'Collection time not recorded';
     const method = kitchenPaymentMethod(order);
     const total = Number(order.total_amount ?? 0).toFixed(2);
@@ -44,7 +59,7 @@ export function kitchenOrdersCsv(orders: KitchenExportOrder[]): string {
     const atBar = method === 'Pay cash at the bar' ? kitchenAmountDue(order).toFixed(2) : '';
     (order.items?.length ? order.items : [{ name: 'Order items not recorded' }]).forEach((item, index) => {
       rows.push([order.meal_service_date, order.payment_reference, order.customer_name, window, item.name, item.quantity, order.payment_status,
-        method, index === 0 ? total : '', index === 0 ? atBar : '']);
+        method, index === 0 ? total : '', index === 0 ? atBar : '', index === 0 ? check : '']);
     });
   }
   return '\uFEFF' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';

@@ -18,6 +18,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+const DELETED_MEAL_ORDER_MESSAGE = 'This order was removed by the club. Please start a new order.';
+
 export async function POST(request: Request) {
   const rawBody = await readLimitedJsonObject(request);
   if (!rawBody.ok) {
@@ -106,6 +108,11 @@ export async function POST(request: Request) {
   }
   const total = totalCents / 100;
 
+  // The save RPC updates by key, so a key whose order the club removed must not revive it.
+  const existing = await supabase.from('orders').select('id,deleted_at').eq('meal_draft_token', token).maybeSingle();
+  if (existing.error) return NextResponse.json({ error: 'Unable to save this order. Refresh and try again.' }, { status: 503 });
+  if (existing.data?.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
+
   const paymentReference = await generateUniquePaymentReference('kitchen');
 
   const { data: saved, error: saveError } = await supabase.rpc('save_meal_order', {
@@ -119,6 +126,8 @@ export async function POST(request: Request) {
   if (saveError || !saved?.id) {
     return NextResponse.json({ error: 'Unable to save this order. A payment may be pending or another tab changed it. Refresh and try again.' }, { status: 409 });
   }
+  // The RPC returns the row it locked, so this also catches a removal made after the check above.
+  if (saved.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
 
   const kitchenItemListHtml = orderItems
     .map((i) =>
@@ -165,7 +174,7 @@ export async function POST(request: Request) {
 type SavedMeal = {
   id: string; payment_reference: string; total_amount: number; meal_collection_window: string;
   meal_service_date: string; meal_revision: number; meal_editing: boolean;
-  payment_status: string; meal_request: unknown;
+  payment_status: string; meal_request: unknown; deleted_at?: string | null;
 };
 
 function mealResponse(order: SavedMeal) {
@@ -186,6 +195,8 @@ async function resumeOrEdit(request: Request, token: string, action: 'resume' | 
   const { data: order, error } = await supabase.from('orders').select('*').eq('meal_draft_token', token).maybeSingle();
   if (error) return NextResponse.json({ error: 'Unable to load order.' }, { status: 503 });
   if (!order) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+  // An order the club removed is never shown or reopened through its key.
+  if (order.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
   if (action === 'resume') return NextResponse.json(mealResponse(order), { headers: { 'Cache-Control': 'no-store' } });
   const window = await getLiveKitchenOrderWindow();
   if (!window.open || order.meal_service_date !== window.serviceDate) {
@@ -219,5 +230,7 @@ async function resumeOrEdit(request: Request, token: string, action: 'resume' | 
   }
   const edited = await supabase.rpc('begin_meal_order_edit', { target_token: token, target_revision: revision });
   if (edited.error || !edited.data?.id) return NextResponse.json({ error: 'A payment started or the order changed. Refresh and try again.' }, { status: 409 });
+  // The RPC returns the row it locked, so a removal made during the checks above is caught here too.
+  if (edited.data.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
   return NextResponse.json(mealResponse(edited.data));
 }
