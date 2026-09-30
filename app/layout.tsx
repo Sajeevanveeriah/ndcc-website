@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import localFont from 'next/font/local';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { MaintenanceBannerProvider, MaintenanceBannerSpacer } from '@/components/layout/MaintenanceBanner';
 import { getNavVisibility } from '@/lib/server/nav-visibility';
 import ThemeProvider from '@/components/common/ThemeProvider';
 import RouteProgress from '@/components/common/RouteProgress';
@@ -139,8 +140,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <RouteProgress />
           </Suspense>
           <RevealObserver />
-          <Navbar nav={nav} />
-          <main id="main-content" className="flex-1 pt-24 lg:pt-28">{children}</main>
+          <MaintenanceBannerProvider banner={nav.maintenance ?? null}>
+            <Navbar nav={nav} />
+            {/* The spacer reserves the maintenance notice's height below the fixed header. */}
+            <main id="main-content" className="flex-1 pt-24 lg:pt-28"><MaintenanceBannerSpacer />{children}</main>
+          </MaintenanceBannerProvider>
           {/* Footer queries must not delay the first paint of every public page. */}
           <Suspense fallback={null}><Footer /></Suspense>
           <Suspense fallback={null}><SiteAnalytics /></Suspense>

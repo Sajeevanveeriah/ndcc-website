@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { respinReasonLabel, wheelDrawState, type WheelDrawRow } from '@/lib/prize-wheel/rules';
 import { rotationForNumber, wheelSegments } from '@/lib/prize-wheel/wheel-geometry';
 import { drawScreenName, postWheelAction, useWheelDetail } from '../../useWheelDetail';
+import MaintenanceBanner from '@/components/layout/MaintenanceBanner';
 
 // Club colours for the TV screen.
 const MAROON = '#880000';
@@ -67,6 +68,8 @@ export default function WheelDrawScreen() {
   const buttonStyle = { background: GOLD, color: NAVY } as const;
 
   return <div className="fixed inset-0 z-[100] overflow-auto" style={{ background: NAVY, color: CREAM }}>
+    {/* This fullscreen display covers the site header, so it shows the maintenance notice itself. */}
+    <MaintenanceBanner standalone />
     <div className="mx-auto flex min-h-full max-w-[1920px] flex-col gap-6 p-6 lg:flex-row lg:items-center">
       <div className="flex flex-1 items-center justify-center">
         <div className="relative" style={{ width: 'min(88vh, 92vw)', height: 'min(88vh, 92vw)' }}>

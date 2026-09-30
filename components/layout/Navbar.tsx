@@ -11,6 +11,7 @@ import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import type { NavHeaderLink, NavVisibility } from '@/lib/server/nav-visibility';
+import MaintenanceBanner from '@/components/layout/MaintenanceBanner';
 
 type HeaderLink = NavHeaderLink;
 
@@ -291,6 +292,7 @@ export default function Navbar({ nav }: NavbarProps) {
       )}
       aria-label="Main navigation"
     >
+      <MaintenanceBanner />
       {/* Utility bar: quiet secondary links above the main navigation. */}
       <div className="px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between border-b border-edge-subtle/70">
         <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-muted font-body">
@@ -529,6 +531,8 @@ export default function Navbar({ nav }: NavbarProps) {
               aria-modal="true"
               aria-label="Site menu"
             >
+              {/* The menu covers the header, so it repeats the maintenance notice. */}
+              <div className="shrink-0"><MaintenanceBanner standalone /></div>
               <div className="flex shrink-0 items-center justify-between border-b border-edge-subtle px-4 py-4">
                 <span className="flex items-center gap-3">
                   <Image src="/images/logo.jpg" alt="NDCC Logo" width={40} height={40} className="rounded-full" />

@@ -13,6 +13,8 @@ import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
 import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { isPublicSupabaseConfigured, isServerSupabaseConfigured } from '@/lib/supabase-server';
 import { NAV_LINKS } from '@/lib/constants';
+import { getPublicMaintenanceBanner } from '@/lib/server/maintenance-banner';
+import type { MaintenanceBanner } from '@/lib/maintenance-banner';
 
 /**
  * Server-computed site chrome shared by the root layout (Navbar props) and the
@@ -63,6 +65,8 @@ export type NavVisibility = {
   /** Cookie dough campaign from the CMS: open now, and its closing time (null = open-ended). Optional for older cached snapshots. */
   cookieDoughOpen?: boolean;
   cookieDoughEndsAt?: number | null;
+  /** Site-wide maintenance banner while switched on and not over. Optional for older cached snapshots. */
+  maintenance?: MaintenanceBanner | null;
   registration: NavRegistration;
   settings: NavSettings;
   headerLinks: NavHeaderLink[];
@@ -109,7 +113,7 @@ function registrationNavigation(registration: Awaited<ReturnType<typeof getPubli
 }
 
 async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded: boolean }> {
-  const [chrome, headerCards, dinoCoachPublic, rafflePublic, reverseRafflePublic, registration, prizeWheelPublic, cookieDough, spinWheelPublic] = await Promise.all([
+  const [chrome, headerCards, dinoCoachPublic, rafflePublic, reverseRafflePublic, registration, prizeWheelPublic, cookieDough, spinWheelPublic, maintenance] = await Promise.all([
     getSiteChromeData(),
     getPageLinkCards('site', 'header_nav'),
     isDinoCoachPublic(),
@@ -119,6 +123,7 @@ async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded
     isPrizeWheelPublic(),
     getCookieDoughCampaign().catch(() => undefined),
     isSpinWheelPublic(),
+    getPublicMaintenanceBanner(),
   ]);
 
   const isFallbackCard = (card: { id: string }) => card.id.startsWith('fallback-');
@@ -126,7 +131,8 @@ async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded
     || !isServerSupabaseConfigured()
     || chrome.settings === fallbackClubSettings
     || headerCards.some(isFallbackCard)
-    || chrome.quickLinks.some(isFallbackCard);
+    || chrome.quickLinks.some(isFallbackCard)
+    || maintenance.failed;
 
   // Matches the previous client behaviour: CMS header links (when any are
   // configured) supply labels for matching hrefs; otherwise NAV_LINKS does.
@@ -152,6 +158,7 @@ async function buildSnapshot(): Promise<{ snapshot: SiteChromeSnapshot; degraded
         prizeWheelPublic,
         spinWheelPublic,
         ...(cookieDough !== undefined ? { cookieDoughOpen: cookieDough !== null, cookieDoughEndsAt: cookieDough ? cookieDough.endsAt : null } : {}),
+        maintenance: maintenance.banner,
         registration: registrationNavigation(registration),
         settings: navSettingsFrom(chrome.settings),
         headerLinks,
