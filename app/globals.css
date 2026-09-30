@@ -76,6 +76,9 @@
 
   html {
     scroll-behavior: smooth;
+    /* Section links land below the maintenance notice too; its height is
+       published by MaintenanceBanner and is 0 when there is no notice. */
+    scroll-padding-top: var(--site-banner-h, 0px);
   }
 
   /* Visible keyboard focus without affecting mouse interaction */

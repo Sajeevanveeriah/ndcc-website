@@ -531,6 +531,8 @@ export default function Navbar({ nav }: NavbarProps) {
               aria-modal="true"
               aria-label="Site menu"
             >
+              {/* The menu covers the header, so it repeats the maintenance notice. */}
+              <div className="shrink-0"><MaintenanceBanner standalone /></div>
               <div className="flex shrink-0 items-center justify-between border-b border-edge-subtle px-4 py-4">
                 <span className="flex items-center gap-3">
                   <Image src="/images/logo.jpg" alt="NDCC Logo" width={40} height={40} className="rounded-full" />

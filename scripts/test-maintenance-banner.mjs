@@ -84,6 +84,8 @@ assert.match(layout, /<MaintenanceBannerProvider banner=\{nav\.maintenance \?\? 
 assert.match(layout, /<main id="main-content" className="flex-1 pt-24 lg:pt-28"><MaintenanceBannerSpacer \/>\{children\}<\/main>/, 'page content starts below the notice from the first paint');
 const draw = readFileSync('app/admin/raffle/wheel/[id]/draw/page.tsx', 'utf8');
 assert.match(draw, /fixed inset-0 z-\[100\][^\n]*\n[^\n]*\n\s*<MaintenanceBanner standalone \/>/, 'the fullscreen draw display shows the notice too');
+assert.match(navbar, /aria-label="Site menu"\s*>\s*\{\/\*[^*]*\*\/\}\s*<div className="shrink-0"><MaintenanceBanner standalone \/><\/div>/, 'the mobile menu repeats the notice');
+assert.match(readFileSync('app/globals.css', 'utf8'), /scroll-behavior: smooth;[\s\S]{0,200}scroll-padding-top: var\(--site-banner-h, 0px\);/, 'section links land below the notice');
 const card = readFileSync('app/admin/club-details/MaintenanceBannerCard.tsx', 'utf8');
 // The editor's skipped-hour check: 2:30 am on 4 October 2026 does not exist in Melbourne.
 const realClubTime = (value) => toDatetimeLocalInClubTimezone(datetimeLocalToClubIso(value)) === value;
