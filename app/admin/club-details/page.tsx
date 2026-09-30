@@ -6,8 +6,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
+import Link from 'next/link';
 import { Settings } from 'lucide-react';
-import MaintenanceBannerCard from './MaintenanceBannerCard';
 
 type ClubSettingsForm = Omit<ClubSettings, 'id' | 'updated_at'>;
 
@@ -143,11 +143,13 @@ export default function AdminClubDetailsPage() {
           Club Details
         </h1>
         <p className="text-content-muted font-body mt-1">
-          Manage the maintenance banner, site-wide club contact details, social links, ground details, and key club links.
+          Manage site-wide club contact details, social links, ground details, and key club links.
         </p>
       </div>
 
-      <MaintenanceBannerCard />
+      <p className="mb-4 text-sm text-content-secondary">
+        Looking for the maintenance notice? It has its own page: <Link href="/admin/maintenance" className="font-semibold underline">Maintenance Banner</Link>.
+      </p>
 
       {feedback && (
         <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>

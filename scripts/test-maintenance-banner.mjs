@@ -114,4 +114,12 @@ assert.match(route, /revalidatePublicContent\('clubSettings'\)/, 'saving refresh
 const migration = readFileSync('supabase/migrations/20260930011731_maintenance_banner.sql', 'utf8');
 assert.match(migration, /add column if not exists maintenance_banner_enabled boolean not null default false/, 'off by default');
 
+// Easy to find: its own admin page and menu item, under the club details permission.
+const adminPage = readFileSync('app/admin/maintenance/page.tsx', 'utf8');
+assert.match(adminPage, /<MaintenanceBannerCard \/>/);
+const adminLayout = readFileSync('app/admin/layout.tsx', 'utf8');
+assert.match(adminLayout, /\{ href: '\/admin\/maintenance', label: 'Maintenance Banner'/, 'menu item in the always-visible Home section');
+assert.match(readFileSync('lib/auth/permissions.ts', 'utf8'), /'club\.details': \{[^}]*aliases: \[[^\]]*'\/admin\/maintenance'/, 'same permission as club details');
+assert.match(readFileSync('app/admin/club-details/page.tsx', 'utf8'), /href="\/admin\/maintenance"/, 'club details points to the new page');
+
 console.log('PASS: maintenance banner phases, Melbourne wording, admin validation and site-wide wiring.');
