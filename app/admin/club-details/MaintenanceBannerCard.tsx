@@ -21,6 +21,10 @@ const toForm = (settings: MaintenanceSettings): Form => ({
 
 const toIso = (value: string) => (value ? datetimeLocalToClubIso(value) : null);
 
+/** A Melbourne wall time that does not exist (the hour skipped when clocks go forward) would silently move an hour. */
+const isRealClubTime = (value: string) => !value || toDatetimeLocalInClubTimezone(datetimeLocalToClubIso(value)) === value;
+const SKIPPED_HOUR = 'does not exist in Melbourne because the clocks go forward then. Choose another time.';
+
 /** CMS control for the maintenance banner shown at the top of every page. */
 export default function MaintenanceBannerCard() {
   const [form, setForm] = useState<Form>({ enabled: false, starts: '', ends: '', message: '' });
@@ -38,8 +42,11 @@ export default function MaintenanceBannerCard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const timeError = !isRealClubTime(form.starts) ? `The start time ${SKIPPED_HOUR}` : !isRealClubTime(form.ends) ? `The end time ${SKIPPED_HOUR}` : '';
+
   // Exactly what visitors will read, worded for the current time.
   const preview = useMemo(() => {
+    if (!isRealClubTime(form.starts) || !isRealClubTime(form.ends)) return null;
     const startsAt = toIso(form.starts);
     if (!startsAt || Number.isNaN(Date.parse(startsAt))) return null;
     const banner = { startsAt, endsAt: toIso(form.ends), message: form.message.trim() || null };
@@ -52,6 +59,7 @@ export default function MaintenanceBannerCard() {
     : 'Off';
 
   async function save(enabled: boolean) {
+    if (timeError) { setFeedback({ type: 'error', message: timeError }); return; }
     setSaving(true); setFeedback(null);
     try {
       const response = await adminFetch('/api/admin/maintenance-banner', {
@@ -111,7 +119,8 @@ export default function MaintenanceBannerCard() {
                   <strong className="font-semibold">{preview.text.heading}.</strong> {preview.text.detail}
                   {preview.phase === 'ended' && <span className="mt-1 block font-semibold">This end time has already passed, so the banner would not show.</span>}
                 </div>
-              ) : <p className="mt-1 text-sm text-content-muted">Enter a start time to see the banner text.</p>}
+              ) : timeError ? <p role="alert" className="mt-1 text-sm text-red-600">{timeError}</p>
+                : <p className="mt-1 text-sm text-content-muted">Enter a start time to see the banner text.</p>}
             </div>
 
             <div className="flex flex-wrap justify-end gap-3">

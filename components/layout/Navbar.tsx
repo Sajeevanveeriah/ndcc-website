@@ -292,7 +292,7 @@ export default function Navbar({ nav }: NavbarProps) {
       )}
       aria-label="Main navigation"
     >
-      <MaintenanceBanner banner={nav.maintenance ?? null} />
+      <MaintenanceBanner />
       {/* Utility bar: quiet secondary links above the main navigation. */}
       <div className="px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between border-b border-edge-subtle/70">
         <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-muted font-body">

@@ -5,6 +5,7 @@ import {
   MAINTENANCE_MESSAGE_MAX, cleanMessage, formatMaintenanceWindow, maintenanceBannerText, maintenancePhase,
   nextMaintenanceChange, publicMaintenanceBanner, validateMaintenanceInput,
 } from '../lib/maintenance-banner.ts';
+import { datetimeLocalToClubIso, toDatetimeLocalInClubTimezone } from '../lib/utils.ts';
 
 // Saturday 3 October 2026, 8:00 pm to 10:00 pm AEST (UTC+10; daylight saving starts on the 4th).
 const start = '2026-10-03T10:00:00.000Z';
@@ -73,15 +74,24 @@ assert.equal(validateMaintenanceInput({ enabled: false, starts_at: '2026-09-01T0
 
 // Wiring: every page gets the banner through the shared header.
 const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
-assert.match(navbar, /<MaintenanceBanner banner=\{nav\.maintenance \?\? null\} \/>\s*\{\/\* Utility bar/, 'banner is the first thing in the fixed header');
+assert.match(navbar, /<MaintenanceBanner \/>\s*\{\/\* Utility bar/, 'banner is the first thing in the fixed header');
 const component = readFileSync('components/layout/MaintenanceBanner.tsx', 'utf8');
 assert.match(component, /useState\(\(\) => \(banner \? maintenancePhase\(banner, banner\.checkedAt\) : 'ended'\)\)/, 'first render uses the server read time, so it matches the server HTML');
-assert.match(component, /setProperty\(HEIGHT_VAR/, 'publishes its height so page content is not covered');
+assert.match(component, /export function MaintenanceBannerSpacer\(\) \{\s*const text = useContext\(MaintenanceTextContext\);\s*return text \? <Notice text=\{text\} hidden \/> : null;/, 'the spacer lays out the same notice, hidden');
+assert.match(component, /'aria-hidden': true/, 'the spacer copy is hidden from screen readers');
 const layout = readFileSync('app/layout.tsx', 'utf8');
-assert.match(layout, /<main id="main-content" className="flex-1 site-main-offset">/);
-const css = readFileSync('app/globals.css', 'utf8');
-assert.match(css, /\.site-main-offset \{ padding-top: calc\(6rem \+ var\(--site-banner-h, 0px\)\); \}/);
-assert.match(css, /\.site-main-offset \{ padding-top: calc\(7rem \+ var\(--site-banner-h, 0px\)\); \}/);
+assert.match(layout, /<MaintenanceBannerProvider banner=\{nav\.maintenance \?\? null\}>\s*<Navbar nav=\{nav\} \/>/);
+assert.match(layout, /<main id="main-content" className="flex-1 pt-24 lg:pt-28"><MaintenanceBannerSpacer \/>\{children\}<\/main>/, 'page content starts below the notice from the first paint');
+const draw = readFileSync('app/admin/raffle/wheel/[id]/draw/page.tsx', 'utf8');
+assert.match(draw, /fixed inset-0 z-\[100\][^\n]*\n[^\n]*\n\s*<MaintenanceBanner standalone \/>/, 'the fullscreen draw display shows the notice too');
+const card = readFileSync('app/admin/club-details/MaintenanceBannerCard.tsx', 'utf8');
+// The editor's skipped-hour check: 2:30 am on 4 October 2026 does not exist in Melbourne.
+const realClubTime = (value) => toDatetimeLocalInClubTimezone(datetimeLocalToClubIso(value)) === value;
+assert.equal(realClubTime('2026-10-04T02:30'), false, 'skipped hour rejected');
+for (const value of ['2026-10-04T01:59', '2026-10-04T03:00', '2027-04-04T02:30', '2026-10-10T21:00']) assert.equal(realClubTime(value), true, value);
+assert.equal(datetimeLocalToClubIso('2026-10-10T21:00'), '2026-10-10T10:00:00.000Z', 'AEDT is UTC+11');
+assert.match(card, /const isRealClubTime = \(value: string\) => !value \|\| toDatetimeLocalInClubTimezone\(datetimeLocalToClubIso\(value\)\) === value;/);
+assert.match(card, /if \(timeError\) \{ setFeedback\(\{ type: 'error', message: timeError \}\); return; \}/, 'a skipped-hour time is never saved');
 const nav = readFileSync('lib/server/nav-visibility.ts', 'utf8');
 assert.match(nav, /getPublicMaintenanceBanner\(\),/);
 assert.match(nav, /\|\| maintenance\.failed;/, 'a failed read is never cached as "no banner"');
