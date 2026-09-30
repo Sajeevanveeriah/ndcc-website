@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Wrench } from 'lucide-react';
 import { maintenanceBannerText, maintenancePhase, nextMaintenanceChange, type MaintenanceBanner as MaintenanceBannerData } from '@/lib/maintenance-banner';
 
@@ -10,14 +11,52 @@ const MaintenanceTextContext = createContext<BannerText>(null);
 
 const HEIGHT_VAR = '--site-banner-h';
 
+/** How often an open page may re-check the CMS setting (page changes and returning to the tab). */
+const RECHECK_GAP_MS = 15_000;
+
+function sameBanner(a: MaintenanceBannerData | null, b: MaintenanceBannerData | null) {
+  if (!a || !b) return a === b;
+  return a.startsAt === b.startsAt && a.endsAt === b.endsAt && a.message === b.message;
+}
+
 /**
  * Holds the site-wide maintenance notice for every page. The first render
  * uses the time the server read the setting, so it matches the server HTML;
  * the live clock then takes over, switching to "in progress" at the start
- * time and removing the notice at the end time.
+ * time and removing the notice at the end time. The root layout stays
+ * mounted while visitors move between pages, so an open page also re-checks
+ * the setting when the page changes or the visitor returns to the tab, and
+ * picks up a banner switched on, changed or switched off in the CMS.
  */
-export function MaintenanceBannerProvider({ banner, children }: { banner: MaintenanceBannerData | null; children: React.ReactNode }) {
-  const [phase, setPhase] = useState(() => (banner ? maintenancePhase(banner, banner.checkedAt) : 'ended'));
+export function MaintenanceBannerProvider({ banner: serverBanner, children }: { banner: MaintenanceBannerData | null; children: React.ReactNode }) {
+  const [banner, setBanner] = useState(serverBanner);
+  const [phase, setPhase] = useState(() => (serverBanner ? maintenancePhase(serverBanner, serverBanner.checkedAt) : 'ended'));
+  const pathname = usePathname();
+  const lastCheck = useRef<number | null>(null);
+
+  // A fresh server render (a reload or router refresh) brings the latest setting.
+  useEffect(() => { setBanner((current) => (sameBanner(current, serverBanner) ? current : serverBanner)); }, [serverBanner]);
+
+  const recheck = useRef(async () => {});
+  recheck.current = async () => {
+    const now = Date.now();
+    if (lastCheck.current !== null && now - lastCheck.current < RECHECK_GAP_MS) return;
+    lastCheck.current = now;
+    try {
+      const response = await fetch('/api/public/maintenance-banner', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = (await response.json()) as { banner?: MaintenanceBannerData | null };
+      if (data.banner === undefined) return;
+      const latest = data.banner;
+      setBanner((current) => (sameBanner(current, latest) ? current : latest));
+    } catch { /* offline or unavailable: keep the notice as it is */ }
+  };
+
+  // The first page already has the server's setting; later page changes re-check it.
+  useEffect(() => {
+    if (lastCheck.current === null) { lastCheck.current = Date.now(); return; }
+    void recheck.current();
+  }, [pathname]);
 
   useEffect(() => {
     if (!banner) { setPhase('ended'); return; }
@@ -39,6 +78,16 @@ export function MaintenanceBannerProvider({ banner, children }: { banner: Mainte
       document.removeEventListener('visibilitychange', refresh);
     };
   }, [banner]);
+
+  useEffect(() => {
+    const onReturn = () => { if (document.visibilityState !== 'hidden') void recheck.current(); };
+    window.addEventListener('focus', onReturn);
+    document.addEventListener('visibilitychange', onReturn);
+    return () => {
+      window.removeEventListener('focus', onReturn);
+      document.removeEventListener('visibilitychange', onReturn);
+    };
+  }, []);
 
   const text = banner ? maintenanceBannerText(banner, phase) : null;
   return <MaintenanceTextContext.Provider value={text}>{children}</MaintenanceTextContext.Provider>;
