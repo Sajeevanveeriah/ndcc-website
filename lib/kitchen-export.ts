@@ -18,6 +18,7 @@ type KitchenExportOrder = {
   total_amount?: number | string | null; amount_paid?: number | string | null; balance_due?: number | string | null;
   bar_payment_selected_at?: string | null; bank_transfer_selected_at?: string | null;
   customer_email?: string | null;
+  special_request?: string | null;
 };
 
 /** Settled status wins; otherwise the purchaser's recorded intent, bar before bank. */
@@ -49,7 +50,7 @@ export function possibleDuplicateNote(order: KitchenExportOrder, orders: Kitchen
 }
 
 export function kitchenOrdersCsv(orders: KitchenExportOrder[]): string {
-  const rows: unknown[][] = [['Service date', 'Order reference', 'Purchaser name', 'Collection window', 'Meal', 'Quantity', 'Payment status', 'Payment method', 'Order total', 'Collect at bar', 'Check']];
+  const rows: unknown[][] = [['Service date', 'Order reference', 'Purchaser name', 'Collection window', 'Meal', 'Quantity', 'Payment status', 'Payment method', 'Order total', 'Collect at bar', 'Check', 'Special request']];
   for (const order of orders) {
     const check = possibleDuplicateNote(order, orders);
     const window = order.meal_collection_window === 'juniors' ? 'Juniors - 6:00 pm' : order.meal_collection_window === 'seniors' ? 'Seniors - 7:30 pm' : 'Collection time not recorded';
@@ -57,9 +58,10 @@ export function kitchenOrdersCsv(orders: KitchenExportOrder[]): string {
     const total = Number(order.total_amount ?? 0).toFixed(2);
     // Money columns sit on the order's first row only, so summing a column never double counts.
     const atBar = method === 'Pay cash at the bar' ? kitchenAmountDue(order).toFixed(2) : '';
+    const special = order.special_request?.trim() || '';
     (order.items?.length ? order.items : [{ name: 'Order items not recorded' }]).forEach((item, index) => {
       rows.push([order.meal_service_date, order.payment_reference, order.customer_name, window, item.name, item.quantity, order.payment_status,
-        method, index === 0 ? total : '', index === 0 ? atBar : '', index === 0 ? check : '']);
+        method, index === 0 ? total : '', index === 0 ? atBar : '', index === 0 ? check : '', index === 0 ? special : '']);
     });
   }
   return '\uFEFF' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';

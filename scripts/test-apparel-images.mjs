@@ -12,7 +12,7 @@ function check(label, pass) {
   if (!pass) failures.push(label);
 }
 
-check('exactly 20 products have verified artwork', supplied.length === 20);
+check('exactly 24 products have verified artwork (20 retail and 4 limited edition)', supplied.length === 24);
 check('exactly 2 products remain unpublished pending supplied artwork', missing.length === 2);
 check('missing artwork is limited to the two products absent from both supplied files',
   missing.map((item) => item.slug).sort().join(',') === 'baggy-cap,wide-brim-hat');

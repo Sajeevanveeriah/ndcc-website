@@ -28,6 +28,8 @@ type OrderPaymentOptionsProps = {
   paymentReference: string;
   bankDetails: BankDetails;
   returnPath: string;
+  /** Kitchen special request: the kitchen sets the final price, so only pay at the bar is offered. */
+  barOnly?: boolean;
 };
 
 const DEFAULT_CAPABILITIES: PaymentCapabilities = {
@@ -46,6 +48,7 @@ export default function OrderPaymentOptions({
   paymentReference,
   bankDetails,
   returnPath,
+  barOnly = false,
 }: OrderPaymentOptionsProps) {
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [cardPaying, setCardPaying] = useState(false);
@@ -117,10 +120,10 @@ export default function OrderPaymentOptions({
       )}
 
       {mealDraftToken && orderId && (
-        <BarPaymentChoice key={orderId} orderId={orderId} draftToken={mealDraftToken} onChange={setBarSelected} disabled={bankBusy} refreshKey={choiceRefresh} onBusyChange={setBarBusy} onSaved={refreshChoices} />
+        <BarPaymentChoice key={orderId} orderId={orderId} draftToken={mealDraftToken} onChange={setBarSelected} disabled={bankBusy} refreshKey={choiceRefresh} onBusyChange={setBarBusy} onSaved={refreshChoices} required={barOnly} />
       )}
 
-      {!barSelected && capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
+      {!barOnly && !barSelected && capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
         <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
           <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} {...(mealDraftToken ? { disabled: barBusy, refreshKey: choiceRefresh, onBusyChange: setBankBusy, onSaved: refreshChoices } : {})} />
           <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer details</p>
@@ -130,7 +133,7 @@ export default function OrderPaymentOptions({
         </div>
       )}
 
-      {capabilities.card && orderId && totalAmount > 0 && (
+      {!barOnly && capabilities.card && orderId && totalAmount > 0 && (
         <div className="space-y-2">
           <Button type="button" isLoading={cardPaying} onClick={startCardPayment}>
             Pay {formatCurrency(totalAmount)} securely online

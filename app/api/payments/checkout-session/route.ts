@@ -1,4 +1,5 @@
 import { getLiveKitchenOrderWindow } from '@/lib/kitchen-ordering-settings';
+import { KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE, kitchenOrderIsBarOnly } from '@/lib/kitchen-special-request';
 import { isMealCollectionWindow, mealContractMatches, MEAL_COLLECTION_REQUIRED_MESSAGE, MEAL_COLLECTION_TIME_ZONE } from '@/lib/meal-collection';
 import { getClubSettings } from '@/lib/club-settings';
 import { spinOrderCheckoutFailure } from '@/lib/spin-wheel/checkout-guard';
@@ -208,13 +209,17 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,items,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,deleted_at')
+      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,items,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,meal_request,deleted_at')
       .eq('id', orderId)
       .maybeSingle();
     if (orderError || !order || order.deleted_at) {
       return NextResponse.json({ success: false, error: 'Order not found.' }, { status: 404 });
     }
 
+    // The kitchen prices a special request on the night, so card payment of the listed total is refused.
+    if (kitchenOrderIsBarOnly(order)) {
+      return NextResponse.json({ success: false, error: KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE }, { status: 409 });
+    }
     if (order.order_category === 'kitchen') {
       const window = await getLiveKitchenOrderWindow();
       if (!window.open || order.meal_service_date !== window.serviceDate) return NextResponse.json({ success: false, error: window.open ? 'This meal service date is closed.' : window.message }, { status: 403 });

@@ -141,5 +141,34 @@ const parentAwarePolicy = psql(DB, `
     and qual like '%active%'`);
 check('public option policy requires an active parent product', parentAwarePolicy === '1', `got ${parentAwarePolicy}`);
 
+// 2026/27 limited edition run, from the supplied poster. Applied twice to
+// prove it is repeatable, after the retail state above has been asserted.
+const LIMITED = '20261001040000_apparel_limited_edition_2026_27.sql';
+console.log('Applying limited edition migration twice...');
+applyMigrations(DB, [LIMITED]);
+psql(DB, `update apparel_products set stripe_price_id = 'price_limited_preserve' where slug = 'beanie'`);
+applyMigrations(DB, [LIMITED]);
+
+const LIMITED_PRICES = { 'rugby-jumper': '75.00', 'dino-socks': '18.00', 'beanie': '25.00', 'personalised-backpack': '75.00' };
+const limitedRows = psql(DB, `select slug, to_char(price, 'FM990.00'), category, active::text, image_url, (image_alt <> '')::text from apparel_products where slug in (${Object.keys(LIMITED_PRICES).map((s) => `'${s}'`).join(',')}) order by display_order`);
+const limited = limitedRows.split('\n').filter(Boolean).map((l) => l.split('\t'));
+check('four limited edition products exist once each', limited.length === 4, `got ${limited.length}`);
+check('limited edition products list first in poster order',
+  limited.map((r) => r[0]).join(',') === 'rugby-jumper,dino-socks,beanie,personalised-backpack', limited.map((r) => r[0]).join(','));
+for (const [slug, price, category, active, image, hasAlt] of limited) {
+  check(`limited ${slug} = A$${LIMITED_PRICES[slug]}`, price === LIMITED_PRICES[slug], `got ${price}`);
+  check(`limited ${slug} is active in the limited edition group with image and alt text`,
+    category === '2026/27 Limited Edition' && active === 'true' && image === `/images/cms/apparel/2026-27/${slug}.webp` && hasAlt === 'true',
+    `${category}|${active}|${image}|${hasAlt}`);
+}
+const limitedFirst = psql(DB, `select count(*) from apparel_products where active and category <> '2026/27 Limited Edition' and display_order <= 4`);
+check('no retail product sorts ahead of the limited edition group', limitedFirst === '0', `got ${limitedFirst}`);
+const limitedCustom = psql(DB, `select string_agg(slug, ',' order by slug) from apparel_products where customisable and category = '2026/27 Limited Edition'`);
+check('only the personalised backpack is customisable in the limited edition', limitedCustom === 'personalised-backpack', `got ${limitedCustom}`);
+const limitedPayment = psql(DB, `select stripe_price_id from apparel_products where slug = 'beanie'`);
+check('limited edition replay preserves product-level Stripe configuration', limitedPayment === 'price_limited_preserve', `got ${limitedPayment}`);
+const activeAfterLimited = psql(DB, `select count(*) from apparel_products where active = true`);
+check('24 products active after the limited edition run', activeAfterLimited === '24', `got ${activeAfterLimited}`);
+
 dropTestDatabase(DB);
 finish('test-apparel-catalogue');

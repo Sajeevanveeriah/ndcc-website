@@ -13,6 +13,7 @@
     "test:kitchen-bar-payment": "node scripts/test-kitchen-bar-payment.cjs",
     "test:kitchen-payment-choice-ui": "node scripts/test-kitchen-payment-choice-ui.cjs",
     "test:kitchen-mark-paid": "node scripts/test-kitchen-mark-paid.cjs",
+    "test:kitchen-special-request": "node scripts/test-kitchen-special-request.cjs",
     "test:meal-order-key": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-meal-order-key.mjs",
     "test:maintenance-banner": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-maintenance-banner.mjs",
     "test:dino-team-view": "node scripts/test-dino-team-view.cjs",

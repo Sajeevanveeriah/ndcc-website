@@ -14,7 +14,7 @@ import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNot
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
-type KitchenOrder = { deleted_at?: string | null; meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string };
+type KitchenOrder = { deleted_at?: string | null; meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string; special_request?: string };
 
 export default function AdminKitchenPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -471,7 +471,7 @@ export default function AdminKitchenPage() {
         ) : (
           visibleOrders.map((o) => (
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex flex-col gap-3 lg:flex-row lg:items-center justify-between">
-              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}</span>
+              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}{o.special_request && <span className="mt-1 block whitespace-pre-line rounded border border-amber-300 bg-amber-50 px-2 py-1 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><strong>Special request (pay at bar, price on the night):</strong> {o.special_request}</span>}</span>
               <div className="flex flex-wrap items-center gap-2">
                 {!ordersWritable ? <span>{new Date(o.created_at).toLocaleString()}</span> : o.deleted_at?<Button size="sm" onClick={()=>restoreOrder(o.id)}>Restore order</Button>:<>
                 <label className="inline-flex items-center gap-1 text-xs">

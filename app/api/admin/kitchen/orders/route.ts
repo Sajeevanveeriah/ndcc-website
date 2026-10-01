@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { checkKitchenOrderUnpaid, markKitchenOrderPaid, type KitchenPaymentResult } from '@/lib/kitchen-mark-paid';
+import { kitchenSpecialRequest } from '@/lib/kitchen-special-request';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,20 @@ export async function GET(request: Request) {
   const {data,error}=await query;
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true, data: data ?? [] });
+  const rows = data ?? [];
+  // Special requests live on the linked online order; a failed read leaves the list usable.
+  const linkedIds = [...new Set(rows.map((row) => row.linked_order_id).filter((id): id is string => typeof id === 'string'))];
+  const requests = new Map<string, string>();
+  for (let start = 0; start < linkedIds.length; start += 200) {
+    const { data: linked, error: linkedError } = await supabase.from('orders').select('id,meal_request')
+      .in('id', linkedIds.slice(start, start + 200));
+    if (linkedError) { console.error('Kitchen special requests unavailable:', linkedError.message); break; }
+    for (const order of linked ?? []) {
+      const text = kitchenSpecialRequest(order.meal_request);
+      if (text) requests.set(order.id, text);
+    }
+  }
+  return NextResponse.json({ success: true, data: rows.map((row) => ({ ...row, special_request: requests.get(row.linked_order_id) || '' })) });
 }
 
 export async function PATCH(request: Request) {

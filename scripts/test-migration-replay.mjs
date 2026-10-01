@@ -51,7 +51,7 @@ for(const player of research.players){
 const repeatedResearch=psql(DB,readFileSync(new URL('../supabase/operations/20260924_player_research.sql',import.meta.url),'utf8'),{expectFailure:true});
 check('Replaying price operation rejects a changed baseline',repeatedResearch.failed===true&&/Price changed since review/.test(repeatedResearch.message));
 const counts = psql(DB, `select (select count(*) from apparel_products where active), (select count(*) from apparel_product_options where active), (select count(*) from merch_payment_settings), (select count(*) from fantasy_seasons)`);
-check('fresh replay end-state sane (20 active products, 16 active options, settings row, 3 seasons)', counts === '20\t16\t1\t3', counts);
+check('fresh replay end-state sane (24 active products: 20 retail and 4 limited edition, 16 active options, settings row, 3 seasons)', counts === '24\t16\t1\t3', counts);
 // Production has RLS enabled on every public table; replays must match.
 const rlsOff = psql(DB, `select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`);

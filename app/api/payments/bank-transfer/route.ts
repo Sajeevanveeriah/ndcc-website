@@ -5,6 +5,7 @@ import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { configuredBankDetails, TRANSFER_PAYABLE_STATUSES } from '@/lib/payments/bank-transfer';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
+import { KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE, kitchenOrderIsBarOnly } from '@/lib/kitchen-special-request';
 
 export const dynamic = 'force-dynamic';
 const reply = (body: object, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       tokenAuthorised = true;
     }
     const { data: order, error } = await db.from('orders')
-      .select('id,customer_email,order_category,payment_status,order_status,total_amount,amount_paid,balance_due,bank_transfer_selected_at')
+      .select('id,customer_email,order_category,payment_status,order_status,total_amount,amount_paid,balance_due,bank_transfer_selected_at,meal_request')
       .eq('id', order_id).is('deleted_at', null).maybeSingle();
     if (error) return reply({ error: 'Bank transfer selection is temporarily unavailable.' }, 503);
     if (!order || (tokenAuthorised ? order.order_category !== 'merch' : String(order.customer_email).trim().toLowerCase() !== String(email).trim().toLowerCase())) return reply({ error: 'No matching order was found.' }, 404);
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
     // bank deposit could settle after the spins stop working.
     if (order.order_category === 'spin_wheel') return reply({ error: 'Spins are paid by card on the Spin the Wheel page.' }, 409);
     if (action === 'read') return reply({ selected: Boolean(order.bank_transfer_selected_at) });
+    // A kitchen special request is priced on the night and paid at the bar, never by deposit of the listed total.
+    if (selected && kitchenOrderIsBarOnly(order)) return reply({ error: KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE }, 409);
     if (!TRANSFER_PAYABLE_STATUSES.includes(order.payment_status) || order.order_status === 'cancelled'
       || Number(order.balance_due ?? (Number(order.total_amount) - Number(order.amount_paid || 0))) <= 0) return reply({ error: 'This order is no longer awaiting payment. Refresh your order.' }, 409);
     if (selected && (!deriveCapabilities(await loadMerchPaymentSettings(db), order.order_category === 'donation' ? 'donation' : undefined).bank_transfer || !configuredBankDetails())) return reply({ error: 'Bank transfers are currently unavailable.' }, 409);
