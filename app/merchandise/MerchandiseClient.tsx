@@ -8,7 +8,7 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import { CLUB_NAME } from '@/lib/constants';
 import { validateEmail, validatePhone } from '@/lib/utils';
 import { computeUnitPrice } from '@/lib/apparel/pricing';
-import { validatePersonalisation } from '@/lib/apparel/personalisation';
+import { personalisationKind, validatePersonalisation } from '@/lib/apparel/personalisation';
 import CartSummary from './components/CartSummary';
 import CheckoutForm from './components/CheckoutForm';
 import OrderConfirmationPanel from './components/OrderConfirmationPanel';
@@ -254,15 +254,20 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
     setSizeErrors((prev) => ({ ...prev, [productId]: '' }));
 
     const qty = quantities[productId] || 1;
+    // Initials products reuse the name field state for the initials text.
+    const kind = personalisationKind(productId);
     const personalisation = validatePersonalisation(
-      product.customisable
-        ? {
-          custom_name: customNames[productId],
-          custom_number: customNumbers[productId],
-          alternate_number: alternateNumbers[productId],
-          personalisation_confirmed: personalisationConfirmed[productId],
-        }
-        : {}
+      !product.customisable
+        ? {}
+        : kind === 'initials'
+          ? { custom_initials: customNames[productId], personalisation_confirmed: personalisationConfirmed[productId] }
+          : {
+            custom_name: customNames[productId],
+            custom_number: customNumbers[productId],
+            alternate_number: alternateNumbers[productId],
+            personalisation_confirmed: personalisationConfirmed[productId],
+          },
+      kind
     );
     if (!personalisation.ok) {
       setPersonalisationErrors((prev) => ({ ...prev, [productId]: personalisation.error }));
@@ -271,6 +276,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
     setPersonalisationErrors((prev) => ({ ...prev, [productId]: '' }));
     const {
       custom_name,
+      custom_initials,
       custom_number,
       alternate_number,
       number_request_status,
@@ -294,6 +300,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
 
     const existingIdx = cart.findIndex(
       (item) => item.id === productId && item.size === size && item.custom_name === custom_name
+        && item.custom_initials === custom_initials
         && item.custom_number === custom_number && item.alternate_number === alternate_number
         && JSON.stringify(item.options || {}) === optionsKey
     );
@@ -316,6 +323,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
           options: Object.keys(appliedOptions).length > 0 ? appliedOptions : undefined,
           option_labels: optionLabels.length > 0 ? optionLabels : undefined,
           custom_name,
+          custom_initials,
           custom_number,
           alternate_number,
           number_request_status,
@@ -396,7 +404,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
           customer_phone: formData.phone,
           notes: formData.notes,
           items: cart.map(({
-            id, name, size, quantity, price, options, custom_name, custom_number,
+            id, name, size, quantity, price, options, custom_name, custom_initials, custom_number,
             alternate_number, number_request_status, personalisation_confirmed,
           }) => ({
             slug: id,
@@ -406,6 +414,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
             price,
             ...(options ? { options } : {}),
             ...(custom_name ? { custom_name } : {}),
+            ...(custom_initials ? { custom_initials } : {}),
             ...(custom_number !== undefined ? { custom_number } : {}),
             ...(alternate_number !== undefined ? { alternate_number } : {}),
             ...(number_request_status ? { number_request_status } : {}),

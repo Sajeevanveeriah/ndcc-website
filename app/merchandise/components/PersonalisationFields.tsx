@@ -1,8 +1,9 @@
 'use client';
 
+import { personalisationKind } from '@/lib/apparel/personalisation';
 import type { DisplayProduct, ProductSelectionState } from './types';
 
-/** Surname and number preference fields for customisable products. */
+/** Personalisation fields: initials for initials products, otherwise surname and number preferences. */
 export default function PersonalisationFields({
   product,
   selection,
@@ -14,6 +15,46 @@ export default function PersonalisationFields({
     customNames, setCustomNames, customNumbers, setCustomNumbers, alternateNumbers, setAlternateNumbers,
     personalisationConfirmed, setPersonalisationConfirmed, personalisationErrors, setPersonalisationErrors,
   } = selection;
+  if (personalisationKind(product.id) === 'initials') {
+    return (
+      <div className="space-y-2">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+          Personalised with initials. Initials are subject to club confirmation.
+        </p>
+        <div>
+          <label htmlFor={`custom-initials-${product.id}`} className="form-label text-xs">Initials (optional, 1 to 3 letters)</label>
+          <input
+            id={`custom-initials-${product.id}`}
+            type="text"
+            autoComplete="off"
+            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body uppercase focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+            placeholder="e.g. JS"
+            maxLength={5}
+            value={customNames[product.id] || ''}
+            onChange={(e) => {
+              setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }));
+              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+            }}
+          />
+        </div>
+        <label className="flex items-start gap-2 text-xs text-content-secondary">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={personalisationConfirmed[product.id] || false}
+            onChange={(e) => {
+              setPersonalisationConfirmed((prev) => ({ ...prev, [product.id]: e.target.checked }));
+              setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+            }}
+          />
+          <span>I understand my initials are subject to club confirmation.</span>
+        </label>
+        {personalisationErrors[product.id] && (
+          <p className="text-xs text-red-600 dark:text-red-400" role="alert">{personalisationErrors[product.id]}</p>
+        )}
+      </div>
+    );
+  }
   return (
                       <div className="space-y-2">
                         <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">

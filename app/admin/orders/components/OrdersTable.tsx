@@ -82,6 +82,7 @@ export default function OrdersTable({
                           {item.applied_options?.map((opt) => ` · ${opt.label}`).join('')}
                         </p>
                         {item.custom_name && <p className="text-content-muted">Surname: {item.custom_name}</p>}
+                        {item.custom_initials && <p className="text-content-muted">Initials: {item.custom_initials}</p>}
                         {item.custom_number !== undefined && (
                           <p className="text-content-muted">
                             Number preferences: {item.custom_number}

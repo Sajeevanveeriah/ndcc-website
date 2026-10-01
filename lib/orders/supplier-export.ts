@@ -9,6 +9,7 @@ export type SupplierExportOrder = {
     quantity?: number;
     applied_options?: Array<{ group: string; label: string }>;
     custom_name?: string;
+    custom_initials?: string;
     custom_number?: number;
     alternate_number?: number;
     number_request_status?: string;
@@ -46,7 +47,7 @@ export function buildSupplierExportRows(orders: SupplierExportOrder[]): Array<Ar
         order.merch_window_label || '',
         order.order_status || '',
         selectedOptions,
-        item.custom_name || '',
+        item.custom_name || (item.custom_initials ? `Initials: ${item.custom_initials}` : ''),
         item.custom_number === undefined ? '' : String(item.custom_number),
         item.alternate_number === undefined ? '' : String(item.alternate_number),
         item.number_request_status || '',

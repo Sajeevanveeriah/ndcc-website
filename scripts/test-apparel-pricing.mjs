@@ -246,4 +246,38 @@ test('valid personalisation is server-normalised for customisable products', () 
   assert.equal(r.items[0].number_request_status, 'subject_to_availability');
 });
 
+// Initials personalisation (the limited edition backpack, artwork "XX").
+const { personalisationKind } = await import(pathToFileURL(path.join(stage, 'personalisation.ts')).href);
+const backpack = { id: 'bp', slug: 'personalised-backpack', name: 'Personalised Backpack', price: 75, active: true, sizes: ['One Size'], customisable: true, options: [] };
+const jumper = { id: 'j', slug: 'jumper', name: 'Jumper', price: 75, active: true, sizes: ['M'], customisable: true, options: [] };
+
+test('only the backpack uses initials', () => {
+  assert.equal(personalisationKind('personalised-backpack'), 'initials');
+  assert.equal(personalisationKind('jumper'), 'surname_number');
+  assert.equal(personalisationKind(undefined), 'surname_number');
+});
+
+test('initials are normalised to 1-3 upper-case letters and need confirmation', () => {
+  const ok = validatePersonalisation({ custom_initials: ' j.s ', personalisation_confirmed: true }, 'initials');
+  assert.equal(ok.ok, true); assert.equal(ok.value.custom_initials, 'JS');
+  assert.equal(validatePersonalisation({}, 'initials').ok, true, 'initials are optional');
+  assert.equal(validatePersonalisation({ custom_initials: 'JS' }, 'initials').ok, false, 'confirmation required');
+  for (const bad of ['ABCD', 'J5', '=A', 'J-S']) {
+    assert.equal(validatePersonalisation({ custom_initials: bad, personalisation_confirmed: true }, 'initials').ok, false, bad);
+  }
+  assert.equal(validatePersonalisation({ custom_name: 'SMITH', personalisation_confirmed: true }, 'initials').ok, false, 'no surname on initials items');
+  assert.equal(validatePersonalisation({ custom_number: 7, personalisation_confirmed: true }, 'initials').ok, false, 'no number on initials items');
+  assert.equal(validatePersonalisation({ custom_initials: 'JS', personalisation_confirmed: true }).ok, false, 'no initials on surname items');
+});
+
+test('server pricing stores initials for the backpack and rejects them elsewhere', () => {
+  const r = priceOrderItems([backpack, jumper], [{ slug: 'personalised-backpack', size: 'One Size', quantity: 1, custom_initials: 'abc', personalisation_confirmed: true }]);
+  assert.equal(r.ok, true); assert.equal(r.items[0].custom_initials, 'ABC'); assert.equal(r.items[0].custom_name, undefined);
+  assert.equal(r.totalAmount, 75);
+  const surname = priceOrderItems([backpack], [{ slug: 'personalised-backpack', size: 'One Size', quantity: 1, custom_name: 'SMITH', personalisation_confirmed: true }]);
+  assert.equal(surname.ok, false);
+  const onJumper = priceOrderItems([jumper], [{ slug: 'jumper', size: 'M', quantity: 1, custom_initials: 'JS', personalisation_confirmed: true }]);
+  assert.equal(onJumper.ok, false);
+});
+
 console.log(`\ntest-apparel-pricing: ${passed} tests passed`);

@@ -11,6 +11,10 @@
 -- the beanie and backpack are One Size. Committee can correct any of these in
 -- Admin > Apparel without a migration.
 --
+-- The backpack is personalised with initials (the "XX" on the artwork, as
+-- confirmed by NDCC); lib/apparel/personalisation.ts maps this slug to the
+-- initials form instead of surname and number.
+--
 -- Additive and repeatable. Existing product-level Stripe configuration is
 -- operational state and is preserved on conflict, as in the retail catalogue.
 
@@ -39,12 +43,12 @@ values
    'Two views of the maroon DINOS pom-pom beanie with sky blue and gold stripes, one showing the club badge.',
    '2026/27 Limited Edition', 3, 'Limited edition 2026/27 apparel.', 'One Size.', true, false,
    'manual_enquiry', null, null, false, null),
-  ('personalised-backpack', 'Personalised Backpack', 'Limited edition 2026/27 black NDCC backpack with the club badge and personalisation.', 75.00,
+  ('personalised-backpack', 'Personalised Backpack', 'Limited edition 2026/27 black NDCC backpack with the club badge, personalised with your initials.', 75.00,
    array['One Size'],
    '/images/cms/apparel/2026-27/personalised-backpack.webp',
-   'Black backpack with the NDCC club badge and an example personalisation shown as XX.',
-   '2026/27 Limited Edition', 4, 'Limited edition 2026/27 apparel. Personalisation requests are subject to club confirmation.', 'One Size.', true, true,
-   'manual_enquiry', null, null, false, 'The club must confirm the personalisation before the supplier order is placed.')
+   'Black backpack with the NDCC club badge and example initials shown as XX.',
+   '2026/27 Limited Edition', 4, 'Limited edition 2026/27 apparel. Enter 1 to 3 initials; initials are subject to club confirmation.', 'One Size.', true, true,
+   'manual_enquiry', null, null, false, 'The club must confirm the initials before the supplier order is placed.')
 on conflict (slug) do update set
   name = excluded.name,
   description = excluded.description,

@@ -359,7 +359,7 @@
     "source_image": "cropped from the supplied poster; poster pricing text excluded",
     "png_filename": "20261001-NDCC-Apparel-Personalised-Backpack-Rev00.png",
     "public_asset": "/images/cms/apparel/2026-27/personalised-backpack.webp",
-    "alt_text": "Black backpack with the NDCC club badge and an example personalisation shown as XX.",
+    "alt_text": "Black backpack with the NDCC club badge and example initials shown as XX.",
     "embedded_pricing_absent": true,
     "generated_by": "scripts/generate-apparel-assets.mjs"
   }

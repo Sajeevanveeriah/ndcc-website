@@ -258,7 +258,7 @@ export async function POST(request: Request) {
     }
 
     const personalisationRequested = normalisedItems.some(
-      (i) => Boolean(i.custom_name) || i.number_request_status === 'subject_to_availability'
+      (i) => Boolean(i.custom_name) || Boolean(i.custom_initials) || i.number_request_status === 'subject_to_availability'
     );
     const numberRequested = normalisedItems.some((i) => i.number_request_status === 'subject_to_availability');
     const itemListHtml = normalisedItems
@@ -271,6 +271,7 @@ export async function POST(request: Request) {
         const itemDetailLines = [
           ...selectedOptionLines,
           i.custom_name ? `Surname: ${escapeEmailHtml(i.custom_name)}` : '',
+          i.custom_initials ? `Initials: ${escapeEmailHtml(i.custom_initials)} (subject to club confirmation)` : '',
           preferences ? `Number preferences: ${escapeEmailHtml(preferences)} (subject to availability)` : '',
         ].filter(Boolean).join('<br>');
         return (
