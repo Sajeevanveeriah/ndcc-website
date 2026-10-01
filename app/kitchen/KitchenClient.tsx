@@ -6,12 +6,13 @@ import SafeImage from '@/components/common/SafeImage';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import Input, { Textarea } from '@/components/ui/Input';
 import MealCollectionSelector from '@/components/payments/MealCollectionSelector';
 import { isMealCollectionWindow, mealCollectionLabel, mealServiceDate, mealServiceLabel, type MealCollectionWindow } from '@/lib/meal-collection';
 import { MEAL_ORDER_STORAGE_NAME, isPastService, parseStoredOrderKey, serialiseOrderKey, storedOrderKeyIs } from '@/lib/meal-order-key';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
+import { PUBLIC_ORDER_LIMITS } from '@/lib/order-input-validation';
 
 export type KitchenItem = { id: string; name: string; description: string; image_url?: string | null; price: number; is_available: boolean };
 
@@ -25,6 +26,7 @@ type OrderConfirmation = {
   total_amount: number;
   payment_reference: string;
   bank_details: { account_name: string; bsb: string; account_number: string } | null;
+  special_request?: string;
 };
 type OrderWindow = { open: boolean; message: string; serviceDate?: string };
 
@@ -53,6 +55,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [specialRequest, setSpecialRequest] = useState('');
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [status, setStatus] = useState('');
   const [formError, setFormError] = useState('');
@@ -112,16 +115,18 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
         const tabDraft = Boolean(saved) && token === saved?.token;
         if (tabDraft) {
           setCart(saved.cart || {}); setName(saved.name || ''); setEmail(saved.email || ''); setPhone(saved.phone || '');
+          setSpecialRequest(typeof saved.specialRequest === 'string' ? saved.specialRequest : '');
           setCollection(isMealCollectionWindow(saved.collection) ? saved.collection : '');
         }
         if (order && isPastService(order.service_date, mealServiceDate())) {
           // Last week's order is finished with: start a fresh order for this service.
-          setDraftToken(crypto.randomUUID()); setCart({}); setCollection('');
+          setDraftToken(crypto.randomUUID()); setCart({}); setCollection(''); setSpecialRequest('');
         } else if (order) {
           setOrderConfirmation(order); setSubmitStatus('success'); setStatus('Your saved kitchen order is available below.');
           // Without this tab's own draft, show the saved order, even mid-edit.
           if ((!order.editing || !tabDraft) && order.draft) {
             setCollection(order.collection_window); setName(order.draft.name); setEmail(order.draft.email); setPhone(order.draft.phone);
+            setSpecialRequest(typeof order.draft.special_request === 'string' ? order.draft.special_request : '');
             setCart(Object.fromEntries(order.draft.items.map((item: { item_id: string; quantity: number }) => [item.item_id, item.quantity])));
           }
         } else if (removedKeys.size > 0) {
@@ -140,14 +145,14 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
   useEffect(() => {
     if (!restored || !draftToken) return;
     try {
-      sessionStorage.setItem('ndcc-meal-draft-v1', JSON.stringify({ token: draftToken, cart, name, email, phone, collection }));
+      sessionStorage.setItem('ndcc-meal-draft-v1', JSON.stringify({ token: draftToken, cart, name, email, phone, collection, specialRequest }));
     } catch { setStorageError('Your meal draft could not be saved in this browser. Reload before continuing.'); }
     // Only the key of a submitted order is remembered for the browser (the random key and a
     // timestamp, never contact details), so an unsubmitted tab never replaces it.
     if (orderConfirmation) {
       try { localStorage.setItem(MEAL_ORDER_STORAGE_NAME, serialiseOrderKey(draftToken, Date.now())); } catch { /* optional */ }
     }
-  }, [restored, draftToken, cart, name, email, phone, collection, orderConfirmation]);
+  }, [restored, draftToken, cart, name, email, phone, collection, specialRequest, orderConfirmation]);
 
   async function editOrder() {
     if (!orderConfirmation || submitLock.current) return;
@@ -206,6 +211,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
           customer_name: name,
           customer_email: email,
           customer_phone: phone,
+          special_request: specialRequest.trim(),
           items: selectedItems.map((i) => ({ item_id: i.id, quantity: i.quantity })),
           hp_field: hpField,
           submitted_at: submittedAt,
@@ -230,6 +236,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
         total_amount: Number(data.total_amount || 0),
         payment_reference: data.payment_reference || '',
         bank_details: data.bank_details || null,
+        special_request: typeof data.special_request === 'string' ? data.special_request : '',
       });
       setHpField('');
       setSubmittedAt(Date.now());
@@ -294,6 +301,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
             <CardContent className="p-6 space-y-4">
               <h3 className="text-lg font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Kitchen Order</h3>
               <p className="font-display text-lg font-bold text-content-primary">Total: {formatCurrency(total)}</p>
+              {specialRequest.trim() && <p className="text-sm text-content-secondary">Menu items only. The kitchen confirms the price of your special request when you pay at the bar.</p>}
               <p className={orderWindow.open ? 'text-sm text-green-700 dark:text-green-300' : 'text-sm text-amber-800 dark:text-amber-200'}>{orderWindow.message}</p>
               {storageError && <p role="alert" className="text-red-700 dark:text-red-300">{storageError}</p>}
               <p className="text-sm">Service: {mealServiceLabel(orderConfirmation?.service_date || orderWindow.serviceDate)}</p>
@@ -305,6 +313,18 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
                 <Input id="k_name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
                 <Input id="k_email" label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 <Input id="k_phone" label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Textarea
+                  id="k_special_request"
+                  label="Special request (optional)"
+                  className="min-h-[96px]"
+                  maxLength={PUBLIC_ORDER_LIMITS.kitchenSpecialRequestLength}
+                  value={specialRequest}
+                  onChange={(e) => setSpecialRequest(e.target.value)}
+                  aria-describedby="k_special_request_help"
+                />
+                <p id="k_special_request_help" className="text-sm text-content-secondary">
+                  Need something not on the menu or a change to an item? Describe it here. The kitchen confirms the final price, so orders with a special request are paid cash at the bar when you collect.
+                </p>
                 {formError && <p className="text-sm text-red-600" role="alert">{formError}</p>}
                 <Button type="submit" disabled={selectedItems.length === 0 || !orderWindow.open} isLoading={submitting}>
                   {submitting ? 'Saving...' : orderConfirmation ? 'Save changes before payment' : 'Continue to payment'}
@@ -314,7 +334,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
               {orderConfirmation?.payment_status === 'paid' && <Button type="button" variant="secondary" onClick={() => {
                 // The paid order is finished with, so a reload keeps the new draft instead of resuming it.
                 forgetOrderKey(draftToken);
-                setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setCart({}); setCollection('');
+                setDraftToken(crypto.randomUUID()); setOrderConfirmation(null); setCart({}); setCollection(''); setSpecialRequest('');
                 setCollectionError(false); setSubmitStatus('idle'); setStatus(''); setSubmittedAt(Date.now());
               }}>Start a new meal order</Button>}
               {locked && orderConfirmation?.payment_status !== 'paid' && <Button type="button" variant="secondary" isLoading={submitting} onClick={editOrder}>Edit order or collection time</Button>}
@@ -338,6 +358,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
                       paymentReference={orderConfirmation.payment_reference}
                       bankDetails={orderConfirmation.bank_details}
                       returnPath="/kitchen"
+                      barOnly={Boolean(orderConfirmation.special_request)}
                     />
                   )}
                 </div>

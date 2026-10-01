@@ -12,6 +12,7 @@ export type ApparelWorkbookOrder = {
     quantity?: number;
     applied_options?: Array<{ group: string; value?: string; label: string }>;
     custom_name?: string;
+    custom_initials?: string;
     custom_number?: number;
     alternate_number?: number;
   }>;
@@ -161,7 +162,7 @@ export function buildApparelDetailRows(orders: ApparelWorkbookOrder[]): CellValu
           firstLine ? order.customer_name : '',
           supplierProductName(item),
           supplierSizeLabel(item.size),
-          item.custom_name || '',
+          item.custom_name || (item.custom_initials ? `Initials: ${item.custom_initials}` : ''),
           numberPreferences,
           order.payment_reference ? 'Online purchase' : 'No',
           paymentLabel(order.payment_status),

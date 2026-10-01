@@ -306,5 +306,61 @@
     "alt_text": "Front and back views of the NDCC maroon and crème retro jacket.",
     "embedded_pricing_absent": true,
     "generated_by": "scripts/generate-apparel-assets.mjs"
+  },
+  {
+    "slug": "rugby-jumper",
+    "name": "Rugby Jumper",
+    "category": "2026/27 Limited Edition",
+    "base_price_aud": "75.00",
+    "image_supplied": true,
+    "source_document": "20261001-NDCC-Limited-Edition-Apparel-Poster-2026-27 (supplied JPEG, 650 x 856)",
+    "source_image": "cropped from the supplied poster; poster pricing text excluded",
+    "png_filename": "20261001-NDCC-Apparel-Rugby-Jumper-Rev00.png",
+    "public_asset": "/images/cms/apparel/2026-27/rugby-jumper.webp",
+    "alt_text": "Front and back views of the limited edition NDCC maroon rugby jumper with sky blue and gold stripes, a white collar and the club badge.",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
+  },
+  {
+    "slug": "dino-socks",
+    "name": "Dino Socks",
+    "category": "2026/27 Limited Edition",
+    "base_price_aud": "18.00",
+    "image_supplied": true,
+    "source_document": "20261001-NDCC-Limited-Edition-Apparel-Poster-2026-27 (supplied JPEG, 650 x 856)",
+    "source_image": "cropped from the supplied poster; poster pricing text excluded",
+    "png_filename": "20261001-NDCC-Apparel-Dino-Socks-Rev00.png",
+    "public_asset": "/images/cms/apparel/2026-27/dino-socks.webp",
+    "alt_text": "Several views of the white NDCC Dino socks with maroon bands and the Dino logo.",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
+  },
+  {
+    "slug": "beanie",
+    "name": "Beanie",
+    "category": "2026/27 Limited Edition",
+    "base_price_aud": "25.00",
+    "image_supplied": true,
+    "source_document": "20261001-NDCC-Limited-Edition-Apparel-Poster-2026-27 (supplied JPEG, 650 x 856)",
+    "source_image": "cropped from the supplied poster; poster pricing text excluded",
+    "png_filename": "20261001-NDCC-Apparel-Beanie-Rev00.png",
+    "public_asset": "/images/cms/apparel/2026-27/beanie.webp",
+    "alt_text": "Two views of the maroon DINOS pom-pom beanie with sky blue and gold stripes, one showing the club badge.",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
+  },
+  {
+    "slug": "personalised-backpack",
+    "name": "Personalised Backpack",
+    "category": "2026/27 Limited Edition",
+    "base_price_aud": "75.00",
+    "image_supplied": true,
+    "source_document": "20261001-NDCC-Limited-Edition-Apparel-Poster-2026-27 (supplied JPEG, 650 x 856)",
+    "source_image": "cropped from the supplied poster; poster pricing text excluded",
+    "png_filename": "20261001-NDCC-Apparel-Personalised-Backpack-Rev00.png",
+    "public_asset": "/images/cms/apparel/2026-27/personalised-backpack.webp",
+    "alt_text": "Black backpack with the NDCC club badge and example initials shown as XX.",
+    "embedded_pricing_absent": true,
+    "generated_by": "scripts/generate-apparel-assets.mjs"
   }
 ]

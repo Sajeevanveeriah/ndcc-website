@@ -11,6 +11,7 @@ export type StaffOrderItem = {
   price?: unknown;
   applied_options?: unknown;
   custom_name?: unknown;
+  custom_initials?: unknown;
   custom_number?: unknown;
   alternate_number?: unknown;
 };
@@ -69,6 +70,8 @@ function detailLines(item: StaffOrderItem): string[] {
 
   const surname = typeof item.custom_name === 'string' ? item.custom_name.trim() : '';
   if (surname) lines.push(`Surname: ${escapeEmailHtml(surname)}`);
+  const initials = typeof item.custom_initials === 'string' ? item.custom_initials.trim() : '';
+  if (initials) lines.push(`Initials: ${escapeEmailHtml(initials)}`);
 
   const numbers = [item.custom_number, item.alternate_number]
     .map((value) => finiteNumber(value, Number.NaN))

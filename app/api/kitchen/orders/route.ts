@@ -15,6 +15,7 @@ import {
   readLimitedJsonObject,
   validateKitchenOrderInput,
 } from '@/lib/order-input-validation';
+import { kitchenSpecialRequest } from '@/lib/kitchen-special-request';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     customerEmail: customer_email,
     customerPhone: customer_phone,
     items,
+    specialRequest,
     hpField: hp_field,
     submittedAt: submitted_at,
   } = parsedInput.value;
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
   if (existing.data?.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
 
   const paymentReference = await generateUniquePaymentReference('kitchen');
+  const special_request = sanitiseInput(specialRequest);
 
   const { data: saved, error: saveError } = await supabase.rpc('save_meal_order', {
     target_token: token, target_revision: rawBody.value.revision,
@@ -121,6 +124,8 @@ export async function POST(request: Request) {
     target_request: {
       name: sanitiseInput(customer_name), email: sanitiseInput(customer_email), phone: sanitiseInput(customer_phone),
       collection_window: rawBody.value.collection_window, items: orderItems,
+      // Only present when entered, so orders without a request keep their stored shape.
+      ...(special_request ? { special_request } : {}),
     },
   });
   if (saveError || !saved?.id) {
@@ -128,6 +133,16 @@ export async function POST(request: Request) {
   }
   // The RPC returns the row it locked, so this also catches a removal made after the check above.
   if (saved.deleted_at) return NextResponse.json({ error: DELETED_MEAL_ORDER_MESSAGE, deleted: true }, { status: 410 });
+
+  // The kitchen prices a special request on the night, so the order defaults to
+  // pay cash at the bar (intent only, never proof of payment). The purchaser's
+  // panel re-saves the choice if this write is missed.
+  if (special_request) {
+    const barChoice = await supabase.from('orders')
+      .update({ bar_payment_selected_at: saved.bar_payment_selected_at || new Date().toISOString(), bank_transfer_selected_at: null })
+      .eq('id', saved.id).neq('payment_status', 'paid').is('deleted_at', null);
+    if (barChoice.error) console.error('Kitchen special request bar choice not saved:', barChoice.error.message);
+  }
 
   const kitchenItemListHtml = orderItems
     .map((i) =>
@@ -145,7 +160,10 @@ export async function POST(request: Request) {
     html: emailHtml(
       'Kitchen Order Confirmation',
       `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(customer_name))},</p>
-      <p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe or to choose to pay cash at the bar when you collect, or use the bank transfer details below.</p>
+      ${special_request
+        ? `<p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Because it includes a special request, the kitchen will confirm the final price and you pay cash at the bar when you collect.</p>
+      <p style="font-size:15px;color:#374151;line-height:1.6;"><strong>Special request:</strong><br>${escapeEmailHtml(special_request)}</p>`
+        : `<p style="font-size:15px;color:#374151;line-height:1.6;">Your kitchen order has been received but is not yet marked paid. Return to the kitchen page to pay securely by Stripe or to choose to pay cash at the bar when you collect, or use the bank transfer details below.</p>`}
       <p><strong>Collection:</strong> ${escapeEmailHtml(mealCollectionLabel(saved.meal_collection_window))}<br>${escapeEmailHtml(mealServiceLabel(saved.meal_service_date))} (Australia/Melbourne)</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <thead>
@@ -158,12 +176,12 @@ export async function POST(request: Request) {
         <tbody>${kitchenItemListHtml}</tbody>
         <tfoot>
           <tr>
-            <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">Total</td>
+            <td colspan="2" style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;">${special_request ? 'Menu items total (before special request)' : 'Total'}</td>
             <td style="padding:10px 8px;font-size:15px;font-weight:bold;text-align:right;color:#880000;">$${total.toFixed(2)}</td>
           </tr>
         </tfoot>
       </table>
-      ${bankDetailsHtml(saved.payment_reference, total)}
+      ${special_request ? '' : bankDetailsHtml(saved.payment_reference, total)}
       <p style="font-size:13px;color:#6b7280;">Questions? Contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
     ),
   });
@@ -175,6 +193,7 @@ type SavedMeal = {
   id: string; payment_reference: string; total_amount: number; meal_collection_window: string;
   meal_service_date: string; meal_revision: number; meal_editing: boolean;
   payment_status: string; meal_request: unknown; deleted_at?: string | null;
+  bar_payment_selected_at?: string | null;
 };
 
 function mealResponse(order: SavedMeal) {
@@ -183,7 +202,9 @@ function mealResponse(order: SavedMeal) {
     payment_reference: order.payment_reference, collection_window: order.meal_collection_window,
     service_date: order.meal_service_date, revision: order.meal_revision, editing: order.meal_editing,
     payment_status: order.payment_status, draft: order.meal_request,
-    bank_details: configuredBankDetails(),
+    special_request: kitchenSpecialRequest(order.meal_request),
+    // A special request is paid at the bar, so no deposit details are offered for it.
+    bank_details: kitchenSpecialRequest(order.meal_request) ? null : configuredBankDetails(),
   };
 }
 

@@ -20,7 +20,7 @@ export default function CartSummary({
               <Card className="mb-8">
                 <div className="divide-y divide-edge-subtle">
                   {cart.map((item, idx) => (
-                    <div key={`${item.id}-${item.size}-${item.custom_name || ''}-${idx}`} className="px-6 py-4 flex items-center justify-between">
+                    <div key={`${item.id}-${item.size}-${item.custom_name || item.custom_initials || ''}-${idx}`} className="px-6 py-4 flex items-center justify-between">
                       <div className="flex-1">
                         <p className="font-body font-semibold text-content-primary">{item.name}</p>
                         <p className="font-body text-sm text-content-muted">
@@ -31,6 +31,9 @@ export default function CartSummary({
                         ))}
                         {item.custom_name && (
                           <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Surname: {item.custom_name}</p>
+                        )}
+                        {item.custom_initials && (
+                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Initials: {item.custom_initials}</p>
                         )}
                         {item.custom_number !== undefined && (
                           <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">

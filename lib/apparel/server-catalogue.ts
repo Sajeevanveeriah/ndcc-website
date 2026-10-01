@@ -5,7 +5,7 @@
 // prices, applied option surcharges and a server-computed total.
 
 import { computeUnitPrice, fromCents, type CatalogueOption } from '@/lib/apparel/pricing';
-import { validatePersonalisation } from '@/lib/apparel/personalisation';
+import { personalisationKind, validatePersonalisation } from '@/lib/apparel/personalisation';
 
 export type PostedOrderItem = {
   slug?: string;
@@ -15,6 +15,7 @@ export type PostedOrderItem = {
   price?: number;
   options?: Record<string, string>;
   custom_name?: string;
+  custom_initials?: string;
   custom_number?: number;
   alternate_number?: number;
   number_request_status?: 'subject_to_availability';
@@ -144,13 +145,13 @@ export function priceOrderItems(
     }
 
     const hasPostedPersonalisation = Boolean(
-      rawItem.custom_name || rawItem.custom_number !== undefined || rawItem.alternate_number !== undefined
+      rawItem.custom_name || rawItem.custom_initials || rawItem.custom_number !== undefined || rawItem.alternate_number !== undefined
       || rawItem.personalisation_confirmed
     );
     if (!match.customisable && hasPostedPersonalisation) {
       return { ok: false, error: `Personalisation is not available for ${match.name}.` };
     }
-    const personalisation = validatePersonalisation(match.customisable ? rawItem : {});
+    const personalisation = validatePersonalisation(match.customisable ? rawItem : {}, personalisationKind(match.slug));
     if (!personalisation.ok) {
       return { ok: false, error: `${match.name}: ${personalisation.error}` };
     }

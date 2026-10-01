@@ -189,6 +189,7 @@ for (const version of ['new', '1', '2']) {
   };
   const route = moduleAt('app/api/payments/checkout-session/route.ts', {
     '@/lib/kitchen-ordering-settings': { getLiveKitchenOrderWindow: async () => { throw new Error('Merch checkout must not query kitchen settings'); } },
+    '@/lib/kitchen-special-request': moduleAt('lib/kitchen-special-request.ts'),
     '@/lib/meal-collection': mealCollection,
     '@/lib/spin-wheel/checkout-guard': { spinOrderCheckoutFailure: async () => { throw new Error('Merch checkout must not check spin wheel sales'); } },
     '@/lib/club-settings': {}, 'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
@@ -264,6 +265,7 @@ for (const scenario of ['pot_club', 'pot_club_legacy_retry', 'social', 'other_er
   };
   const route = moduleAt('app/api/payments/checkout-session/route.ts', {
     '@/lib/kitchen-ordering-settings': {}, '@/lib/meal-collection': mealCollection,
+    '@/lib/kitchen-special-request': moduleAt('lib/kitchen-special-request.ts'),
     '@/lib/spin-wheel/checkout-guard': { spinOrderCheckoutFailure: async () => null },
     '@/lib/club-settings': {}, 'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '@/lib/supabase-server': { createServerClient: () => checkoutDb, isServerSupabaseConfigured: () => true },

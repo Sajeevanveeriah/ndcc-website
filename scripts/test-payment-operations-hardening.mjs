@@ -147,7 +147,7 @@ test('manual RPC serialises retries and enforces the unreserved balance', () => 
 });
 
 test('import reconciliation requires exact balance and sends every mismatch to review', () => {
-  assert.match(reconcile, /select\('id, balance_due, payment_reference, customer_name, created_at'\)/);
+  assert.match(reconcile, /select\('id, balance_due, payment_reference, customer_name, created_at, order_category, meal_request'\)/);
   assert.match(reconcile, /isExactBalanceMatch\(entry\.order, tx\)/);
   assert.match(reconcile, /ranked\.length === 1 && ranked\[0\]\.score >= 55/);
   assert.match(reconcile, /const markNeedsReview/);

@@ -34,6 +34,8 @@ export interface OrderItem {
   // Base price before option surcharges, as verified by the server.
   base_price?: number;
   custom_name?: string;
+  // Initials for products personalised with initials (for example the backpack).
+  custom_initials?: string;
   custom_number?: number;
   alternate_number?: number;
   number_request_status?: 'subject_to_availability';

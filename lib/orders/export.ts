@@ -24,6 +24,7 @@ export type ExportOrder = {
     base_price?: number;
     applied_options?: Array<{ group: string; value: string; label: string; price_delta: number }>;
     custom_name?: string;
+    custom_initials?: string;
     custom_number?: number;
     alternate_number?: number;
     number_request_status?: 'subject_to_availability';
@@ -187,7 +188,7 @@ export function buildMerchExportRows(
         selectedOptions,
         item.size || '',
         quantity,
-        item.custom_name || '',
+        item.custom_name || (item.custom_initials ? `Initials: ${item.custom_initials}` : ''),
         item.custom_number === undefined || item.custom_number === null ? '' : String(item.custom_number),
         aud(baseUnit),
         aud(surcharge),

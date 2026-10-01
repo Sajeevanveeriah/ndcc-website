@@ -4,6 +4,7 @@ import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { TRANSFER_PAYABLE_STATUSES } from '@/lib/payments/bank-transfer';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
+import { KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE, kitchenOrderIsBarOnly } from '@/lib/kitchen-special-request';
 
 export const dynamic = 'force-dynamic';
 const reply = (body: object, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -26,11 +27,13 @@ export async function POST(request: Request) {
 
     const db = createServerClient();
     const { data: order, error } = await db.from('orders')
-      .select('id,order_category,payment_status,order_status,total_amount,amount_paid,balance_due,bar_payment_selected_at')
+      .select('id,order_category,payment_status,order_status,total_amount,amount_paid,balance_due,bar_payment_selected_at,meal_request')
       .eq('meal_draft_token', draft_token).eq('id', order_id).is('deleted_at', null).maybeSingle();
     if (error) return reply({ error: 'Pay at the bar is temporarily unavailable.' }, 503);
     if (!order || order.order_category !== 'kitchen') return reply({ error: 'No matching kitchen order was found.' }, 404);
-    if (readOnly) return reply({ selected: Boolean(order.bar_payment_selected_at) });
+    if (readOnly) return reply({ selected: Boolean(order.bar_payment_selected_at), bar_only: kitchenOrderIsBarOnly(order) });
+    // A special request is priced by the kitchen on the night, so its bar choice cannot be removed.
+    if (!selected && kitchenOrderIsBarOnly(order)) return reply({ error: KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE }, 409);
     if (!TRANSFER_PAYABLE_STATUSES.includes(order.payment_status) || order.order_status === 'cancelled'
       || Number(order.balance_due ?? (Number(order.total_amount) - Number(order.amount_paid || 0))) <= 0) {
       return reply({ error: 'This order is no longer awaiting payment. Refresh your order.' }, 409);

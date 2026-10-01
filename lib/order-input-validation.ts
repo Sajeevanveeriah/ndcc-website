@@ -20,6 +20,7 @@ export const PUBLIC_ORDER_LIMITS = Object.freeze({
   kitchenItemLines: 40,
   kitchenItemQuantity: 50,
   kitchenItemUnits: 100,
+  kitchenSpecialRequestLength: 500,
   maximumOrderCents: 1_000_000, // AUD 10,000
 });
 
@@ -78,6 +79,7 @@ export type KitchenOrderInput = {
   customerEmail: string;
   customerPhone: string;
   items: Array<{ itemId: string; quantity: number }>;
+  specialRequest: string;
   hpField: string;
   submittedAt: number;
 };
@@ -260,6 +262,8 @@ export function validateKitchenOrderInput(value: unknown): ValidationResult<Kitc
     }
     items.push({ itemId: itemId.value, quantity: quantity.value });
   }
+  const specialRequest = optionalText(value.special_request, PUBLIC_ORDER_LIMITS.kitchenSpecialRequestLength, 'Special request');
+  if (!specialRequest.ok) return specialRequest;
 
   return {
     ok: true,
@@ -268,6 +272,7 @@ export function validateKitchenOrderInput(value: unknown): ValidationResult<Kitc
       customerEmail: customerEmail.value,
       customerPhone: customerPhone.value,
       items,
+      specialRequest: specialRequest.value,
       hpField: antiBot.value.hpField,
       submittedAt: antiBot.value.submittedAt,
     },
