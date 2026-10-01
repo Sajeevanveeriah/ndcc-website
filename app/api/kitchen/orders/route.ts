@@ -203,7 +203,8 @@ function mealResponse(order: SavedMeal) {
     service_date: order.meal_service_date, revision: order.meal_revision, editing: order.meal_editing,
     payment_status: order.payment_status, draft: order.meal_request,
     special_request: kitchenSpecialRequest(order.meal_request),
-    bank_details: configuredBankDetails(),
+    // A special request is paid at the bar, so no deposit details are offered for it.
+    bank_details: kitchenSpecialRequest(order.meal_request) ? null : configuredBankDetails(),
   };
 }
 

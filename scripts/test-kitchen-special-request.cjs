@@ -104,6 +104,11 @@ const post = (route, url, body) => route.POST(new Request(`https://example.inval
   assert.match(save, /\.\.\.\(special_request \? \{ special_request \} : \{\}\)/, 'request stored only when entered');
   assert.match(save, /bar_payment_selected_at: saved\.bar_payment_selected_at \|\| new Date\(\)\.toISOString\(\), bank_transfer_selected_at: null/, 'defaults to pay at the bar');
   assert.match(save, /escapeEmailHtml\(special_request\)/, 'request is escaped in email');
+  assert.match(save, /bank_details: kitchenSpecialRequest\(order\.meal_request\) \? null : configuredBankDetails\(\)/, 'no bank details for a special request');
+  const reconcile = fs.readFileSync('app/api/admin/payments/reconcile/route.ts', 'utf8');
+  assert.match(reconcile, /order_category, meal_request'\)/, 'reconciliation reads the meal request');
+  assert.match(reconcile, /\.filter\(\(order\) => !kitchenOrderIsBarOnly\(order\)\)/, 'special requests are never auto-settled from a bank statement');
+  assert.ok(reconcile.indexOf('kitchenOrderIsBarOnly(order)') < reconcile.indexOf('confirm_imported_order_payment'));
   const exportRoute = fs.readFileSync('app/api/admin/kitchen/orders/export/route.ts', 'utf8');
   assert.match(exportRoute, /meal_request'/); assert.match(exportRoute, /special_request: kitchenSpecialRequest\(meal_request\)/);
 

@@ -9,6 +9,7 @@ import {
 } from '@/lib/payments/matching';
 import { attemptPaymentReceiptDelivery, enqueuePaymentReceiptJob } from '@/lib/payments/receipt-delivery';
 import { sendPaidStaffOrderNotificationForPayment } from '@/lib/order-notifications';
+import { kitchenOrderIsBarOnly } from '@/lib/kitchen-special-request';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export async function POST() {
 
   const [{ data: transactions, error: txFetchError }, { data: orders, error: orderFetchError }] = await Promise.all([
     supabase.from('imported_transactions').select('*').in('match_status', ['unmatched', 'needs_review']).order('transaction_date', { ascending: false }),
-    supabase.from('orders').select('id, balance_due, payment_reference, customer_name, created_at').in('payment_status', ['pending_bank_transfer', 'pending', 'unpaid', 'part_paid']).gt('balance_due', 0),
+    supabase.from('orders').select('id, balance_due, payment_reference, customer_name, created_at, order_category, meal_request').in('payment_status', ['pending_bank_transfer', 'pending', 'unpaid', 'part_paid']).gt('balance_due', 0),
   ]);
   if (txFetchError || orderFetchError) {
     return NextResponse.json({ success: false, error: txFetchError?.message || orderFetchError?.message || 'Failed to load reconciliation data.' }, { status: 500 });
@@ -44,8 +45,14 @@ export async function POST() {
     needsReview += 1;
   };
 
+  // A kitchen special request is priced on the night and paid at the bar, so
+  // its recorded total is only the menu items: never auto-settle it. A deposit
+  // against one falls to the review queue for staff to decide.
+  const candidates = ((orders || []) as Array<CandidateOrder & { order_category?: string | null; meal_request?: unknown }>)
+    .filter((order) => !kitchenOrderIsBarOnly(order));
+
   for (const tx of (transactions || []) as ImportedTransaction[]) {
-    const ranked = ((orders || []) as CandidateOrder[])
+    const ranked = candidates
       .map((order) => ({ order, score: scoreOrderMatch(order, tx) }))
       // Amount-only auto reconciliation is permitted only for the exact
       // balance still due. References and names can raise confidence, but
