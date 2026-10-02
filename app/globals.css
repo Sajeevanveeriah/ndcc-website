@@ -553,7 +553,9 @@ body.marquee-page-hidden .homepage-marquee-track {
   .club-disclosure > summary::marker { color: rgb(var(--action-secondary)); }
   .product-options button { min-height: 44px; min-width: 44px; }
   .club-disclosure .product-options { @apply space-y-5 p-4; }
-  .club-basket-link { @apply fixed bottom-4 right-4 z-40 flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-4 rounded-full bg-maroon-700 px-5 py-3 text-base font-semibold text-white shadow-[0_12px_32px_-12px_rgba(45,0,0,0.55)]; }
+  /* Merchandise order bar: full width on phones, a pill at the bottom right from sm up. */
+  .club-order-bar { @apply fixed inset-x-3 bottom-3 z-40 flex min-h-14 items-center justify-between gap-3 rounded-full bg-content-primary py-2 pl-5 pr-2 font-body text-sm text-surface-page shadow-[0_12px_32px_-12px_rgba(0,0,0,0.45)] sm:left-auto sm:right-4 sm:bottom-4 sm:max-w-xl; }
+  .club-order-bar-link { @apply inline-flex min-h-11 shrink-0 items-center rounded-full bg-maroon-700 px-5 font-semibold text-white hover:bg-maroon-800; }
   .prose { line-height: 1.8; }
   .prose p, .prose li { font-size: 1rem; }
   .prose a { text-decoration: underline; text-underline-offset: 3px; }

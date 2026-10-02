@@ -728,10 +728,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: orderUpdateError } = await supabase
+    // Starting card checkout records Stripe as the stated payment method. If the
+    // payment method columns are not migrated yet, the session link still saves.
+    let { error: orderUpdateError } = await supabase
       .from('orders')
-      .update({ stripe_session_id: session.id })
+      .update({ stripe_session_id: session.id, payment_method_choice: 'stripe', payment_method_choice_source: 'purchaser' })
       .eq('id', order.id);
+    if (orderUpdateError && /payment_method_choice/i.test(orderUpdateError.message || '')) {
+      ({ error: orderUpdateError } = await supabase.from('orders').update({ stripe_session_id: session.id }).eq('id', order.id));
+    }
     if (orderUpdateError) {
       console.error('Checkout-session order link update failed:', orderUpdateError);
     }

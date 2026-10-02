@@ -19,7 +19,25 @@ type KitchenExportOrder = {
   bar_payment_selected_at?: string | null; bank_transfer_selected_at?: string | null;
   customer_email?: string | null;
   special_request?: string | null;
+  payment_method_choice?: string | null;
+  /** Settled ledger methods for this order (stripe, bank_transfer, cash, other). */
+  paid_by?: string[] | null;
 };
+
+const STATED_METHOD_LABELS: Record<string, string> = { stripe: 'Stripe checkout (card online)', bank_transfer: 'Bank transfer', pay_at_club: 'Pay at the bar' };
+const PAID_BY_LABELS: Record<string, string> = { stripe: 'Card online (Stripe)', bank_transfer: 'Bank transfer', cash: 'Cash or card at the bar', other: 'Other' };
+
+/** The purchaser's (or committee's) stated method: the recorded choice, else the intent columns. */
+export function kitchenStatedMethod(order: KitchenExportOrder): string {
+  const choice = order.payment_method_choice && STATED_METHOD_LABELS[order.payment_method_choice] ? order.payment_method_choice
+    : order.bar_payment_selected_at ? 'pay_at_club' : order.bank_transfer_selected_at ? 'bank_transfer' : '';
+  return choice ? STATED_METHOD_LABELS[choice] : 'Not recorded';
+}
+
+/** How settled money actually arrived, from the payment ledger. */
+export function kitchenPaidBy(order: KitchenExportOrder): string {
+  return Array.from(new Set(order.paid_by || [])).map((method) => PAID_BY_LABELS[method] || method).join('; ');
+}
 
 /** Settled status wins; otherwise the purchaser's recorded intent, bar before bank. */
 export function kitchenPaymentMethod(order: KitchenExportOrder): string {
@@ -50,7 +68,7 @@ export function possibleDuplicateNote(order: KitchenExportOrder, orders: Kitchen
 }
 
 export function kitchenOrdersCsv(orders: KitchenExportOrder[]): string {
-  const rows: unknown[][] = [['Service date', 'Order reference', 'Purchaser name', 'Collection window', 'Meal', 'Quantity', 'Payment status', 'Payment method', 'Order total', 'Collect at bar', 'Check', 'Special request']];
+  const rows: unknown[][] = [['Service date', 'Order reference', 'Purchaser name', 'Collection window', 'Meal', 'Quantity', 'Payment status', 'Payment method', 'Order total', 'Collect at bar', 'Check', 'Special request', 'Stated payment method', 'Paid by']];
   for (const order of orders) {
     const check = possibleDuplicateNote(order, orders);
     const window = order.meal_collection_window === 'juniors' ? 'Juniors - 6:00 pm' : order.meal_collection_window === 'seniors' ? 'Seniors - 7:30 pm' : 'Collection time not recorded';
@@ -61,7 +79,8 @@ export function kitchenOrdersCsv(orders: KitchenExportOrder[]): string {
     const special = order.special_request?.trim() || '';
     (order.items?.length ? order.items : [{ name: 'Order items not recorded' }]).forEach((item, index) => {
       rows.push([order.meal_service_date, order.payment_reference, order.customer_name, window, item.name, item.quantity, order.payment_status,
-        method, index === 0 ? total : '', index === 0 ? atBar : '', index === 0 ? check : '', index === 0 ? special : '']);
+        method, index === 0 ? total : '', index === 0 ? atBar : '', index === 0 ? check : '', index === 0 ? special : '',
+        kitchenStatedMethod(order), index === 0 ? kitchenPaidBy(order) : '']);
     });
   }
   return '\uFEFF' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';

@@ -9,7 +9,6 @@ import { getCurrentClubSeason } from '@/lib/club-seasons';
 import { renderSeasonContent } from '@/lib/season-content';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getPublicTeamsWithSlugs } from '@/lib/public-teams';
-import { formatFixtureTime } from '@/lib/playhq/normalise';
 import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import { fixturesForTeam, ladderForGrade, matchPlayHQTeam, shortTeamLabel, splitTeamFixtures, teamMatchKey, teamsAwaitingPlayHQ } from '@/lib/playhq/team-view';
@@ -17,7 +16,7 @@ import { groupByCategory, juniorAge, teamCategory, TEAM_CATEGORY_LABELS } from '
 import type { PlayHQFixture, PlayHQTeam } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 import FixturesTeamTabs, { type FixturesTab } from './_components/FixturesTeamTabs';
-import { FixtureList, LadderTable } from './_components/PlayHQTables';
+import { FixtureDayGroups, FixtureList, LadderTable } from './_components/PlayHQTables';
 
 // ISR: regenerated at most every 60s and on demand after admin writes
 // (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
@@ -61,29 +60,6 @@ function PlayHQCtaLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function FixtureCard({ fixture, result = false }: { fixture: PlayHQFixture; result?: boolean }) {
-  return (
-    <Card className="h-full card-interactive">
-      <CardContent className="p-5 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <Badge variant={result ? 'success' : 'default'}>{result ? 'Result' : 'Fixture'}</Badge>
-          <span className="text-sm text-content-muted font-body tabular-nums">{formatFixtureTime(fixture.startsAt)}</span>
-        </div>
-        <div>
-          <p className="font-display font-bold text-content-primary">{fixture.homeTeam}</p>
-          <p className="text-sm text-content-muted">v</p>
-          <p className="font-display font-bold text-content-primary">{fixture.awayTeam}</p>
-        </div>
-        {(fixture.homeScore || fixture.awayScore) && (
-          <p className="text-sm font-semibold tabular-nums text-maroon-700 dark:text-maroon-200">{fixture.homeScore || 'TBC'} · {fixture.awayScore || 'TBC'}</p>
-        )}
-        {fixture.venue && <p className="text-sm text-content-muted font-body">{fixture.venue}</p>}
-        {fixture.playHQUrl && <Link href={fixture.playHQUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-maroon-700 dark:text-maroon-200 hover:underline">View on PlayHQ</Link>}
-      </CardContent>
-    </Card>
-  );
-}
-
 // Men's teams by ordinal, then women's, then anything else by name.
 function sortClubTeams(teams: PlayHQTeam[]) {
   const rank = (team: PlayHQTeam) => {
@@ -109,8 +85,6 @@ export default async function FixturesPage() {
   ]);
   const teamLinks = teams.map(team => ({ id: team.id, title: team.name, description: team.description, badge: team.grade, href: team.playhq_url || settings.playhq_url || PLAYHQ_ORG_URL, is_external: true }));
   const { upcoming, results } = splitFixtures(playhq.fixtures);
-  const upcomingByGrade = groupByGrade(upcoming);
-  const resultsByGrade = groupByGrade(results.slice(0, 12));
   const laddersByGrade = groupByGrade(playhq.ladders);
   const playhqCtaUrl = blocks['fixtures.status']?.cta_url || settings.playhq_url || PLAYHQ_ORG_URL;
   const playhqCtaLabel = renderSeasonContent(blocks['fixtures.status']?.cta_label || 'View fixtures on PlayHQ', currentSeason);
@@ -243,17 +217,21 @@ export default async function FixturesPage() {
     }];
   });
 
-  // Unfiltered view: the original upcoming/results layout, grouped by grade.
+  // Unfiltered view: every NDCC game listed once, grouped by match day.
   const allTeamsPanel = (
     <>
-      <section>
-        <h2 className="section-title mb-6">Upcoming Fixtures</h2>
-        {Object.values(upcomingByGrade).length === 0 ? <p className="text-content-muted font-body">No upcoming fixtures are currently listed.</p> : Object.values(upcomingByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} />)}</div></div>)}
+      <section aria-labelledby="fixtures-upcoming">
+        <h2 id="fixtures-upcoming" className="section-title mb-6">Upcoming fixtures</h2>
+        {upcoming.length === 0
+          ? <p className="text-content-muted font-body">No upcoming fixtures are currently listed.</p>
+          : <FixtureDayGroups fixtures={upcoming} label="Upcoming fixtures" />}
       </section>
 
-      <section>
-        <h2 className="section-title mb-6">Recent Results</h2>
-        {Object.values(resultsByGrade).length === 0 ? <p className="text-content-muted font-body">No recent results are currently listed.</p> : Object.values(resultsByGrade).map((group) => <div key={group.gradeName} className="mb-8"><h3 className="mb-4 text-xl font-display font-bold text-content-primary">{group.gradeName}</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">{group.rows.map((fixture) => <FixtureCard key={fixture.id} fixture={fixture} result />)}</div></div>)}
+      <section aria-labelledby="fixtures-results">
+        <h2 id="fixtures-results" className="section-title mb-6">Recent results</h2>
+        {results.length === 0
+          ? <p className="text-content-muted font-body">No recent results are currently listed.</p>
+          : <FixtureDayGroups fixtures={results.slice(0, 12)} label="Recent results" />}
       </section>
     </>
   );
@@ -329,29 +307,30 @@ export default async function FixturesPage() {
           <div className="container-width">
             <h2 className="section-title mb-4">{renderSeasonContent(blocks['fixtures.team_links']?.title || 'Follow your team on PlayHQ', currentSeason)}</h2>
             {blocks['fixtures.team_links']?.body && <p className="text-content-muted font-body max-w-3xl mb-6">{renderSeasonContent(blocks['fixtures.team_links'].body, currentSeason)}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* One compact row per team: the fixtures themselves are listed above. */}
+            <ul className="divide-y divide-edge-subtle overflow-hidden rounded-xl border border-edge-subtle bg-surface-card">
               {teamLinks.map((link) => (
-                <a key={link.id} href={currentSeasonPlayHQUrl(link.href, currentSeason?.slug, settings.playhq_url || PLAYHQ_ORG_URL)} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="block h-full">
-                  <Card className="h-full card-interactive">
-                    <CardContent className="p-5 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-display font-bold text-content-primary">{link.title}</h3>
-                        {link.badge && <Badge variant="default">{link.badge}</Badge>}
-                      </div>
-                      {link.description && <p className="text-sm text-content-muted font-body">{link.description}</p>}
-                      <span className="inline-flex items-center text-sm font-semibold text-maroon-700 dark:text-maroon-200">
-                        {link.is_external ? 'View on PlayHQ' : 'View'}
-                        {link.is_external && (
+                <li key={link.id}>
+                  <a href={currentSeasonPlayHQUrl(link.href, currentSeason?.slug, settings.playhq_url || PLAYHQ_ORG_URL)} {...(link.is_external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="grid gap-1 p-4 font-body transition-colors hover:bg-surface-muted sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4">
+                    <span>
+                      <span className="block font-semibold text-content-primary">{link.title}{link.badge && <span className="font-normal text-content-muted"> · {link.badge}</span>}</span>
+                      {link.description && <span className="block text-sm text-content-muted">{link.description}</span>}
+                    </span>
+                    <span className="inline-flex items-center text-sm font-semibold text-maroon-700 dark:text-maroon-200">
+                      {link.is_external ? 'View on PlayHQ' : 'View'}
+                      {link.is_external && (
+                        <>
+                          <span className="sr-only"> (opens in a new tab)</span>
                           <svg className="ml-1.5 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                           </svg>
-                        )}
-                      </span>
-                    </CardContent>
-                  </Card>
-                </a>
+                        </>
+                      )}
+                    </span>
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </section>
       )}

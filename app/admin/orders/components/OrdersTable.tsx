@@ -9,6 +9,7 @@ import Badge from '@/components/ui/Badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import OrderPaymentsPanel from './OrderPaymentsPanel';
 import { balanceDue, paymentBadge, type AdminOrder, type OrderPayment, type PaymentFormState } from './shared';
+import { effectivePaymentChoice, PAYMENT_METHOD_CHOICES, PAYMENT_METHOD_CHOICE_LABELS, PAYMENT_METHOD_CHOICE_SOURCE_LABELS } from '@/lib/payments/method-choice';
 
 export default function OrdersTable({
   filteredOrders,
@@ -21,6 +22,7 @@ export default function OrdersTable({
   savingPayment,
   onSetProcessed,
   onRecordPayment,
+  onSetPaymentChoice,
   onReversePayment,
   onRestoreOrder,
   onDeleted,
@@ -36,6 +38,7 @@ export default function OrdersTable({
   savingPayment: boolean;
   onSetProcessed: (id: string, processed: boolean) => void;
   onRecordPayment: (order: AdminOrder) => void;
+  onSetPaymentChoice: (order: AdminOrder, method: string) => void;
   onReversePayment: (payment: OrderPayment) => void;
   onRestoreOrder: (id: string) => void;
   onDeleted: (id: string) => void;
@@ -103,7 +106,25 @@ export default function OrdersTable({
                 <TableCell>
                   {paymentBadge(o.payment_status)}
                   {o.bank_transfer_selected_at && <p className="mt-1 text-xs">Bank transfer selected{balance > 0 ? " - awaiting receipt confirmation" : ""}<br />{formatDate(o.bank_transfer_selected_at)}</p>}
-                  {o.bar_payment_selected_at && <p className="mt-1 text-xs">Pay cash at the bar{balance > 0 ? " - record the cash when received" : ""}<br />{formatDate(o.bar_payment_selected_at)}</p>}
+                  {o.bar_payment_selected_at && <p className="mt-1 text-xs">Pay at the club{balance > 0 ? " - record the payment when received" : ""}<br />{formatDate(o.bar_payment_selected_at)}</p>}
+                  <label className="mt-2 block text-xs text-content-muted">
+                    Payment method
+                    <select
+                      className="form-input mt-1 min-h-9 py-1 text-xs"
+                      value={effectivePaymentChoice(o) || ''}
+                      onChange={(e) => onSetPaymentChoice(o, e.target.value)}
+                      aria-label={`Payment method for ${o.payment_reference || o.customer_name}`}
+                    >
+                      <option value="">Not recorded</option>
+                      {PAYMENT_METHOD_CHOICES.map((choice) => <option key={choice} value={choice}>{PAYMENT_METHOD_CHOICE_LABELS[choice]}</option>)}
+                    </select>
+                  </label>
+                  {o.payment_method_choice_source && (
+                    <p className="mt-1 text-xs text-content-muted">
+                      {PAYMENT_METHOD_CHOICE_SOURCE_LABELS[o.payment_method_choice_source] || o.payment_method_choice_source}
+                      {o.payment_method_choice_by ? ` (${o.payment_method_choice_by})` : ''}
+                    </p>
+                  )}
                   {o.needs_review_reason ? (
                     <p className="mt-1 text-xs text-red-600 max-w-[180px]">{o.needs_review_reason}</p>
                   ) : null}

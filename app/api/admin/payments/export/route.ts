@@ -56,7 +56,10 @@ export async function POST(request: Request) {
           amount_paid,
           balance_due,
           payment_status,
-          created_at
+          created_at,
+          payment_method_choice,
+          bank_transfer_selected_at,
+          bar_payment_selected_at
         )
       `)
       .lte('created_at', exportCutoff)

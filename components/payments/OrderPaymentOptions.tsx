@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import BankTransferChoice from './BankTransferChoice';
 import BarPaymentChoice from './BarPaymentChoice';
+import PayAtClubChoice from './PayAtClubChoice';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 
@@ -15,6 +16,7 @@ type BankDetails = {
 type PaymentCapabilities = {
   bank_transfer: boolean;
   card: boolean;
+  pay_at_club?: boolean;
   partial_payments: boolean;
   minimum_partial_amount: number;
 };
@@ -35,6 +37,7 @@ type OrderPaymentOptionsProps = {
 const DEFAULT_CAPABILITIES: PaymentCapabilities = {
   bank_transfer: false,
   card: false,
+  pay_at_club: false,
   partial_payments: false,
   minimum_partial_amount: 10,
 };
@@ -123,9 +126,14 @@ export default function OrderPaymentOptions({
         <BarPaymentChoice key={orderId} orderId={orderId} draftToken={mealDraftToken} onChange={setBarSelected} disabled={bankBusy} refreshKey={choiceRefresh} onBusyChange={setBarBusy} onSaved={refreshChoices} required={barOnly} />
       )}
 
+      {/* Every other order: pay at the club (cash or card at the bar), coordinated with the bank choice like the kitchen's bar choice. */}
+      {!mealDraftToken && orderId && customerEmail && capabilities.pay_at_club && totalAmount > 0 && (
+        <PayAtClubChoice key={orderId} orderId={orderId} email={customerEmail} onChange={setBarSelected} disabled={bankBusy} refreshKey={choiceRefresh} onBusyChange={setBarBusy} onSaved={refreshChoices} />
+      )}
+
       {!barOnly && !barSelected && capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
         <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
-          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} {...(mealDraftToken ? { disabled: barBusy, refreshKey: choiceRefresh, onBusyChange: setBankBusy, onSaved: refreshChoices } : {})} />
+          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} {...(mealDraftToken || capabilities.pay_at_club ? { disabled: barBusy, refreshKey: choiceRefresh, onBusyChange: setBankBusy, onSaved: refreshChoices } : {})} />
           <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer details</p>
           {bankDetails.account_name && <p>Account name: {bankDetails.account_name}</p>}
           <p>BSB: {bankDetails.bsb}</p>

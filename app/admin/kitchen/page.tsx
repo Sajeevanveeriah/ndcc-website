@@ -1,5 +1,6 @@
 'use client';
 
+import { isPaymentMethodChoice, PAYMENT_METHOD_CHOICES, PAYMENT_METHOD_CHOICE_LABELS } from '@/lib/payments/method-choice';
 import { MEAL_COLLECTION_WINDOWS, mealCollectionLabel, mealServiceLabel, mealServiceDate } from '@/lib/meal-collection';
 import { isThursdayServiceDate } from '@/lib/kitchen-export';
 
@@ -14,7 +15,7 @@ import ReadOnlyNotice, { responseCanWrite } from '@/components/admin/ReadOnlyNot
 
 type Menu = { id: string; name: string; is_active: boolean };
 type Item = { id: string; menu_id: string; name: string; description: string; image_url: string | null; price: number; is_available: boolean; is_hidden: boolean; sort_order: number };
-type KitchenOrder = { deleted_at?: string | null; meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string; special_request?: string };
+type KitchenOrder = { linked_order_id?: string | null; payment_method_choice?: string | null; payment_method_choice_source?: string | null; deleted_at?: string | null; meal_collection_window?: string | null; meal_service_date?: string | null; id: string; customer_name: string; total_amount: number; status: string; payment_status: string; payment_reference: string | null; processed: boolean; created_at: string; special_request?: string };
 
 export default function AdminKitchenPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -126,6 +127,22 @@ export default function AdminKitchenPage() {
       loadOrders();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to update kitchen order.');
+    }
+  }
+
+  // Records how the purchaser is paying (for example "Pay at the bar") on the linked online order.
+  async function setPaymentChoice(order: KitchenOrder, method: string) {
+    if (!order.linked_order_id) return;
+    try {
+      await parseApiResponse(await adminFetch('/api/admin/orders/payment-choice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: order.linked_order_id, method: method || null }),
+      }));
+      setMessage(`Payment method for ${order.customer_name} saved.`);
+      loadOrders();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to save the payment method.');
     }
   }
 
@@ -471,7 +488,7 @@ export default function AdminKitchenPage() {
         ) : (
           visibleOrders.map((o) => (
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex flex-col gap-3 lg:flex-row lg:items-center justify-between">
-              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}{o.special_request && <span className="mt-1 block whitespace-pre-line rounded border border-amber-300 bg-amber-50 px-2 py-1 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><strong>Special request (pay at bar, price on the night):</strong> {o.special_request}</span>}</span>
+              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}<span className="block"><strong>Payment method:</strong> {o.payment_method_choice && isPaymentMethodChoice(o.payment_method_choice) ? PAYMENT_METHOD_CHOICE_LABELS[o.payment_method_choice] : 'Not recorded'}</span>{o.special_request && <span className="mt-1 block whitespace-pre-line rounded border border-amber-300 bg-amber-50 px-2 py-1 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><strong>Special request (pay at bar, price on the night):</strong> {o.special_request}</span>}</span>
               <div className="flex flex-wrap items-center gap-2">
                 {!ordersWritable ? <span>{new Date(o.created_at).toLocaleString()}</span> : o.deleted_at?<Button size="sm" onClick={()=>restoreOrder(o.id)}>Restore order</Button>:<>
                 <label className="inline-flex items-center gap-1 text-xs">
@@ -482,6 +499,19 @@ export default function AdminKitchenPage() {
                   />
                   Payment processed
                 </label>
+                {o.linked_order_id && (
+                  <label className="inline-flex items-center gap-1 text-xs">
+                    <span className="sr-only">Payment method for {o.customer_name}</span>
+                    <select
+                      className="rounded border bg-surface-card p-2 text-xs"
+                      value={o.payment_method_choice || ''}
+                      onChange={(event) => void setPaymentChoice(o, event.target.value)}
+                    >
+                      <option value="">Method not recorded</option>
+                      {PAYMENT_METHOD_CHOICES.map((choice) => <option key={choice} value={choice}>{choice === 'pay_at_club' ? 'Pay at the bar' : PAYMENT_METHOD_CHOICE_LABELS[choice]}</option>)}
+                    </select>
+                  </label>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => updateOrder(o.id, { payment_status: o.payment_status === 'paid' ? 'pending_bank_transfer' : 'paid' })}>
                   {o.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
                 </Button>

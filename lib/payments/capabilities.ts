@@ -16,6 +16,8 @@ import { isCheckoutEnabled } from '@/lib/payments/payment-config';
 export type PaymentCapabilities = {
   bank_transfer: boolean;
   card: boolean;
+  /** "Pay at the club" (cash or card at the bar) on order payment options. */
+  pay_at_club: boolean;
   partial_payments: boolean;
   minimum_partial_amount: number;
 };
@@ -30,6 +32,7 @@ export type MerchPaymentSettingsRow = {
   partial_payments_enabled: boolean;
   minimum_partial_amount: number;
   required_deposit_percent: number | null;
+  pay_at_club_enabled?: boolean;
 } & Partial<Record<ProductOverrideColumn, boolean | null>>;
 
 export const DEFAULT_SETTINGS: MerchPaymentSettingsRow = {
@@ -38,6 +41,7 @@ export const DEFAULT_SETTINGS: MerchPaymentSettingsRow = {
   partial_payments_enabled: false,
   minimum_partial_amount: 10,
   required_deposit_percent: null,
+  pay_at_club_enabled: true,
 };
 
 const BASE_COLUMNS = 'bank_transfer_enabled,card_checkout_enabled,partial_payments_enabled,minimum_partial_amount,required_deposit_percent';
@@ -59,10 +63,11 @@ export async function loadMerchPaymentSettings(client: unknown): Promise<MerchPa
   };
   const read = (columns: string) => supabase.from('merch_payment_settings').select(columns).maybeSingle();
   try {
-    let { data, error } = await read(`${BASE_COLUMNS},${PRODUCT_COLUMNS}`);
-    // Per-product columns may not be migrated yet: fall back to the original
-    // row only for that missing-column case. Any other error fails closed so a
-    // disabled product override can never be lost to a transient failure.
+    let { data, error } = await read(`${BASE_COLUMNS},${PRODUCT_COLUMNS},pay_at_club_enabled`);
+    // Newer columns may not be migrated yet: fall back step by step only for
+    // that missing-column case. Any other error fails closed so a disabled
+    // product override can never be lost to a transient failure.
+    if (error && /pay_at_club_enabled/i.test(error.message || '')) ({ data, error } = await read(`${BASE_COLUMNS},${PRODUCT_COLUMNS}`));
     if (error && /_bank_transfer_enabled|schema cache|column/i.test(error.message || '')) ({ data, error } = await read(BASE_COLUMNS));
     if (error || !data) return { ...DEFAULT_SETTINGS, bank_transfer_enabled: false };
     const row = data as MerchPaymentSettingsRow;
@@ -72,6 +77,9 @@ export async function loadMerchPaymentSettings(client: unknown): Promise<MerchPa
       partial_payments_enabled: Boolean(row.partial_payments_enabled),
       minimum_partial_amount: Number(row.minimum_partial_amount) || DEFAULT_SETTINGS.minimum_partial_amount,
       required_deposit_percent: row.required_deposit_percent === null ? null : Number(row.required_deposit_percent),
+      // Missing before the migration, when the database still allows pay at the
+      // club on kitchen orders only: off until the switch column exists.
+      pay_at_club_enabled: typeof row.pay_at_club_enabled === 'boolean' ? row.pay_at_club_enabled : false,
     };
     for (const product of BANK_TRANSFER_PRODUCTS) {
       const column = overrideColumn(product);
@@ -94,6 +102,7 @@ export function deriveCapabilities(settings: MerchPaymentSettingsRow, product?: 
   return {
     bank_transfer: bankTransferEnabledFor(settings, product) && Boolean(configuredBankDetails()),
     card: cardArmed,
+    pay_at_club: settings.pay_at_club_enabled !== false,
     partial_payments: cardArmed && settings.partial_payments_enabled,
     minimum_partial_amount: settings.minimum_partial_amount,
   };

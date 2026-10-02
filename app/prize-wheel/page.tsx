@@ -43,7 +43,7 @@ export default async function PrizeWheelPage() {
       <h1 className="page-hero-title">{campaign.name}</h1>
       <p className="page-hero-subtitle">{formatAud(campaign.price_cents)} AUD per ticket. Drawn live at {campaign.draw_label}. 18+ only.</p>
     </div></section>
-    <main className="section-padding"><div className="container-width max-w-5xl space-y-8">
+    <section className="section-padding"><div className="container-width max-w-5xl space-y-8">
       <section aria-labelledby="wheel-about" className="rounded-xl border border-edge-subtle bg-surface-card p-6 space-y-3">
         <h2 id="wheel-about" className="font-display text-2xl font-bold">About this raffle</h2>
         <p>This is a small raffle conducted by <strong>{settings.club_name}</strong>. Buy a numbered ticket here, then the wheel is spun <strong>live at {campaign.draw_label}</strong>. Nothing is spun or won online.</p>
@@ -83,6 +83,6 @@ export default async function PrizeWheelPage() {
         <h2 id="wheel-responsible" className="font-display text-xl font-bold">18+ only. Gamble responsibly.</h2>
         <p>Tickets are for people aged 18 and over. If gambling is a problem for you or someone you know, call Gambling Help Online on <a className="underline" href="tel:1800858858">{GAMBLING_HELP_PHONE}</a> or visit <a className="underline" href={GAMBLING_HELP_URL} target="_blank" rel="noopener noreferrer">gamblinghelponline.org.au</a>.</p>
       </section>
-    </div></main>
+    </div></section>
   </>;
 }

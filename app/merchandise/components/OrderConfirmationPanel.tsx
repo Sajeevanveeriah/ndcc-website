@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import BankTransferChoice from '@/components/payments/BankTransferChoice';
+import PayAtClubChoice from '@/components/payments/PayAtClubChoice';
 import Button from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderConfirmation, PaymentCapabilities } from './types';
@@ -26,6 +28,13 @@ export default function OrderConfirmationPanel({
   setCardError: (value: string) => void;
   startCardPayment: (amount: number | null) => void;
 }) {
+  // Pay at the club and bank transfer are one stated method at a time: each
+  // locks while the other saves and both re-read after either saves.
+  const [clubSelected, setClubSelected] = useState(false);
+  const [clubBusy, setClubBusy] = useState(false);
+  const [bankBusy, setBankBusy] = useState(false);
+  const [choiceRefresh, setChoiceRefresh] = useState(0);
+  const refreshChoices = () => setChoiceRefresh((value) => value + 1);
   return (
             <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-3" role="alert">
               <p className="text-green-800 dark:text-green-200 font-body font-semibold flex items-center gap-2">
@@ -36,12 +45,17 @@ export default function OrderConfirmationPanel({
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
                   <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Your order reference:</p>
                   <p className="text-green-900 dark:text-green-200 font-mono text-lg font-bold mt-1">{orderConfirmation.payment_reference}</p>
-                  <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">Use this reference when making your bank transfer.</p>
+                  <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">Quote this reference with your payment.</p>
                 </div>
               )}
-              {capabilities.bank_transfer && orderConfirmation?.bank_details?.bsb && (
+              {capabilities.pay_at_club && orderConfirmation?.order_id && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
-                  <BankTransferChoice key={orderConfirmation.order_id} orderId={orderConfirmation.order_id} email={orderConfirmation.customer_email} />
+                  <PayAtClubChoice key={orderConfirmation.order_id} orderId={orderConfirmation.order_id} email={orderConfirmation.customer_email} onChange={setClubSelected} disabled={bankBusy} refreshKey={choiceRefresh} onBusyChange={setClubBusy} onSaved={refreshChoices} />
+                </div>
+              )}
+              {!clubSelected && capabilities.bank_transfer && orderConfirmation?.bank_details?.bsb && (
+                <div className="bg-surface-card border border-green-300 rounded-lg p-3">
+                  <BankTransferChoice key={orderConfirmation.order_id} orderId={orderConfirmation.order_id} email={orderConfirmation.customer_email} disabled={clubBusy} refreshKey={choiceRefresh} onBusyChange={setBankBusy} onSaved={refreshChoices} />
                   <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Bank Transfer Details:</p>
                   <div className="mt-1 text-sm font-body text-green-800 dark:text-green-200 space-y-0.5">
                     <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>

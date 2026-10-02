@@ -14,10 +14,10 @@ export const metadata: Metadata = pageMetadata("/player-sponsors", "Player spons
 
 export default function PlayerSponsorsPage() {
   return <>
-    <section className="band-maroon section-padding">
+    <section className="page-hero">
       <div className="container-width">
-        <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">Player Sponsors</h1>
-        <p className="mt-4 max-w-2xl text-lg text-white">Meet the businesses supporting our players. Explore their logos and visit their websites to support them in return.</p>
+        <h1 className="page-hero-title">Player Sponsors</h1>
+        <p className="page-hero-subtitle">Meet the businesses supporting our players. Explore their logos and visit their websites to support them in return.</p>
         <Link href="/sponsors" className="mt-6 inline-block font-semibold text-white underline underline-offset-4">View club sponsors</Link>
       </div>
     </section>

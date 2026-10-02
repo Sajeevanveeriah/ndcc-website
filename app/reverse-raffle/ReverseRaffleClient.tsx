@@ -71,7 +71,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
       <h1 className="page-hero-title">Reverse Raffle</h1>
       <p className="page-hero-subtitle">${(priceCents / 100).toFixed(2)} AUD per ticket. Support your club.</p>
     </div></section>
-    <main className="section-padding"><div className="container-width max-w-5xl grid gap-8 md:grid-cols-2 items-start">
+    <section className="section-padding"><div className="container-width max-w-5xl grid gap-8 md:grid-cols-2 items-start">
       <Image src="/images/20260922-NDCC-Reverse-Raffle-Rev00.webp" width={1600} height={2000}
         sizes="(max-width: 768px) 100vw, 480px" alt="Newcomb and District Cricket Club Reverse Raffle. $60 AUD per ticket. Support your club."
         className="w-full h-auto" priority />
@@ -118,6 +118,6 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
         <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="reverse_raffle" />
         <Button type="submit" isLoading={busy} disabled={!canCheckout}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay securely with Stripe'}</Button>
       </form>}
-    </div></main>
+    </div></section>
   </>;
 }
