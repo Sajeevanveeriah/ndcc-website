@@ -37,18 +37,22 @@ assert.ok(!home.includes('ctaUrl="/contact"'), 'hero Join CTA fallback goes to /
 assert.match(home, /ctaUrl="\/join"/);
 assert.match(home, /cta_url \|\| '\/join'/);
 assert.match(home, /\{ href: '\/join', label: 'Join the club' \}/, 'Get involved row has a Join link to /join');
-assert.match(home, /href="\/sponsors" className="btn-secondary">\s*View all sponsors/);
-assert.match(home, /href="\/sponsors#enquiry-form" className="btn-primary">\s*Become a sponsor/);
+assert.match(home, /href="\/sponsors" className="nd-link">All sponsors/);
+assert.match(home, /href="\/sponsors#enquiry-form" className="nd-link">Become a sponsor/);
 assert.match(readFileSync('app/sponsors/page.tsx', 'utf8'), /id="enquiry-form"/, 'Become a sponsor anchor exists');
-const order = ['<FixturesSection />', '<ComingUpPreview />', '<ClubNewsPreview />', '<SponsorsSection />', '<FantasyTeaserSection />'].map((marker) => home.indexOf(marker));
-assert.ok(order.every((index) => index > 0) && order.every((index, i) => i === 0 || index > order[i - 1]), 'Dino Coach block follows news, events and sponsors');
+// Suggested layout: next event, matches, then Coming up / Club news / Get involved
+// (which carries the Dino Coach box), then promotions and sponsors.
+const order = ['<NextEventSection />', '<FixturesSection />', '<ComingUpPreview />', '<ClubNewsPreview />', '<GetInvolvedSection />', '<PromotionsSection />', '<SponsorsSection />'].map((marker) => home.indexOf(marker));
+assert.ok(order.every((index) => index > 0) && order.every((index, i) => i === 0 || index > order[i - 1]), 'home sections follow the suggested order');
 assert.ok(!/2026-10-13/.test(home), 'voucher dates live in lib/home-promotions.ts');
 // Home refresh: one sponsor "View all" link, no eyebrow pills, honest
 // quick-link icons and Dino Coach copy that matches the 15-player game.
+// Suggested layout: a static sponsor logo grid with one "All sponsors" link.
 const sponsorsMarquee = readFileSync('components/home/SponsorsMarquee.tsx', 'utf8');
-assert.match(home, /showViewAll=\{false\}/, 'home hides the marquee button in favour of its own link');
+assert.ok(!home.includes('<SponsorsMarquee'), 'home shows a static logo grid, not the marquee');
+assert.match(home, /<ul className="nd-logos"/);
 assert.match(sponsorsMarquee, /\{showViewAll && <Link href="\/sponsors"/, 'marquee View all button is optional');
-assert.equal(home.match(/View all sponsors/g)?.length, 1, 'a single View all sponsors link definition on the home page');
+assert.equal(home.match(/>All sponsors</g)?.length, 1, 'a single All sponsors link definition on the home page');
 assert.ok(!home.includes('section-eyebrow') && !home.includes('eyebrow-gold'), 'no eyebrow pills on the home page');
 assert.ok(!appointments.includes('section-eyebrow'), 'no eyebrow pill on the appointments row');
 assert.ok(!/'\u{1F3CF}': Trophy/u.test(home), 'cricket quick links are not a trophy');
@@ -91,7 +95,7 @@ assert.ok(!stats.includes('fallbackHistoryPremierships'), 'premiership stat is n
 // assistive technology and the only motion stops for reduced motion and print.
 const ball = readFileSync('components/home/CricketBall.tsx', 'utf8');
 assert.equal((ball.match(/aria-hidden="true"/g) || []).length, 2, 'ball and stumps are decorative');
-assert.match(home, /<CricketBall className="cricket-ball-hero" \/>/);
+assert.match(home, /<CricketBall className="nd-hero-ball" \/>/);
 assert.match(home, /<StumpsIcon className=/);
 const css = readFileSync('app/globals.css', 'utf8');
 assert.match(css, /\.cricket-ball-turn \{ animation: ndcc-ball-turn 120s linear infinite; \}/);

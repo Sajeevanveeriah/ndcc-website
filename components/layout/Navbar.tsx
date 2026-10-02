@@ -7,7 +7,6 @@ import { LazyMotion, domAnimation, m, AnimatePresence, useReducedMotion } from '
 import { Menu, X, ChevronDown, UserRound } from 'lucide-react';
 import { useCookieDoughOpen } from '@/components/common/CookieDoughVisibility';
 import { COOKIE_DOUGH_ENDS_AT, isCookieDoughLink } from '@/lib/cookie-dough';
-import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import type { NavHeaderLink, NavVisibility } from '@/lib/server/nav-visibility';
@@ -56,6 +55,11 @@ function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffle
       { label: 'Record cash sales', href: '/admin/raffle/cash' },
       ...raffles.links.filter((link) => link.href !== '/raffle/cash'),
     ];
+  }
+  // The Fund Raiser hub heads the group whenever at least one fundraiser is
+  // visible, so the group still disappears when every fundraiser is hidden.
+  if (raffles?.links && raffles.links.length > 0) {
+    raffles.links = [resolveLink(navLinks, { label: 'All fundraisers', href: '/fundraising' }), ...raffles.links];
   }
   return groups.filter((group) => group.href || (group.links && group.links.length > 0));
 }
@@ -293,59 +297,29 @@ export default function Navbar({ nav }: NavbarProps) {
       aria-label="Main navigation"
     >
       <MaintenanceBanner />
-      {/* Utility bar: quiet secondary links above the main navigation. */}
-      <div className="px-4 sm:px-6 lg:px-8 py-[5px] flex items-center justify-between border-b border-edge-subtle/70">
-        <span className="hidden sm:block min-w-0 truncate pr-3 text-xs text-content-muted font-body">
-          {settings.ground_name}, {settings.address}
-        </span>
-        <div className="flex shrink-0 items-center gap-3 sm:gap-4 ml-auto">
-          <Link prefetch={false} href="/club-account" className="inline-flex items-center gap-1.5 text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/club-account' ? 'page' : undefined}>
-            <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
-            My Account
-          </Link>
-          <Link prefetch={false} href="/privacy" className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors font-body focus-ring" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy</Link>
-          <a
-            href={settings.facebook_url || fallbackClubSettings.facebook_url || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors transition-colors font-body"
-          >
-            Facebook
-          </a>
-          <a
-            href={settings.playhq_url || fallbackClubSettings.playhq_url || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors transition-colors font-body"
-          >
-            PlayHQ
-          </a>
-        </div>
-      </div>
-      <div className="container-width px-4 sm:px-6 lg:px-5 xl:px-8">
-        <div className="flex items-center justify-between gap-3 xl:gap-4 h-16 lg:h-[4.75rem]">
+      {/* Header row: brand, main groups, theme and registration (mock layout).
+          Account, privacy and social links live in the footer base row. */}
+      <div className="nd-wrap">
+        <div className="flex h-[68px] items-center justify-between gap-3 xl:gap-5">
           {/* Logo */}
-          <Link prefetch={false} href="/" className="flex items-center gap-3 shrink-0" aria-label={`${settings.club_short} Home`}>
+          <Link prefetch={false} href="/" className="flex shrink-0 items-center gap-2.5 rounded-lg text-content-primary focus-ring" aria-label="Newcomb and District Cricket Club, home">
             <Image
               src="/images/logo.jpg"
               alt="NDCC Logo"
-              width={48}
-              height={48}
-              className="rounded-full"
+              width={53}
+              height={40}
+              className="h-10 w-auto rounded-lg"
               priority
             />
-            <div className="hidden sm:flex lg:hidden flex-col">
-              <span className="font-display font-semibold uppercase tracking-wide text-lg leading-none block text-maroon-700 dark:text-maroon-200">
-                {settings.club_short}
-              </span>
-              <span className="text-sm font-body tracking-[0.08em] uppercase mt-1 text-gray-600 dark:text-slate-400">
-                The Dinos · Est. {settings.established_year}
-              </span>
-            </div>
+            <span className="flex flex-col min-[1100px]:hidden xl:flex">
+              <span className="hidden font-display text-[15px] font-semibold leading-tight tracking-[-0.01em] min-[461px]:block">Newcomb &amp; District</span>
+              <span className="font-display text-[15px] font-semibold leading-tight min-[461px]:hidden" aria-hidden="true">{settings.club_short}</span>
+              <span className="hidden text-sm leading-tight text-content-muted sm:block">Cricket Club · The Dinos</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex shrink-0 items-center gap-0 xl:gap-1">
+          <div className="hidden min-[1100px]:flex shrink-0 items-center gap-0.5">
             {navGroups.map((group) => {
               if (group.href) {
                 return (
@@ -354,13 +328,13 @@ export default function Navbar({ nav }: NavbarProps) {
                     href={group.href}
                     aria-current={pathname === group.href ? 'page' : undefined}
                     className={cn(
-                      'whitespace-nowrap px-[5px] xl:px-2 py-1.5 text-xs xl:text-sm font-body font-medium transition-colors rounded-md focus-ring',
-                      // The logo already links home; the extra Home item only
-                      // appears once there is room for it (xl and up).
-                      group.href === '/' && 'hidden xl:inline-block',
+                      'whitespace-nowrap rounded-full px-2.5 py-2 text-sm font-body font-medium transition-colors focus-ring xl:px-3 xl:text-[14.5px]',
+                      // The logo already links home, so the header leaves Home
+                      // to the logo (the mobile menu still lists it).
+                      group.href === '/' && 'hidden',
                       pathname === group.href
-                        ? "relative text-maroon-700 dark:text-maroon-200 font-semibold after:absolute after:left-3 after:right-3 after:bottom-1 after:h-px after:bg-maroon-700 after:content-[''] dark:after:bg-maroon-300"
-                        : 'nav-underline text-content-secondary hover:text-content-primary dark:text-slate-300 dark:hover:text-white'
+                        ? 'bg-surface-muted text-content-primary font-semibold'
+                        : 'text-content-primary hover:bg-surface-muted'
                     )}
                   >
                     {group.label}
@@ -399,28 +373,28 @@ export default function Navbar({ nav }: NavbarProps) {
                       if (openGroup === group.label) setHoverGroup(null);
                     }}
                     className={cn(
-                      'flex shrink-0 items-center gap-0.5 xl:gap-1 whitespace-nowrap px-[5px] xl:px-2 py-1.5 text-xs xl:text-sm font-body font-medium rounded-md transition-colors focus-ring',
+                      'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-2 text-sm font-body font-medium transition-colors focus-ring xl:px-3 xl:text-[14.5px]',
                       // A group whose child route is active reads as active too,
                       // matching the top-level link treatment (hash links share
                       // their base pathname, e.g. /about#club-history).
                       group.links?.some((link) => pathname === link.href.split('#')[0])
-                        ? 'text-maroon-700 font-semibold dark:text-maroon-200'
-                        : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5'
+                        ? 'bg-surface-muted text-maroon-700 font-semibold dark:text-maroon-200'
+                        : cn('text-content-primary hover:bg-surface-muted', expanded && 'bg-surface-muted')
                     )}
                   >
-                    {group.label} <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', expanded && 'rotate-180')} aria-hidden="true" />
+                    {group.label} <ChevronDown className={cn('h-3 w-3 opacity-60 transition-transform duration-200', expanded && 'rotate-180')} aria-hidden="true" />
                   </button>
                   <div
                     id={menuId}
                     data-nav-menu
                     className={cn(
-                      'absolute left-0 top-full pt-2 transition-[opacity,transform,visibility] duration-200 ease-out',
+                      'absolute -left-1.5 top-full pt-2 transition-[opacity,transform,visibility] duration-200 ease-out',
                       expanded ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-1'
                     )}
                   >
-                    <div className="min-w-[210px] rounded-2xl border border-edge-subtle bg-surface-elevated/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(29,29,31,0.35)] backdrop-blur-xl">
+                    <div className="min-w-[230px] rounded-2xl border border-edge-subtle bg-surface-elevated p-2 shadow-[0_1px_2px_rgba(29,29,31,0.04),0_8px_24px_rgba(29,29,31,0.10)]">
                       {group.links?.map((link) => (
-                        <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
+                        <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-[10px] px-3 py-2.5 text-[14.5px] font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
                           {link.label}
                         </Link>
                       ))}
@@ -480,13 +454,16 @@ export default function Navbar({ nav }: NavbarProps) {
               </div>
             )}
 
-            <ThemeToggle className="ml-0.5 xl:ml-1 shrink-0" />
+            <Link prefetch={false} href="/club-account" aria-label="My Account" title="My Account" aria-current={pathname === '/club-account' ? 'page' : undefined} className="ml-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-edge-subtle bg-surface-card text-content-primary transition-colors hover:bg-surface-muted focus-ring">
+              <UserRound className="h-[18px] w-[18px]" aria-hidden="true" />
+            </Link>
+            <ThemeToggle compact className="ml-1 shrink-0" />
 
             {/* Seasonal registration replaces the existing CTA slot when published. */}
             <Link prefetch={false}
               href={registrationNavigation?.href || '/join'}
               className={cn(
-                'ml-1.5 inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-maroon-700 px-3.5 xl:px-4 text-center text-xs xl:text-sm font-semibold leading-none text-white transition-colors duration-200 hover:bg-maroon-800 focus-ring',
+                'ml-1.5 inline-flex min-h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-maroon-700 px-4 text-center text-sm font-semibold leading-none text-white transition-colors duration-200 hover:bg-maroon-800 focus-ring',
                 pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
               )}
               aria-label={registrationNavigation?.label || 'Join the Club'}
@@ -500,7 +477,7 @@ export default function Navbar({ nav }: NavbarProps) {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden min-h-11 min-w-11 p-2 rounded-full transition-colors focus-ring hover:bg-surface-muted dark:hover:bg-white/5"
+            className="min-[1100px]:hidden flex h-11 w-11 items-center justify-center rounded-full border border-edge-subtle bg-surface-card transition-colors focus-ring hover:bg-surface-muted"
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isOpen}
@@ -522,7 +499,7 @@ export default function Navbar({ nav }: NavbarProps) {
               key="mobile-menu"
               id="mobile-site-menu"
               ref={menuRef}
-              className="lg:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
+              className="min-[1100px]:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
               initial={reduceMotion ? false : { opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, y: -16 }}
@@ -535,8 +512,8 @@ export default function Navbar({ nav }: NavbarProps) {
               <div className="shrink-0"><MaintenanceBanner standalone /></div>
               <div className="flex shrink-0 items-center justify-between border-b border-edge-subtle px-4 py-4">
                 <span className="flex items-center gap-3">
-                  <Image src="/images/logo.jpg" alt="NDCC Logo" width={40} height={40} className="rounded-full" />
-                  <span className="font-display text-lg font-semibold uppercase tracking-wide text-maroon-700 dark:text-maroon-200">{settings.club_short}</span>
+                  <Image src="/images/logo.jpg" alt="NDCC Logo" width={53} height={40} className="h-10 w-auto rounded-lg" />
+                  <span className="font-display text-base font-semibold text-content-primary">Newcomb &amp; District</span>
                 </span>
                 <button
                   type="button"

@@ -70,20 +70,20 @@ export default async function TeamPage({ params }: Params) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Teams', path: '/teams' }, { name: team.name, path: `/teams/${team.slug}` }])) }} />
-      <section className="page-hero">
-        <div className="container-width">
-          <p className="mb-2 font-body text-sm">
-            <Link href="/teams" className="font-semibold text-white/85 underline-offset-2 hover:underline">All teams</Link>
-          </p>
+      <section className="page-hero px-0 sm:px-0 lg:px-0">
+        <div className="nd-wrap">
+          <nav aria-label="Breadcrumb" className="nd-crumbs">
+            <Link href="/">Home</Link> / <Link href="/teams">All teams</Link> / <span aria-current="page">{team.name}</span>
+          </nav>
           <h1 className="page-hero-title">{team.name}</h1>
           {(gradeName || team.grade) && <p className="page-hero-subtitle">{gradeName || team.grade}</p>}
         </div>
       </section>
 
-      <section className="section-padding">
-        <div className="container-width space-y-10">
+      <section className="nd-sec-tight">
+        <div className="nd-wrap space-y-10">
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="surface-panel border-l-4 border-l-maroon-700 p-6 lg:col-span-2">
+            <div className="nd-card p-6 lg:col-span-2">
               <h2 className="text-xl font-display font-bold text-content-primary">Next match</h2>
               {!playhqTeam ? (
                 <p className="mt-2 font-body text-content-secondary">
@@ -105,7 +105,7 @@ export default async function TeamPage({ params }: Params) {
                 <p className="mt-2 font-body text-content-secondary">No upcoming matches are listed on PlayHQ.</p>
               )}
             </div>
-            <div className="surface-panel p-6">
+            <div className="nd-card p-6">
               <h2 className="text-xl font-display font-bold text-content-primary">Team</h2>
               <dl className="mt-2 space-y-2 font-body text-sm">
                 {gradeName && <div><dt className="font-semibold text-content-primary">Grade</dt><dd className="text-content-secondary">{gradeName}</dd></div>}

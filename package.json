@@ -148,7 +148,9 @@
     "test:media-library": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-media-library.mjs",
     "test:draft-preview": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-draft-preview.mjs",
     "test:member-newsletter": "node scripts/test-member-newsletter.mjs",
-    "test:dino-team-name-change": "node scripts/test-dino-team-name-change.cjs"
+    "test:dino-team-name-change": "node scripts/test-dino-team-name-change.cjs",
+    "test:fundraising-hub": "node scripts/test-fundraising-hub.cjs",
+    "test:teams-filter": "node scripts/test-teams-filter.cjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

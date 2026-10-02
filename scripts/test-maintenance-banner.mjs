@@ -74,14 +74,14 @@ assert.equal(validateMaintenanceInput({ enabled: false, starts_at: '2026-09-01T0
 
 // Wiring: every page gets the banner through the shared header.
 const navbar = readFileSync('components/layout/Navbar.tsx', 'utf8');
-assert.match(navbar, /<MaintenanceBanner \/>\s*\{\/\* Utility bar/, 'banner is the first thing in the fixed header');
+assert.match(navbar, /aria-label="Main navigation"\s*>\s*<MaintenanceBanner \/>\s*\{\/\* Header row/, 'banner is the first thing in the fixed header');
 const component = readFileSync('components/layout/MaintenanceBanner.tsx', 'utf8');
 assert.match(component, /useState\(\(\) => \(serverBanner \? maintenancePhase\(serverBanner, serverBanner\.checkedAt\) : 'ended'\)\)/, 'first render uses the server read time, so it matches the server HTML');
 assert.match(component, /export function MaintenanceBannerSpacer\(\) \{\s*const text = useContext\(MaintenanceTextContext\);\s*return text \? <Notice text=\{text\} hidden \/> : null;/, 'the spacer lays out the same notice, hidden');
 assert.match(component, /'aria-hidden': true/, 'the spacer copy is hidden from screen readers');
 const layout = readFileSync('app/layout.tsx', 'utf8');
 assert.match(layout, /<MaintenanceBannerProvider banner=\{nav\.maintenance \?\? null\}>\s*<Navbar nav=\{nav\} \/>/);
-assert.match(layout, /<main id="main-content" className="flex-1 pt-24 lg:pt-28"><MaintenanceBannerSpacer \/>\{children\}<\/main>/, 'page content starts below the notice from the first paint');
+assert.match(layout, /<main id="main-content" className="flex-1 pt-\[68px\]"><MaintenanceBannerSpacer \/>\{children\}<\/main>/, 'page content starts below the notice from the first paint');
 const draw = readFileSync('app/admin/raffle/wheel/[id]/draw/page.tsx', 'utf8');
 assert.match(draw, /fixed inset-0 z-\[100\][^\n]*\n[^\n]*\n\s*<MaintenanceBanner standalone \/>/, 'the fullscreen draw display shows the notice too');
 assert.match(navbar, /aria-label="Site menu"\s*>\s*\{\/\*[^*]*\*\/\}\s*<div className="shrink-0"><MaintenanceBanner standalone \/><\/div>/, 'the mobile menu repeats the notice');

@@ -92,6 +92,7 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/sponsors`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/gallery`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/volunteer`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${baseUrl}/fundraising`, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.7 },
   ];
 

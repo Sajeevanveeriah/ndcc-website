@@ -4,15 +4,17 @@ import { eventVenue } from '@/lib/event-venue';
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
-import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import Badge from '@/components/ui/Badge';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
 import { EVENT_SONG_LIMITS, isSongRequestEvent } from '@/lib/events/song-requests';
+
+const CLUB_TIME_ZONE = 'Australia/Melbourne';
+const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: CLUB_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const timeFormat = new Intl.DateTimeFormat('en-AU', { timeZone: CLUB_TIME_ZONE, hour: 'numeric', minute: '2-digit', hour12: true });
 
 type OrderConfirmation = {
   order_id: string;
@@ -125,256 +127,235 @@ export default function EventDetailClient({ event }: { event: Event }) {
     }
   }
 
+  const imageUrl = normalizeEventImage(event.title, event.image_url);
+  const venue = eventVenue(event.location);
+  const eventDate = new Date(event.date);
+  const hasValidDate = Number.isFinite(eventDate.getTime());
+  const priceLabel = event.ticket_price === 0 ? 'Free entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : ''}`;
+  const heroDetails = [
+    hasValidDate ? dayFormat.format(eventDate) : '',
+    hasValidDate ? timeFormat.format(eventDate) : '',
+    event.location,
+    priceLabel,
+  ].filter(Boolean);
+
   return (
     <>
-      <section className="page-hero">
-        <div className="container-width">
-          <Link
-            href="/events"
-            className="inline-flex items-center text-maroon-200 hover:text-white font-body text-sm mb-4 transition-colors"
-          >
-            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-            Back to Events
-          </Link>
+      <section className="page-hero px-0 sm:px-0 lg:px-0">
+        <div className="nd-wrap">
+          <nav aria-label="Breadcrumb" className="nd-crumbs">
+            <Link href="/">Home</Link> / <Link href="/events">Events</Link> / <span aria-current="page">{event.title}</span>
+          </nav>
           <h1 className="page-hero-title">{event.title}</h1>
-          <p className="page-hero-subtitle">{formatDateTime(event.date)}</p>
+          <p className="page-hero-subtitle">{heroDetails.join(' · ')}</p>
         </div>
       </section>
 
-      <section className="section-padding">
-        <div className="container-width">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2">
-              {normalizeEventImage(event.title, event.image_url) && (
-                <div className="relative h-72 sm:h-96 w-full rounded-xl overflow-hidden mb-6">
+      <section className="nd-sec-tight">
+        <div className="nd-wrap nd-two-col">
+          <article className="nd-card overflow-hidden">
+            {imageUrl && (
+              <div className="nd-poster">
+                <div className="relative h-[340px] w-full lg:h-[420px]">
                   <SafeImage
-                    src={normalizeEventImage(event.title, event.image_url) || '/images/Womens_Team.jpg'}
-                    alt={event.title}
+                    src={imageUrl}
+                    alt={`${event.title} event artwork`}
                     fill
-                    className="object-contain bg-surface-page"
-                    sizes="(max-width: 1024px) 100vw, 66vw"
-                    fallback={<div className="absolute inset-0 bg-surface-page" aria-hidden="true" />}
+                    priority
+                    className="object-contain !h-full !w-full !max-h-full !shadow-none"
+                    sizes="(max-width: 980px) 100vw, 640px"
+                    fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                   />
                 </div>
-              )}
-              <div className="prose max-w-none">
-                <p className="font-body text-content-secondary text-lg leading-relaxed whitespace-pre-line">
+              </div>
+            )}
+            <div className="nd-event-body">
+              <h2 className="!text-2xl">About the event</h2>
+              {event.description && (
+                <p className="font-body text-content-secondary text-[17px] leading-relaxed whitespace-pre-line">
                   {event.description}
                 </p>
-              </div>
+              )}
+              <dl className="nd-facts">
+                <dt>When</dt>
+                <dd>{formatDateTime(event.date)}</dd>
+                <dt>Where</dt>
+                <dd>
+                  {event.location}
+                  {venue.address && (
+                    <span className="block font-normal text-content-secondary">
+                      {venue.address.streetAddress}, {venue.address.addressLocality} VIC {venue.address.postalCode}
+                    </span>
+                  )}
+                </dd>
+                <dt>{songEvent ? 'Price per song' : 'Ticket price'}</dt>
+                <dd>{priceLabel}</dd>
+                {event.capacity && (
+                  <>
+                    <dt>Capacity</dt>
+                    <dd>{event.capacity} places</dd>
+                  </>
+                )}
+              </dl>
+              {songEvent && <p className="font-body text-content-muted text-sm">Entry is by buying songs. Choose at least one; there is no limit on how many you buy.</p>}
             </div>
+          </article>
 
-            <div className="space-y-6">
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <h3 className="font-display font-bold text-content-primary text-lg">Event Details</h3>
+          <aside className="nd-card p-6 sm:p-[26px] min-[981px]:sticky min-[981px]:top-[120px]" aria-labelledby="event-register-title">
+            <h2 id="event-register-title" className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">Register</h2>
+            <p className="mt-1 mb-5 font-body text-[14.5px] text-content-muted">{priceLabel}</p>
 
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                    </svg>
-                    <div>
-                      <p className="font-body font-semibold text-content-primary text-sm">Date and Time</p>
-                      <p className="font-body text-content-muted text-sm">{formatDateTime(event.date)}</p>
-                    </div>
-                  </div>
+            <div className="space-y-4">
+              {submitStatus === 'success' && (
+                <div className="p-3 rounded-xl border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40" role="status">
+                  <p className="text-green-800 dark:text-green-200 font-body font-semibold text-sm">Registration confirmed</p>
+                  <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">{errorMessage}</p>
+                </div>
+              )}
 
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                    </svg>
-                    <div>
-                      <p className="font-body font-semibold text-content-primary text-sm">Location</p>
-                      <p className="font-body text-content-muted text-sm">{event.location}{eventVenue(event.location).address && <span className="block">{eventVenue(event.location).address?.streetAddress}, {eventVenue(event.location).address?.addressLocality} VIC {eventVenue(event.location).address?.postalCode}</span>}</p>
-                    </div>
-                  </div>
+              {submitStatus === 'success' && orderConfirmation && (
+                <OrderPaymentOptions
+                  orderId={orderConfirmation.order_id}
+                  customerEmail={orderConfirmation.customer_email}
+                  totalAmount={orderConfirmation.total_amount}
+                  paymentReference={orderConfirmation.payment_reference}
+                  bankDetails={orderConfirmation.bank_details}
+                  returnPath={`/events/${eventId}`}
+                />
+              )}
 
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-                    </svg>
-                    <div>
-                      <p className="font-body font-semibold text-content-primary text-sm">{songEvent ? 'Price per song' : 'Ticket Price'}</p>
-                      <Badge variant={event.ticket_price === 0 ? 'success' : 'default'}>
-                        {event.ticket_price === 0 ? 'Free Entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : ''}`}
-                      </Badge>
-                      {songEvent && <p className="font-body text-content-muted text-sm mt-2">Entry is by buying songs. Choose at least one; there is no limit on how many you buy.</p>}
-                    </div>
-                  </div>
+              {submitStatus === 'error' && (
+                <div className="p-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40" role="alert">
+                  <p className="text-red-800 dark:text-red-200 font-body font-semibold text-sm">Registration failed</p>
+                  <p className="text-red-700 dark:text-red-300 font-body text-xs mt-1">{errorMessage}</p>
+                </div>
+              )}
 
-                  {event.capacity && (
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                      </svg>
-                      <div>
-                        <p className="font-body font-semibold text-content-primary text-sm">Capacity</p>
-                        <p className="font-body text-content-muted text-sm">{event.capacity} places</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <input
+                  type="text"
+                  name="website"
+                  value={formData.hp_field}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
+                  className="hidden"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+                <Input
+                  id="reg_name"
+                  label="Your Name"
+                  type="text"
+                  required
+                  placeholder="e.g. Jane Smith"
+                  value={formData.name}
+                  error={formErrors.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                />
+                <Input
+                  id="reg_email"
+                  label="Email Address"
+                  type="email"
+                  required
+                  placeholder="e.g. jane@example.com"
+                  value={formData.email}
+                  error={formErrors.email}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                />
+                <Input
+                  id="reg_phone"
+                  label="Phone Number"
+                  type="tel"
+                  required
+                  placeholder="e.g. 0412 345 678"
+                  value={formData.phone}
+                  error={formErrors.phone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                />
 
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <h3 className="font-display font-bold text-content-primary text-lg">Register</h3>
-
-                  {submitStatus === 'success' && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg" role="status">
-                      <p className="text-green-800 font-body font-semibold text-sm">Registration confirmed</p>
-                      <p className="text-green-700 font-body text-xs mt-1">{errorMessage}</p>
-                    </div>
-                  )}
-
-                  {submitStatus === 'success' && orderConfirmation && (
-                    <OrderPaymentOptions
-                      orderId={orderConfirmation.order_id}
-                      customerEmail={orderConfirmation.customer_email}
-                      totalAmount={orderConfirmation.total_amount}
-                      paymentReference={orderConfirmation.payment_reference}
-                      bankDetails={orderConfirmation.bank_details}
-                      returnPath={`/events/${eventId}`}
-                    />
-                  )}
-
-                  {submitStatus === 'error' && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg" role="alert">
-                      <p className="text-red-800 font-body font-semibold text-sm">Registration failed</p>
-                      <p className="text-red-700 font-body text-xs mt-1">{errorMessage}</p>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                    <input
-                      type="text"
-                      name="website"
-                      value={formData.hp_field}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, hp_field: e.target.value }))}
-                      className="hidden"
-                      tabIndex={-1}
-                      autoComplete="off"
-                    />
-                    <Input
-                      id="reg_name"
-                      label="Your Name"
-                      type="text"
-                      required
-                      placeholder="e.g. Jane Smith"
-                      value={formData.name}
-                      error={formErrors.name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                    />
-                    <Input
-                      id="reg_email"
-                      label="Email Address"
-                      type="email"
-                      required
-                      placeholder="e.g. jane@example.com"
-                      value={formData.email}
-                      error={formErrors.email}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                    />
-                    <Input
-                      id="reg_phone"
-                      label="Phone Number"
-                      type="tel"
-                      required
-                      placeholder="e.g. 0412 345 678"
-                      value={formData.phone}
-                      error={formErrors.phone}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                    />
-
-                    {songEvent ? (
-                      <fieldset className="w-full space-y-3">
-                        <legend className="form-label">Your songs</legend>
-                        {songs.map((song, index) => (
-                          <div key={index} className="rounded-lg border border-edge-subtle p-3 space-y-2">
-                            <Input
-                              id={`song_title_${index}`}
-                              label={`Song ${index + 1} title`}
-                              type="text"
-                              required
-                              maxLength={EVENT_SONG_LIMITS.titleLength}
-                              value={song.title}
-                              onChange={(e) => updateSong(index, { title: e.target.value })}
-                            />
-                            <Input
-                              id={`song_artist_${index}`}
-                              label={`Song ${index + 1} artist (optional)`}
-                              type="text"
-                              maxLength={EVENT_SONG_LIMITS.artistLength}
-                              value={song.artist}
-                              onChange={(e) => updateSong(index, { artist: e.target.value })}
-                            />
-                            {songs.length > 1 && (
-                              <button
-                                type="button"
-                                className="text-sm text-maroon-700 dark:text-maroon-200 underline underline-offset-4"
-                                onClick={() => setSongs((prev) => prev.filter((_, i) => i !== index))}
-                              >
-                                Remove song {index + 1}
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        {songs.length < EVENT_SONG_LIMITS.maxSongs ? (
-                          <Button
+                {songEvent ? (
+                  <fieldset className="w-full space-y-3">
+                    <legend className="form-label">Your songs</legend>
+                    {songs.map((song, index) => (
+                      <div key={index} className="rounded-2xl border border-edge-subtle bg-surface-muted p-3 space-y-2">
+                        <Input
+                          id={`song_title_${index}`}
+                          label={`Song ${index + 1} title`}
+                          type="text"
+                          required
+                          maxLength={EVENT_SONG_LIMITS.titleLength}
+                          value={song.title}
+                          onChange={(e) => updateSong(index, { title: e.target.value })}
+                        />
+                        <Input
+                          id={`song_artist_${index}`}
+                          label={`Song ${index + 1} artist (optional)`}
+                          type="text"
+                          maxLength={EVENT_SONG_LIMITS.artistLength}
+                          value={song.artist}
+                          onChange={(e) => updateSong(index, { artist: e.target.value })}
+                        />
+                        {songs.length > 1 && (
+                          <button
                             type="button"
-                            variant="secondary"
-                            className="w-full"
-                            onClick={() => setSongs((prev) => [...prev, { title: '', artist: '' }])}
+                            className="min-h-11 text-sm text-maroon-700 dark:text-maroon-200 underline underline-offset-4"
+                            onClick={() => setSongs((prev) => prev.filter((_, i) => i !== index))}
                           >
-                            Add another song
-                          </Button>
-                        ) : (
-                          <p className="text-sm text-content-muted">This order has the maximum of {EVENT_SONG_LIMITS.maxSongs} songs. Place another order for more.</p>
+                            Remove song {index + 1}
+                          </button>
                         )}
-                        <p className="font-body font-semibold text-content-primary text-sm" aria-live="polite">
-                          {songs.length} {songs.length === 1 ? 'song' : 'songs'} x {formatCurrency(event.ticket_price)} = {formatCurrency(songTotal)}
-                        </p>
-                        {formErrors.songs && (
-                          <p className="mt-1 text-sm text-red-600">{formErrors.songs}</p>
-                        )}
-                      </fieldset>
+                      </div>
+                    ))}
+                    {songs.length < EVENT_SONG_LIMITS.maxSongs ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => setSongs((prev) => [...prev, { title: '', artist: '' }])}
+                      >
+                        Add another song
+                      </Button>
                     ) : (
-                    <div className="w-full">
-                      <label htmlFor="reg_quantity" className="form-label">Quantity</label>
-                      <input
-                        id="reg_quantity"
-                        type="number"
-                        min={1}
-                        max={20}
-                        required
-                        className="form-input"
-                        value={formData.quantity}
-                        onChange={(e) => setFormData((prev) => ({
-                          ...prev,
-                          quantity: Math.max(1, parseInt(e.target.value) || 1),
-                        }))}
-                      />
-                      {formErrors.quantity && (
-                        <p className="mt-1 text-sm text-red-600">{formErrors.quantity}</p>
-                      )}
-                    </div>
+                      <p className="text-sm text-content-muted">This order has the maximum of {EVENT_SONG_LIMITS.maxSongs} songs. Place another order for more.</p>
                     )}
+                    <p className="font-body font-semibold text-content-primary text-[15px]" aria-live="polite">
+                      {songs.length} {songs.length === 1 ? 'song' : 'songs'} x {formatCurrency(event.ticket_price)} = {formatCurrency(songTotal)}
+                    </p>
+                    {formErrors.songs && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.songs}</p>
+                    )}
+                  </fieldset>
+                ) : (
+                <div className="w-full">
+                  <label htmlFor="reg_quantity" className="form-label">Quantity</label>
+                  <input
+                    id="reg_quantity"
+                    type="number"
+                    min={1}
+                    max={20}
+                    required
+                    className="form-input"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      quantity: Math.max(1, parseInt(e.target.value) || 1),
+                    }))}
+                  />
+                  {formErrors.quantity && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.quantity}</p>
+                  )}
+                </div>
+                )}
 
-                    <Button type="submit" isLoading={isSubmitting} className="w-full">
-                      {isSubmitting
-                        ? 'Registering...'
-                        : event.ticket_price > 0
-                          ? songEvent ? `Buy ${songs.length} ${songs.length === 1 ? 'song' : 'songs'} and choose payment` : 'Register and choose payment'
-                          : 'Register Now'}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                <Button type="submit" isLoading={isSubmitting} className="w-full">
+                  {isSubmitting
+                    ? 'Registering...'
+                    : event.ticket_price > 0
+                      ? songEvent ? `Buy ${songs.length} ${songs.length === 1 ? 'song' : 'songs'} and choose payment` : 'Register and choose payment'
+                      : 'Register Now'}
+                </Button>
+              </form>
             </div>
-          </div>
+          </aside>
         </div>
       </section>
     </>
