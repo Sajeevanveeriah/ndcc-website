@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const nav = readFileSync('components/layout/Navbar.tsx', 'utf8');
-for (const group of ['Cricket','Club','Get Involved','Community','Shop']) assert.match(nav, new RegExp(`label: '${group}'`));
+// Suggested layout: News, Publications and Gallery sit under Club (no separate Community group).
+for (const group of ['Cricket','Club','Get Involved','Shop']) assert.match(nav, new RegExp(`label: '${group}'`));
+assert.ok(!/label: 'Community'/.test(nav), 'Community links merged into Club');
+for (const route of ['/news','/publications','/gallery']) assert.match(nav, new RegExp(`label: 'Club', links: \\[[^\\]]*'${route}'`), `${route} listed under Club`);
 for (const route of ['/teams','/fixtures','/fantasy','/join','/volunteer','/events','/news','/gallery','/sponsors','/merchandise','/kitchen','/contact']) assert.ok(nav.includes(route), `${route} preserved`);
 assert.match(nav, /Mobile grouped admin navigation|section key=\{group.label\}/);
 
