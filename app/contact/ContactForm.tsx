@@ -54,11 +54,11 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
   return (
     <>
       {submitStatus === 'success' && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
-          <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-3 dark:bg-green-950/40 dark:border-green-800" role="alert">
+          <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0 dark:text-green-300" aria-hidden="true" />
           <div>
-            <p className="text-green-800 font-body font-semibold">Message sent successfully!</p>
-            <p className="text-green-700 font-body text-sm mt-1">
+            <p className="text-green-800 font-body font-semibold dark:text-green-200">Message sent successfully!</p>
+            <p className="text-green-700 font-body text-sm mt-1 dark:text-green-300">
               {errorMessage || 'Thank you for your enquiry. A committee member will be in touch shortly.'}
             </p>
           </div>
@@ -66,11 +66,11 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
       )}
 
       {submitStatus === 'warning' && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3" role="alert">
-          <AlertTriangle className="h-5 w-5 text-yellow-800 mt-0.5 shrink-0" aria-hidden="true" />
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl flex items-start gap-3 dark:bg-yellow-950/40 dark:border-yellow-800" role="alert">
+          <AlertTriangle className="h-5 w-5 text-yellow-800 mt-0.5 shrink-0 dark:text-yellow-300" aria-hidden="true" />
           <div>
-            <p className="text-yellow-900 font-body font-semibold">Enquiry received</p>
-            <p className="text-yellow-800 font-body text-sm mt-1">
+            <p className="text-yellow-900 font-body font-semibold dark:text-yellow-100">Enquiry received</p>
+            <p className="text-yellow-800 font-body text-sm mt-1 dark:text-yellow-200">
               {errorMessage || `Your enquiry was saved, but email notification failed. Please email ${urgentEmail} if urgent.`}
             </p>
           </div>
@@ -78,16 +78,16 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
       )}
 
       {submitStatus === 'error' && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
-          <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 dark:bg-red-950/40 dark:border-red-800" role="alert">
+          <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0 dark:text-red-300" aria-hidden="true" />
           <div>
-            <p className="text-red-800 font-body font-semibold">Failed to send message</p>
-            <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+            <p className="text-red-800 font-body font-semibold dark:text-red-200">Failed to send message</p>
+            <p className="text-red-700 font-body text-sm mt-1 dark:text-red-300">{errorMessage}</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <input
           type="text"
           name="website"
@@ -96,6 +96,16 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
           className="hidden"
           tabIndex={-1}
           autoComplete="off"
+        />
+        <Select
+          id="enquiry_type"
+          label="Enquiry Type"
+          required
+          options={[...ENQUIRY_TYPES]}
+          value={formData.enquiry_type}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, enquiry_type: e.target.value }))
+          }
         />
         <Input
           id="name"
@@ -117,17 +127,6 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
           onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
         />
 
-        <Select
-          id="enquiry_type"
-          label="Enquiry Type"
-          required
-          options={[...ENQUIRY_TYPES]}
-          value={formData.enquiry_type}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, enquiry_type: e.target.value }))
-          }
-        />
-
         <Textarea
           id="message"
           label="Message"
@@ -138,7 +137,7 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
           onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
         />
 
-        <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full sm:w-auto">
+        <Button type="submit" isLoading={isSubmitting} size="lg" className="mt-1 w-full">
           {isSubmitting ? 'Sending...' : 'Send Message'}
         </Button>
       </form>

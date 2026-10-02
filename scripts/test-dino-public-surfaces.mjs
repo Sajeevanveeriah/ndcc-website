@@ -7,8 +7,11 @@ const [home, footer, navVisibility] = await Promise.all([
   readFile(new URL('../lib/server/nav-visibility.ts', import.meta.url), 'utf8'),
 ]);
 
-assert.match(home, /if \(!\(await isDinoCoachPublic\(\)\)\) return null;/);
-assert.match(home, /<Suspense fallback=\{null\}>\s*<FantasyTeaserSection \/>/);
+// The Dino Coach box sits in the Get involved card and shows only while the
+// public launch gate is on (a failed check hides it).
+assert.match(home, /isDinoCoachPublic\(\)\.catch\(\(\) => false\)/);
+assert.match(home, /\{dinoCoach && \(\s*<div className="nd-dino">/);
+assert.match(home, /dinoCoach=\{false\}/, 'the loading fallback never shows the Dino Coach box');
 assert.match(footer, /!link\.href\.startsWith\('\/fantasy'\)/);
 // The footer reads both public feature gates from the shared server snapshot
 // (lib/server/nav-visibility.ts) before rendering links.

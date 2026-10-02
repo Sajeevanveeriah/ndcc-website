@@ -1,8 +1,8 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import DonationInvitation from '@/components/donations/DonationInvitation';
 import LogoChip from '@/components/common/LogoChip';
-import Card, { CardContent } from '@/components/ui/Card';
-import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
+import SafeImage from '@/components/common/SafeImage';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import {
   CLUB_NAME,
@@ -12,7 +12,7 @@ import {
   SEED_SPONSOR_DESCRIPTIONS,
 } from '@/lib/constants';
 import { formatDownloadSize, sponsorshipDownloads2026_27 } from '@/lib/assets';
-import { getInitials } from '@/lib/utils';
+import { resolveSponsorLogoSurface } from '@/lib/sponsor-logo-surface';
 import type { Sponsor } from '@/lib/types';
 import { mergeSponsorsWithFallback } from '@/lib/fallback-content';
 import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
@@ -95,150 +95,82 @@ export default async function SponsorsPage() {
   const tierOptions = SPONSORSHIP_PACKAGES.map(([name, price]) => ({ value: name, label: `${name} - ${price}` }));
 
   const sortedSponsors = sortSponsorsAlphabetically(sponsors);
+  const describedSponsors = sortedSponsors
+    .map((sponsor) => ({ sponsor, description: getSponsorDescription(sponsor) }))
+    .filter((row) => row.description);
 
   return (
     <>
       {/* Hero */}
-      <section className="page-hero">
-        <div className="container-width">
-          <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroTitle}</h1></ScrollReveal>
-          <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{heroBody}</p></ScrollReveal>
+      <section className="page-hero px-0 sm:px-0 lg:px-0">
+        <div className="nd-wrap">
+          <nav aria-label="Breadcrumb" className="nd-crumbs">
+            <Link href="/">Home</Link> / <span aria-current="page">Sponsors</span>
+          </nav>
+          <h1 className="page-hero-title">{heroTitle}</h1>
+          <p className="page-hero-subtitle">{heroBody}</p>
+          <nav aria-label="On this page" className="nd-hero-links">
+            <a href="#current-sponsors">Current sponsors</a>
+            <a href="#sponsorship-packages">Packages</a>
+            <a href="#enquiry-form">Enquire</a>
+          </nav>
         </div>
       </section>
 
-      <nav className="border-b border-edge-subtle bg-surface-card px-4 py-3 sm:px-6 lg:px-8" aria-label="On this page">
-        <div className="container-width flex flex-wrap items-center gap-x-5 gap-y-2 font-body text-sm font-semibold">
-          <span className="text-content-muted">On this page</span>
-          <a href="#current-sponsors" className="text-maroon-700 hover:underline dark:text-maroon-200">Current sponsors</a>
-          <a href="#sponsorship-packages" className="text-maroon-700 hover:underline dark:text-maroon-200">Packages</a>
-          <a href="#enquiry-form" className="text-maroon-700 hover:underline dark:text-maroon-200">Enquire</a>
+      {/* Current sponsors: CMS intro, then one maintainable A-Z logo grid. */}
+      <section id="current-sponsors" className="nd-sec-tight scroll-mt-28" aria-labelledby="current-sponsors-title">
+        <div className="nd-wrap">
+          <div className="mb-8">
+            <h2 id="current-sponsors-title" className="nd-h2 mb-3">{introTitle}</h2>
+            <p className="nd-lead">{introBody}</p>
+          </div>
+
+          {sortedSponsors.length === 0 ? (
+            <div className="nd-card p-8 text-center">
+              <h3 className="mb-2 font-display text-2xl font-semibold text-content-primary">No active sponsors published</h3>
+              <p className="font-body text-content-muted">Active sponsor records will appear here after they are published in the CMS.</p>
+            </div>
+          ) : (
+            <>
+              <ul className="nd-logos m-0 list-none p-0" aria-label="Sponsors A-Z">
+                {sortedSponsors.map((sponsor) => (
+                  <li key={sponsor.id} className="flex">
+                    <SponsorTile sponsor={sponsor} />
+                  </li>
+                ))}
+              </ul>
+
+              {describedSponsors.length > 0 && (
+                <dl className="mt-8 grid grid-cols-1 gap-x-8 gap-y-4 font-body text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  {describedSponsors.map(({ sponsor, description }) => (
+                    <div key={sponsor.id}>
+                      <dt className="font-semibold text-content-primary">{sponsor.name}</dt>
+                      <dd className="mt-0.5 text-content-muted">{description}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </>
+          )}
         </div>
-      </nav>
+      </section>
 
       <DonationInvitation />
 
-      {/* Intro */}
-      <section id="current-sponsors" className="section-padding bg-surface-page scroll-mt-28">
-        <div className="container-width">
-          <ScrollReveal className="sponsor-introduction">
-            <h2 className="section-title">{introTitle}</h2>
-            <p className="text-content-muted font-body text-lg leading-relaxed">
-              {introBody}
+      {/* Become a sponsor: packages on the left, the live enquiry form on the right. */}
+      <section className="nd-sec-tight" aria-labelledby="become-a-sponsor-title">
+        <div className="nd-wrap nd-two-col">
+          <div className="min-w-0">
+            <span className="nd-eyebrow">Partner With the Dinos</span>
+            <h2 id="become-a-sponsor-title" className="nd-h2 mb-3 mt-2">Become a Sponsor</h2>
+            <p className="nd-lead">
+              Interested in partnering with the Dinos? We offer flexible sponsorship packages for
+              businesses of all sizes. Get your brand in front of our members, families, and the wider
+              Geelong cricket community.
             </p>
-          </ScrollReveal>
-        </div>
-      </section>
 
-      {/* One maintainable A-Z sponsor list. */}
-      {sortedSponsors.length === 0 ? (
-          <section className="section-padding">
-            <div className="container-width">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <h2 className="text-2xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-2">No active sponsors published</h2>
-                  <p className="text-content-muted font-body">Active sponsor records will appear here after they are published in the CMS.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        ) : (
-          <section className="section-padding">
-            <div className="container-width">
-              <div className="mb-5 flex items-center gap-4">
-                <span className="h-1 w-10 rounded-full bg-maroon-700" aria-hidden="true" />
-                <h2 className="section-title mb-0">Sponsors A-Z</h2>
-              </div>
-              <ScrollReveal stagger as="ul" className="sponsor-gallery grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {sortedSponsors.map((sponsor) => {
-                  const description = getSponsorDescription(sponsor);
-                  const logoFallback = (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-maroon-800 px-4 text-center">
-                      <span className="font-display text-2xl font-bold leading-none text-gold-200">{getInitials(sponsor.name)}</span>
-                      <span className="font-display text-xs font-semibold uppercase tracking-wide text-gold-100">{sponsor.name}</span>
-                    </div>
-                  );
-                  return (
-                    <ScrollRevealItem key={sponsor.id} as="li">
-                    <a
-                      href={sponsor.website || undefined}
-                      target={sponsor.website ? '_blank' : undefined}
-                      rel={sponsor.website ? 'noopener noreferrer' : undefined}
-                      className="block group h-full rounded-2xl focus-ring"
-                    >
-                      <div className="card-hover-sponsor h-full">
-                        <CardContent className="p-5 sm:p-6">
-                          <LogoChip
-                            name={sponsor.name}
-                            src={sponsor.logo_url}
-                            surfaceMode={sponsor.logo_surface_mode}
-                            paddingClassName={sponsor.logo_padding}
-                            objectPosition={sponsor.logo_object_position}
-                            width={640}
-                            height={320}
-                            sizes="(max-width: 639px) 90vw, (max-width: 1023px) 44vw, 380px"
-                            className="mb-5 h-48 rounded-xl"
-                            imageClassName="max-h-full max-w-full w-auto h-auto"
-                            fallback={logoFallback}
-                          />
-                          {/* Name caption beneath the logo so a low-contrast or missing logo still
-                              shows an identifiable, non-empty card. */}
-                          <h3 className="font-display font-semibold text-content-primary text-lg group-hover:text-maroon-700 dark:group-hover:text-maroon-200 transition-colors mb-2">
-                            {sponsor.name}
-                          </h3>
-                          {description && (
-                            <p className="text-content-muted font-body text-sm mb-3">{description}</p>
-                          )}
-                          {sponsor.website && (
-                            <p className="text-maroon-600 dark:text-maroon-300 font-body text-sm font-semibold group-hover:underline inline-flex items-center">
-                              Visit website
-                              <svg className="ml-1 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                              </svg>
-                            </p>
-                          )}
-                        </CardContent>
-                      </div>
-                    </a>
-                    </ScrollRevealItem>
-                  );
-                })}
-                  <ScrollRevealItem key="become-a-sponsor-cta" as="li">
-                    <Link href="#enquiry-form" className="group block h-full">
-                      <Card hover className="h-full border-2 border-dashed border-maroon-200">
-                        <CardContent className="flex h-full flex-col items-center justify-center p-6 text-center">
-                          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-maroon-50 dark:bg-maroon-950 text-2xl font-bold text-maroon-700 dark:text-maroon-200 transition-colors group-hover:bg-maroon-100" aria-hidden="true">+</span>
-                          <h3 className="font-display text-lg font-bold text-maroon-800 dark:text-maroon-200">Become a Sponsor</h3>
-                          <p className="mt-1 font-body text-sm text-content-muted">Partner with the Dinos. Enquire below.</p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </ScrollRevealItem>
-              </ScrollReveal>
-            </div>
-          </section>
-        )}
-
-      {/* Become a Sponsor */}
-      <section className="band-maroon section-padding">
-        <div className="container-width text-center">
-          <span className="eyebrow-gold">Partner With the Dinos</span>
-          <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">Become a Sponsor</h2>
-          <p className="mx-auto mb-5 max-w-2xl font-body text-base text-maroon-100 sm:text-lg">
-            Interested in partnering with the Dinos? We offer flexible sponsorship packages for
-            businesses of all sizes. Get your brand in front of our members, families, and the wider
-            Geelong cricket community.
-          </p>
-          <Link href="#enquiry-form" className="btn-accent">
-            Enquire Below
-          </Link>
-        </div>
-      </section>
-
-      <section id="sponsorship-packages" className="section-padding bg-surface-page scroll-mt-28">
-        <div className="container-width mx-auto grid max-w-5xl grid-cols-1 items-start gap-4 lg:grid-cols-[1.25fr_1fr]">
-          <Card>
-            <CardContent className="p-5">
-              <h2 className="text-2xl font-display font-bold text-content-primary mb-3">{currentSeasonName} Sponsorship Packages</h2>
+            <div id="sponsorship-packages" className="nd-card mt-8 scroll-mt-28 p-5 sm:p-6">
+              <h3 className="mb-3 font-display text-xl font-semibold text-content-primary">{currentSeasonName} Sponsorship Packages</h3>
               {/* Same 8 real packages/prices, presented as a scannable ledger table. */}
               <div className="mb-4" aria-label="Sponsorship package summary">
                 <Table>
@@ -260,40 +192,89 @@ export default async function SponsorsPage() {
               </div>
               <div className="space-y-2">
                 {sponsorshipDownloads2026_27.map((download) => (
-                  <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 hover:underline font-body">
+                  <a key={download.href} href={download.href} target="_blank" rel="noopener noreferrer" className="block font-body text-maroon-700 hover:text-maroon-500 hover:underline dark:text-maroon-200">
                     {download.title}{' '}
                     <span className="text-sm text-content-muted">(PDF, {formatDownloadSize(download.bytes)})</span>
                   </a>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardContent className="p-5">
-              <h2 className="text-2xl font-display font-bold text-content-primary mb-3">Apparel Sponsorship</h2>
-              <p className="text-content-secondary font-body mb-4">
+            <div className="nd-card mt-5 p-5 sm:p-6">
+              <h3 className="mb-3 font-display text-xl font-semibold text-content-primary">Apparel Sponsorship</h3>
+              <p className="mb-4 font-body text-content-secondary">
                 Put your brand on Newcomb and District apparel and support community cricket in the {currentSeasonName.toLowerCase()}.
               </p>
-              <p className="text-content-secondary font-body">
-                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors">{clubEmail}</a>.
+              <p className="font-body text-content-secondary">
+                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 transition-colors hover:text-maroon-500 dark:text-maroon-200">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="break-words text-maroon-700 transition-colors hover:text-maroon-500 dark:text-maroon-200">{clubEmail}</a>.
               </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+            </div>
+          </div>
 
-      {/* Sponsorship Enquiry Form */}
-      <section id="enquiry-form" className="section-padding scroll-mt-28" aria-label="Sponsorship enquiry form">
-        <div className="container-width max-w-2xl mx-auto">
-          <h2 className="section-title text-center">Sponsorship Enquiry</h2>
-          <p className="section-subtitle mx-auto mb-6 text-center">
-            Fill out the form below and our sponsorship coordinator will be in touch.
-          </p>
+          {/* Sponsorship Enquiry Form */}
+          <section id="enquiry-form" className="nd-card min-w-0 scroll-mt-28 p-5 sm:p-[26px]" aria-label="Sponsorship enquiry form">
+            <h3 className="mb-2 font-display text-xl font-semibold text-content-primary">Sponsorship Enquiry</h3>
+            <p className="mb-6 font-body text-content-muted">
+              Fill out the form below and our sponsorship coordinator will be in touch.
+            </p>
 
-          <SponsorEnquiryForm tierOptions={tierOptions} />
+            <SponsorEnquiryForm tierOptions={tierOptions} />
+          </section>
         </div>
       </section>
     </>
+  );
+}
+
+// One white logo tile per sponsor. A tile with a website links to it; a
+// sponsor without a logo (or whose logo fails to load) shows its name as text.
+// Light-text artwork keeps its CMS/allowlisted dark plate via LogoChip.
+function SponsorTile({ sponsor }: { sponsor: Sponsor }) {
+  const nameText = (
+    <span className="text-center text-[15px] font-semibold leading-tight text-[#1D1D1F]">{sponsor.name}</span>
+  );
+  const hasLogo = Boolean(sponsor.logo_url?.trim());
+  const surface = resolveSponsorLogoSurface(sponsor.name, sponsor.logo_surface_mode);
+  const sizes = '(max-width: 560px) 45vw, 200px';
+
+  let content: ReactNode = sponsor.name;
+  if (hasLogo && (surface === 'light' || surface === 'transparent')) {
+    content = (
+      <SafeImage
+        src={sponsor.logo_url}
+        alt={sponsor.name}
+        width={340}
+        height={144}
+        sizes={sizes}
+        style={sponsor.logo_object_position ? { objectPosition: sponsor.logo_object_position } : undefined}
+        fallback={nameText}
+      />
+    );
+  } else if (hasLogo) {
+    content = (
+      <LogoChip
+        name={sponsor.name}
+        alt={sponsor.name}
+        src={sponsor.logo_url}
+        surfaceMode={sponsor.logo_surface_mode}
+        paddingClassName={sponsor.logo_padding || 'p-3'}
+        objectPosition={sponsor.logo_object_position}
+        width={340}
+        height={144}
+        sizes={sizes}
+        className="h-full w-full rounded-xl"
+        imageClassName="h-auto w-auto"
+        fallback={nameText}
+      />
+    );
+  }
+
+  const className = `nd-logo-tile w-full${hasLogo ? '' : ' is-text'}`;
+  if (!sponsor.website) return <div className={className}>{content}</div>;
+  return (
+    <a href={sponsor.website} target="_blank" rel="noopener noreferrer" className={`${className} focus-ring`}>
+      {content}
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>
   );
 }

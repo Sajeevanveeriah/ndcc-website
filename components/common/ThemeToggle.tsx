@@ -11,11 +11,31 @@ const OPTIONS = [
   { value: 'system', label: 'Match system theme', Icon: Monitor },
 ] as const;
 
-export default function ThemeToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+export default function ThemeToggle({ className, compact = false }: { className?: string; compact?: boolean }) {
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Header variant: one round button that switches between light and dark
+  // (the mobile menu keeps the three-way control, including "match system").
+  if (compact) {
+    if (!mounted) return <div className={cn('h-10 w-10', className)} aria-hidden />;
+    const dark = resolvedTheme === 'dark';
+    const label = dark ? 'Switch to light theme' : 'Switch to dark theme';
+    const Icon = dark ? Sun : Moon;
+    return (
+      <button
+        type="button"
+        onClick={() => setTheme(dark ? 'light' : 'dark')}
+        aria-label={label}
+        title={label}
+        className={cn('inline-flex h-11 w-11 items-center justify-center rounded-full border border-edge-subtle bg-surface-card text-content-primary transition-colors duration-200 hover:bg-surface-muted focus-ring', className)}
+      >
+        <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+      </button>
+    );
+  }
 
   // The active theme is unknown until the client mounts; render a same-size
   // placeholder so the navbar does not shift when the control appears.

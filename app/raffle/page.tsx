@@ -18,5 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RafflePage() {
   if (!(await isRafflePublic())) notFound();
-  return <><div className="container-width px-4 pt-6"><Link href="/raffle/cash" className="btn-secondary">Record cash sales - club members</Link></div><RaffleClient /></>;
+  // The club-member cash sales link sits with the pay-at-the-club note.
+  return <RaffleClient><Link href="/raffle/cash" className="btn-secondary">Record cash sales - club members</Link></RaffleClient>;
 }

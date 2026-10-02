@@ -3,6 +3,7 @@ import { COOKIE_DOUGH_ENDS_AT, isCookieDoughOpen, isCookieDoughLink } from '@/li
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Mail, Phone, ExternalLink, Facebook, Instagram } from 'lucide-react';
+import { fallbackClubSettings } from '@/lib/club-settings-types';
 import ScrollReveal, { ScrollRevealItem } from '@/components/common/ScrollReveal';
 import { type PageLinkCard } from '@/lib/structured-content';
 import { ACKNOWLEDGEMENT, FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/constants';
@@ -93,151 +94,113 @@ export default async function Footer() {
     <footer className="bg-surface-footer text-white">
       {/* Acknowledgement */}
       <div
-        className="border-b border-white/10 px-4 py-4 sm:px-6 lg:px-8"
+        className="border-b border-white/10 py-4"
         style={acknowledgementImage
           ? { backgroundImage: `linear-gradient(rgba(74,0,0,0.85), rgba(74,0,0,0.85)), url(${acknowledgementImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
           : { background: 'rgba(255,255,255,0.06)' }}
       >
-        <div className="container-width">
-          <p className="text-sm text-white/70 font-body leading-relaxed max-w-4xl">
+        <div className="nd-wrap">
+          <p className="text-sm text-white/75 font-body leading-relaxed max-w-4xl">
             {acknowledgement || ACKNOWLEDGEMENT}
           </p>
         </div>
       </div>
 
-      {/* Main Footer */}
-      <div className="px-4 py-14 sm:px-6 lg:px-8">
-        <div className="container-width">
-          <ScrollReveal stagger className="grid grid-cols-2 gap-8 lg:grid-cols-4 lg:gap-12">
+      {/* Main footer: club details, then the CMS link columns. */}
+      <div className="py-14">
+        <div className="nd-wrap">
+          <ScrollReveal stagger className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,minmax(0,1fr))] lg:gap-8">
             {/* Club Info */}
-            <ScrollRevealItem className="col-span-2 lg:col-span-1">
-              <Link prefetch={false} href="/" className="mb-3 flex items-center gap-3">
+            <ScrollRevealItem className="sm:col-span-2 lg:col-span-1">
+              <Link prefetch={false} href="/" className="mb-3.5 flex items-center gap-3 focus-ring">
                 <Image
                   src="/images/logo.jpg"
                   alt="NDCC Logo"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
+                  width={64}
+                  height={48}
+                  className="h-12 w-auto rounded-[10px]"
                 />
-                <span className="font-display font-semibold uppercase tracking-wide text-lg">{settings.club_short}</span>
+                <span className="font-display text-base font-semibold leading-tight text-white">{settings.club_name}</span>
               </Link>
-              <p className="mb-3 font-body text-sm text-white/70">
-                {settings.club_name}. Established {settings.established_year}. Competing in the {settings.association_name}.
+              <p className="font-body text-[14.5px] leading-relaxed text-white/80">
+                Established {settings.established_year}. Competing in the {settings.association_name}.
               </p>
-              <div className="space-y-2">
-                <div className="flex items-start gap-2 text-sm text-white/70">
-                  <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span className="font-body">
-                    {settings.ground_name}, {settings.address}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  <a href={emailHref || undefined} className="font-body hover:text-white transition-colors">
-                    {settings.email}
+              <p className="mt-2 flex items-start gap-2 font-body text-[14.5px] leading-relaxed text-white/80">
+                <MapPin className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{settings.ground_name}, {settings.address}</span>
+              </p>
+              <p className="mt-2.5 grid gap-1 font-body text-[14.5px]">
+                {settings.phone && (
+                  <a href={phoneHref || undefined} className="inline-flex items-center gap-2 text-white hover:underline">
+                    <Phone className="h-4 w-4 shrink-0" aria-hidden="true" />{settings.phone}
                   </a>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <a href={phoneHref || undefined} className="font-body hover:text-white transition-colors">
-                    {settings.phone}
+                )}
+                {settings.email && (
+                  <a href={emailHref || undefined} className="inline-flex items-center gap-2 break-all text-white hover:underline">
+                    <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />{settings.email}
                   </a>
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-3">
-                <a
-                  href={settings.facebook_url || FACEBOOK_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Newcomb and District Cricket Club on Facebook"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white/80 ring-1 ring-white/10 transition-colors duration-200 hover:bg-white/15 hover:text-white focus-ring"
-                >
-                  <Facebook className="h-4 w-4" />
-                </a>
-                <a
-                  href={settings.instagram_url || INSTAGRAM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Newcomb and District Cricket Club on Instagram"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white/80 ring-1 ring-white/10 transition-colors duration-200 hover:bg-white/15 hover:text-white focus-ring"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-              </div>
+                )}
+              </p>
             </ScrollRevealItem>
 
-            {/* Quick Links */}
-            {quickLinks.length > 0 && (
-              <ScrollRevealItem>
-                <h3 className="mb-4 font-display text-xs font-semibold uppercase tracking-[0.16em] text-gold-200/90">Quick Links</h3>
-                <ul className="space-y-2.5">
-                  {quickLinks.map((link) => (
+            {[
+              { title: 'Quick Links', links: quickLinks },
+              { title: 'Get Involved', links: getInvolvedLinks },
+              { title: 'Affiliations', links: affiliationLinks },
+            ].filter((column) => column.links.length > 0).map((column) => (
+              <ScrollRevealItem key={column.title}>
+                <h3 className="mb-3 font-display text-[12.5px] font-semibold uppercase tracking-[0.08em] text-gold-400">{column.title}</h3>
+                <ul className="grid gap-2">
+                  {column.links.map((link) => (
                     <li key={link.id}>
                       <FooterLink
                         link={link}
                         cookie={cookie}
-                        className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200 font-body"
+                        className="inline-flex min-h-6 items-center gap-1.5 font-body text-[14.5px] text-white hover:underline"
                       />
                     </li>
                   ))}
                 </ul>
               </ScrollRevealItem>
-            )}
-
-            {/* More Links */}
-            {getInvolvedLinks.length > 0 && (
-              <ScrollRevealItem>
-                <h3 className="mb-4 font-display text-xs font-semibold uppercase tracking-[0.16em] text-gold-200/90">Get Involved</h3>
-                <ul className="space-y-2.5">
-                  {getInvolvedLinks.map((link) => (
-                    <li key={link.id}>
-                      <FooterLink
-                        link={link}
-                        cookie={cookie}
-                        className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200 font-body"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </ScrollRevealItem>
-            )}
-
-            {/* Partners */}
-            {affiliationLinks.length > 0 && (
-              <ScrollRevealItem>
-                <h3 className="mb-4 font-display text-xs font-semibold uppercase tracking-[0.16em] text-gold-200/90">Affiliations</h3>
-                <ul className="space-y-2.5">
-                  {affiliationLinks.map((link) => (
-                    <li key={link.id}>
-                      <FooterLink
-                        link={link}
-                        cookie={cookie}
-                        className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200 font-body"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </ScrollRevealItem>
-            )}
+            ))}
           </ScrollReveal>
-        </div>
-      </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-white/10 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="container-width flex flex-col items-center justify-between gap-2 sm:flex-row">
-          <p className="text-xs text-white/60 font-body">
-            &copy; {currentYear} {settings.club_name}. All rights reserved.
-          </p>
-          <a
-            href="https://sv.sajeevanveeriah.workers.dev/"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
-            className="text-xs text-white/70 hover:text-white hover:underline transition-colors font-body focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-200"
-          >
-            Built by Sajeevan Veeriah
-          </a>
+          {/* Base row: copyright, account and social links, credit. */}
+          <div className="mt-9 flex flex-col gap-3 border-t border-white/[0.14] pt-5 font-body text-[13.5px] text-white/80 md:flex-row md:items-center md:justify-between">
+            <p>&copy; {currentYear} {settings.club_name}</p>
+            <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <li><Link prefetch={false} href="/privacy" className="text-white hover:underline">Privacy</Link></li>
+              <li><Link prefetch={false} href="/club-account" className="text-white hover:underline">My Account</Link></li>
+              <li>
+                <a href={settings.facebook_url || FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-white hover:underline">
+                  <Facebook className="h-3.5 w-3.5" aria-hidden="true" />Facebook<span className="sr-only"> (opens in new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a href={settings.instagram_url || INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-white hover:underline">
+                  <Instagram className="h-3.5 w-3.5" aria-hidden="true" />Instagram<span className="sr-only"> (opens in new tab)</span>
+                </a>
+              </li>
+              {(settings.playhq_url || fallbackClubSettings.playhq_url) && (
+                <li>
+                  <a href={settings.playhq_url || fallbackClubSettings.playhq_url || undefined} target="_blank" rel="noopener noreferrer" className="text-white hover:underline">
+                    PlayHQ<span className="sr-only"> (opens in new tab)</span>
+                  </a>
+                </li>
+              )}
+              <li>
+                <a
+                  href="https://sv.sajeevanveeriah.workers.dev/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
+                  className="text-white/80 hover:text-white hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300"
+                >
+                  Built by Sajeevan Veeriah
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </footer>

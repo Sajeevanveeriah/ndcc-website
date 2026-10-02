@@ -1,4 +1,4 @@
-import Card, { CardContent } from '@/components/ui/Card';
+import Link from 'next/link';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { fallbackClubSettings } from '@/lib/club-settings-types';
 import { getClubSettings } from '@/lib/club-settings';
@@ -40,169 +40,113 @@ export default async function ContactPage() {
 
   const clubPhoneHref = settings.phone ? `tel:${settings.phone.replace(/\s+/g, '')}` : undefined;
 
+  const socialLinks = [
+    settings.facebook_url ? { href: settings.facebook_url, label: 'Facebook' } : null,
+    settings.instagram_url ? { href: settings.instagram_url, label: `Instagram${settings.instagram_handle ? ` (${settings.instagram_handle})` : ''}` } : null,
+    settings.playhq_url ? { href: settings.playhq_url, label: 'PlayHQ' } : null,
+  ].filter((link): link is { href: string; label: string } => link !== null);
+
+  const valueLinkClass = 'font-body font-medium text-maroon-700 underline underline-offset-[3px] transition-colors hover:text-maroon-500 dark:text-maroon-200 break-words';
+
   return (
     <>
       {/* Hero */}
-      <section className="page-hero">
-        <div className="container-width">
+      <section className="page-hero px-0">
+        <div className="nd-wrap">
+          <nav aria-label="Breadcrumb" className="nd-crumbs">
+            <Link href="/">Home</Link> / <span aria-current="page">Contact</span>
+          </nav>
           <ScrollReveal onMount delay={0}><h1 className="page-hero-title">{heroTitle}</h1></ScrollReveal>
           <ScrollReveal onMount delay={0.15}><p className="page-hero-subtitle">{heroBody}</p></ScrollReveal>
         </div>
       </section>
 
       {/* Contact Form + Details */}
-      <section className="section-padding">
-        <div className="container-width">
-          <ScrollReveal>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Form Column */}
-            <div>
-              <h2 className="section-title">Send Us a Message</h2>
-              <p className="text-content-muted font-body mb-8">{formIntro}</p>
-              <ContactForm urgentEmail={URGENT_EMAIL} />
+      <section className="nd-sec-tight">
+        <ScrollReveal className="nd-wrap nd-two-col">
+          {/* Form Column */}
+          <div className="nd-card min-w-0 p-5 sm:p-[26px]">
+            <h2 className="mb-2 font-display font-semibold tracking-[-0.025em] text-content-primary" style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>Send Us a Message</h2>
+            <p className="mb-6 font-body text-content-muted">{formIntro}</p>
+            <ContactForm urgentEmail={URGENT_EMAIL} />
+          </div>
+
+          {/* Details Column */}
+          <div className="flex min-w-0 flex-col gap-5">
+            <div className="nd-card p-5 sm:p-[26px]">
+              <h2 className="mb-4 font-display text-[19px] font-semibold text-content-primary">{detailsTitle}</h2>
+              <ul className="nd-contact-list">
+                <li>
+                  <span className="nd-contact-label">Email</span>
+                  <a href={settings.email ? `mailto:${settings.email}` : undefined} className={valueLinkClass}>
+                    {settings.email}
+                  </a>
+                </li>
+                <li>
+                  <span className="nd-contact-label">Phone</span>
+                  <a href={clubPhoneHref} className={valueLinkClass}>
+                    {settings.phone}
+                  </a>
+                </li>
+
+                {/* Committee: CMS-managed (committee_members), read server-side */}
+                {committee.map((member) => (
+                  <li key={member.id}>
+                    <span className="nd-contact-label">{member.role}</span>
+                    <span className="font-body text-content-primary">
+                      {member.name}
+                      {member.email && (
+                        <>
+                          {' · '}
+                          <a href={`mailto:${member.email}`} className={valueLinkClass}>
+                            {member.email}
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                ))}
+
+                <li>
+                  <span className="nd-contact-label">Ground</span>
+                  <span className="font-body font-semibold text-content-primary">{settings.ground_name}</span>
+                  <span className="font-body text-content-secondary">{settings.address}</span>
+                </li>
+
+                {socialLinks.length > 0 && (
+                  <li>
+                    <span className="nd-contact-label">Social Links</span>
+                    <span className="flex flex-wrap gap-x-4 gap-y-1">
+                      {socialLinks.map((link) => (
+                        <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className={valueLinkClass}>
+                          {link.label}
+                        </a>
+                      ))}
+                    </span>
+                  </li>
+                )}
+              </ul>
             </div>
 
-            {/* Details Column */}
-            <div className="space-y-8">
-              {/* Address */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-display font-bold text-content-primary mb-4">{detailsTitle}</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                      </svg>
-                      <div>
-                        <p className="font-body font-semibold text-content-primary">{settings.ground_name}</p>
-                        <p className="font-body text-content-muted text-sm">{settings.address}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0-1.243 1.007-2.25 2.25-2.25h2.268c1.141 0 2.116.816 2.317 1.939l.734 4.117a2.25 2.25 0 0 1-.96 2.281l-1.53 1.02a11.042 11.042 0 0 0 5.523 5.523l1.02-1.53a2.25 2.25 0 0 1 2.281-.96l4.117.734a2.25 2.25 0 0 1 1.939 2.317V19.5a2.25 2.25 0 0 1-2.25 2.25h-.75C10.3 21.75 2.25 13.7 2.25 3.75v3Z" />
-                      </svg>
-                      <div>
-                        <p className="font-body font-semibold text-content-primary">Contact</p>
-                        <a
-                          href={clubPhoneHref}
-                          className="font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
-                        >
-                          {settings.phone}
-                        </a>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-maroon-600 dark:text-maroon-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                      </svg>
-                      <div>
-                        <p className="font-body font-semibold text-content-primary">Email</p>
-                        <a
-                          href={settings.email ? `mailto:${settings.email}` : undefined}
-                          className="font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
-                        >
-                          {settings.email}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Upcoming calendar events flagged for the contact page */}
+            <ContactUpcomingEvents />
 
-
-              {/* Social Links */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-display font-bold text-content-primary mb-4">Social Links</h3>
-                  <div className="space-y-2">
-                    {settings.facebook_url && (
-                      <a
-                        href={settings.facebook_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
-                      >
-                        Facebook
-                      </a>
-                    )}
-                    {settings.instagram_url && (
-                      <a
-                        href={settings.instagram_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
-                      >
-                        Instagram{settings.instagram_handle ? ` (${settings.instagram_handle})` : ''}
-                      </a>
-                    )}
-                    {settings.playhq_url && (
-                      <a
-                        href={settings.playhq_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block font-body text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 text-sm transition-colors"
-                      >
-                        PlayHQ
-                      </a>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Committee: CMS-managed (committee_members), read server-side */}
-              {committee.length > 0 && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-display font-bold text-content-primary mb-4">Committee</h3>
-                    <ul className="space-y-3">
-                      {committee.map((member) => (
-                        <li key={member.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                          <span className="font-body text-content-primary">
-                            {member.name}
-                            {member.email && (
-                              <a
-                                href={`mailto:${member.email}`}
-                                className="ml-2 font-body text-sm text-maroon-700 dark:text-maroon-200 hover:text-maroon-500 transition-colors"
-                              >
-                                {member.email}
-                              </a>
-                            )}
-                          </span>
-                          <span className="font-body text-sm text-maroon-600 dark:text-maroon-300 font-semibold">
-                            {member.role}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Upcoming calendar events flagged for the contact page */}
-              <ContactUpcomingEvents />
-
-              {/* Google Maps */}
-              <Card>
-                <div className="overflow-hidden rounded-xl">
-                  {settings.google_maps_embed_url && new URL(settings.google_maps_embed_url).searchParams.get('pb') ? <iframe
-                    src={settings.google_maps_embed_url || fallbackClubSettings.google_maps_embed_url || undefined}
-                    width="100%"
-                    height="300"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    title={`Map showing ${settings.ground_name}, ${settings.address}`}
-                  /> : <div className="p-6"><h2 className="text-xl font-semibold">Find us at {settings.ground_name}</h2><p className="my-3 text-content-muted">{settings.address}</p><a className="btn-secondary" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${settings.ground_name}, ${settings.address}`)}`} target="_blank" rel="noopener noreferrer">Get directions on Google Maps</a></div>}
-                </div>
-              </Card>
+            {/* Google Maps */}
+            <div className="nd-card overflow-hidden">
+              {settings.google_maps_embed_url && new URL(settings.google_maps_embed_url).searchParams.get('pb') ? <iframe
+                src={settings.google_maps_embed_url || fallbackClubSettings.google_maps_embed_url || undefined}
+                width="100%"
+                height="300"
+                style={{ border: 0, display: 'block' }}
+                allowFullScreen
+                loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                referrerPolicy="strict-origin-when-cross-origin"
+                title={`Map showing ${settings.ground_name}, ${settings.address}`}
+              /> : <div className="p-5 sm:p-[26px]"><h2 className="font-display text-[19px] font-semibold text-content-primary">Find us at {settings.ground_name}</h2><p className="my-3 text-content-muted">{settings.address}</p><a className="btn-secondary" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${settings.ground_name}, ${settings.address}`)}`} target="_blank" rel="noopener noreferrer">Get directions on Google Maps</a></div>}
             </div>
           </div>
-          </ScrollReveal>
-        </div>
+        </ScrollReveal>
       </section>
     </>
   );

@@ -81,11 +81,11 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
   return (
     <>
       {submitStatus === 'success' && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3" role="alert">
-          <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" aria-hidden="true" />
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/40" role="alert">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-300" aria-hidden="true" />
           <div>
-            <p className="text-green-800 font-body font-semibold">Enquiry sent successfully!</p>
-            <p className="text-green-700 font-body text-sm mt-1">
+            <p className="font-body font-semibold text-green-800 dark:text-green-200">Enquiry sent successfully!</p>
+            <p className="mt-1 font-body text-sm text-green-700 dark:text-green-300">
               Thank you for your interest in sponsoring {CLUB_NAME}. A committee member will be in
               touch shortly to discuss partnership opportunities.
             </p>
@@ -94,16 +94,16 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
       )}
 
       {submitStatus === 'error' && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
-          <XCircle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" aria-hidden="true" />
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/40" role="alert">
+          <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-700 dark:text-red-300" aria-hidden="true" />
           <div>
-            <p className="text-red-800 font-body font-semibold">Failed to send enquiry</p>
-            <p className="text-red-700 font-body text-sm mt-1">{errorMessage}</p>
+            <p className="font-body font-semibold text-red-800 dark:text-red-200">Failed to send enquiry</p>
+            <p className="mt-1 font-body text-sm text-red-700 dark:text-red-300">{errorMessage}</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <input
           type="text"
           name="website"
@@ -133,7 +133,8 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
           onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* Stacked: the form sits in the narrow right-hand column on desktop. */}
+        <div className="space-y-5">
           <Input
             id="sponsor_email"
             label="Email Address"
@@ -172,7 +173,7 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
           onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
         />
 
-        <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full sm:w-auto">
+        <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full">
           {isSubmitting ? 'Sending...' : 'Submit Enquiry'}
         </Button>
       </form>
