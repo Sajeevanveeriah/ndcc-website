@@ -147,7 +147,8 @@
     "test:cms-promotions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-cms-promotions.mjs",
     "test:media-library": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-media-library.mjs",
     "test:draft-preview": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-draft-preview.mjs",
-    "test:member-newsletter": "node scripts/test-member-newsletter.mjs"
+    "test:member-newsletter": "node scripts/test-member-newsletter.mjs",
+    "test:dino-team-name-change": "node scripts/test-dino-team-name-change.cjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

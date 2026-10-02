@@ -135,6 +135,7 @@ let availabilityFails = true;
 const Auth = load('app/fantasy/_components/FantasyAuthForms.tsx', {
   '@/components/payments/PaymentMethodChoice': { default: () => null },
   '@/components/payments/BankTransferInstructions': { default: () => null },
+  './TeamNameEditor': { default: () => null },
   ...shared, '@/components/ui/Input': { default: props => React.createElement('input', props) },
   '@/lib/dino-coach/domain': { ...load('lib/dino-coach/domain.ts', {}), isAdultOnDate: () => true },
   '@/lib/fantasy-browser': { isFantasySupabaseConfigured: true, fantasyJsonFetch: async () => {
