@@ -18,6 +18,7 @@ export default function ProductCatalogue({
   selection,
   displayUnitPrice,
   handleAddToOrder,
+  onAdded,
 }: {
   heroContent: { title: string; body: string; orderTitle: string; orderBody: string };
   liveProductsFailed: boolean;
@@ -28,10 +29,11 @@ export default function ProductCatalogue({
   windowState: { processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null };
   selection: ProductSelectionState;
   displayUnitPrice: (product: DisplayProduct) => number;
-  handleAddToOrder: (productId: string) => void;
+  handleAddToOrder: (productId: string) => boolean;
+  onAdded?: (productName: string) => void;
 }) {
   return (
-      <section className="section-padding surface-blue-band">
+      <section className="section-padding surface-blue-band pb-28">
         <div className="container-width">
           <h2 className="section-title mb-2">Products</h2>
           {heroContent.orderBody && (
@@ -92,7 +94,7 @@ export default function ProductCatalogue({
             {Object.entries(groupedProducts).map(([category, productsInCategory]) => (
               <div key={category} className="md:col-span-2 lg:col-span-3">
                 <h3 className="text-xl font-display font-bold text-maroon-800 dark:text-maroon-200 mb-3">{category}</h3>
-                <div className="grid grid-cols-1 items-start md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
                 {productsInCategory.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -100,6 +102,7 @@ export default function ProductCatalogue({
                     selection={selection}
                     displayUnitPrice={displayUnitPrice}
                     handleAddToOrder={handleAddToOrder}
+                    onAdded={onAdded}
                   />
                 ))}
                 </div>

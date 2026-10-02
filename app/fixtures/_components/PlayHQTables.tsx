@@ -1,6 +1,6 @@
 // Shared, calm presentation for PlayHQ fixtures and ladders on /fixtures and
 // /teams/[slug]. Server-safe (no hooks); all event details are HTML text.
-import { formatFixtureDay, formatFixtureStartTime, isLadderRowForTeam, opponentFor } from '@/lib/playhq/team-view';
+import { fixtureDayKey, formatFixtureDay, formatFixtureStartTime, isLadderRowForTeam, opponentFor } from '@/lib/playhq/team-view';
 import type { PlayHQFixture, PlayHQLadderRow, PlayHQTeam } from '@/lib/playhq/types';
 
 function ExternalIcon() {
@@ -62,6 +62,36 @@ export function FixtureList({ fixtures, team, showGrade = false, label }: { fixt
         );
       })}
     </ol>
+  );
+}
+
+/**
+ * Fixtures grouped under one heading per match day (Melbourne date), so each
+ * game is listed once in date order. Undated fixtures sit in a final group.
+ */
+export function FixtureDayGroups({ fixtures, label, headingLevel = 3 }: { fixtures: PlayHQFixture[]; label: string; headingLevel?: 2 | 3 }) {
+  const groups: { key: string; day: string; rows: PlayHQFixture[] }[] = [];
+  for (const fixture of fixtures) {
+    const key = fixtureDayKey(fixture.startsAt) || 'tbc';
+    let group = groups.find((row) => row.key === key);
+    if (!group) {
+      group = { key, day: formatFixtureDay(fixture.startsAt), rows: [] };
+      groups.push(group);
+    }
+    group.rows.push(fixture);
+  }
+  const Heading = headingLevel === 2 ? 'h2' : 'h3';
+  return (
+    <div className="space-y-6" aria-label={label} role="group">
+      {groups.map((group) => (
+        <section key={group.key} aria-labelledby={`fixture-day-${label.replace(/\W+/g, '-')}-${group.key}`}>
+          <Heading id={`fixture-day-${label.replace(/\W+/g, '-')}-${group.key}`} className="mb-2 font-display text-base font-semibold tracking-tight text-content-primary">
+            {group.day}
+          </Heading>
+          <FixtureList fixtures={group.rows} showGrade label={`${label}: ${group.day}`} />
+        </section>
+      ))}
+    </div>
   );
 }
 

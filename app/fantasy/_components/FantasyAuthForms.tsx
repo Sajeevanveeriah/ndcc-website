@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button';
 import Card, { CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { fantasyJsonFetch, getFantasyBrowserClient, isFantasySupabaseConfigured } from '@/lib/fantasy-browser';
+import TeamNameEditor from './TeamNameEditor';
 
 type Mode = 'register' | 'login' | 'account';
 
@@ -326,7 +327,8 @@ export function FantasyAuthForm({ mode }: { mode: Mode }) {
           </div>
         )}
         {mode !== 'login' && <Input id="displayName" label="Display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />}
-        {mode !== 'login' && <Input id="teamName" label="Dino Coach team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
+        {mode !== 'login' && !(mode === 'account' && manager) && <Input id="teamName" label="Dino Coach team name" value={teamName} onChange={(event) => setTeamName(event.target.value)} required />}
+        {mode === 'account' && manager && <TeamNameEditor manager={manager} onSaved={(next) => { setManager((current: any) => ({ ...current, ...next })); setTeamName(next.team_name); }} />}
         {mode !== 'account' && <Input id="email" label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />}
         {mode !== 'account' && <Input id="password" label="Password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : undefined} value={password} onChange={(event) => setPassword(event.target.value)} required />}
         {mode === 'register' && <p className="text-sm font-body text-content-muted">Use at least {MIN_PASSWORD_LENGTH} characters for your password.</p>}

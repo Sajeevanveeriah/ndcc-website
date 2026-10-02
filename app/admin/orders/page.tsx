@@ -9,8 +9,10 @@ import Button from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
 import { ShoppingBag } from 'lucide-react';
 import { parseAudInputToCents } from '@/lib/payments/manual-payment';
+import { effectivePaymentChoice } from '@/lib/payments/method-choice';
 import OrdersTable from './components/OrdersTable';
 import PaymentReportExport from './components/PaymentReportExport';
+import AllOrdersExport from './components/AllOrdersExport';
 import PaymentSettingsPanel from './components/PaymentSettingsPanel';
 import {
   PAYMENT_METHODS,
@@ -186,6 +188,7 @@ export default function AdminOrdersPage() {
           required_deposit_percent: next.required_deposit_percent,
           // Per-product bank switches are sent only once their columns exist.
           ...Object.fromEntries(BANK_TRANSFER_PRODUCT_SETTINGS.filter(({ key }) => key in next).map(({ key }) => [key, next[key] ?? null])),
+          ...('pay_at_club_enabled' in next ? { pay_at_club_enabled: next.pay_at_club_enabled !== false } : {}),
         }),
       });
       await parseApiResponse(response);
@@ -195,6 +198,20 @@ export default function AdminOrdersPage() {
       setMessage(err instanceof Error ? err.message : 'Failed to save payment settings.');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleSetPaymentChoice = async (order: AdminOrder, method: string) => {
+    try {
+      const result = await parseApiResponse<{ order?: Partial<AdminOrder> }>(await adminFetch('/api/admin/orders/payment-choice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: order.id, method: method || null }),
+      }));
+      if (result.order) setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, ...result.order } : o)));
+      setMessage(`Payment method for ${order.payment_reference || order.customer_name} saved.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to save the payment method.');
     }
   };
 
@@ -212,6 +229,8 @@ export default function AdminOrdersPage() {
     if (filterStatus === 'processed' && !o.processed) return false;
     if (filterStatus === 'pending' && o.processed) return false;
     if (filterStatus === 'bank_transfer' && (!o.bank_transfer_selected_at || balanceDue(o) <= 0)) return false;
+    if (filterStatus === 'pay_at_club' && (effectivePaymentChoice(o) !== 'pay_at_club' || balanceDue(o) <= 0)) return false;
+    if (filterStatus.startsWith('method:') && (effectivePaymentChoice(o) || 'none') !== filterStatus.slice(7)) return false;
     if (filterStatus === 'paid' && o.payment_status !== 'paid') return false;
     if (filterStatus === 'unpaid' && (o.payment_status === 'paid' || o.payment_status === 'refunded')) return false;
     if (filterStatus === 'part_paid' && o.payment_status !== 'part_paid' && o.payment_status !== 'partially_refunded') return false;
@@ -221,6 +240,11 @@ export default function AdminOrdersPage() {
 
   const statusOptions = [
     { value: 'bank_transfer', label: 'Bank transfer selected - to reconcile' },
+    { value: 'pay_at_club', label: 'Pay at the club - awaiting payment' },
+    { value: 'method:stripe', label: 'Method: Stripe checkout' },
+    { value: 'method:bank_transfer', label: 'Method: bank transfer' },
+    { value: 'method:pay_at_club', label: 'Method: pay at the club' },
+    { value: 'method:none', label: 'Method: not recorded' },
     { value: 'deleted', label: 'Deleted orders' },
     { value: 'pending', label: 'Unprocessed' },
     { value: 'processed', label: 'Processed' },
@@ -259,6 +283,7 @@ export default function AdminOrdersPage() {
       )}
 
       {group === 'merch' && <PaymentReportExport exporting={exporting} setExporting={setExporting} setMessage={setMessage} />}
+      {!referenceFilter && <AllOrdersExport group={group} setMessage={setMessage} />}
 
       {isAdministrator && <a className="block mb-4 underline" href="/admin/payments/bank-transfers">Bank transfers to reconcile - all payments</a>}
       {/* Filters */}
@@ -305,6 +330,7 @@ export default function AdminOrdersPage() {
           savingPayment={savingPayment}
           onSetProcessed={handleSetProcessed}
           onRecordPayment={handleRecordPayment}
+          onSetPaymentChoice={handleSetPaymentChoice}
           onReversePayment={handleReversePayment}
           onRestoreOrder={restoreOrder}
           onDeleted={handleDeleted}

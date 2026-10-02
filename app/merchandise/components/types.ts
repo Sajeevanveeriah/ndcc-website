@@ -52,9 +52,12 @@ export type ApiProduct = {
   options?: CatalogueOption[] | null;
 };
 
+export type MerchPaymentMethod = 'bank_transfer' | 'stripe' | 'pay_at_club';
+
 export type PaymentCapabilities = {
   bank_transfer: boolean;
   card: boolean;
+  pay_at_club?: boolean;
   partial_payments: boolean;
   minimum_partial_amount: number;
 };

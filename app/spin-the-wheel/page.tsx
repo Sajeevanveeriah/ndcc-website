@@ -37,7 +37,7 @@ export default async function SpinTheWheelPage() {
       <h1 className="page-hero-title">{wheel.name}</h1>
       {subtitle && <p className="page-hero-subtitle">{subtitle}</p>}
     </div></section>
-    <main className="section-padding"><div className="container-width max-w-6xl space-y-8">
+    <section className="section-padding"><div className="container-width max-w-6xl space-y-8">
       <SpinWheelClient
         wheel={{
           id: wheel.id, name: wheel.name, phase, freeSpins: wheel.free_spins_per_account,
@@ -72,6 +72,6 @@ export default async function SpinTheWheelPage() {
           {wheel.claim_instructions && <div><h3 className="font-semibold">Claiming a prize</h3><p className="whitespace-pre-line">{wheel.claim_instructions}</p></div>}
         </section>
       </div>
-    </div></main>
+    </div></section>
   </>;
 }

@@ -4,7 +4,7 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
-import type { MerchandiseWindow, PaymentCapabilities } from './types';
+import type { MerchandiseWindow, MerchPaymentMethod, PaymentCapabilities } from './types';
 
 export type CheckoutFormData = {
   name: string;
@@ -32,8 +32,8 @@ export default function CheckoutForm({
   formErrors: Record<string, string>;
   handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
   capabilities: PaymentCapabilities;
-  paymentMethod: 'bank_transfer' | 'stripe';
-  setPaymentMethod: (method: 'bank_transfer' | 'stripe') => void;
+  paymentMethod: MerchPaymentMethod;
+  setPaymentMethod: (method: MerchPaymentMethod) => void;
   isSubmitting: boolean;
   windowState: { processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null };
 }) {
@@ -105,7 +105,7 @@ export default function CheckoutForm({
                       }
                     />
 
-                    {(capabilities.card || capabilities.bank_transfer) && (
+                    {(capabilities.card || capabilities.bank_transfer || capabilities.pay_at_club) && (
                       <fieldset className="space-y-2">
                         <legend className="form-label">Payment method</legend>
                         {capabilities.bank_transfer && <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
@@ -128,6 +128,16 @@ export default function CheckoutForm({
                           />
                           Pay securely by card with Stripe
                         </label>}
+                        {capabilities.pay_at_club && <label className="flex min-h-11 items-center gap-3 rounded-lg border border-edge-strong px-3 py-2">
+                          <input
+                            type="radio"
+                            name="payment_method"
+                            value="pay_at_club"
+                            checked={paymentMethod === 'pay_at_club'}
+                            onChange={() => setPaymentMethod('pay_at_club')}
+                          />
+                          Pay at the club (cash or card at the bar)
+                        </label>}
                       </fieldset>
                     )}
 
@@ -146,13 +156,17 @@ export default function CheckoutForm({
                             ? 'Queue Order for Next Window'
                             : paymentMethod === 'stripe'
                               ? 'Place Order and Pay by Card'
-                              : 'Place Order (Bank Transfer)'}
+                              : paymentMethod === 'pay_at_club'
+                                ? 'Place Order (Pay at the Club)'
+                                : 'Place Order (Bank Transfer)'}
                     </Button>
 
                     <p className="text-content-muted font-body text-xs text-center">
                       {paymentMethod === 'stripe'
                         ? 'After submission you will continue to Stripe Checkout.'
-                        : 'After submission you will receive a payment reference for bank transfer.'}
+                        : paymentMethod === 'pay_at_club'
+                          ? 'After submission you will receive an order reference to quote when you pay at the bar.'
+                          : 'After submission you will receive a payment reference for bank transfer.'}
                     </p>
                     <p className="text-content-muted font-body text-xs text-center">
                       Order reference format: NDCCMER-YYYY-000001

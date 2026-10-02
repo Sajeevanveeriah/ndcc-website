@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (payment_method !== 'stripe' && payment_method !== 'bank_transfer') {
+    if (payment_method !== 'stripe' && payment_method !== 'bank_transfer' && payment_method !== 'pay_at_club') {
       return NextResponse.json(
         { success: false, error: 'Choose a valid merchandise payment method.' },
         { status: 400 },
@@ -224,12 +224,14 @@ export async function POST(request: Request) {
       : null;
 
     const capabilities = deriveCapabilities(await loadMerchPaymentSettings(supabase));
-    if (!(payment_method === 'bank_transfer' ? capabilities.bank_transfer : capabilities.card)) return NextResponse.json({ error: 'The selected payment method is currently unavailable.' }, { status: 400 });
+    const methodAvailable = payment_method === 'bank_transfer' ? capabilities.bank_transfer
+      : payment_method === 'pay_at_club' ? capabilities.pay_at_club
+      : capabilities.card;
+    if (!methodAvailable) return NextResponse.json({ error: 'The selected payment method is currently unavailable.' }, { status: 400 });
     const paymentReference = await generateUniquePaymentReference('merch');
 
-    const { data, error } = await supabase
-      .from('orders')
-      .insert({
+    const insertOrder = (row: Record<string, unknown>) => supabase.from('orders').insert(row).select('id').single();
+    const orderRow: Record<string, unknown> = {
         customer_name: sanitiseInput(customer_name),
         customer_email: sanitiseInput(customer_email),
         customer_phone: customer_phone ? sanitiseInput(customer_phone) : '',
@@ -238,6 +240,9 @@ export async function POST(request: Request) {
         ...(needsReviewReason ? { needs_review_reason: needsReviewReason } : {}),
         payment_status: 'pending_bank_transfer',
         bank_transfer_selected_at: payment_method === 'bank_transfer' ? new Date().toISOString() : null,
+        // Intent only, like the bank choice: staff record the payment when it is received at the club.
+        ...(payment_method === 'pay_at_club' ? { bar_payment_selected_at: new Date().toISOString() } : {}),
+        ...(payment_method === 'stripe' ? { payment_method_choice: 'stripe', payment_method_choice_source: 'purchaser' } : {}),
         order_category: 'merch',
         order_status: orderStatus,
         merch_window_id: safeMerchWindowId,
@@ -245,11 +250,17 @@ export async function POST(request: Request) {
         payment_reference: paymentReference,
         processed: false,
         notes: notes ? sanitiseInput(notes) : '',
-      })
-      .select('id')
-      .single();
+      };
+    let { data, error } = await insertOrder(orderRow);
+    // Before the payment method migration the card choice column is absent;
+    // the order still saves (the choice is then derived from the intent columns).
+    if (error && /payment_method_choice/i.test(error.message || '')) {
+      delete orderRow.payment_method_choice;
+      delete orderRow.payment_method_choice_source;
+      ({ data, error } = await insertOrder(orderRow));
+    }
 
-    if (error) {
+    if (error || !data) {
       console.error('Supabase order insert error:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to submit order.' },
@@ -283,13 +294,16 @@ export async function POST(request: Request) {
         );
       })
       .join('');
-    if (payment_method === 'bank_transfer') await sendEmail({
+    const payAtClub = payment_method === 'pay_at_club';
+    if (payment_method === 'bank_transfer' || payAtClub) await sendEmail({
       ...(await getReceiptRecipients(sanitiseInput(customer_email), await getStaffOrderNotificationRecipients('apparel'))),
       subject: `Order confirmed - Ref ${paymentReference} | NDCC Dinos`,
       html: emailHtml(
         'Order Confirmation',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(customer_name))},</p>
-        <p style="font-size:15px;color:#374151;line-height:1.6;">Your order has been received. Please complete payment using the bank transfer details below.</p>
+        <p style="font-size:15px;color:#374151;line-height:1.6;">${payAtClub
+          ? 'Your order has been received. You chose to pay at the club: please pay at the bar and quote your order reference. Your order is marked paid once the club records your payment.'
+          : 'Your order has been received. Please complete payment using the bank transfer details below.'}</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <thead>
             <tr style="background:#f9fafb;">
@@ -311,7 +325,9 @@ export async function POST(request: Request) {
           : personalisationRequested
             ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The surname entered has been recorded for club review.</div>`
             : ''}
-        ${bankDetailsHtml(paymentReference, serverTotal)}
+        ${payAtClub
+          ? `<p style="font-size:15px;color:#374151;line-height:1.6;"><strong>Order reference:</strong> ${escapeEmailHtml(paymentReference)}<br><strong>Amount to pay at the club:</strong> $${serverTotal.toFixed(2)}</p>`
+          : bankDetailsHtml(paymentReference, serverTotal)}
         <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at <a href="mailto:ndcc.secretary1@gmail.com" style="color:#880000;">ndcc.secretary1@gmail.com</a>.</p>`
       ),
     });

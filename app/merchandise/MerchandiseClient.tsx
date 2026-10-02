@@ -6,7 +6,7 @@ import { AlertTriangle, XCircle } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { CLUB_NAME } from '@/lib/constants';
-import { validateEmail, validatePhone } from '@/lib/utils';
+import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { computeUnitPrice } from '@/lib/apparel/pricing';
 import { personalisationKind, validatePersonalisation } from '@/lib/apparel/personalisation';
 import CartSummary from './components/CartSummary';
@@ -19,6 +19,7 @@ import type {
   DisplayProduct,
   MerchandiseWindow,
   OrderConfirmation,
+  MerchPaymentMethod,
   PaymentCapabilities,
   ProductSelectionState,
 } from './components/types';
@@ -65,6 +66,16 @@ export default function MerchandisePage({ initialProducts }: { initialProducts: 
 function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[] }) {
   const searchParams = useSearchParams();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [addedNotice, setAddedNotice] = useState('');
+  // The floating order bar steps aside while the order summary itself is on screen.
+  const [summaryInView, setSummaryInView] = useState(false);
+  useEffect(() => {
+    const target = document.getElementById('order-summary');
+    if (!target || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setSummaryInView(entry.isIntersecting), { rootMargin: '0px 0px -20% 0px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [selectedOptions, setSelectedOptions] = useState<Record<string, Record<string, string>>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -88,7 +99,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
   const [errorMessage, setErrorMessage] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
-  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'stripe'>('bank_transfer');
+  const [paymentMethod, setPaymentMethod] = useState<MerchPaymentMethod>('bank_transfer');
   const [cardAmount, setCardAmount] = useState('');
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
@@ -195,6 +206,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
         if (!stale && res.ok && payload?.data) {
           setCapabilities({ ...DEFAULT_CAPABILITIES, ...payload.data });
           if (!payload.data.bank_transfer && payload.data.card) setPaymentMethod('stripe');
+          else if (!payload.data.bank_transfer && !payload.data.card && payload.data.pay_at_club) setPaymentMethod('pay_at_club');
         }
       } catch (err) {
         console.error('[merchandise] Failed to load payment capabilities; keeping payment methods unavailable:', err);
@@ -242,14 +254,15 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
     return result.ok ? result.unitPrice : product.price;
   }
 
-  function handleAddToOrder(productId: string) {
+  // Returns true once the item is in the order, so the options dialog can close.
+  function handleAddToOrder(productId: string): boolean {
     const product = products.find((p) => p.id === productId);
-    if (!product) return;
+    if (!product) return false;
 
     const size = selectedSizes[productId] || (product.sizes.length === 0 ? 'One Size' : '');
     if (!size) {
       setSizeErrors((prev) => ({ ...prev, [productId]: 'Please select a size' }));
-      return;
+      return false;
     }
     setSizeErrors((prev) => ({ ...prev, [productId]: '' }));
 
@@ -271,7 +284,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
     );
     if (!personalisation.ok) {
       setPersonalisationErrors((prev) => ({ ...prev, [productId]: personalisation.error }));
-      return;
+      return false;
     }
     setPersonalisationErrors((prev) => ({ ...prev, [productId]: '' }));
     const {
@@ -339,6 +352,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
       setAlternateNumbers((prev) => ({ ...prev, [productId]: '' }));
       setPersonalisationConfirmed((prev) => ({ ...prev, [productId]: false }));
     }
+    return true;
   }
 
   function handleRemoveFromCart(index: number) {
@@ -356,6 +370,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
   }
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const groupedProducts = products.reduce<Record<string, DisplayProduct[]>>((acc, product) => {
     const group = product.category?.trim() || 'General';
     if (!acc[group]) acc[group] = [];
@@ -500,9 +515,20 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
         selection={selection}
         displayUnitPrice={displayUnitPrice}
         handleAddToOrder={handleAddToOrder}
+        onAdded={(name) => setAddedNotice(`${name} added to your order.`)}
       />
 
-      {cart.length > 0 && <a href="#order-summary" className="club-basket-link">Review order <span>{cart.reduce((sum, item) => sum + item.quantity, 0)} {cart.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'}</span></a>}
+      <p className="sr-only" role="status" aria-live="polite">{addedNotice}</p>
+      {cart.length > 0 && !summaryInView && (
+        <div className="club-order-bar" role="region" aria-label="Your order">
+          <span className="min-w-0 truncate">
+            <strong>{cartItemCount} {cartItemCount === 1 ? 'item' : 'items'}</strong>
+            <span className="tabular-nums"> · {formatCurrency(cartTotal)}</span>
+            {addedNotice && <span className="hidden sm:inline text-white/80"> · {addedNotice}</span>}
+          </span>
+          <a href="#order-summary" className="club-order-bar-link">Review order</a>
+        </div>
+      )}
       {/* Order Summary & Form */}
       <section id="order-summary" className="section-padding bg-surface-page scroll-mt-32" aria-label="Order summary and checkout">
         <div className="container-width max-w-3xl mx-auto">

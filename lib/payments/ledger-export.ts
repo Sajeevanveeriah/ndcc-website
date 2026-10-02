@@ -14,6 +14,9 @@ export type PaymentLedgerOrder = {
   balance_due?: number | string | null;
   payment_status?: string | null;
   created_at?: string | null;
+  payment_method_choice?: string | null;
+  bank_transfer_selected_at?: string | null;
+  bar_payment_selected_at?: string | null;
 };
 
 export type PaymentLedgerExportRow = {
@@ -66,6 +69,7 @@ export const PAYMENT_LEDGER_EXPORT_HEADER = [
   'order_balance_due_aud',
   'order_payment_status',
   'order_created_at',
+  'order_stated_payment_method',
 ] as const;
 
 export function paymentLedgerFilename(at: Date = new Date()): string {
@@ -77,6 +81,15 @@ export function paymentLedgerFilename(at: Date = new Date()): string {
   }).formatToParts(at);
   const value = (type: 'year' | 'month' | 'day') => parts.find((part) => part.type === type)?.value || '';
   return `${value('year')}${value('month')}${value('day')}-NDCC-Payment-Ledger-Rev01.csv`;
+}
+
+// Stated payment method (see lib/payments/method-choice.ts). Kept local so
+// this module stays importable on its own in unit tests.
+function statedPaymentMethod(order: { payment_method_choice?: string | null; bank_transfer_selected_at?: string | null; bar_payment_selected_at?: string | null }): string {
+  if (order.payment_method_choice === 'stripe' || order.payment_method_choice === 'bank_transfer' || order.payment_method_choice === 'pay_at_club') return order.payment_method_choice;
+  if (order.bar_payment_selected_at) return 'pay_at_club';
+  if (order.bank_transfer_selected_at) return 'bank_transfer';
+  return '';
 }
 
 function aud(value: number | string | null | undefined): string {
@@ -131,6 +144,7 @@ export function buildPaymentLedgerExportRows(
       aud(order?.balance_due),
       order?.payment_status || '',
       order?.created_at || '',
+      order ? statedPaymentMethod(order) : '',
     ]);
   }
 

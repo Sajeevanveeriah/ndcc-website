@@ -28,6 +28,8 @@ psql(DB, readFileSync(new URL('./test-apparel-reminders.sql', import.meta.url), 
 check('Apparel reminders include overdue unpaid and part-paid orders, skip ineligible orders and preserve sent cycles', true);
 psql(DB, readFileSync(new URL('./test-bank-transfer.sql', import.meta.url), 'utf8'));
 check('Bank deposit selections, authorised confirmation, idempotent ticket allocation and receipt eligibility', true);
+psql(DB, readFileSync(new URL('./test-payment-method-choice.sql', import.meta.url), 'utf8'));
+check('Payment method choice follows intent columns, explicit and admin choices win, pay at club on any order, money unchanged', true);
 psql(DB, readFileSync(new URL('./test-club-services.sql', import.meta.url), 'utf8'));
 check('Cash sale authorisation, exact price, idempotent tickets, receipt queue and member privacy', true);
 psql(DB, readFileSync(new URL('./test-prize-wheel.sql', import.meta.url), 'utf8'));

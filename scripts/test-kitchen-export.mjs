@@ -19,21 +19,27 @@ const header = kitchenOrdersCsv([]).split('\r\n')[0];
 for (const column of ['Payment method', 'Order total', 'Collect at bar']) assert.ok(header.includes(column), column);
 const bar = { ...base, meal_collection_window: 'seniors', total_amount: 24, amount_paid: 0, balance_due: 24, bar_payment_selected_at: '2026-09-17T05:00:00Z', bank_transfer_selected_at: null };
 const barRows = kitchenOrdersCsv([bar]).split('\r\n');
-assert.ok(barRows[1].endsWith('"pending_bank_transfer","Pay cash at the bar","24.00","24.00","",""'), barRows[1]);
-assert.ok(barRows[2].endsWith('"pending_bank_transfer","Pay cash at the bar","","","",""'), 'money only on the first row');
+assert.ok(barRows[1].endsWith('"pending_bank_transfer","Pay cash at the bar","24.00","24.00","","","Pay at the bar",""'), barRows[1]);
+assert.ok(barRows[2].endsWith('"pending_bank_transfer","Pay cash at the bar","","","","","Pay at the bar",""'), 'money only on the first row');
 assert.equal(kitchenPaymentMethod({ ...bar, payment_status: 'paid' }), 'Paid', 'settled status wins over intent');
 assert.equal(kitchenAmountDue({ ...bar, payment_status: 'paid' }), 0);
 assert.equal(kitchenAmountDue({ ...bar, balance_due: null, amount_paid: 10 }), 14, 'falls back to total less paid');
 assert.equal(kitchenPaymentMethod({ ...bar, bar_payment_selected_at: null, bank_transfer_selected_at: '2026-09-17T05:00:00Z' }), 'Bank transfer - awaiting receipt');
 assert.equal(kitchenPaymentMethod({ ...bar, bar_payment_selected_at: null }), 'Not yet paid');
 const bank = kitchenOrdersCsv([{ ...bar, bar_payment_selected_at: null, bank_transfer_selected_at: '2026-09-17T05:00:00Z' }]).split('\r\n')[1];
-assert.ok(bank.endsWith('"Bank transfer - awaiting receipt","24.00","","",""'), 'only bar orders carry an amount to collect');
+assert.ok(bank.endsWith('"Bank transfer - awaiting receipt","24.00","","","","Bank transfer",""'), 'only bar orders carry an amount to collect');
 // Possible duplicates: an unpaid order sharing an email with another order that service is flagged, never removed.
-assert.ok(kitchenOrdersCsv([]).split('\r\n')[0].endsWith('"Check","Special request"'));
+assert.ok(kitchenOrdersCsv([]).split('\r\n')[0].endsWith('"Check","Special request","Stated payment method","Paid by"'));
+// Stated method and how settled money arrived (the ledger), so paid orders show how they were paid.
+const paidAtBar = kitchenOrdersCsv([{ ...bar, payment_status: 'paid', payment_method_choice: 'pay_at_club', paid_by: ['cash'] }]).split('\r\n');
+assert.ok(paidAtBar[1].endsWith('"Paid","24.00","","","","Pay at the bar","Cash or card at the bar"'), paidAtBar[1]);
+assert.ok(paidAtBar[2].endsWith('"Pay at the bar",""'), 'paid by only on the first row');
+assert.ok(kitchenOrdersCsv([{ ...bar, bar_payment_selected_at: null, payment_method_choice: 'stripe', payment_status: 'paid', paid_by: ['stripe', 'stripe'] }]).split('\r\n')[1].endsWith('"Stripe checkout (card online)","Card online (Stripe)"'));
+assert.ok(kitchenOrdersCsv([{ ...bar, bar_payment_selected_at: null }]).split('\r\n')[1].endsWith('"Not recorded",""'));
 // Special requests: listed once on the order's first row, formula-protected like other customer text.
 const special = kitchenOrdersCsv([{ ...bar, special_request: ' Gluten free roast ' }]).split('\r\n');
-assert.ok(special[1].endsWith('"Pay cash at the bar","24.00","24.00","","Gluten free roast"'), special[1]);
-assert.ok(special[2].endsWith('"","","",""'), 'request only on the first row');
+assert.ok(special[1].endsWith('"Pay cash at the bar","24.00","24.00","","Gluten free roast","Pay at the bar",""'), special[1]);
+assert.ok(special[2].endsWith('"","","","","Pay at the bar",""'), 'request only on the first row');
 assert.ok(kitchenOrdersCsv([{ ...bar, special_request: '=HYPERLINK("x")' }]).includes('"\'=HYPERLINK(""x"")"'));
 const failed = { ...base, meal_collection_window: 'seniors', payment_reference: 'NDCCKIT-2026-000015', payment_status: 'unpaid', customer_email: 'Caitlin@example.invalid', items: [{ name: 'Parmi', quantity: 1 }] };
 const paidRetry = { ...failed, payment_reference: 'NDCCKIT-2026-000018', payment_status: 'paid', customer_email: ' caitlin@example.invalid ' };

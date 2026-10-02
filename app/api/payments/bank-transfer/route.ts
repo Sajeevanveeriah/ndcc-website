@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       tokenAuthorised = true;
     }
     const { data: order, error } = await db.from('orders')
-      .select('id,customer_email,order_category,payment_status,order_status,total_amount,amount_paid,balance_due,bank_transfer_selected_at,meal_request')
+      .select('id,customer_email,order_category,payment_status,order_status,total_amount,amount_paid,balance_due,bank_transfer_selected_at,bar_payment_selected_at,meal_request')
       .eq('id', order_id).is('deleted_at', null).maybeSingle();
     if (error) return reply({ error: 'Bank transfer selection is temporarily unavailable.' }, 503);
     if (!order || (tokenAuthorised ? order.order_category !== 'merch' : String(order.customer_email).trim().toLowerCase() !== String(email).trim().toLowerCase())) return reply({ error: 'No matching order was found.' }, 404);
@@ -51,9 +51,9 @@ export async function POST(request: Request) {
     // Only intent can change here. Settlement is exclusively the existing
     // authorised payment ledger / signed Stripe webhook workflow.
     const timestamp = selected ? order.bank_transfer_selected_at || new Date().toISOString() : null;
-    // A kitchen order has one payment choice: choosing a bank deposit clears
-    // pay-at-the-bar in the same write (the bar route does the reverse).
-    const patch = selected && order.order_category === 'kitchen'
+    // An order has one stated payment method: choosing a bank deposit clears
+    // pay at the club in the same write (the club and bar routes do the reverse).
+    const patch = selected && (order.order_category === 'kitchen' || order.bar_payment_selected_at)
       ? { bank_transfer_selected_at: timestamp, bar_payment_selected_at: null }
       : { bank_transfer_selected_at: timestamp };
     const updated = await db.from('orders').update(patch)

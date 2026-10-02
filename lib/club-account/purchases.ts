@@ -4,6 +4,7 @@ export type MemberPurchase = {
   total: number | null; paid: number | null; balance: number | null;
   payment_status: string; order_status: string; processed: boolean; can_pay: boolean;
   bank_transfer_selected: boolean;
+  pay_at_club_selected: boolean;
   tickets: Array<{ number: number; reference: string }>;
 };
 // Escape LIKE metacharacters so a verified email can only match itself.
@@ -27,6 +28,7 @@ export function memberPurchase(row: Record<string, unknown>, raffle = false): Me
     paid: raffle ? status === 'paid' && total !== null ? total / 100 : null : amount(row.amount_paid),
     balance, payment_status: status, order_status: orderStatus, processed: row.processed === true,
     bank_transfer_selected: Boolean(row.bank_transfer_selected_at),
+    pay_at_club_selected: !raffle && Boolean(row.bar_payment_selected_at),
     can_pay: raffle ? Boolean(row.bank_transfer_selected_at) && status === 'pending_payment' : balance !== null && balance > 0
       && ['unpaid', 'part_paid', 'pending_bank_transfer', 'pending'].includes(status) && orderStatus !== 'cancelled',
     tickets: raffle && status === 'paid' && Array.isArray(row.raffle_tickets)

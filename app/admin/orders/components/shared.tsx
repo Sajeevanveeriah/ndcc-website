@@ -4,6 +4,10 @@ import type { Order } from '@/lib/types';
 export type AdminOrder = Order & {
   bank_transfer_selected_at?: string | null;
   bar_payment_selected_at?: string | null;
+  payment_method_choice?: string | null;
+  payment_method_choice_at?: string | null;
+  payment_method_choice_source?: string | null;
+  payment_method_choice_by?: string | null;
   deleted_at?: string | null;
   order_category?: string;
   meal_collection_window?: string | null;
@@ -46,6 +50,8 @@ export type PaymentSettings = {
   reverse_raffle_bank_transfer_enabled?: boolean | null;
   dino_bank_transfer_enabled?: boolean | null;
   donation_bank_transfer_enabled?: boolean | null;
+  // Absent until the payment method migration is applied.
+  pay_at_club_enabled?: boolean;
 };
 
 export const BANK_TRANSFER_PRODUCT_SETTINGS = [
@@ -59,7 +65,7 @@ export type PaymentFormState = { method: string; amount: string; notes: string }
 
 export const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank transfer' },
-  { value: 'cash', label: 'Cash' },
+  { value: 'cash', label: 'Cash or card at the club' },
   { value: 'other', label: 'Other' },
 ];
 

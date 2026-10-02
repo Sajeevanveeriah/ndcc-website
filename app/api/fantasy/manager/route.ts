@@ -116,6 +116,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'This team name was replaced and locked by the league manager.' }, { status: 403 });
     }
     const moderation = moderateTeamName(teamName, settings.blocked_team_name_terms || []);
+    // Renames publish straight to the standings, so an existing team keeps its name rather
+    // than taking a flagged one (new registrations still go to committee review).
+    if (existingManager && teamName !== existingManager.team_name && moderation.status !== 'approved') {
+      const refused = await supabase.from('fantasy_team_name_moderation').insert({ manager_id: existingManager.id, submitted_name: teamName, resulting_name: null, status: 'review_required', reason: 'Rename refused: matched a committee-managed blocked term. The previous name was kept.' });
+      if (refused.error) console.error('[fantasy-manager] Team-name moderation log failed', { managerId: existingManager.id, code: refused.error.code, message: refused.error.message });
+      return NextResponse.json({ success: false, error: 'That team name cannot be used. Choose a different name, or contact the club if you think this is a mistake.' }, { status: 422 });
+    }
 
     const payload = {
       auth_user_id: user.id,

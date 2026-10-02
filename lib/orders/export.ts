@@ -7,6 +7,8 @@
 
 export type ExportOrder = {
   bank_transfer_selected_at?: string | null;
+  bar_payment_selected_at?: string | null;
+  payment_method_choice?: string | null;
   id: string;
   created_at: string;
   payment_reference?: string | null;
@@ -86,6 +88,7 @@ export const EXPORT_HEADER = [
   'number_request_status',
   'purchaser_payment_choice',
   'bank_transfer_selected_at',
+  'pay_at_club_selected_at',
 ];
 
 const melbourneDate = new Intl.DateTimeFormat('en-AU', {
@@ -97,6 +100,15 @@ const melbourneDate = new Intl.DateTimeFormat('en-AU', {
   minute: '2-digit',
   hour12: false,
 });
+
+// Stated payment method (see lib/payments/method-choice.ts). Kept local so
+// this module stays importable on its own in unit tests.
+function statedPaymentMethod(order: { payment_method_choice?: string | null; bank_transfer_selected_at?: string | null; bar_payment_selected_at?: string | null }): string {
+  if (order.payment_method_choice === 'stripe' || order.payment_method_choice === 'bank_transfer' || order.payment_method_choice === 'pay_at_club') return order.payment_method_choice;
+  if (order.bar_payment_selected_at) return 'pay_at_club';
+  if (order.bank_transfer_selected_at) return 'bank_transfer';
+  return '';
+}
 
 function aud(value: number): string {
   return (Math.round(value * 100) / 100).toFixed(2);
@@ -204,8 +216,9 @@ export function buildMerchExportRows(
         order.notes || '',
         item.alternate_number === undefined || item.alternate_number === null ? '' : String(item.alternate_number),
         item.number_request_status || '',
-        order.bank_transfer_selected_at ? 'bank_transfer' : '',
+        statedPaymentMethod(order),
         order.bank_transfer_selected_at || '',
+        order.bar_payment_selected_at || '',
       ]);
     }
   }

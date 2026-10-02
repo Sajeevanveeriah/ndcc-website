@@ -43,6 +43,16 @@ export default function PaymentSettingsPanel({
               />
               Partial payments allowed
             </label>
+            {'pay_at_club_enabled' in settings && (
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={settings.pay_at_club_enabled !== false}
+                  onChange={(e) => setSettings({ ...settings, pay_at_club_enabled: e.target.checked })}
+                />
+                Pay at the club offered (kitchen bar payment is always offered)
+              </label>
+            )}
             <div className="w-40">
               <Input
                 id="min-partial"

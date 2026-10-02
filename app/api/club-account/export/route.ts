@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const email = exactEmailPattern(user.email);
     const [preferences, orders, raffle] = await Promise.all([
       memberId ? db.from('club_account_preferences').select('interests,volunteering,email_updates,updated_at').eq('member_id', memberId).maybeSingle() : Promise.resolve({ data: null, error: null }),
-      db.from('orders').select('id,payment_reference,order_category,items,total_amount,amount_paid,balance_due,payment_status,order_status,processed,created_at,bank_transfer_selected_at', { count: 'exact' })
+      db.from('orders').select('id,payment_reference,order_category,items,total_amount,amount_paid,balance_due,payment_status,order_status,processed,created_at,bank_transfer_selected_at,bar_payment_selected_at', { count: 'exact' })
         .ilike('customer_email', email).is('deleted_at', null).order('created_at', { ascending: false }).range(0, LIMIT - 1),
       db.from('raffle_orders').select('id,payment_reference,quantity,amount_cents,status,created_at,bank_transfer_selected_at,raffle_tickets(ticket_number,ticket_reference)', { count: 'exact' })
         .ilike('customer_email', email).order('created_at', { ascending: false }).range(0, LIMIT - 1),

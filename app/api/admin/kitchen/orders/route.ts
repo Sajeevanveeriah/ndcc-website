@@ -3,6 +3,7 @@ import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
 import { checkKitchenOrderUnpaid, markKitchenOrderPaid, type KitchenPaymentResult } from '@/lib/kitchen-mark-paid';
 import { kitchenSpecialRequest } from '@/lib/kitchen-special-request';
+import { effectivePaymentChoice } from '@/lib/payments/method-choice';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,16 +24,32 @@ export async function GET(request: Request) {
   // Special requests live on the linked online order; a failed read leaves the list usable.
   const linkedIds = [...new Set(rows.map((row) => row.linked_order_id).filter((id): id is string => typeof id === 'string'))];
   const requests = new Map<string, string>();
+  // The purchaser's stated payment method (Stripe, bank transfer or pay at the bar) from the linked online order.
+  const methods = new Map<string, { payment_method_choice: string | null; payment_method_choice_source: string | null }>();
   for (let start = 0; start < linkedIds.length; start += 200) {
-    const { data: linked, error: linkedError } = await supabase.from('orders').select('id,meal_request')
-      .in('id', linkedIds.slice(start, start + 200));
+    const ids = linkedIds.slice(start, start + 200);
+    type LinkedOrder = { id: string; meal_request?: unknown; bank_transfer_selected_at?: string | null; bar_payment_selected_at?: string | null; payment_method_choice?: string | null; payment_method_choice_source?: string | null };
+    let linkedResult: { data: LinkedOrder[] | null; error: { message: string } | null } = await supabase.from('orders')
+      .select('id,meal_request,bank_transfer_selected_at,bar_payment_selected_at,payment_method_choice,payment_method_choice_source')
+      .in('id', ids);
+    // Before the payment method migration the stated method comes from the intent columns.
+    if (linkedResult.error && /payment_method_choice|schema cache|column/i.test(linkedResult.error.message || '')) {
+      linkedResult = await supabase.from('orders').select('id,meal_request,bank_transfer_selected_at,bar_payment_selected_at').in('id', ids);
+    }
+    const { data: linked, error: linkedError } = linkedResult;
     if (linkedError) { console.error('Kitchen special requests unavailable:', linkedError.message); break; }
     for (const order of linked ?? []) {
       const text = kitchenSpecialRequest(order.meal_request);
       if (text) requests.set(order.id, text);
+      methods.set(order.id, { payment_method_choice: effectivePaymentChoice(order), payment_method_choice_source: order.payment_method_choice_source ?? null });
     }
   }
-  return NextResponse.json({ success: true, data: rows.map((row) => ({ ...row, special_request: requests.get(row.linked_order_id) || '' })) });
+  return NextResponse.json({ success: true, data: rows.map((row) => ({
+    ...row,
+    special_request: requests.get(row.linked_order_id) || '',
+    payment_method_choice: methods.get(row.linked_order_id)?.payment_method_choice ?? null,
+    payment_method_choice_source: methods.get(row.linked_order_id)?.payment_method_choice_source ?? null,
+  })) });
 }
 
 export async function PATCH(request: Request) {
