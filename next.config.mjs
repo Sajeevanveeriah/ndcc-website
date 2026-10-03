@@ -42,6 +42,9 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // Headroom for prerendering on a slow database; build reads are bounded in
+  // lib/supabase-server.ts, so a page that cannot load data still finishes.
+  staticPageGenerationTimeout: 180,
   images: {
     // Next.js 15.5.26 retains the patched protection for GHSA-2xp9-vwfh-vxw4.
     // Its AVIF input protection must remain in place; output only WebP.

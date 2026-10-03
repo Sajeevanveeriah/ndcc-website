@@ -204,7 +204,7 @@ try {
   const syncModules = ['lib/playhq/fantasy-sync.ts', 'lib/playhq/fantasy-orchestrator.ts', 'lib/fantasy-game.ts', 'lib/fantasy-seasons.ts', 'lib/fantasy-leaderboard.ts'];
   check('supabase server fetch is never cached',
     supabaseServer.includes("import { createTimeoutFetch } from './server/timeout-fetch'")
-      && supabaseServer.includes(': createTimeoutFetch(timeoutMs, options.retryReads ?? true)')
+      && supabaseServer.includes(': createTimeoutFetch(timeoutMs, !IS_BUILD_PRERENDER && (options.retryReads ?? true))')
       && supabaseServer.includes('options.publicReadCache ? withPublicReadCache(')
       && timeoutFetch.includes("cache: 'no-store'")
       && syncModules.every((path) => !readFileSync(join(repoRoot, path), 'utf8').includes('publicReadCache')));
