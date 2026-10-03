@@ -158,6 +158,16 @@ await check('public read clients get at least 10 s per attempt plus a retry', as
   assert.ok(source.includes('createTimeoutFetch(Math.max(timeoutMs, PUBLIC_READ_ATTEMPT_MS), true)'));
 });
 
+await check('build prerender reads get one bounded attempt so an unreachable database cannot fail the build', async () => {
+  const source = readFileSync(new URL('../lib/supabase-server.ts', import.meta.url), 'utf8');
+  assert.ok(source.includes("const IS_BUILD_PRERENDER = process.env.NEXT_PHASE === 'phase-production-build';"));
+  assert.ok(source.includes('const BUILD_READ_ATTEMPT_MS = 4_000;'));
+  assert.ok(source.includes('if (IS_BUILD_PRERENDER) return createTimeoutFetch(BUILD_READ_ATTEMPT_MS, false);'));
+  assert.ok(source.includes('const timeoutMs = IS_BUILD_PRERENDER ? Math.min(requestedTimeoutMs, BUILD_READ_ATTEMPT_MS) : requestedTimeoutMs;'));
+  assert.ok(source.includes('createTimeoutFetch(timeoutMs, !IS_BUILD_PRERENDER && (options.retryReads ?? true))'));
+  assert.match(readFileSync(new URL('../next.config.mjs', import.meta.url), 'utf8'), /staticPageGenerationTimeout: 180,/);
+});
+
 await check('payment, checkout and availability reads do not opt into the public read cache', async () => {
   for (const path of ['lib/raffle-visibility.ts', 'app/api/raffle/numbers/route.ts', 'app/api/raffle/checkout/route.ts', 'lib/apparel/public-catalogue.ts', 'lib/public-kitchen.ts']) {
     assert.ok(!readFileSync(new URL(`../${path}`, import.meta.url), 'utf8').includes('publicReadCache'), path);

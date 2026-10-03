@@ -44,7 +44,15 @@ export function isPublicSupabaseConfigured() {
 // started Vercel instance can take ~12 s before its first outbound request
 // completes; shorter budgets turned those first renders into error pages.
 const PUBLIC_READ_ATTEMPT_MS = 10_000;
+// During `next build` every bounded read gets one attempt of at most 4 s. A
+// page whose data cannot load prerenders its fallback and ISR refreshes it
+// within 60 s, so an unreachable or stalled database (for example a Supabase
+// preview branch deleted while its preview build was queued) cannot hold a
+// page past the build's page timeout and fail the deploy.
+const IS_BUILD_PRERENDER = process.env.NEXT_PHASE === 'phase-production-build';
+const BUILD_READ_ATTEMPT_MS = 4_000;
 function createPublicReadTimeoutFetch(timeoutMs: number) {
+  if (IS_BUILD_PRERENDER) return createTimeoutFetch(BUILD_READ_ATTEMPT_MS, false);
   return createTimeoutFetch(Math.max(timeoutMs, PUBLIC_READ_ATTEMPT_MS), true);
 }
 
@@ -70,10 +78,11 @@ export function createServerClient(options: ServerClientOptions = {}) {
     throw error;
   }
 
-  const timeoutMs = options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS;
+  const requestedTimeoutMs = options.fetchTimeoutMs ?? SUPABASE_FETCH_TIMEOUT_MS;
+  const timeoutMs = IS_BUILD_PRERENDER ? Math.min(requestedTimeoutMs, BUILD_READ_ATTEMPT_MS) : requestedTimeoutMs;
   const baseFetch = options.fetchTimeoutMs === null ? undefined : options.publicReadCache
     ? createPublicReadTimeoutFetch(timeoutMs)
-    : createTimeoutFetch(timeoutMs, options.retryReads ?? true);
+    : createTimeoutFetch(timeoutMs, !IS_BUILD_PRERENDER && (options.retryReads ?? true));
   const fetchImpl = options.publicReadCache ? withPublicReadCache(baseFetch ?? fetch, { scope: 'service' }) : baseFetch;
   const clientOptions = fetchImpl ? { fetch: fetchImpl } : {};
 
