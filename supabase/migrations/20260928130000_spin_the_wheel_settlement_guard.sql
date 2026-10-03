@@ -92,7 +92,7 @@ grant execute on function public.spin_wheel_orders_needing_work(timestamptz, int
 -- Card checkouts last 60 minutes, plus a 5 minute grace for an unlinked
 -- session (app/api/payments/checkout-session): 65 minutes covers every
 -- attempt that could still be paid.
-create function public.spin_wheel_close_impact(target_wheel uuid)
+create or replace function public.spin_wheel_close_impact(target_wheel uuid)
 returns table (active_checkouts integer, unused_paid_spins integer)
 language sql stable security definer set search_path = '' as $$
   select

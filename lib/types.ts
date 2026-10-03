@@ -38,6 +38,8 @@ export interface OrderItem {
   custom_initials?: string;
   custom_number?: number;
   alternate_number?: number;
+  // Event the item belongs to (event orders only); keys the admin purchase group.
+  event_id?: string;
   number_request_status?: 'subject_to_availability';
   personalisation_confirmed?: boolean;
 }

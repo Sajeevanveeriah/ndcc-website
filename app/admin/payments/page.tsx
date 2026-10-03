@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import PurchaseTabs from '@/components/admin/PurchaseTabs';
 import { purchaseGroup, purchaseGroupLabel } from '@/lib/orders/purchase-groups';
+import { useEventTitles } from '@/lib/orders/use-event-titles';
 import { formatCurrency } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
@@ -10,8 +11,9 @@ import { paymentLedgerFilename } from '@/lib/payments/ledger-export';
 
 export default function AdminPaymentsPage() {
   const [group,setGroup]=useState('merch');
+  const eventTitles = useEventTitles();
   const [ledger,setLedger]=useState<Array<{id:string;order_id:string;amount:number;method:string;status:string;payment_reference?:string;created_at:string}>>([]);
-  const [orders,setOrders]=useState<Array<{id:string;order_category?:string;items?:Array<{name?:string}>;payment_reference?:string;customer_name:string;customer_email?:string|null;total_amount?:number|string|null;amount_paid?:number|string|null;balance_due?:number|string|null;payment_status?:string|null;order_status?:string|null;created_at?:string}>>([]);
+  const [orders,setOrders]=useState<Array<{id:string;order_category?:string;items?:Array<{name?:string;event_id?:string|null}>;payment_reference?:string;customer_name:string;customer_email?:string|null;total_amount?:number|string|null;amount_paid?:number|string|null;balance_due?:number|string|null;payment_status?:string|null;order_status?:string|null;created_at?:string}>>([]);
   const [view,setView]=useState<'payments'|'balances'>('payments');
   const [transactions, setTransactions] = useState<Array<{ id: string; payer_name: string; transaction_reference: string; amount: number; transaction_date: string }>>([]);
   const [message, setMessage] = useState('');
@@ -102,7 +104,7 @@ export default function AdminPaymentsPage() {
       </div>
       {view === 'balances' ? (() => {
         // Filter over the existing admin order data: live, not cancelled, with a balance still due.
-        const outstanding = orders.filter(o => purchaseGroup(o) === group && o.order_status !== 'cancelled' && Number(o.balance_due || 0) > 0);
+        const outstanding = orders.filter(o => purchaseGroup(o, eventTitles) === group && o.order_status !== 'cancelled' && Number(o.balance_due || 0) > 0);
         const totalDue = outstanding.reduce((sum, o) => sum + Number(o.balance_due || 0), 0);
         return <>
           <h2 className="text-xl font-semibold">{purchaseGroupLabel(group)} outstanding balances</h2>
@@ -111,7 +113,7 @@ export default function AdminPaymentsPage() {
         </>;
       })() : <>
       <h2 className="text-xl font-semibold">{purchaseGroupLabel(group)} payments</h2>
-      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>{['Order reference','Customer','Amount','Method','Status','Date'].map(label=><th key={label} className="p-3 text-left">{label}</th>)}</tr></thead><tbody>{ledger.filter(p=>{const order=orders.find(o=>o.id===p.order_id);return order&&purchaseGroup(order)===group;}).map(p=>{const order=orders.find(o=>o.id===p.order_id);return <tr key={p.id} className="border-t border-edge-subtle"><td className="p-3">{order?.payment_reference||p.payment_reference}</td><td className="p-3">{order?.customer_name}</td><td className="p-3">{formatCurrency(p.amount)}</td><td className="p-3">{p.method}</td><td className="p-3">{p.status}</td><td className="p-3">{new Date(p.created_at).toLocaleDateString('en-AU',{timeZone:'Australia/Melbourne'})}</td></tr>;})}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>{['Order reference','Customer','Amount','Method','Status','Date'].map(label=><th key={label} className="p-3 text-left">{label}</th>)}</tr></thead><tbody>{ledger.filter(p=>{const order=orders.find(o=>o.id===p.order_id);return order&&purchaseGroup(order,eventTitles)===group;}).map(p=>{const order=orders.find(o=>o.id===p.order_id);return <tr key={p.id} className="border-t border-edge-subtle"><td className="p-3">{order?.payment_reference||p.payment_reference}</td><td className="p-3">{order?.customer_name}</td><td className="p-3">{formatCurrency(p.amount)}</td><td className="p-3">{p.method}</td><td className="p-3">{p.status}</td><td className="p-3">{new Date(p.created_at).toLocaleDateString('en-AU',{timeZone:'Australia/Melbourne'})}</td></tr>;})}</tbody></table></div>
       </>}
       <div className="flex gap-3">
         <Button onClick={reconcile}>Run Auto Reconciliation</Button>

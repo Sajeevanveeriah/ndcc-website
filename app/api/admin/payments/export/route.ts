@@ -1,4 +1,5 @@
 import { purchaseGroup } from '@/lib/orders/purchase-groups';
+import { loadEventTitles } from '@/lib/orders/event-titles-server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { requirePermission } from '@/lib/auth/guard';
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
 
   const group = new URL(request.url).searchParams.get('group');
   const supabase = createServerClient();
+  const eventTitles = group?.startsWith('event:') ? await loadEventTitles(supabase) : undefined;
   const payments: PaymentLedgerExportRow[] = [];
   // Keep offset pagination stable if a new payment arrives during the export.
   const exportCutoff = new Date().toISOString();
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
     payments.push(...batch.filter(row=>{
       if (!group) return true;
       const joined = Array.isArray(row.order) ? row.order[0] : row.order;
-      return joined && purchaseGroup(joined) === group;
+      return joined && purchaseGroup(joined, eventTitles) === group;
     }));
     if (batch.length < EXPORT_BATCH_SIZE) break;
   }

@@ -36,6 +36,7 @@
     "test:apparel-catalogue": "node scripts/test-apparel-catalogue.mjs",
     "test:payments-partial": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payments-partial.mjs",
     "test:merch-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-merch-export.mjs",
+    "test:purchase-groups": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-purchase-groups.mjs",
     "test:payments-ledger": "node scripts/test-payments-ledger.mjs",
     "test:payment-ledger-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payment-ledger-export.mjs",
     "test:payment-operations-hardening": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payment-operations-hardening.mjs",

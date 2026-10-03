@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/auth/guard';
 import { toCsv } from '@/lib/csv';
 import { buildAllOrdersExportRows, type AllOrdersExportOrder, type AllOrdersExportPayment } from '@/lib/orders/all-orders-export';
 import { purchaseGroup } from '@/lib/orders/purchase-groups';
+import { loadEventTitles } from '@/lib/orders/event-titles-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
 
   const supabase = createServerClient();
   const melbourneDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const eventTitles = group.startsWith('event:') ? await loadEventTitles(supabase) : undefined;
   const orders: AllOrdersExportOrder[] = [];
   let columns = `${BASE_COLUMNS},${CHOICE_COLUMNS}`;
   const cutoff = new Date().toISOString();
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
     if (result.error) return NextResponse.json({ success: false, error: 'Unable to load orders for export.' }, { status: 500 });
     const data = (result.data || []) as unknown as AllOrdersExportOrder[];
     for (const order of data) {
-      if (group && purchaseGroup({ order_category: order.order_category, items: order.items || undefined }) !== group) continue;
+      if (group && purchaseGroup({ order_category: order.order_category, items: order.items || undefined }, eventTitles) !== group) continue;
       const day = melbourneDay.format(new Date(order.created_at));
       if (dateFrom && day < dateFrom) continue;
       if (dateTo && day > dateTo) continue;

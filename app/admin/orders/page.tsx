@@ -2,6 +2,7 @@
 
 import PurchaseTabs from '@/components/admin/PurchaseTabs';
 import { purchaseGroup } from '@/lib/orders/purchase-groups';
+import { useEventTitles } from '@/lib/orders/use-event-titles';
 import { useEffect, useRef, useState } from 'react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
@@ -27,6 +28,7 @@ import {
 export default function AdminOrdersPage() {
   const [referenceFilter, setReferenceFilter] = useState('');
   const [group, setGroup] = useState('merch');
+  const eventTitles = useEventTitles();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [payments, setPayments] = useState<OrderPayment[]>([]);
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
@@ -223,7 +225,7 @@ export default function AdminOrdersPage() {
     try { await parseApiResponse(await adminFetch('/api/admin/resources/orders', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,restore:true})})); await fetchAll(); setMessage('Order restored.'); } catch (error) {setMessage(error instanceof Error ? error.message : 'Restore failed.');}
   };
   const filteredOrders = orders.filter((o) => {
-    if (referenceFilter ? o.payment_reference !== referenceFilter : purchaseGroup(o) !== group) return false;
+    if (referenceFilter ? o.payment_reference !== referenceFilter : purchaseGroup(o, eventTitles) !== group) return false;
     if (filterStatus === 'deleted') return Boolean(o.deleted_at);
     if (o.deleted_at) return false;
     if (filterStatus === 'processed' && !o.processed) return false;
