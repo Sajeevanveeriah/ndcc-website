@@ -27,6 +27,7 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   capacity: null,
   ticket_price: 0,
   registration_mode: 'tickets',
+  online_registration_enabled: true,
   image_url: '',
   published: false,
 };
@@ -144,6 +145,8 @@ export default function AdminEventsPage() {
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
       registration_mode: (('registration_mode' in event ? event : events.find((current) => current.id === event.id)) ?? event).registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
+      // Restored snapshots may predate the switch; take it from the live row.
+      online_registration_enabled: (('online_registration_enabled' in event ? event : events.find((current) => current.id === event.id)) ?? event).online_registration_enabled !== false,
       image_url: asSafeString(event.image_url),
       published: !!event.published,
     });
@@ -181,6 +184,7 @@ export default function AdminEventsPage() {
         ...(form.registration_mode === 'song_requests' || editingHasMode
           ? { registration_mode: form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets' }
           : {}),
+        online_registration_enabled: form.online_registration_enabled !== false,
         image_url: asSafeString(form.image_url).trim() || null,
         published: form.published,
         // Sent only when set, or when clearing an existing schedule, so saving
@@ -592,6 +596,18 @@ export default function AdminEventsPage() {
               <option value="song_requests">Song requests (entry by buying named songs, price per song)</option>
             </select>
           </div>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.online_registration_enabled !== false}
+              onChange={(e) => setForm({ ...form, online_registration_enabled: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+            />
+            <span className="text-sm font-body text-content-secondary">
+              Take registrations and payments online
+              <span className="block text-xs text-content-muted">Untick to handle this event manually (for example at the bar or through Facebook). The event page then shows the details and description only, with no registration form or online payment.</span>
+            </span>
+          </label>
           <ImageUploadField
             id="event-image-url"
             label="Image URL (optional)"

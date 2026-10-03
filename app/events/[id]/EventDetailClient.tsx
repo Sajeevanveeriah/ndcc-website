@@ -27,6 +27,8 @@ type OrderConfirmation = {
 export default function EventDetailClient({ event }: { event: Event }) {
   const eventId = event.id;
   const songEvent = isSongRequestEvent(event);
+  // Off when the club takes registrations and payments manually for this event.
+  const onlineRegistration = event.online_registration_enabled !== false;
   const [songs, setSongs] = useState([{ title: '', artist: '' }]);
   const songTotal = songs.length * event.ticket_price;
   const updateSong = (index: number, patch: Partial<{ title: string; artist: string }>) =>
@@ -205,6 +207,11 @@ export default function EventDetailClient({ event }: { event: Event }) {
             <h2 id="event-register-title" className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">Register</h2>
             <p className="mt-1 mb-5 font-body text-[14.5px] text-content-muted">{priceLabel}</p>
 
+            {!onlineRegistration ? (
+              <p className="font-body text-[14.5px] text-content-secondary" data-testid="event-offline-registration">
+                Registration and payment for this event are handled by the club, not online. See the event details for how to take part.
+              </p>
+            ) : (
             <div className="space-y-4">
               {submitStatus === 'success' && (
                 <div className="p-3 rounded-xl border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40" role="status">
@@ -355,6 +362,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
                 </Button>
               </form>
             </div>
+            )}
           </aside>
         </div>
       </section>

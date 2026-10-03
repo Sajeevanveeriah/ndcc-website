@@ -13,7 +13,9 @@ const checks = [
   { route: '/calendar', file: 'app/calendar/page.tsx', label: 'calendar content', all: ['Club Calendar'] },
   { route: '/gallery', file: 'app/gallery/page.tsx', label: 'gallery fallback achievements', all: ['Gallery'] },
   { route: '/join', file: 'app/join/page.tsx', label: 'social membership', all: ['Membership'] },
-  { route: '/player-registration', file: 'app/player-registration/page.tsx', label: 'seasonal registration', all: ['Choose your registration', 'registration.termsSections'] },
+  // `all` is checked in the page source; `rendered` (when set) replaces it for a
+  // running server, since source identifiers never appear in rendered HTML.
+  { route: '/player-registration', file: 'app/player-registration/page.tsx', label: 'seasonal registration', all: ['Choose your registration', 'registration.termsSections'], rendered: ['Choose your registration'] },
   { route: '/contact', file: 'app/contact/page.tsx', label: 'contact form', all: ['Send Us a Message'] },
 ];
 
@@ -36,7 +38,7 @@ for (const check of checks) {
   try {
     const response = await fetch(url);
     const html = await response.text();
-    const allPass = check.all.every((needle) => html.includes(needle));
+    const allPass = (check.rendered ?? check.all).every((needle) => html.includes(needle));
     const badPublicText = /AbortError|temporarily unavailable|under development/i.test(html);
     const ok = response.ok && html.trim().length > 0 && allPass && !badPublicText;
     console.log(`${ok ? 'PASS' : 'FAIL'} ${check.route} ${check.label} -> ${response.status}`);

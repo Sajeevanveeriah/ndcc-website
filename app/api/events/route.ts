@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic';
 // Registrations in these payment states no longer hold a place.
 const RELEASED_REGISTRATION_STATUSES = new Set(['cancelled', 'failed', 'refunded', 'expired']);
 const EVENT_CLOSED_MESSAGE = 'Registrations for this event have closed.';
+const EVENT_OFFLINE_MESSAGE = 'Online registration is not available for this event. Please see the event details for how to take part.';
 const EVENT_FULL_MESSAGE = 'There are not enough places left for this event. Please reduce the number of tickets or contact the club.';
 
 type SupabaseErrorLike = { code?: string; message?: string } | null | undefined;
@@ -114,7 +115,11 @@ export async function POST(request: Request) {
       .maybeSingle();
     // Scheduled events (published_at in the future) are not open yet. Retry
     // without the column where the scheduling migration is not applied.
-    let lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode');
+    let lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode,online_registration_enabled');
+    // The online switch arrives with 20261003030907; until then events stay online.
+    if (lookup.error && /online_registration_enabled/.test(lookup.error.message || '')) {
+      lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode');
+    }
     if (lookup.error && /registration_mode/.test(lookup.error.message || '')) {
       lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at');
     }
@@ -125,7 +130,7 @@ export async function POST(request: Request) {
     const scheduledRow = lookup.data as unknown as { published_at?: string | null } | null;
     const eventRow = scheduledRow && scheduledRow.published_at && Date.parse(scheduledRow.published_at) > Date.now()
       ? null
-      : lookup.data as unknown as { id: string; title: string; date: string | null; ticket_price: number | null; location: string | null; capacity: number | null; registration_mode?: string | null } | null;
+      : lookup.data as unknown as { id: string; title: string; date: string | null; ticket_price: number | null; location: string | null; capacity: number | null; registration_mode?: string | null; online_registration_enabled?: boolean | null } | null;
 
     if (eventError) {
       console.error('Supabase event lookup error:', eventError);
@@ -133,6 +138,9 @@ export async function POST(request: Request) {
     }
     if (!eventRow) {
       return NextResponse.json({ success: false, error: 'Event not found.' }, { status: 404 });
+    }
+    if (eventRow.online_registration_enabled === false) {
+      return NextResponse.json({ success: false, error: EVENT_OFFLINE_MESSAGE }, { status: 409 });
     }
 
     if (eventHasStarted(eventRow.date)) {

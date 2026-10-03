@@ -72,16 +72,18 @@ export function scheduledVisibilityFilter(now: number = Date.now()): string {
 // rows in production.
 async function getPublishedEventsFromSupabase() {
   const supabase = createServerClient({ fetchTimeoutMs: PUBLIC_QUERY_TIMEOUT_MS, publicReadCache: true });
-  const query = (scheduled: boolean, withMode = true) => {
+  const query = (scheduled: boolean, withMode = true, withOnline = withMode) => {
     const base = supabase
       .from('events')
       .select(withMode
-        ? 'id,title,description,date,location,capacity,ticket_price,published,image_url,registration_mode'
+        ? `id,title,description,date,location,capacity,ticket_price,published,image_url,registration_mode${withOnline ? ',online_registration_enabled' : ''}`
         : 'id,title,description,date,location,capacity,ticket_price,published,image_url')
       .eq('published', true);
     return (scheduled ? base.or(scheduledVisibilityFilter()) : base).order('date', { ascending: true });
   };
   let { data, error } = await query(true);
+  // online_registration_enabled arrives with 20261003030907; events stay online until then.
+  if (/online_registration_enabled/.test(error?.message || '')) ({ data, error } = await query(true, true, false));
   // registration_mode arrives with 20260927140000_event_song_requests; keep
   // listing events (as ticket events) if the application deploys first.
   if (/registration_mode/.test(error?.message || '')) ({ data, error } = await query(true, false));

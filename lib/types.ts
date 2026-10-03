@@ -65,6 +65,8 @@ export interface Event {
   ticket_price: number;
   /** 'song_requests': entry by buying named songs at ticket_price each. */
   registration_mode?: 'tickets' | 'song_requests' | null;
+  /** False: the club takes registrations and payments manually, not on the website. */
+  online_registration_enabled?: boolean | null;
   stripe_link?: string;
   published: boolean;
   created_at: string;

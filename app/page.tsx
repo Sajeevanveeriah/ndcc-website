@@ -311,7 +311,7 @@ async function NextEventSection() {
               <Link href="/calendar" className="btn-secondary">Check the club calendar</Link>
             ) : (
               <Link href={`/events/${event.id}`} className="btn-primary">
-                {started || status === 'postponed' || status === 'unknown' ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
+                {started || status === 'postponed' || status === 'unknown' || event.online_registration_enabled === false ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             )}
