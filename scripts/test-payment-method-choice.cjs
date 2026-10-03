@@ -152,6 +152,17 @@ const req = (url, body) => new Request(`https://example.invalid${url}`, { method
   assert.equal(choice.effectivePaymentChoice({ bar_payment_selected_at: 'x', bank_transfer_selected_at: 'y' }), 'pay_at_club');
   assert.equal(choice.effectivePaymentChoice({ bank_transfer_selected_at: 'y' }), 'bank_transfer');
   assert.equal(choice.effectivePaymentChoice({}), null);
+  // Bank deposit queue: bank chosen, or no method stated (bank details were emailed).
+  assert.equal(choice.awaitsBankDeposit({}), true);
+  assert.equal(choice.awaitsBankDeposit({ bank_transfer_selected_at: 'x' }), true);
+  assert.equal(choice.awaitsBankDeposit({ payment_method_choice: 'stripe', bank_transfer_selected_at: 'x' }), true);
+  assert.equal(choice.awaitsBankDeposit({ payment_method_choice: 'stripe' }), false);
+  assert.equal(choice.awaitsBankDeposit({ bar_payment_selected_at: 'x' }), false);
+  assert.equal(choice.awaitsBankDeposit({ payment_method_choice: 'pay_at_club' }), false);
+  for (const file of ['app/api/admin/dashboard/route.ts', 'app/api/admin/payments/bank-transfers/route.ts']) {
+    assert.match(fs.readFileSync(file, 'utf8'), /\.or\(BANK_DEPOSIT_QUEUE_FILTER\)/, `${file} uses the shared bank deposit queue filter`);
+  }
+  assert.match(fs.readFileSync('app/admin/orders/page.tsx', 'utf8'), /filterStatus === 'bank_transfer' && \(!awaitsBankDeposit\(o\)/, 'orders filter matches the queue');
   assert.equal(choice.paymentChoiceLabel({}), 'Not recorded');
   const patch = choice.paymentChoicePatch({ bar_payment_selected_at: '2026-09-01T00:00:00Z' }, 'pay_at_club', 'a@example.invalid', '2026-10-02T00:00:00Z');
   assert.equal(patch.bar_payment_selected_at, '2026-09-01T00:00:00Z', 'keeps the earlier selection time');

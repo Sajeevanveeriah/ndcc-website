@@ -70,6 +70,17 @@ BEGIN
  if not exists(select 1 from public.orders where id=oid and processed and deleted_at is not null) then raise exception 'Processed order not deleted'; end if;
  perform public.set_order_deleted(oid,'orders',false,aid,'');
  if not exists(select 1 from public.orders where id=oid and deleted_at is null) then raise exception 'Order not restored'; end if;
+ -- Deleting an unpaid event order releases its registration's place; restoring puts it back.
+ insert into public.events(title,date,capacity,ticket_price,published) values('Lifecycle test event',now()+interval '7 days',10,20,false) returning id into p;
+ insert into public.orders(customer_name,customer_email,items,total_amount,payment_status,processed,order_category) values('Lifecycle test',gen_random_uuid()||'@example.invalid','[]',20,'pending_bank_transfer',false,'event') returning id into paid;
+ insert into public.event_registrations(event_id,name,email,quantity,payment_status,order_id) values(p,'Lifecycle test',gen_random_uuid()||'@example.invalid',1,'pending_bank_transfer',paid);
+ perform public.set_order_deleted(paid,'orders',true,aid,'DELETE ORDER');
+ if not exists(select 1 from public.event_registrations where order_id=paid and payment_status='cancelled' and status_before_order_delete='pending_bank_transfer') then raise exception 'Deleted order kept its registration place'; end if;
+ perform public.set_order_deleted(paid,'orders',false,aid,'');
+ if not exists(select 1 from public.event_registrations where order_id=paid and payment_status='pending_bank_transfer' and status_before_order_delete is null) then raise exception 'Restored order did not restore its registration'; end if;
+ update public.event_registrations set payment_status='paid' where order_id=paid;
+ perform public.set_order_deleted(paid,'orders',true,aid,'DELETE ORDER');
+ if not exists(select 1 from public.event_registrations where order_id=paid and payment_status='paid' and status_before_order_delete is null) then raise exception 'Deleting an order cancelled a paid registration'; end if;
  if has_function_privilege('authenticated','public.admin_edit_dino_manager(uuid,uuid,uuid,timestamptz,jsonb,jsonb,uuid,text,bigint,text)','EXECUTE') or has_table_privilege('authenticated','public.fantasy_notification_jobs','SELECT') or has_column_privilege('authenticated','public.fantasy_entries','fee_waived','UPDATE') then raise exception 'Browser permissions are unsafe'; end if;
 END $$;
 ROLLBACK;
