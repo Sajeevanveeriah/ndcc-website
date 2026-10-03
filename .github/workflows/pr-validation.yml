@@ -110,7 +110,9 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Dependency audit (high and critical = blocking)
-        run: npm audit --audit-level=high
+        # Blocks every high/critical advisory except documented, time-limited
+        # build-tooling exceptions that never reach production dependencies.
+        run: node scripts/check-npm-audit.mjs
 
   # Aggregate gate. Keeps the historical `validate` check name that branch
   # protection may require; every release gate must pass.
