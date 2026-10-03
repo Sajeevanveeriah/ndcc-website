@@ -195,10 +195,12 @@ export async function POST(request: Request) {
           customer_email: sanitiseInput(email),
           customer_phone: sanitiseInput(phone),
           items: songEvent
-            // The first item name is the event's purchase-group key
-            // (lib/orders/purchase-groups.ts), so it stays the event title.
+            // event_id keys the admin purchase group (lib/orders/purchase-groups.ts)
+            // so the order stays with its event if the event is renamed; the
+            // name is the title at purchase time and the fallback key.
             ? songRequests.map((song) => ({
               name: eventRow.title,
+              event_id: eventRow.id,
               size: `Song: ${songLabel(song)}`,
               quantity: 1,
               price: ticketPrice,
@@ -206,6 +208,7 @@ export async function POST(request: Request) {
             : [
               {
                 name: eventRow.title,
+                event_id: eventRow.id,
                 size: 'ticket',
                 quantity: qty,
                 price: ticketPrice,

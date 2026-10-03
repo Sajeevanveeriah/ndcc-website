@@ -40,7 +40,8 @@ assert.equal(isSongRequestEvent(null), false);
 const route = readFileSync(new URL('../app/api/events/route.ts', import.meta.url), 'utf8');
 assert.match(route, /songEvent !== hasSongs/, 'song events require songs and ticket events refuse them');
 assert.match(route, /const totalCents = ticketPriceCents \* unitCount/, 'song entries are charged per song');
-assert.match(route, /name: eventRow\.title,\s*size: `Song: \$\{songLabel\(song\)\}`/, 'each song is its own order line under the event purchase group');
+assert.match(route, /name: eventRow\.title,\s*event_id: eventRow\.id,\s*size: `Song: \$\{songLabel\(song\)\}`/, 'each song is its own order line keyed to its event for the purchase group');
+assert.match(route, /name: eventRow\.title,\s*event_id: eventRow\.id,\s*size: 'ticket'/, 'ticket lines are keyed to their event for the purchase group');
 assert.match(route, /ndcc_register_event_song_entry/, 'songs are stored atomically with the entry');
 assert.match(route, /!songEvent && isMissingRegistrationRpc/, 'song entries never fall back to a plain insert without songs');
 

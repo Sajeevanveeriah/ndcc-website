@@ -14,7 +14,7 @@ export type AllOrdersExportOrder = {
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;
-  items?: Array<{ name?: string; size?: string; quantity?: number }> | null;
+  items?: Array<{ name?: string; size?: string; quantity?: number; event_id?: string | null }> | null;
   total_amount?: number | string | null;
   amount_paid?: number | string | null;
   balance_due?: number | string | null;
