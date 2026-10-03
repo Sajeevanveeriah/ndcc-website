@@ -6,6 +6,7 @@ import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { toCsv } from '@/lib/csv';
 import { bankHoldExpired } from '@/lib/payments/bank-transfer';
+import { BANK_DEPOSIT_QUEUE_FILTER, METHOD_NOT_STATED_LABEL } from '@/lib/payments/method-choice';
 import { attemptPaymentReceiptDelivery, enqueuePaymentReceiptJob } from '@/lib/payments/receipt-delivery';
 import { scheduleAdminAudit } from '@/lib/revisions/server';
 export const dynamic = 'force-dynamic';
@@ -16,14 +17,18 @@ export async function GET(request: Request) {
   if (!admin || admin.role !== 'admin') return reply({ error: 'Administrator access required.' }, 403);
   try {
     const db = createServerClient();
-    const rows: Array<{ id: string; kind: string; reference: string; name: string; amount_cents: number; selected_at: string; hold_expired: boolean }> = [];
+    const rows: Array<{ id: string; kind: string; reference: string; name: string; amount_cents: number; selected_at: string; hold_expired: boolean; method_stated: boolean }> = [];
     for (const kind of ['order', 'raffle', 'dino']) {
       const table = kind === 'order' ? 'orders' : kind === 'raffle' ? 'raffle_orders' : 'fantasy_entries';
-      const fields = kind === 'order' ? 'id,payment_reference,customer_name,balance_due,bank_transfer_selected_at' : kind === 'raffle' ? 'id,payment_reference,customer_name,amount_cents,bank_transfer_selected_at,selected_ticket_numbers' : 'id,payment_reference,entry_fee_cents,bank_transfer_selected_at,fantasy_managers(display_name)';
+      const fields = kind === 'order' ? 'id,payment_reference,customer_name,balance_due,bank_transfer_selected_at,created_at' : kind === 'raffle' ? 'id,payment_reference,customer_name,amount_cents,bank_transfer_selected_at,selected_ticket_numbers' : 'id,payment_reference,entry_fee_cents,bank_transfer_selected_at,fantasy_managers(display_name)';
       const result = await fetchAllPages((from, to) => {
+        // Orders also list unpaid orders with no stated method: their
+        // confirmation emails carried the bank details.
+        if (kind === 'order') return db.from(table).select(fields).or(BANK_DEPOSIT_QUEUE_FILTER)
+          .is('deleted_at', null).neq('order_status', 'cancelled').in('payment_status', ['unpaid','pending','pending_bank_transfer','part_paid']).gt('balance_due', 0)
+          .order('created_at').order('id').range(from, to);
         let query = db.from(table).select(fields).not('bank_transfer_selected_at', 'is', null);
-        if (kind === 'order') query = query.is('deleted_at', null).neq('order_status', 'cancelled').in('payment_status', ['unpaid','pending','pending_bank_transfer','part_paid']).gt('balance_due', 0);
-        else if (kind === 'raffle') query = query.eq('status', 'pending_payment').eq('payment_method', 'bank_transfer');
+        if (kind === 'raffle') query = query.eq('status', 'pending_payment').eq('payment_method', 'bank_transfer');
         else query = query.in('status', ['payment_required','pending','failed','expired']).eq('is_demo', false).eq('fee_waived', false);
         return query.order('bank_transfer_selected_at').order('id').range(from, to);
       });
@@ -33,13 +38,14 @@ export async function GET(request: Request) {
         const manager = Array.isArray(row.fantasy_managers) ? row.fantasy_managers[0] : row.fantasy_managers;
         // Only reverse raffle orders reserve chosen numbers, so only they expire.
         const holdsNumbers = kind === 'raffle' && Array.isArray(row.selected_ticket_numbers) && row.selected_ticket_numbers.length > 0;
-        rows.push({ id: String(row.id), kind, reference: String(row.payment_reference || ''), name: String(row.customer_name || (manager as {display_name?:string} | null)?.display_name || ''), amount_cents: kind === 'order' ? Math.round(Number(row.balance_due)*100) : Number(kind === 'raffle' ? row.amount_cents : row.entry_fee_cents), selected_at: String(row.bank_transfer_selected_at), hold_expired: holdsNumbers && bankHoldExpired(String(row.bank_transfer_selected_at)) });
+        const methodStated = Boolean(row.bank_transfer_selected_at);
+        rows.push({ id: String(row.id), kind, reference: String(row.payment_reference || ''), name: String(row.customer_name || (manager as {display_name?:string} | null)?.display_name || ''), amount_cents: kind === 'order' ? Math.round(Number(row.balance_due)*100) : Number(kind === 'raffle' ? row.amount_cents : row.entry_fee_cents), selected_at: String(row.bank_transfer_selected_at || row.created_at), hold_expired: holdsNumbers && bankHoldExpired(String(row.bank_transfer_selected_at)), method_stated: methodStated });
       }
     }
     rows.sort((a,b) => a.selected_at.localeCompare(b.selected_at));
     if (new URL(request.url).searchParams.get('format') === 'csv') return new NextResponse(toCsv([
-      ['Payment type','Reference','Purchaser','Awaiting AUD','Bank transfer selected at','Status'],
-      ...rows.map(row => [row.kind,row.reference,row.name,(row.amount_cents/100).toFixed(2),row.selected_at,row.hold_expired ? 'Hold expired - numbers released for sale; receipt not confirmed' : 'Purchaser selection only - receipt not confirmed']),
+      ['Payment type','Reference','Purchaser','Awaiting AUD','Bank transfer selected at (or order date when no method stated)','Status'],
+      ...rows.map(row => [row.kind,row.reference,row.name,(row.amount_cents/100).toFixed(2),row.selected_at,row.hold_expired ? 'Hold expired - numbers released for sale; receipt not confirmed' : row.method_stated ? 'Purchaser selection only - receipt not confirmed' : METHOD_NOT_STATED_LABEL]),
     ]), { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="NDCC-Bank-Transfers-To-Reconcile.csv"', 'Cache-Control': 'private, no-store' } });
     return reply({ rows });
   } catch { return reply({ error: 'Bank transfer list could not be loaded.' }, 503); }

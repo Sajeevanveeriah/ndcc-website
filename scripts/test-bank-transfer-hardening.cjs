@@ -235,7 +235,7 @@ async function test(name, fn) { await fn(); passed += 1; console.log(`  ok - ${n
   // ---- Admin route: B1 expired queue, B4 switch, B6 receipts, B9 ------------
   let admin = { id: adminId, role: 'admin' }, rpcCalls = [], rpcResult = { data: true, error: null }, receiptCalls = [], listRows = {}, updates = [];
   const adminDb = {
-    from(table) { const q = { select: () => q, not: () => q, is: () => q, neq: () => q, in: () => q, gt: () => q, eq: () => q, order: () => q, range: () => q, update: value => { updates.push({ table, value }); return q; }, maybeSingle: async () => ({ data: { id } }), insert: async () => ({ error: null }) }; q.table = table; return q; },
+    from(table) { const q = { select: () => q, not: () => q, or: filter => { q.orFilter = filter; return q; }, is: () => q, neq: () => q, in: () => q, gt: () => q, eq: () => q, order: () => q, range: () => q, update: value => { updates.push({ table, value }); return q; }, maybeSingle: async () => ({ data: { id } }), insert: async () => ({ error: null }) }; q.table = table; return q; },
     rpc: async (name, args) => { rpcCalls.push({ name, args }); return typeof rpcResult === 'function' ? rpcResult(name, args) : rpcResult; },
   };
   const adminRoute = load('app/api/admin/payments/bank-transfers/route.ts', {
@@ -265,6 +265,32 @@ async function test(name, fn) { await fn(); passed += 1; console.log(`  ok - ${n
     assert.equal(byId.c.hold_expired, false, 'trailer raffle orders hold no numbers');
     const csv = await (await adminRoute.GET(new Request(`${adminUrl}?format=csv`))).text();
     assert.match(csv, /hold expired/i);
+    listRows = {};
+  });
+  await test('orders with no stated payment method are listed for reconciliation', async () => {
+    let orderFilter;
+    const listing = load('app/api/admin/payments/bank-transfers/route.ts', {
+      'next/server': { NextResponse },
+      '@/lib/auth/guard': { requirePermission: async () => admin },
+      '@/lib/supabase-server': { createServerClient: () => adminDb },
+      '@/lib/supabase-paginate': { fetchAllPages: async build => { const q = build(0, 999); if (q.table === 'orders') orderFilter = q.orFilter; return { data: listRows[q.table] || [] }; } },
+      '@/lib/order-input-validation': { readLimitedJsonObject: async request => ({ ok: true, value: await request.json() }) },
+      '@/lib/payments/receipt-delivery': { enqueuePaymentReceiptJob: async () => ({ ok: true, jobId: 'job' }), attemptPaymentReceiptDelivery: async () => ({ attempted: true, status: 'delivered' }) },
+    });
+    listRows = { orders: [
+      { id: 'kitchen', payment_reference: 'NDCCKIT-2026-000010', customer_name: 'Kitchen buyer', balance_due: 25, bank_transfer_selected_at: null, created_at: '2026-09-29T01:00:00Z' },
+      { id: 'merch', payment_reference: 'NDCCMER-2026-000040', customer_name: 'Bank buyer', balance_due: 60, bank_transfer_selected_at: '2026-09-30T01:00:00Z', created_at: '2026-09-30T00:00:00Z' },
+    ] };
+    const body = await (await listing.GET(new Request(adminUrl))).json();
+    assert.equal(orderFilter, 'bank_transfer_selected_at.not.is.null,and(payment_method_choice.is.null,bar_payment_selected_at.is.null)');
+    const byId = Object.fromEntries(body.rows.map(row => [row.id, row]));
+    assert.equal(byId.kitchen.method_stated, false);
+    assert.equal(byId.kitchen.selected_at, '2026-09-29T01:00:00Z', 'order date stands in when no method was stated');
+    assert.equal(byId.kitchen.amount_cents, 2500);
+    assert.equal(byId.merch.method_stated, true);
+    const csv = await (await listing.GET(new Request(`${adminUrl}?format=csv`))).text();
+    assert.match(csv, /NDCCKIT-2026-000010.*No payment method stated - bank details were sent; receipt not confirmed/);
+    assert.match(csv, /NDCCMER-2026-000040.*Purchaser selection only - receipt not confirmed/);
     listRows = {};
   });
   await test('B6 confirmation processes the receipt job immediately, best-effort', async () => {

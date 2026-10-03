@@ -10,7 +10,7 @@ import Button from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
 import { ShoppingBag } from 'lucide-react';
 import { parseAudInputToCents } from '@/lib/payments/manual-payment';
-import { effectivePaymentChoice } from '@/lib/payments/method-choice';
+import { awaitsBankDeposit, effectivePaymentChoice } from '@/lib/payments/method-choice';
 import OrdersTable from './components/OrdersTable';
 import PaymentReportExport from './components/PaymentReportExport';
 import AllOrdersExport from './components/AllOrdersExport';
@@ -230,7 +230,8 @@ export default function AdminOrdersPage() {
     if (o.deleted_at) return false;
     if (filterStatus === 'processed' && !o.processed) return false;
     if (filterStatus === 'pending' && o.processed) return false;
-    if (filterStatus === 'bank_transfer' && (!o.bank_transfer_selected_at || balanceDue(o) <= 0)) return false;
+    // Same rule as the bank transfer queue: bank chosen, or no method stated.
+    if (filterStatus === 'bank_transfer' && (!awaitsBankDeposit(o) || o.order_status === 'cancelled' || !['unpaid', 'pending', 'pending_bank_transfer', 'part_paid'].includes(o.payment_status) || balanceDue(o) <= 0)) return false;
     if (filterStatus === 'pay_at_club' && (effectivePaymentChoice(o) !== 'pay_at_club' || balanceDue(o) <= 0)) return false;
     if (filterStatus.startsWith('method:') && (effectivePaymentChoice(o) || 'none') !== filterStatus.slice(7)) return false;
     if (filterStatus === 'paid' && o.payment_status !== 'paid') return false;
@@ -241,7 +242,7 @@ export default function AdminOrdersPage() {
   });
 
   const statusOptions = [
-    { value: 'bank_transfer', label: 'Bank transfer selected - to reconcile' },
+    { value: 'bank_transfer', label: 'Bank transfer or no method stated - to reconcile' },
     { value: 'pay_at_club', label: 'Pay at the club - awaiting payment' },
     { value: 'method:stripe', label: 'Method: Stripe checkout' },
     { value: 'method:bank_transfer', label: 'Method: bank transfer' },

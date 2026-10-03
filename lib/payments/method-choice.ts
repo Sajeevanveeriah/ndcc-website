@@ -38,6 +38,22 @@ export function effectivePaymentChoice(order: ChoiceFields): PaymentMethodChoice
   return null;
 }
 
+/**
+ * Whether an unpaid order belongs in the bank deposit reconciliation queue:
+ * the purchaser (or committee) chose bank deposit, or no method was stated at
+ * all. Event and kitchen confirmations email the bank details without
+ * recording a choice, so a deposit can arrive for an order that never
+ * "selected" bank transfer.
+ */
+export function awaitsBankDeposit(order: ChoiceFields): boolean {
+  return Boolean(order.bank_transfer_selected_at) || effectivePaymentChoice(order) === null;
+}
+
+/** PostgREST `or` filter matching awaitsBankDeposit (payment_method_choice is constrained to the known methods). */
+export const BANK_DEPOSIT_QUEUE_FILTER = 'bank_transfer_selected_at.not.is.null,and(payment_method_choice.is.null,bar_payment_selected_at.is.null)';
+
+export const METHOD_NOT_STATED_LABEL = 'No payment method stated - bank details were sent; receipt not confirmed';
+
 export function paymentChoiceLabel(order: ChoiceFields): string {
   const choice = effectivePaymentChoice(order);
   return choice ? PAYMENT_METHOD_CHOICE_LABELS[choice] : 'Not recorded';

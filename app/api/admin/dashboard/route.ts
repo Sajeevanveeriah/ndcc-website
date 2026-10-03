@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { requirePermissionResult } from '@/lib/auth/guard';
 import { isFullAccessRole } from '@/lib/auth/permissions';
 import { attentionDefinitionsFor, sumCounts, type AttentionItem, type AttentionKey } from '@/lib/admin-dashboard-attention';
+import { BANK_DEPOSIT_QUEUE_FILTER } from '@/lib/payments/method-choice';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ const ATTENTION_COUNTS: Record<AttentionKey, (supabase: ServerClient) => Promise
   pendingMemberships: (supabase) => safeCount(() => supabase.from('club_members').select('id', { count: 'exact', head: true }).eq('membership_status', 'pending')),
   // Same filters as /api/admin/payments/bank-transfers.
   unconfirmedBankDeposits: async (supabase) => sumCounts(await Promise.all([
-    safeCount(() => supabase.from('orders').select('id', { count: 'exact', head: true }).not('bank_transfer_selected_at', 'is', null).is('deleted_at', null).neq('order_status', 'cancelled').in('payment_status', ['unpaid', 'pending', 'pending_bank_transfer', 'part_paid']).gt('balance_due', 0)),
+    safeCount(() => supabase.from('orders').select('id', { count: 'exact', head: true }).or(BANK_DEPOSIT_QUEUE_FILTER).is('deleted_at', null).neq('order_status', 'cancelled').in('payment_status', ['unpaid', 'pending', 'pending_bank_transfer', 'part_paid']).gt('balance_due', 0)),
     safeCount(() => supabase.from('raffle_orders').select('id', { count: 'exact', head: true }).not('bank_transfer_selected_at', 'is', null).eq('status', 'pending_payment').eq('payment_method', 'bank_transfer')),
     safeCount(() => supabase.from('fantasy_entries').select('id', { count: 'exact', head: true }).not('bank_transfer_selected_at', 'is', null).in('status', ['payment_required', 'pending', 'failed', 'expired']).eq('is_demo', false).eq('fee_waived', false)),
   ])),
