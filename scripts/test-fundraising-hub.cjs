@@ -11,7 +11,8 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const source = read('app/fundraising/page.tsx');
-const lines = source.split('\n');
+// Split on CRLF too so the checks pass on Windows checkouts (core.autocrlf).
+const lines = source.split(/\r?\n/);
 let passed = 0;
 function check(name, fn) {
   fn();

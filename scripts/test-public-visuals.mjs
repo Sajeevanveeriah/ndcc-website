@@ -68,7 +68,7 @@ assert.match(home, /selectMatchDayBoard\(/, 'match-day board uses the tested sel
 assert.match(home, /selectNextEvent\(events, Date\.now\(\)\)/);
 assert.match(home, /\.from\('calendar_events'\)\.select\('status'\)\.eq\('source_event_id', eventId\)/, 'hero reads the event\'s own calendar status, not the capped preview list');
 assert.match(home, /const status = await linkedCalendarStatus\(event\.id\)/);
-assert.match(home, /started \|\| status === 'postponed' \|\| status === 'unknown' \? 'Event details'/, 'no booking once started, postponed or unreadable');
+assert.match(home, /started \|\| status === 'postponed' \|\| status === 'unknown' \|\| event\.online_registration_enabled === false \? 'Event details'/, 'no booking once started, postponed, unreadable or switched to manual registration');
 assert.match(home, /const started = Date\.parse\(event\.date\) <= Date\.now\(\);/);
 assert.match(home, /status === 'cancelled' \? \(\s*<Link href="\/calendar"/, 'no booking button for a cancelled event');
 assert.match(home, /Events could not be loaded right now/);

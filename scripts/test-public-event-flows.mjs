@@ -73,7 +73,8 @@ const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.res
       assert.equal(table, 'events');
       // published_at is the optional scheduling column (CMS scheduling migration).
       // registration_mode selects song-request entry (20260927140000_event_song_requests).
-      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at', 'registration_mode'];
+      // online_registration_enabled is the per-event online switch (20261003030907).
+      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at', 'registration_mode', 'online_registration_enabled'];
       assert.ok(selected.split(',').every(column => allowed.includes(column)), 'event reads must match the deployed events schema');
       return { data: row, error: readError };
     },
@@ -231,4 +232,21 @@ assert.deepEqual(deletions, ['orders'], 'a refused paid registration removes its
 rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
 row = { ...row, ticket_price: 0, capacity: undefined };
 console.log('PASS concurrent capacity refusal from the RPC maps to 409 and cleans up the order');
+
+// Per-event switch: when the club takes registrations manually, the website
+// refuses entries before writing an order, a registration or any email.
+for (const offlineRow of [{ ...row, ticket_price: 10, online_registration_enabled: false }, { ...row, ticket_price: 10, registration_mode: 'song_requests', online_registration_enabled: false }]) {
+  row = offlineRow;
+  writes = []; deletions = []; rpcCalls = []; sent = [];
+  response = row.registration_mode === 'song_requests' ? await submitSongs([{ title: 'Go', artist: 'The Chemical Brothers' }]) : await submit();
+  assert.equal(response.status, 409);
+  assert.match((await response.json()).error, /Online registration is not available for this event/);
+  assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0); assert.equal(sent.length, 0); assert.equal(deletions.length, 0);
+}
+row = { ...row, ticket_price: 0, online_registration_enabled: true };
+delete row.registration_mode;
+assert.notEqual((await submit()).status, 409, 'events with the switch on still take registrations');
+row = { ...row };
+delete row.online_registration_enabled;
+console.log('PASS events switched to manual registration refuse online entries and write nothing');
 

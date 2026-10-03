@@ -99,6 +99,7 @@ export const validateEventPayload = combine(
   (payload) => supplied(payload, 'registration_mode') && !['tickets', 'song_requests'].includes(String(payload.registration_mode))
     ? 'Registration type must be tickets or song requests.'
     : null,
+  bool('online_registration_enabled', 'Online registration and payment'),
   bool('published', 'Published'),
 );
 
