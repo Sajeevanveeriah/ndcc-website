@@ -718,6 +718,8 @@ Scheduled routes:
 | `/api/cron/dino-pricing` | `5 23 * * *` | Dino Coach pricing |
 | `/api/cron/dino-registration` | `0 22 * * *` | Dino Coach registration notices |
 | `/api/cron/apparel-reminders` | `0 10 * * *` | Apparel balance reminders |
+| `/api/cron/gallery-metadata` | `20 5 * * *` | Strip camera metadata from older gallery uploads |
+| `/api/cron/spin-wheel-passes` | `25 5 * * *` | Spin the Wheel 60-day safety net for spins and emails |
 
 Operational rules:
 

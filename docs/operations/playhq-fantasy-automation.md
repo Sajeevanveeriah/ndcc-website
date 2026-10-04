@@ -43,9 +43,10 @@ controls remain for exceptional intervention.
 ## Activation (Vercel dashboard)
 
 Required server-only env vars (values never exposed to the browser):
-`PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_TENANT`, `CRON_SECRET`,
-and `PLAYHQ_FANTASY_SYNC_ENABLED=true` (the safety switch — leave `false` to
-keep automation dormant). Optional: `PLAYHQ_FANTASY_SYNC_BATCH_SIZE`.
+`PLAYHQ_API_KEY`, `PLAYHQ_ORGANISATION_ID`, `PLAYHQ_TENANT` and `CRON_SECRET`.
+`PLAYHQ_FANTASY_SYNC_ENABLED` is the safety switch: automation runs unless it
+is set to exactly `false` (`lib/playhq/config.ts`). Optional:
+`PLAYHQ_FANTASY_SYNC_BATCH_SIZE`.
 
 ## Rollback
 
@@ -54,6 +55,6 @@ keep automation dormant). Optional: `PLAYHQ_FANTASY_SYNC_BATCH_SIZE`.
   `PLAYHQ_FANTASY_SYNC_ENABLED=false` (cron) — the CMS button remains
   available; or set `fantasy_seasons.auto_sync_enabled = false` per season.
 - DB rollback SQL is documented at the top of
-  `supabase/migrations/20260714104000_fantasy_sync_automation.sql`. No
+  `supabase/migrations/20260715000755_fantasy_sync_automation.sql`. No
   existing data is modified by the migration (only additive columns/tables
   and one flag update on `legacy-unverified`).
