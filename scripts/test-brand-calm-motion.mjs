@@ -71,15 +71,15 @@ check('retired motion modules are gone', () => {
   for (const file of [
     'components/common/motion/HeroParallax.tsx',
     'components/common/motion/MaskReveal.tsx',
+    'components/common/motion/TiltCard.tsx',
+    'components/common/motion/ParallaxLayer.tsx',
     'components/common/RouteSettle.tsx',
     'lib/motion-tokens.ts',
   ]) assert.ok(!existsSync(file), `${file} should be deleted`);
 });
 
-check('tilt, parallax and counter wrappers render statically', () => {
+check('counter wrapper renders statically', () => {
   for (const file of [
-    'components/common/motion/TiltCard.tsx',
-    'components/common/motion/ParallaxLayer.tsx',
     'components/common/AnimatedCounter.tsx',
   ]) {
     const source = read(file);
