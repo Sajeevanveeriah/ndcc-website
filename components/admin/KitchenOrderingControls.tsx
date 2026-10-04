@@ -31,7 +31,7 @@ export default function KitchenOrderingControls() {
     <p className="text-sm">Meals are served on Thursdays. All opening and closing times are Australia/Melbourne. Collection times remain Juniors 6:00 pm and Seniors 7:30 pm.</p>
     <p className="font-semibold">Saved status: {saved ? saved.enabled ? 'Enabled - weekly schedule applies' : 'Disabled - orders closed' : 'Loading settings...'}</p>
     {settings && <form onSubmit={event => { event.preventDefault(); if (validKitchenSettings(settings)) void save(settings); else setMessage('Choose an opening time before the closing time.'); }} className="space-y-4">
-      <fieldset disabled={busy} className="space-y-4">
+      <fieldset disabled={busy} className="space-y-4 pt-4">
         <legend className="sr-only">Ordering availability and weekly schedule</legend>
         <label className="flex items-center gap-3"><input type="checkbox" checked={settings.enabled} onChange={event => setSettings({ ...settings, enabled: event.target.checked })} className="h-5 w-5" />Enable online meal orders</label>
         <p className="text-sm text-content-secondary">Enable or disable orders whenever needed. When enabled, the weekly schedule below applies. Changes apply when saved.</p>

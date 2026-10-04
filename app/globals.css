@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+/* Tailwind CSS v4 scans the whole repository for class names. Tests, docs and
+   SQL only mention class names, so keep them out of the generated CSS. */
+@source not '../scripts';
+@source not '../docs';
+@source not '../supabase';
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -980,12 +986,6 @@
 
 @utility nd-mini-row {
   @apply flex gap-3.5 py-3;
-}
-
-@utility nd-mini-meta {
-  .nd-mini &span {
-    @apply block text-sm text-content-muted;
-  }
 }
 
 @utility nd-cal-tile {

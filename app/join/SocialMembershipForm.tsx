@@ -99,7 +99,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
     <div className="nd-card min-w-0 p-5 sm:p-[26px]">
         {heading}
         <form onSubmit={submit} className="space-y-5">
-          <fieldset disabled={loading || Boolean(orderConfirmation)} className="min-w-0 space-y-4">
+          <fieldset disabled={loading || Boolean(orderConfirmation)} className="min-w-0 space-y-4 pt-4">
           <input type="text" className="hidden" value={formData.hp_field} onChange={(e) => setFormData((p) => ({ ...p, hp_field: e.target.value }))} />
           <Input id="full_name" label="Full name" value={formData.full_name} onChange={(e) => setFormData((p) => ({ ...p, full_name: e.target.value }))} required />
           <Input id="email" label="Email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} required />
