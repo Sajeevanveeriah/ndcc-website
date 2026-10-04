@@ -47,14 +47,14 @@ export default function DinoFeedbackForm() {
   </div>;
 
   return <form onSubmit={submit} className="space-y-5 rounded-xl border border-edge-subtle bg-surface-elevated p-5 sm:p-6" aria-busy={busy}>
-    <fieldset disabled={busy} className="space-y-5">
+    <fieldset disabled={busy} className="space-y-5 pt-5">
       <legend className="sr-only">Your Dino Coach feedback</legend>
+      <div hidden aria-hidden="true"><label htmlFor="feedback-website">Leave this field empty</label><input id="feedback-website" name="website" tabIndex={-1} autoComplete="off" value={hpField} onChange={event => setHpField(event.target.value)} /></div>
       <Input id="feedback-name" label="Your name" autoComplete="name" required maxLength={100} value={name} onChange={event => setName(event.target.value)} />
       <Input id="feedback-email" label="Your email - so we can reply" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
       <Select id="feedback-kind" label="What would you like to share?" required options={[...FEEDBACK_KINDS]} value={kind} onChange={event => setKind(event.target.value)} />
       <Textarea id="feedback-message" label="Your message" required minLength={10} maxLength={5000} rows={6} aria-describedby="feedback-help" value={message} onChange={event => setMessage(event.target.value)} />
       <p id="feedback-help" className="text-sm text-content-muted">If something went wrong, tell us which page you were on and what happened. Please don&apos;t include passwords or payment details.</p>
-      <div hidden aria-hidden="true"><label htmlFor="feedback-website">Leave this field empty</label><input id="feedback-website" name="website" tabIndex={-1} autoComplete="off" value={hpField} onChange={event => setHpField(event.target.value)} /></div>
     </fieldset>
     {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
     <p className="text-sm text-content-muted">Your feedback is private and won&apos;t be published on the site. You don&apos;t need to sign in.</p>

@@ -10,13 +10,11 @@ import { execSync } from 'node:child_process';
 
 const ACCEPTED = {
   // braces <= 3.0.3: stack exhaustion on deeply nested brace patterns. No
-  // patched release exists. Reached only through build tooling
-  // (tailwindcss 3 -> chokidar/fast-glob/micromatch, eslint-config-next ->
-  // @next/eslint-plugin-next -> fast-glob -> micromatch), where the patterns
-  // are the project's own config globs, never user input. Remove once braces
-  // ships a fix, or once neither path remains: tailwindcss 4 has no
-  // dependencies and removes the first, but eslint-config-next 15 still pins
-  // fast-glob 3.3.1 and keeps braces in the tree.
+  // patched release exists. Reached only through lint tooling
+  // (eslint-config-next -> @next/eslint-plugin-next -> fast-glob 3.3.1 ->
+  // micromatch), where the patterns are the project's own globs, never user
+  // input; Tailwind CSS 4 removed the other path. Remove once braces ships a
+  // fix or @next/eslint-plugin-next stops pinning fast-glob (16.3.8 still does).
   'GHSA-vfj7-8cjw-p6xm': { reviewBy: '2026-12-31' },
 };
 

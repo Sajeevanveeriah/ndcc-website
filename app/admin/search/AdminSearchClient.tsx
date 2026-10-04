@@ -78,8 +78,8 @@ export default function AdminSearchClient({ initialQuery }: { initialQuery: stri
           <ul className="divide-y">
             {group.items.map((item) => (
               <li key={`${item.source}-${item.id}`} className="px-4 py-3">
-                <Link href={item.href} className="font-semibold underline break-words">{item.title}</Link>
-                {item.detail && <p className="text-sm text-content-muted break-words">{item.detail}</p>}
+                <Link href={item.href} className="font-semibold underline wrap-break-word">{item.title}</Link>
+                {item.detail && <p className="text-sm text-content-muted wrap-break-word">{item.detail}</p>}
               </li>
             ))}
           </ul>

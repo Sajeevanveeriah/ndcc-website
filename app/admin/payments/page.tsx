@@ -139,7 +139,7 @@ export default function AdminPaymentsPage() {
               <p className="text-sm text-content-muted">{tx.transaction_reference || '(no reference)'} · {new Date(tx.transaction_date).toLocaleDateString()}</p>
             </div>
             <div className="flex items-center gap-2">
-              <input id={`order-${tx.id}`} className="border rounded px-2 py-1 text-sm" placeholder="Order ID" />
+              <input id={`order-${tx.id}`} className="border rounded-sm px-2 py-1 text-sm" placeholder="Order ID" />
               <Button size="sm" onClick={() => {
                 const input = document.getElementById(`order-${tx.id}`) as HTMLInputElement | null;
                 if (input?.value) confirm(tx.id, input.value);

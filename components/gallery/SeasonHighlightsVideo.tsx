@@ -98,7 +98,7 @@ export default function SeasonHighlightsVideo({ video: clip = SEASON_SLIDESHOW }
           <button
             type="button"
             onClick={() => { setFailed(false); setStarted(true); }}
-            className="group absolute inset-0 block h-full w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-maroon-500"
+            className="group absolute inset-0 block h-full w-full focus:outline-hidden focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-maroon-500"
             aria-label={`Play ${clip.title} ${clip.kind.toLowerCase()} video (${clip.durationSpoken}, with sound)`}
           >
             <Image

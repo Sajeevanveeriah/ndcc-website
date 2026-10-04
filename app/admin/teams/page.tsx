@@ -184,9 +184,9 @@ export default function AdminTeamsPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : teams.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
@@ -268,7 +268,7 @@ export default function AdminTeamsPage() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={5}
-              className="w-full rounded-lg border border-edge-strong px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent"
+              className="w-full rounded-lg border border-edge-strong px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-maroon-500 focus:border-transparent"
             />
             {formErrors.description && <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>}
           </div>

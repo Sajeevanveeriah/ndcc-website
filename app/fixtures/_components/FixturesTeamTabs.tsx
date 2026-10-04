@@ -46,7 +46,7 @@ export default function FixturesTeamTabs({ tabs, label, idPrefix = 'fixtures', c
               tabIndex={selected ? 0 : -1}
               onClick={() => setActive(index)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className={`min-h-[44px] rounded-lg border ${compact ? 'px-3 py-1.5' : 'px-4 py-2'} font-body text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${selected
+              className={`min-h-[44px] rounded-lg border ${compact ? 'px-3 py-1.5' : 'px-4 py-2'} font-body text-sm font-semibold focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${selected
                 ? 'border-maroon-700 bg-maroon-700 text-white dark:border-maroon-300 dark:bg-maroon-300 dark:text-maroon-950'
                 : 'border-edge-strong bg-surface-card text-content-primary hover:border-maroon-700 dark:hover:border-maroon-300'}`}
             >
@@ -63,7 +63,7 @@ export default function FixturesTeamTabs({ tabs, label, idPrefix = 'fixtures', c
           aria-labelledby={`${idPrefix}-tab-${index}`}
           hidden={index !== active}
           tabIndex={0}
-          className={`${compact ? 'space-y-6' : 'space-y-8'} focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-4 rounded-lg`}
+          className={`${compact ? 'space-y-6' : 'space-y-8'} focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-4 rounded-lg`}
         >
           {tab.content}
         </div>

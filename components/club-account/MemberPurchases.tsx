@@ -29,7 +29,7 @@ export default function MemberPurchases({ email }: { email: string }) {
     finally { setPaying(''); }
   }
   return <section aria-labelledby="member-purchases-heading" className="space-y-5">
-    <div><h2 id="member-purchases-heading" className="text-2xl font-bold">Your purchases</h2><p className="mt-2 break-words text-content-secondary">Website orders placed with {email}. Purchases under another email address will not appear here.</p></div>
+    <div><h2 id="member-purchases-heading" className="text-2xl font-bold">Your purchases</h2><p className="mt-2 wrap-break-word text-content-secondary">Website orders placed with {email}. Purchases under another email address will not appear here.</p></div>
     <div className="flex flex-wrap items-end gap-3"><label className="flex-1">Purchase type<select className="form-input mt-1 w-full" value={kind} onChange={event => { setKind(event.target.value); setPage(0); }}><option value="orders">Orders and event purchases</option><option value="raffle">Raffle tickets</option></select></label><Button variant="secondary" onClick={() => setRetry(retry + 1)}>Refresh purchases</Button></div>
     {error && <p role="alert" className="rounded-lg border border-red-300 p-3">{error}</p>}
     {!result && !error && <p role="status">Loading your purchases...</p>}

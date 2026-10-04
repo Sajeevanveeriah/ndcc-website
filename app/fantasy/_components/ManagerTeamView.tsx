@@ -63,9 +63,9 @@ function TeamColumn({ team, shared, sharedLabel, ownTeam = false, wide }: { team
   const grid = wide ? 'grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid gap-3 grid-cols-2 sm:grid-cols-3';
   const headingId = `team-${team.managerId}`;
   return <section aria-labelledby={headingId} className="space-y-5 min-w-0">
-    <div className="rounded-2xl border border-maroon-200 dark:border-maroon-800 bg-surface-card p-5 shadow-sm">
+    <div className="rounded-2xl border border-maroon-200 dark:border-maroon-800 bg-surface-card p-5 shadow-xs">
       <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">{ownTeam ? 'Your team' : 'Manager team'}</p>
-      <h2 id={headingId} className="mt-1 text-2xl font-display font-bold text-content-primary break-words">{team.teamName}</h2>
+      <h2 id={headingId} className="mt-1 text-2xl font-display font-bold text-content-primary wrap-break-word">{team.teamName}</h2>
       <p className="font-body text-content-secondary">Manager: {team.displayName}</p>
       {team.roundName && <p className="mt-1 text-sm font-body text-content-muted">Team locked for {team.roundName}</p>}
       <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-edge-subtle pt-4 text-center">
@@ -93,12 +93,12 @@ function PlayerCard({ pick, shared, sharedLabel }: { pick: TeamViewPick; shared:
   const badge = pick.isCaptain ? 'C' : pick.isViceCaptain ? 'VC' : '';
   const badgeLabel = pick.isCaptain ? 'Captain' : pick.isViceCaptain ? 'Vice-captain' : '';
   return <article aria-label={`${pick.displayName}, ${pick.slotLabel}${badgeLabel ? `, ${badgeLabel}` : ''}`}
-    className={`relative flex h-full flex-col rounded-xl border bg-surface-card p-3 shadow-sm ${shared ? 'border-maroon-600 ring-2 ring-maroon-600/30 dark:border-maroon-300' : 'border-edge-subtle'}`}>
+    className={`relative flex h-full flex-col rounded-xl border bg-surface-card p-3 shadow-xs ${shared ? 'border-maroon-600 ring-2 ring-maroon-600/30 dark:border-maroon-300' : 'border-edge-subtle'}`}>
     <div className="flex items-start justify-between gap-2">
-      <span className="rounded bg-maroon-800 px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">{role}</span>
+      <span className="rounded-sm bg-maroon-800 px-1.5 py-0.5 text-xs font-bold tracking-wide text-white">{role}</span>
       {badge && <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-maroon-800 px-1.5 text-xs font-bold text-white dark:bg-maroon-200 dark:text-maroon-900" aria-hidden="true">{badge}</span>}
     </div>
-    <h4 className="mt-2 font-display text-base font-bold leading-tight break-words">{pick.displayName}</h4>
+    <h4 className="mt-2 font-display text-base font-bold leading-tight wrap-break-word">{pick.displayName}</h4>
     <p className="text-xs text-content-muted">{pick.slotLabel}{player && player.role !== pick.assignedRole ? ` - usually ${(CRICKET_ROLE_LABELS[player.role] || player.role).toLowerCase()}` : ''}</p>
     {player?.team_label && <p className="text-xs text-content-muted">{player.team_label}</p>}
     {player ? <div className="mt-2 grid grid-cols-3 gap-1 border-y border-edge-subtle py-2 text-center">

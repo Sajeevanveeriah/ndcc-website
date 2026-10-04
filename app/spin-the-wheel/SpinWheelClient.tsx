@@ -160,7 +160,7 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
       : wheel.phase === 'ended' ? 'This wheel has closed.' : '';
 
   return <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
-    <div className="mx-auto w-full max-w-[36rem]">
+    <div className="mx-auto w-full max-w-xl">
       <SpinWheelGraphic segments={segments} rotation={rotation} reducedMotion={reducedMotion} label={`${wheel.name} with ${segments.length} segments`} />
     </div>
     <div className="space-y-5">
@@ -182,7 +182,7 @@ export default function SpinWheelClient({ wheel, segments }: Props) {
           <p id="spin-help" className="text-sm text-content-muted">The result is recorded as soon as you press the button.</p>
           {me.via === 'pass' && <button type="button" className="text-sm underline" onClick={forgetPass}>Stop using this spin link on this device</button>}
         </>}
-        <div aria-live="assertive" className="min-h-[3rem]">
+        <div aria-live="assertive" className="min-h-12">
           {spinError && <p role="alert" className="font-semibold text-red-700">{spinError}</p>}
           {result && <div className="rounded-lg bg-maroon-700 p-4 text-white">
             <p className="text-sm uppercase tracking-widest">Result {result.reference}</p>

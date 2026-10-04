@@ -40,7 +40,7 @@ export default function TeamNameEditor({ manager, onSaved }: { manager: TeamName
           <Button size="sm" variant="secondary" onClick={() => { setDraft(manager.team_name); setFeedback(null); setEditing(true); }}>Change team name</Button>
         )}
       </div>
-      {!editing && <p className="font-body text-lg font-semibold text-content-primary break-words">{manager.team_name}</p>}
+      {!editing && <p className="font-body text-lg font-semibold text-content-primary wrap-break-word">{manager.team_name}</p>}
       {manager.team_name_locked && <p className="text-sm font-body text-content-muted">The league manager set this name and locked it. Contact the club if it needs to change.</p>}
       {!manager.team_name_locked && manager.team_name_status === 'review_required' && !editing && <p className="text-sm font-body text-content-muted">This name is waiting for committee approval. You can choose a different name instead.</p>}
       {editing && (

@@ -39,8 +39,8 @@ export default function CommitteeMinuteDetailPage() {
   if (loading) {
     return (
       <div className="container-width py-10 space-y-4 animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/2" />
-        <div className="h-4 bg-gray-200 rounded w-1/4" />
+        <div className="h-8 bg-gray-200 rounded-sm w-1/2" />
+        <div className="h-4 bg-gray-200 rounded-sm w-1/4" />
         <div className="h-64 bg-surface-muted rounded-xl" />
       </div>
     );
@@ -57,7 +57,7 @@ export default function CommitteeMinuteDetailPage() {
 
   return (
     <div className="container-width py-10 space-y-4">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-2">
+      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
         ← Back
       </Button>
       <h1 className="text-3xl font-display font-bold">{minute.title}</h1>

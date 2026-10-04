@@ -67,7 +67,7 @@ export default function WheelDrawScreen() {
   const revealPrize = reveal ? prizeById.get(reveal.prize_id) : null;
   const buttonStyle = { background: GOLD, color: NAVY } as const;
 
-  return <div className="fixed inset-0 z-[100] overflow-auto" style={{ background: NAVY, color: CREAM }}>
+  return <div className="fixed inset-0 z-100 overflow-auto" style={{ background: NAVY, color: CREAM }}>
     {/* This fullscreen display covers the site header, so it shows the maintenance notice itself. */}
     <MaintenanceBanner standalone />
     <div className="mx-auto flex min-h-full max-w-[1920px] flex-col gap-6 p-6 lg:flex-row lg:items-center">

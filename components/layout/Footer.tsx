@@ -194,7 +194,7 @@ export default async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Built by Sajeevan Veeriah (opens portfolio in a new tab)"
-                  className="text-white/80 hover:text-white hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300"
+                  className="text-white/80 hover:text-white hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300"
                 >
                   Built by Sajeevan Veeriah
                 </a>

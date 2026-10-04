@@ -46,7 +46,7 @@ export default async function ContactPage() {
     settings.playhq_url ? { href: settings.playhq_url, label: 'PlayHQ' } : null,
   ].filter((link): link is { href: string; label: string } => link !== null);
 
-  const valueLinkClass = 'font-body font-medium text-maroon-700 underline underline-offset-[3px] transition-colors hover:text-maroon-500 dark:text-maroon-200 break-words';
+  const valueLinkClass = 'font-body font-medium text-maroon-700 underline underline-offset-[3px] transition-colors hover:text-maroon-500 dark:text-maroon-200 wrap-break-word';
 
   return (
     <>
@@ -66,7 +66,7 @@ export default async function ContactPage() {
         <ScrollReveal className="nd-wrap nd-two-col">
           {/* Form Column */}
           <div className="nd-card min-w-0 p-5 sm:p-[26px]">
-            <h2 className="mb-2 font-display font-semibold tracking-[-0.025em] text-content-primary" style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>Send Us a Message</h2>
+            <h2 className="mb-2 font-display font-semibold tracking-tight text-content-primary" style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>Send Us a Message</h2>
             <p className="mb-6 font-body text-content-muted">{formIntro}</p>
             <ContactForm urgentEmail={URGENT_EMAIL} />
           </div>

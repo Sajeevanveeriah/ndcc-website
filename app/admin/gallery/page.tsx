@@ -41,7 +41,7 @@ export default function AdminGalleryPage() {
             aria-selected={activeTab === tab.key}
             aria-controls={`gallery-panel-${tab.key}`}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 -mb-px transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 ${
+            className={`px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 -mb-px transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 ${
               activeTab === tab.key
                 ? 'border-maroon-700 text-maroon-800 dark:border-maroon-300 dark:text-maroon-200'
                 : 'border-transparent text-content-muted hover:text-content-primary'
@@ -52,14 +52,16 @@ export default function AdminGalleryPage() {
         ))}
       </div>
 
-      <div id="gallery-panel-albums" role="tabpanel" aria-labelledby="gallery-tab-albums" hidden={activeTab !== 'albums'}>
-        <AlbumsPanel onAlbumsChanged={bumpRefresh} />
-      </div>
-      <div id="gallery-panel-upload" role="tabpanel" aria-labelledby="gallery-tab-upload" hidden={activeTab !== 'upload'}>
-        <BulkUploadPanel onUploadsChanged={bumpRefresh} />
-      </div>
-      <div id="gallery-panel-images" role="tabpanel" aria-labelledby="gallery-tab-images" hidden={activeTab !== 'images'}>
-        <ImagesPanel refreshToken={refreshToken} onImagesChanged={bumpRefresh} />
+      <div>
+        <div id="gallery-panel-albums" role="tabpanel" aria-labelledby="gallery-tab-albums" hidden={activeTab !== 'albums'}>
+          <AlbumsPanel onAlbumsChanged={bumpRefresh} />
+        </div>
+        <div id="gallery-panel-upload" role="tabpanel" aria-labelledby="gallery-tab-upload" hidden={activeTab !== 'upload'}>
+          <BulkUploadPanel onUploadsChanged={bumpRefresh} />
+        </div>
+        <div id="gallery-panel-images" role="tabpanel" aria-labelledby="gallery-tab-images" hidden={activeTab !== 'images'}>
+          <ImagesPanel refreshToken={refreshToken} onImagesChanged={bumpRefresh} />
+        </div>
       </div>
     </div>
   );

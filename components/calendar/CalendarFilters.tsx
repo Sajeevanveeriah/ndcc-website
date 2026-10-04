@@ -32,7 +32,7 @@ export default function CalendarFilters({ activeTypes, onTypesChange, search, on
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search events by title, location or details"
           aria-label="Search calendar events"
-          className="w-full rounded-lg border border-edge-subtle bg-surface-card py-2 pl-9 pr-3 text-sm font-body text-content-primary placeholder:text-gray-400 focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-500/30"
+          className="w-full rounded-lg border border-edge-subtle bg-surface-card py-2 pl-9 pr-3 text-sm font-body text-content-primary placeholder:text-gray-400 focus:border-maroon-500 focus:outline-hidden focus:ring-2 focus:ring-maroon-500/30"
         />
       </div>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by event type">

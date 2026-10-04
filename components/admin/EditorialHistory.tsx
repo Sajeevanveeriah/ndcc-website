@@ -41,7 +41,7 @@ export default function EditorialHistory({ resource, id, onSelect }: { resource:
     onSelect(entry.snapshot);
     setMessage(`Version ${entry.revision} is loaded into the form. Review it, then save to restore it.`);
   }
-  return <div className="my-4 rounded border border-edge-subtle p-3 text-sm">
+  return <div className="my-4 rounded-sm border border-edge-subtle p-3 text-sm">
     <button type="button" className="min-h-11 font-semibold underline" onClick={load} disabled={busy}>{busy ? 'Loading...' : loaded ? 'Refresh previous versions' : 'View previous versions'}</button>
     <p className="text-content-muted">Compare a saved version with the current one, or restore it into this form to review and save. Version history starts with this update.</p>
     {message && <p role="status" className="mt-2">{message}</p>}
@@ -67,7 +67,7 @@ export default function EditorialHistory({ resource, id, onSelect }: { resource:
           : changes.length === 0
             ? <p className="mt-2 text-content-muted">This version matches the current saved version.</p>
             : <div className="mt-2 overflow-x-auto">
-              <table className="w-full min-w-[32rem] border-collapse text-left text-xs">
+              <table className="w-full min-w-lg border-collapse text-left text-xs">
                 <caption className="sr-only">Differences between version {entry.revision} and the current saved version</caption>
                 <thead><tr className="border-b border-edge-subtle">
                   <th scope="col" className="py-1 pr-2 font-semibold">Field</th>
@@ -76,8 +76,8 @@ export default function EditorialHistory({ resource, id, onSelect }: { resource:
                 </tr></thead>
                 <tbody>{changes.map((change) => <tr key={change.field} className="border-b border-edge-subtle align-top">
                   <th scope="row" className="py-1 pr-2 font-medium">{fieldLabel(change.field)}</th>
-                  <td className="whitespace-pre-wrap break-words py-1 pr-2 text-red-800 dark:text-red-200"><span className="sr-only">Old value: </span>{formatDiffValue(change.before)}</td>
-                  <td className="whitespace-pre-wrap break-words py-1 text-green-800 dark:text-green-200"><span className="sr-only">Current value: </span>{formatDiffValue(change.after)}</td>
+                  <td className="whitespace-pre-wrap wrap-break-word py-1 pr-2 text-red-800 dark:text-red-200"><span className="sr-only">Old value: </span>{formatDiffValue(change.before)}</td>
+                  <td className="whitespace-pre-wrap wrap-break-word py-1 text-green-800 dark:text-green-200"><span className="sr-only">Current value: </span>{formatDiffValue(change.after)}</td>
                 </tr>)}</tbody>
               </table>
             </div>)}

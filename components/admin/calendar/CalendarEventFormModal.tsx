@@ -109,7 +109,7 @@ function CheckboxField({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+        className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
       />
       <span className="text-sm font-body text-content-secondary">{label}</span>
     </label>

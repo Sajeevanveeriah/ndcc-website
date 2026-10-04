@@ -112,7 +112,7 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
                         key={image.src}
                         type="button"
                         onClick={(event) => openLightbox(image, event.currentTarget)}
-                        className="overflow-hidden rounded-lg border border-edge-subtle bg-surface-page cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                        className="overflow-hidden rounded-lg border border-edge-subtle bg-surface-page cursor-zoom-in focus:outline-hidden focus:ring-2 focus:ring-maroon-500"
                         aria-label={`View image ${index + 1} of ${galleryImages.length}: ${image.alt}`}
                       >
                         <SafeImage
@@ -132,7 +132,7 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
                   <button
                     type="button"
                     onClick={(event) => openLightbox(galleryImages[0], event.currentTarget)}
-                    className="block w-full mb-6 rounded-lg overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                    className="block w-full mb-6 rounded-lg overflow-hidden cursor-zoom-in focus:outline-hidden focus:ring-2 focus:ring-maroon-500"
                     aria-label="View full image"
                   >
                     <SafeImage
@@ -161,7 +161,7 @@ export default function NewsDetailClient({ post }: { post: NewsDetailPost }) {
                     ref={closeButtonRef}
                     type="button"
                     onClick={closeLightbox}
-                    className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                    className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors focus:outline-hidden focus:ring-2 focus:ring-white"
                     aria-label="Close image"
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">

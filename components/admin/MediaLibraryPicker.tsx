@@ -62,10 +62,10 @@ export default function MediaLibraryPicker({ kind, onPick, onClose }: Props) {
           onChange={(event) => setSearch(event.target.value)}
           onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void load(search); } }}
           placeholder="Search by alt text or file name"
-          className="min-w-0 flex-1 rounded border border-edge-strong bg-surface-card px-2 py-1 text-sm"
+          className="min-w-0 flex-1 rounded-sm border border-edge-strong bg-surface-card px-2 py-1 text-sm"
         />
-        <button type="button" className="rounded border border-edge-strong px-3 py-1 text-xs hover:bg-surface-card" onClick={() => void load(search)}>Search</button>
-        <button type="button" className="rounded border border-edge-strong px-3 py-1 text-xs hover:bg-surface-card" onClick={onClose}>Close library</button>
+        <button type="button" className="rounded-sm border border-edge-strong px-3 py-1 text-xs hover:bg-surface-card" onClick={() => void load(search)}>Search</button>
+        <button type="button" className="rounded-sm border border-edge-strong px-3 py-1 text-xs hover:bg-surface-card" onClick={onClose}>Close library</button>
       </div>
       {loading ? <p className="text-xs text-content-muted">Loading library...</p> : message ? <p className="text-xs text-content-muted">{message}</p> : null}
       {!loading && assets.length > 0 && (
@@ -75,7 +75,7 @@ export default function MediaLibraryPicker({ kind, onPick, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => onPick(asset)}
-                className="group block w-full overflow-hidden rounded border border-edge-subtle text-left hover:border-maroon-600 focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                className="group block w-full overflow-hidden rounded-sm border border-edge-subtle text-left hover:border-maroon-600 focus:outline-hidden focus:ring-2 focus:ring-maroon-500"
                 title={asset.alt_text || asset.path}
               >
                 {kind === 'image' ? (

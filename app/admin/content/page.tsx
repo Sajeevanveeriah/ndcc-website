@@ -294,7 +294,7 @@ export default function AdminContentPage() {
         </section>
       )}
       {feedback && (
-        <p className={`text-sm px-3 py-2 rounded border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+        <p className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
           {feedback.message}
         </p>
       )}
@@ -328,7 +328,7 @@ export default function AdminContentPage() {
                           onClick={() => { setSelected(block); setFeedback(null); }}
                           className={`w-full text-left px-3 py-2 rounded-lg border ${selected?.id === block.id ? 'border-maroon-600 bg-maroon-50 dark:bg-maroon-950' : 'border-edge-subtle hover:border-edge-strong'}`}
                         >
-                          <p className="font-medium text-sm">{getFriendlyBlockLabel(block)}{!block.is_active && <span className="ml-2 rounded bg-surface-page px-1.5 py-0.5 text-[11px] font-semibold text-content-secondary">Draft</span>}</p>
+                          <p className="font-medium text-sm">{getFriendlyBlockLabel(block)}{!block.is_active && <span className="ml-2 rounded-sm bg-surface-page px-1.5 py-0.5 text-[11px] font-semibold text-content-secondary">Draft</span>}</p>
                           <p className="text-xs text-content-muted">{getBlockHelper(block)}</p>
                         </button>
                       ))}

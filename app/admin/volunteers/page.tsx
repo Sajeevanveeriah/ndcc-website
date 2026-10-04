@@ -177,7 +177,7 @@ export default function AdminVolunteersPage() {
       </div>
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse"><div className="h-4 bg-gray-200 rounded w-full mb-4" /></div>
+        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse"><div className="h-4 bg-gray-200 rounded-sm w-full mb-4" /></div>
       ) : filteredVolunteers.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center"><p className="text-content-muted font-body">No volunteer EOIs found.</p></div>
       ) : (

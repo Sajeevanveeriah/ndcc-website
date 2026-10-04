@@ -40,7 +40,7 @@ export default function SeasonSelector({ seasons, selectedSlug, label = 'Season'
       <select
         value={selectedSlug}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-maroon-300 bg-surface-card px-3 py-2 text-sm font-body text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-maroon-600"
+        className="rounded-md border border-maroon-300 bg-surface-card px-3 py-2 text-sm font-body text-content-primary focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-maroon-600"
         aria-label="Choose fantasy season"
       >
         {seasons.map((season) => (

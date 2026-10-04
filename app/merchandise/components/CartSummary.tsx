@@ -45,7 +45,7 @@ export default function CartSummary({
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            className="w-7 h-7 rounded border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
+                            className="w-7 h-7 rounded-sm border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
                             onClick={() => updateCartQuantity(idx, -1)}
                             aria-label={`Decrease ${item.name} quantity`}
                           >
@@ -56,7 +56,7 @@ export default function CartSummary({
                           </span>
                           <button
                             type="button"
-                            className="w-7 h-7 rounded border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
+                            className="w-7 h-7 rounded-sm border border-edge-strong flex items-center justify-center text-content-muted hover:bg-surface-muted text-sm transition-colors"
                             onClick={() => updateCartQuantity(idx, 1)}
                             aria-label={`Increase ${item.name} quantity`}
                           >

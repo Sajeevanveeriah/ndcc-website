@@ -27,7 +27,7 @@ export default function PersonalisationFields({
             id={`custom-initials-${product.id}`}
             type="text"
             autoComplete="off"
-            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body uppercase focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body uppercase focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden"
             placeholder="e.g. JS"
             maxLength={5}
             value={customNames[product.id] || ''}
@@ -65,7 +65,7 @@ export default function PersonalisationFields({
                           <input
                             id={`custom-name-${product.id}`}
                             type="text"
-                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden"
                             placeholder="e.g. SMITH"
                             maxLength={40}
                             value={customNames[product.id] || ''}
@@ -82,7 +82,7 @@ export default function PersonalisationFields({
                             type="number"
                             min={1}
                             max={99}
-                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden"
                             placeholder="1-99"
                             value={customNumbers[product.id] || ''}
                             onChange={(e) => {
@@ -98,7 +98,7 @@ export default function PersonalisationFields({
                             type="number"
                             min={1}
                             max={99}
-                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden"
                             placeholder="1-99"
                             value={alternateNumbers[product.id] || ''}
                             onChange={(e) => {

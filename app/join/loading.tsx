@@ -1,6 +1,6 @@
 // Loading skeleton shaped like the join page: maroon hero, three membership
 // choice cards, then the application form beside the fees card.
-const bar = 'rounded bg-gray-200 dark:bg-slate-700';
+const bar = 'rounded-sm bg-gray-200 dark:bg-slate-700';
 
 export default function JoinLoading() {
   return (
@@ -8,9 +8,9 @@ export default function JoinLoading() {
       <span className="sr-only">Loading</span>
       <div className="page-hero px-0">
         <div className="nd-wrap animate-pulse space-y-4">
-          <div className="h-4 w-24 rounded bg-white/20" />
+          <div className="h-4 w-24 rounded-sm bg-white/20" />
           <div className="h-12 w-72 max-w-full rounded-lg bg-white/20" />
-          <div className="h-5 w-96 max-w-full rounded bg-white/20" />
+          <div className="h-5 w-96 max-w-full rounded-sm bg-white/20" />
         </div>
       </div>
       <div className="nd-sec-tight">

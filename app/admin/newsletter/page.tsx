@@ -128,7 +128,7 @@ export default function AdminNewsletterPage() {
         <p className="text-sm text-content-muted">Email club members who chose to receive club email updates in their club account. Every email includes a one-click unsubscribe link.</p>
       </div>
       {feedback && (
-        <p role="status" className={`text-sm px-3 py-2 rounded border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>{feedback.message}</p>
+        <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>{feedback.message}</p>
       )}
       {overview && (
         <div className="rounded-lg border border-edge-blue bg-surface-blue-subtle p-3 text-sm text-content-primary">
@@ -164,7 +164,7 @@ export default function AdminNewsletterPage() {
         ) : null}
         {progress && (
           <div className="space-y-2" aria-live="polite">
-            <div className="h-3 w-full overflow-hidden rounded bg-surface-page" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Newsletter sending progress">
+            <div className="h-3 w-full overflow-hidden rounded-sm bg-surface-page" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Newsletter sending progress">
               <div className="h-full bg-maroon-700" style={{ width: `${percent}%` }} />
             </div>
             <p className="text-sm">{progress.running ? 'Sending... keep this page open.' : progress.remaining === 0 ? 'Finished.' : 'Paused.'} Sent {progress.sent}, failed {progress.failed}, skipped {progress.skipped}, remaining {progress.remaining}.</p>

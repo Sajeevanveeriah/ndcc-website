@@ -164,7 +164,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
                     alt={`${event.title} event artwork`}
                     fill
                     priority
-                    className="object-contain !h-full !w-full !max-h-full !shadow-none"
+                    className="object-contain h-full! w-full! max-h-full! shadow-none!"
                     sizes="(max-width: 980px) 100vw, 640px"
                     fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                   />
@@ -172,7 +172,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
               </div>
             )}
             <div className="nd-event-body">
-              <h2 className="!text-2xl">About the event</h2>
+              <h2 className="text-2xl!">About the event</h2>
               {event.description && (
                 <p className="font-body text-content-secondary text-[17px] leading-relaxed whitespace-pre-line">
                   {event.description}
@@ -281,7 +281,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
 
                 {songEvent ? (
                   <fieldset className="w-full space-y-3">
-                    <legend className="form-label">Your songs</legend>
+                    <legend className="form-label mb-5">Your songs</legend>
                     {songs.map((song, index) => (
                       <div key={index} className="rounded-2xl border border-edge-subtle bg-surface-muted p-3 space-y-2">
                         <Input

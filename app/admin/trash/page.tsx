@@ -98,7 +98,7 @@ export default function TrashPage() {
               {items.map((item) => (
                 <li key={item.revision_id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="font-semibold break-words">{item.title}</p>
+                    <p className="font-semibold wrap-break-word">{item.title}</p>
                     <p className="text-sm text-content-muted">
                       <Link className="underline" href={item.href}>{item.section}</Link>
                       {' - '}deleted {formatWhen(item.deleted_at)}{item.deleted_by ? ` by ${item.deleted_by}` : ''}

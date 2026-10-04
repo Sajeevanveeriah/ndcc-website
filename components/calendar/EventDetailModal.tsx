@@ -35,7 +35,7 @@ export default function EventDetailModal({ event, onClose }: EventDetailModalPro
         </div>
 
         {props.imageUrl && (
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-surface-page">
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-surface-page">
             <SafeImage
               src={props.imageUrl}
               alt={`${event.title} event artwork`}

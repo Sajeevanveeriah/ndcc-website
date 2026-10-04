@@ -30,7 +30,7 @@ export type SpinVisibilityMode = typeof SPIN_VISIBILITY_MODES[number];
 export const SPIN_COLOURS = ['maroon', 'navy', 'blue', 'gold', 'cream'] as const;
 export type SpinColour = typeof SPIN_COLOURS[number];
 
-/** Club palette (tailwind.config.ts brand values). */
+/** Club palette (brand values in the @theme block of app/globals.css). */
 export const SPIN_COLOUR_HEX: Record<SpinColour, { fill: string; text: string; label: string }> = {
   maroon: { fill: '#880000', text: '#FBF7F0', label: 'Maroon' },
   navy: { fill: '#162845', text: '#FBF7F0', label: 'Navy' },

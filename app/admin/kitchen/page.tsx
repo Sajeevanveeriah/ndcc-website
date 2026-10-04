@@ -332,7 +332,7 @@ export default function AdminKitchenPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-display font-bold">Kitchen Management</h1>
-      {message && <p className="text-sm text-content-secondary bg-surface-page border rounded px-3 py-2">{message}</p>}
+      {message && <p className="text-sm text-content-secondary bg-surface-page border rounded-sm px-3 py-2">{message}</p>}
       {(!menusWritable || !itemsWritable || !ordersWritable) && <ReadOnlyNotice />}
 
       <KitchenOrderingControls />
@@ -476,7 +476,7 @@ export default function AdminKitchenPage() {
         <p className="text-sm text-content-muted">Exports all orders for the selected Thursday, including payment status and both collection times. Historical orders without a recorded service date cannot be assigned to a week.</p>
         <p role="status" className="text-sm">{exportMessage}</p>
         <label className="block text-sm">Filter by collection time
-          <select className="mt-1 block rounded border p-3 bg-surface-card" value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}>
+          <select className="mt-1 block rounded-sm border p-3 bg-surface-card" value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}>
             <option value="all">All collection times</option>
             {MEAL_COLLECTION_WINDOWS.map((window) => <option key={window.value} value={window.value}>{window.label}</option>)}
             <option value="missing">Collection time not recorded</option>
@@ -488,7 +488,7 @@ export default function AdminKitchenPage() {
         ) : (
           visibleOrders.map((o) => (
             <div key={o.id} className="border rounded-lg px-3 py-2 text-sm flex flex-col gap-3 lg:flex-row lg:items-center justify-between">
-              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}<span className="block"><strong>Payment method:</strong> {o.payment_method_choice && isPaymentMethodChoice(o.payment_method_choice) ? PAYMENT_METHOD_CHOICE_LABELS[o.payment_method_choice] : 'Not recorded'}</span>{o.special_request && <span className="mt-1 block whitespace-pre-line rounded border border-amber-300 bg-amber-50 px-2 py-1 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><strong>Special request (pay at bar, price on the night):</strong> {o.special_request}</span>}</span>
+              <span><strong className="block">{mealCollectionLabel(o.meal_collection_window)}</strong><span className="block">{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</span>{o.customer_name} · ${o.total_amount} · {o.status} · {o.payment_status} · {o.payment_reference || 'No reference'}<span className="block"><strong>Payment method:</strong> {o.payment_method_choice && isPaymentMethodChoice(o.payment_method_choice) ? PAYMENT_METHOD_CHOICE_LABELS[o.payment_method_choice] : 'Not recorded'}</span>{o.special_request && <span className="mt-1 block whitespace-pre-line rounded-sm border border-amber-300 bg-amber-50 px-2 py-1 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"><strong>Special request (pay at bar, price on the night):</strong> {o.special_request}</span>}</span>
               <div className="flex flex-wrap items-center gap-2">
                 {!ordersWritable ? <span>{new Date(o.created_at).toLocaleString()}</span> : o.deleted_at?<Button size="sm" onClick={()=>restoreOrder(o.id)}>Restore order</Button>:<>
                 <label className="inline-flex items-center gap-1 text-xs">
@@ -503,7 +503,7 @@ export default function AdminKitchenPage() {
                   <label className="inline-flex items-center gap-1 text-xs">
                     <span className="sr-only">Payment method for {o.customer_name}</span>
                     <select
-                      className="rounded border bg-surface-card p-2 text-xs"
+                      className="rounded-sm border bg-surface-card p-2 text-xs"
                       value={o.payment_method_choice || ''}
                       onChange={(event) => void setPaymentChoice(o, event.target.value)}
                     >

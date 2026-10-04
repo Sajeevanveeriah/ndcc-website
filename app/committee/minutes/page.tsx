@@ -34,8 +34,8 @@ export default function CommitteeMinutesPage() {
             <div className="card divide-y divide-edge-subtle" aria-busy="true" aria-live="polite">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="p-5 animate-pulse space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-2/3 dark:bg-slate-700" />
-                  <div className="h-3 bg-gray-200 rounded w-1/3 dark:bg-slate-700" />
+                  <div className="h-4 bg-gray-200 rounded-sm w-2/3 dark:bg-slate-700" />
+                  <div className="h-3 bg-gray-200 rounded-sm w-1/3 dark:bg-slate-700" />
                 </div>
               ))}
             </div>

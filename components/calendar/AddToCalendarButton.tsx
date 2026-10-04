@@ -22,7 +22,7 @@ export default function AddToCalendarButton({ className }: { className?: string 
           <div className="w-full max-w-lg rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <h2 id="calendar-subscribe-title" className="text-xl font-display font-bold text-content-primary">Subscribe to NDCC Calendar</h2>
-              <button type="button" autoFocus onClick={() => setOpen(false)} aria-label="Close calendar subscription" className="rounded p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500"><X className="h-5 w-5" /></button>
+              <button type="button" autoFocus onClick={() => setOpen(false)} aria-label="Close calendar subscription" className="rounded-sm p-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500"><X className="h-5 w-5" /></button>
             </div>
             <p className="mt-3 text-sm text-content-secondary">Subscribe once and future NDCC calendar updates will appear automatically in your calendar.</p>
             <div className="mt-5 flex flex-col gap-3">

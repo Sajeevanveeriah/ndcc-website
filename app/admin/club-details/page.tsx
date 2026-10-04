@@ -157,9 +157,9 @@ export default function AdminClubDetailsPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : (
         <Card>

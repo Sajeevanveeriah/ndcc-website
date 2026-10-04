@@ -1,6 +1,6 @@
 // Official Newcomb and District Cricket Club colours for non-Tailwind uses
 // (meta theme-color, inline styles). Tailwind exposes the same values as
-// maroon-600/700, sky_accent, gold-400, navy and cream (tailwind.config.ts).
+// maroon-600/700, sky_accent, gold-400, navy and cream (@theme in app/globals.css).
 //
 // Contrast rules: blue and gold are never text on white/cream and never sit
 // behind white text; use navy or maroon text on them. Maroon text on dark

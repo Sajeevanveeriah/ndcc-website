@@ -92,7 +92,7 @@ export default function InactivityGuard({ onLogout }: { onLogout: () => void }) 
   if (!showWarning) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
       <div
         role="alertdialog"
         aria-modal="true"

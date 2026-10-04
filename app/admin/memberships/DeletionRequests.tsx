@@ -46,7 +46,7 @@ export default function DeletionRequests() {
           return <li key={item.id} className="rounded-lg border border-edge-subtle p-3 space-y-1">
             <p><strong className="text-content-primary">{member?.full_name || item.email}</strong> · {item.email}{member ? ` · club record ${member.membership_status}` : ''}</p>
             <p>Requested {when(item.created_at)} · {item.status === 'pending' ? 'Pending' : `Actioned${item.actioned_at ? ` ${when(item.actioned_at)}` : ''}`}</p>
-            {item.reason && <p className="whitespace-pre-line break-words">Reason: {item.reason}</p>}
+            {item.reason && <p className="whitespace-pre-line wrap-break-word">Reason: {item.reason}</p>}
             {item.status === 'pending' && <Button size="sm" onClick={() => markActioned(item.id)} isLoading={busy === item.id}>Mark actioned</Button>}
           </li>;
         })}

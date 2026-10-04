@@ -23,7 +23,7 @@ export default function MemberDinoCoach() {
     {error && <p role="alert">{error} <button type="button" className="underline" onClick={() => setRetry(retry + 1)}>Retry Dino Coach summary</button></p>}
     {!summary && !error && <p role="status">Loading your Dino Coach summary...</p>}
     {summary?.manager && <div className="space-y-4 rounded-xl border border-edge-subtle p-5">
-      <div><p className="text-sm text-content-secondary">Your team</p><p className="break-words text-xl font-semibold">{summary.manager.team_name}</p></div>
+      <div><p className="text-sm text-content-secondary">Your team</p><p className="wrap-break-word text-xl font-semibold">{summary.manager.team_name}</p></div>
       {summary.standing && <dl className="grid grid-cols-2 gap-3 text-sm sm:max-w-sm"><div><dt className="text-content-secondary">Rank</dt><dd className="text-lg font-semibold">{summary.standing.rank} of {summary.standing.managers}</dd></div><div><dt className="text-content-secondary">Points</dt><dd className="text-lg font-semibold">{summary.standing.points}</dd></div></dl>}
       <Link className="btn-primary inline-block" href="/fantasy/team">Go to my Dino Coach team</Link>
     </div>}

@@ -11,7 +11,7 @@ import SocialMembershipForm from './SocialMembershipForm';
 // Choice cards in "1. Choose a membership" are plain links (each option has
 // its own flow), styled with the shared .nd-radio-card surface.
 const choiceCardClass =
-  'nd-radio-card flex h-full flex-col gap-2 no-underline transition-colors hover:border-maroon-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:hover:border-maroon-300 dark:focus-visible:ring-offset-slate-900';
+  'nd-radio-card flex h-full flex-col gap-2 no-underline transition-colors hover:border-maroon-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:hover:border-maroon-300 dark:focus-visible:ring-offset-slate-900';
 const choiceCtaClass = 'mt-auto pt-2 text-[15px] font-semibold text-maroon-700 group-hover:underline dark:text-maroon-300';
 
 // Server component: membership plans/add-ons and the hero copy are read
@@ -81,7 +81,7 @@ export default async function JoinPage() {
               heading={
                 <div className="mb-5">
                   <span className="nd-eyebrow">Social Membership</span>
-                  <h2 className="mt-1 font-display font-semibold tracking-[-0.025em] text-content-primary" style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>2. Your details</h2>
+                  <h2 className="mt-1 font-display font-semibold tracking-tight text-content-primary" style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>2. Your details</h2>
                 </div>
               }
             />

@@ -368,9 +368,9 @@ export default function AdminPublicationsPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : visible.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
@@ -389,7 +389,7 @@ export default function AdminPublicationsPage() {
                   aria-label="Select all publications"
                   checked={visible.length > 0 && selectedIds.length === visible.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -409,7 +409,7 @@ export default function AdminPublicationsPage() {
                     aria-label={`Select ${p.title}`}
                     checked={selectedIds.includes(p.id)}
                     onChange={() => toggleSelected(p.id)}
-                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">
@@ -425,7 +425,7 @@ export default function AdminPublicationsPage() {
                   <button
                     type="button"
                     onClick={() => setFeatured(p, !p.featured)}
-                    className="p-1 rounded focus-ring"
+                    className="p-1 rounded-sm focus-ring"
                     aria-label={p.featured ? `Unfeature ${p.title}` : `Feature ${p.title}`}
                     title={p.featured ? 'Unfeature' : 'Feature'}
                   >
@@ -448,7 +448,7 @@ export default function AdminPublicationsPage() {
                         href={`/publications/${p.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded focus-ring text-maroon-700 dark:text-maroon-200"
+                        className="p-1.5 rounded-sm focus-ring text-maroon-700 dark:text-maroon-200"
                         aria-label={`View ${p.title} on the public site (opens in new tab)`}
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -595,7 +595,7 @@ export default function AdminPublicationsPage() {
                 type="checkbox"
                 checked={form.featured}
                 onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-                className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
               />
               <span className="text-sm font-body text-content-secondary">Feature on the publications page</span>
             </label>

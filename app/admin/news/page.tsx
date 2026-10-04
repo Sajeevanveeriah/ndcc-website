@@ -241,9 +241,9 @@ export default function AdminNewsPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : news.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
@@ -260,7 +260,7 @@ export default function AdminNewsPage() {
                   aria-label="Select all articles"
                   checked={news.length > 0 && selectedIds.length === news.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -282,7 +282,7 @@ export default function AdminNewsPage() {
                     aria-label={`Select ${post.title}`}
                     checked={selectedIds.includes(post.id)}
                     onChange={() => toggleSelected(post.id)}
-                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{post.title}</TableCell>

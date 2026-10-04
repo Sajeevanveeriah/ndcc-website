@@ -1,6 +1,1242 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* Tailwind CSS v4 scans the whole repository for class names. Tests, docs and
+   SQL only mention class names, so keep them out of the generated CSS. */
+@source not '../scripts';
+@source not '../docs';
+@source not '../supabase';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.4rem;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.5rem;
+
+  --color-maroon-50: #fdf2f2;
+  --color-maroon-100: #fce4e4;
+  --color-maroon-200: #f9c9c9;
+  --color-maroon-300: #f4a3a3;
+  --color-maroon-400: #e06060;
+  --color-maroon-500: #c93030;
+  --color-maroon-600: #880000;
+  --color-maroon-700: #880000;
+  --color-maroon-800: #600000;
+  --color-maroon-900: #4a0000;
+  --color-maroon-950: #2d0000;
+
+  --color-sky_accent: #8cc6d1;
+  --color-sky_accent-light: #b3d9e0;
+
+  --color-navy: #162845;
+  --color-cream: #fbf7f0;
+
+  --color-gold-50: #fdf8ef;
+  --color-gold-100: #fbf0d9;
+  --color-gold-200: #f6e0b2;
+  --color-gold-300: #f1d18c;
+  --color-gold-400: #edc266;
+  --color-gold-500: #a98a48;
+  --color-gold-600: #89703b;
+
+  --color-surface-page: rgb(var(--surface-page));
+  --color-surface-elevated: rgb(var(--surface-elevated));
+  --color-surface-card: rgb(var(--surface-card));
+  --color-surface-muted: rgb(var(--surface-muted));
+  --color-surface-nav: rgb(var(--surface-nav));
+  --color-surface-footer: rgb(var(--surface-footer));
+  --color-surface-blue-subtle: rgb(var(--surface-blue-subtle));
+  --color-surface-blue-card: rgb(var(--surface-blue-card));
+
+  --color-content-primary: rgb(var(--text-primary));
+  --color-content-secondary: rgb(var(--text-secondary));
+  --color-content-muted: rgb(var(--text-muted));
+  --color-content-inverse: rgb(var(--text-inverse));
+  --color-content-blue: rgb(var(--text-blue));
+
+  --color-edge-subtle: rgb(var(--border-subtle));
+  --color-edge-strong: rgb(var(--border-strong));
+  --color-edge-blue: rgb(var(--border-blue));
+
+  --color-status-success: rgb(var(--status-success));
+  --color-status-warning: rgb(var(--status-warning));
+  --color-status-error: rgb(var(--status-error));
+
+  --color-brand-maroon: rgb(var(--brand-maroon-surface));
+  --color-brand-blue: rgb(var(--brand-blue-surface));
+  --color-brand-gold: rgb(var(--brand-gold));
+
+  --shadow-soft:
+    0 1px 2px rgba(45, 0, 0, 0.04), 0 4px 16px rgba(45, 0, 0, 0.06);
+  --shadow-card:
+    0 1px 3px rgba(17, 24, 39, 0.06), 0 10px 28px -10px rgba(45, 0, 0, 0.12);
+  --shadow-lift: 0 16px 38px -14px rgba(45, 0, 0, 0.3);
+
+  --font-display:
+    var(--font-inter), 'Inter Subsets', 'Inter Fallback', system-ui, sans-serif;
+  --font-body:
+    var(--font-inter), 'Inter Subsets', 'Inter Fallback', system-ui, sans-serif;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  /* Tailwind CSS v4 preflight dropped the v3 pointer cursor on buttons and
+     the gray-400 placeholder colour; keep both as they were in v3. */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+}
+
+@utility btn-primary {
+  /* Buttons: pill shape, 44px minimum touch target, a colour and soft-shadow
+     change on hover and a 1px press. No scale, no bounce. */
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 bg-maroon-700 text-white font-body font-semibold tracking-[-0.01em] shadow-[0_1px_2px_rgba(45,0,0,0.18)] hover:bg-maroon-800 hover:shadow-[0_6px_18px_-6px_rgba(96,0,0,0.45)] transition-[background-color,box-shadow,transform] duration-200 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+@utility btn-secondary {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 border border-edge-strong bg-surface-card text-content-primary font-body font-semibold tracking-[-0.01em] hover:border-maroon-700 hover:text-maroon-700 transition-[border-color,color,transform] duration-200 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:bg-transparent dark:text-maroon-100 dark:hover:border-maroon-300 dark:hover:text-white dark:focus-visible:ring-offset-slate-900;
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+@utility btn-accent {
+  /* Club blue button: always dark maroon text (never white on blue). */
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 bg-sky_accent text-maroon-900 font-body font-semibold tracking-[-0.01em] border border-sky_accent hover:bg-sky_accent-light hover:border-sky_accent-light transition-[background-color,border-color,transform] duration-200 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+@utility btn-outline-white {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 border border-white/40 text-white font-body font-semibold tracking-[-0.01em] hover:border-white hover:bg-white/10 transition-[background-color,border-color,transform] duration-200 ease-out focus:outline-hidden;
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+@utility section-padding {
+  @apply px-4 py-12 sm:px-6 sm:py-16 lg:px-8;
+}
+
+@utility container-width {
+  @apply max-w-7xl mx-auto;
+}
+
+@utility card {
+  @apply bg-surface-card rounded-2xl border border-edge-subtle overflow-hidden;
+  box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04);
+}
+
+@utility card-interactive {
+  /* Linked cards: a quiet 2px settle-up with a soft shadow on hover. */
+  transition:
+    border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    @apply border-edge-strong;
+    box-shadow:
+      0 1px 2px rgba(29, 29, 31, 0.04),
+      0 14px 32px -16px rgba(45, 0, 0, 0.22);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+@utility form-input {
+  @apply w-full min-h-12 px-4 py-3 border border-edge-strong rounded-xl text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-hidden focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
+}
+
+@utility form-label {
+  @apply block text-base font-semibold text-content-secondary mb-2 font-body;
+}
+
+@utility page-hero {
+  /* Inner page hero: deep club maroon with one soft light source and a gold
+     hairline, rather than a flat band. */
+  @apply relative overflow-hidden px-4 text-white sm:px-6 lg:px-8;
+  padding-top: clamp(3.5rem, 7vw, 6rem);
+  padding-bottom: clamp(3.5rem, 7vw, 6rem);
+  background:
+    radial-gradient(
+      120% 140% at 85% -20%,
+      rgb(255 255 255 / 0.1),
+      transparent 55%
+    ),
+    radial-gradient(90% 120% at 0% 120%, rgb(0 0 0 / 0.28), transparent 60%),
+    rgb(var(--brand-maroon-surface));
+  box-shadow: inset 0 -1px 0 rgb(237 194 102 / 0.45);
+
+  & > * {
+    @apply relative z-10;
+  }
+
+  /* Faint gold dot texture fading in from the right edge of inner heroes. */
+  &::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background-image: radial-gradient(
+      rgb(237 194 102 / 0.22) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+    mask-image: radial-gradient(
+      ellipse 45% 90% at 100% 40%,
+      black,
+      transparent 70%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 45% 90% at 100% 40%,
+      black,
+      transparent 70%
+    );
+  }
+
+  /* Faint gold ball seam on the right of every inner page hero. */
+  &::before {
+    content: '';
+    @apply pointer-events-none absolute hidden sm:block;
+    width: 26rem;
+    height: 26rem;
+    right: -7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.2;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23edc266'%3E%3Ccircle cx='100' cy='100' r='96' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 34 96 0 0 0 100 196' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 48 96 0 0 0 100 196' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 41 96 0 0 0 100 196' stroke-width='9' stroke-dasharray='1.4 7.6' stroke-linecap='round'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+}
+
+@utility page-hero-title {
+  @apply mb-4 font-display font-semibold;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+@utility page-hero-subtitle {
+  @apply max-w-2xl font-body text-lg leading-relaxed text-white/90 sm:text-xl sm:leading-7;
+}
+
+@utility section-title {
+  @apply mb-3 font-display text-3xl leading-[1.1] font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl sm:leading-[1.08];
+  text-wrap: balance;
+  .sponsor-introduction & {
+    @apply text-3xl;
+  }
+}
+
+@utility section-subtitle {
+  @apply max-w-2xl font-body text-base text-content-muted sm:text-lg;
+}
+
+@utility surface-blue-band {
+  /* Semantic blue surfaces (replaced the alpha-wash .surface-sky). Solid
+     token-backed fills that stay visibly blue and bordered in both themes. */
+  @apply bg-surface-blue-subtle border-y border-edge-blue/60;
+}
+
+@utility panel-blue {
+  @apply bg-surface-blue-card border border-edge-blue rounded-xl;
+}
+
+@utility panel-blue-subtle {
+  @apply bg-surface-blue-subtle border border-edge-blue/70 rounded-xl;
+}
+
+@utility nav-underline {
+  /* Hover underline for nav links: appears on hover with no sweep. */
+  @apply relative;
+
+  &::after {
+    content: '';
+    @apply absolute left-3 right-3 bottom-1 h-px bg-maroon-700 dark:bg-maroon-300;
+    transform: scaleX(0);
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  &:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+@utility section-eyebrow {
+  @apply inline-flex items-center gap-2 text-xs font-semibold tracking-[0.16em] uppercase text-maroon-700 mb-3 dark:text-maroon-200;
+
+  &::before {
+    content: '';
+    @apply inline-block h-px w-6 bg-current opacity-60;
+  }
+}
+
+@utility eyebrow-gold {
+  /* Gold companion to .section-eyebrow for text sitting on maroon bands and
+     photo heroes: the honour-board "gold lettering" label treatment. */
+  @apply inline-block text-xs font-bold tracking-[0.14em] uppercase text-gold-200 bg-gold-400/15 px-3.5 py-1 rounded-full mb-3;
+}
+
+@utility card-hover-sponsor {
+  /* Sponsor tiles: a rounder card whose hover is a border colour change. */
+  @apply card rounded-[1.25rem] transition-colors duration-200 hover:border-maroon-300 dark:hover:border-maroon-500;
+  box-shadow: none;
+}
+
+@utility focus-ring {
+  /* Consistent, accessible keyboard focus ring for interactive chrome. */
+  @apply focus:outline-hidden focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2;
+}
+
+@utility surface-panel {
+  /* Layered surface: hairline border on the card surface. */
+  @apply rounded-3xl border border-edge-subtle bg-surface-card;
+}
+
+@utility band-maroon {
+  /* Flat club-maroon band with a blue-grey keyline top and bottom. */
+  @apply relative text-white overflow-hidden;
+  background: rgb(var(--brand-maroon-surface));
+  border-block: 1px solid rgb(var(--border-blue));
+
+  & > * {
+    @apply relative z-10;
+  }
+}
+
+@utility stat-value {
+  /* Stat strip typography. */
+  @apply font-display font-bold leading-none tracking-tight;
+}
+
+@utility stat-label {
+  @apply mt-2 font-body text-xs sm:text-sm uppercase tracking-[0.12em];
+}
+
+@utility sponsor-caption {
+  /* Sponsor marquee caption beneath each logo chip. */
+  @apply mt-3 block w-60 text-center font-body text-xs font-medium leading-snug text-content-muted;
+}
+
+@utility watermark-type {
+  /* Oversized editorial background typography (e.g. the club nickname behind
+     the stats band). Decorative watermark: always aria-hidden. */
+  @apply pointer-events-none select-none font-display font-bold uppercase leading-none;
+  letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(237, 194, 102, 0.14);
+}
+
+@utility club-home-hero {
+  /* Home hero: soft club-colour light (maroon, blue, gold) over the page
+     surface with a faint dot texture that fades out, for depth without noise. */
+  @apply relative isolate overflow-hidden border-b border-edge-subtle;
+  background:
+    radial-gradient(55% 65% at 6% -5%, rgb(136 0 0 / 0.11), transparent 62%),
+    radial-gradient(
+      45% 60% at 96% 45%,
+      rgb(140 198 209 / 0.26),
+      transparent 62%
+    ),
+    radial-gradient(
+      40% 45% at 55% 115%,
+      rgb(237 194 102 / 0.2),
+      transparent 62%
+    ),
+    rgb(var(--surface-page));
+  &::before {
+    content: '';
+    @apply pointer-events-none absolute inset-0 -z-10;
+    background-image: radial-gradient(
+      rgb(var(--text-primary) / 0.09) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+    mask-image: radial-gradient(
+      ellipse 70% 60% at 25% 35%,
+      black,
+      transparent 75%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 70% 60% at 25% 35%,
+      black,
+      transparent 75%
+    );
+  }
+  .dark & {
+    background:
+      radial-gradient(55% 70% at 6% -5%, rgb(136 0 0 / 0.42), transparent 62%),
+      radial-gradient(
+        45% 60% at 96% 45%,
+        rgb(140 198 209 / 0.14),
+        transparent 62%
+      ),
+      radial-gradient(
+        40% 45% at 55% 115%,
+        rgb(237 194 102 / 0.1),
+        transparent 62%
+      ),
+      rgb(var(--surface-page));
+  }
+}
+
+@utility dark {
+  & .club-home-hero {
+    background:
+      radial-gradient(55% 70% at 6% -5%, rgb(136 0 0 / 0.42), transparent 62%),
+      radial-gradient(
+        45% 60% at 96% 45%,
+        rgb(140 198 209 / 0.14),
+        transparent 62%
+      ),
+      radial-gradient(
+        40% 45% at 55% 115%,
+        rgb(237 194 102 / 0.1),
+        transparent 62%
+      ),
+      rgb(var(--surface-page));
+  }
+  & .text-brand-gradient {
+    background-image: linear-gradient(
+      95deg,
+      #8cc6d1 0%,
+      #b3d9e0 45%,
+      #edc266 100%
+    );
+  }
+  & .glass-panel {
+    @apply bg-white/4 border-white/10;
+  }
+  & .brand-rule {
+    background:
+      repeating-linear-gradient(
+          90deg,
+          rgb(22 40 69 / 0.9) 0 2px,
+          transparent 2px 6px
+        )
+        center / 100% 1px no-repeat,
+      linear-gradient(90deg, #8cc6d1, #edc266);
+  }
+  & .home-band {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0.022) 0 96px,
+        transparent 96px 192px
+      ),
+      linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%);
+  }
+  & .cricket-ball-hero {
+    opacity: 0.78;
+    filter: drop-shadow(0 30px 50px rgb(0 0 0 / 0.55));
+  }
+  & .fixture-card {
+    @apply bg-white/[0.035] border-white/10;
+  }
+  & .date-tile {
+    @apply bg-white/4 border-white/10;
+  }
+  & .involve-tile {
+    @apply bg-white/[0.035] border-white/10;
+  }
+  & .involve-icon {
+    @apply bg-maroon-900/60 text-maroon-100;
+  }
+  & .next-event-card {
+    @apply border-white/10;
+  }
+  & .nd-card {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@utility text-brand-gradient {
+  /* Maroon to deep gold in light mode, club blue to gold in dark mode. */
+  background-image: linear-gradient(
+    95deg,
+    #880000 0%,
+    #a3281c 45%,
+    #89703b 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  .dark & {
+    background-image: linear-gradient(
+      95deg,
+      #8cc6d1 0%,
+      #b3d9e0 45%,
+      #edc266 100%
+    );
+  }
+}
+
+@utility glass-panel {
+  @apply rounded-3xl border border-edge-subtle bg-surface-card/70 backdrop-blur-xl;
+  box-shadow:
+    0 1px 2px rgba(29, 29, 31, 0.04),
+    0 20px 40px -28px rgba(45, 0, 0, 0.3);
+  .dark & {
+    @apply bg-white/4 border-white/10;
+  }
+}
+
+@utility brand-rule {
+  /* Section accent: a short club-colour bar stitched like a ball seam. */
+  @apply mb-4 block h-1.5 w-14 rounded-full;
+  background:
+    repeating-linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0.9) 0 2px,
+        transparent 2px 6px
+      )
+      center / 100% 1px no-repeat,
+    linear-gradient(90deg, #880000, #edc266);
+  .dark & {
+    background:
+      repeating-linear-gradient(
+          90deg,
+          rgb(22 40 69 / 0.9) 0 2px,
+          transparent 2px 6px
+        )
+        center / 100% 1px no-repeat,
+      linear-gradient(90deg, #8cc6d1, #edc266);
+  }
+}
+
+@utility home-band {
+  /* Match-day band: faint tonal mowing stripes, like a freshly cut outfield. */
+  @apply relative;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(var(--text-primary) / 0.022) 0 96px,
+      transparent 96px 192px
+    ),
+    linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page)));
+  .dark & {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0.022) 0 96px,
+        transparent 96px 192px
+      ),
+      linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%);
+  }
+}
+
+@utility cricket-ball-hero {
+  /* Home hero ball: large, partly off the top-right edge, behind the content. */
+  @apply pointer-events-none absolute -z-10 hidden sm:block;
+  width: clamp(11rem, 18vw, 17rem);
+  right: clamp(-7rem, -4.5vw, -3rem);
+  top: clamp(-7rem, -4.5vw, -3rem);
+  filter: drop-shadow(0 30px 45px rgb(45 0 0 / 0.28));
+  .dark & {
+    opacity: 0.78;
+    filter: drop-shadow(0 30px 50px rgb(0 0 0 / 0.55));
+  }
+}
+
+@utility cricket-ball-turn {
+  animation: ndcc-ball-turn 120s linear infinite;
+}
+
+@utility scoreboard {
+  /* Scoreboard figures: fixed-width numerals with a gold hairline above. */
+  position: relative;
+  &::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-8 top-0 h-px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(237 194 102 / 0.8),
+      transparent
+    );
+  }
+  & dd {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@utility fixture-card {
+  @apply flex h-full flex-col gap-4 p-5;
+  .dark & {
+    @apply bg-white/[0.035] border-white/10;
+  }
+}
+
+@utility badge-home {
+  @apply inline-flex items-center rounded-full bg-maroon-700 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-white;
+}
+
+@utility badge-away {
+  @apply inline-flex items-center rounded-full bg-sky_accent px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-navy;
+}
+
+@utility date-tile {
+  @apply flex h-16 w-16 flex-none flex-col items-center justify-center rounded-2xl border border-edge-subtle bg-surface-card text-center;
+  .dark & {
+    @apply bg-white/4 border-white/10;
+  }
+}
+
+@utility involve-tile {
+  @apply flex min-h-24 items-center gap-4 p-5;
+  .dark & {
+    @apply bg-white/[0.035] border-white/10;
+  }
+}
+
+@utility involve-icon {
+  @apply flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-maroon-50 text-maroon-700;
+  .dark & {
+    @apply bg-maroon-900/60 text-maroon-100;
+  }
+}
+
+@utility club-home-copy {
+  @apply min-w-0;
+}
+
+@utility next-event-card {
+  /* Next event beside the home title: a solid card so the details stay easy to read over the hero light. */
+  @apply relative rounded-3xl border border-edge-subtle bg-surface-card p-5 sm:p-6;
+  box-shadow:
+    0 1px 2px rgba(29, 29, 31, 0.05),
+    0 24px 44px -30px rgba(45, 0, 0, 0.35);
+  .dark & {
+    @apply border-white/10;
+  }
+}
+
+@utility club-kicker {
+  @apply block text-xs font-semibold uppercase leading-relaxed tracking-[0.16em] text-maroon-700 dark:text-sky_accent;
+}
+
+@utility club-home-title {
+  font-size: clamp(1.6rem, 3.6vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+  @apply mt-2 font-display font-semibold text-content-primary;
+}
+
+@utility club-text-link {
+  @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-700/25 decoration-1 underline-offset-[6px] transition-[text-decoration-color] duration-200 hover:decoration-maroon-700 dark:text-sky_accent dark:decoration-sky_accent/30 dark:hover:decoration-sky_accent;
+}
+
+@utility club-disclosure {
+  @apply rounded-2xl border border-edge-subtle bg-surface-card;
+  & > summary {
+    @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary;
+  }
+  &[open] > summary {
+    @apply border-b border-edge-subtle;
+  }
+  & > summary::marker {
+    color: rgb(var(--action-secondary));
+  }
+  & .product-options {
+    @apply space-y-5 p-4;
+  }
+}
+
+@utility product-options {
+  & button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .club-disclosure & {
+    @apply space-y-5 p-4;
+  }
+}
+
+@utility club-order-bar {
+  /* Merchandise order bar: full width on phones, a pill at the bottom right from sm up. */
+  @apply fixed inset-x-3 bottom-3 z-40 flex min-h-14 items-center justify-between gap-3 rounded-full bg-content-primary py-2 pl-5 pr-2 font-body text-sm text-surface-page shadow-[0_12px_32px_-12px_rgba(0,0,0,0.45)] sm:left-auto sm:right-4 sm:bottom-4 sm:max-w-xl;
+}
+
+@utility club-order-bar-link {
+  @apply inline-flex min-h-11 shrink-0 items-center rounded-full bg-maroon-700 px-5 font-semibold text-white hover:bg-maroon-800;
+}
+
+@utility prose {
+  line-height: 1.8;
+  & p {
+    font-size: 1rem;
+  }
+  & li {
+    font-size: 1rem;
+  }
+  & a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+@utility sponsor-introduction {
+  @apply grid items-start gap-5 md:grid-cols-[1fr_2fr] md:gap-16;
+  & .section-title {
+    @apply text-3xl;
+  }
+  & p {
+    max-width: 48rem;
+  }
+}
+
+@utility sponsor-gallery {
+  align-items: stretch;
+  & > li {
+    min-width: 0;
+  }
+  & h3 {
+    letter-spacing: -0.025em;
+    line-height: 1.4;
+  }
+}
+
+@utility nd-wrap {
+  @apply mx-auto w-full max-w-[1200px];
+  padding-inline: clamp(16px, 4vw, 40px);
+}
+
+@utility nd-sec {
+  padding-block: clamp(48px, 7vw, 88px);
+}
+
+@utility nd-sec-tight {
+  padding-block: clamp(28px, 4vw, 44px);
+}
+
+@utility nd-eyebrow {
+  @apply block text-[13px] font-semibold uppercase tracking-[0.06em] text-maroon-700 dark:text-maroon-300;
+}
+
+@utility nd-sec-head {
+  @apply mb-6 flex flex-wrap items-end justify-between gap-4;
+  & h2 {
+    @apply font-display font-semibold text-content-primary;
+    font-size: clamp(26px, 3.4vw, 38px);
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+}
+
+@utility nd-h2 {
+  @apply font-display font-semibold text-content-primary;
+  font-size: clamp(26px, 3.4vw, 38px);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+@utility nd-lead {
+  @apply max-w-[60ch] text-content-secondary;
+  font-size: clamp(17px, 1.6vw, 19px);
+  line-height: 1.6;
+}
+
+@utility nd-card {
+  @apply rounded-[22px] border border-edge-subtle bg-surface-card;
+  box-shadow:
+    0 1px 2px rgba(29, 29, 31, 0.04),
+    0 8px 24px rgba(29, 29, 31, 0.06);
+  .dark & {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+  .nd-trio > & {
+    @apply p-6;
+  }
+}
+
+@utility nd-link {
+  @apply inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-maroon-700 no-underline hover:underline dark:text-maroon-300;
+  text-underline-offset: 3px;
+}
+
+@utility nd-pill {
+  @apply inline-block rounded-full border border-edge-strong px-2.5 py-[3px] text-xs font-semibold text-content-secondary;
+}
+
+@utility nd-pill-home {
+  @apply border-maroon-700 bg-maroon-700 text-white;
+}
+
+@utility nd-pill-gold {
+  @apply border-[#E9CF8E] bg-[#F6E3B8] text-[#3A2A00];
+}
+
+@utility nd-month {
+  @apply mb-3.5 mt-9 text-[15px] font-semibold uppercase tracking-[0.06em] text-content-muted first:mt-0;
+}
+
+@utility nd-seg {
+  /* Segmented control (tabs or filter buttons). */
+  @apply inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full border border-edge-subtle bg-surface-muted p-1;
+  & > button {
+    @apply min-h-[38px] whitespace-nowrap rounded-full px-4 py-2 text-[14.5px] font-medium text-content-secondary;
+  }
+  & > a {
+    @apply min-h-[38px] whitespace-nowrap rounded-full px-4 py-2 text-[14.5px] font-medium text-content-secondary;
+  }
+  & > [aria-selected='true'] {
+    @apply bg-surface-card text-content-primary;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  & > [aria-pressed='true'] {
+    @apply bg-surface-card text-content-primary;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  & > [aria-current='page'] {
+    @apply bg-surface-card text-content-primary;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  & small {
+    @apply block text-xs font-normal text-content-muted;
+  }
+  @media (max-width: 560px) {
+    @apply flex w-full;
+    & > button {
+      @apply flex-1 px-1.5 text-sm;
+    }
+    & > a {
+      @apply flex-1 px-1.5 text-sm;
+    }
+  }
+}
+
+@utility nd-fx-list {
+  /* Compact fixture rows. */
+  @apply m-0 list-none p-0;
+}
+
+@utility nd-fx {
+  @apply grid items-center gap-4 border-t border-edge-subtle px-[22px] py-4 first:border-t-0;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  @media (max-width: 560px) {
+    @apply gap-3 px-4 py-3.5;
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+}
+
+@utility nd-fx-date {
+  @apply leading-tight;
+  & small {
+    @apply block text-xs font-semibold uppercase tracking-wider text-content-muted;
+  }
+  & b {
+    @apply text-xl font-semibold tracking-[-0.02em];
+  }
+  @media (max-width: 560px) {
+    & b {
+      @apply whitespace-nowrap text-[17px];
+    }
+  }
+}
+
+@utility nd-fx-grade {
+  @apply text-[12.5px] font-semibold text-content-blue;
+}
+
+@utility nd-fx-opp {
+  @apply text-[16.5px] font-semibold text-content-primary;
+}
+
+@utility nd-fx-meta {
+  @apply text-sm text-content-muted;
+}
+
+@utility nd-fx-side {
+  @apply flex flex-col items-end gap-1.5;
+  @media (max-width: 560px) {
+    @apply col-start-2 flex-row items-center justify-start gap-3;
+  }
+}
+
+@utility nd-note {
+  @apply border-t border-edge-subtle px-[22px] py-3.5 text-sm text-content-muted;
+  @media (max-width: 560px) {
+    @apply px-4;
+  }
+}
+
+@utility nd-event-feature {
+  /* Home: next event feature and the three preview cards. */
+  @apply grid overflow-hidden;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+
+  @media (max-width: 980px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@utility nd-poster {
+  @apply flex items-center justify-center bg-surface-muted p-5;
+  & img {
+    @apply h-auto w-auto rounded-xl;
+    max-height: 420px;
+    box-shadow:
+      0 1px 2px rgba(29, 29, 31, 0.04),
+      0 8px 24px rgba(29, 29, 31, 0.06);
+  }
+
+  @media (max-width: 980px) {
+    & img {
+      max-height: 340px;
+    }
+  }
+}
+
+@utility nd-event-body {
+  @apply flex flex-col gap-[18px];
+  padding: clamp(24px, 4vw, 44px);
+  & h2 {
+    @apply font-display font-semibold text-content-primary;
+    font-size: clamp(28px, 3.6vw, 42px);
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+  }
+}
+
+@utility nd-facts {
+  @apply m-0 grid gap-x-5 gap-y-2;
+  grid-template-columns: auto minmax(0, 1fr);
+  & dt {
+    @apply text-content-muted;
+  }
+  & dd {
+    @apply m-0 font-semibold text-content-primary;
+  }
+}
+
+@utility nd-trio {
+  @apply grid gap-5;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  & > .nd-card {
+    @apply p-6;
+  }
+  & h2 {
+    @apply mb-3 font-display text-xl font-semibold text-content-primary;
+    letter-spacing: -0.02em;
+  }
+  & h3 {
+    @apply mb-3 font-display text-xl font-semibold text-content-primary;
+    letter-spacing: -0.02em;
+  }
+
+  @media (max-width: 980px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@utility nd-mini {
+  @apply mb-4 list-none p-0;
+  & > li {
+    @apply border-t border-edge-subtle first:border-t-0;
+  }
+  & strong {
+    @apply block font-semibold text-content-primary;
+  }
+  & span.nd-mini-meta {
+    @apply block text-sm text-content-muted;
+  }
+}
+
+@utility nd-mini-row {
+  @apply flex gap-3.5 py-3;
+}
+
+@utility nd-cal-tile {
+  @apply w-12 flex-none rounded-xl bg-surface-muted py-1.5 text-center leading-tight;
+  & small {
+    @apply block text-xs font-semibold tracking-[0.06em] text-maroon-700 dark:text-maroon-300;
+  }
+  & b {
+    @apply text-[19px] text-content-primary;
+  }
+}
+
+@utility nd-tiles {
+  @apply mb-3.5 grid grid-cols-2 gap-2;
+}
+
+@utility nd-tile {
+  @apply flex min-h-[50px] items-center justify-between rounded-xl border border-transparent bg-surface-muted px-3.5 text-[14.5px] font-medium text-content-primary no-underline hover:border-edge-strong;
+}
+
+@utility nd-dino {
+  @apply rounded-2xl border border-edge-blue bg-surface-blue-card p-4 text-content-blue;
+  & b {
+    @apply mb-1 block;
+  }
+  & p {
+    @apply mb-2.5 text-sm;
+  }
+  & a {
+    @apply mr-3.5 text-[14.5px] font-semibold text-content-blue underline underline-offset-[3px];
+  }
+}
+
+@utility nd-band-blue {
+  @apply border-y border-edge-blue bg-surface-blue-subtle text-content-blue;
+  & h2 {
+    @apply font-display font-semibold;
+    font-size: clamp(20px, 2.4vw, 26px);
+    letter-spacing: -0.025em;
+  }
+}
+
+@utility nd-hero {
+  /* Home hero. */
+  @apply relative overflow-hidden;
+  padding: clamp(40px, 7vw, 96px) 0 clamp(40px, 6vw, 72px);
+}
+
+@utility nd-hero-grid {
+  @apply grid items-center;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(28px, 5vw, 64px);
+
+  @media (max-width: 980px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@utility nd-hero-title {
+  @apply font-display font-semibold text-content-primary;
+  font-size: clamp(40px, 6.2vw, 76px);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 4px 0 14px;
+  text-wrap: balance;
+  & span {
+    @apply text-maroon-700 dark:text-maroon-300;
+  }
+}
+
+@utility nd-voucher-chip {
+  @apply inline-flex items-center gap-2.5 rounded-full border border-edge-blue bg-surface-blue-subtle py-2 pl-2 pr-3.5 text-sm font-medium text-content-blue no-underline;
+  & b {
+    @apply rounded-full bg-[rgb(var(--text-blue))] px-2.5 py-[3px] text-[12.5px] text-[rgb(var(--surface-blue-subtle))];
+  }
+}
+
+@utility nd-hero-media {
+  @apply relative;
+}
+
+@utility nd-reveal {
+  @apply relative z-2 overflow-hidden rounded-[28px] border border-edge-subtle bg-[#E9E9E7];
+  aspect-ratio: 16 / 9;
+  box-shadow:
+    0 1px 2px rgba(29, 29, 31, 0.04),
+    0 8px 24px rgba(29, 29, 31, 0.06);
+  & video {
+    @apply h-full w-full object-cover;
+  }
+  & img {
+    @apply h-full w-full object-cover;
+  }
+}
+
+@utility nd-hero-ball {
+  @apply pointer-events-none absolute z-3;
+  width: clamp(88px, 10vw, 132px);
+  left: clamp(-44px, -3vw, -14px);
+  bottom: clamp(-48px, -3.4vw, -18px);
+  filter: drop-shadow(0 14px 22px rgba(60, 0, 0, 0.32));
+}
+
+@utility nd-season-tag {
+  @apply absolute left-[18px] top-[18px] z-3 rounded-full border border-edge-subtle bg-surface-card px-3 py-1.5 text-[13px] font-semibold text-content-primary;
+}
+
+@utility nd-logos {
+  /* Sponsor logos. */
+  @apply grid gap-3;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@utility nd-logo-tile {
+  @apply flex items-center justify-center rounded-2xl border border-edge-subtle bg-white p-4 no-underline transition-colors hover:border-edge-strong;
+  aspect-ratio: 3 / 2;
+  & img {
+    @apply h-auto w-auto max-w-full object-contain;
+    max-height: 72px;
+  }
+  &.is-text {
+    @apply text-center text-[15px] font-semibold leading-tight text-[#1D1D1F];
+  }
+}
+
+@utility is-text {
+  &.nd-logo-tile {
+    @apply text-center text-[15px] font-semibold leading-tight text-[#1D1D1F];
+  }
+}
+
+@utility nd-ev-grid {
+  /* Inner pages: card grids, two-column bodies, choice cards and contact list. */
+  @apply grid gap-5;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+@utility nd-ev-card {
+  @apply flex flex-col overflow-hidden;
+  & .nd-ev-img {
+    @apply relative flex items-center justify-center bg-surface-muted p-3.5;
+    aspect-ratio: 4 / 3;
+  }
+  & .nd-ev-img img {
+    @apply h-auto max-h-full w-auto rounded-[10px];
+  }
+  & .nd-ev-body {
+    @apply flex flex-1 flex-col gap-2 p-5;
+  }
+  & h2 {
+    @apply font-display text-xl font-semibold text-content-primary;
+    letter-spacing: -0.02em;
+  }
+  & h3 {
+    @apply font-display text-xl font-semibold text-content-primary;
+    letter-spacing: -0.02em;
+  }
+  & .nd-ev-meta {
+    @apply text-[14.5px] text-content-muted;
+  }
+  & .nd-ev-body > :last-child:is(a, div) {
+    @apply mt-auto;
+  }
+}
+
+@utility nd-ev-img {
+  .nd-ev-card & {
+    @apply relative flex items-center justify-center bg-surface-muted p-3.5;
+    aspect-ratio: 4 / 3;
+  }
+  .nd-ev-card & img {
+    @apply h-auto max-h-full w-auto rounded-[10px];
+  }
+}
+
+@utility nd-ev-body {
+  .nd-ev-card & {
+    @apply flex flex-1 flex-col gap-2 p-5;
+  }
+  .nd-ev-card & > :last-child:is(a, div) {
+    @apply mt-auto;
+  }
+}
+
+@utility nd-ev-meta {
+  .nd-ev-card & {
+    @apply text-[14.5px] text-content-muted;
+  }
+}
+
+@utility nd-two-col {
+  @apply grid items-start gap-7;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+
+  @media (max-width: 980px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@utility nd-radio-cards {
+  @apply grid gap-3.5;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+@utility nd-radio-card {
+  @apply relative block cursor-pointer rounded-[22px] border-[1.5px] border-edge-subtle bg-surface-card p-[22px] text-left;
+  box-shadow:
+    0 1px 2px rgba(29, 29, 31, 0.04),
+    0 8px 24px rgba(29, 29, 31, 0.06);
+  &:has(input:checked) {
+    @apply border-maroon-700 dark:border-maroon-300;
+    box-shadow: 0 0 0 3px rgb(136 0 0 / 0.18);
+  }
+  &[aria-pressed='true'] {
+    @apply border-maroon-700 dark:border-maroon-300;
+    box-shadow: 0 0 0 3px rgb(136 0 0 / 0.18);
+  }
+}
+
+@utility nd-contact-list {
+  @apply m-0 grid list-none gap-3.5 p-0;
+  & > li {
+    @apply flex flex-col;
+  }
+  & .nd-contact-label {
+    @apply text-[13px] font-semibold uppercase tracking-wider text-content-muted;
+  }
+}
+
+@utility nd-contact-label {
+  .nd-contact-list & {
+    @apply text-[13px] font-semibold uppercase tracking-wider text-content-muted;
+  }
+}
+
+@utility nd-crumbs {
+  @apply mb-3.5 text-sm text-white/80;
+  & a {
+    @apply text-white underline underline-offset-[3px];
+  }
+}
+
+@utility nd-hero-links {
+  @apply mt-5 flex flex-wrap gap-[18px];
+  & a {
+    @apply font-semibold text-white underline underline-offset-[3px];
+  }
+}
 
 @layer base {
   /* ---- Semantic theme tokens ----
@@ -83,20 +1319,20 @@
 
   /* Visible keyboard focus without affecting mouse interaction */
   :focus-visible {
-    outline: 2px solid theme('colors.maroon.600');
+    outline: 2px solid var(--color-maroon-600);
     outline-offset: 2px;
   }
 
   /* Dark maroon-600 is invisible against dark surfaces. */
   .dark :focus-visible {
-    outline-color: theme('colors.maroon.300');
+    outline-color: var(--color-maroon-300);
   }
 
   /* On maroon "honour board" surfaces a maroon outline vanishes; use the
      brand gold so keyboard focus stays visible on dark bands in both themes. */
   .band-maroon :focus-visible,
   .page-hero :focus-visible {
-    outline-color: theme('colors.gold.300');
+    outline-color: var(--color-gold-300);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -158,546 +1394,114 @@
   }
 }
 
-@layer components {
-  /* Buttons: pill shape, 44px minimum touch target, a colour and soft-shadow
-     change on hover and a 1px press. No scale, no bounce. */
-  .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 bg-maroon-700 text-white font-body font-semibold tracking-[-0.01em] shadow-[0_1px_2px_rgba(45,0,0,0.18)] hover:bg-maroon-800 hover:shadow-[0_6px_18px_-6px_rgba(96,0,0,0.45)] transition-[background-color,box-shadow,transform] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
-  }
-
-  .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 border border-edge-strong bg-surface-card text-content-primary font-body font-semibold tracking-[-0.01em] hover:border-maroon-700 hover:text-maroon-700 transition-[border-color,color,transform] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2 dark:bg-transparent dark:text-maroon-100 dark:hover:border-maroon-300 dark:hover:text-white dark:focus-visible:ring-offset-slate-900;
-  }
-
-  /* Club blue button: always dark maroon text (never white on blue). */
-  .btn-accent {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 bg-sky_accent text-maroon-900 font-body font-semibold tracking-[-0.01em] border border-sky_accent hover:bg-sky_accent-light hover:border-sky_accent-light transition-[background-color,border-color,transform] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
-  }
-
-  .btn-outline-white {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-2.5 border border-white/40 text-white font-body font-semibold tracking-[-0.01em] hover:border-white hover:bg-white/10 transition-[background-color,border-color,transform] duration-200 ease-out focus:outline-none;
-  }
-
-  .btn-primary:active, .btn-secondary:active, .btn-accent:active, .btn-outline-white:active {
-    transform: translateY(1px);
-  }
-
-  .section-padding {
-    @apply px-4 py-12 sm:px-6 sm:py-16 lg:px-8;
-  }
-
-  .container-width {
-    @apply max-w-7xl mx-auto;
-  }
-
-  .card {
-    @apply bg-surface-card rounded-2xl border border-edge-subtle overflow-hidden;
-    box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04);
-  }
-
-  /* Linked cards: a quiet 2px settle-up with a soft shadow on hover. */
-  .card-interactive {
-    transition: border-color 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .card-interactive:hover {
-    @apply border-edge-strong;
-    box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 14px 32px -16px rgba(45, 0, 0, 0.22);
-    transform: translateY(-2px);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .card-interactive:hover { transform: none; }
-  }
-
-  .form-input {
-    @apply w-full min-h-12 px-4 py-3 border border-edge-strong rounded-xl text-base font-body bg-surface-card text-content-primary placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
-  }
-
-  .form-label {
-    @apply block text-base font-semibold text-content-secondary mb-2 font-body;
-  }
-
-  /* Inner page hero: deep club maroon with one soft light source and a gold
-     hairline, rather than a flat band. */
-  .page-hero {
-    @apply relative overflow-hidden px-4 text-white sm:px-6 lg:px-8;
-    padding-top: clamp(3.5rem, 7vw, 6rem);
-    padding-bottom: clamp(3.5rem, 7vw, 6rem);
-    background:
-      radial-gradient(120% 140% at 85% -20%, rgb(255 255 255 / 0.10), transparent 55%),
-      radial-gradient(90% 120% at 0% 120%, rgb(0 0 0 / 0.28), transparent 60%),
-      rgb(var(--brand-maroon-surface));
-    box-shadow: inset 0 -1px 0 rgb(237 194 102 / 0.45);
-  }
-
-  .page-hero > * {
-    @apply relative z-10;
-  }
-
-  /* Faint gold dot texture fading in from the right edge of inner heroes. */
-  .page-hero::after {
-    content: '';
-    @apply pointer-events-none absolute inset-0;
-    background-image: radial-gradient(rgb(237 194 102 / 0.22) 1px, transparent 1px);
-    background-size: 22px 22px;
-    mask-image: radial-gradient(ellipse 45% 90% at 100% 40%, black, transparent 70%);
-    -webkit-mask-image: radial-gradient(ellipse 45% 90% at 100% 40%, black, transparent 70%);
-  }
-
-  /* Faint gold ball seam on the right of every inner page hero. */
-  .page-hero::before {
-    content: '';
-    @apply pointer-events-none absolute hidden sm:block;
-    width: 26rem;
-    height: 26rem;
-    right: -7rem;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.2;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23edc266'%3E%3Ccircle cx='100' cy='100' r='96' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 34 96 0 0 0 100 196' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 48 96 0 0 0 100 196' stroke-width='1.5'/%3E%3Cpath d='M100 4 A 41 96 0 0 0 100 196' stroke-width='9' stroke-dasharray='1.4 7.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
-  }
-
-  .page-hero-title {
-    @apply mb-4 font-display font-semibold;
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
-    line-height: 1.04;
-    letter-spacing: -.045em;
-    text-wrap: balance;
-  }
-
-  .page-hero-subtitle {
-    @apply max-w-2xl font-body text-lg leading-relaxed text-white/90 sm:text-xl;
-  }
-
-  .section-title {
-    @apply mb-3 font-display text-3xl leading-[1.1] font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl sm:leading-[1.08];
-    text-wrap: balance;
-  }
-
-  .section-subtitle {
-    @apply max-w-2xl font-body text-base text-content-muted sm:text-lg;
-  }
-
-  /* Semantic blue surfaces (replaced the alpha-wash .surface-sky). Solid
-     token-backed fills that stay visibly blue and bordered in both themes. */
-  .surface-blue-band {
-    @apply bg-surface-blue-subtle border-y border-edge-blue/60;
-  }
-
-  .panel-blue {
-    @apply bg-surface-blue-card border border-edge-blue rounded-xl;
-  }
-
-  .panel-blue-subtle {
-    @apply bg-surface-blue-subtle border border-edge-blue/70 rounded-xl;
-  }
-
-  /* Hover underline for nav links: appears on hover with no sweep. */
-  .nav-underline {
-    @apply relative;
-  }
-
-  .nav-underline::after {
-    content: '';
-    @apply absolute left-3 right-3 bottom-1 h-px bg-maroon-700 dark:bg-maroon-300;
-    transform: scaleX(0);
-    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .nav-underline:hover::after {
-    transform: scaleX(1);
-  }
-
-  .section-eyebrow {
-    @apply inline-flex items-center gap-2 text-xs font-semibold tracking-[0.16em] uppercase text-maroon-700 mb-3 dark:text-maroon-200;
-  }
-
-  .section-eyebrow::before {
-    content: '';
-    @apply inline-block h-px w-6 bg-current opacity-60;
-  }
-
-  /* Gold companion to .section-eyebrow for text sitting on maroon bands and
-     photo heroes: the honour-board "gold lettering" label treatment. */
-  .eyebrow-gold {
-    @apply inline-block text-xs font-bold tracking-[0.14em] uppercase text-gold-200 bg-gold-400/15 px-3.5 py-1 rounded-full mb-3;
-  }
-
-  /* Sponsor tiles: a rounder card whose hover is a border colour change. */
-  .card-hover-sponsor {
-    @apply card rounded-[1.25rem] transition-colors duration-200 hover:border-maroon-300 dark:hover:border-maroon-500;
-    box-shadow: none;
-  }
-
-  /* Consistent, accessible keyboard focus ring for interactive chrome. */
-  .focus-ring {
-    @apply focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 focus-visible:ring-offset-2;
-  }
-
-  /* Layered surface: hairline border on the card surface. */
-  .surface-panel {
-    @apply rounded-3xl border border-edge-subtle bg-surface-card;
-  }
-
-  /* Flat club-maroon band with a blue-grey keyline top and bottom. */
-  .band-maroon {
-    @apply relative text-white overflow-hidden;
-    background: rgb(var(--brand-maroon-surface));
-    border-block: 1px solid rgb(var(--border-blue));
-  }
-
-  .band-maroon > * {
-    @apply relative z-10;
-  }
-
-  /* Stat strip typography. */
-  .stat-value {
-    @apply font-display font-bold leading-none tracking-tight;
-  }
-
-  .stat-label {
-    @apply mt-2 font-body text-xs sm:text-sm uppercase tracking-[0.12em];
-  }
-
-  /* Sponsor marquee caption beneath each logo chip. */
-  .sponsor-caption {
-    @apply mt-3 block w-60 text-center font-body text-xs font-medium leading-snug text-content-muted;
-  }
-
-  /* Oversized editorial background typography (e.g. the club nickname behind
-     the stats band). Decorative watermark: always aria-hidden. */
-  .watermark-type {
-    @apply pointer-events-none select-none font-display font-bold uppercase leading-none;
-    letter-spacing: -0.02em;
-    color: transparent;
-    -webkit-text-stroke: 1px rgba(237, 194, 102, 0.14);
-  }
-}
-
-/* The broad dark-mode compatibility layer (":where(.dark) .bg-white { … }"
+@layer utilities {
+  /* The broad dark-mode compatibility layer (":where(.dark) .bg-white { … }"
    utility remapping) has been removed: every call site now uses the semantic
    token utilities (bg-surface-*, text-content-*, border-edge-*) or carries an
    explicit dark: variant, so no plain utility changes meaning under .dark. */
 
-.homepage-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: homepage-marquee 42s linear infinite;
-}
-
-.homepage-marquee-track:hover,
-.homepage-marquee-track:focus-within,
-.homepage-marquee-track.marquee-manually-paused,
-body.marquee-page-hidden .homepage-marquee-track {
-  animation-play-state: paused;
-}
-
-/* Seamless masked edges for the marquee loop (replaces gradient overlays that
-   assumed a fixed section background colour). */
-.homepage-marquee-region {
-  mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .homepage-marquee-region {
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
-}
-
-/* Keyboard parity with the hover pause, scoped to the appointments marquee so
-   the sponsors track keeps its existing behaviour. */
-.season-appointments-marquee-track:focus-within {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
   .homepage-marquee-track {
-    animation: none;
-    flex-wrap: wrap;
-    width: 100%;
-    justify-content: center;
+    display: flex;
+    width: max-content;
+    animation: homepage-marquee 42s linear infinite;
   }
-  /* The second sequence exists only to make the scroll loop seamless; in the
+
+  .homepage-marquee-track:hover,
+  .homepage-marquee-track:focus-within,
+  .homepage-marquee-track.marquee-manually-paused,
+  body.marquee-page-hidden .homepage-marquee-track {
+    animation-play-state: paused;
+  }
+
+  /* Seamless masked edges for the marquee loop (replaces gradient overlays that
+   assumed a fixed section background colour). */
+  .homepage-marquee-region {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 7%,
+      black 93%,
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 7%,
+      black 93%,
+      transparent
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepage-marquee-region {
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+  }
+
+  /* Keyboard parity with the hover pause, scoped to the appointments marquee so
+   the sponsors track keeps its existing behaviour. */
+  .season-appointments-marquee-track:focus-within {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepage-marquee-track {
+      animation: none;
+      flex-wrap: wrap;
+      width: 100%;
+      justify-content: center;
+    }
+    /* The second sequence exists only to make the scroll loop seamless; in the
      static reduced-motion layout it would show every item twice. */
-  .homepage-marquee-track > [aria-hidden='true'] {
-    display: none;
-  }
-  /* The static sponsor grid uses smaller logo tiles (two per row on phones)
+    .homepage-marquee-track > [aria-hidden='true'] {
+      display: none;
+    }
+    /* The static sponsor grid uses smaller logo tiles (two per row on phones)
      so it does not become a long single column. */
-  .homepage-marquee-track .sponsor-chip {
-    height: 5rem;
-    width: 9.5rem;
-  }
-  /* Reduced motion replaces the scroll with a static wrapped grid, so the
+    .homepage-marquee-track .sponsor-chip {
+      height: 5rem;
+      width: 9.5rem;
+    }
+    /* Reduced motion replaces the scroll with a static wrapped grid, so the
      pause/play control has nothing to act on. */
-  .season-appointments-marquee-toggle,
-  .sponsor-marquee-toggle {
-    display: none;
+    .season-appointments-marquee-toggle,
+    .sponsor-marquee-toggle {
+      display: none;
+    }
   }
-}
 
-@keyframes homepage-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
+  @keyframes homepage-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 
-/* NDCC club identity: clear type, real photography and cricket-blue wayfinding. */
+  /* NDCC club identity: clear type, real photography and cricket-blue wayfinding. */
+}
 @layer components {
-  /* Home hero: soft club-colour light (maroon, blue, gold) over the page
-     surface with a faint dot texture that fades out, for depth without noise. */
-  .club-home-hero {
-    @apply relative isolate overflow-hidden border-b border-edge-subtle;
-    background:
-      radial-gradient(55% 65% at 6% -5%, rgb(136 0 0 / 0.11), transparent 62%),
-      radial-gradient(45% 60% at 96% 45%, rgb(140 198 209 / 0.26), transparent 62%),
-      radial-gradient(40% 45% at 55% 115%, rgb(237 194 102 / 0.20), transparent 62%),
-      rgb(var(--surface-page));
-  }
-  .club-home-hero::before {
-    content: '';
-    @apply pointer-events-none absolute inset-0 -z-10;
-    background-image: radial-gradient(rgb(var(--text-primary) / 0.09) 1px, transparent 1px);
-    background-size: 22px 22px;
-    mask-image: radial-gradient(ellipse 70% 60% at 25% 35%, black, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 25% 35%, black, transparent 75%);
-  }
-  .dark .club-home-hero {
-    background:
-      radial-gradient(55% 70% at 6% -5%, rgb(136 0 0 / 0.42), transparent 62%),
-      radial-gradient(45% 60% at 96% 45%, rgb(140 198 209 / 0.14), transparent 62%),
-      radial-gradient(40% 45% at 55% 115%, rgb(237 194 102 / 0.10), transparent 62%),
-      rgb(var(--surface-page));
-  }
-  /* Maroon to deep gold in light mode, club blue to gold in dark mode. */
-  .text-brand-gradient {
-    background-image: linear-gradient(95deg, #880000 0%, #a3281c 45%, #89703b 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .dark .text-brand-gradient { background-image: linear-gradient(95deg, #8cc6d1 0%, #b3d9e0 45%, #edc266 100%); }
-  .glass-panel {
-    @apply rounded-3xl border border-edge-subtle bg-surface-card/70 backdrop-blur-xl;
-    box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 20px 40px -28px rgba(45, 0, 0, 0.30);
-  }
-  .dark .glass-panel { @apply bg-white/[0.04] border-white/10; }
-  /* Section accent: a short club-colour bar stitched like a ball seam. */
-  .brand-rule {
-    @apply mb-4 block h-1.5 w-14 rounded-full;
-    background:
-      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.9) 0 2px, transparent 2px 6px) center / 100% 1px no-repeat,
-      linear-gradient(90deg, #880000, #edc266);
-  }
-  .dark .brand-rule {
-    background:
-      repeating-linear-gradient(90deg, rgb(22 40 69 / 0.9) 0 2px, transparent 2px 6px) center / 100% 1px no-repeat,
-      linear-gradient(90deg, #8cc6d1, #edc266);
-  }
-  /* Match-day band: faint tonal mowing stripes, like a freshly cut outfield. */
-  .home-band {
-    @apply relative;
-    background:
-      repeating-linear-gradient(90deg, rgb(var(--text-primary) / 0.022) 0 96px, transparent 96px 192px),
-      linear-gradient(180deg, rgb(var(--surface-card)), rgb(var(--surface-page)));
-  }
-  .dark .home-band {
-    background:
-      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.022) 0 96px, transparent 96px 192px),
-      linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 60%);
-  }
-  /* Home hero ball: large, partly off the top-right edge, behind the content. */
-  .cricket-ball-hero {
-    @apply pointer-events-none absolute -z-10 hidden sm:block;
-    width: clamp(11rem, 18vw, 17rem);
-    right: clamp(-7rem, -4.5vw, -3rem);
-    top: clamp(-7rem, -4.5vw, -3rem);
-    filter: drop-shadow(0 30px 45px rgb(45 0 0 / 0.28));
-  }
-  .dark .cricket-ball-hero { opacity: 0.78; filter: drop-shadow(0 30px 50px rgb(0 0 0 / 0.55)); }
-  .cricket-ball-turn { animation: ndcc-ball-turn 120s linear infinite; }
-  /* Scoreboard figures: fixed-width numerals with a gold hairline above. */
-  .scoreboard { position: relative; }
-  .scoreboard::before {
-    content: '';
-    @apply pointer-events-none absolute inset-x-8 top-0 h-px;
-    background: linear-gradient(90deg, transparent, rgb(237 194 102 / 0.8), transparent);
-  }
-  .scoreboard dd { font-variant-numeric: tabular-nums; }
-  .fixture-card {
-    @apply flex h-full flex-col gap-4 p-5;
-  }
-  .dark .fixture-card { @apply bg-white/[0.035] border-white/10; }
-  .badge-home { @apply inline-flex items-center rounded-full bg-maroon-700 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-white; }
-  .badge-away { @apply inline-flex items-center rounded-full bg-sky_accent px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-navy; }
-  .date-tile { @apply flex h-16 w-16 flex-none flex-col items-center justify-center rounded-2xl border border-edge-subtle bg-surface-card text-center; }
-  .dark .date-tile { @apply bg-white/[0.04] border-white/10; }
-  .involve-tile {
-    @apply flex min-h-24 items-center gap-4 p-5;
-  }
-  .dark .involve-tile { @apply bg-white/[0.035] border-white/10; }
-  .involve-icon { @apply flex h-11 w-11 flex-none items-center justify-center rounded-2xl bg-maroon-50 text-maroon-700; }
-  .dark .involve-icon { @apply bg-maroon-900/60 text-maroon-100; }
-  .club-home-copy { @apply min-w-0; }
-  /* Next event beside the home title: a solid card so the details stay easy to read over the hero light. */
-  .next-event-card { @apply relative rounded-3xl border border-edge-subtle bg-surface-card p-5 sm:p-6; box-shadow: 0 1px 2px rgba(29, 29, 31, 0.05), 0 24px 44px -30px rgba(45, 0, 0, 0.35); }
-  .dark .next-event-card { @apply border-white/10; }
-  .club-kicker { @apply block text-xs font-semibold uppercase leading-relaxed tracking-[0.16em] text-maroon-700 dark:text-sky_accent; }
-  .club-home-title { font-size: clamp(1.6rem, 3.6vw, 3.25rem); line-height: 1.02; letter-spacing: -.045em; text-wrap: balance; @apply mt-2 font-display font-semibold text-content-primary; }
-  .club-text-link { @apply inline-flex min-h-11 items-center gap-3 text-maroon-700 underline decoration-maroon-700/25 decoration-1 underline-offset-[6px] transition-[text-decoration-color] duration-200 hover:decoration-maroon-700 dark:text-sky_accent dark:decoration-sky_accent/30 dark:hover:decoration-sky_accent; }
-  .club-disclosure { @apply rounded-2xl border border-edge-subtle bg-surface-card; }
-  .club-disclosure > summary { @apply cursor-pointer px-5 py-4 text-base font-semibold text-content-primary; }
-  .club-disclosure[open] > summary { @apply border-b border-edge-subtle; }
-  .club-disclosure > summary::marker { color: rgb(var(--action-secondary)); }
-  .product-options button { min-height: 44px; min-width: 44px; }
-  .club-disclosure .product-options { @apply space-y-5 p-4; }
-  /* Merchandise order bar: full width on phones, a pill at the bottom right from sm up. */
-  .club-order-bar { @apply fixed inset-x-3 bottom-3 z-40 flex min-h-14 items-center justify-between gap-3 rounded-full bg-content-primary py-2 pl-5 pr-2 font-body text-sm text-surface-page shadow-[0_12px_32px_-12px_rgba(0,0,0,0.45)] sm:left-auto sm:right-4 sm:bottom-4 sm:max-w-xl; }
-  .club-order-bar-link { @apply inline-flex min-h-11 shrink-0 items-center rounded-full bg-maroon-700 px-5 font-semibold text-white hover:bg-maroon-800; }
-  .prose { line-height: 1.8; }
-  .prose p, .prose li { font-size: 1rem; }
-  .prose a { text-decoration: underline; text-underline-offset: 3px; }
   button, a, input, select, textarea { scroll-margin-top: 8rem; }
-  .sponsor-introduction { @apply grid items-start gap-5 md:grid-cols-[1fr_2fr] md:gap-16; }
-  .sponsor-introduction .section-title { @apply text-3xl; }
-  .sponsor-introduction p { max-width: 48rem; }
-  .sponsor-gallery { align-items: stretch; }
-  .sponsor-gallery > li { min-width: 0; }
-  .sponsor-gallery h3 { letter-spacing: -.025em; line-height: 1.4; }
 }
 
-/* Slow seam turn on the decorative hero ball; still for reduced motion and print. */
-@keyframes ndcc-ball-turn {
-  to { transform: rotate(360deg); }
-}
-@media (prefers-reduced-motion: reduce), print {
-  .cricket-ball-turn { animation: none; }
-}
+@layer utilities {
+  /* Slow seam turn on the decorative hero ball; still for reduced motion and print. */
+  @keyframes ndcc-ball-turn {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce), print {
+    .cricket-ball-turn {
+      animation: none;
+    }
+  }
 
-/* Suggested-direction building blocks (shared by home and inner pages). Mirrors
+  /* Suggested-direction building blocks (shared by home and inner pages). Mirrors
    the approved design mock: hairline cards with a soft shadow, uppercase
    eyebrows, segmented tabs, compact fixture rows, month-grouped card grids,
    two-column page bodies and a static sponsor logo grid. Colours come only
    from the semantic tokens above, so both themes follow automatically. */
-@layer components {
-  .nd-wrap { @apply mx-auto w-full max-w-[1200px]; padding-inline: clamp(16px, 4vw, 40px); }
-  .nd-sec { padding-block: clamp(48px, 7vw, 88px); }
-  .nd-sec-tight { padding-block: clamp(28px, 4vw, 44px); }
-  .nd-eyebrow { @apply block text-[13px] font-semibold uppercase tracking-[0.06em] text-maroon-700 dark:text-maroon-300; }
-  .nd-sec-head { @apply mb-6 flex flex-wrap items-end justify-between gap-4; }
-  .nd-sec-head h2, .nd-h2 { @apply font-display font-semibold text-content-primary; font-size: clamp(26px, 3.4vw, 38px); letter-spacing: -0.025em; line-height: 1.12; text-wrap: balance; }
-  .nd-lead { @apply max-w-[60ch] text-content-secondary; font-size: clamp(17px, 1.6vw, 19px); line-height: 1.6; }
-  .nd-card { @apply rounded-[22px] border border-edge-subtle bg-surface-card; box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 8px 24px rgba(29, 29, 31, 0.06); }
-  .dark .nd-card { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25); }
-  .nd-link { @apply inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-maroon-700 no-underline hover:underline dark:text-maroon-300; text-underline-offset: 3px; }
-  .nd-pill { @apply inline-block rounded-full border border-edge-strong px-2.5 py-[3px] text-xs font-semibold text-content-secondary; }
-  .nd-pill-home { @apply border-maroon-700 bg-maroon-700 text-white; }
-  .nd-pill-gold { @apply border-[#E9CF8E] bg-[#F6E3B8] text-[#3A2A00]; }
-  .nd-month { @apply mb-3.5 mt-9 text-[15px] font-semibold uppercase tracking-[0.06em] text-content-muted first:mt-0; }
-
-  /* Segmented control (tabs or filter buttons). */
-  .nd-seg { @apply inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full border border-edge-subtle bg-surface-muted p-1; }
-  .nd-seg > button, .nd-seg > a { @apply min-h-[38px] whitespace-nowrap rounded-full px-4 py-2 text-[14.5px] font-medium text-content-secondary; }
-  .nd-seg > [aria-selected='true'], .nd-seg > [aria-pressed='true'], .nd-seg > [aria-current='page'] { @apply bg-surface-card text-content-primary; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
-  .nd-seg small { @apply block text-xs font-normal text-content-muted; }
-  @media (max-width: 560px) {
-    .nd-seg { @apply flex w-full; }
-    .nd-seg > button, .nd-seg > a { @apply flex-1 px-1.5 text-sm; }
-  }
-
-  /* Compact fixture rows. */
-  .nd-fx-list { @apply m-0 list-none p-0; }
-  .nd-fx { @apply grid items-center gap-4 border-t border-edge-subtle px-[22px] py-4 first:border-t-0; grid-template-columns: 64px minmax(0, 1fr) auto; }
-  .nd-fx-date { @apply leading-tight; }
-  .nd-fx-date small { @apply block text-xs font-semibold uppercase tracking-[0.05em] text-content-muted; }
-  .nd-fx-date b { @apply text-xl font-semibold tracking-[-0.02em]; }
-  .nd-fx-grade { @apply text-[12.5px] font-semibold text-content-blue; }
-  .nd-fx-opp { @apply text-[16.5px] font-semibold text-content-primary; }
-  .nd-fx-meta { @apply text-sm text-content-muted; }
-  .nd-fx-side { @apply flex flex-col items-end gap-1.5; }
-  .nd-note { @apply border-t border-edge-subtle px-[22px] py-3.5 text-sm text-content-muted; }
-  @media (max-width: 560px) {
-    .nd-fx { @apply gap-3 px-4 py-3.5; grid-template-columns: 58px minmax(0, 1fr); }
-    .nd-fx-date b { @apply whitespace-nowrap text-[17px]; }
-    .nd-fx-side { @apply col-start-2 flex-row items-center justify-start gap-3; }
-    .nd-note { @apply px-4; }
-  }
-
-  /* Home: next event feature and the three preview cards. */
-  .nd-event-feature { @apply grid overflow-hidden; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); }
-  .nd-poster { @apply flex items-center justify-center bg-surface-muted p-5; }
-  .nd-poster img { @apply h-auto w-auto rounded-xl; max-height: 420px; box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 8px 24px rgba(29, 29, 31, 0.06); }
-  .nd-event-body { @apply flex flex-col gap-[18px]; padding: clamp(24px, 4vw, 44px); }
-  .nd-event-body h2 { @apply font-display font-semibold text-content-primary; font-size: clamp(28px, 3.6vw, 42px); letter-spacing: -0.025em; line-height: 1.12; }
-  .nd-facts { @apply m-0 grid gap-x-5 gap-y-2; grid-template-columns: auto minmax(0, 1fr); }
-  .nd-facts dt { @apply text-content-muted; }
-  .nd-facts dd { @apply m-0 font-semibold text-content-primary; }
-  .nd-trio { @apply grid gap-5; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .nd-trio > .nd-card { @apply p-6; }
-  .nd-trio h2, .nd-trio h3 { @apply mb-3 font-display text-xl font-semibold text-content-primary; letter-spacing: -0.02em; }
-  .nd-mini { @apply mb-4 list-none p-0; }
-  .nd-mini > li { @apply border-t border-edge-subtle first:border-t-0; }
-  .nd-mini-row { @apply flex gap-3.5 py-3; }
-  .nd-mini strong { @apply block font-semibold text-content-primary; }
-  .nd-mini span.nd-mini-meta { @apply block text-sm text-content-muted; }
-  .nd-cal-tile { @apply w-12 flex-none rounded-xl bg-surface-muted py-1.5 text-center leading-tight; }
-  .nd-cal-tile small { @apply block text-xs font-semibold tracking-[0.06em] text-maroon-700 dark:text-maroon-300; }
-  .nd-cal-tile b { @apply text-[19px] text-content-primary; }
-  .nd-tiles { @apply mb-3.5 grid grid-cols-2 gap-2; }
-  .nd-tile { @apply flex min-h-[50px] items-center justify-between rounded-xl border border-transparent bg-surface-muted px-3.5 text-[14.5px] font-medium text-content-primary no-underline hover:border-edge-strong; }
-  .nd-dino { @apply rounded-2xl border border-edge-blue bg-surface-blue-card p-4 text-content-blue; }
-  .nd-dino b { @apply mb-1 block; }
-  .nd-dino p { @apply mb-2.5 text-sm; }
-  .nd-dino a { @apply mr-3.5 text-[14.5px] font-semibold text-content-blue underline underline-offset-[3px]; }
-  .nd-band-blue { @apply border-y border-edge-blue bg-surface-blue-subtle text-content-blue; }
-  .nd-band-blue h2 { @apply font-display font-semibold; font-size: clamp(20px, 2.4vw, 26px); letter-spacing: -0.025em; }
-
-  /* Home hero. */
-  .nd-hero { @apply relative overflow-hidden; padding: clamp(40px, 7vw, 96px) 0 clamp(40px, 6vw, 72px); }
-  .nd-hero-grid { @apply grid items-center; grid-template-columns: 1.05fr 0.95fr; gap: clamp(28px, 5vw, 64px); }
-  .nd-hero-title { @apply font-display font-semibold text-content-primary; font-size: clamp(40px, 6.2vw, 76px); letter-spacing: -0.045em; line-height: 1.02; margin: 4px 0 14px; text-wrap: balance; }
-  .nd-hero-title span { @apply text-maroon-700 dark:text-maroon-300; }
-  .nd-voucher-chip { @apply inline-flex items-center gap-2.5 rounded-full border border-edge-blue bg-surface-blue-subtle py-2 pl-2 pr-3.5 text-sm font-medium text-content-blue no-underline; }
-  .nd-voucher-chip b { @apply rounded-full bg-[rgb(var(--text-blue))] px-2.5 py-[3px] text-[12.5px] text-[rgb(var(--surface-blue-subtle))]; }
-  .nd-hero-media { @apply relative; }
-  .nd-reveal { @apply relative z-[2] overflow-hidden rounded-[28px] border border-edge-subtle bg-[#E9E9E7]; aspect-ratio: 16 / 9; box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 8px 24px rgba(29, 29, 31, 0.06); }
-  .nd-reveal video, .nd-reveal img { @apply h-full w-full object-cover; }
-  .nd-hero-ball { @apply pointer-events-none absolute z-[3]; width: clamp(88px, 10vw, 132px); left: clamp(-44px, -3vw, -14px); bottom: clamp(-48px, -3.4vw, -18px); filter: drop-shadow(0 14px 22px rgba(60, 0, 0, 0.32)); }
-  .nd-season-tag { @apply absolute left-[18px] top-[18px] z-[3] rounded-full border border-edge-subtle bg-surface-card px-3 py-1.5 text-[13px] font-semibold text-content-primary; }
-
-  /* Sponsor logos. */
-  .nd-logos { @apply grid gap-3; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
-  .nd-logo-tile { @apply flex items-center justify-center rounded-2xl border border-edge-subtle bg-white p-4 no-underline transition-colors hover:border-edge-strong; aspect-ratio: 3 / 2; }
-  .nd-logo-tile img { @apply h-auto w-auto max-w-full object-contain; max-height: 72px; }
-  .nd-logo-tile.is-text { @apply text-center text-[15px] font-semibold leading-tight text-[#1D1D1F]; }
-  @media (max-width: 560px) { .nd-logos { grid-template-columns: 1fr 1fr; } }
-
-  /* Inner pages: card grids, two-column bodies, choice cards and contact list. */
-  .nd-ev-grid { @apply grid gap-5; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
-  .nd-ev-card { @apply flex flex-col overflow-hidden; }
-  .nd-ev-card .nd-ev-img { @apply relative flex items-center justify-center bg-surface-muted p-3.5; aspect-ratio: 4 / 3; }
-  .nd-ev-card .nd-ev-img img { @apply h-auto max-h-full w-auto rounded-[10px]; }
-  .nd-ev-card .nd-ev-body { @apply flex flex-1 flex-col gap-2 p-5; }
-  .nd-ev-card h2, .nd-ev-card h3 { @apply font-display text-xl font-semibold text-content-primary; letter-spacing: -0.02em; }
-  .nd-ev-card .nd-ev-meta { @apply text-[14.5px] text-content-muted; }
-  .nd-ev-card .nd-ev-body > :last-child:is(a, div) { @apply mt-auto; }
-  .nd-two-col { @apply grid items-start gap-7; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
-  .nd-radio-cards { @apply grid gap-3.5; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
-  .nd-radio-card { @apply relative block cursor-pointer rounded-[22px] border-[1.5px] border-edge-subtle bg-surface-card p-[22px] text-left; box-shadow: 0 1px 2px rgba(29, 29, 31, 0.04), 0 8px 24px rgba(29, 29, 31, 0.06); }
-  .nd-radio-card:has(input:checked), .nd-radio-card[aria-pressed='true'] { @apply border-maroon-700 dark:border-maroon-300; box-shadow: 0 0 0 3px rgb(136 0 0 / 0.18); }
-  .nd-contact-list { @apply m-0 grid list-none gap-3.5 p-0; }
-  .nd-contact-list > li { @apply flex flex-col; }
-  .nd-contact-list .nd-contact-label { @apply text-[13px] font-semibold uppercase tracking-[0.05em] text-content-muted; }
-  .nd-crumbs { @apply mb-3.5 text-sm text-white/80; }
-  .nd-crumbs a { @apply text-white underline underline-offset-[3px]; }
-  .nd-hero-links { @apply mt-5 flex flex-wrap gap-[18px]; }
-  .nd-hero-links a { @apply font-semibold text-white underline underline-offset-[3px]; }
-
-  @media (max-width: 980px) {
-    .nd-hero-grid, .nd-event-feature, .nd-two-col { grid-template-columns: minmax(0, 1fr); }
-    .nd-trio { grid-template-columns: minmax(0, 1fr); }
-    .nd-poster img { max-height: 340px; }
-  }
 }

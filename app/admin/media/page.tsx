@@ -124,10 +124,10 @@ export default function AdminMediaLibraryPage() {
         <p className="text-sm text-content-muted">Images and PDFs uploaded through the CMS. Copy a file URL, improve its alt text, or delete files that are no longer used anywhere.</p>
       </div>
       {feedback && (
-        <p role="status" className={`text-sm px-3 py-2 rounded border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>{feedback.message}</p>
+        <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>{feedback.message}</p>
       )}
       {!available && (
-        <p className="rounded border border-edge-blue bg-surface-blue-subtle px-3 py-2 text-sm text-content-primary">The media library needs the latest database update. Uploads still work from each editor.</p>
+        <p className="rounded-sm border border-edge-blue bg-surface-blue-subtle px-3 py-2 text-sm text-content-primary">The media library needs the latest database update. Uploads still work from each editor.</p>
       )}
       <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setQuery(search.trim()); }}>
         <div className="min-w-[240px] flex-1">
@@ -180,7 +180,7 @@ export default function AdminMediaLibraryPage() {
             <>
               {!isPdf(selected) && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={selected.public_url} alt={selected.alt_text || 'Selected library image'} className="max-h-56 w-full rounded border border-edge-subtle object-contain bg-surface-page" />
+                <img src={selected.public_url} alt={selected.alt_text || 'Selected library image'} className="max-h-56 w-full rounded-sm border border-edge-subtle object-contain bg-surface-page" />
               )}
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                 {selected.width && selected.height ? (<><dt className="text-content-muted">Size</dt><dd>{selected.width} x {selected.height}px</dd></>) : null}
@@ -189,7 +189,7 @@ export default function AdminMediaLibraryPage() {
                 {selected.usage_hint ? (<><dt className="text-content-muted">Used for</dt><dd>{selected.usage_hint}</dd></>) : null}
               </dl>
               <label className="block text-xs text-content-secondary" htmlFor="media-url">File URL</label>
-              <input id="media-url" readOnly value={selected.public_url} className="w-full rounded border border-edge-strong bg-surface-page px-2 py-1 text-xs" onFocus={(event) => event.target.select()} />
+              <input id="media-url" readOnly value={selected.public_url} className="w-full rounded-sm border border-edge-strong bg-surface-page px-2 py-1 text-xs" onFocus={(event) => event.target.select()} />
               <Button variant="secondary" size="sm" onClick={() => void copyUrl(selected)}>Copy URL</Button>
               {!isPdf(selected) && (
                 <>

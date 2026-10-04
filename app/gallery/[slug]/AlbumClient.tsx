@@ -122,7 +122,7 @@ export default function AlbumClient({ albumTitle, albumAllowsDownload, photos }:
                 setActiveIndex(index);
               }}
               aria-label={`View photo ${index + 1} of ${total}: ${photoAlt(photo, index, total, albumTitle)}`}
-              className="relative block w-full aspect-[4/3] rounded-xl overflow-hidden group border border-edge-subtle bg-gray-900 shadow-sm card-interactive focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500"
+              className="relative block w-full aspect-4/3 rounded-xl overflow-hidden group border border-edge-subtle bg-gray-900 shadow-xs card-interactive focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500"
             >
               <SafeImage
                 src={photo.image_url}
@@ -159,9 +159,9 @@ export default function AlbumClient({ albumTitle, albumAllowsDownload, photos }:
             aria-modal="true"
             aria-label={`Photo ${activeIndex + 1} of ${total}: ${photoAlt(activePhoto, activeIndex, total, albumTitle)}`}
             tabIndex={-1}
-            className="w-full max-w-5xl bg-black rounded-xl overflow-hidden outline-none"
+            className="w-full max-w-5xl bg-black rounded-xl overflow-hidden outline-hidden"
           >
-            <div className="relative aspect-[4/3] sm:aspect-video">
+            <div className="relative aspect-4/3 sm:aspect-video">
               <SafeImage
                 src={activePhoto.image_url}
                 alt={photoAlt(activePhoto, activeIndex, total, albumTitle)}
@@ -179,7 +179,7 @@ export default function AlbumClient({ albumTitle, albumAllowsDownload, photos }:
                 onClick={() => step(-1)}
                 disabled={activeIndex === 0}
                 aria-label="Previous photo"
-                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronLeft className="h-6 w-6" aria-hidden="true" />
               </button>
@@ -188,7 +188,7 @@ export default function AlbumClient({ albumTitle, albumAllowsDownload, photos }:
                 onClick={() => step(1)}
                 disabled={activeIndex >= total - 1}
                 aria-label="Next photo"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
               >
                 <ChevronRight className="h-6 w-6" aria-hidden="true" />
               </button>

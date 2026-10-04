@@ -144,7 +144,7 @@ export default function AdminFantasyImportPage() {
                     setFilename(null);
                     setPreview(null);
                   }}
-                  className="min-h-64 w-full rounded-md border border-edge-strong px-3 py-2 font-mono text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                  className="min-h-64 w-full rounded-md border border-edge-strong px-3 py-2 font-mono text-sm focus:border-maroon-500 focus:outline-hidden focus:ring-2 focus:ring-maroon-200"
                   placeholder={csvColumns.join(',')}
                 />
               </div>
@@ -158,7 +158,7 @@ export default function AdminFantasyImportPage() {
                   type="url"
                   value={sourceUrl}
                   onChange={(event) => setSourceUrl(event.target.value)}
-                  className="w-full rounded-md border border-edge-strong px-3 py-2 text-sm focus:border-maroon-500 focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                  className="w-full rounded-md border border-edge-strong px-3 py-2 text-sm focus:border-maroon-500 focus:outline-hidden focus:ring-2 focus:ring-maroon-200"
                   placeholder="https://www.playhq.com/... (public scorecard these stats were read from)"
                 />
                 <p className="mt-1 text-xs text-content-muted font-body">Recorded on the batch with a fetched-at timestamp so published scores stay traceable to their official source.</p>

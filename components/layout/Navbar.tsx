@@ -500,7 +500,7 @@ export default function Navbar({ nav }: NavbarProps) {
               key="mobile-menu"
               id="mobile-site-menu"
               ref={menuRef}
-              className="min-[1100px]:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
+              className="min-[1100px]:hidden fixed inset-0 z-60 flex flex-col bg-surface-nav"
               initial={reduceMotion ? false : { opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, y: -16 }}
@@ -541,7 +541,7 @@ export default function Navbar({ nav }: NavbarProps) {
           ))}
       <Link prefetch={false}
         href={registrationNavigation?.href || '/join'}
-        className="block px-4 py-3 mt-3 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-full hover:bg-maroon-800 transition-colors focus-ring"
+        className="block px-4 py-3 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-full hover:bg-maroon-800 transition-colors focus-ring"
         aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
       >
         {registrationNavigation?.label || 'Join the Club'}
@@ -556,7 +556,7 @@ export default function Navbar({ nav }: NavbarProps) {
               </button>
             </>
           )}
-          <div className="flex items-center justify-between px-4 pt-3 mt-2 border-t border-edge-subtle">
+          <div className="flex items-center justify-between px-4 pt-3 border-t border-edge-subtle">
             <span className="text-sm font-body font-medium text-content-muted dark:text-slate-300">Theme</span>
             <ThemeToggle />
           </div>

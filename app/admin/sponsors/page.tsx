@@ -247,9 +247,9 @@ export default function AdminSponsorsPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : loadError ? (
         <div role="alert" className="bg-surface-card rounded-xl border border-edge-subtle p-8">
@@ -271,7 +271,7 @@ export default function AdminSponsorsPage() {
                   aria-label="Select all sponsors"
                   checked={sponsors.length > 0 && selectedIds.length === sponsors.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Name</TableHeader>
@@ -290,7 +290,7 @@ export default function AdminSponsorsPage() {
                     aria-label={`Select ${sponsor.name}`}
                     checked={selectedIds.includes(sponsor.id)}
                     onChange={() => toggleSelected(sponsor.id)}
-                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{sponsor.name}</TableCell>
@@ -402,7 +402,7 @@ export default function AdminSponsorsPage() {
               type="checkbox"
               checked={form.active}
               onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+              className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
             <span className="text-sm font-body text-content-secondary">Active sponsor</span>
           </label>

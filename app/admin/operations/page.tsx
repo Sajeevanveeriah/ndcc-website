@@ -39,8 +39,8 @@ export default function OperationsPage() {
   }
   return <div className="space-y-8">
     <div><h1 className="text-3xl font-display font-bold">Website operations</h1><p className="mt-2 text-content-muted">Measured health, delivery evidence and account controls.</p></div>
-    {message && <p role="status" className="rounded border border-edge-subtle p-4">{message}</p>}
-    {loadError && <p role="alert" className="rounded border border-edge-subtle p-4">{loadError}</p>}
+    {message && <p role="status" className="rounded-sm border border-edge-subtle p-4">{message}</p>}
+    {loadError && <p role="alert" className="rounded-sm border border-edge-subtle p-4">{loadError}</p>}
     <button className="btn-secondary" disabled={loading || busy} onClick={() => void refresh()}>{loading ? 'Loading checks...' : 'Refresh checks'}</button>
     {health && <>
       <p className="text-sm text-content-muted">Checked {new Date(health.observedAt).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' })} (Melbourne time).</p>

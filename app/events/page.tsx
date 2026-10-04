@@ -82,7 +82,7 @@ export default async function EventsPage() {
                                   src={imageUrl}
                                   alt={`${event.title} event artwork`}
                                   fill
-                                  className="object-contain !h-full !w-full"
+                                  className="object-contain h-full! w-full!"
                                   sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 380px"
                                   fallback={<div className="absolute inset-0 bg-surface-muted" aria-hidden="true" />}
                                 />

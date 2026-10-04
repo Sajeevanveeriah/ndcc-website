@@ -83,7 +83,7 @@ const layout = readFileSync('app/layout.tsx', 'utf8');
 assert.match(layout, /<MaintenanceBannerProvider banner=\{nav\.maintenance \?\? null\}>\s*<Navbar nav=\{nav\} \/>/);
 assert.match(layout, /<main id="main-content" className="flex-1 pt-\[68px\]"><MaintenanceBannerSpacer \/>\{children\}<\/main>/, 'page content starts below the notice from the first paint');
 const draw = readFileSync('app/admin/raffle/wheel/[id]/draw/page.tsx', 'utf8');
-assert.match(draw, /fixed inset-0 z-\[100\][^\n]*\n[^\n]*\n\s*<MaintenanceBanner standalone \/>/, 'the fullscreen draw display shows the notice too');
+assert.match(draw, /fixed inset-0 z-100[^\n]*\n[^\n]*\n\s*<MaintenanceBanner standalone \/>/, 'the fullscreen draw display shows the notice too');
 assert.match(navbar, /aria-label="Site menu"\s*>\s*\{\/\*[^*]*\*\/\}\s*<div className="shrink-0"><MaintenanceBanner standalone \/><\/div>/, 'the mobile menu repeats the notice');
 assert.match(readFileSync('app/globals.css', 'utf8'), /scroll-behavior: smooth;[\s\S]{0,200}scroll-padding-top: var\(--site-banner-h, 0px\);/, 'section links land below the notice');
 const card = readFileSync('app/admin/club-details/MaintenanceBannerCard.tsx', 'utf8');

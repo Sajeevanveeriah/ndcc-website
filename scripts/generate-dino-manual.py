@@ -4,7 +4,7 @@ Requires python-docx, Pillow and a Chromium binary (Playwright's bundled Chromiu
 Run from the repository root:
     python3 scripts/generate-dino-manual.py
 Set CHROME to override the Chromium path. Outputs go to public/documents/.
-Colours are the official club palette from tailwind.config.ts.
+Colours are the official club palette from the @theme block in app/globals.css.
 """
 from pathlib import Path
 import base64
