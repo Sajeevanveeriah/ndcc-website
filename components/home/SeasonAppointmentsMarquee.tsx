@@ -64,8 +64,8 @@ export default function SeasonAppointmentsMarquee({ initialAppointments }: { ini
         <div className="relative overflow-hidden" role="region" aria-label="Season appointments">
           {marquee.animate && (
             <>
-              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-surface-page to-transparent" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-surface-page to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-surface-page to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-surface-page to-transparent" />
             </>
           )}
           <div

@@ -447,9 +447,9 @@ export default function AdminCalendarPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : view === 'month' ? (
         <div className="ndcc-calendar bg-surface-card rounded-xl border border-edge-subtle p-3 sm:p-5">
@@ -487,7 +487,7 @@ export default function AdminCalendarPage() {
                   aria-label="Select all calendar events"
                   checked={filtered.length > 0 && selectedIds.length === filtered.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -508,14 +508,14 @@ export default function AdminCalendarPage() {
                     aria-label={`Select ${event.title}`}
                     checked={selectedIds.includes(event.id)}
                     onChange={() => toggleSelected(event.id)}
-                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">
                   <span className="inline-flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: eventColour(event) }} aria-hidden="true" />
                     {event.title}
-                    {event.is_featured && <Badge variant="warning" className="!text-xs">Featured</Badge>}
+                    {event.is_featured && <Badge variant="warning" className="text-xs!">Featured</Badge>}
                   </span>
                 </TableCell>
                 <TableCell className="text-sm">{formatEventDateRange(event)}</TableCell>

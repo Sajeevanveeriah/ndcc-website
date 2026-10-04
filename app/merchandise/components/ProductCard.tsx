@@ -24,14 +24,14 @@ function ProductImage({ product, className }: { product: DisplayProduct; classNa
           fill
           className="object-contain p-3"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          fallback={<div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} aria-hidden="true" />}
+          fallback={<div className={`absolute inset-0 bg-linear-to-br ${gradient}`} aria-hidden="true" />}
         />
       </div>
     );
   }
   return (
     <div
-      className={cn(`bg-gradient-to-br ${gradient} flex flex-col items-center justify-center gap-2 px-4 text-center`, className)}
+      className={cn(`bg-linear-to-br ${gradient} flex flex-col items-center justify-center gap-2 px-4 text-center`, className)}
       role="img"
       aria-label={product.imageAlt || `Product image unavailable for ${product.name}`}
     >

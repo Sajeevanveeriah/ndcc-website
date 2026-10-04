@@ -22,17 +22,17 @@ export default async function PlayerSponsorsSection() {
           return <li key={player.key} className="min-w-0 rounded-lg border border-edge-subtle p-5">
             <div className="mb-5 flex items-center gap-3">
               {portrait && <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full"><SafeImage src={portrait} alt={player.player_name} fill sizes="56px" className="object-cover" fallback={null} /></div>}
-              <div className="min-w-0"><h3 className="break-words font-display text-lg font-bold text-content-primary">{player.player_name}</h3><p className="mt-1 text-sm text-content-muted">Proudly sponsored by</p></div>
+              <div className="min-w-0"><h3 className="wrap-break-word font-display text-lg font-bold text-content-primary">{player.player_name}</h3><p className="mt-1 text-sm text-content-muted">Proudly sponsored by</p></div>
             </div>
             <ul aria-label={`Sponsors of ${player.player_name}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {player.sponsors.map((entry) => {
                 const website = normaliseSponsorWebsite(entry.website);
                 const logo = normalisePublicLinkUrl(entry.logo_url);
-                const sponsor = <><div className="relative h-20 w-full rounded bg-white">
+                const sponsor = <><div className="relative h-20 w-full rounded-sm bg-white">
                   {logo && <SafeImage src={logo} alt={`${entry.sponsor_name} logo`} fill sizes="200px" className="object-contain p-3" fallback={<span className="block p-3 text-center text-sm font-semibold text-gray-900">{entry.sponsor_name}</span>} />}
                   {!logo && <span className="block p-3 text-center text-sm font-semibold text-gray-900">{entry.sponsor_name}</span>}
-                </div><span className="mt-2 block break-words text-sm font-semibold text-content-primary">{entry.sponsor_name}</span></>;
-                return <li key={entry.id} className="min-w-0">{website ? <a href={website} target="_blank" rel="sponsored noopener noreferrer" className="block rounded focus-ring hover:underline" aria-label={`Visit ${entry.sponsor_name}, sponsor of ${player.player_name} (opens in a new tab)`}>{sponsor}</a> : sponsor}</li>;
+                </div><span className="mt-2 block wrap-break-word text-sm font-semibold text-content-primary">{entry.sponsor_name}</span></>;
+                return <li key={entry.id} className="min-w-0">{website ? <a href={website} target="_blank" rel="sponsored noopener noreferrer" className="block rounded-sm focus-ring hover:underline" aria-label={`Visit ${entry.sponsor_name}, sponsor of ${player.player_name} (opens in a new tab)`}>{sponsor}</a> : sponsor}</li>;
               })}
             </ul>
           </li>;

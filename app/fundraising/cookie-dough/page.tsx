@@ -111,7 +111,7 @@ export default async function CookieDoughFundraiserPage() {
 
           <ScrollReveal direction="right" onMount>
             <div className="relative mx-auto w-full max-w-xl pb-12 pt-4 sm:pb-14">
-              <div className="relative aspect-[650/558] w-full">
+              <div className="relative aspect-650/558 w-full">
                 <Image
                   src="/images/fundraisers/billy-gs-cookie-selection.png"
                   alt="Billy G's Gourmet Cookie Dough tub with baked cookies"

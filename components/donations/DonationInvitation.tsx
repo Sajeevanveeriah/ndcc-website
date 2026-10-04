@@ -23,7 +23,7 @@ export default function DonationInvitation() {
           <h2 id="donate-invitation" className="font-display text-2xl font-bold text-content-primary">A little goes a long way.</h2>
           <p className="mt-2 font-body text-content-muted">Support the Dinos with a one-off donation of AUD 10 or more.</p>
         </div>
-        <Link href="/sponsors/donate" className="rounded-lg bg-maroon-700 px-6 py-3 text-center font-body font-semibold text-white hover:bg-maroon-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Make a donation</Link>
+        <Link href="/sponsors/donate" className="rounded-lg bg-maroon-700 px-6 py-3 text-center font-body font-semibold text-white hover:bg-maroon-800 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Make a donation</Link>
       </div>
     </section>
   );

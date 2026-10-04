@@ -500,7 +500,7 @@ export default function Navbar({ nav }: NavbarProps) {
               key="mobile-menu"
               id="mobile-site-menu"
               ref={menuRef}
-              className="min-[1100px]:hidden fixed inset-0 z-[60] flex flex-col bg-surface-nav"
+              className="min-[1100px]:hidden fixed inset-0 z-60 flex flex-col bg-surface-nav"
               initial={reduceMotion ? false : { opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? undefined : { opacity: 0, y: -16 }}

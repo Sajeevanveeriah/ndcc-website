@@ -56,7 +56,7 @@ export default function GalleryClient({ photos, heading, showEmptyState = true }
                   triggerRef.current = event.currentTarget;
                   setActiveIndex(index);
                 }}
-                className="relative mb-5 block w-full break-inside-avoid aspect-[4/3] rounded-2xl overflow-hidden group text-left border border-edge-subtle shadow-sm card-interactive dark:border-slate-700"
+                className="relative mb-5 block w-full break-inside-avoid aspect-4/3 rounded-2xl overflow-hidden group text-left border border-edge-subtle shadow-xs card-interactive dark:border-slate-700"
               >
                 <SafeImage
                   src={photo.image_url}
@@ -66,7 +66,7 @@ export default function GalleryClient({ photos, heading, showEmptyState = true }
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   fallback={<div className="absolute inset-0 bg-gray-900" aria-hidden="true" />}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent flex items-end p-4">
+                <div className="absolute inset-0 bg-linear-to-t from-black/55 to-transparent flex items-end p-4">
                   <span className="text-white font-display font-bold text-sm">{photo.caption || photo.title}</span>
                 </div>
               </button>
@@ -113,7 +113,7 @@ export default function GalleryClient({ photos, heading, showEmptyState = true }
             aria-modal="true"
             aria-label={activePhoto.caption || activePhoto.title || 'Gallery image'}
             tabIndex={-1}
-            className="w-full max-w-5xl bg-black rounded-xl overflow-hidden outline-none"
+            className="w-full max-w-5xl bg-black rounded-xl overflow-hidden outline-hidden"
           >
             <div className="relative aspect-video">
               <SafeImage

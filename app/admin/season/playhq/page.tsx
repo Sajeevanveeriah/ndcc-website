@@ -220,7 +220,7 @@ export default function AdminSeasonPlayHQPage() {
                       <input type="checkbox" className="mt-1" checked={Boolean(seasonPicker[season.id])} onChange={(event) => setSeasonPicker((prev) => ({ ...prev, [season.id]: event.target.checked }))} />
                       <span>
                         <span className="font-semibold text-content-primary">{seasonLabel(season)}</span>
-                        {season.current && <span className="ml-2 rounded bg-maroon-50 px-1.5 py-0.5 text-sm font-semibold text-maroon-800 dark:bg-maroon-950 dark:text-maroon-100">Current</span>}
+                        {season.current && <span className="ml-2 rounded-sm bg-maroon-50 px-1.5 py-0.5 text-sm font-semibold text-maroon-800 dark:bg-maroon-950 dark:text-maroon-100">Current</span>}
                         <span className="block tabular-nums text-content-muted">{[formatDate(season.startDate), formatDate(season.endDate)].filter(Boolean).join(' to ')}</span>
                         <span className="block break-all font-mono text-content-muted">{season.id}</span>
                       </span>

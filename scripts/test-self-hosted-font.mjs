@@ -6,7 +6,8 @@ import { existsSync, readFileSync } from 'node:fs';
 // (the exact files Google Fonts served before) and loaded with next/font/local.
 const layout = readFileSync('app/layout.tsx', 'utf8');
 const css = readFileSync('app/fonts/inter/inter.css', 'utf8');
-const tailwind = readFileSync('tailwind.config.ts', 'utf8');
+// Tailwind CSS v4 keeps the theme in the @theme block of app/globals.css.
+const tailwind = readFileSync('app/globals.css', 'utf8');
 
 assert.doesNotMatch(layout, /next\/font\/google/, 'No build-time Google Fonts download');
 assert.match(layout, /from 'next\/font\/local'/);
@@ -36,6 +37,6 @@ for (const [name, sha] of Object.entries(files)) {
 assert.match(readFileSync('app/fonts/inter/OFL.txt', 'utf8'), /SIL Open Font License, Version 1\.1/);
 assert.match(css, /font-family: 'Inter Fallback'; src: local\('Arial'\); ascent-override: 90\.44%; descent-override: 22\.52%; line-gap-override: 0\.00%; size-adjust: 107\.12%;/);
 for (const key of ['display', 'body']) {
-  assert.match(tailwind, new RegExp(`${key}: \\['var\\(--font-inter\\)', '"Inter Subsets"', '"Inter Fallback"', 'system-ui', 'sans-serif'\\]`));
+  assert.match(tailwind, new RegExp(`--font-${key}:\\s*var\\(--font-inter\\), 'Inter Subsets', 'Inter Fallback', system-ui, sans-serif;`));
 }
 console.log('Self-hosted Inter: no Google Fonts download, committed WOFF2 files, licence, all scripts and the metric fallback declared.');

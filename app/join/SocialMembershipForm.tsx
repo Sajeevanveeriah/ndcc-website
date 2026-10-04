@@ -116,7 +116,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
           <div className="space-y-2">
             {!isPotClub && addons.length > 0 && <p className="form-label">Optional Add-ons</p>}
             {(isPotClub ? [] : addons).map((addon) => (
-              <label key={addon.id} className="flex items-center justify-between gap-3 rounded-2xl border-[1.5px] border-edge-subtle bg-surface-card px-4 py-3 font-body text-content-primary cursor-pointer transition-colors hover:border-edge-strong has-[:checked]:border-maroon-700 has-[:checked]:bg-maroon-50/50 dark:text-slate-100 dark:has-[:checked]:border-maroon-300 dark:has-[:checked]:bg-maroon-950/40">
+              <label key={addon.id} className="flex items-center justify-between gap-3 rounded-2xl border-[1.5px] border-edge-subtle bg-surface-card px-4 py-3 font-body text-content-primary cursor-pointer transition-colors hover:border-edge-strong has-checked:border-maroon-700 has-checked:bg-maroon-50/50 dark:text-slate-100 dark:has-checked:border-maroon-300 dark:has-checked:bg-maroon-950/40">
                 <span>{addon.name} {addon.usage_limit ? `(limit ${addon.usage_limit})` : ''}</span>
                 <span className="flex items-center gap-3">
                   <span className="font-semibold">{formatCurrency(addon.price)}</span>

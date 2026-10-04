@@ -64,10 +64,10 @@ export default function ProductCatalogue({
                 <Card key={i}>
                   <div className="h-36 bg-gray-200 animate-pulse" />
                   <CardContent className="space-y-3">
-                    <div className="h-5 w-3/4 rounded bg-gray-200 animate-pulse" />
-                    <div className="h-4 w-full rounded bg-gray-200 animate-pulse" />
-                    <div className="h-4 w-2/3 rounded bg-gray-200 animate-pulse" />
-                    <div className="h-9 w-full rounded bg-gray-200 animate-pulse" />
+                    <div className="h-5 w-3/4 rounded-sm bg-gray-200 animate-pulse" />
+                    <div className="h-4 w-full rounded-sm bg-gray-200 animate-pulse" />
+                    <div className="h-4 w-2/3 rounded-sm bg-gray-200 animate-pulse" />
+                    <div className="h-9 w-full rounded-sm bg-gray-200 animate-pulse" />
                   </CardContent>
                 </Card>
               ))}

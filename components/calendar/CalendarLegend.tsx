@@ -15,7 +15,7 @@ export default function CalendarLegend({ className }: { className?: string }) {
         {CALENDAR_EVENT_TYPES.map((type) => (
           <li key={type} className="inline-flex items-center gap-2 text-sm font-body text-content-muted">
             <span
-              className="h-3 w-3 rounded-sm"
+              className="h-3 w-3 rounded-xs"
               style={{ backgroundColor: CALENDAR_EVENT_TYPE_COLOURS[type] }}
               aria-hidden="true"
             />
@@ -23,11 +23,11 @@ export default function CalendarLegend({ className }: { className?: string }) {
           </li>
         ))}
         <li className="inline-flex items-center gap-2 text-sm font-body text-content-muted">
-          <span className="h-3 w-3 rounded-sm ring-2 ring-gold-400 bg-surface-card" aria-hidden="true" />
+          <span className="h-3 w-3 rounded-xs ring-2 ring-gold-400 bg-surface-card" aria-hidden="true" />
           Featured
         </li>
         <li className="inline-flex items-center gap-2 text-sm font-body text-content-muted">
-          <span className="h-3 w-3 rounded-sm bg-gray-400" aria-hidden="true" />
+          <span className="h-3 w-3 rounded-xs bg-gray-400" aria-hidden="true" />
           Cancelled / postponed
         </li>
       </ul>

@@ -3,7 +3,7 @@ import type { PlayerStats } from '@/lib/dino-coach/player-stats';
 export default function PlayerStatsCard({player}:{player:{display_name:string;role:string;price_dino_dollars:number;stats?:PlayerStats|null}}) {
  const s=player.stats;
  const value=(n:number|null|undefined)=>n==null?'Not recorded':n.toLocaleString('en-AU');
- return <article aria-label={`${player.display_name} player card`} className="rounded-xl border border-maroon-200 p-5 bg-surface-card shadow-sm">
+ return <article aria-label={`${player.display_name} player card`} className="rounded-xl border border-maroon-200 p-5 bg-surface-card shadow-xs">
   <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">{CRICKET_ROLE_LABELS[player.role]||player.role}</p>
   <h3 className="mt-1 text-xl font-display font-bold">{player.display_name}</h3>
   <p className="mt-1 font-semibold">{player.price_dino_dollars.toLocaleString('en-AU')} Dino Dollars</p>

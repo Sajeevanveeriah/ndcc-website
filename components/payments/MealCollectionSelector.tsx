@@ -41,7 +41,7 @@ export default function MealCollectionSelector({
         {MEAL_COLLECTION_WINDOWS.map((window) => (
           <label
             key={window.value}
-            className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border-2 p-4 text-content-primary focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current ${
+            className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border-2 p-4 text-content-primary focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current ${
               value === window.value
                 ? 'border-maroon-600 bg-maroon-50 dark:border-maroon-200 dark:bg-maroon-950'
                 : 'border-edge-strong bg-surface-card'

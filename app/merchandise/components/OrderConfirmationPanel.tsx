@@ -99,7 +99,7 @@ export default function OrderConfirmationPanel({
                             min={capabilities.minimum_partial_amount}
                             max={orderConfirmation.total_amount}
                             step="0.01"
-                            className="w-32 px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none"
+                            className="w-32 px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden"
                             value={cardAmount}
                             onChange={(e) => setCardAmount(e.target.value)}
                             aria-describedby={cardError ? 'card-pay-error' : undefined}

@@ -26,7 +26,9 @@ function walk(dir, out = []) {
   return out;
 }
 
-const sourceFiles = [...walk('app'), ...walk('components'), ...walk('lib'), 'tailwind.config.ts', 'public/dino-coach.webmanifest'];
+const sourceFiles = [...walk('app'), ...walk('components'), ...walk('lib'), 'public/dino-coach.webmanifest'];
+// Tailwind CSS v4 theme tokens live in the @theme block of app/globals.css.
+const themeBlock = () => read('app/globals.css').match(/@theme \{[^}]*\}/)?.[0] ?? '';
 const publicUiFiles = [...walk('app'), ...walk('components')].filter((file) => file.endsWith('.tsx') && !/(^|\/)admin\//.test(file));
 
 check('no superseded brand colour values remain', () => {
@@ -36,13 +38,13 @@ check('no superseded brand colour values remain', () => {
 });
 
 check('tailwind uses the official maroon, blue and gold', () => {
-  const config = read('tailwind.config.ts');
-  assert.match(config, /600: '#880000'/);
-  assert.match(config, /700: '#880000'/);
-  assert.match(config, /800: '#600000'/);
-  assert.match(config, /DEFAULT: '#8cc6d1'/);
-  assert.match(config, /400: '#edc266'/);
-  assert.match(config, /navy: '#162845'/);
+  const config = themeBlock();
+  assert.match(config, /--color-maroon-600: #880000;/);
+  assert.match(config, /--color-maroon-700: #880000;/);
+  assert.match(config, /--color-maroon-800: #600000;/);
+  assert.match(config, /--color-sky_accent: #8cc6d1;/);
+  assert.match(config, /--color-gold-400: #edc266;/);
+  assert.match(config, /--color-navy: #162845;/);
 });
 
 check('shared brand constant matches the official colours', () => {
@@ -60,7 +62,7 @@ check('theme tokens use the official colours in light and dark', () => {
 });
 
 check('blue buttons never carry white text', () => {
-  const accent = globals.match(/\.btn-accent \{[^}]*\}/)?.[0] ?? '';
+  const accent = globals.match(/@utility btn-accent \{[^}]*\}/)?.[0] ?? '';
   assert.match(accent, /bg-sky_accent/);
   assert.match(accent, /text-maroon-900/);
   assert.ok(!/text-white/.test(accent));
@@ -107,8 +109,9 @@ check('scroll reveal is subtle, server-rendered and never hides content without 
 });
 
 check('hover and press motion stays within 2px', () => {
-  assert.match(globals, /\.card-interactive:hover \{[^}]*translateY\(-2px\)/);
-  assert.match(globals, /\.card-interactive:hover \{ transform: none; \}/);
+  const interactive = globals.match(/@utility card-interactive \{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.match(interactive, /&:hover \{[^}]*translateY\(-2px\)/);
+  assert.match(interactive, /@media \(prefers-reduced-motion: reduce\) \{\s*&:hover \{\s*transform: none;\s*\}/);
   assert.match(globals, /:active \{\s*transform: translateY\(1px\);/);
 });
 
@@ -116,7 +119,7 @@ check('global CSS has no entrance, zoom or lift animation', () => {
   for (const token of ['fadeUpIn', 'routeSettle', 'route-settle', 'kenBurns', 'floatY', 'shimmerSweep', 'pulseRing', 'hero-ambient', 'hero-scroll-hint', 'club-home-photo', 'club-ground-caption', '.img-zoom', '.hover-lift', 'scale-105', 'translate-y', 'text-[11px]', 'active:scale']) {
     assert.ok(!globals.includes(token), `${token} should be removed`);
   }
-  assert.ok(!/animation:/.test(read('tailwind.config.ts')), 'no custom Tailwind animations');
+  assert.ok(!/--animate-|animation:/.test(themeBlock()), 'no custom Tailwind animations');
 });
 
 check('public UI has no hover lift or image zoom', () => {

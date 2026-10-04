@@ -114,7 +114,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className="rounded border border-edge-strong px-3 py-1.5 text-xs hover:bg-surface-page disabled:opacity-60"
+          className="rounded-sm border border-edge-strong px-3 py-1.5 text-xs hover:bg-surface-page disabled:opacity-60"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading || value.length >= MAX_GALLERY_IMAGES}
         >
@@ -122,7 +122,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
         </button>
         <button
           type="button"
-          className="rounded border border-edge-strong px-3 py-1.5 text-xs hover:bg-surface-page disabled:opacity-60"
+          className="rounded-sm border border-edge-strong px-3 py-1.5 text-xs hover:bg-surface-page disabled:opacity-60"
           onClick={() => setLibraryOpen((open) => !open)}
           disabled={uploading || value.length >= MAX_GALLERY_IMAGES}
           aria-expanded={libraryOpen}
@@ -169,7 +169,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
         <ol className="space-y-3" aria-label="Additional article images">
           {value.map((image, index) => (
             <li key={`${image.src}-${index}`} className="grid gap-3 rounded-lg border border-edge-subtle p-3 sm:grid-cols-[88px_1fr]">
-              <div className="h-[88px] w-[88px] overflow-hidden rounded border border-edge-subtle bg-surface-page">
+              <div className="h-[88px] w-[88px] overflow-hidden rounded-sm border border-edge-subtle bg-surface-page">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image.src} alt="" className="h-full w-full object-cover" />
               </div>
@@ -191,7 +191,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
                     type="button"
                     onClick={() => moveImage(index, -1)}
                     disabled={index === 0}
-                    className="rounded border border-edge-strong px-2.5 py-1 text-xs hover:bg-surface-page disabled:opacity-40"
+                    className="rounded-sm border border-edge-strong px-2.5 py-1 text-xs hover:bg-surface-page disabled:opacity-40"
                     aria-label={`Move image ${index + 1} up`}
                   >
                     Move up
@@ -200,7 +200,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
                     type="button"
                     onClick={() => moveImage(index, 1)}
                     disabled={index === value.length - 1}
-                    className="rounded border border-edge-strong px-2.5 py-1 text-xs hover:bg-surface-page disabled:opacity-40"
+                    className="rounded-sm border border-edge-strong px-2.5 py-1 text-xs hover:bg-surface-page disabled:opacity-40"
                     aria-label={`Move image ${index + 1} down`}
                   >
                     Move down
@@ -208,7 +208,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="rounded border border-red-300 px-2.5 py-1 text-xs text-red-700 hover:bg-red-50"
+                    className="rounded-sm border border-red-300 px-2.5 py-1 text-xs text-red-700 hover:bg-red-50"
                     aria-label={`Remove image ${index + 1}`}
                   >
                     Remove

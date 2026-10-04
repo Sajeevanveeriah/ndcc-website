@@ -223,7 +223,7 @@ export default function AdminFantasySeasonsPage() {
                     </label>
                   ))}
                   <label className="flex items-center gap-2">Status
-                    <select className="rounded border border-edge-strong px-2 py-1" value={season.status} disabled={busy} onChange={(e) => patchSeason(season.id, { status: e.target.value }, 'Status updated.')}>
+                    <select className="rounded-sm border border-edge-strong px-2 py-1" value={season.status} disabled={busy} onChange={(e) => patchSeason(season.id, { status: e.target.value }, 'Status updated.')}>
                       {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                     </select>
                   </label>
@@ -351,7 +351,7 @@ export default function AdminFantasySeasonsPage() {
             <Input id="season-slug" label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             <Input id="season-playhq" label="PlayHQ season id (optional)" value={form.playhqSeasonId} onChange={(e) => setForm({ ...form, playhqSeasonId: e.target.value })} />
             <label className="flex flex-col gap-1 text-sm font-body">Status
-              <select className="rounded border border-edge-strong px-2 py-2" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <select className="rounded-sm border border-edge-strong px-2 py-2" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                 {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
               </select>
             </label>

@@ -64,12 +64,12 @@ export default function PlayerSponsorsPage() {
     {loading ? <p role="status">Loading player sponsors...</p> : loadError ? <div role="alert" className="mb-4"><p>{loadError}</p><Button variant="secondary" onClick={() => void load()}>Retry loading player sponsors</Button></div> : rows.length === 0 ? <p>No player sponsors added yet.</p> : <ul className="divide-y divide-edge-subtle">
       {groupPlayerSponsors(rows).map((player) => <li key={player.key} className="py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h2 className="font-semibold break-words">{player.player_name}</h2><p className="text-sm text-content-muted">{player.sponsors.length} {player.sponsors.length === 1 ? 'sponsor' : 'sponsors'}</p></div>
+          <div><h2 className="font-semibold wrap-break-word">{player.player_name}</h2><p className="text-sm text-content-muted">{player.sponsors.length} {player.sponsors.length === 1 ? 'sponsor' : 'sponsors'}</p></div>
           <Button variant="secondary" aria-label={`Add another sponsor for ${player.player_name}`} onClick={() => { setId(null); setForm({ ...empty, player_name: player.player_name, player_image_url: player.player_image_url, sort_order: player.sponsors[0].sort_order }); setError(''); setOpen(true); }}>Add another sponsor</Button>
         </div>
         <ul className="mt-3 space-y-3" aria-label={`Sponsors of ${player.player_name}`}>
-          {player.sponsors.map((row) => <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded border border-edge-subtle p-3">
-            <p className="text-content-muted break-words">{row.sponsor_name} - {row.active ? 'Visible' : 'Hidden'} - Order {row.sort_order}</p>
+          {player.sponsors.map((row) => <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-edge-subtle p-3">
+            <p className="text-content-muted wrap-break-word">{row.sponsor_name} - {row.active ? 'Visible' : 'Hidden'} - Order {row.sort_order}</p>
             <Button variant="secondary" aria-label={`Edit ${row.sponsor_name} for ${row.player_name}`} onClick={() => { setId(row.id); setForm({ player_name: row.player_name, sponsor_name: row.sponsor_name, player_image_url: row.player_image_url, logo_url: row.logo_url, website: row.website, sort_order: row.sort_order, active: row.active }); setError(''); setOpen(true); }}>Edit</Button>
           </li>)}
         </ul>

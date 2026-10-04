@@ -146,8 +146,8 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="bg-surface-card rounded-xl border border-edge-subtle p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-              <div className="h-8 bg-gray-200 rounded w-1/3" />
+              <div className="h-4 bg-gray-200 rounded-sm w-1/2 mb-4" />
+              <div className="h-8 bg-gray-200 rounded-sm w-1/3" />
             </div>
           ))}
         </div>
@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
         <>
 
           <div className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="rounded-xl border border-maroon-100 bg-surface-card p-5 shadow-sm">
+            <div className="rounded-xl border border-maroon-100 bg-surface-card p-5 shadow-xs">
               <h2 className="text-sm font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Current season</h2>
               {currentSeason ? (
                 <div className="mt-3">
@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {attention.length > 0 && (
-            <section aria-labelledby="needs-attention-title" className="mb-8 rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-sm">
+            <section aria-labelledby="needs-attention-title" className="mb-8 rounded-xl border border-edge-subtle bg-surface-card p-5 shadow-xs">
               <h2 id="needs-attention-title" className="text-sm font-display font-bold uppercase tracking-wide text-maroon-800 dark:text-maroon-200">Needs attention</h2>
               <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {attention.map((item) => (

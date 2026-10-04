@@ -94,7 +94,7 @@ export default function AuditLogPage() {
       <div className="overflow-x-auto rounded-xl border bg-surface-card">
         {loading ? <p className="p-4 text-sm text-content-muted">Loading audit entries...</p>
           : entries.length === 0 ? <p className="p-4 text-sm text-content-muted">No audit entries match these filters.</p>
-            : <table className="w-full min-w-[44rem] text-left text-sm">
+            : <table className="w-full min-w-176 text-left text-sm">
               <caption className="sr-only">Admin audit entries</caption>
               <thead className="border-b">
                 <tr>
@@ -112,7 +112,7 @@ export default function AuditLogPage() {
                     <td className="p-3 break-all">{entry.actor_email || 'Unknown'}</td>
                     <td className="p-3">{entry.action.replace(/_/g, ' ')}</td>
                     <td className="p-3">{entry.resource}</td>
-                    <td className="p-3 break-words">
+                    <td className="p-3 wrap-break-word">
                       {entry.summary}
                       {entry.record_id && <span className="block text-xs text-content-muted">Record {entry.record_id}</span>}
                     </td>

@@ -194,7 +194,7 @@ function HeroView({
         </div>
         <div className="nd-hero-media">
           {season && <span className="nd-season-tag">{season}</span>}
-          <div className="relative z-[2] [&_figure]:rounded-[28px]">
+          <div className="relative z-2 [&_figure]:rounded-[28px]">
             <ClubIntro />
           </div>
           <CricketBall className="nd-hero-ball" />
@@ -211,7 +211,7 @@ const getHomeCalendar = cache(() => getUpcomingCalendarEvents({ limit: 6, home: 
 
 function NextEventShell({ children }: { children: ReactNode }) {
   return (
-    <section className="nd-sec-tight !pt-0" aria-labelledby="next-event-title">
+    <section className="nd-sec-tight pt-0!" aria-labelledby="next-event-title">
       <div className="nd-wrap">{children}</div>
     </section>
   );
@@ -223,8 +223,8 @@ function NextEventSkeleton() {
       <div className="nd-card nd-event-body" aria-busy="true">
         <span className="nd-eyebrow">Next event</span>
         <h2 id="next-event-title" className="sr-only">Next event</h2>
-        <div className="h-9 w-2/3 animate-pulse rounded bg-surface-muted" />
-        <div className="space-y-2">{[0, 1, 2].map((index) => <div key={index} className="h-5 w-1/2 animate-pulse rounded bg-surface-muted" />)}</div>
+        <div className="h-9 w-2/3 animate-pulse rounded-sm bg-surface-muted" />
+        <div className="space-y-2">{[0, 1, 2].map((index) => <div key={index} className="h-5 w-1/2 animate-pulse rounded-sm bg-surface-muted" />)}</div>
       </div>
     </NextEventShell>
   );
@@ -425,7 +425,7 @@ function MatchRow({ row, clubPlayHQUrl }: { row: BoardRow; clubPlayHQUrl: string
       </div>
       <div className="nd-fx-side">
         <span className={`nd-pill ${home ? 'nd-pill-home' : ''}`}>{fixture.homeAway}</span>
-        <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="nd-link !min-h-0 text-sm">
+        <a href={fixture.playHQUrl || clubPlayHQUrl} target="_blank" rel="noopener noreferrer" className="nd-link min-h-0! text-sm">
           PlayHQ<span className="sr-only">: {row.teamName} v {fixture.opponent} (opens in a new tab)</span>
           <ExternalLinkIcon />
         </a>
@@ -561,7 +561,7 @@ function PreviewSkeleton({ id, title, href }: { id: string; title: string; href:
   return (
     <PreviewPanel id={id}>
       <PreviewHeading id={id} title={title} href={href} linkLabel={title.toLowerCase()} />
-      <div className="space-y-2" aria-busy="true">{[0, 1, 2].map((index) => <div key={index} className="h-11 animate-pulse rounded bg-surface-muted" />)}</div>
+      <div className="space-y-2" aria-busy="true">{[0, 1, 2].map((index) => <div key={index} className="h-11 animate-pulse rounded-sm bg-surface-muted" />)}</div>
     </PreviewPanel>
   );
 }
@@ -748,8 +748,8 @@ function GetInvolvedView({ title, intro, quickLinks, quickLinksTitle, dinoCoach 
       )}
       {extraLinks.length > 0 && (
         <div className="mt-4">
-          <h3 className="!mb-1 !text-base">{quickLinksTitle}</h3>
-          <ul className="nd-mini !mb-0">
+          <h3 className="mb-1! text-base!">{quickLinksTitle}</h3>
+          <ul className="nd-mini mb-0!">
             {extraLinks.map((link) => (
               <li key={link.id}>
                 <Link href={link.href} className="group nd-mini-row items-start focus-ring rounded-lg">
@@ -810,8 +810,8 @@ function JuniorVoucherBand({ vouchers: VOUCHERS }: { vouchers: JuniorGetActiveVo
             <p className="mt-2">Already paid? You may be eligible for reimbursement. See the official application page for details.</p>
           </details>
           <div className="mt-1 flex flex-wrap gap-x-6">
-            <a href={VOUCHERS.applicationDetailsUrl} className="nd-link !text-content-blue">Voucher and reimbursement details</a>
-            <Link href="/contact" className="nd-link !text-content-blue">Ask NDCC about junior cricket</Link>
+            <a href={VOUCHERS.applicationDetailsUrl} className="nd-link text-content-blue!">Voucher and reimbursement details</a>
+            <Link href="/contact" className="nd-link text-content-blue!">Ask NDCC about junior cricket</Link>
           </div>
         </div>
         <a href={VOUCHERS.eligibilityUrl} className="btn-primary shrink-0">Check eligibility and apply<ExternalLinkIcon /></a>
@@ -856,7 +856,7 @@ function SponsorsSkeleton() {
       <div className="nd-wrap">
         <SectionHeading id="partners-title" eyebrow="Thank you" title="Our Sponsors"><SponsorLinks /></SectionHeading>
         <div className="nd-logos">
-          {[0, 1, 2, 3].map((index) => <div key={index} className="aspect-[3/2] animate-pulse rounded-2xl bg-surface-muted" />)}
+          {[0, 1, 2, 3].map((index) => <div key={index} className="aspect-3/2 animate-pulse rounded-2xl bg-surface-muted" />)}
         </div>
       </div>
     </section>
@@ -897,7 +897,7 @@ async function SponsorsSection() {
                 width={320}
                 height={160}
                 sizes="(max-width: 560px) 45vw, 190px"
-                className="aspect-[3/2] w-full rounded-2xl border-edge-subtle transition-colors group-hover:border-edge-strong"
+                className="aspect-3/2 w-full rounded-2xl border-edge-subtle transition-colors group-hover:border-edge-strong"
                 imageClassName="max-h-[72px] w-auto h-auto"
                 fallback={<span className="px-2 text-center font-display text-[15px] font-semibold leading-tight text-[#1D1D1F]">{sponsor.name}</span>}
               />

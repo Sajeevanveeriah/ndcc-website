@@ -126,7 +126,7 @@ export default function Modal({ isOpen, onClose, title, ariaLabel, children, cla
         aria-label={hasTitle ? undefined : ariaLabel || 'Dialog'}
         tabIndex={-1}
         className={cn(
-          'relative bg-surface-elevated rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-h-[90vh] overflow-y-auto focus:outline-none dark:ring-edge-subtle',
+          'relative bg-surface-elevated rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-h-[90vh] overflow-y-auto focus:outline-hidden dark:ring-edge-subtle',
           sizes[size],
           className
         )}

@@ -291,7 +291,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user) {
     return (
       <div className="min-h-screen bg-surface-page flex items-center justify-center p-6">
-        <div className="max-w-md rounded-xl border border-red-100 bg-surface-card p-6 text-center shadow-sm">
+        <div className="max-w-md rounded-xl border border-red-100 bg-surface-card p-6 text-center shadow-xs">
           <h1 className="text-xl font-display font-bold text-content-primary">Admin session unavailable</h1>
           <p className="mt-2 text-sm text-content-muted">
             {message || 'We could not confirm your admin session. Please wait for the automatic retry or sign in again.'}
@@ -316,7 +316,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <InactivityGuard onLogout={handleSignOut} />
       {/* Sticky (not fixed) so the sidebar scrolls in-flow and never floats
           over the site footer at the bottom of long admin pages. */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-[calc(7rem_+_var(--site-banner-h,0px))] lg:self-start lg:h-[calc(100vh_-_7rem_-_var(--site-banner-h,0px))] bg-maroon-800 border-r border-maroon-900/60">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:sticky lg:top-[calc(7rem+var(--site-banner-h,0px))] lg:self-start lg:h-[calc(100vh-7rem-var(--site-banner-h,0px))] bg-maroon-800 border-r border-maroon-900/60">
         <div className="px-6 py-5 border-b border-maroon-700">
           <Link href={getDefaultAdminHref(user)} className="text-white font-display font-bold text-xl uppercase tracking-wide">{CLUB_SHORT} Admin</Link>
           <p className="text-xs uppercase tracking-[0.14em] text-gold-200/80 font-body mt-1">Committee Tools</p>
@@ -335,7 +335,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }}
               aria-describedby="admin-nav-search-hint"
               placeholder="Search CMS"
-              className="w-full rounded-lg border border-maroon-700 bg-maroon-900/40 py-2 pl-9 pr-3 text-sm text-white placeholder:text-maroon-200 focus:border-gold-300 focus:outline-none focus:ring-2 focus:ring-gold-300/30"
+              className="w-full rounded-lg border border-maroon-700 bg-maroon-900/40 py-2 pl-9 pr-3 text-sm text-white placeholder:text-maroon-200 focus:border-gold-300 focus:outline-hidden focus:ring-2 focus:ring-gold-300/30"
             />
           </label>
           <p id="admin-nav-search-hint" className="sr-only">Filters the menu as you type. Press Enter to search records.</p>

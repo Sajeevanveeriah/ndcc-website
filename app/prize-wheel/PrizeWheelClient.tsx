@@ -84,7 +84,7 @@ export default function PrizeWheelClient({ code, priceCents, divisions }: Props)
       <p id="wheel-selection-help" className="text-sm my-2">Choose one number per ticket. Sold or held numbers are unavailable. Numbers are held while you complete payment.</p>
       {!ready && !availabilityError && <p role="status">Loading available numbers...</p>}
       {availabilityError && <p role="alert">{availabilityError}</p>}
-      <button type="button" onClick={() => { void refresh(); }} className="underline text-sm mb-3 focus-visible:outline focus-visible:outline-2">Refresh availability</button>
+      <button type="button" onClick={() => { void refresh(); }} className="underline text-sm mb-3 focus-visible:outline-solid focus-visible:outline-2">Refresh availability</button>
       <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
         {numbers.map(number => {
           const isSelected = selected.includes(number);
@@ -93,7 +93,7 @@ export default function PrizeWheelClient({ code, priceCents, divisions }: Props)
             aria-label={`Number ${number}${taken ? ', sold or held' : ''}`}
             disabled={!isSelected && (!ready || taken || !validQuantity || selected.length >= form.quantity)}
             onClick={() => setSelected(current => isSelected ? current.filter(n => n !== number) : [...current, number])}
-            className={`min-h-11 rounded-md border text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-700 ${isSelected ? 'bg-maroon-700 border-maroon-700 text-white' : 'border-edge-subtle bg-surface-card'} ${taken ? 'line-through opacity-50' : ''} disabled:cursor-not-allowed disabled:opacity-50`}>
+            className={`min-h-11 rounded-md border text-sm font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-700 ${isSelected ? 'bg-maroon-700 border-maroon-700 text-white' : 'border-edge-subtle bg-surface-card'} ${taken ? 'line-through opacity-50' : ''} disabled:cursor-not-allowed disabled:opacity-50`}>
             {number}
           </button>;
         })}

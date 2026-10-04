@@ -27,7 +27,7 @@ export default function ClubSong() {
             ))}
           </div>
           <figure className="mx-auto w-full max-w-lg">
-            <a href="/downloads/20260919-NDCC-Club-Song-Rev00.png" aria-label="View the full-size club song poster" className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current">
+            <a href="/downloads/20260919-NDCC-Club-Song-Rev00.png" aria-label="View the full-size club song poster" className="block rounded-lg focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current">
               <Image src="/downloads/20260919-NDCC-Club-Song-Rev00.png" alt="NDCC club song poster in maroon and blue with the club crest. Full lyrics are provided alongside." width={2400} height={3400} sizes="(max-width: 1024px) 100vw, 512px" className="h-auto w-full rounded-lg shadow-card" />
             </a>
             <figcaption className="mt-4 flex flex-wrap gap-3">

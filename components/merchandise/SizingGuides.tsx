@@ -81,7 +81,7 @@ export default function SizingGuides() {
               Garment chart
               <select
                 id="size-guide-selector"
-                className="focus-ring mt-2 block w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-3 font-body text-base font-semibold text-content-primary shadow-sm"
+                className="focus-ring mt-2 block w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-3 font-body text-base font-semibold text-content-primary shadow-xs"
                 onChange={(event) => selectGuide(event.target.value)}
                 value={activeGuide.key}
               >
@@ -162,7 +162,7 @@ export default function SizingGuides() {
                 <li key={guide.key}>
                   <button
                     aria-current={index === activeIndex ? 'true' : undefined}
-                    className="focus-ring w-full rounded-md px-3 py-2 text-left font-body text-sm font-semibold text-content-secondary hover:bg-surface-muted aria-[current=true]:bg-gold-100 aria-[current=true]:text-maroon-900 dark:aria-[current=true]:bg-maroon-900/50 dark:aria-[current=true]:text-maroon-100"
+                    className="focus-ring w-full rounded-md px-3 py-2 text-left font-body text-sm font-semibold text-content-secondary hover:bg-surface-muted aria-current:bg-gold-100 aria-current:text-maroon-900 dark:aria-current:bg-maroon-900/50 dark:aria-current:text-maroon-100"
                     onClick={() => setActiveIndex(index)}
                     type="button"
                   >

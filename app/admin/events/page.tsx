@@ -320,9 +320,9 @@ export default function AdminEventsPage() {
 
       {loading ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
+          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
         </div>
       ) : events.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
@@ -339,7 +339,7 @@ export default function AdminEventsPage() {
                   aria-label="Select all events"
                   checked={events.length > 0 && selectedIds.length === events.length}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                  className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                 />
               </TableHeader>
               <TableHeader>Title</TableHeader>
@@ -360,7 +360,7 @@ export default function AdminEventsPage() {
                     aria-label={`Select ${event.title}`}
                     checked={selectedIds.includes(event.id)}
                     onChange={() => toggleSelected(event.id)}
-                    className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+                    className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{event.title}</TableCell>
@@ -601,7 +601,7 @@ export default function AdminEventsPage() {
               type="checkbox"
               checked={form.online_registration_enabled !== false}
               onChange={(e) => setForm({ ...form, online_registration_enabled: e.target.checked })}
-              className="mt-0.5 h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+              className="mt-0.5 h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
             <span className="text-sm font-body text-content-secondary">
               Take registrations and payments online
@@ -621,7 +621,7 @@ export default function AdminEventsPage() {
               type="checkbox"
               checked={form.published}
               onChange={(e) => setForm({ ...form, published: e.target.checked })}
-              className="h-4 w-4 rounded border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
+              className="h-4 w-4 rounded-sm border-edge-strong text-maroon-700 dark:text-maroon-200 focus:ring-maroon-500"
             />
             <span className="text-sm font-body text-content-secondary">Published (also appears in the club calendar)</span>
           </label>

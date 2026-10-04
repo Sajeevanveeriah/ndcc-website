@@ -495,7 +495,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
         </p>
       </div>
 
-      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">{error}</p>}
       <p role="status" aria-live="polite" className="sr-only">{announcement}</p>
 
       {/* Step 1: album */}
@@ -581,7 +581,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
             setDragActive(false);
             void addFiles(e.dataTransfer.files);
           }}
-          className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-maroon-500 ${dragActive ? 'border-maroon-600 bg-maroon-50 dark:bg-maroon-950/30' : 'border-edge-strong hover:border-maroon-500'}`}
+          className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center cursor-pointer transition-colors focus:outline-hidden focus:ring-2 focus:ring-maroon-500 ${dragActive ? 'border-maroon-600 bg-maroon-50 dark:bg-maroon-950/30' : 'border-edge-strong hover:border-maroon-500'}`}
         >
           <UploadCloud className="h-8 w-8 text-maroon-700 dark:text-maroon-200" aria-hidden="true" />
           <p className="font-medium">Drag and drop photos here, or click to browse</p>
@@ -619,7 +619,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
                 <li key={item.clientId} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-surface-page/40">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.previewUrl} alt="" className="h-12 w-12 rounded object-cover border border-edge-subtle shrink-0" />
+                    <img src={item.previewUrl} alt="" className="h-12 w-12 rounded-sm object-cover border border-edge-subtle shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate" title={item.file.name}>{item.file.name}</p>
                       <p className="text-xs text-content-muted">
@@ -637,7 +637,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
                         onChange={(e) => patchFile(item.clientId, { title: e.target.value })}
                         placeholder="Title (optional)"
                         aria-label={`Title for ${item.file.name}`}
-                        className="form-input !py-1 text-xs w-36"
+                        className="form-input py-1! text-xs w-36"
                       />
                     )}
                     {(item.status === 'queued' || item.status === 'failed') && !running && (
@@ -647,7 +647,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
                         onChange={(e) => patchFile(item.clientId, { altText: e.target.value })}
                         placeholder="Alt text (optional)"
                         aria-label={`Alt text for ${item.file.name}`}
-                        className="form-input !py-1 text-xs w-40"
+                        className="form-input py-1! text-xs w-40"
                       />
                     )}
                     <span
@@ -668,7 +668,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
                         type="button"
                         onClick={() => removeFile(item.clientId)}
                         aria-label={`Remove ${item.file.name} from the queue`}
-                        className="p-1.5 rounded text-content-muted hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                        className="p-1.5 rounded-sm text-content-muted hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-maroon-500"
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
                       </button>

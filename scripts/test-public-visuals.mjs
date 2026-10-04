@@ -101,13 +101,14 @@ assert.equal((ball.match(/aria-hidden="true"/g) || []).length, 2, 'ball and stum
 assert.match(home, /<CricketBall className="nd-hero-ball" \/>/);
 assert.match(home, /<StumpsIcon className=/);
 const css = readFileSync('app/globals.css', 'utf8');
-assert.match(css, /\.cricket-ball-turn \{ animation: ndcc-ball-turn 120s linear infinite; \}/);
+assert.match(css, /@utility cricket-ball-turn \{\s*animation: ndcc-ball-turn 120s linear infinite;\s*\}/);
 // The inner-page seam outline is part of the same approved concept and stays decorative.
-assert.match(css, /\.page-hero::before \{\s*content: '';\s*@apply pointer-events-none/);
+// Tailwind CSS v4: .page-hero is an @utility, so the seam is its nested &::before (compiles to .page-hero::before).
+assert.match(css, /@utility page-hero \{[\s\S]*?&::before \{\s*content: '';\s*@apply pointer-events-none/);
 assert.match(readFileSync('AGENTS.md', 'utf8'), /faint ball-seam outline on inner page heroes \(`\.page-hero::before` in `app\/globals\.css`\)/);
-assert.match(css, /@media \(prefers-reduced-motion: reduce\), print \{\s*\.cricket-ball-turn \{ animation: none; \}/);
-assert.match(css, /\.brand-rule \{[^}]*repeating-linear-gradient/);
-assert.match(css, /\.home-band \{[^}]*repeating-linear-gradient\(90deg/);
+assert.match(css, /@media \(prefers-reduced-motion: reduce\), print \{\s*\.cricket-ball-turn \{\s*animation: none;\s*\}/);
+assert.match(css, /@utility brand-rule \{[^}]*repeating-linear-gradient/);
+assert.match(css, /@utility home-band \{[^}]*repeating-linear-gradient\(\s*90deg/);
 assert.match(stats, /glass-panel scoreboard/);
 // Publication PDFs embed with an iframe (object-src stays 'none').
 const publication = readFileSync('app/publications/[slug]/page.tsx', 'utf8');

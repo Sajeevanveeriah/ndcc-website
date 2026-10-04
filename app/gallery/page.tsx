@@ -67,16 +67,16 @@ export default async function GalleryPage() {
                 const eventDate = formatEventDate(album.event_date);
                 return (
                   <li key={album.id}>
-                    <Link href={`/gallery/${album.slug}`} className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-maroon-500 rounded-2xl">
+                    <Link href={`/gallery/${album.slug}`} className="group block h-full focus:outline-hidden focus-visible:ring-2 focus-visible:ring-maroon-500 rounded-2xl">
                       <Card hover className="h-full overflow-hidden">
-                        <div className="relative aspect-[3/2] bg-gray-900">
+                        <div className="relative aspect-3/2 bg-gray-900">
                           <SafeImage
                             src={album.cover_image_url || ''}
                             alt={`Cover photo for the ${album.title} album`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            fallback={<div className="absolute inset-0 bg-gradient-to-br from-maroon-900 to-gray-900" aria-hidden="true" />}
+                            fallback={<div className="absolute inset-0 bg-linear-to-br from-maroon-900 to-gray-900" aria-hidden="true" />}
                           />
                         </div>
                         <CardContent className="p-5">

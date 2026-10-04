@@ -89,7 +89,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className="text-xs px-3 py-1.5 rounded border border-edge-strong hover:bg-surface-page disabled:opacity-60"
+          className="text-xs px-3 py-1.5 rounded-sm border border-edge-strong hover:bg-surface-page disabled:opacity-60"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
@@ -97,7 +97,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         </button>
         <button
           type="button"
-          className="text-xs px-3 py-1.5 rounded border border-edge-strong hover:bg-surface-page disabled:opacity-60"
+          className="text-xs px-3 py-1.5 rounded-sm border border-edge-strong hover:bg-surface-page disabled:opacity-60"
           onClick={() => setLibraryOpen((open) => !open)}
           disabled={uploading}
           aria-expanded={libraryOpen}
@@ -136,7 +136,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       {error && <p className="text-xs text-red-600">{error}</p>}
       {value && !isPdf && (
         <div className="space-y-1">
-          <div className="relative h-20 w-20 rounded border border-edge-subtle overflow-hidden bg-surface-page">
+          <div className="relative h-20 w-20 rounded-sm border border-edge-subtle overflow-hidden bg-surface-page">
             {!previewFailed && isValidBrowserImagePath(trimmedValue) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

@@ -78,7 +78,7 @@ function PermissionChecklist({
                   type="checkbox"
                   checked={selected.includes(key)}
                   onChange={() => toggle(key)}
-                  className="h-4 w-4 rounded border-edge-strong"
+                  className="h-4 w-4 rounded-sm border-edge-strong"
                 />
                 <span>{label}</span>
               </label>
@@ -288,7 +288,7 @@ export default function AdminUsersPage() {
                   </select>
                 </label>
                 <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium text-content-secondary">
-                  <input type="checkbox" checked={editActive} onChange={(event) => setEditActive(event.target.checked)} className="h-4 w-4 rounded border-edge-strong" />
+                  <input type="checkbox" checked={editActive} onChange={(event) => setEditActive(event.target.checked)} className="h-4 w-4 rounded-sm border-edge-strong" />
                   Active
                 </label>
                 <PermissionChecklist role={editRole} selected={editPermissions} onChange={setEditPermissions} />

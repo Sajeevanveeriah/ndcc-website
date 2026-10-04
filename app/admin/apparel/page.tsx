@@ -392,7 +392,7 @@ export default function AdminApparelPage() {
             <label htmlFor="payment_mode" className="form-label">Payment mode</label>
             <select
               id="payment_mode"
-              className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none bg-surface-card"
+              className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden bg-surface-card"
               value={productForm.payment_mode}
               onChange={(e) => setProductForm((v) => ({ ...v, payment_mode: e.target.value }))}
             >
@@ -462,7 +462,7 @@ export default function AdminApparelPage() {
             <label htmlFor="option_product" className="form-label">Product</label>
             <select
               id="option_product"
-              className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-none bg-surface-card"
+              className="w-full px-3 py-2 border border-edge-strong rounded-lg text-sm font-body focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden bg-surface-card"
               value={optionForm.product_id}
               onChange={(e) => setOptionForm((v) => ({ ...v, product_id: e.target.value }))}
             >

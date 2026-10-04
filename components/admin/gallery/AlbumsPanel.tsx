@@ -192,8 +192,8 @@ export default function AlbumsPanel({ onAlbumsChanged }: { onAlbumsChanged?: () 
         </Button>
       </div>
 
-      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
-      {success && <p role="status" className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">{success}</p>}
+      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">{error}</p>}
+      {success && <p role="status" className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-sm px-3 py-2">{success}</p>}
 
       <div className="bg-surface-card border border-edge-subtle rounded-xl overflow-hidden">
         {loading ? (
@@ -220,9 +220,9 @@ export default function AlbumsPanel({ onAlbumsChanged }: { onAlbumsChanged?: () 
                     <div className="flex items-center gap-3">
                       {album.cover_image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={album.cover_image_url} alt="" className="h-10 w-10 rounded object-cover border border-edge-subtle" />
+                        <img src={album.cover_image_url} alt="" className="h-10 w-10 rounded-sm object-cover border border-edge-subtle" />
                       ) : (
-                        <div className="h-10 w-10 rounded bg-surface-page border border-edge-subtle" aria-hidden="true" />
+                        <div className="h-10 w-10 rounded-sm bg-surface-page border border-edge-subtle" aria-hidden="true" />
                       )}
                       <div>
                         <p className="font-medium">{album.title}</p>

@@ -141,7 +141,7 @@ export default function DeleteRecordButton({
               {recordDetails.map((detail) => (
                 <div key={detail.label} className="grid grid-cols-[7rem_1fr] gap-2 py-1">
                   <dt className="font-semibold text-content-muted">{detail.label}</dt>
-                  <dd className="text-content-primary break-words">{detail.value ?? '-'}</dd>
+                  <dd className="text-content-primary wrap-break-word">{detail.value ?? '-'}</dd>
                 </div>
               ))}
             </dl>

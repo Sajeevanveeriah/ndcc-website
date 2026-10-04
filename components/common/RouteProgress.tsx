@@ -129,7 +129,7 @@ export default function RouteProgress() {
   if (!visible) return null;
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-[60]">
+    <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-60">
       <div
         className={
           reducedMotion

@@ -95,7 +95,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
           <p id="raffle-selection-help" className="text-sm my-2">Choose one number per ticket. Sold or held numbers are unavailable. Numbers are held when you continue to payment.</p>
           {!availabilityReady && !availabilityError && <p role="status">Loading available numbers...</p>}
           {availabilityError && <p role="alert">{availabilityError}</p>}
-          <button type="button" onClick={() => { void refreshNumbers(); }} className="underline text-sm mb-3 focus-visible:outline focus-visible:outline-2">Refresh availability</button>
+          <button type="button" onClick={() => { void refreshNumbers(); }} className="underline text-sm mb-3 focus-visible:outline-solid focus-visible:outline-2">Refresh availability</button>
           <div className="grid grid-cols-5 sm:grid-cols-10 md:grid-cols-5 gap-2">
             {REVERSE_RAFFLE_NUMBERS.map(number => {
               const selected = selectedNumbers.includes(number);
@@ -104,7 +104,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
                 aria-label={`Number ${number}${taken ? ', unavailable' : ''}`}
                 disabled={!selected && (!availabilityReady || taken || !validQuantity || selectedNumbers.length >= form.quantity)}
                 onClick={() => setSelectedNumbers(numbers => selected ? numbers.filter(n => n !== number) : [...numbers, number])}
-                className={`min-h-11 rounded-md border text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-700 ${selected ? 'bg-maroon-700 border-maroon-700 text-white' : 'border-edge-subtle bg-surface-card'} ${taken ? 'line-through opacity-50' : ''} disabled:cursor-not-allowed disabled:opacity-50`}>
+                className={`min-h-11 rounded-md border text-sm font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-700 ${selected ? 'bg-maroon-700 border-maroon-700 text-white' : 'border-edge-subtle bg-surface-card'} ${taken ? 'line-through opacity-50' : ''} disabled:cursor-not-allowed disabled:opacity-50`}>
                 {number}
               </button>;
             })}
