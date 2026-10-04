@@ -2,13 +2,16 @@
 // Deterministic regression tests for the sponsor logo plate system:
 // mode normalisation, auto-mode allowlist resolution (Bennett Racing /
 // MBR Cricket keep their dark plate), explicit CMS overrides, and the
-// plate classes that keep artwork legible in both themes.
+// plate classes that keep artwork legible in both themes, and that every
+// plate class actually compiles to CSS.
 //
 // The `@/lib/...` alias module is staged into a temp dir with the alias
 // rewritten (same approach as scripts/test-fantasy-seasons.mjs).
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import tailwind from '@tailwindcss/postcss';
+import postcss from 'postcss';
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptsDir, '..');
@@ -67,6 +70,23 @@ try {
   check('transparent plate has no fill', transparent.includes('bg-transparent'));
   check('every plate keeps optical padding', [light, dark, neutral, transparent].every((c) => c.includes('p-5')));
   check('dark plate keeps a visible dark-mode border', dark.includes('dark:border-white/15'));
+
+  // The plate classes live only in lib/, which Tailwind CSS v3 never scanned, so
+  // they produced no CSS until v4. Compile the real stylesheet and require a
+  // rule for every plate class, so narrowing Tailwind's sources (or dropping a
+  // theme colour) fails here instead of silently reverting the plates.
+  const cssPath = join(repoRoot, 'app', 'globals.css');
+  const compiled = await postcss([tailwind({ base: repoRoot })]).process(readFileSync(cssPath, 'utf8'), { from: cssPath });
+  const selectors = [];
+  compiled.root.walkRules((rule) => selectors.push(...rule.selectors));
+  const escapeClass = (name) => name.replace(/[^\w-]/g, (char) => `\\${char}`);
+  const plateTokens = [...new Set([light, dark, neutral, transparent].flatMap((classes) => classes.split(/\s+/)).filter(Boolean))];
+  const uncompiled = plateTokens.filter((token) => {
+    const selector = `.${escapeClass(token)}`;
+    return !selectors.some((candidate) => candidate === selector || candidate.startsWith(`${selector}:`));
+  });
+  check(`every plate class compiles to CSS (${plateTokens.length} classes)`, uncompiled.length === 0);
+  if (uncompiled.length) console.error(`  no CSS rule for: ${uncompiled.join(', ')}`);
 
   // Pixel classifier used by the admin plate suggestion.
   const analysisModule = await import(pathToFileURL(join(tmpDir, 'sponsor-logo-analysis.ts')).href);
