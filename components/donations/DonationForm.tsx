@@ -63,7 +63,7 @@ export default function DonationForm() {
         <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:gap-20">
           <div>
             <div className="mb-6 h-1 w-16 bg-blue-500" />
-            <h1 className="font-display text-4xl font-bold leading-tight text-content-primary sm:text-5xl">Back your local<br />cricket club.</h1>
+            <h1 className="font-display text-4xl font-bold leading-tight text-content-primary sm:text-5xl sm:leading-none">Back your local<br />cricket club.</h1>
             <p className="mt-6 max-w-md font-body text-lg leading-relaxed text-content-muted">Make a one-off donation to Newcomb &amp; District Cricket Club. Choose an amount that suits you, from AUD 10.</p>
             <p className="mt-5 max-w-md font-body leading-relaxed text-content-muted">Thank you for supporting the Dinos and our cricket community.</p>
           </div>

@@ -281,7 +281,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
 
                 {songEvent ? (
                   <fieldset className="w-full space-y-3">
-                    <legend className="form-label">Your songs</legend>
+                    <legend className="form-label mb-5">Your songs</legend>
                     {songs.map((song, index) => (
                       <div key={index} className="rounded-2xl border border-edge-subtle bg-surface-muted p-3 space-y-2">
                         <Input

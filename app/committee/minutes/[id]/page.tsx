@@ -57,7 +57,7 @@ export default function CommitteeMinuteDetailPage() {
 
   return (
     <div className="container-width py-10 space-y-4">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-2">
+      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
         ← Back
       </Button>
       <h1 className="text-3xl font-display font-bold">{minute.title}</h1>

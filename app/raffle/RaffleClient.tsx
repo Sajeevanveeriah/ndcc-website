@@ -33,13 +33,13 @@ export default function RaffleClient({ children }: { children?: ReactNode }) {
     <section className="nd-sec-tight"><div className="nd-wrap nd-two-col">
       <section aria-labelledby="raffle-how" className="nd-card space-y-4 p-6 sm:p-[26px]">
         <h2 id="raffle-how" className="font-display text-2xl font-semibold tracking-[-0.02em] text-content-primary">How it works</h2>
-        <ul className="m-0 grid list-disc gap-2 pl-5 text-content-secondary">
+        <ul className="m-0 mb-4 grid list-disc gap-2 pl-5 text-content-secondary">
           <li>Tickets are {PRICE} each. Ticket numbering starts at 200.</li>
           <li>Tickets are issued after online payment, cash payment, or once your bank deposit is confirmed.</li>
           <li>Your numbered ticket image and receipt will be emailed to you.</li>
           {RAFFLE.drawLabel && <li>{RAFFLE.drawLabel}.</li>}
         </ul>
-        <dl className="nd-facts border-t border-edge-subtle pt-4 text-[15px]">
+        <dl className="nd-facts mb-4 border-t border-edge-subtle pt-4 text-[15px]">
           <dt>Price</dt><dd>{PRICE} per ticket</dd>
           {RAFFLE.drawLabel && <><dt>Draw</dt><dd>{RAFFLE.drawLabel}</dd></>}
           <dt>Example ticket reference</dt><dd className="break-all font-mono">{RAFFLE_SAMPLE_REFERENCE}</dd>

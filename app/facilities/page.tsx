@@ -59,7 +59,7 @@ export default async function FacilitiesPage() {
           <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5 text-center">
             {statItems.map((item) => (
               <li key={item} className="px-2 sm:border-r sm:border-white/15 sm:last:border-r-0">
-                <span className="font-display text-base sm:text-lg font-bold uppercase tracking-wide leading-tight text-gold-100">{item}</span>
+                <span className="font-display text-base sm:text-lg sm:leading-7 font-bold uppercase tracking-wide leading-tight text-gold-100">{item}</span>
               </li>
             ))}
           </ul>

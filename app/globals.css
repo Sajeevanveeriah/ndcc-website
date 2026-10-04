@@ -246,7 +246,7 @@
 }
 
 @utility page-hero-subtitle {
-  @apply max-w-2xl font-body text-lg leading-relaxed text-white/90 sm:text-xl;
+  @apply max-w-2xl font-body text-lg leading-relaxed text-white/90 sm:text-xl sm:leading-7;
 }
 
 @utility section-title {

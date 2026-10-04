@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Privacy | NDCC' };
 export default function PrivacyPage() {
   return <section className="section-padding"><div className="container-width max-w-3xl space-y-6">
-    <h1 className="section-title">Privacy and your personal information</h1>
+    <h1 className="section-title mb-6">Privacy and your personal information</h1>
     <p>Newcomb and District Cricket Club uses personal information to run club activities and provide the services you request. Your contact details are private and are not a public member directory.</p>
     <h2 className="text-xl font-bold">What we collect and why</h2>
     <p>Depending on the service, we collect your name, email, phone number, account details, membership or registration information, order details and payment references. Dino Coach also records age eligibility, rules acceptance, team selections and results. We use these records to administer memberships, fulfil orders, issue raffle tickets and receipts, organise cricket and respond to enquiries. Optional details can be left blank.</p>

@@ -85,13 +85,13 @@ export default async function CookieDoughFundraiserPage() {
         <div className="container-width grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.78fr)]">
           <ScrollReveal onMount>
             <div className="max-w-3xl">
-              <h1 className="font-display text-4xl font-bold uppercase leading-[0.98] tracking-tight text-maroon-800 dark:text-maroon-100 sm:text-5xl lg:text-6xl">
+              <h1 className="font-display text-4xl font-bold uppercase leading-[0.98] tracking-tight text-maroon-800 dark:text-maroon-100 sm:text-5xl sm:leading-none lg:text-6xl">
                 Billy G&apos;s Cookie Dough Fundraiser
               </h1>
               <p className="mt-4 font-display text-2xl font-semibold text-content-blue sm:text-3xl">
                 Raise dough for the Dinos
               </p>
-              <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-content-secondary sm:text-lg">
+              <p className="mt-4 max-w-2xl font-body text-base leading-relaxed text-content-secondary sm:text-lg sm:leading-7">
                 Register as an NDCC fundraiser, share your page, or purchase cookie dough to support the club.
               </p>
               {campaign.deadlineLabel && <p className="mt-4 font-body font-semibold text-content-primary">{campaign.deadlineLabel}</p>}
@@ -173,7 +173,7 @@ export default async function CookieDoughFundraiserPage() {
               <div className="flex h-full flex-col border-l-4 border-maroon-700 bg-maroon-50 p-6 dark:bg-maroon-950/40 sm:p-8">
                 <UserRoundPlus className="h-9 w-9 text-maroon-700 dark:text-maroon-200" aria-hidden="true" />
                 <h3 className="mt-4 font-display text-2xl font-bold text-maroon-800 dark:text-maroon-100">I want to fundraise</h3>
-                <ol className="mt-4 list-decimal space-y-2 pl-5 font-body text-sm leading-relaxed text-content-secondary sm:text-base">
+                <ol className="mt-4 list-decimal space-y-2 pl-5 font-body text-sm leading-relaxed text-content-secondary sm:text-base sm:leading-6">
                   <li>Open the NDCC campaign and select the registration option.</li>
                   <li>Create your personal fundraising page and set your goal.</li>
                   <li>Share your unique page so supporters can order through you.</li>
@@ -188,7 +188,7 @@ export default async function CookieDoughFundraiserPage() {
               <div className="flex h-full flex-col border-l-4 border-brand-blue bg-surface-blue-subtle p-6 sm:p-8">
                 <ShoppingCart className="h-9 w-9 text-content-blue" aria-hidden="true" />
                 <h3 className="mt-4 font-display text-2xl font-bold text-content-blue">I want to buy</h3>
-                <ol className="mt-4 list-decimal space-y-2 pl-5 font-body text-sm leading-relaxed text-content-secondary sm:text-base">
+                <ol className="mt-4 list-decimal space-y-2 pl-5 font-body text-sm leading-relaxed text-content-secondary sm:text-base sm:leading-6">
                   <li>Open the official NDCC campaign page.</li>
                   <li>Choose the fundraiser you want to support, then select your tubs.</li>
                   <li>Complete payment on Billy G&apos;s platform and follow the campaign&apos;s collection details.</li>
@@ -210,7 +210,7 @@ export default async function CookieDoughFundraiserPage() {
               <ScrollRevealItem key={fact.label}>
                 <div className="flex items-center gap-3">
                   <Icon className="h-8 w-8 shrink-0 text-gold-500 dark:text-gold-300" aria-hidden="true" />
-                  <p className="font-display text-lg font-bold leading-tight text-content-primary sm:text-xl">{fact.label}</p>
+                  <p className="font-display text-lg font-bold leading-tight text-content-primary sm:text-xl sm:leading-7">{fact.label}</p>
                 </div>
               </ScrollRevealItem>
             );
