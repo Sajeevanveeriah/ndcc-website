@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-09-26T09:01:35+00:00",
+  "capturedAt": "2026-10-04T03:01:00+00:00",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -689,6 +689,130 @@
     {
       "version": "20260926085943",
       "name": "dino_round_score_replace"
+    },
+    {
+      "version": "20260926232018",
+      "name": "dino_coach_nearest_thousand_opening_prices"
+    },
+    {
+      "version": "20260927020000",
+      "name": "bank_transfer_hold_expiry"
+    },
+    {
+      "version": "20260927020100",
+      "name": "bank_transfer_confirmed_by_indexes"
+    },
+    {
+      "version": "20260927060000",
+      "name": "notification_recipients"
+    },
+    {
+      "version": "20260927070000",
+      "name": "playhq_season_links"
+    },
+    {
+      "version": "20260927080000",
+      "name": "revision_history_and_audit_log"
+    },
+    {
+      "version": "20260927090000",
+      "name": "cms_promotions_media_newsletter"
+    },
+    {
+      "version": "20260927100000",
+      "name": "prize_wheel_small_raffle"
+    },
+    {
+      "version": "20260927110000",
+      "name": "dino_women_selection"
+    },
+    {
+      "version": "20260927111000",
+      "name": "event_calendar_schedule"
+    },
+    {
+      "version": "20260927120000",
+      "name": "dino_section_squad_minimum"
+    },
+    {
+      "version": "20260927130000",
+      "name": "dino_section_distinct_players"
+    },
+    {
+      "version": "20260927140000",
+      "name": "event_song_requests"
+    },
+    {
+      "version": "20260927150000",
+      "name": "event_registration_mode_lock"
+    },
+    {
+      "version": "20260927160000",
+      "name": "notification_event_song_requests"
+    },
+    {
+      "version": "20260928100000",
+      "name": "spin_the_wheel"
+    },
+    {
+      "version": "20260928110000",
+      "name": "spin_the_wheel_single_live"
+    },
+    {
+      "version": "20260928113301",
+      "name": "spin_wheel_public_toggle"
+    },
+    {
+      "version": "20260928120000",
+      "name": "spin_the_wheel_cron_work"
+    },
+    {
+      "version": "20260928130000",
+      "name": "spin_the_wheel_settlement_guard"
+    },
+    {
+      "version": "20260928140000",
+      "name": "remove_dino_section_rule"
+    },
+    {
+      "version": "20260928150000",
+      "name": "spin_wheel_daily_limit_repeat_bonus"
+    },
+    {
+      "version": "20260928160000",
+      "name": "dino_fee_waiver_without_entry"
+    },
+    {
+      "version": "20260928170000",
+      "name": "dino_sales_at_market_value"
+    },
+    {
+      "version": "20260929122620",
+      "name": "kitchen_bar_payment_selection"
+    },
+    {
+      "version": "20260930011731",
+      "name": "maintenance_banner"
+    },
+    {
+      "version": "20261001040000",
+      "name": "apparel_limited_edition_2026_27"
+    },
+    {
+      "version": "20261002100000",
+      "name": "payment_method_choice_and_pay_at_club"
+    },
+    {
+      "version": "20261003024355",
+      "name": "event_order_items_event_id"
+    },
+    {
+      "version": "20261003030907",
+      "name": "event_online_registration_switch"
+    },
+    {
+      "version": "20261003032353",
+      "name": "order_delete_releases_event_registration"
     }
   ],
   "localOnlyApplied": []
