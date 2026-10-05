@@ -314,4 +314,27 @@ export async function getPlayHQPublicDataUncached(): Promise<PlayHQPublicData> {
 
 // unstable_cache options are fixed at module load, so read the configured TTL here
 // rather than hardcoding it; getPlayHQConfig reads straight from process.env.
-export const getPlayHQPublicData = unstable_cache(getPlayHQPublicDataUncached, ['playhq-public-data-current-season-v3'], { revalidate: Math.min(getPlayHQConfig().revalidateSeconds, 300), tags: ['playhq'] });
+// A failed read (PlayHQ or the database unreachable) is never cached: the
+// cached function throws so unstable_cache stores nothing, and this request
+// shows the failure message while the next one tries again. Previously a
+// brief outage left fixtures "temporarily unavailable" for up to 5 minutes.
+class PlayHQDegradedError extends Error {
+  constructor(readonly data: PlayHQPublicData) {
+    super('PlayHQ public data unavailable; not caching.');
+    this.name = 'PlayHQDegradedError';
+  }
+}
+const getCachedPlayHQPublicData = unstable_cache(async () => {
+  const data = await getPlayHQPublicDataUncached();
+  if (data.error) throw new PlayHQDegradedError(data);
+  return data;
+}, ['playhq-public-data-current-season-v3'], { revalidate: Math.min(getPlayHQConfig().revalidateSeconds, 300), tags: ['playhq'] });
+
+export async function getPlayHQPublicData(): Promise<PlayHQPublicData> {
+  try {
+    return await getCachedPlayHQPublicData();
+  } catch (error) {
+    if (error instanceof PlayHQDegradedError) return error.data;
+    return getPlayHQPublicDataUncached();
+  }
+}
