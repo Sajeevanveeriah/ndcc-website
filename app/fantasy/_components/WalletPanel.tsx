@@ -1,36 +1,33 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { fantasyJsonFetch, fantasyBrowserClient } from '@/lib/fantasy-browser';
+import { fantasyJsonFetch } from '@/lib/fantasy-browser';
 import { formatDinoDollars } from '@/lib/dino-coach/domain';
 
 type Snapshot = { managerId: string; settings: { budget_dino_dollars: number }; squad: { updated_at: string; budget_used_dino_dollars: number } | null; wallet?: { realisedProfitDinoDollars: number; spendingPowerDinoDollars: number } };
 export default function WalletPanel({ query, previewRemaining, refreshKey, onExternalChange }: { query: string; refreshKey?: string | null; previewRemaining?: number; onExternalChange?: () => void }) {
  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
- const [status, setStatus] = useState('Connecting');
+ const [status, setStatus] = useState('Loading');
  const [error, setError] = useState('');
  const onChange = useRef(onExternalChange); onChange.current = onExternalChange;
  useEffect(() => {
+  // Polling only. A Supabase realtime subscription here kept the database's
+  // change poller running constantly, which overloaded the small compute
+  // tier; the 15-second refresh and focus refresh already keep this current.
   let active = true; let version: string | undefined; let pending = false;
-  let channel: ReturnType<NonNullable<typeof fantasyBrowserClient>['channel']> | undefined;
   const refresh = async () => {
    if (pending) return; pending = true;
    try {
     const data = await fantasyJsonFetch<Snapshot>(`/api/fantasy/squad${query}`);
     if (!active) return;
     if (version && data.squad?.updated_at !== version) onChange.current?.();
-    version = data.squad?.updated_at; setSnapshot(data); setError('');
-    if (!channel && fantasyBrowserClient) {
-     channel = fantasyBrowserClient.channel(`wallet-${data.managerId}-${query}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fantasy_squads', filter: `manager_id=eq.${data.managerId}` }, () => { void refresh(); })
-      .subscribe((state) => { if(active) setStatus(state === 'SUBSCRIBED' ? 'Live' : 'Reconnecting - automatic refresh active'); });
-    }
+    version = data.squad?.updated_at; setSnapshot(data); setError(''); setStatus('Up to date');
    } catch (reason) { if(active) { setError(reason instanceof Error ? reason.message : 'Wallet unavailable'); setStatus('Balance may be out of date'); } }
    finally { pending = false; }
   };
   void refresh();
   const timer = setInterval(() => { if(document.visibilityState === 'visible') void refresh(); }, 15000);
   const focus = () => { void refresh(); }; window.addEventListener('focus',focus);
-  return () => { active=false; clearInterval(timer); window.removeEventListener('focus',focus); if(channel && fantasyBrowserClient) void fantasyBrowserClient.removeChannel(channel); };
+  return () => { active=false; clearInterval(timer); window.removeEventListener('focus',focus); };
  }, [query, refreshKey]);
  const budget=Number(snapshot?.settings.budget_dino_dollars || 0); const spent=Number(snapshot?.squad?.budget_used_dino_dollars || 0);
  const profit=Number(snapshot?.wallet?.realisedProfitDinoDollars || 0); const power=budget+profit;

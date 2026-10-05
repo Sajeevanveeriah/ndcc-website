@@ -192,15 +192,29 @@ function emergencyFallbackSnapshot(): SiteChromeSnapshot {
   };
 }
 
+// When the database is slow or down, every request used to rebuild the
+// snapshot (about ten queries) because a degraded result is never cached.
+// On the small Supabase compute that retry storm kept it overloaded. For
+// DEGRADED_BACKOFF_MS after a degraded read, this server instance reuses its
+// last good snapshot (or the degraded one) instead of querying again.
+const DEGRADED_BACKOFF_MS = 20_000;
+let lastGoodSnapshot: SiteChromeSnapshot | null = null;
+let lastDegradedSnapshot: SiteChromeSnapshot | null = null;
+let degradedUntil = 0;
+
 /**
  * Cached (<=60s, tag-invalidated) site chrome for the Navbar and Footer.
  * Never throws: a degraded read is rendered for this request only (exactly as
  * the previous per-request code did) and is not stored in the cache.
  */
 async function getSiteChromeSnapshotUncached(): Promise<SiteChromeSnapshot> {
+  if (Date.now() < degradedUntil) {
+    const reuse = lastGoodSnapshot ?? lastDegradedSnapshot;
+    if (reuse) return reuse;
+  }
   let uncachedResult: SiteChromeSnapshot | null = null;
   try {
-    return await unstable_cache(async (): Promise<SiteChromeSnapshot> => {
+    const snapshot = await unstable_cache(async (): Promise<SiteChromeSnapshot> => {
       const { snapshot, degraded } = await buildSnapshot();
       if (degraded) {
         uncachedResult = snapshot;
@@ -208,8 +222,14 @@ async function getSiteChromeSnapshotUncached(): Promise<SiteChromeSnapshot> {
       }
       return snapshot;
     }, CACHE_KEY, CACHE_OPTIONS)();
+    lastGoodSnapshot = snapshot;
+    return snapshot;
   } catch {
-    if (uncachedResult) return uncachedResult;
+    if (uncachedResult) {
+      degradedUntil = Date.now() + DEGRADED_BACKOFF_MS;
+      lastDegradedSnapshot = uncachedResult;
+      return lastGoodSnapshot ?? uncachedResult;
+    }
     try {
       return (await buildSnapshot()).snapshot;
     } catch {

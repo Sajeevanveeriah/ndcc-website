@@ -69,6 +69,7 @@
     "test:calendar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-calendar-logic.mjs",
     "test:calendar-subscription": "node scripts/test-calendar-subscription.mjs",
     "test:event-song-requests": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-event-song-requests.mjs",
+    "test:database-load-guards": "node scripts/test-database-load-guards.mjs",
     "test:snail-racing": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-snail-racing.mjs",
     "test:scheduled-publishing": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-scheduled-publishing.mjs",
     "test:operational-controls": "node scripts/test-operational-controls.mjs",
