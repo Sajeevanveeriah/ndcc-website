@@ -115,7 +115,7 @@ BEGIN
     RAISE EXCEPTION 'Service role cannot call the snail entry function';
   END IF;
 END $$;
--- Sponsor names (20261005120000): stored with the sponsorship, only when racing is sponsored.
+-- Sponsor names (20261005220830): stored with the sponsorship, only when racing is sponsored.
 DO $$
 DECLARE ev uuid; reg uuid;
 BEGIN
