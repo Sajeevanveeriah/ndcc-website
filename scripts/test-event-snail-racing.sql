@@ -115,4 +115,27 @@ BEGIN
     RAISE EXCEPTION 'Service role cannot call the snail entry function';
   END IF;
 END $$;
+-- Sponsor names (20261005120000): stored with the sponsorship, only when racing is sponsored.
+DO $$
+DECLARE ev uuid; reg uuid;
+BEGIN
+  INSERT INTO public.events(title,date,published,ticket_price,registration_mode,race_sponsorship_price)
+  VALUES('Sponsor fixture',now()+interval '7 days',true,10,'snail_race',50) RETURNING id INTO ev;
+  reg:=public.ndcc_register_event_snail_entry(ev,'Buyer','b@example.invalid','0400000000','pending_bank_transfer',null,null,'[]',2,'  Jack Elliott ');
+  IF (SELECT race_sponsor_name FROM public.event_registrations WHERE id=reg)<>'Jack Elliott' THEN RAISE EXCEPTION 'Sponsor name not stored trimmed'; END IF;
+  reg:=public.ndcc_register_event_snail_entry(ev,'Buyer','b@example.invalid','0400000000','pending_bank_transfer',null,null,
+    '[{"snail_name":"Turbo","player_name":"Buyer"}]',0,'Ignored');
+  IF (SELECT race_sponsor_name FROM public.event_registrations WHERE id=reg) IS NOT NULL THEN RAISE EXCEPTION 'Sponsor name stored without a sponsorship'; END IF;
+  -- The previous 9-argument signature still works (no sponsor name).
+  reg:=public.ndcc_register_event_snail_entry(ev,'Buyer','b@example.invalid','0400000000','pending_bank_transfer',null,null,'[]',1);
+  IF (SELECT race_sponsorships FROM public.event_registrations WHERE id=reg)<>1 THEN RAISE EXCEPTION 'Wrapper did not register'; END IF;
+  BEGIN
+    PERFORM public.ndcc_register_event_snail_entry(ev,'F','f@example.invalid','0400000000','pending_bank_transfer',null,null,'[]',1,repeat('x',41));
+    RAISE EXCEPTION '41-character sponsor name accepted';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  IF has_function_privilege('anon', 'public.ndcc_register_event_snail_entry(uuid,text,text,text,text,text,uuid,jsonb,integer,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Public roles can call the snail entry function';
+  END IF;
+END $$;
 ROLLBACK;

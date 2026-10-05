@@ -182,23 +182,24 @@ writes = []; sent = []; rpcCalls = [];
 rpcResult = { data: 'registration-test', error: null };
 // Capacity 1 would refuse tickets; snail sales ignore it.
 row = { ...row, ticket_price: 10, capacity: 1, registration_mode: 'snail_race', race_sponsorship_price: '50.00' };
-response = await submitSnails({ snails: [{ snail_name: ' Turbo ', player_name: '' }, { snail_name: 'Slow  Coach', player_name: 'The Kids' }], race_sponsorships: 1 });
+response = await submitSnails({ snails: [{ snail_name: ' Turbo ' }, { snail_name: 'Slow  Coach' }], race_sponsorships: 1, race_sponsor_name: ' Jack  Elliott ' });
 assert.equal(response.status, 200);
 assert.equal((await response.json()).total_amount, 70);
 assert.equal(writes[0].table, 'orders');
 assert.equal(writes[0].value.total_amount, 70);
 assert.deepEqual(writes[0].value.items.map(item => [item.name, item.event_id, item.size, item.quantity, item.price]), [
   ['Club event', id, 'snail', 2, 10],
-  ['Club event', id, 'race sponsorship', 1, 50],
+  ['Club event', id, 'race sponsorship: The Jack Elliott Stakes', 1, 50],
 ]);
 assert.equal(writes[0].value.payment_status, 'pending_bank_transfer');
-assert.match(writes[0].value.notes, /Snail purchase: Club event \(2 snails, 1 race sponsorship\)/);
+assert.match(writes[0].value.notes, /Snail purchase: Club event \(2 snails, 1 race sponsorship: The Jack Elliott Stakes\)/);
 assert.equal(rpcCalls.length, 1);
 assert.equal(rpcCalls[0].name, 'ndcc_register_event_snail_entry');
 assert.deepEqual(rpcCalls[0].args.p_snail_entries, [
-  { snail_name: 'Turbo', player_name: 'Snail Buyer' }, { snail_name: 'Slow Coach', player_name: 'The Kids' },
+  { snail_name: 'Turbo', player_name: 'Snail Buyer' }, { snail_name: 'Slow Coach', player_name: 'Snail Buyer' },
 ]);
 assert.equal(rpcCalls[0].args.p_race_sponsorships, 1);
+assert.equal(rpcCalls[0].args.p_race_sponsor_name, 'Jack Elliott');
 assert.equal(rpcCalls[0].args.p_order_id, 'order-test');
 assert.equal(sent.length, 0, 'paid snail purchases use the existing payment receipt workflow');
 console.log('PASS snail purchase charges $10 per named snail plus $50 per race sponsorship, ignores capacity and stores names atomically');
@@ -222,6 +223,9 @@ for (const body of [
   { snails: Array.from({ length: 201 }, () => ({ snail_name: 'A' })) },
   { snails: [{ snail_name: 'Turbo' }], race_sponsorships: -1 },
   { snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1.5 },
+  { snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1 },
+  { snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1, race_sponsor_name: '   ' },
+  { snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1, race_sponsor_name: 'z'.repeat(41) },
   { snails: [{ snail_name: 'Turbo' }], quantity: 2, songs: [{ title: 'A' }] },
   { quantity: 2 },
 ]) {
@@ -229,7 +233,7 @@ for (const body of [
   assert.equal(response.status, 400, JSON.stringify(body).slice(0, 80));
 }
 row = { ...row, race_sponsorship_price: null };
-assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1 })).status, 400, 'sponsorship needs a configured price');
+assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1, race_sponsor_name: 'Jack Elliott' })).status, 400, 'sponsorship needs a configured price');
 assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }] })).status, 200, 'snails alone need no sponsorship price');
 writes = []; rpcCalls = [];
 row = { ...row, registration_mode: 'tickets' };

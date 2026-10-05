@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { Minus, Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
-import { SNAIL_RACE_LIMITS, parseBulkSnailLines } from '@/lib/events/snail-race';
+import { SNAIL_RACE_LIMITS, parseBulkSnailLines, sponsoredRaceName } from '@/lib/events/snail-race';
 import type { Event } from '@/lib/types';
 import { raceSponsorshipPrice } from './SnailRaceDetails';
 
-type SnailRow = { snail_name: string; player_name: string };
 type OrderConfirmation = {
   order_id: string;
   customer_email: string;
@@ -18,15 +18,36 @@ type OrderConfirmation = {
   bank_details: { account_name: string; bsb: string; account_number: string } | null;
 };
 
-const emptySnail = (): SnailRow => ({ snail_name: '', player_name: '' });
-const clampCount = (value: number) => Math.min(SNAIL_RACE_LIMITS.maxSnailsPerOrder, Math.max(0, Math.floor(value) || 0));
+const clamp = (value: number, max: number) => Math.min(max, Math.max(0, Math.floor(value) || 0));
+
+function Stepper({ id, label, value, max, onChange }: { id: string; label: string; value: number; max: number; onChange: (value: number) => void }) {
+  return (
+    <div>
+      <label htmlFor={id} className="form-label">{label}</label>
+      <div className="flex items-center gap-2">
+        <button type="button" aria-label={`Fewer: ${label}`} disabled={value <= 0} onClick={() => onChange(clamp(value - 1, max))}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-edge-strong text-content-primary disabled:opacity-40 focus-ring">
+          <Minus className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <input id={id} type="number" inputMode="numeric" min={0} max={max} value={value}
+          onChange={(e) => onChange(clamp(Number(e.target.value), max))}
+          className="form-input w-20 text-center" />
+        <button type="button" aria-label={`More: ${label}`} disabled={value >= max} onClick={() => onChange(clamp(value + 1, max))}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-edge-strong text-content-primary disabled:opacity-40 focus-ring">
+          <Plus className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function SnailPurchaseForm({ event }: { event: Event }) {
   const price = Number(event.ticket_price) || 0;
   const sponsorPrice = raceSponsorshipPrice(event);
   const [buyer, setBuyer] = useState({ name: '', email: '', phone: '', hp_field: '', submitted_at: Date.now() });
-  const [snails, setSnails] = useState<SnailRow[]>([emptySnail()]);
+  const [snails, setSnails] = useState<string[]>(['']);
   const [sponsorships, setSponsorships] = useState(0);
+  const [sponsorName, setSponsorName] = useState('');
   const [bulkText, setBulkText] = useState('');
   const [bulkMessage, setBulkMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,45 +56,45 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
   const [message, setMessage] = useState('');
   const [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null);
 
-  const total = snails.length * price + sponsorships * (sponsorPrice ?? 0);
-  const updateSnail = (index: number, patch: Partial<SnailRow>) =>
-    setSnails((prev) => prev.map((snail, i) => (i === index ? { ...snail, ...patch } : snail)));
+  const snailTotal = snails.length * price;
+  const sponsorTotal = sponsorships * (sponsorPrice ?? 0);
+  const total = snailTotal + sponsorTotal;
+  const raceName = sponsoredRaceName(sponsorName);
   const setSnailCount = (count: number) => {
-    const next = clampCount(count);
-    setSnails((prev) => (next <= prev.length ? prev.slice(0, next) : [...prev, ...Array.from({ length: next - prev.length }, emptySnail)]));
+    const next = clamp(count, SNAIL_RACE_LIMITS.maxSnailsPerOrder);
+    setSnails((prev) => (next <= prev.length ? prev.slice(0, next) : [...prev, ...Array.from({ length: next - prev.length }, () => '')]));
   };
 
   function addBulk() {
     const parsed = parseBulkSnailLines(bulkText);
     if (parsed.length === 0) {
-      setBulkMessage('Add one snail per line, for example: Turbo, Jane Smith');
+      setBulkMessage('Add one snail name per line.');
       return;
     }
-    // Fill empty rows first, then add rows for the rest.
-    const kept = snails.filter((snail) => snail.snail_name.trim() || snail.player_name.trim());
+    // Keep the names already typed, then add the pasted ones.
+    const kept = snails.filter((name) => name.trim());
     const room = SNAIL_RACE_LIMITS.maxSnailsPerOrder - kept.length;
     const added = parsed.slice(0, Math.max(0, room));
     setSnails([...kept, ...added]);
     setBulkText('');
     setBulkMessage(added.length < parsed.length
-      ? `Added ${added.length} snails. This order holds up to ${SNAIL_RACE_LIMITS.maxSnailsPerOrder}; place another order for the rest.`
+      ? `Added ${added.length} snails. One order holds up to ${SNAIL_RACE_LIMITS.maxSnailsPerOrder}; place another order for the rest.`
       : `Added ${added.length} ${added.length === 1 ? 'snail' : 'snails'}.`);
   }
 
   function validate(): boolean {
     const next: Record<string, string> = {};
+    if (snails.length + sponsorships < 1) next.snails = 'Add at least one snail or sponsor a race.';
+    const missing = snails.findIndex((name) => !name.trim());
+    if (missing >= 0) next.snails = `Name snail ${missing + 1}, or remove it.`;
+    const tooLong = snails.findIndex((name) => name.trim().length > SNAIL_RACE_LIMITS.snailNameLength);
+    if (tooLong >= 0) next.snails = `Snail ${tooLong + 1} name must be ${SNAIL_RACE_LIMITS.snailNameLength} characters or fewer.`;
+    if (sponsorships > 0 && !sponsorName.trim()) next.sponsor = 'Enter the sponsor name for your race.';
     if (!buyer.name.trim()) next.name = 'Name is required';
     if (!buyer.email.trim()) next.email = 'Email is required';
     else if (!validateEmail(buyer.email)) next.email = 'Please enter a valid email address';
     if (!buyer.phone.trim()) next.phone = 'Phone number is required';
     else if (!validatePhone(buyer.phone)) next.phone = 'Please enter a valid phone number';
-    if (snails.length + sponsorships < 1) next.snails = 'Add at least one snail or race sponsorship.';
-    const missing = snails.findIndex((snail) => !snail.snail_name.trim());
-    if (missing >= 0) next.snails = `Enter a name for snail ${missing + 1}, or remove it.`;
-    const tooLong = snails.findIndex((snail) => snail.snail_name.trim().length > SNAIL_RACE_LIMITS.snailNameLength);
-    if (tooLong >= 0) next.snails = `Snail ${tooLong + 1} name must be ${SNAIL_RACE_LIMITS.snailNameLength} characters or fewer.`;
-    const longPlayer = snails.findIndex((snail) => snail.player_name.trim().length > SNAIL_RACE_LIMITS.playerNameLength);
-    if (longPlayer >= 0) next.snails = `Snail ${longPlayer + 1} player name must be ${SNAIL_RACE_LIMITS.playerNameLength} characters or fewer.`;
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -91,8 +112,9 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
         name: buyer.name,
         email: buyer.email,
         phone: buyer.phone,
-        snails: snails.map((snail) => ({ snail_name: snail.snail_name.trim(), player_name: snail.player_name.trim() })),
+        snails: snails.map((name) => ({ snail_name: name.trim() })),
         race_sponsorships: sponsorships,
+        ...(sponsorships > 0 ? { race_sponsor_name: sponsorName.trim() } : {}),
         hp_field: buyer.hp_field,
         submitted_at: buyer.submitted_at,
       });
@@ -110,8 +132,8 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
       const totalAmount = Number(data.total_amount || 0);
       setStatus('success');
       setMessage(totalAmount > 0
-        ? 'Your snails are recorded. Choose how you will pay below: card online, at the club, or bank transfer.'
-        : 'Your snails are recorded. No payment is required.');
+        ? 'Your order is in. Choose how you will pay below: card online, at the club, or bank transfer.'
+        : 'Your order is in. No payment is required.');
       if (data.order_id && totalAmount > 0) {
         setConfirmation({
           order_id: data.order_id,
@@ -122,8 +144,9 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
         });
       }
       setBuyer({ name: '', email: '', phone: '', hp_field: '', submitted_at: Date.now() });
-      setSnails([emptySnail()]);
+      setSnails(['']);
       setSponsorships(0);
+      setSponsorName('');
       setErrors({});
     } catch (err) {
       setStatus('error');
@@ -133,16 +156,17 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
     }
   }
 
-  const summary = [
-    snails.length > 0 ? `${snails.length} ${snails.length === 1 ? 'snail' : 'snails'} x ${formatCurrency(price)}` : '',
-    sponsorships > 0 && sponsorPrice !== null ? `${sponsorships} race ${sponsorships === 1 ? 'sponsorship' : 'sponsorships'} x ${formatCurrency(sponsorPrice)}` : '',
-  ].filter(Boolean).join(' + ');
+  const buttonLabel = submitting
+    ? 'Saving...'
+    : total > 0
+      ? `Continue to payment: ${formatCurrency(total)}`
+      : snails.length > 0 ? `Enter ${snails.length} ${snails.length === 1 ? 'snail' : 'snails'}` : 'Enter';
 
   return (
     <div className="space-y-4" data-testid="snail-purchase-form">
       {status === 'success' && (
         <div className="p-3 rounded-xl border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40" role="status">
-          <p className="text-green-800 dark:text-green-200 font-body font-semibold text-sm">Snails bought</p>
+          <p className="text-green-800 dark:text-green-200 font-body font-semibold text-sm">Thanks, your snails are in</p>
           <p className="text-green-700 dark:text-green-300 font-body text-xs mt-1">{message}</p>
         </div>
       )}
@@ -158,12 +182,12 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
       )}
       {status === 'error' && (
         <div className="p-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40" role="alert">
-          <p className="text-red-800 dark:text-red-200 font-body font-semibold text-sm">Purchase failed</p>
+          <p className="text-red-800 dark:text-red-200 font-body font-semibold text-sm">Your order did not go through</p>
           <p className="text-red-700 dark:text-red-300 font-body text-xs mt-1">{message}</p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         <input
           type="text"
           name="website"
@@ -173,71 +197,46 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
           tabIndex={-1}
           autoComplete="off"
         />
-        <Input id="snail_buyer_name" label="Your Name" type="text" required placeholder="e.g. Jane Smith" value={buyer.name} error={errors.name}
-          onChange={(e) => setBuyer((prev) => ({ ...prev, name: e.target.value }))} />
-        <Input id="snail_buyer_email" label="Email Address" type="email" required placeholder="e.g. jane@example.com" value={buyer.email} error={errors.email}
-          onChange={(e) => setBuyer((prev) => ({ ...prev, email: e.target.value }))} />
-        <Input id="snail_buyer_phone" label="Phone Number" type="tel" required placeholder="e.g. 0412 345 678" value={buyer.phone} error={errors.phone}
-          onChange={(e) => setBuyer((prev) => ({ ...prev, phone: e.target.value }))} />
 
-        <fieldset className="w-full space-y-3">
-          <legend className="form-label mb-2">Your snails</legend>
-          <Input
-            id="snail_count"
-            label="Number of snails"
-            type="number"
-            min={0}
-            max={SNAIL_RACE_LIMITS.maxSnailsPerOrder}
-            value={snails.length}
-            onChange={(e) => setSnailCount(Number(e.target.value))}
-          />
-          <p className="text-xs text-content-muted">
-            Name each snail (up to {SNAIL_RACE_LIMITS.snailNameLength} characters). Leave a player name blank to use your name.
-          </p>
-          {snails.map((snail, index) => (
-            <div key={index} className="rounded-2xl border border-edge-subtle bg-surface-muted p-3 space-y-2">
-              <Input
-                id={`snail_name_${index}`}
-                label={`Snail ${index + 1} name`}
-                type="text"
-                required
-                maxLength={SNAIL_RACE_LIMITS.snailNameLength}
-                value={snail.snail_name}
-                onChange={(e) => updateSnail(index, { snail_name: e.target.value })}
-              />
-              <Input
-                id={`snail_player_${index}`}
-                label={`Snail ${index + 1} player name`}
-                type="text"
-                maxLength={SNAIL_RACE_LIMITS.playerNameLength}
-                placeholder={buyer.name.trim() || 'Your name'}
-                value={snail.player_name}
-                onChange={(e) => updateSnail(index, { player_name: e.target.value })}
-              />
+        <fieldset className="space-y-3">
+          <legend className="font-display text-lg font-semibold text-content-primary">1. Your snails</legend>
+          <Stepper id="snail_count" label={`How many snails? (${formatCurrency(price)} each)`} value={snails.length}
+            max={SNAIL_RACE_LIMITS.maxSnailsPerOrder} onChange={setSnailCount} />
+          {snails.length > 0 && (
+            <p className="text-xs text-content-muted">
+              Name each snail, up to {SNAIL_RACE_LIMITS.snailNameLength} characters. Be creative; offensive or inappropriate names will not be accepted.
+            </p>
+          )}
+          {snails.map((name, index) => (
+            <div key={index} className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  id={`snail_name_${index}`}
+                  label={`Snail ${index + 1} name`}
+                  type="text"
+                  required
+                  maxLength={SNAIL_RACE_LIMITS.snailNameLength}
+                  value={name}
+                  onChange={(e) => setSnails((prev) => prev.map((value, i) => (i === index ? e.target.value : value)))}
+                />
+              </div>
               <button
                 type="button"
-                className="min-h-11 text-sm text-maroon-700 dark:text-maroon-200 underline underline-offset-4"
+                aria-label={`Remove snail ${index + 1}`}
+                className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-maroon-700 dark:text-maroon-200 hover:bg-surface-muted focus-ring"
                 onClick={() => setSnails((prev) => prev.filter((_, i) => i !== index))}
               >
-                Remove snail {index + 1}
+                <Minus className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           ))}
-          {snails.length < SNAIL_RACE_LIMITS.maxSnailsPerOrder ? (
-            <Button type="button" variant="secondary" className="w-full" onClick={() => setSnails((prev) => [...prev, emptySnail()])}>
-              Add another snail
-            </Button>
-          ) : (
-            <p className="text-sm text-content-muted">This order has the maximum of {SNAIL_RACE_LIMITS.maxSnailsPerOrder} snails. Place another order for more.</p>
-          )}
           <details className="rounded-2xl border border-edge-subtle p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-content-primary">Buying lots of snails? Paste a list</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-content-primary">Buying lots of snails? Paste a list of names</summary>
             <div className="mt-3 space-y-2">
               <Textarea
                 id="snail_bulk"
-                label="One snail per line: snail name, player name"
+                label="One snail name per line"
                 rows={5}
-                placeholder={'Turbo, Jane Smith\nSlow Coach, The Smith Kids'}
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
               />
@@ -245,32 +244,59 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
               {bulkMessage && <p className="text-xs text-content-muted" aria-live="polite">{bulkMessage}</p>}
             </div>
           </details>
+          {errors.snails && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{errors.snails}</p>}
         </fieldset>
 
         {sponsorPrice !== null && (
-          <Input
-            id="snail_sponsorships"
-            label={`Races to sponsor (${formatCurrency(sponsorPrice)} each, optional)`}
-            type="number"
-            min={0}
-            max={SNAIL_RACE_LIMITS.maxSponsorshipsPerOrder}
-            value={sponsorships}
-            onChange={(e) => setSponsorships(Math.min(SNAIL_RACE_LIMITS.maxSponsorshipsPerOrder, Math.max(0, Math.floor(Number(e.target.value)) || 0)))}
-          />
+          <fieldset className="space-y-3">
+            <legend className="font-display text-lg font-semibold text-content-primary">2. Sponsor a race (optional)</legend>
+            <p className="text-xs text-content-muted">
+              {sponsorPrice > 0 ? `${formatCurrency(sponsorPrice)} per race. ` : ''}Each sponsored race is named after its sponsor, for example The Jack Elliott Stakes.
+            </p>
+            <Stepper id="snail_sponsorships" label="Races to sponsor" value={sponsorships}
+              max={SNAIL_RACE_LIMITS.maxSponsorshipsPerOrder} onChange={setSponsorships} />
+            {sponsorships > 0 && (
+              <>
+                <Input
+                  id="snail_sponsor_name"
+                  label="Sponsor name"
+                  type="text"
+                  required
+                  maxLength={SNAIL_RACE_LIMITS.sponsorNameLength}
+                  value={sponsorName}
+                  error={errors.sponsor}
+                  onChange={(e) => setSponsorName(e.target.value)}
+                />
+                {raceName && <p className="text-sm text-content-secondary" aria-live="polite">Race name: <strong>{raceName}</strong></p>}
+              </>
+            )}
+          </fieldset>
         )}
 
-        <p className="font-body font-semibold text-content-primary text-[15px]" aria-live="polite">
-          {summary ? `${summary} = ${formatCurrency(total)}` : 'Nothing added yet'}
-        </p>
-        {errors.snails && <p className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">{errors.snails}</p>}
+        <fieldset className="space-y-3">
+          <legend className="font-display text-lg font-semibold text-content-primary">{sponsorPrice !== null ? '3.' : '2.'} Your details</legend>
+          <Input id="snail_buyer_name" label="Your name" type="text" required value={buyer.name} error={errors.name}
+            onChange={(e) => setBuyer((prev) => ({ ...prev, name: e.target.value }))} />
+          <Input id="snail_buyer_email" label="Email address" type="email" required value={buyer.email} error={errors.email}
+            onChange={(e) => setBuyer((prev) => ({ ...prev, email: e.target.value }))} />
+          <Input id="snail_buyer_phone" label="Phone number" type="tel" required value={buyer.phone} error={errors.phone}
+            onChange={(e) => setBuyer((prev) => ({ ...prev, phone: e.target.value }))} />
+        </fieldset>
 
-        <Button type="submit" isLoading={submitting} className="w-full">
-          {submitting
-            ? 'Saving...'
-            : total > 0
-              ? `Buy ${snails.length > 0 ? `${snails.length} ${snails.length === 1 ? 'snail' : 'snails'}` : 'race sponsorship'} and choose payment`
-              : 'Enter snails'}
-        </Button>
+        <div className="rounded-2xl bg-surface-muted p-4 space-y-1 text-sm" aria-live="polite" data-testid="snail-order-summary">
+          {snails.length > 0 && (
+            <p className="flex justify-between gap-3"><span>{snails.length} {snails.length === 1 ? 'snail' : 'snails'}</span><span>{formatCurrency(snailTotal)}</span></p>
+          )}
+          {sponsorships > 0 && sponsorPrice !== null && (
+            <p className="flex justify-between gap-3"><span>{sponsorships} race {sponsorships === 1 ? 'sponsorship' : 'sponsorships'}</span><span>{formatCurrency(sponsorTotal)}</span></p>
+          )}
+          <p className="flex justify-between gap-3 border-t border-edge-subtle pt-2 font-semibold text-content-primary text-[15px]">
+            <span>Total</span><span>{formatCurrency(total)}</span>
+          </p>
+        </div>
+
+        <Button type="submit" isLoading={submitting} className="w-full">{buttonLabel}</Button>
+        <p className="text-xs text-content-muted text-center">You choose how to pay on the next step.</p>
       </form>
     </div>
   );

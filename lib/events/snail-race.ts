@@ -12,6 +12,7 @@ export const SNAIL_RACE_LIMITS = Object.freeze({
   // The SnailRace game shows runner names of up to 24 characters.
   snailNameLength: 24,
   playerNameLength: 40,
+  sponsorNameLength: 40,
   maxRaceCount: 100,
   maxSnailsPerRace: 20,
 });
@@ -25,8 +26,9 @@ export function isSnailRaceEvent(event: { registration_mode?: string | null } | 
 const collapse = (value: string) => value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 
 /**
- * Validates and tidies the snails in one order. A blank player name takes the
- * buyer's name, so every snail has someone to cheer for it.
+ * Validates and tidies the snails in one order. Buyers only name their
+ * snails; player_name is kept internally as the buyer's name (it is what the
+ * database stores and what the race card shows as the owner).
  */
 export function normaliseSnailEntries(input: unknown, buyerName: string):
   | { ok: true; value: SnailEntry[] }
@@ -71,22 +73,37 @@ export function normaliseSponsorships(input: unknown): { ok: true; value: number
   return { ok: true, value: input };
 }
 
-/**
- * Bulk entry: one snail per line, "Snail name, Player name" (comma, tab or
- * vertical bar). A line without a separator is a snail name only.
- */
-export function parseBulkSnailLines(text: string): Array<{ snail_name: string; player_name: string }> {
+/** Bulk entry: one snail name per line; blank lines are ignored. */
+export function parseBulkSnailLines(text: string): string[] {
   return text
     .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const match = line.match(/^(.*?)\s*[,\t|]\s*(.*)$/);
-      return match
-        ? { snail_name: collapse(match[1]), player_name: collapse(match[2]) }
-        : { snail_name: collapse(line), player_name: '' };
-    })
-    .filter((entry) => entry.snail_name);
+    .map((line) => collapse(line))
+    .filter(Boolean);
+}
+
+/**
+ * The name a sponsor's race(s) carry, from the sponsor name the buyer gives:
+ * "Jack Elliott" becomes "The Jack Elliott Stakes". Names already starting
+ * with "The" or ending in "Stakes" are kept as typed.
+ */
+export function sponsoredRaceName(sponsorName: string): string {
+  const name = collapse(sponsorName).replace(/^the\s+/i, '').replace(/\s+stakes$/i, '');
+  return name ? `The ${name} Stakes` : '';
+}
+
+/** Sponsor name for sponsored races: required when any race is sponsored. */
+export function normaliseSponsorName(input: unknown, sponsorships: number):
+  | { ok: true; value: string | null }
+  | { ok: false; error: string } {
+  if (sponsorships <= 0) return { ok: true, value: null };
+  if (typeof input !== 'string' || !collapse(input)) {
+    return { ok: false, error: 'Enter the sponsor name for your race.' };
+  }
+  const name = collapse(input);
+  if (name.length > SNAIL_RACE_LIMITS.sponsorNameLength) {
+    return { ok: false, error: `Sponsor name must be ${SNAIL_RACE_LIMITS.sponsorNameLength} characters or fewer.` };
+  }
+  return { ok: true, value: name };
 }
 
 /** Positive whole number from a settings column, or null when not set. */
