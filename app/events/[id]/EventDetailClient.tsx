@@ -11,6 +11,9 @@ import { Event } from '@/lib/types';
 import { formatDateTime, formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { normalizeEventImage } from '@/lib/public-content-normalizers';
 import { EVENT_SONG_LIMITS, isSongRequestEvent } from '@/lib/events/song-requests';
+import { isSnailRaceEvent } from '@/lib/events/snail-race';
+import SnailRaceDetails, { raceSponsorshipPrice } from '@/components/events/SnailRaceDetails';
+import SnailPurchaseForm from '@/components/events/SnailPurchaseForm';
 
 const CLUB_TIME_ZONE = 'Australia/Melbourne';
 const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: CLUB_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -27,6 +30,8 @@ type OrderConfirmation = {
 export default function EventDetailClient({ event }: { event: Event }) {
   const eventId = event.id;
   const songEvent = isSongRequestEvent(event);
+  const snailEvent = isSnailRaceEvent(event);
+  const sponsorPrice = snailEvent ? raceSponsorshipPrice(event) : null;
   // Off when the club takes registrations and payments manually for this event.
   const onlineRegistration = event.online_registration_enabled !== false;
   const [songs, setSongs] = useState([{ title: '', artist: '' }]);
@@ -133,7 +138,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
   const venue = eventVenue(event.location);
   const eventDate = new Date(event.date);
   const hasValidDate = Number.isFinite(eventDate.getTime());
-  const priceLabel = event.ticket_price === 0 ? 'Free entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : ''}`;
+  const priceLabel = event.ticket_price === 0 ? 'Free entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : snailEvent ? ' per snail' : ''}`;
   const heroDetails = [
     hasValidDate ? dayFormat.format(eventDate) : '',
     hasValidDate ? timeFormat.format(eventDate) : '',
@@ -190,9 +195,16 @@ export default function EventDetailClient({ event }: { event: Event }) {
                     </span>
                   )}
                 </dd>
-                <dt>{songEvent ? 'Price per song' : 'Ticket price'}</dt>
+                <dt>{songEvent ? 'Price per song' : snailEvent ? 'Price per snail' : 'Ticket price'}</dt>
                 <dd>{priceLabel}</dd>
-                {event.capacity && (
+                {sponsorPrice !== null && (
+                  <>
+                    <dt>Sponsor a race</dt>
+                    <dd>{sponsorPrice > 0 ? formatCurrency(sponsorPrice) : 'Free'}</dd>
+                  </>
+                )}
+                {/* Snail sales are unlimited, so capacity is never shown for them. */}
+                {!snailEvent && event.capacity && (
                   <>
                     <dt>Capacity</dt>
                     <dd>{event.capacity} places</dd>
@@ -200,17 +212,22 @@ export default function EventDetailClient({ event }: { event: Event }) {
                 )}
               </dl>
               {songEvent && <p className="font-body text-content-muted text-sm">Entry is by buying songs. Choose at least one; there is no limit on how many you buy.</p>}
+              {snailEvent && <SnailRaceDetails event={event} />}
             </div>
           </article>
 
           <aside className="nd-card p-6 sm:p-[26px] min-[981px]:sticky min-[981px]:top-[120px]" aria-labelledby="event-register-title">
-            <h2 id="event-register-title" className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">Register</h2>
+            <h2 id="event-register-title" className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">{snailEvent ? 'Buy snails' : 'Register'}</h2>
             <p className="mt-1 mb-5 font-body text-[14.5px] text-content-muted">{priceLabel}</p>
 
             {!onlineRegistration ? (
               <p className="font-body text-[14.5px] text-content-secondary" data-testid="event-offline-registration">
-                Registration and payment for this event are handled by the club, not online. See the event details for how to take part.
+                {snailEvent
+                  ? 'Snail purchases and payment for this event are handled by the club, not online. See the event details for how to take part.'
+                  : 'Registration and payment for this event are handled by the club, not online. See the event details for how to take part.'}
               </p>
+            ) : snailEvent ? (
+              <SnailPurchaseForm event={event} />
             ) : (
             <div className="space-y-4">
               {submitStatus === 'success' && (

@@ -1,5 +1,6 @@
 import { pageMetadata } from '@/lib/seo';
 import { isSongRequestEvent } from '@/lib/events/song-requests';
+import { isSnailRaceEvent } from '@/lib/events/snail-race';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
@@ -91,7 +92,7 @@ export default async function EventsPage() {
                           )}
                           <div className="nd-ev-body">
                             <span className={`nd-pill self-start${event.ticket_price === 0 ? '' : ' nd-pill-gold'}`}>
-                              {event.ticket_price === 0 ? 'Free entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : ''}`}
+                              {event.ticket_price === 0 ? 'Free entry' : `${formatCurrency(event.ticket_price)}${songEvent ? ' per song' : isSnailRaceEvent(event) ? ' per snail' : ''}`}
                             </span>
                             <h3>{event.title}</h3>
                             <p className="nd-ev-meta">

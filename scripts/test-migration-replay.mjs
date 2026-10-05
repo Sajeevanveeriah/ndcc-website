@@ -103,6 +103,8 @@ psql(DB, readFileSync(new URL('./test-dino-section-rule-removed.sql', import.met
 check('Removal migration re-applies cleanly after a rollback', true);
 psql(DB, readFileSync(new URL('./test-event-song-requests.sql', import.meta.url), 'utf8'));
 check('Event song entries: atomic storage, ticket events refused, limits, closing time and privileges', true);
+psql(DB, readFileSync(new URL('./test-event-snail-racing.sql', import.meta.url), 'utf8'));
+check('Event snail racing: unlimited named snails, sponsorships, wrong event types refused, limits, closing time and privileges', true);
 const runPsql = promisify(execFile);
 const reservationResults = await Promise.allSettled(Array.from({length:20},()=>runPsql('psql',['-X','-t','-A','-v','ON_ERROR_STOP=1','-d',DB,'-c',
   `insert into public.raffle_orders(campaign_id,customer_name,customer_email,quantity,amount_cents,selected_ticket_numbers) select id,'Concurrency test','test@example.com',1,6000,array[300] from public.raffle_campaigns where code='NDCCRRO'`],{

@@ -12,6 +12,7 @@ import {
 } from '@/lib/order-input-validation';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { isSongRequestEvent, normaliseSongRequests, songLabel, type SongRequest } from '@/lib/events/song-requests';
+import { isSnailRaceEvent, normaliseSnailEntries, normaliseSponsorships, type SnailEntry } from '@/lib/events/snail-race';
 import { getNotificationRecipients } from '@/lib/notification-recipients';
 
 export const dynamic = 'force-dynamic';
@@ -53,15 +54,18 @@ export async function POST(request: Request) {
     }
     const body = parsedBody.value;
 
-    const { event_id, name, email, phone, quantity, hp_field, submitted_at, songs } = body;
+    const { event_id, name, email, phone, quantity, hp_field, submitted_at, songs, snails, race_sponsorships } = body;
     // Song-request events send named songs instead of a ticket quantity.
     const hasSongs = songs !== undefined;
+    // Snail racing events send named snails (and race sponsorships) instead.
+    const hasSnails = snails !== undefined || race_sponsorships !== undefined;
 
     if (typeof event_id !== 'string' || !isUuidV1ToV5(event_id)
       || typeof name !== 'string' || !name.trim() || name.trim().length > PUBLIC_ORDER_LIMITS.nameLength
       || typeof email !== 'string' || !email.trim() || email.trim().length > PUBLIC_ORDER_LIMITS.emailLength
       || typeof phone !== 'string' || !phone.trim() || phone.trim().length > PUBLIC_ORDER_LIMITS.phoneLength
-      || (!hasSongs && (typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20))
+      || (hasSongs && hasSnails)
+      || (!hasSongs && !hasSnails && (typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20))
       || typeof hp_field !== 'string' || hp_field.length > 200
       || typeof submitted_at !== 'number' || !Number.isFinite(submitted_at) || submitted_at <= 0) {
       return NextResponse.json(
@@ -95,7 +99,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const qty = hasSongs ? 1 : quantity as number;
+    const qty = hasSongs || hasSnails ? 1 : quantity as number;
 
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
@@ -115,7 +119,11 @@ export async function POST(request: Request) {
       .maybeSingle();
     // Scheduled events (published_at in the future) are not open yet. Retry
     // without the column where the scheduling migration is not applied.
-    let lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode,online_registration_enabled');
+    let lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode,online_registration_enabled,race_sponsorship_price');
+    // Snail racing settings arrive with 20261005095114_event_snail_racing.
+    if (lookup.error && /race_sponsorship_price/.test(lookup.error.message || '')) {
+      lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode,online_registration_enabled');
+    }
     // The online switch arrives with 20261003030907; until then events stay online.
     if (lookup.error && /online_registration_enabled/.test(lookup.error.message || '')) {
       lookup = await lookupEvent('id,title,date,ticket_price,location,capacity,published_at,registration_mode');
@@ -130,7 +138,7 @@ export async function POST(request: Request) {
     const scheduledRow = lookup.data as unknown as { published_at?: string | null } | null;
     const eventRow = scheduledRow && scheduledRow.published_at && Date.parse(scheduledRow.published_at) > Date.now()
       ? null
-      : lookup.data as unknown as { id: string; title: string; date: string | null; ticket_price: number | null; location: string | null; capacity: number | null; registration_mode?: string | null; online_registration_enabled?: boolean | null } | null;
+      : lookup.data as unknown as { id: string; title: string; date: string | null; ticket_price: number | null; location: string | null; capacity: number | null; registration_mode?: string | null; online_registration_enabled?: boolean | null; race_sponsorship_price?: number | string | null } | null;
 
     if (eventError) {
       console.error('Supabase event lookup error:', eventError);
@@ -159,8 +167,44 @@ export async function POST(request: Request) {
       if (!parsedSongs.ok) return NextResponse.json({ success: false, error: parsedSongs.error }, { status: 400 });
       songRequests = parsedSongs.value.map(song => ({ title: sanitiseInput(song.title), artist: sanitiseInput(song.artist) }));
     }
+    const snailEvent = isSnailRaceEvent(eventRow);
+    if (snailEvent !== hasSnails) {
+      return NextResponse.json(
+        { success: false, error: snailEvent ? 'Add at least one snail or race sponsorship.' : 'One or more event registration details are invalid.' },
+        { status: 400 },
+      );
+    }
+    let snailEntries: SnailEntry[] = [];
+    let sponsorships = 0;
+    let sponsorshipPriceCents = 0;
+    if (snailEvent) {
+      const parsedSnails = normaliseSnailEntries(snails ?? [], name);
+      if (!parsedSnails.ok) return NextResponse.json({ success: false, error: parsedSnails.error }, { status: 400 });
+      snailEntries = parsedSnails.value.map((snail) => ({ snail_name: sanitiseInput(snail.snail_name), player_name: sanitiseInput(snail.player_name) }));
+      if (snailEntries.some((snail) => !snail.snail_name || !snail.player_name)) {
+        return NextResponse.json({ success: false, error: 'Each snail needs a snail name and a player name.' }, { status: 400 });
+      }
+      const parsedSponsorships = normaliseSponsorships(race_sponsorships);
+      if (!parsedSponsorships.ok) return NextResponse.json({ success: false, error: parsedSponsorships.error }, { status: 400 });
+      sponsorships = parsedSponsorships.value;
+      if (sponsorships > 0) {
+        const sponsorPrice = eventRow.race_sponsorship_price;
+        const sponsorPriceResult = sponsorPrice === null || sponsorPrice === undefined ? null : audAmountToCents(sponsorPrice);
+        if (!sponsorPriceResult) {
+          return NextResponse.json({ success: false, error: 'Race sponsorship is not offered for this event.' }, { status: 400 });
+        }
+        if (!sponsorPriceResult.ok) {
+          return NextResponse.json({ success: false, error: 'Event pricing is unavailable.' }, { status: 503 });
+        }
+        sponsorshipPriceCents = sponsorPriceResult.value;
+      }
+      if (snailEntries.length + sponsorships < 1) {
+        return NextResponse.json({ success: false, error: 'Add at least one snail or race sponsorship.' }, { status: 400 });
+      }
+    }
     const capacity = eventRow.capacity;
-    if (capacity !== null && capacity !== undefined) {
+    // Snail sales are unlimited: the club adds races to fit, so capacity never applies.
+    if (!snailEvent && capacity !== null && capacity !== undefined) {
       // Early application-level check. The ndcc_register_event_attendee RPC
       // below repeats it atomically under a row lock when it is deployed.
       const { data: existing, error: existingError } = await supabase
@@ -184,13 +228,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Event pricing is unavailable.' }, { status: 503 });
     }
     const ticketPriceCents = ticketPriceResult.value;
-    const unitCount = songEvent ? songRequests.length : qty;
-    const totalCents = ticketPriceCents * unitCount;
+    const unitCount = songEvent ? songRequests.length : snailEvent ? snailEntries.length : qty;
+    const totalCents = ticketPriceCents * unitCount + sponsorshipPriceCents * sponsorships;
     if (!Number.isSafeInteger(totalCents) || totalCents > PUBLIC_ORDER_LIMITS.maximumOrderCents) {
       return NextResponse.json({ success: false, error: 'Event registration total exceeds the allowed limit.' }, { status: 400 });
     }
     const ticketPrice = ticketPriceCents / 100;
-    const isPaid = ticketPriceCents > 0;
+    const isPaid = totalCents > 0;
     const totalCost = totalCents / 100;
     const paymentReference = isPaid ? await generateUniquePaymentReference('event') : null;
 
@@ -202,7 +246,26 @@ export async function POST(request: Request) {
           customer_name: sanitiseInput(name),
           customer_email: sanitiseInput(email),
           customer_phone: sanitiseInput(phone),
-          items: songEvent
+          items: snailEvent
+            // One line per kind; the snail and player names live on the
+            // registration (snail_entries) and in the admin snail exports.
+            ? [
+              ...(snailEntries.length > 0 ? [{
+                name: eventRow.title,
+                event_id: eventRow.id,
+                size: 'snail',
+                quantity: snailEntries.length,
+                price: ticketPrice,
+              }] : []),
+              ...(sponsorships > 0 ? [{
+                name: eventRow.title,
+                event_id: eventRow.id,
+                size: 'race sponsorship',
+                quantity: sponsorships,
+                price: sponsorshipPriceCents / 100,
+              }] : []),
+            ]
+            : songEvent
             // event_id keys the admin purchase group (lib/orders/purchase-groups.ts)
             // so the order stays with its event if the event is renamed; the
             // name is the title at purchase time and the fallback key.
@@ -228,7 +291,9 @@ export async function POST(request: Request) {
           order_category: 'event',
           order_status: 'submitted',
           processed: false,
-          notes: songEvent
+          notes: snailEvent
+            ? `Snail purchase: ${eventRow.title} (${snailEntries.length} ${snailEntries.length === 1 ? 'snail' : 'snails'}${sponsorships > 0 ? `, ${sponsorships} race ${sponsorships === 1 ? 'sponsorship' : 'sponsorships'}` : ''})`
+            : songEvent
             ? `Event registration: ${eventRow.title} (${songRequests.length} ${songRequests.length === 1 ? 'song' : 'songs'})`
             : `Event registration: ${eventRow.title}`,
         })
@@ -255,7 +320,19 @@ export async function POST(request: Request) {
     // Prefer the atomic, capacity-locked RPC; fall back to the plain insert
     // (already guarded by the application-level check above) when the
     // migration has not been applied yet.
-    let { error: registrationError } = songEvent
+    let { error: registrationError } = snailEvent
+      ? await supabase.rpc('ndcc_register_event_snail_entry', {
+        p_event_id: registration.event_id,
+        p_name: registration.name,
+        p_email: registration.email,
+        p_phone: registration.phone,
+        p_payment_status: registration.payment_status,
+        p_payment_reference: registration.payment_reference,
+        p_order_id: registration.order_id,
+        p_snail_entries: snailEntries,
+        p_race_sponsorships: sponsorships,
+      })
+      : songEvent
       ? await supabase.rpc('ndcc_register_event_song_entry', {
         p_event_id: registration.event_id,
         p_name: registration.name,
@@ -276,7 +353,7 @@ export async function POST(request: Request) {
       p_payment_reference: registration.payment_reference,
       p_order_id: registration.order_id,
     });
-    if (registrationError && !songEvent && isMissingRegistrationRpc(registrationError)) {
+    if (registrationError && !songEvent && !snailEvent && isMissingRegistrationRpc(registrationError)) {
       ({ error: registrationError } = await supabase.from('event_registrations').insert(registration));
     }
 
@@ -331,13 +408,15 @@ export async function POST(request: Request) {
 
     if (!isPaid) await sendEmail({
       to: sanitiseInput(email),
-      subject: `Event registration confirmed - ${eventRow.title} | NDCC Dinos`,
+      subject: snailEvent ? `Snail purchase confirmed - ${eventRow.title} | NDCC Dinos` : `Event registration confirmed - ${eventRow.title} | NDCC Dinos`,
       html: emailHtml(
-        'Registration Confirmed',
+        snailEvent ? 'Snail Purchase Confirmed' : 'Registration Confirmed',
         `<p style="font-size:15px;color:#374151;line-height:1.6;">Hi ${escapeEmailHtml(sanitiseInput(name))},</p>
         <p style="font-size:15px;color:#374151;line-height:1.6;">You are registered for <strong>${escapeEmailHtml(eventRow.title)}</strong>${eventRow.date ? ` on ${formatDateTime(eventRow.date)}` : ''}.</p>
         ${eventRow.location ? `<p style="font-size:14px;color:#374151;"><strong>Location:</strong> ${escapeEmailHtml(eventRow.location)}</p>` : ''}
-        ${songEvent
+        ${snailEvent
+          ? `${snailEntries.length > 0 ? `<p style="font-size:14px;color:#374151;"><strong>Snails:</strong></p><ol style="font-size:14px;color:#374151;">${snailEntries.map((snail) => `<li>${escapeEmailHtml(snail.snail_name)} (player: ${escapeEmailHtml(snail.player_name)})</li>`).join('')}</ol>` : ''}${sponsorships > 0 ? `<p style="font-size:14px;color:#374151;"><strong>Races sponsored:</strong> ${sponsorships}</p>` : ''}`
+          : songEvent
           ? `<p style="font-size:14px;color:#374151;"><strong>Songs:</strong></p><ol style="font-size:14px;color:#374151;">${songRequests.map((song) => `<li>${escapeEmailHtml(songLabel(song))}</li>`).join('')}</ol>`
           : `<p style="font-size:14px;color:#374151;"><strong>Tickets:</strong> ${qty}</p>`}
         ${isPaid && paymentReference
@@ -350,7 +429,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Registration confirmed!',
+      message: snailEvent ? 'Snail purchase confirmed!' : 'Registration confirmed!',
       order_id: linkedOrder?.id ?? null,
       total_amount: totalCost,
       payment_reference: paymentReference,

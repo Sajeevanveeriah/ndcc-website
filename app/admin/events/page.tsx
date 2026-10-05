@@ -18,6 +18,7 @@ import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuar
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
+import { snailCsv, snailExportRows, snailRaceCard, sponsorshipTotals, type SnailExportOrder, type SnailExportRegistration } from '@/lib/events/snail-race-export';
 
 const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   title: '',
@@ -27,12 +28,42 @@ const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   capacity: null,
   ticket_price: 0,
   registration_mode: 'tickets',
+  snail_race_count: null,
+  snails_per_race: null,
+  race_sponsorship_price: null,
   online_registration_enabled: true,
   image_url: '',
   published: false,
 };
 
-type SongPotOrder = { id: string; order_category?: string | null; payment_status?: string | null; total_amount?: number | string | null };
+type SongPotOrder = SnailExportOrder & { order_category?: string | null };
+type RegistrationMode = 'tickets' | 'song_requests' | 'snail_race';
+
+function registrationMode(value: unknown): RegistrationMode {
+  return value === 'song_requests' || value === 'snail_race' ? value : 'tickets';
+}
+
+function optionalNumber(value: unknown): number | null {
+  const number = typeof value === 'string' && value.trim() ? Number(value) : value;
+  return typeof number === 'number' && Number.isFinite(number) ? number : null;
+}
+
+/** Song entries, snails and race sponsorships are paid through the order ledger. */
+function isLedgerEntry(registration: EventRegistration) {
+  return Boolean(registration.order_id) && ((registration.song_requests?.length ?? 0) > 0
+    || (registration.snail_entries?.length ?? 0) > 0 || (registration.race_sponsorships ?? 0) > 0);
+}
+
+function downloadFile(filename: string, content: string, type: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+const fileSlug = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'event';
 
 function isScheduled(event: Event) {
   const at = (event as Event & { published_at?: string | null }).published_at;
@@ -65,6 +96,7 @@ export default function AdminEventsPage() {
   const [publishAt, setPublishAt] = useState('');
   const [editingHasSchedule, setEditingHasSchedule] = useState(false);
   const [editingHasMode, setEditingHasMode] = useState(false);
+  const [editingHasSnailSettings, setEditingHasSnailSettings] = useState(false);
   const draft = useDraftAutosave({ editor: 'events', recordId: editingId, value: form, active: modalOpen });
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
@@ -103,9 +135,9 @@ export default function AdminEventsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The song pot uses the canonical paid orders, not the event's current price.
-  const hasSongEvent = events.some((event) => event.registration_mode === 'song_requests')
-    || registrations.some((registration) => (registration.song_requests?.length ?? 0) > 0);
+  // The song pot and snail exports use the canonical orders, not the event's current price.
+  const hasSongEvent = events.some((event) => event.registration_mode === 'song_requests' || event.registration_mode === 'snail_race')
+    || registrations.some((registration) => (registration.song_requests?.length ?? 0) > 0 || (registration.snail_entries?.length ?? 0) > 0);
   useEffect(() => {
     if (!hasSongEvent) return;
     let cancelled = false;
@@ -122,6 +154,7 @@ export default function AdminEventsPage() {
     setPublishAt('');
     setEditingHasSchedule(false);
     setEditingHasMode(false);
+    setEditingHasSnailSettings(false);
     setForm(emptyEvent);
     setFormErrors({});
     setFeedback(null);
@@ -137,6 +170,9 @@ export default function AdminEventsPage() {
     // Restored snapshots may predate registration_mode; take it from the live row.
     const modeSource = 'registration_mode' in event ? event : events.find((current) => current.id === event.id);
     setEditingHasMode(Boolean(modeSource && 'registration_mode' in modeSource));
+    // Restored snapshots may predate the snail settings; take them from the live row.
+    const snailSource = 'snail_race_count' in event ? event : events.find((current) => current.id === event.id) ?? event;
+    setEditingHasSnailSettings('snail_race_count' in snailSource);
     setForm({
       title: asSafeString(event.title),
       description: asSafeString(event.description),
@@ -144,7 +180,10 @@ export default function AdminEventsPage() {
       location: asSafeString(event.location),
       capacity: typeof event.capacity === 'number' ? event.capacity : null,
       ticket_price: typeof event.ticket_price === 'number' ? event.ticket_price : 0,
-      registration_mode: (('registration_mode' in event ? event : events.find((current) => current.id === event.id)) ?? event).registration_mode === 'song_requests' ? 'song_requests' : 'tickets',
+      registration_mode: registrationMode((('registration_mode' in event ? event : events.find((current) => current.id === event.id)) ?? event).registration_mode),
+      snail_race_count: optionalNumber(snailSource.snail_race_count),
+      snails_per_race: optionalNumber(snailSource.snails_per_race),
+      race_sponsorship_price: optionalNumber(snailSource.race_sponsorship_price),
       // Restored snapshots may predate the switch; take it from the live row.
       online_registration_enabled: (('online_registration_enabled' in event ? event : events.find((current) => current.id === event.id)) ?? event).online_registration_enabled !== false,
       image_url: asSafeString(event.image_url),
@@ -161,6 +200,14 @@ export default function AdminEventsPage() {
     if (!form.date) errors.date = 'Date is required.';
     if (!asSafeString(form.location).trim()) errors.location = 'Location is required.';
     if (form.ticket_price < 0) errors.ticket_price = 'Price cannot be negative.';
+    if (form.registration_mode === 'snail_race') {
+      const races = form.snail_race_count;
+      const perRace = form.snails_per_race;
+      const sponsor = form.race_sponsorship_price;
+      if (races !== null && races !== undefined && (!Number.isInteger(races) || races < 1 || races > 100)) errors.snail_race_count = 'Enter a whole number from 1 to 100, or leave blank.';
+      if (perRace !== null && perRace !== undefined && (!Number.isInteger(perRace) || perRace < 1 || perRace > 20)) errors.snails_per_race = 'Enter a whole number from 1 to 20, or leave blank.';
+      if (sponsor !== null && sponsor !== undefined && sponsor < 0) errors.race_sponsorship_price = 'Price cannot be negative.';
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -181,8 +228,17 @@ export default function AdminEventsPage() {
         ticket_price: form.ticket_price,
         // Sent only for song events, or when the row already has the column, so
         // ticket-event saves keep working before the song migration is applied.
-        ...(form.registration_mode === 'song_requests' || editingHasMode
-          ? { registration_mode: form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets' }
+        ...(form.registration_mode === 'snail_race' || form.registration_mode === 'song_requests' || editingHasMode
+          ? { registration_mode: registrationMode(form.registration_mode) }
+          : {}),
+        // Sent for snail events, or when the row already has the columns, so
+        // other saves keep working before the snail migration is applied.
+        ...(form.registration_mode === 'snail_race' || editingHasSnailSettings
+          ? {
+            snail_race_count: form.snail_race_count ?? null,
+            snails_per_race: form.snails_per_race ?? null,
+            race_sponsorship_price: form.race_sponsorship_price ?? null,
+          }
           : {}),
         online_registration_enabled: form.online_registration_enabled !== false,
         image_url: asSafeString(form.image_url).trim() || null,
@@ -366,7 +422,7 @@ export default function AdminEventsPage() {
                 <TableCell className="font-medium">{event.title}</TableCell>
                 <TableCell>{formatDate(event.date)}</TableCell>
                 <TableCell>{event.location}</TableCell>
-                <TableCell>{event.capacity ?? 'Unlimited'}</TableCell>
+                <TableCell>{event.registration_mode === 'snail_race' ? 'Unlimited (snails)' : event.capacity ?? 'Unlimited'}</TableCell>
                 <TableCell>{event.ticket_price > 0 ? formatCurrency(event.ticket_price) : 'Free'}</TableCell>
                 <TableCell>
                   {event.published ? (
@@ -425,6 +481,48 @@ export default function AdminEventsPage() {
             </div>
           );
         })}
+        {/* Snail racing: totals and exports, kept visible after a mode change while snails exist. */}
+        {events.filter((event) => event.registration_mode === 'snail_race'
+          || registrations.some((registration) => registration.event_id === event.id && (registration.snail_entries?.length ?? 0) > 0)).map((event) => {
+          const ready = !registrationsLoading && Array.isArray(songPotOrders);
+          const exportRegistrations = registrations as SnailExportRegistration[];
+          const rows = ready ? snailExportRows(event, exportRegistrations, songPotOrders) : [];
+          const paidSnails = rows.filter((row) => row.paid).length;
+          const sponsors = ready ? sponsorshipTotals(event, exportRegistrations, songPotOrders) : null;
+          const slug = fileSlug(event.title);
+          return (
+            <div key={`snail-${event.id}`} className="bg-surface-card rounded-xl border border-edge-subtle p-4 mb-3 text-sm space-y-2" data-testid="snail-exports">
+              <p className="font-semibold text-content-primary">{event.title}: snails</p>
+              {registrationsLoading || songPotOrders === undefined ? (
+                <p className="text-content-secondary">Loading snails and orders...</p>
+              ) : songPotOrders === null ? (
+                <p className="text-content-secondary">Orders could not be loaded. Reload the page to see snails and exports.</p>
+              ) : (
+                <>
+                  <p className="text-content-secondary">
+                    Snails: {rows.length} ({paidSnails} paid, {rows.length - paidSnails} awaiting payment). Snail capacity: Unlimited.
+                    {sponsors && sponsors.races > 0 ? ` Races sponsored: ${sponsors.races} (${sponsors.paidRaces} paid).` : ''}
+                    {' '}Cancelled and deleted orders are left out.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" size="sm" disabled={rows.length === 0}
+                      onClick={() => downloadFile(`${slug}-snails.csv`, snailCsv(rows), 'text/csv;charset=utf-8')}>
+                      Download snails (CSV)
+                    </Button>
+                    <Button variant="secondary" size="sm" disabled={rows.length === 0}
+                      onClick={() => downloadFile(`${slug}-race-card.json`, JSON.stringify(snailRaceCard(event, rows), null, 2), 'application/json')}>
+                      Race card for the game (JSON, all snails)
+                    </Button>
+                    <Button variant="secondary" size="sm" disabled={paidSnails === 0}
+                      onClick={() => downloadFile(`${slug}-race-card-paid.json`, JSON.stringify(snailRaceCard(event, rows, { paidOnly: true }), null, 2), 'application/json')}>
+                      Race card (JSON, paid snails only)
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
         {registrationsLoading ? (
           <div className="bg-surface-card rounded-xl border border-edge-subtle p-6 text-sm text-content-muted">Loading registrations...</div>
         ) : registrations.length === 0 ? (
@@ -438,7 +536,7 @@ export default function AdminEventsPage() {
                 <TableHeader>Email</TableHeader>
                 <TableHeader>Phone</TableHeader>
                 <TableHeader>Qty</TableHeader>
-                <TableHeader>Songs</TableHeader>
+                <TableHeader>Songs / snails</TableHeader>
                 <TableHeader>Payment Ref</TableHeader>
                 <TableHeader>Payment</TableHeader>
                 <TableHeader>Processed</TableHeader>
@@ -461,12 +559,23 @@ export default function AdminEventsPage() {
                           <li key={index}>{song.artist ? `${song.title} - ${song.artist}` : song.title}</li>
                         ))}
                       </ol>
+                    ) : registration.snail_entries?.length || registration.race_sponsorships ? (
+                      <div className="text-xs space-y-1">
+                        {(registration.snail_entries?.length ?? 0) > 0 && (
+                          <ol className="list-decimal pl-4 space-y-0.5">
+                            {registration.snail_entries?.map((snail, index) => (
+                              <li key={index}>{snail.snail_name} (player: {snail.player_name})</li>
+                            ))}
+                          </ol>
+                        )}
+                        {(registration.race_sponsorships ?? 0) > 0 && <p>Races sponsored: {registration.race_sponsorships}</p>}
+                      </div>
                     ) : '-'}
                   </TableCell>
                   <TableCell className="font-mono text-xs">{registration.payment_reference || '-'}</TableCell>
                   <TableCell>
-                    {/* Song entries are paid through the order ledger so the pot stays exact. */}
-                    {registration.order_id && (registration.song_requests?.length ?? 0) > 0 ? (
+                    {/* Song entries and snails are paid through the order ledger so pots and exports stay exact. */}
+                    {isLedgerEntry(registration) ? (
                       <Link
                         href={`/admin/orders?group=${encodeURIComponent(`event:${events.find((event) => event.id === registration.event_id)?.title || ''}`)}${registration.payment_reference ? `&reference=${encodeURIComponent(registration.payment_reference)}` : ''}`}
                         className="text-sm underline underline-offset-4"
@@ -564,8 +673,9 @@ export default function AdminEventsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               id="event-capacity"
-              label="Capacity (leave empty for unlimited)"
+              label={form.registration_mode === 'snail_race' ? 'Capacity (not used: snail sales are unlimited)' : 'Capacity (leave empty for unlimited)'}
               type="number"
+              disabled={form.registration_mode === 'snail_race'}
               value={form.capacity ?? ''}
               onChange={(e) =>
                 setForm({ ...form, capacity: e.target.value ? parseInt(e.target.value) : null })
@@ -573,7 +683,7 @@ export default function AdminEventsPage() {
             />
             <Input
               id="event-price"
-              label={form.registration_mode === 'song_requests' ? 'Price per song ($)' : 'Ticket Price ($)'}
+              label={form.registration_mode === 'song_requests' ? 'Price per song ($)' : form.registration_mode === 'snail_race' ? 'Price per snail ($)' : 'Ticket Price ($)'}
               type="number"
               min="0"
               step="0.01"
@@ -589,13 +699,53 @@ export default function AdminEventsPage() {
             <select
               id="event-registration-mode"
               className="form-input"
-              value={form.registration_mode === 'song_requests' ? 'song_requests' : 'tickets'}
-              onChange={(e) => setForm({ ...form, registration_mode: e.target.value === 'song_requests' ? 'song_requests' : 'tickets' })}
+              value={registrationMode(form.registration_mode)}
+              onChange={(e) => setForm({ ...form, registration_mode: registrationMode(e.target.value) })}
             >
               <option value="tickets">Tickets (price per ticket)</option>
               <option value="song_requests">Song requests (entry by buying named songs, price per song)</option>
+              <option value="snail_race">Snail racing (buy named snails, price per snail, no sales limit)</option>
             </select>
           </div>
+          {form.registration_mode === 'snail_race' && (
+            <fieldset className="space-y-3 rounded-xl border border-edge-subtle p-4">
+              <legend className="px-1 text-sm font-semibold text-content-primary">Snail racing settings</legend>
+              <p className="text-xs text-content-muted">Shown on the event page under &quot;How the night works&quot;. Leave a box blank to leave that detail out. Snail sales are never capped: the race card export fills races up to the snails-per-race number and adds races when more snails are sold.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Input
+                  id="event-snail-race-count"
+                  label="Number of races"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={form.snail_race_count ?? ''}
+                  onChange={(e) => setForm({ ...form, snail_race_count: e.target.value ? parseInt(e.target.value) : null })}
+                  error={formErrors.snail_race_count}
+                />
+                <Input
+                  id="event-snails-per-race"
+                  label="Snails per race"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={form.snails_per_race ?? ''}
+                  onChange={(e) => setForm({ ...form, snails_per_race: e.target.value ? parseInt(e.target.value) : null })}
+                  error={formErrors.snails_per_race}
+                />
+                <Input
+                  id="event-race-sponsorship-price"
+                  label="Race sponsorship price ($)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.race_sponsorship_price ?? ''}
+                  onChange={(e) => setForm({ ...form, race_sponsorship_price: e.target.value ? parseFloat(e.target.value) : null })}
+                  error={formErrors.race_sponsorship_price}
+                />
+              </div>
+              <p className="text-xs text-content-muted">Leave the sponsorship price blank to hide race sponsorship.</p>
+            </fieldset>
+          )}
           <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
