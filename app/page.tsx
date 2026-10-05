@@ -270,6 +270,7 @@ async function NextEventSection() {
   const venue = event.location?.trim();
   const price = Number(event.ticket_price);
   const songs = event.registration_mode === 'song_requests';
+  const snails = event.registration_mode === 'snail_race';
   // A cancellation or postponement recorded on the event's own calendar
   // entries wins, so the card never keeps advertising booking for it.
   const status = await linkedCalendarStatus(event.id);
@@ -304,14 +305,14 @@ async function NextEventSection() {
             <dt>When</dt>
             <dd>{day ? <time dateTime={event.date}>{day}</time> : 'Date to be confirmed'}{`, ${time || 'time to be confirmed'}`}</dd>
             {venue && <><dt>Where</dt><dd>{venue}</dd></>}
-            {Number.isFinite(price) && <><dt>Price</dt><dd>{price > 0 ? `${formatCurrency(price)}${songs ? ' per song' : ''}` : 'Free entry'}</dd></>}
+            {Number.isFinite(price) && <><dt>Price</dt><dd>{price > 0 ? `${formatCurrency(price)}${songs ? ' per song' : snails ? ' per snail' : ''}` : 'Free entry'}</dd></>}
           </dl>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
             {status === 'cancelled' ? (
               <Link href="/calendar" className="btn-secondary">Check the club calendar</Link>
             ) : (
               <Link href={`/events/${event.id}`} className="btn-primary">
-                {started || status === 'postponed' || status === 'unknown' || event.online_registration_enabled === false ? 'Event details' : songs ? 'Details and song requests' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
+                {started || status === 'postponed' || status === 'unknown' || event.online_registration_enabled === false ? 'Event details' : songs ? 'Details and song requests' : snails ? 'Details and snail purchases' : 'Details and booking'}<span className="sr-only">: {event.title}</span>
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             )}

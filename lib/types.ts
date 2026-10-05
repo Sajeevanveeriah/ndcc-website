@@ -63,8 +63,12 @@ export interface Event {
   location: string;
   capacity: number | null;
   ticket_price: number;
-  /** 'song_requests': entry by buying named songs at ticket_price each. */
-  registration_mode?: 'tickets' | 'song_requests' | null;
+  /** 'song_requests': entry by buying named songs at ticket_price each. 'snail_race': buying named snails at ticket_price each. */
+  registration_mode?: 'tickets' | 'song_requests' | 'snail_race' | null;
+  /** Snail racing: planned races, snails in each race, and the price to sponsor a race (null hides sponsorship). */
+  snail_race_count?: number | null;
+  snails_per_race?: number | null;
+  race_sponsorship_price?: number | null;
   /** False: the club takes registrations and payments manually, not on the website. */
   online_registration_enabled?: boolean | null;
   stripe_link?: string;
@@ -84,6 +88,8 @@ export interface EventRegistration {
   payment_reference?: string | null;
   processed?: boolean;
   song_requests?: Array<{ title: string; artist?: string }> | null;
+  snail_entries?: Array<{ snail_name: string; player_name: string }> | null;
+  race_sponsorships?: number | null;
   order_id?: string | null;
   created_at: string;
 }

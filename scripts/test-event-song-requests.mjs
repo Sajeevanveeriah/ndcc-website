@@ -43,7 +43,7 @@ assert.match(route, /const totalCents = ticketPriceCents \* unitCount/, 'song en
 assert.match(route, /name: eventRow\.title,\s*event_id: eventRow\.id,\s*size: `Song: \$\{songLabel\(song\)\}`/, 'each song is its own order line keyed to its event for the purchase group');
 assert.match(route, /name: eventRow\.title,\s*event_id: eventRow\.id,\s*size: 'ticket'/, 'ticket lines are keyed to their event for the purchase group');
 assert.match(route, /ndcc_register_event_song_entry/, 'songs are stored atomically with the entry');
-assert.match(route, /!songEvent && isMissingRegistrationRpc/, 'song entries never fall back to a plain insert without songs');
+assert.match(route, /!songEvent && !snailEvent && isMissingRegistrationRpc/, 'song entries never fall back to a plain insert without songs');
 
 const migration = readFileSync(new URL('../supabase/migrations/20260927140000_event_song_requests.sql', import.meta.url), 'utf8');
 assert.match(migration, /registration_mode in \('tickets', 'song_requests'\)/);
@@ -59,7 +59,8 @@ assert.match(adminEvents, /\|\| registrations\.some\(\(registration\) => registr
 assert.match(adminEvents, /sum \+ Number\(order\?\.total_amount \|\| 0\)/, 'the song pot uses paid order totals, not the current price');
 assert.match(adminEvents, /registration\.order_id && \(registration\.song_requests\?\.length \?\? 0\) > 0/, 'ticket registrations never enter the song pot');
 assert.match(adminEvents, /form\.registration_mode === 'song_requests' \|\| editingHasMode/, 'ticket saves omit registration_mode unless the row has it');
-assert.match(adminEvents, /registration\.order_id && \(registration\.song_requests\?\.length \?\? 0\) > 0 \? \(\s*<Link\s+href=\{`\/admin\/orders\?group=\$\{encodeURIComponent\(`event:/, 'song entry payments go through the order ledger, not the registration toggle');
+assert.match(adminEvents, /Boolean\(registration\.order_id\) && \(\(registration\.song_requests\?\.length \?\? 0\) > 0/, 'song entries with an order are ledger entries');
+assert.match(adminEvents, /\{isLedgerEntry\(registration\) \? \(\s*<Link\s+href=\{`\/admin\/orders\?group=\$\{encodeURIComponent\(`event:/, 'song entry payments go through the order ledger, not the registration toggle');
 
 assert.match(adminEvents, /registrationsLoading \|\| songPotOrders === undefined/, 'no pot figure is shown until registrations and orders have loaded');
 

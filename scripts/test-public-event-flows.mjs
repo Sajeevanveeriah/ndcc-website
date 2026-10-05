@@ -74,7 +74,8 @@ const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.res
       // published_at is the optional scheduling column (CMS scheduling migration).
       // registration_mode selects song-request entry (20260927140000_event_song_requests).
       // online_registration_enabled is the per-event online switch (20261003030907).
-      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at', 'registration_mode', 'online_registration_enabled'];
+      // race_sponsorship_price is the snail racing setting (20261005095114_event_snail_racing).
+      const allowed = ['id', 'title', 'date', 'ticket_price', 'location', 'capacity', 'published_at', 'registration_mode', 'online_registration_enabled', 'race_sponsorship_price'];
       assert.ok(selected.split(',').every(column => allowed.includes(column)), 'event reads must match the deployed events schema');
       return { data: row, error: readError };
     },
@@ -100,6 +101,7 @@ const route = load('app/api/events/route.ts', {
   '@/lib/order-input-validation': load('lib/order-input-validation.ts'),
   '@/lib/validation/uuid': load('lib/validation/uuid.ts'),
   '@/lib/events/song-requests': load('lib/events/song-requests.ts'),
+  '@/lib/events/snail-race': load('lib/events/snail-race.ts'),
   '@/lib/notification-recipients': { getNotificationRecipients: async (type) => { assert.equal(type, 'event_song_requests'); return ['ndcc.secretary1@gmail.com']; } },
 }, { NEXT_PUBLIC_SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'isolated-test' });
 const submit = () => route.POST(new Request('https://example.invalid/api/events', {
@@ -170,6 +172,78 @@ row = { ...row, ticket_price: 12.34 };
 delete row.registration_mode;
 rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
 console.log('PASS song entries need 1 to 30 titled songs, ticket events refuse songs, nothing is written on rejection');
+
+// Snail racing: named snails at ticket_price each, optional race sponsorships, no sales cap.
+const submitSnails = (body) => route.POST(new Request('https://example.invalid/api/events', {
+  method: 'POST', body: JSON.stringify({ event_id: id, name: 'Snail Buyer', email: 'buyer@example.com',
+    phone: '0412345678', hp_field: '', submitted_at: now - 5000, ...body }),
+}));
+writes = []; sent = []; rpcCalls = [];
+rpcResult = { data: 'registration-test', error: null };
+// Capacity 1 would refuse tickets; snail sales ignore it.
+row = { ...row, ticket_price: 10, capacity: 1, registration_mode: 'snail_race', race_sponsorship_price: '50.00' };
+response = await submitSnails({ snails: [{ snail_name: ' Turbo ', player_name: '' }, { snail_name: 'Slow  Coach', player_name: 'The Kids' }], race_sponsorships: 1 });
+assert.equal(response.status, 200);
+assert.equal((await response.json()).total_amount, 70);
+assert.equal(writes[0].table, 'orders');
+assert.equal(writes[0].value.total_amount, 70);
+assert.deepEqual(writes[0].value.items.map(item => [item.name, item.event_id, item.size, item.quantity, item.price]), [
+  ['Club event', id, 'snail', 2, 10],
+  ['Club event', id, 'race sponsorship', 1, 50],
+]);
+assert.equal(writes[0].value.payment_status, 'pending_bank_transfer');
+assert.match(writes[0].value.notes, /Snail purchase: Club event \(2 snails, 1 race sponsorship\)/);
+assert.equal(rpcCalls.length, 1);
+assert.equal(rpcCalls[0].name, 'ndcc_register_event_snail_entry');
+assert.deepEqual(rpcCalls[0].args.p_snail_entries, [
+  { snail_name: 'Turbo', player_name: 'Snail Buyer' }, { snail_name: 'Slow Coach', player_name: 'The Kids' },
+]);
+assert.equal(rpcCalls[0].args.p_race_sponsorships, 1);
+assert.equal(rpcCalls[0].args.p_order_id, 'order-test');
+assert.equal(sent.length, 0, 'paid snail purchases use the existing payment receipt workflow');
+console.log('PASS snail purchase charges $10 per named snail plus $50 per race sponsorship, ignores capacity and stores names atomically');
+
+writes = []; rpcCalls = [];
+const many = Array.from({ length: 200 }, (_, i) => ({ snail_name: `Snail ${i + 1}`, player_name: `Player ${i + 1}` }));
+response = await submitSnails({ snails: many });
+assert.equal(response.status, 200);
+assert.equal((await response.json()).total_amount, 2000);
+assert.equal(rpcCalls[0].args.p_snail_entries.length, 200);
+assert.deepEqual(writes[0].value.items.map(item => [item.size, item.quantity]), [['snail', 200]]);
+console.log('PASS one order can hold 200 named snails');
+
+writes = []; rpcCalls = []; sent = [];
+for (const body of [
+  { snails: [] },
+  { snails: [], race_sponsorships: 0 },
+  { snails: [{ snail_name: '   ' }] },
+  { snails: [{ snail_name: 'x'.repeat(25) }] },
+  { snails: [{ snail_name: 'Turbo', player_name: 'y'.repeat(41) }] },
+  { snails: Array.from({ length: 201 }, () => ({ snail_name: 'A' })) },
+  { snails: [{ snail_name: 'Turbo' }], race_sponsorships: -1 },
+  { snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1.5 },
+  { snails: [{ snail_name: 'Turbo' }], quantity: 2, songs: [{ title: 'A' }] },
+  { quantity: 2 },
+]) {
+  response = await submitSnails(body);
+  assert.equal(response.status, 400, JSON.stringify(body).slice(0, 80));
+}
+row = { ...row, race_sponsorship_price: null };
+assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }], race_sponsorships: 1 })).status, 400, 'sponsorship needs a configured price');
+assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }] })).status, 200, 'snails alone need no sponsorship price');
+writes = []; rpcCalls = [];
+row = { ...row, registration_mode: 'tickets' };
+assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }] })).status, 400, 'ticket events refuse snails');
+row = { ...row, registration_mode: 'song_requests' };
+assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }] })).status, 400, 'song events refuse snails');
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+row = { ...row, registration_mode: 'snail_race', online_registration_enabled: false };
+assert.equal((await submitSnails({ snails: [{ snail_name: 'Turbo' }] })).status, 409, 'offline snail events take no online purchases');
+assert.equal(writes.length, 0); assert.equal(rpcCalls.length, 0);
+row = { ...row, ticket_price: 12.34, capacity: null };
+delete row.registration_mode; delete row.race_sponsorship_price; delete row.online_registration_enabled;
+rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
+console.log('PASS snail purchases reject blank, long and oversized entries, unpriced sponsorships, wrong event types and offline events');
 
 writes = [];
 registrationError = { message: 'Isolated insert failure' };
