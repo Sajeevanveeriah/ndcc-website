@@ -34,11 +34,17 @@ export default function SnailRaceDetails({ event }: { event: Event }) {
           {price > 0 ? `Buy snails at ${formatCurrency(price)} each. ` : 'Snails are free to enter. '}
           There is no limit on how many you buy: if more snails are sold, more races are added.
         </li>
-        <li>Name each snail and choose its player name. The player name can be your own name or something more creative.</li>
+        <li>Name your snail and be creative. Offensive or inappropriate names will not be accepted.</li>
         {sponsorPrice !== null && (
-          <li>Sponsor a race for {sponsorPrice > 0 ? formatCurrency(sponsorPrice) : 'free'}. Race sponsorship supports the club.</li>
+          <li>
+            Sponsor a race for {sponsorPrice > 0 ? formatCurrency(sponsorPrice) : 'free'}. Each sponsored race is named after its sponsor,
+            for example The Jack Elliott Stakes.
+          </li>
         )}
-        <li>Bets on the night are placed in person at the club, not through the website.</li>
+        <li>
+          Bets for each race are taken on the night in the lead-up to that race. They are placed in person at the club, not online,
+          so bring your betting money!
+        </li>
       </ul>
     </section>
   );

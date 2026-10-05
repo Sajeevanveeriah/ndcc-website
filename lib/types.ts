@@ -90,6 +90,7 @@ export interface EventRegistration {
   song_requests?: Array<{ title: string; artist?: string }> | null;
   snail_entries?: Array<{ snail_name: string; player_name: string }> | null;
   race_sponsorships?: number | null;
+  race_sponsor_name?: string | null;
   order_id?: string | null;
   created_at: string;
 }

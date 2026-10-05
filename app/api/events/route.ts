@@ -12,7 +12,7 @@ import {
 } from '@/lib/order-input-validation';
 import { isUuidV1ToV5 } from '@/lib/validation/uuid';
 import { isSongRequestEvent, normaliseSongRequests, songLabel, type SongRequest } from '@/lib/events/song-requests';
-import { isSnailRaceEvent, normaliseSnailEntries, normaliseSponsorships, type SnailEntry } from '@/lib/events/snail-race';
+import { isSnailRaceEvent, normaliseSnailEntries, normaliseSponsorName, normaliseSponsorships, sponsoredRaceName, type SnailEntry } from '@/lib/events/snail-race';
 import { getNotificationRecipients } from '@/lib/notification-recipients';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     }
     const body = parsedBody.value;
 
-    const { event_id, name, email, phone, quantity, hp_field, submitted_at, songs, snails, race_sponsorships } = body;
+    const { event_id, name, email, phone, quantity, hp_field, submitted_at, songs, snails, race_sponsorships, race_sponsor_name } = body;
     // Song-request events send named songs instead of a ticket quantity.
     const hasSongs = songs !== undefined;
     // Snail racing events send named snails (and race sponsorships) instead.
@@ -177,6 +177,7 @@ export async function POST(request: Request) {
     let snailEntries: SnailEntry[] = [];
     let sponsorships = 0;
     let sponsorshipPriceCents = 0;
+    let sponsorName: string | null = null;
     if (snailEvent) {
       const parsedSnails = normaliseSnailEntries(snails ?? [], name);
       if (!parsedSnails.ok) return NextResponse.json({ success: false, error: parsedSnails.error }, { status: 400 });
@@ -187,6 +188,12 @@ export async function POST(request: Request) {
       const parsedSponsorships = normaliseSponsorships(race_sponsorships);
       if (!parsedSponsorships.ok) return NextResponse.json({ success: false, error: parsedSponsorships.error }, { status: 400 });
       sponsorships = parsedSponsorships.value;
+      const parsedSponsorName = normaliseSponsorName(race_sponsor_name, sponsorships);
+      if (!parsedSponsorName.ok) return NextResponse.json({ success: false, error: parsedSponsorName.error }, { status: 400 });
+      sponsorName = parsedSponsorName.value ? sanitiseInput(parsedSponsorName.value) : null;
+      if (sponsorships > 0 && !sponsorName) {
+        return NextResponse.json({ success: false, error: 'Enter the sponsor name for your race.' }, { status: 400 });
+      }
       if (sponsorships > 0) {
         const sponsorPrice = eventRow.race_sponsorship_price;
         const sponsorPriceResult = sponsorPrice === null || sponsorPrice === undefined ? null : audAmountToCents(sponsorPrice);
@@ -260,7 +267,7 @@ export async function POST(request: Request) {
               ...(sponsorships > 0 ? [{
                 name: eventRow.title,
                 event_id: eventRow.id,
-                size: 'race sponsorship',
+                size: `race sponsorship: ${sponsoredRaceName(sponsorName || '')}`,
                 quantity: sponsorships,
                 price: sponsorshipPriceCents / 100,
               }] : []),
@@ -292,7 +299,7 @@ export async function POST(request: Request) {
           order_status: 'submitted',
           processed: false,
           notes: snailEvent
-            ? `Snail purchase: ${eventRow.title} (${snailEntries.length} ${snailEntries.length === 1 ? 'snail' : 'snails'}${sponsorships > 0 ? `, ${sponsorships} race ${sponsorships === 1 ? 'sponsorship' : 'sponsorships'}` : ''})`
+            ? `Snail purchase: ${eventRow.title} (${snailEntries.length} ${snailEntries.length === 1 ? 'snail' : 'snails'}${sponsorships > 0 ? `, ${sponsorships} race ${sponsorships === 1 ? 'sponsorship' : 'sponsorships'}: ${sponsoredRaceName(sponsorName || '')}` : ''})`
             : songEvent
             ? `Event registration: ${eventRow.title} (${songRequests.length} ${songRequests.length === 1 ? 'song' : 'songs'})`
             : `Event registration: ${eventRow.title}`,
@@ -331,6 +338,7 @@ export async function POST(request: Request) {
         p_order_id: registration.order_id,
         p_snail_entries: snailEntries,
         p_race_sponsorships: sponsorships,
+        p_race_sponsor_name: sponsorName,
       })
       : songEvent
       ? await supabase.rpc('ndcc_register_event_song_entry', {
@@ -415,7 +423,7 @@ export async function POST(request: Request) {
         <p style="font-size:15px;color:#374151;line-height:1.6;">You are registered for <strong>${escapeEmailHtml(eventRow.title)}</strong>${eventRow.date ? ` on ${formatDateTime(eventRow.date)}` : ''}.</p>
         ${eventRow.location ? `<p style="font-size:14px;color:#374151;"><strong>Location:</strong> ${escapeEmailHtml(eventRow.location)}</p>` : ''}
         ${snailEvent
-          ? `${snailEntries.length > 0 ? `<p style="font-size:14px;color:#374151;"><strong>Snails:</strong></p><ol style="font-size:14px;color:#374151;">${snailEntries.map((snail) => `<li>${escapeEmailHtml(snail.snail_name)} (player: ${escapeEmailHtml(snail.player_name)})</li>`).join('')}</ol>` : ''}${sponsorships > 0 ? `<p style="font-size:14px;color:#374151;"><strong>Races sponsored:</strong> ${sponsorships}</p>` : ''}`
+          ? `${snailEntries.length > 0 ? `<p style="font-size:14px;color:#374151;"><strong>Snails:</strong></p><ol style="font-size:14px;color:#374151;">${snailEntries.map((snail) => `<li>${escapeEmailHtml(snail.snail_name)}</li>`).join('')}</ol>` : ''}${sponsorships > 0 ? `<p style="font-size:14px;color:#374151;"><strong>Races sponsored:</strong> ${sponsorships} (${escapeEmailHtml(sponsoredRaceName(sponsorName || ''))})</p>` : ''}`
           : songEvent
           ? `<p style="font-size:14px;color:#374151;"><strong>Songs:</strong></p><ol style="font-size:14px;color:#374151;">${songRequests.map((song) => `<li>${escapeEmailHtml(songLabel(song))}</li>`).join('')}</ol>`
           : `<p style="font-size:14px;color:#374151;"><strong>Tickets:</strong> ${qty}</p>`}

@@ -22,9 +22,9 @@ writeFileSync(path.join(stage, 'snail-race-export.ts'), read('lib/events/snail-r
   .replace("'./snail-race'", "'./snail-race.ts'"));
 
 const {
-  SNAIL_RACE_LIMITS, isSnailRaceEvent, normaliseSnailEntries, normaliseSponsorships, parseBulkSnailLines, allocateRaces, snailRaceSetting,
+  SNAIL_RACE_LIMITS, isSnailRaceEvent, normaliseSnailEntries, normaliseSponsorships, normaliseSponsorName, sponsoredRaceName, parseBulkSnailLines, allocateRaces, snailRaceSetting,
 } = await import(pathToFileURL(path.join(stage, 'snail-race.ts')).href);
-const { snailExportRows, snailCsv, snailRaceCard, sponsorshipTotals, SNAIL_CSV_HEADER } = await import(pathToFileURL(path.join(stage, 'snail-race-export.ts')).href);
+const { snailExportRows, snailCsv, snailRaceCard, sponsorshipTotals, sponsorExportRows, sponsorCsv, SNAIL_CSV_HEADER, SPONSOR_CSV_HEADER } = await import(pathToFileURL(path.join(stage, 'snail-race-export.ts')).href);
 
 // Entry rules.
 const ok = (input, buyer = 'Jane Buyer') => {
@@ -68,14 +68,20 @@ for (const bad of [null, undefined, 0, -1, 2.5, 101, '', 'eight']) assert.equal(
 console.log('PASS snail entry rules: names tidied, blank player names take the buyer name, per-order and length limits');
 
 // Bulk entry.
-assert.deepEqual(parseBulkSnailLines('Turbo, Jane\n\n  Gary\tThe Kids \nSpeedy | Sam\nLone snail\n , no name\r\nComma, Name, Extra'), [
-  { snail_name: 'Turbo', player_name: 'Jane' },
-  { snail_name: 'Gary', player_name: 'The Kids' },
-  { snail_name: 'Speedy', player_name: 'Sam' },
-  { snail_name: 'Lone snail', player_name: '' },
-  { snail_name: 'Comma', player_name: 'Name, Extra' },
-]);
-console.log('PASS bulk entry reads one snail per line with comma, tab or bar separators');
+assert.deepEqual(parseBulkSnailLines('Turbo\n\n  Gary  The   Snail \nSlow, but sure\r\n   \nBolt'), ['Turbo', 'Gary The Snail', 'Slow, but sure', 'Bolt']);
+console.log('PASS bulk entry reads one snail name per line');
+
+// Race sponsorship: each sponsored race is named after its sponsor.
+assert.equal(sponsoredRaceName('Jack Elliott'), 'The Jack Elliott Stakes');
+assert.equal(sponsoredRaceName('  the  Jack Elliott  stakes '), 'The Jack Elliott Stakes', 'no doubled "The" or "Stakes"');
+assert.equal(sponsoredRaceName('   '), '');
+assert.deepEqual(normaliseSponsorName(undefined, 0), { ok: true, value: null });
+assert.deepEqual(normaliseSponsorName('Ignored', 0), { ok: true, value: null }, 'no sponsorship, no sponsor name');
+assert.deepEqual(normaliseSponsorName('  Jack   Elliott ', 2), { ok: true, value: 'Jack Elliott' });
+assert.equal(normaliseSponsorName('', 1).ok, false);
+assert.equal(normaliseSponsorName(7, 1).ok, false);
+assert.equal(normaliseSponsorName('x'.repeat(SNAIL_RACE_LIMITS.sponsorNameLength + 1), 1).ok, false);
+console.log('PASS race sponsorship names: required when sponsoring, races called "The <sponsor> Stakes"');
 
 // Race card allocation: unlimited sales, races filled to the per-race limit, even fields.
 const numbers = (count) => Array.from({ length: count }, (_, i) => i + 1);
@@ -138,10 +144,11 @@ const csv = snailCsv(rows);
 const lines = csv.replace(/^﻿/, '').trim().split('\r\n');
 assert.equal(lines.length, 1001);
 assert.equal(lines[0], SNAIL_CSV_HEADER.join(','));
-for (const column of ['snail_name', 'player_name', 'purchaser_name', 'purchaser_email', 'purchaser_phone', 'payment_reference', 'payment_method', 'payment_status', 'balance_due']) {
+assert.ok(!SNAIL_CSV_HEADER.includes('player_name'), 'buyers only name snails; no player name column');
+for (const column of ['snail_name', 'purchaser_name', 'purchaser_email', 'purchaser_phone', 'payment_reference', 'payment_method', 'payment_status', 'balance_due']) {
   assert.ok(SNAIL_CSV_HEADER.includes(column), column);
 }
-assert.match(lines[1], /^1,Snail 0-0,Player 0,"'=HYPERLINK\(""x""\)",b0@example\.com,0412345678,NDCCEVT-2026-000000,Stripe checkout \(card online\),paid,yes,150\.00,100\.00,0\.00,1,/);
+assert.match(lines[1], /^1,Snail 0-0,"'=HYPERLINK\(""x""\)",b0@example\.com,0412345678,NDCCEVT-2026-000000,Stripe checkout \(card online\),paid,yes,150\.00,100\.00,0\.00,1,/);
 
 const card = snailRaceCard(event, rows);
 assert.equal(card.format, 'ndcc-snail-race-card');
@@ -155,6 +162,24 @@ assert.equal(paidCard.totals.snails, 500);
 assert.equal(paidCard.totals.unpaid_snails, 0);
 assert.ok(paidCard.races.every((race) => race.runners.every((runner) => runner.paid)));
 assert.deepEqual(sponsorshipTotals(event, registrations, orders), { orders: 10, races: 10, paidRaces: 10 });
+// Sponsors: named sponsor, fallback to the buyer for older orders, race names on the card.
+registrations[0].race_sponsor_name = 'Jack Elliott';
+registrations[10].race_sponsorships = 2;
+const sponsors = sponsorExportRows(event, registrations, orders);
+assert.equal(sponsors.length, 10);
+assert.deepEqual([sponsors[0].sponsor_name, sponsors[0].race_name, sponsors[0].races], ['Jack Elliott', 'The Jack Elliott Stakes', 1]);
+assert.deepEqual([sponsors[1].sponsor_name, sponsors[1].race_name, sponsors[1].races], ['Buyer 10', 'The Buyer 10 Stakes', 2]);
+const sponsorLines = sponsorCsv(sponsors).replace(/^\uFEFF/, '').trim().split('\r\n');
+assert.equal(sponsorLines[0], SPONSOR_CSV_HEADER.join(','));
+assert.match(sponsorLines[1], /^Jack Elliott,The Jack Elliott Stakes,1,/);
+const namedCard = snailRaceCard(event, rows, { sponsors });
+assert.equal(namedCard.races[0].race_name, 'The Jack Elliott Stakes');
+assert.equal(namedCard.races[1].race_name, 'The Buyer 10 Stakes');
+assert.equal(namedCard.races[2].race_name, 'The Buyer 10 Stakes', 'two sponsorships name two races');
+assert.equal(namedCard.races[10].race_name, 'The Buyer 90 Stakes');
+assert.equal(namedCard.races[11].race_name, 'Race 12', 'unsponsored races keep a number');
+assert.equal(namedCard.totals.sponsored_races, 11);
+assert.ok(namedCard.races.every((race) => race.runners.every((runner) => !('player_name' in runner))));
 console.log('PASS 1,000-snail exports: CSV with names, buyer, method, status, reference and balance; race card for the game; released orders left out');
 
 // Wiring: unlimited sales, atomic storage, admin exports.
@@ -178,7 +203,9 @@ assert.match(route, /!songEvent && !snailEvent && isMissingRegistrationRpc/, 'sn
 
 const admin = read('app/admin/events/page.tsx');
 assert.match(admin, /snailCsv\(rows\)/);
-assert.match(admin, /snailRaceCard\(event, rows, \{ paidOnly: true \}\)/);
+assert.match(admin, /snailRaceCard\(event, rows, \{ paidOnly: true, sponsors: sponsorRows \}\)/);
+assert.match(admin, /sponsorCsv\(sponsorRows\)/);
+assert.doesNotMatch(admin, /player: /, 'no player names in the admin list');
 assert.match(admin, /Snail capacity: Unlimited/);
 const resources = read('app/api/admin/resources/[resource]/route.ts');
 assert.match(resources, /'snail_race_count', 'snails_per_race', 'race_sponsorship_price'/);
@@ -191,5 +218,13 @@ assert.match(detail, /<SnailPurchaseForm event=\{event\} \/>/);
 const guide = read('components/events/SnailRaceDetails.tsx');
 assert.match(guide, /How the night works/);
 assert.match(guide, /There is no limit on how many you buy/);
+assert.match(guide, /Name your snail and be creative\. Offensive or inappropriate names will not be accepted\./);
+assert.match(guide, /Each sponsored race is named after its sponsor,\s+for example The Jack Elliott Stakes\./);
+assert.match(guide, /Bets for each race are taken on the night in the lead-up to that race\. They are placed in person at the club, not online,\s+so bring your betting money!/);
+assert.doesNotMatch(guide, /player name/i, 'no player names on the event page');
+const form = read('components/events/SnailPurchaseForm.tsx');
+assert.doesNotMatch(form, /player/i, 'the purchase form only asks for snail names');
+assert.match(form, /1\. Your snails/);
+assert.match(form, /race_sponsor_name: sponsorName\.trim\(\)/);
 assert.ok(!/\b64\b|\$4\b|17th January/.test(guide), 'no last-season figures are hard-coded');
 console.log('PASS snail racing wiring: unlimited sales, locked atomic storage, admin settings and exports, event page explanation');

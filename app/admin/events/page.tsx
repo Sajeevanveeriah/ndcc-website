@@ -18,7 +18,8 @@ import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuar
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
-import { snailCsv, snailExportRows, snailRaceCard, sponsorshipTotals, type SnailExportOrder, type SnailExportRegistration } from '@/lib/events/snail-race-export';
+import { snailCsv, snailExportRows, snailRaceCard, sponsorCsv, sponsorExportRows, sponsorshipTotals, type SnailExportOrder, type SnailExportRegistration } from '@/lib/events/snail-race-export';
+import { sponsoredRaceName } from '@/lib/events/snail-race';
 
 const emptyEvent: Omit<Event, 'id' | 'created_at'> = {
   title: '',
@@ -489,6 +490,7 @@ export default function AdminEventsPage() {
           const rows = ready ? snailExportRows(event, exportRegistrations, songPotOrders) : [];
           const paidSnails = rows.filter((row) => row.paid).length;
           const sponsors = ready ? sponsorshipTotals(event, exportRegistrations, songPotOrders) : null;
+          const sponsorRows = ready ? sponsorExportRows(event, exportRegistrations, songPotOrders) : [];
           const slug = fileSlug(event.title);
           return (
             <div key={`snail-${event.id}`} className="bg-surface-card rounded-xl border border-edge-subtle p-4 mb-3 text-sm space-y-2" data-testid="snail-exports">
@@ -510,12 +512,16 @@ export default function AdminEventsPage() {
                       Download snails (CSV)
                     </Button>
                     <Button variant="secondary" size="sm" disabled={rows.length === 0}
-                      onClick={() => downloadFile(`${slug}-race-card.json`, JSON.stringify(snailRaceCard(event, rows), null, 2), 'application/json')}>
+                      onClick={() => downloadFile(`${slug}-race-card.json`, JSON.stringify(snailRaceCard(event, rows, { sponsors: sponsorRows }), null, 2), 'application/json')}>
                       Race card for the game (JSON, all snails)
                     </Button>
                     <Button variant="secondary" size="sm" disabled={paidSnails === 0}
-                      onClick={() => downloadFile(`${slug}-race-card-paid.json`, JSON.stringify(snailRaceCard(event, rows, { paidOnly: true }), null, 2), 'application/json')}>
+                      onClick={() => downloadFile(`${slug}-race-card-paid.json`, JSON.stringify(snailRaceCard(event, rows, { paidOnly: true, sponsors: sponsorRows }), null, 2), 'application/json')}>
                       Race card (JSON, paid snails only)
+                    </Button>
+                    <Button variant="secondary" size="sm" disabled={sponsorRows.length === 0}
+                      onClick={() => downloadFile(`${slug}-race-sponsors.csv`, sponsorCsv(sponsorRows), 'text/csv;charset=utf-8')}>
+                      Download race sponsors (CSV)
                     </Button>
                   </div>
                 </>
@@ -564,11 +570,13 @@ export default function AdminEventsPage() {
                         {(registration.snail_entries?.length ?? 0) > 0 && (
                           <ol className="list-decimal pl-4 space-y-0.5">
                             {registration.snail_entries?.map((snail, index) => (
-                              <li key={index}>{snail.snail_name} (player: {snail.player_name})</li>
+                              <li key={index}>{snail.snail_name}</li>
                             ))}
                           </ol>
                         )}
-                        {(registration.race_sponsorships ?? 0) > 0 && <p>Races sponsored: {registration.race_sponsorships}</p>}
+                        {(registration.race_sponsorships ?? 0) > 0 && (
+                          <p>Races sponsored: {registration.race_sponsorships} ({sponsoredRaceName(registration.race_sponsor_name || registration.name)})</p>
+                        )}
                       </div>
                     ) : '-'}
                   </TableCell>
