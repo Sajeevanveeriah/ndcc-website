@@ -32,6 +32,8 @@ type OrderPaymentOptionsProps = {
   returnPath: string;
   /** Kitchen special request: the kitchen sets the final price, so only pay at the bar is offered. */
   barOnly?: boolean;
+  /** The purchaser already chose bank transfer when ordering (no online option until they untick it). */
+  bankTransferChosen?: boolean;
 };
 
 const DEFAULT_CAPABILITIES: PaymentCapabilities = {
@@ -52,11 +54,13 @@ export default function OrderPaymentOptions({
   bankDetails,
   returnPath,
   barOnly = false,
+  bankTransferChosen = false,
 }: OrderPaymentOptionsProps) {
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
   const [barSelected, setBarSelected] = useState(false);
+  const [bankSelected, setBankSelected] = useState(bankTransferChosen);
   // One payment choice at a time: each control is locked while the other is
   // saving, and after either saves both re-read the stored choice, so the page
   // always shows what the server kept (a bar choice clears a bank choice and
@@ -133,7 +137,7 @@ export default function OrderPaymentOptions({
 
       {!barOnly && !barSelected && capabilities.bank_transfer && bankDetails?.bsb && bankDetails.account_number && (
         <div className="text-sm text-green-800 dark:text-green-200 space-y-0.5">
-          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} {...(mealDraftToken || capabilities.pay_at_club ? { disabled: barBusy, refreshKey: choiceRefresh, onBusyChange: setBankBusy, onSaved: refreshChoices } : {})} />
+          <BankTransferChoice key={orderId} orderId={orderId} email={customerEmail} onChange={setBankSelected} {...(mealDraftToken || capabilities.pay_at_club ? { disabled: barBusy, refreshKey: choiceRefresh, onBusyChange: setBankBusy, onSaved: refreshChoices } : {})} />
           <p className="font-semibold text-green-900 dark:text-green-200">Bank transfer details</p>
           {bankDetails.account_name && <p>Account name: {bankDetails.account_name}</p>}
           <p>BSB: {bankDetails.bsb}</p>
@@ -141,7 +145,8 @@ export default function OrderPaymentOptions({
         </div>
       )}
 
-      {!barOnly && capabilities.card && orderId && totalAmount > 0 && (
+      {/* Choosing the bar or a bank transfer removes the online option; unticking brings it back. */}
+      {!barOnly && !barSelected && !bankSelected && capabilities.card && orderId && totalAmount > 0 && (
         <div className="space-y-2">
           <Button type="button" isLoading={cardPaying} onClick={startCardPayment}>
             Pay {formatCurrency(totalAmount)} securely online

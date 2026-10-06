@@ -4,8 +4,8 @@ import { useEffect, useId, useState } from 'react';
 // The optional props let a parent coordinate this with another payment choice
 // (the kitchen's pay-at-the-bar): lock it while the other is saving, re-read
 // the saved choice after either saves, and hear when this one is busy.
-export default function BankTransferChoice({ orderId, email, balanceToken, initialSelected = false, disabled = false, refreshKey = 0, onBusyChange, onSaved }: {
-  orderId: string; email?: string; balanceToken?: string; initialSelected?: boolean;
+export default function BankTransferChoice({ orderId, email, balanceToken, initialSelected = false, onChange, disabled = false, refreshKey = 0, onBusyChange, onSaved }: {
+  orderId: string; email?: string; balanceToken?: string; initialSelected?: boolean; onChange?: (selected: boolean) => void;
   disabled?: boolean; refreshKey?: number; onBusyChange?: (busy: boolean) => void; onSaved?: () => void;
 }) {
   const id = useId();
@@ -23,10 +23,12 @@ export default function BankTransferChoice({ orderId, email, balanceToken, initi
   useEffect(() => {
     let active = true; setBusy(true); setError(''); setMessage('');
     fetch('/api/payments/bank-transfer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: orderId, email, token: balanceToken, action: 'read' }) })
-      .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to load your payment choice.'); if (active) setSelected(data.selected === true); })
+      .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to load your payment choice.'); if (active) { setSelected(data.selected === true); onChange?.(data.selected === true); } })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load your payment choice.'); })
       .finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
+    // onChange is a notification only; reloading on its identity would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, email, balanceToken, retry, refreshKey]);
   async function save(value: boolean) {
     setBusy(true); setError(''); setMessage('');
@@ -34,7 +36,7 @@ export default function BankTransferChoice({ orderId, email, balanceToken, initi
       const response = await fetch('/api/payments/bank-transfer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: orderId, email, token: balanceToken, selected: value }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Your selection could not be saved.');
-      setSelected(data.selected === true); setMessage(data.message); onSaved?.();
+      setSelected(data.selected === true); onChange?.(data.selected === true); setMessage(data.message); onSaved?.();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Your selection could not be saved.'); }
     finally { setBusy(false); }
   }

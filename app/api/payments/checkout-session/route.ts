@@ -9,6 +9,7 @@ import { getStripe } from '@/lib/stripe';
 import { enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { validatePaymentRequest } from '@/lib/payments/partial';
+import { CARD_BLOCKED_BY_CHOICE_MESSAGE, offlineChoiceBlockingCard } from '@/lib/payments/method-choice';
 import {
   buildCheckoutIdempotencyKey,
   buildPaymentCheckoutSessionParams,
@@ -209,7 +210,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,items,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,meal_request,deleted_at')
+      .select('id,total_amount,amount_paid,payment_status,order_status,payment_reference,customer_email,order_category,items,meal_collection_window,meal_service_date,meal_revision,meal_draft_token,meal_editing,meal_request,bank_transfer_selected_at,bar_payment_selected_at,deleted_at')
       .eq('id', orderId)
       .maybeSingle();
     if (orderError || !order || order.deleted_at) {
@@ -219,6 +220,11 @@ export async function POST(request: Request) {
     // The kitchen prices a special request on the night, so card payment of the listed total is refused.
     if (kitchenOrderIsBarOnly(order)) {
       return NextResponse.json({ success: false, error: KITCHEN_SPECIAL_REQUEST_BAR_ONLY_MESSAGE }, { status: 409 });
+    }
+    // A purchaser who chose the bar or bank transfer is not offered card; refuse it here too.
+    const offlineChoice = offlineChoiceBlockingCard(order);
+    if (offlineChoice) {
+      return NextResponse.json({ success: false, error: CARD_BLOCKED_BY_CHOICE_MESSAGE[offlineChoice] }, { status: 409 });
     }
     if (order.order_category === 'kitchen') {
       const window = await getLiveKitchenOrderWindow();

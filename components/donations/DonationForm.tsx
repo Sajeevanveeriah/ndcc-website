@@ -87,7 +87,7 @@ export default function DonationForm() {
               <div hidden aria-hidden="true"><label>Leave blank<input ref={honeypot} tabIndex={-1} autoComplete="off" /></label></div>
               <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="donation" />
             </fieldset>
-            {confirmation && paymentMethod === 'bank_transfer' && <OrderPaymentOptions orderId={confirmation.order_id} customerEmail={email} totalAmount={confirmation.total_amount} paymentReference={confirmation.payment_reference} bankDetails={confirmation.bank_details} returnPath="/sponsors/donate" />}
+            {confirmation && paymentMethod === 'bank_transfer' && <OrderPaymentOptions orderId={confirmation.order_id} customerEmail={email} totalAmount={confirmation.total_amount} paymentReference={confirmation.payment_reference} bankDetails={confirmation.bank_details} returnPath="/sponsors/donate" bankTransferChosen />}
             {error && <p role="alert" className="mt-4 text-red-700 dark:text-red-300">{error}</p>}
             <button type="submit" disabled={busy || (Boolean(confirmation) && paymentMethod === 'bank_transfer')} className="mt-6 w-full rounded-lg bg-maroon-700 px-6 py-4 font-semibold text-white hover:bg-maroon-800 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 disabled:opacity-60">
               {busy ? 'Preparing your donation...' : confirmation && paymentMethod === 'bank_transfer' ? 'Bank transfer selected' : orderId ? 'Retry secure checkout' : `Donate ${new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(amount) || 0)}`}

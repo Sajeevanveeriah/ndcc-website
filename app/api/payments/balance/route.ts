@@ -1,4 +1,5 @@
 import { configuredBankDetails } from '@/lib/payments/bank-transfer';
+import { CARD_BLOCKED_BY_CHOICE_MESSAGE, offlineChoiceBlockingCard } from '@/lib/payments/method-choice';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   } else if (!reference || reference.length > 80 || !email || email.length > 254) {
     return NextResponse.json({error:'Enter your order reference and the email used for your order.'},{status:400,headers:noStore});
   }
-  let query = db.from('orders').select('id,payment_reference,customer_email,total_amount,amount_paid,balance_due,payment_status,order_status,order_category,meal_draft_token,meal_revision,bank_transfer_selected_at').is('deleted_at',null);
+  let query = db.from('orders').select('id,payment_reference,customer_email,total_amount,amount_paid,balance_due,payment_status,order_status,order_category,meal_draft_token,meal_revision,bank_transfer_selected_at,bar_payment_selected_at').is('deleted_at',null);
   query = token ? query.eq('id',orderId || '00000000-0000-0000-0000-000000000000') : query.eq('payment_reference',reference);
   const {data:order,error} = await query.maybeSingle();
   if (error) return NextResponse.json({error:'Payment lookup is temporarily unavailable.'},{status:503,headers:noStore});
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
   if (!order || (token && order.order_category !== 'merch') || (!token && String(order.customer_email).trim().toLowerCase() !== email)) return NextResponse.json({error:'No matching order was found. Check your reference and email.'},{status:404,headers:noStore});
   if (body.checkout === true) {
     if (['refunded','partially_refunded','needs_review'].includes(order.payment_status)) return NextResponse.json({error:'Please contact the club about this order.'},{status:409,headers:noStore});
+    const offlineChoice = offlineChoiceBlockingCard(order);
+    if (offlineChoice) return NextResponse.json({error:CARD_BLOCKED_BY_CHOICE_MESSAGE[offlineChoice]},{status:409,headers:noStore});
     // Reuse the existing reservation, idempotency and signed-webhook flow.
     // Neither the browser nor this lookup can mark the order paid.
     return createCheckout(new Request(new URL('/api/payments/checkout-session',request.url), {
@@ -58,5 +61,5 @@ export async function POST(request: Request) {
   // Spin the Wheel orders are card only: never offer or show bank details, so
   // a deposit cannot arrive after the wheel closes.
   const capabilities = order.order_category === 'spin_wheel' ? { ...derived, bank_transfer: false } : derived;
-  return NextResponse.json({order_id: order.id, bank_details: capabilities.bank_transfer ? configuredBankDetails() : null, capabilities, bank_transfer_selected: Boolean(order.bank_transfer_selected_at), reference:order.payment_reference,total:Number(order.total_amount),paid:Number(order.amount_paid),balance:Number(order.balance_due),status:order.payment_status,cancelled:order.order_status==='cancelled'}, {headers:noStore});
+  return NextResponse.json({order_id: order.id, bank_details: capabilities.bank_transfer ? configuredBankDetails() : null, capabilities, bank_transfer_selected: Boolean(order.bank_transfer_selected_at), pay_at_club_selected: Boolean(order.bar_payment_selected_at), reference:order.payment_reference,total:Number(order.total_amount),paid:Number(order.amount_paid),balance:Number(order.balance_due),status:order.payment_status,cancelled:order.order_status==='cancelled'}, {headers:noStore});
 }
