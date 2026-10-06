@@ -74,3 +74,22 @@ export function paymentChoicePatch(order: ChoiceFields, method: PaymentMethodCho
     bank_transfer_selected_at: method === 'bank_transfer' ? order.bank_transfer_selected_at || now : null,
   };
 }
+
+/**
+ * The offline method that rules out paying this order online, or null when
+ * card checkout may be offered. A purchaser who chose bank transfer or paying
+ * at the club (bar) is not shown "pay online"; unticking that choice (or the
+ * committee changing it) clears the intent column and card comes back.
+ */
+export function offlineChoiceBlockingCard(order: ChoiceFields): Exclude<PaymentMethodChoice, 'stripe'> | null {
+  // The intent columns, not payment_method_choice: purchaser unticking clears
+  // only the intent column, and paymentChoicePatch keeps both in step for admins.
+  if (order.bar_payment_selected_at) return 'pay_at_club';
+  if (order.bank_transfer_selected_at) return 'bank_transfer';
+  return null;
+}
+
+export const CARD_BLOCKED_BY_CHOICE_MESSAGE: Record<Exclude<PaymentMethodChoice, 'stripe'>, string> = {
+  pay_at_club: 'You chose to pay at the club. Untick that choice first if you would rather pay online.',
+  bank_transfer: 'You chose to pay by bank transfer. Untick that choice first if you would rather pay online.',
+};

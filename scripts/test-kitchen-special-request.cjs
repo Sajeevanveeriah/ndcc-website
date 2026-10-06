@@ -98,7 +98,7 @@ const post = (route, url, body) => route.POST(new Request(`https://example.inval
 
   // 5. Card checkout and order save: source wiring.
   const checkout = fs.readFileSync('app/api/payments/checkout-session/route.ts', 'utf8');
-  assert.match(checkout, /meal_request,deleted_at'\)/, 'checkout reads the meal request');
+  assert.match(checkout, /meal_request,[a-z_,]*deleted_at'\)/, 'checkout reads the meal request');
   assert.ok(checkout.indexOf('kitchenOrderIsBarOnly(order)') > 0 && checkout.indexOf('kitchenOrderIsBarOnly(order)') < checkout.indexOf('reserve_meal_stripe_payment'), 'card refused before any reservation');
   const save = fs.readFileSync('app/api/kitchen/orders/route.ts', 'utf8');
   assert.match(save, /\.\.\.\(special_request \? \{ special_request \} : \{\}\)/, 'request stored only when entered');

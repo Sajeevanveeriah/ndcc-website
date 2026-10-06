@@ -31,6 +31,7 @@ export default function OrderConfirmationPanel({
   // Pay at the club and bank transfer are one stated method at a time: each
   // locks while the other saves and both re-read after either saves.
   const [clubSelected, setClubSelected] = useState(false);
+  const [bankSelected, setBankSelected] = useState(false);
   const [clubBusy, setClubBusy] = useState(false);
   const [bankBusy, setBankBusy] = useState(false);
   const [choiceRefresh, setChoiceRefresh] = useState(0);
@@ -55,7 +56,7 @@ export default function OrderConfirmationPanel({
               )}
               {!clubSelected && capabilities.bank_transfer && orderConfirmation?.bank_details?.bsb && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3">
-                  <BankTransferChoice key={orderConfirmation.order_id} orderId={orderConfirmation.order_id} email={orderConfirmation.customer_email} disabled={clubBusy} refreshKey={choiceRefresh} onBusyChange={setBankBusy} onSaved={refreshChoices} />
+                  <BankTransferChoice key={orderConfirmation.order_id} orderId={orderConfirmation.order_id} email={orderConfirmation.customer_email} onChange={setBankSelected} disabled={clubBusy} refreshKey={choiceRefresh} onBusyChange={setBankBusy} onSaved={refreshChoices} />
                   <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Bank Transfer Details:</p>
                   <div className="mt-1 text-sm font-body text-green-800 dark:text-green-200 space-y-0.5">
                     <p>Account Name: <span className="font-semibold">{orderConfirmation.bank_details.account_name}</span></p>
@@ -71,11 +72,12 @@ export default function OrderConfirmationPanel({
                     : 'Your surname has been recorded for club review.'}
                 </div>
               )}
-              {capabilities.card && orderConfirmation?.order_id && (
+              {/* Choosing pay at the club or a bank transfer removes the online option; unticking brings it back. */}
+              {!clubSelected && !bankSelected && capabilities.card && orderConfirmation?.order_id && (
                 <div className="bg-surface-card border border-green-300 rounded-lg p-3 space-y-2">
                   <p className="text-green-900 dark:text-green-200 font-body text-sm font-semibold">Prefer to pay online?</p>
                   <p className="text-green-800 dark:text-green-200 font-body text-xs">
-                    Continue to Stripe Checkout instead of using bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
+                    Continue to Stripe Checkout instead of paying at the club or by bank transfer. Total: {formatCurrency(orderConfirmation.total_amount)}.
                   </p>
                   <div className="flex flex-wrap items-end gap-3">
                     <Button
