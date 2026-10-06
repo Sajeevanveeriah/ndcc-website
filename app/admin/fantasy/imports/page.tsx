@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Card, { CardContent } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import type { FantasyImportBatchSummary, FantasyImportStatus } from '@/lib/fantasy-leaderboard';
 import { FileSearch, Upload } from 'lucide-react';
@@ -58,17 +59,14 @@ export default function AdminFantasyImportsPage() {
         </Link>
       </div>
 
-      <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
+      <div className="mb-6 rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 px-4 py-3 text-sm text-yellow-900 dark:text-yellow-200 font-body">
         Draft, reviewed, and rejected imports remain admin-only. Only published batches can appear on the public leaderboard.
       </div>
 
-      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>}
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton lines={2} />
       ) : batches.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">

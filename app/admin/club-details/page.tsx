@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import { fallbackClubSettings, type ClubSettings } from '@/lib/club-settings-types';
 import Link from 'next/link';
@@ -152,15 +153,11 @@ export default function AdminClubDetailsPage() {
       </p>
 
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : (
         <Card>
           <CardContent className="p-6 space-y-8">

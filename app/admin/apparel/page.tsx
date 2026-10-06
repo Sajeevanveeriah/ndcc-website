@@ -441,7 +441,7 @@ export default function AdminApparelPage() {
                 <Button type="button" size="sm" variant="ghost" onClick={() => toggleProductActive(p)}>
                   {p.active ? 'Hide from website' : 'Show on website'}
                 </Button>
-                <Button type="button" size="sm" variant="ghost" className="text-red-600 hover:text-red-700" onClick={() => deleteProduct(p)}>
+                <Button type="button" size="sm" variant="ghost" className="text-status-error hover:text-red-700 dark:hover:text-red-300" onClick={() => deleteProduct(p)}>
                   Permanently delete
                 </Button>
               </span>
@@ -496,7 +496,7 @@ export default function AdminApparelPage() {
             return (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold mr-2 ${o.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-content-muted'}`}>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold mr-2 ${o.active ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' : 'bg-gray-200 dark:bg-slate-700 text-content-muted'}`}>
                     {o.active ? 'Active' : 'Disabled'}
                   </span>
                   {product?.name || 'Unknown product'} · {o.option_group}: {o.option_label}

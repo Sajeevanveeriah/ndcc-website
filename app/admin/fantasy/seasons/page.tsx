@@ -114,8 +114,8 @@ export default function AdminFantasySeasonsPage() {
     <div>
       <h1 className="text-2xl font-display font-bold text-content-primary mb-2">Fantasy Seasons &amp; PlayHQ Sync</h1>
       <p className="text-content-muted font-body mb-6">Manage fantasy seasons, map PlayHQ grades, run resumable stat imports and control public visibility.</p>
-      {feedback && <p className="mb-4 text-green-700 font-body">{feedback}</p>}
-      {error && <p className="mb-4 text-red-600 font-body" role="alert">{error}</p>}
+      {feedback && <p className="mb-4 text-status-success font-body">{feedback}</p>}
+      {error && <p className="mb-4 text-status-error font-body" role="alert">{error}</p>}
 
       {/* Automatic sync health */}
       <Card className="mb-6">
@@ -133,7 +133,7 @@ export default function AdminFantasySeasonsPage() {
           ) : (
             <div className="space-y-3">
               <p className="text-xs font-body text-content-muted">
-                Scheduled sync {health.syncEnabled ? 'enabled' : <span className="font-semibold text-amber-700">explicitly disabled (remove PLAYHQ_FANTASY_SYNC_ENABLED=false in Vercel)</span>} · PlayHQ credentials {health.playhqConfigured ? 'configured' : <span className="font-semibold text-amber-700">missing</span>}
+                Scheduled sync {health.syncEnabled ? 'enabled' : <span className="font-semibold text-status-warning">explicitly disabled (remove PLAYHQ_FANTASY_SYNC_ENABLED=false in Vercel)</span>} · PlayHQ credentials {health.playhqConfigured ? 'configured' : <span className="font-semibold text-status-warning">missing</span>}
               </p>
               {(health.seasons || []).filter((s: any) => s.is_current && s.auto_sync_enabled).map((s: any) => {
                 const seasonJobs = (health.jobs || []).filter((j: any) => j.season_id === s.id);
@@ -147,11 +147,11 @@ export default function AdminFantasySeasonsPage() {
                   <div key={s.id} className="rounded-lg border border-edge-subtle p-3 text-xs font-body text-content-muted space-y-1">
                     <p className="text-sm font-semibold text-content-primary">{s.slug}
                       {s.is_current ? ' · current' : ''} · {s.playhq_season_id ? `PlayHQ ${s.playhq_season_id}` : ''}
-                      {awaitingPlayHQ && <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 font-semibold">Awaiting PlayHQ</span>}
+                      {awaitingPlayHQ && <span className="ml-1 rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-blue-800 dark:text-blue-200 font-semibold">Awaiting PlayHQ</span>}
                       {s.last_playhq_sync_at ? ` · last sync ${new Date(s.last_playhq_sync_at).toLocaleString()}` : ' · never synced'}
                     </p>
                     {awaitingPlayHQ && (
-                      <p className="text-blue-800">
+                      <p className="text-blue-800 dark:text-blue-200">
                         PlayHQ has not published a matching season yet. Automatic match-stat sync is paused until the
                         season is linked and activated; this is an expected waiting state.
                       </p>
@@ -164,7 +164,7 @@ export default function AdminFantasySeasonsPage() {
                         {' '}· raw entries {seasonHealth.raw_entries} · queued {seasonHealth.queued_games} · processed {seasonHealth.processed_games}
                         {' '}· matched players {seasonHealth.matched_players} · ambiguous {seasonHealth.ambiguous_players} · failed games {seasonHealth.failed_games}
                         {seasonHealth.next_retry_at ? ` · next retry ${new Date(seasonHealth.next_retry_at).toLocaleString()}` : ''}
-                        {seasonHealth.last_error ? <span className="text-red-600"> · last error: {seasonHealth.last_error}</span> : ''}
+                        {seasonHealth.last_error ? <span className="text-status-error"> · last error: {seasonHealth.last_error}</span> : ''}
                       </p>
                     )}
                     {ready && (
@@ -181,7 +181,7 @@ export default function AdminFantasySeasonsPage() {
                     {job && (
                       <p>Latest job: <span className="font-semibold">{job.status}</span> · {job.processed_games}/{job.total_games} games{pct !== null ? ` (${pct}%)` : ''} · created {job.counts?.created ?? 0} · matched {job.counts?.matched ?? 0} · updated {job.counts?.updated ?? 0} · skipped {job.counts?.skipped ?? 0} · failed {job.failed_games ?? 0} · review items {(job.review_items || []).length}</p>
                     )}
-                    {s.sync_exception && <p className="text-red-600">Blocking exception: {s.sync_exception}</p>}
+                    {s.sync_exception && <p className="text-status-error">Blocking exception: {s.sync_exception}</p>}
                   </div>
                 );
               })}
@@ -190,7 +190,7 @@ export default function AdminFantasySeasonsPage() {
                   <summary className="cursor-pointer font-semibold text-content-primary">Recent automation activity ({health.recentRuns.length})</summary>
                   <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
                     {health.recentRuns.map((r: any) => (
-                      <p key={r.id} className={r.status === 'error' || r.status === 'blocked' ? 'text-red-600' : ''}>
+                      <p key={r.id} className={r.status === 'error' || r.status === 'blocked' ? 'text-status-error' : ''}>
                         {new Date(r.created_at).toLocaleString()} · {r.invoked_by} · {r.stage} · {r.status}{r.error ? ` — ${r.error}` : ''}
                       </p>
                     ))}
@@ -223,7 +223,7 @@ export default function AdminFantasySeasonsPage() {
                     </label>
                   ))}
                   <label className="flex items-center gap-2">Status
-                    <select className="rounded-sm border border-edge-strong px-2 py-1" value={season.status} disabled={busy} onChange={(e) => patchSeason(season.id, { status: e.target.value }, 'Status updated.')}>
+                    <select className="rounded-sm border border-edge-strong bg-surface-card px-2 py-1 text-content-primary" value={season.status} disabled={busy} onChange={(e) => patchSeason(season.id, { status: e.target.value }, 'Status updated.')}>
                       {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                     </select>
                   </label>
@@ -246,9 +246,9 @@ export default function AdminFantasySeasonsPage() {
                   )}
                 </div>
                 {preview && preview.seasonId === season.id && preview.data && (
-                  <div className="rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/30 p-3 space-y-1 text-xs font-body text-content-muted">
+                  <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3 space-y-1 text-xs font-body text-content-muted">
                     <p className="text-sm font-semibold text-content-primary">Sync preview (read-only — nothing was written)</p>
-                    {preview.data.awaiting_playhq && <p className="text-blue-800 font-semibold">Awaiting PlayHQ: no matching published season found yet.</p>}
+                    {preview.data.awaiting_playhq && <p className="text-blue-800 dark:text-blue-200 font-semibold">Awaiting PlayHQ: no matching published season found yet.</p>}
                     {preview.data.proposed_link && (
                       <p>Proposed PlayHQ link: {preview.data.proposed_link.name} ({preview.data.proposed_link.playhq_season_id})</p>
                     )}
@@ -269,7 +269,7 @@ export default function AdminFantasySeasonsPage() {
                           {' '}· {preview.data.queue.skipped_grades?.length ?? 0} skipped grade(s)
                         </p>
                         {preview.data.queue.empty_queue_invariant_breached && (
-                          <p className="text-red-600 font-semibold">
+                          <p className="text-status-error font-semibold">
                             Invariant breach: raw entries exist but nothing would be queued — a real run would park as needs_review.
                           </p>
                         )}
@@ -283,14 +283,14 @@ export default function AdminFantasySeasonsPage() {
                 {gradePanel && gradePanel.seasonId === season.id && (
                   <div className="rounded-lg border border-edge-subtle p-3 space-y-2">
                     <p className="text-sm font-body font-semibold text-content-primary">PlayHQ grades for this season</p>
-                    {gradePanel.error && <p className="text-sm text-red-600 font-body">{gradePanel.error}</p>}
+                    {gradePanel.error && <p className="text-sm text-status-error font-body">{gradePanel.error}</p>}
                     {!gradePanel.playhqGrades.length && !gradePanel.error && <p className="text-sm text-content-muted font-body">No PlayHQ grades returned. Link a PlayHQ season id first.</p>}
                     {gradePanel.playhqGrades.map((grade: any) => {
                       const source = gradePanel.sources.find((item: any) => item.playhq_grade_id === grade.id);
                       return (
                         <label key={grade.id} className="flex items-center gap-2 text-sm font-body">
                           <input type="checkbox" checked={source?.enabled === true} disabled={busy} onChange={(e) => toggleGrade(source || grade, e.target.checked)} />
-                          {grade.name} <span className="text-xs text-gray-400">({grade.id})</span>
+                          {grade.name} <span className="text-xs text-gray-400 dark:text-slate-500">({grade.id})</span>
                         </label>
                       );
                     })}
@@ -302,8 +302,8 @@ export default function AdminFantasySeasonsPage() {
                     {jobs.map((job: any) => (
                       <div key={job.id} className="text-xs font-body text-content-muted border-b border-edge-subtle pb-2">
                         <p><span className="font-semibold">{job.status}</span> · {job.processed_games}/{job.total_games} games · ok {job.successful_games} · failed {job.failed_games} · created {job.counts?.created ?? 0} · matched {job.counts?.matched ?? 0} · updated {job.counts?.updated ?? 0} · skipped {job.counts?.skipped ?? 0} · warnings {job.counts?.warnings ?? 0}</p>
-                        {(job.review_items || []).slice(0, 8).map((item: any, index: number) => <p key={index} className="text-amber-700">Review ({item.type}): {item.detail}</p>)}
-                        {(job.error_summary || []).slice(0, 5).map((item: any, index: number) => <p key={index} className="text-red-600">Game {item.gameId}: {item.message}</p>)}
+                        {(job.review_items || []).slice(0, 8).map((item: any, index: number) => <p key={index} className="text-status-warning">Review ({item.type}): {item.detail}</p>)}
+                        {(job.error_summary || []).slice(0, 5).map((item: any, index: number) => <p key={index} className="text-status-error">Game {item.gameId}: {item.message}</p>)}
                       </div>
                     ))}
                   </div>
@@ -335,7 +335,7 @@ export default function AdminFantasySeasonsPage() {
           <h2 className="text-lg font-display font-bold text-content-primary">Add a season</h2>
           <div className="flex flex-wrap gap-2 items-center">
             <Button size="sm" variant="secondary" disabled={busy} onClick={() => load(true)}>Discover PlayHQ seasons</Button>
-            {playhqError && <span className="text-sm text-red-600 font-body">{playhqError}</span>}
+            {playhqError && <span className="text-sm text-status-error font-body">{playhqError}</span>}
           </div>
           {playhqSeasons.length > 0 && (
             <div className="space-y-1">
@@ -351,7 +351,7 @@ export default function AdminFantasySeasonsPage() {
             <Input id="season-slug" label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             <Input id="season-playhq" label="PlayHQ season id (optional)" value={form.playhqSeasonId} onChange={(e) => setForm({ ...form, playhqSeasonId: e.target.value })} />
             <label className="flex flex-col gap-1 text-sm font-body">Status
-              <select className="rounded-sm border border-edge-strong px-2 py-2" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <select className="rounded-sm border border-edge-strong bg-surface-card px-2 py-2 text-content-primary" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                 {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
               </select>
             </label>

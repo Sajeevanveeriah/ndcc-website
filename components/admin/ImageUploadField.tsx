@@ -131,9 +131,9 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         />
       )}
       {helpText && <p className="text-xs text-content-muted">{helpText}</p>}
-      {progressText && <p className="text-xs text-green-700">{progressText}</p>}
-      {invalidPathWarning && <p className="text-xs text-amber-700">{invalidPathWarning}</p>}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {progressText && <p className="text-xs text-status-success">{progressText}</p>}
+      {invalidPathWarning && <p className="text-xs text-status-warning">{invalidPathWarning}</p>}
+      {error && <p className="text-xs text-status-error">{error}</p>}
       {value && !isPdf && (
         <div className="space-y-1">
           <div className="relative h-20 w-20 rounded-sm border border-edge-subtle overflow-hidden bg-surface-page">
@@ -152,7 +152,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
             )}
           </div>
           {previewFailed && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-status-warning">
               Preview failed to load. Check that the image exists on the deployed site, or edit the URL before saving.
             </p>
           )}

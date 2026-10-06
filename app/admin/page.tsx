@@ -107,16 +107,16 @@ export default function AdminDashboardPage() {
   }, []);
 
   const statCards = [
-    { label: 'Total Volunteers', value: stats.volunteers, icon: Users, href: '/admin/volunteers', colour: 'bg-blue-50 text-blue-700' },
-    { label: 'Pending Orders', value: stats.pendingOrders, icon: ShoppingBag, href: '/admin/orders', colour: 'bg-yellow-50 text-yellow-700' },
-    { label: 'Unread Enquiries', value: stats.unreadEnquiries, icon: Mail, href: '/admin/enquiries', colour: 'bg-red-50 text-red-700' },
-    { label: 'Published Events', value: stats.publishedEvents, icon: Calendar, href: '/admin/events', colour: 'bg-green-50 text-green-700' },
-    { label: 'News Articles', value: stats.totalNews, icon: Newspaper, href: '/admin/news', colour: 'bg-purple-50 text-purple-700' },
+    { label: 'Total Volunteers', value: stats.volunteers, icon: Users, href: '/admin/volunteers', colour: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300' },
+    { label: 'Pending Orders', value: stats.pendingOrders, icon: ShoppingBag, href: '/admin/orders', colour: 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300' },
+    { label: 'Unread Enquiries', value: stats.unreadEnquiries, icon: Mail, href: '/admin/enquiries', colour: 'bg-red-50 dark:bg-red-950/40 text-status-error' },
+    { label: 'Published Events', value: stats.publishedEvents, icon: Calendar, href: '/admin/events', colour: 'bg-green-50 dark:bg-green-950/40 text-status-success' },
+    { label: 'News Articles', value: stats.totalNews, icon: Newspaper, href: '/admin/news', colour: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300' },
     { label: 'Active Sponsors', value: stats.activeSponsors, icon: Handshake, href: '/admin/sponsors', colour: 'bg-maroon-50 dark:bg-maroon-950 text-maroon-700 dark:text-maroon-200' },
     { label: 'Dino Coach', value: 'Admin', icon: Trophy, href: '/admin/fantasy', colour: 'bg-surface-blue-subtle text-content-blue' },
     { label: 'Site Settings', value: 'CMS', icon: Settings, href: '/admin/site-pages', colour: 'bg-surface-page text-content-secondary' },
-    { label: 'Email Diagnostics', value: 'Test', icon: Mail, href: '/admin/email-diagnostics', colour: 'bg-indigo-50 text-indigo-700' },
-    { label: 'Media Diagnostics', value: 'Test', icon: Settings, href: '/admin/media-diagnostics', colour: 'bg-teal-50 text-teal-700' },
+    { label: 'Email Diagnostics', value: 'Test', icon: Mail, href: '/admin/email-diagnostics', colour: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300' },
+    { label: 'Media Diagnostics', value: 'Test', icon: Settings, href: '/admin/media-diagnostics', colour: 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300' },
   ];
 
   const activityBadge = (type: string) => {
@@ -140,14 +140,14 @@ export default function AdminDashboardPage() {
         <h1 className="text-2xl font-display font-bold text-content-primary">Dashboard</h1>
         <p className="text-content-muted font-body mt-1">Overview of club administration</p>
       </div>
-      {message && <p className="mb-4 text-sm text-red-600">{message}</p>}
+      {message && <p className="mb-4 text-sm text-status-error">{message}</p>}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="bg-surface-card rounded-xl border border-edge-subtle p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded-sm w-1/2 mb-4" />
-              <div className="h-8 bg-gray-200 rounded-sm w-1/3" />
+              <div className="h-4 bg-edge-subtle rounded-sm w-1/2 mb-4" />
+              <div className="h-8 bg-edge-subtle rounded-sm w-1/3" />
             </div>
           ))}
         </div>
@@ -211,13 +211,13 @@ export default function AdminDashboardPage() {
                 <Link href="/admin/gallery" className="inline-flex items-center gap-1.5 rounded-full border border-edge-subtle px-3 py-1 hover:border-maroon-300">
                   Unpublished gallery: <strong>{health.unpublishedGallery ?? '?'}</strong>
                 </Link>
-                <Link href="/admin/gallery" className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 hover:border-maroon-300 ${(health.missingAltText ?? 0) > 0 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-edge-subtle'}`}>
+                <Link href="/admin/gallery" className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 hover:border-maroon-300 ${(health.missingAltText ?? 0) > 0 ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200' : 'border-edge-subtle'}`}>
                   Gallery images missing alt text: <strong>{health.missingAltText ?? '?'}</strong>
                 </Link>
                 <Link href="/admin/fantasy/imports" className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 hover:border-maroon-300 ${(health.draftFantasyImports ?? 0) > 0 ? 'border-edge-blue bg-surface-blue-subtle text-content-blue' : 'border-edge-subtle'}`}>
                   Fantasy imports awaiting publish: <strong>{health.draftFantasyImports ?? '?'}</strong>
                 </Link>
-                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 ${health.playhqConfigured ? 'border-green-300 bg-green-50 text-green-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 ${health.playhqConfigured ? 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200' : 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200'}`}>
                   PlayHQ API: <strong>{health.playhqConfigured ? 'configured' : 'not configured (link cards shown)'}</strong>
                 </span>
               </div>
@@ -261,7 +261,7 @@ export default function AdminDashboardPage() {
                       {activityBadge(item.type)}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-content-secondary font-body">{item.message}</p>
-                        <p className="text-xs text-gray-400 font-body mt-0.5">{formatDate(item.date)}</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500 font-body mt-0.5">{formatDate(item.date)}</p>
                       </div>
                     </div>
                   ))}

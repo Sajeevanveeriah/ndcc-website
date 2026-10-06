@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal';
 import ImageUploadField from '@/components/admin/ImageUploadField';
 import Input from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { Users, Plus, Pencil, Trash2 } from 'lucide-react';
 import type { TeamInfo } from '@/lib/types';
 
@@ -179,18 +180,14 @@ export default function AdminTeamsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : teams.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <Users className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No teams yet. Add your first team.</p>
         </div>
       ) : (
@@ -270,7 +267,7 @@ export default function AdminTeamsPage() {
               rows={5}
               className="w-full rounded-lg border border-edge-strong px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-maroon-500 focus:border-transparent"
             />
-            {formErrors.description && <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>}
+            {formErrors.description && <p className="mt-1 text-sm text-status-error">{formErrors.description}</p>}
           </div>
           <Input
             id="team-captain"

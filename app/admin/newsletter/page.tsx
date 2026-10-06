@@ -128,7 +128,7 @@ export default function AdminNewsletterPage() {
         <p className="text-sm text-content-muted">Email club members who chose to receive club email updates in their club account. Every email includes a one-click unsubscribe link.</p>
       </div>
       {feedback && (
-        <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>{feedback.message}</p>
+        <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-status-error bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : 'text-status-success bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800'}`}>{feedback.message}</p>
       )}
       {overview && (
         <div className="rounded-lg border border-edge-blue bg-surface-blue-subtle p-3 text-sm text-content-primary">
@@ -176,7 +176,7 @@ export default function AdminNewsletterPage() {
       {previewHtml && (
         <section className="space-y-2">
           <h2 className="font-semibold">Preview</h2>
-          <iframe title="Newsletter email preview" sandbox="" srcDoc={previewHtml} className="h-[600px] w-full rounded-lg border border-edge-subtle bg-white" />
+          <iframe title="Newsletter email preview" sandbox="" srcDoc={previewHtml} className="h-[600px] w-full rounded-lg border border-edge-subtle bg-surface-card" />
         </section>
       )}
 

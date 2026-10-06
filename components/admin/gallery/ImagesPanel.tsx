@@ -226,8 +226,8 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
 
   return (
     <div className="space-y-8">
-      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">{error}</p>}
-      {success && <p role="status" className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-sm px-3 py-2">{success}</p>}
+      {error && <p role="alert" className="text-sm text-status-error bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-sm px-3 py-2">{error}</p>}
+      {success && <p role="status" className="text-sm text-status-success bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-sm px-3 py-2">{success}</p>}
 
       {/* Add New Image (single, GitHub-backed uploader — unchanged behaviour) */}
       <form onSubmit={handleCreate} className="bg-surface-card border border-edge-subtle rounded-xl p-5 space-y-4">
@@ -424,7 +424,7 @@ export default function ImagesPanel({ refreshToken, onImagesChanged }: { refresh
               Published
             </label>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-status-error">{error}</p>}
           <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
             <Button type="button" variant="secondary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
             <Button type="submit" isLoading={editSaving}>Save Changes</Button>

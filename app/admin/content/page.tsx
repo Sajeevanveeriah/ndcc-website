@@ -294,7 +294,7 @@ export default function AdminContentPage() {
         </section>
       )}
       {feedback && (
-        <p className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+        <p className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-status-error bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : 'text-status-success bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800'}`}>
           {feedback.message}
         </p>
       )}
@@ -343,11 +343,11 @@ export default function AdminContentPage() {
         <div className="bg-surface-card border rounded-xl p-4 lg:col-span-2 space-y-3">
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 text-sm">Loading editor…</p>
+              <p className="text-gray-400 dark:text-slate-500 text-sm">Loading editor…</p>
             </div>
           ) : !selected ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 text-sm">Select a page section to edit.</p>
+              <p className="text-gray-400 dark:text-slate-500 text-sm">Select a page section to edit.</p>
             </div>
           ) : (
             <>

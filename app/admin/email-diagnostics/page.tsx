@@ -85,7 +85,7 @@ export default function AdminEmailDiagnosticsPage() {
           <Input id="test-recipient" label="Recipient email" type="email" value={recipient} onChange={(e) => setRecipient(e.target.value)} required />
           <Button type="submit" isLoading={sending}>Send test email</Button>
         </form>
-        {feedback && <p className={`text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+        {feedback && <p className={`text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>}
       </section>
     </div>
   );

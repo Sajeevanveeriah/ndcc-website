@@ -51,6 +51,7 @@
     "test:admin-auth": "node scripts/test-admin-auth.mjs",
     "test:admin-revisions-audit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-admin-revisions-audit.mjs",
     "test:admin-permissions": "node scripts/test-admin-permissions.mjs",
+    "test:admin-dark-mode": "node scripts/test-admin-dark-mode.mjs",
     "test:sponsors": "node scripts/test-sponsors.mjs && node scripts/test-sponsor-canonical.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-sponsor-logo-surface.mjs",
     "test:sponsor-presentation": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-sponsor-presentation.mjs",
     "test:fantasy": "node scripts/test-fantasy.mjs",

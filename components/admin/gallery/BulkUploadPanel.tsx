@@ -495,7 +495,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
         </p>
       </div>
 
-      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-sm text-status-error bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-sm px-3 py-2">{error}</p>}
       <p role="status" aria-live="polite" className="sr-only">{announcement}</p>
 
       {/* Step 1: album */}
@@ -521,7 +521,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
               options={albumOptions}
             />
             {selectedAlbum && !selectedAlbum.published && (
-              <p className="text-xs text-amber-700 mt-1">This album is a draft — the public cannot see it until you publish it.</p>
+              <p className="text-xs text-status-warning mt-1">This album is a draft — the public cannot see it until you publish it.</p>
             )}
           </div>
         ) : (
@@ -626,7 +626,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
                         {formatBytes(item.file.size)} · {item.file.type.replace('image/', '').toUpperCase()}
                         {item.width && item.height ? ` · ${item.width}×${item.height}` : ''}
                       </p>
-                      {item.error && <p className="text-xs text-red-600">{item.error}</p>}
+                      {item.error && <p className="text-xs text-status-error">{item.error}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -668,7 +668,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
                         type="button"
                         onClick={() => removeFile(item.clientId)}
                         aria-label={`Remove ${item.file.name} from the queue`}
-                        className="p-1.5 rounded-sm text-content-muted hover:text-red-600 focus:outline-hidden focus:ring-2 focus:ring-maroon-500"
+                        className="p-1.5 rounded-sm text-content-muted hover:text-red-600 dark:hover:text-red-300 focus:outline-hidden focus:ring-2 focus:ring-maroon-500"
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -729,7 +729,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
               Cancel remaining
             </Button>
           )}
-          <p className="text-xs text-amber-700">Keep this page open while uploading — leaving the page interrupts files that have not finished.</p>
+          <p className="text-xs text-status-warning">Keep this page open while uploading — leaving the page interrupts files that have not finished.</p>
         </div>
         <p className="text-xs text-content-muted">
           Files upload directly from your browser to club storage in small groups. Failed files can be retried without re-uploading the ones that succeeded.
@@ -747,7 +747,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
               {counts.complete} finalised · {counts.failed} failed or invalid · {counts.total} total
             </p>
             {counts.failed > 0 && (
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-status-warning">
                 Some files did not finish. The album will not be published automatically — retry the failed files, or publish the successful photos only.
               </p>
             )}
@@ -778,7 +778,7 @@ export default function BulkUploadPanel({ onUploadsChanged }: { onUploadsChanged
       <Modal isOpen={publishModalOpen} onClose={() => setPublishModalOpen(false)} title="Publish Album" size="md">
         <div className="space-y-4">
           {counts.failed > 0 && (
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-status-warning">
               {counts.failed} file{counts.failed === 1 ? '' : 's'} failed or {counts.failed === 1 ? 'was' : 'were'} invalid. Publishing now makes only the successfully uploaded photos public.
             </p>
           )}

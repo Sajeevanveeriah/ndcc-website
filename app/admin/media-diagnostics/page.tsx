@@ -59,7 +59,7 @@ export default function AdminMediaDiagnosticsPage() {
         </p>
       </div>
 
-      {statusError && <p className="text-sm text-red-600">{statusError}</p>}
+      {statusError && <p className="text-sm text-status-error">{statusError}</p>}
 
       <section className="bg-surface-card border rounded-xl p-5 space-y-3">
         <h2 className="text-lg font-semibold">CMS storage</h2>
@@ -79,7 +79,7 @@ export default function AdminMediaDiagnosticsPage() {
         </p>
         <Button type="button" isLoading={testingStorage} onClick={() => runTest('test-storage')}>Test storage access</Button>
         {storageFeedback && (
-          <p className={`text-sm ${storageFeedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{storageFeedback.message}</p>
+          <p className={`text-sm ${storageFeedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{storageFeedback.message}</p>
         )}
       </section>
 

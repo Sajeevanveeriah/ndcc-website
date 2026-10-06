@@ -226,7 +226,7 @@ export default function SpinWheelEditorPage() {
           <td className="p-2 whitespace-nowrap space-x-1">
             <button type="button" className="underline" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move segment ${index + 1} up`}>Up</button>
             <button type="button" className="underline" onClick={() => move(index, 1)} disabled={index === draft.segments.length - 1} aria-label={`Move segment ${index + 1} down`}>Down</button>
-            <button type="button" className="underline text-red-700" onClick={() => set({ segments: draft.segments.filter((_, i) => i !== index) })} aria-label={`Remove segment ${index + 1}`}>Remove</button>
+            <button type="button" className="underline text-status-error" onClick={() => set({ segments: draft.segments.filter((_, i) => i !== index) })} aria-label={`Remove segment ${index + 1}`}>Remove</button>
           </td>
         </tr>)}</tbody>
       </table></div>
@@ -236,7 +236,7 @@ export default function SpinWheelEditorPage() {
     </section>
 
     {warnings.length > 0 && <ul className="rounded-lg border border-amber-500 p-4 text-sm" role="status">{warnings.map(item => <li key={item}>{item}</li>)}</ul>}
-    {errors.length > 0 && <ul className="rounded-lg border border-red-500 p-4 text-sm text-red-700" role="alert">{errors.map(item => <li key={item}>{item}</li>)}</ul>}
+    {errors.length > 0 && <ul className="rounded-lg border border-red-500 p-4 text-sm text-status-error" role="alert">{errors.map(item => <li key={item}>{item}</li>)}</ul>}
     {message && <p role="status" className="font-semibold">{message}</p>}
     <div className="flex flex-wrap gap-3">
       <Button type="button" onClick={() => void save()} isLoading={busy}>{isNew ? 'Create wheel' : 'Save wheel'}</Button>
@@ -306,7 +306,7 @@ function GrantSpins({ wheelId, onGranted }: { wheelId: string; onGranted: () => 
       <Input id="spin-grant-name" label="Name (optional)" maxLength={120} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
       <Input id="spin-grant-spins" label="Spins" type="number" min={1} max={100} required value={form.spins} onChange={e => setForm({ ...form, spins: e.target.value })} />
     </div>
-    {error && <p role="alert" className="text-red-700">{error}</p>}
+    {error && <p role="alert" className="text-status-error">{error}</p>}
     {message && <p role="status" className="break-all">{message}</p>}
     <Button type="submit" variant="secondary" isLoading={busy}>Grant spins</Button>
   </form>;
@@ -402,7 +402,7 @@ function Results({ wheelId }: { wheelId: string }) {
           {row.is_prize && (row.claimed_at
             ? <button type="button" className="underline" disabled={busy === row.id} onClick={() => void act(row.id, 'unclaim')}>Undo claim</button>
             : <button type="button" className="underline" disabled={busy === row.id} onClick={() => void act(row.id, 'claim')}>Mark claimed</button>)}
-          <button type="button" className="underline text-red-700" disabled={busy === row.id} onClick={() => void act(row.id, 'void')}>Void</button>
+          <button type="button" className="underline text-status-error" disabled={busy === row.id} onClick={() => void act(row.id, 'void')}>Void</button>
         </>}</td>
       </tr>)}</tbody>
     </table></div>)}

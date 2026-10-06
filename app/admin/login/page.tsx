@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
             <h2 className="text-xl font-display font-bold text-content-primary text-center">Sign In</h2>
             <p className="text-sm text-content-muted font-body text-center">Access the {CLUB_NAME} administration panel.</p>
 
-            {error && <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body">{error}</div>}
+            {error && <div role="alert" className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-status-error px-4 py-3 rounded-lg text-sm font-body">{error}</div>}
 
             <Input id="email" label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <PasswordInput id="password" label="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -114,7 +114,7 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 font-body mt-6">&copy; {new Date().getFullYear()} {CLUB_NAME}</p>
+        <p className="text-center text-xs text-gray-400 dark:text-slate-500 font-body mt-6">&copy; {new Date().getFullYear()} {CLUB_NAME}</p>
       </div>
     </div>
   );

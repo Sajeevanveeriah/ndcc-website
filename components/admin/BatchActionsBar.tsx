@@ -45,7 +45,7 @@ export default function BatchActionsBar({
       </span>
       {confirmingAction ? (
         <>
-          <span className="text-sm font-body text-red-600">
+          <span className="text-sm font-body text-status-error">
             {confirmingAction.confirmLabel || 'Are you sure? This action cannot be undone.'}
           </span>
           <Button

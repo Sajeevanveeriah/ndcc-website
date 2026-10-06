@@ -59,7 +59,7 @@ export default function PlayerSponsorsPage() {
       <div><h1 className="font-display text-2xl font-bold">Player sponsors</h1><p className="mt-2 text-content-muted">Add each sponsor separately under the same player name. All visible sponsors appear together on one player card. Hide an entry to remove only that sponsor from public view.</p></div>
       <Button onClick={() => { setId(null); setForm(empty); setError(''); setOpen(true); }}>Add player sponsor</Button>
     </div>
-    {!open && error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
+    {!open && error && <p role="alert" className="mb-4 text-status-error">{error}</p>}
     {message && <p role="status" className="mb-4 text-content-primary">{message} <Link href="/player-sponsors" target="_blank" rel="noopener noreferrer" className="underline">View public page</Link></p>}
     {loading ? <p role="status">Loading player sponsors...</p> : loadError ? <div role="alert" className="mb-4"><p>{loadError}</p><Button variant="secondary" onClick={() => void load()}>Retry loading player sponsors</Button></div> : rows.length === 0 ? <p>No player sponsors added yet.</p> : <ul className="divide-y divide-edge-subtle">
       {groupPlayerSponsors(rows).map((player) => <li key={player.key} className="py-5">
@@ -77,7 +77,7 @@ export default function PlayerSponsorsPage() {
     </ul>}
     <Modal isOpen={open} onClose={() => { if (!busy && !uploading) setOpen(false); }} title={id ? 'Edit player sponsor' : 'Add player sponsor'} size="lg">
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-        {error && <p role="alert" className="text-red-600">{error}</p>}
+        {error && <p role="alert" className="text-status-error">{error}</p>}
         <Input id="player-name" list="existing-player-names" label="Player name" required maxLength={160} value={form.player_name} onChange={(event) => setForm({ ...form, player_name: event.target.value })} />
         <datalist id="existing-player-names">{groupPlayerSponsors(rows).map((player) => <option key={player.key} value={player.player_name} />)}</datalist>
         <ImageUploadField id="player-photo" onUploadingChange={setPhotoUploading} label="Player photo (optional)" value={form.player_image_url} onChange={(value) => setForm((current) => ({ ...current, player_image_url: value }))} />

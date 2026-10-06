@@ -92,7 +92,7 @@ export default function StartNewSeasonPage() {
         <p className="mt-1 text-sm text-content-muted">Prepare the next season with four details. Registration starts closed, old signings stay with their original season, and season-aware public pages update when the new season is activated.</p>
       </div>
 
-      {message && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status">{message}</div>}
+      {message && <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-4 text-sm text-blue-900 dark:text-blue-200" role="status">{message}</div>}
 
       <Card>
         <CardContent className="space-y-5 p-6">
@@ -134,7 +134,7 @@ export default function StartNewSeasonPage() {
                 <div>
                   <p className="text-sm font-semibold text-content-primary">{state.preview?.summary || 'Season draft'}</p>
                   <p className="text-xs uppercase tracking-wide text-content-muted">{state.status}</p>
-                  {state.preview?.warnings?.map((warning) => <p key={warning} className="mt-1 text-sm text-amber-800">{warning}</p>)}
+                  {state.preview?.warnings?.map((warning) => <p key={warning} className="mt-1 text-sm text-amber-800 dark:text-amber-200">{warning}</p>)}
                 </div>
                 <Button type="button" onClick={() => activate(state.id)} disabled={busy || state.status === 'activated'}>{state.status === 'activated' ? 'Active' : 'Activate season'}</Button>
               </div>

@@ -11,6 +11,7 @@ import Modal from '@/components/ui/Modal';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { Mail, CheckCircle, Eye } from 'lucide-react';
 
 export default function AdminEnquiriesPage() {
@@ -131,14 +132,10 @@ export default function AdminEnquiriesPage() {
       </div>
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : filteredContacts.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <Mail className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <Mail className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No enquiries found.</p>
         </div>
       ) : (

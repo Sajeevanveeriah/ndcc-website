@@ -162,8 +162,8 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
           }}
         />
       )}
-      {progressText && <p className="text-xs text-green-700">{progressText}</p>}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {progressText && <p className="text-xs text-status-success">{progressText}</p>}
+      {error && <p className="text-xs text-status-error">{error}</p>}
 
       {value.length > 0 && (
         <ol className="space-y-3" aria-label="Additional article images">
@@ -208,7 +208,7 @@ export default function NewsImageUploadField({ id, value, onChange, articleTitle
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="rounded-sm border border-red-300 px-2.5 py-1 text-xs text-red-700 hover:bg-red-50"
+                    className="rounded-sm border border-red-300 dark:border-red-800 px-2.5 py-1 text-xs text-status-error hover:bg-red-50 dark:hover:bg-red-950/40"
                     aria-label={`Remove image ${index + 1}`}
                   >
                     Remove

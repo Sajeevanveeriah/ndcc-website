@@ -342,7 +342,7 @@ export default function AdminKitchenPage() {
         <h2 className="text-lg font-semibold">Menus</h2>
 
         {!menusWritable ? null : editingMenu ? (
-          <form onSubmit={saveEditMenu} className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-lg p-3 bg-blue-50">
+          <form onSubmit={saveEditMenu} className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-lg p-3 bg-blue-50 dark:bg-blue-950/40">
             <Input id="edit_menu_name" label="Menu name" required value={editMenuForm.name} onChange={(e) => setEditMenuForm((v) => ({ ...v, name: e.target.value }))} />
             <label className="inline-flex items-center gap-2 text-sm mt-8">
               <input type="checkbox" checked={editMenuForm.is_active} onChange={(e) => setEditMenuForm((v) => ({ ...v, is_active: e.target.checked }))} />
@@ -367,7 +367,7 @@ export default function AdminKitchenPage() {
         <div className="space-y-2">
           {menus.map((menu) => (
             <div key={menu.id} className="flex items-center justify-between border rounded-lg px-3 py-2 text-sm">
-              <span className="font-medium">{menu.name} {menu.is_active && <span className="ml-1 text-green-600 text-xs">(Active)</span>}</span>
+              <span className="font-medium">{menu.name} {menu.is_active && <span className="ml-1 text-status-success text-xs">(Active)</span>}</span>
               {menusWritable && <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => openEditMenu(menu)}>Edit</Button>
                 <Button size="sm" variant="ghost" onClick={() => deleteMenu(menu.id)}>
@@ -385,9 +385,9 @@ export default function AdminKitchenPage() {
         <h2 className="text-lg font-semibold">Menu Items</h2>
 
         {!itemsWritable ? null : editingItem ? (
-          <form onSubmit={saveEditItem} className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-lg p-3 bg-blue-50">
+          <form onSubmit={saveEditItem} className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-lg p-3 bg-blue-50 dark:bg-blue-950/40">
             <label className="text-sm">Menu
-              <select className="mt-1 w-full border rounded-lg px-3 py-2" value={editItemForm.menu_id} onChange={(e) => setEditItemForm((v) => ({ ...v, menu_id: e.target.value }))} required>
+              <select className="mt-1 w-full border rounded-lg px-3 py-2 bg-surface-card text-content-primary" value={editItemForm.menu_id} onChange={(e) => setEditItemForm((v) => ({ ...v, menu_id: e.target.value }))} required>
                 <option value="">Select menu</option>
                 {menus.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
@@ -415,7 +415,7 @@ export default function AdminKitchenPage() {
         ) : (
           <form onSubmit={createItem} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="text-sm">Menu
-              <select className="mt-1 w-full border rounded-lg px-3 py-2" value={itemForm.menu_id} onChange={(e) => setItemForm((v) => ({ ...v, menu_id: e.target.value }))} required>
+              <select className="mt-1 w-full border rounded-lg px-3 py-2 bg-surface-card text-content-primary" value={itemForm.menu_id} onChange={(e) => setItemForm((v) => ({ ...v, menu_id: e.target.value }))} required>
                 <option value="">Select menu</option>
                 {menus.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
@@ -446,7 +446,7 @@ export default function AdminKitchenPage() {
                 <span className="font-medium">{item.name}</span>
                 <span className="text-content-muted ml-2">${item.price}</span>
                 {!item.is_available && <span className="ml-2 text-red-500 text-xs">Sold out</span>}
-                {item.is_hidden && <span className="ml-2 text-gray-400 text-xs">Hidden</span>}
+                {item.is_hidden && <span className="ml-2 text-gray-400 dark:text-slate-500 text-xs">Hidden</span>}
               </div>
               {itemsWritable && <div className="flex gap-1 flex-wrap justify-end">
                 <Button size="sm" variant="ghost" onClick={() => openEditItem(item)}>Edit</Button>

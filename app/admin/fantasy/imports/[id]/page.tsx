@@ -84,7 +84,7 @@ export default function AdminFantasyImportDetailPage() {
     return (
       <div>
         <Button variant="ghost" onClick={() => router.push('/admin/fantasy/imports')}>Back to imports</Button>
-        {feedback && <p className="mt-4 text-sm text-red-600">{feedback.message}</p>}
+        {feedback && <p className="mt-4 text-sm text-status-error">{feedback.message}</p>}
       </div>
     );
   }
@@ -114,7 +114,7 @@ export default function AdminFantasyImportDetailPage() {
         </div>
       </div>
 
-      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>}
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card><CardContent><p className="text-sm text-content-muted">Rows</p><p className="text-3xl font-display font-bold text-content-primary">{batch.rowCount}</p></CardContent></Card>

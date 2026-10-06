@@ -124,7 +124,7 @@ export default function MaintenanceBannerCard() {
                   <strong className="font-semibold">{preview.text.heading}.</strong> {preview.text.detail}
                   {preview.phase === 'ended' && <span className="mt-1 block font-semibold">This end time has already passed, so the banner would not show.</span>}
                 </div>
-              ) : timeError ? <p role="alert" className="mt-1 text-sm text-red-600">{timeError}</p>
+              ) : timeError ? <p role="alert" className="mt-1 text-sm text-status-error">{timeError}</p>
                 : <p className="mt-1 text-sm text-content-muted">Enter a start time to see the banner text.</p>}
             </div>
 
@@ -134,7 +134,7 @@ export default function MaintenanceBannerCard() {
             </div>
           </>
         )}
-        {feedback && <p role={feedback.type === 'error' ? 'alert' : 'status'} className={`text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+        {feedback && <p role={feedback.type === 'error' ? 'alert' : 'status'} className={`text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>}
       </CardContent>
     </Card>
   );

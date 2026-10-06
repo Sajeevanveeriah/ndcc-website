@@ -83,7 +83,7 @@ export default function NotificationRecipientsPage() {
         <p className="mt-2 max-w-3xl text-content-muted">Choose which club addresses receive copies of emails the website sends. Changes apply to the next email, usually within a minute. If an email type has no active addresses, no club copy is sent for it.</p>
       </div>
       {message && <p role="status" className="rounded-sm border border-edge-subtle p-4">{message}</p>}
-      {error && <p role="alert" className="rounded-sm border border-red-200 p-4 text-red-700 dark:text-red-300">{error}</p>}
+      {error && <p role="alert" className="rounded-sm border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-300">{error}</p>}
       {loadError && <div role="alert" className="rounded-sm border border-edge-subtle p-4"><p>{loadError}</p><Button className="mt-3" variant="secondary" onClick={() => void load()}>Retry</Button></div>}
       {!data && !loadError && <p role="status">Loading notification recipients...</p>}
       {data && !data.available && <p role="status" className="rounded-sm border border-edge-subtle p-4">{data.message}</p>}

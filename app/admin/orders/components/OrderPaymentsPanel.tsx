@@ -52,7 +52,7 @@ export default function OrderPaymentsPanel({
                                 {p.recorded_by && <span className="text-content-muted">by {p.recorded_by}</span>}
                                 {p.notes && <span className="text-content-muted">— {p.notes}</span>}
                                 {p.status === 'settled' && p.provider !== 'stripe' && (
-                                  <Button variant="ghost" size="sm" className="text-red-600" onClick={() => onReversePayment(p)}>
+                                  <Button variant="ghost" size="sm" className="text-status-error" onClick={() => onReversePayment(p)}>
                                     Reverse
                                   </Button>
                                 )}

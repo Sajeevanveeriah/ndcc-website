@@ -142,7 +142,7 @@ export default function SeasonRegistrationAdminPage() {
 
       {feedback && (
         <div
-          className={`rounded-lg border p-4 text-sm ${feedback.type === 'error' ? 'border-red-200 bg-red-50 text-red-900' : feedback.type === 'success' ? 'border-green-200 bg-green-50 text-green-900' : 'border-blue-200 bg-blue-50 text-blue-900'}`}
+          className={`rounded-lg border p-4 text-sm ${feedback.type === 'error' ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200' : feedback.type === 'success' ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200' : 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200'}`}
           role={feedback.type === 'error' ? 'alert' : 'status'}
           aria-live="polite"
         >

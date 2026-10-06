@@ -13,6 +13,7 @@ import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { Handshake, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
 
@@ -228,7 +229,7 @@ export default function AdminSponsorsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <Link href="/admin/sponsors/players" className="btn-secondary mb-6 inline-flex">Manage player sponsors</Link>
@@ -246,19 +247,15 @@ export default function AdminSponsorsPage() {
       />
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : loadError ? (
         <div role="alert" className="bg-surface-card rounded-xl border border-edge-subtle p-8">
-          <p className="mb-4 text-red-600">{loadError}</p>
+          <p className="mb-4 text-status-error">{loadError}</p>
           <Button variant="secondary" onClick={() => void fetchSponsors()}>Retry loading sponsors</Button>
         </div>
       ) : sponsors.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <Handshake className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <Handshake className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No sponsors yet. Add your first sponsor.</p>
         </div>
       ) : (
@@ -305,7 +302,7 @@ export default function AdminSponsorsPage() {
                       Visit <ExternalLink className="h-3 w-3" />
                     </a>
                   ) : (
-                    <span className="text-gray-400">—</span>
+                    <span className="text-gray-400 dark:text-slate-500">—</span>
                   )}
                 </TableCell>
                 <TableCell>
