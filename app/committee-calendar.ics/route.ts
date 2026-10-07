@@ -1,4 +1,5 @@
-import { eventStartDate, sanitiseCommitteeCalendarIcs } from '@/lib/calendar/google-committee-ics';
+import { sanitiseCommitteeCalendarIcs } from '@/lib/calendar/google-committee-ics';
+import { GET as getPublicClubCalendar } from '@/app/api/public/calendar/ics/route';
 import { isCommitteeFeedKey } from '@/lib/calendar/committee-feed-key';
 import { createServerClient } from '@/lib/supabase-server';
 
@@ -38,27 +39,20 @@ async function getCommitteeCalendarSourceUrl(): Promise<string> {
   return validateGooglePrivateIcsUrl(data.source_url);
 }
 
-const MELBOURNE_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit' });
-
-/** Melbourne dates of the club's public calendar events: the only days the open feed may show. */
-async function getPublicEventDates(): Promise<Set<string>> {
-  const supabase = createServerClient({ fetchTimeoutMs: 5000 });
-  const { data, error } = await supabase
-    .from('calendar_events')
-    .select('start_at')
-    .eq('status', 'published')
-    .eq('visibility', 'public');
-  if (error) throw new Error(`Public calendar lookup failed: ${error.code || 'unknown'}.`);
-  return new Set((data ?? []).map((row) => MELBOURNE_DATE.format(new Date(row.start_at as string))));
-}
-
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    // Without the committee key, the feed carries only events that are already
-    // on the public club calendar; private bookings and meetings need the key.
-    const full = isCommitteeFeedKey(url.searchParams.get('key'));
-    const publicDates = full ? null : await getPublicEventDates();
+    const download = url.searchParams.get('download') === '1';
+    // Without the committee key this address serves the public club calendar,
+    // built only from published public events: nothing from the committee's
+    // Google calendar (private bookings, meetings) is read or passed through.
+    if (!isCommitteeFeedKey(url.searchParams.get('key'))) {
+      const publicFeed = await getPublicClubCalendar();
+      const headers = new Headers(publicFeed.headers);
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
+      if (download && publicFeed.ok) headers.set('Content-Disposition', 'attachment; filename="NDCC-Club-Calendar.ics"');
+      return new Response(publicFeed.body, { status: publicFeed.status, headers });
+    }
     const sourceUrl = await getCommitteeCalendarSourceUrl();
     const upstream = await fetch(sourceUrl, {
       cache: 'no-store',
@@ -71,13 +65,7 @@ export async function GET(request: Request) {
     }
 
     const source = await upstream.text();
-    const body = sanitiseCommitteeCalendarIcs(source, publicDates ? {
-      keepEvent: (event) => {
-        const date = eventStartDate(event);
-        return date !== null && publicDates.has(date);
-      },
-    } : {});
-    const download = url.searchParams.get('download') === '1';
+    const body = sanitiseCommitteeCalendarIcs(source);
 
     return new Response(body, {
       status: 200,
