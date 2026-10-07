@@ -22,6 +22,8 @@ const windowStub = { setInterval: () => 1, clearInterval() {}, addEventListener(
 const component = load('app/reverse-raffle/ReverseRaffleClient.tsx', {
   '@/components/payments/PaymentMethodChoice': { default: () => null },
   '@/components/payments/BankTransferInstructions': { default: () => null },
+  // No site key: the Turnstile widget renders nothing and never blocks.
+  '@/components/common/TurnstileWidget': { default: () => null, useTurnstile: () => ({ required: false, token: null, setToken() {}, reset() {}, resetKey: 0, ready: true, check: () => true, message: '' }) },
   '@/lib/payments/bank-transfer': { BANK_TRANSFER_HOLD_HOURS: 48 },
   react: React,
   'react/jsx-runtime': require('react/jsx-runtime'),

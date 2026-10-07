@@ -4,6 +4,7 @@ import { FormEvent, useRef, useState } from 'react';
 import PaymentMethodChoice from '@/components/payments/PaymentMethodChoice';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import Link from 'next/link';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 
 export default function DonationForm() {
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'bank_transfer'>('stripe');
@@ -17,11 +18,14 @@ export default function DonationForm() {
   const startedAt = useRef(Date.now());
   const honeypot = useRef<HTMLInputElement>(null);
   const submitting = useRef(false);
+  const turnstile = useTurnstile();
   const inputClass = 'mt-2 w-full rounded-lg border border-edge-subtle bg-surface-card px-4 py-3 text-content-primary focus:outline-hidden focus:ring-2 focus:ring-blue-600';
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (submitting.current) return;
+    // Only the first request (/api/donations) is bot-checked.
+    if (!orderId && !turnstile.check()) return;
     submitting.current = true;
     setBusy(true);
     setError('');
@@ -30,8 +34,8 @@ export default function DonationForm() {
       if (!currentOrder) {
         const response = await fetch('/api/donations', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payment_method: paymentMethod, amount: Number(amount), name, email, hp_field: honeypot.current?.value || '', submitted_at: startedAt.current }),
-        });
+          body: JSON.stringify({ payment_method: paymentMethod, amount: Number(amount), name, email, hp_field: honeypot.current?.value || '', submitted_at: startedAt.current, turnstileToken: turnstile.token ?? undefined }),
+        }).finally(() => turnstile.reset());
         const result = await response.json();
         if (!response.ok || !result.order_id) throw new Error(result.error || 'Unable to start your donation.');
         currentOrder = result.order_id;
@@ -89,6 +93,7 @@ export default function DonationForm() {
             </fieldset>
             {confirmation && paymentMethod === 'bank_transfer' && <OrderPaymentOptions orderId={confirmation.order_id} customerEmail={email} totalAmount={confirmation.total_amount} paymentReference={confirmation.payment_reference} bankDetails={confirmation.bank_details} returnPath="/sponsors/donate" bankTransferChosen />}
             {error && <p role="alert" className="mt-4 text-red-700 dark:text-red-300">{error}</p>}
+            {!orderId && <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="donation" message={turnstile.message} className="mt-6" />}
             <button type="submit" disabled={busy || (Boolean(confirmation) && paymentMethod === 'bank_transfer')} className="mt-6 w-full rounded-lg bg-maroon-700 px-6 py-4 font-semibold text-white hover:bg-maroon-800 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 disabled:opacity-60">
               {busy ? 'Preparing your donation...' : confirmation && paymentMethod === 'bank_transfer' ? 'Bank transfer selected' : orderId ? 'Retry secure checkout' : `Donate ${new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(amount) || 0)}`}
             </button>

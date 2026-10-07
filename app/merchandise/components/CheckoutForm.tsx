@@ -1,6 +1,6 @@
 'use client';
 
-import type { Dispatch, FormEvent, SetStateAction } from 'react';
+import type { Dispatch, FormEvent, ReactNode, SetStateAction } from 'react';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
@@ -26,6 +26,7 @@ export default function CheckoutForm({
   setPaymentMethod,
   isSubmitting,
   windowState,
+  securityCheck,
 }: {
   formData: CheckoutFormData;
   setFormData: Dispatch<SetStateAction<CheckoutFormData>>;
@@ -36,6 +37,8 @@ export default function CheckoutForm({
   setPaymentMethod: (method: MerchPaymentMethod) => void;
   isSubmitting: boolean;
   windowState: { processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null };
+  /** Optional bot check (Turnstile) rendered just above the submit button. */
+  securityCheck?: ReactNode;
 }) {
   return (
               <Card>
@@ -140,6 +143,8 @@ export default function CheckoutForm({
                         </label>}
                       </fieldset>
                     )}
+
+                    {securityCheck}
 
                     <Button
                       type="submit"

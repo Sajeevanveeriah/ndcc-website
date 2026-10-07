@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { validateEmail } from '@/lib/utils';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 
 // Client island for the volunteer registration form: state, honeypot,
 // validation, submission and status messages. Role options are resolved
@@ -23,6 +24,7 @@ export default function VolunteerForm({ roleOptions }: { roleOptions: Array<{ va
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const turnstile = useTurnstile();
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
@@ -41,6 +43,7 @@ export default function VolunteerForm({ roleOptions }: { roleOptions: Array<{ va
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!turnstile.check()) return;
 
     setIsSubmitting(true);
     setSubmitStatus('idle');
@@ -50,7 +53,7 @@ export default function VolunteerForm({ roleOptions }: { roleOptions: Array<{ va
       const response = await fetch('/api/volunteers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, submitted_at: formData.submitted_at }),
+        body: JSON.stringify({ ...formData, submitted_at: formData.submitted_at, turnstileToken: turnstile.token ?? undefined }),
       });
 
       if (!response.ok) {
@@ -66,6 +69,7 @@ export default function VolunteerForm({ roleOptions }: { roleOptions: Array<{ va
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsSubmitting(false);
+      turnstile.reset();
     }
   }
 
@@ -157,6 +161,8 @@ export default function VolunteerForm({ roleOptions }: { roleOptions: Array<{ va
           value={formData.availability}
           onChange={(e) => setFormData((prev) => ({ ...prev, availability: e.target.value }))}
         />
+
+        <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="volunteer" message={turnstile.message} />
 
         <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full sm:w-auto">
           {isSubmitting ? 'Submitting...' : 'Register as Volunteer'}

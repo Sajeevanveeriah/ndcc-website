@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { CLUB_NAME } from '@/lib/constants';
 import { validateEmail } from '@/lib/utils';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 
 // Client island for the sponsorship enquiry form: state, honeypot,
 // validation, submission and status messages. The rest of /sponsors is
@@ -25,6 +26,7 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const turnstile = useTurnstile();
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
@@ -43,6 +45,7 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!turnstile.check()) return;
 
     setIsSubmitting(true);
     setSubmitStatus('idle');
@@ -59,6 +62,7 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
           message: `Package Interest: ${formData.tier_interest}\nPhone: ${formData.phone || 'Not provided'}\n\n${formData.message}`,
           hp_field: formData.hp_field,
           submitted_at: formData.submitted_at,
+          turnstileToken: turnstile.token ?? undefined,
         }),
       });
 
@@ -75,6 +79,7 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsSubmitting(false);
+      turnstile.reset();
     }
   }
 
@@ -172,6 +177,8 @@ export default function SponsorEnquiryForm({ tierOptions }: { tierOptions: Array
           value={formData.message}
           onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
         />
+
+        <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="sponsor-enquiry" message={turnstile.message} />
 
         <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full">
           {isSubmitting ? 'Sending...' : 'Submit Enquiry'}

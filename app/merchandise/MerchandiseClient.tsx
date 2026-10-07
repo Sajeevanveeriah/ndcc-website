@@ -13,6 +13,7 @@ import CartSummary from './components/CartSummary';
 import CheckoutForm from './components/CheckoutForm';
 import OrderConfirmationPanel from './components/OrderConfirmationPanel';
 import ProductCatalogue from './components/ProductCatalogue';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import type {
   ApiProduct,
   CartItem,
@@ -123,6 +124,7 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const turnstile = useTurnstile();
   // The catalogue and its CMS copy are rendered on the server (ISR). The
   // browser only fetches the catalogue when the server had none (a build
   // prerender that could not reach the database) or on Try again. Never use
@@ -398,6 +400,7 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!turnstile.check()) return;
 
     setIsSubmitting(true);
     setSubmitStatus('idle');
@@ -445,11 +448,16 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
       }
       const idempotencyKey = orderAttempt.current?.key;
 
+      // The Turnstile token is single use and deliberately outside the
+      // signature: a retry reuses the idempotency key with a fresh token.
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(idempotencyKey ? { ...orderPayload, idempotency_key: idempotencyKey } : orderPayload),
-      });
+        body: JSON.stringify({
+          ...(idempotencyKey ? { ...orderPayload, idempotency_key: idempotencyKey } : orderPayload),
+          turnstileToken: turnstile.token ?? undefined,
+        }),
+      }).finally(() => turnstile.reset());
 
       const data = await response.json();
 
@@ -619,6 +627,7 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
                 setPaymentMethod={setPaymentMethod}
                 isSubmitting={isSubmitting}
                 windowState={windowState}
+                securityCheck={<TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="merchandise-order" message={turnstile.message} />}
               />
             </>
           ) : null}

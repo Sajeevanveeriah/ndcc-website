@@ -48,17 +48,31 @@ export function turnstileSiteKey(): string {
  * State for one form's bot check. `required` is false when no site key is
  * configured; then `token` stays null and forms submit as before.
  */
+export const TURNSTILE_MISSING_MESSAGE = 'Please complete the security check above.';
+
 export function useTurnstile() {
   const required = Boolean(turnstileSiteKey());
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setTokenState] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
-  const reset = useCallback(() => { setToken(null); setResetKey((value) => value + 1); }, []);
-  return { required, token, setToken, reset, resetKey, ready: !required || Boolean(token) };
+  const [message, setMessage] = useState('');
+  const setToken = useCallback((value: string | null) => { setTokenState(value); if (value) setMessage(''); }, []);
+  const reset = useCallback(() => { setTokenState(null); setResetKey((value) => value + 1); }, []);
+  const ready = !required || Boolean(token);
+  // Call before sending to a protected route: false (and an inline message on
+  // the widget) when the check is required but not yet complete.
+  const check = useCallback(() => {
+    if (ready) return true;
+    setMessage(TURNSTILE_MISSING_MESSAGE);
+    return false;
+  }, [ready]);
+  return { required, token, setToken, reset, resetKey, ready, check, message };
 }
 
-export default function TurnstileWidget({ onToken, resetKey = 0, action, className }: {
+export default function TurnstileWidget({ onToken, resetKey = 0, action, className, message }: {
   onToken: (token: string | null) => void;
   resetKey?: number;
+  /** Inline message under the widget, e.g. useTurnstile().message. */
+  message?: string;
   /** Shown in the Cloudflare dashboard analytics (letters, digits, - and _ only). */
   action?: string;
   className?: string;
@@ -103,5 +117,6 @@ export default function TurnstileWidget({ onToken, resetKey = 0, action, classNa
   return <div className={className}>
     <div ref={container} aria-describedby={problem ? `${id}-problem` : undefined} />
     {problem && <p id={`${id}-problem`} role="alert" className="mt-2 text-sm text-status-error">{problem}</p>}
+    {message && !problem && <p role="alert" className="mt-2 text-sm text-status-error">{message}</p>}
   </div>;
 }

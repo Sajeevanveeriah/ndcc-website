@@ -14,6 +14,7 @@ import { EVENT_SONG_LIMITS, isSongRequestEvent } from '@/lib/events/song-request
 import { isSnailRaceEvent } from '@/lib/events/snail-race';
 import SnailRaceDetails, { raceSponsorshipPrice } from '@/components/events/SnailRaceDetails';
 import SnailPurchaseForm from '@/components/events/SnailPurchaseForm';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 
 const CLUB_TIME_ZONE = 'Australia/Melbourne';
 const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: CLUB_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -52,6 +53,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
+  const turnstile = useTurnstile();
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
@@ -80,6 +82,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!turnstile.check()) return;
 
     setIsSubmitting(true);
     setSubmitStatus('idle');
@@ -100,6 +103,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
             : { quantity: formData.quantity }),
           hp_field: formData.hp_field,
           submitted_at: formData.submitted_at,
+          turnstileToken: turnstile.token ?? undefined,
         }),
       });
 
@@ -131,6 +135,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsSubmitting(false);
+      turnstile.reset();
     }
   }
 
@@ -369,6 +374,8 @@ export default function EventDetailClient({ event }: { event: Event }) {
                   )}
                 </div>
                 )}
+
+                <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="event-registration" message={turnstile.message} />
 
                 <Button type="submit" isLoading={isSubmitting} className="w-full">
                   {isSubmitting
