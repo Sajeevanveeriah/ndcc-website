@@ -42,6 +42,14 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // Vercel production builds were killed for running out of memory while
+  // compiling (SIGKILL in the build container, 7 Oct 2026). Lower the peak:
+  // webpack frees caches between compiler passes, and static generation uses
+  // fewer parallel workers (each worker holds its own copy of the server bundle).
+  experimental: {
+    webpackMemoryOptimizations: true,
+    cpus: 2,
+  },
   // Headroom for prerendering on a slow database; build reads are bounded in
   // lib/supabase-server.ts, so a page that cannot load data still finishes.
   staticPageGenerationTimeout: 180,
