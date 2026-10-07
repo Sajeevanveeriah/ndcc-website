@@ -10,7 +10,7 @@ import 'server-only';
 import { createServerClient } from '@/lib/supabase-server';
 import { classifyRoundKind, fantasyWeekFromMatchDate, resolveExactIdentityCandidate } from '@/lib/dino-coach/domain';
 import { getPlayHQGameSummary, getPlayHQGradeFixtureRaw, getPlayHQTeamFixtureRaw, getPlayHQTeams } from './client';
-import { isClubTeamName } from './season-match';
+import { isClubTeamName, resolveClubTeamMatcher } from './season-match';
 import { normaliseFixtures } from './normalise';
 import {
   computeSourceHash,
@@ -18,6 +18,7 @@ import {
   involvesClubTeam,
   isCompletedFixture,
   isPendingFixture,
+  localMatchDate,
   normaliseGameSummaryPlayers,
   type PlayHQPlayerStatLine,
 } from './fantasy-import';
@@ -33,10 +34,21 @@ type QueueEntry = {
   matchDate: string | null;
   homeTeam: string;
   awayTeam: string;
+  // The grade's team_filter at queue time; absent on jobs queued before it
+  // was recorded (those use the shared club-name check).
+  teamFilter?: string | null;
   processed?: boolean;
 };
 
-type ReviewItem = { type: string; gameId?: string; playerId?: string; detail: string };
+type ReviewItem = { type: string; gameId?: string; playerId?: string; detail: string; [key: string]: unknown };
+
+// Stat columns a PlayHQ summary sets. Reconciliation approval copies exactly
+// these onto a published row (never its round, batch or identity).
+export const RECONCILABLE_STAT_FIELDS = ['runs', 'wickets', 'maidens', 'catches', 'runouts', 'stumpings', 'ducks', 'not_out', 'player_of_match'] as const;
+
+// Review item types the sync raises for player identity problems (counted as
+// ambiguous_players in sync health).
+export const PLAYER_IDENTITY_REVIEW_TYPES = ['ambiguous_exact_name', 'unmatched_player', 'duplicate_source_link'] as const;
 
 function firstArray(payload: unknown): unknown[] {
   const root = (payload && typeof payload === 'object' ? payload : {}) as Record<string, unknown>;
@@ -155,9 +167,15 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     const fixtures = rawFixtures.flatMap((raw) => normaliseFixtures({ data: [raw] }, { id: grade.playhq_grade_id, name: grade.grade_name }).map((fixture) => ({ fixture, raw })));
     unexplainedEntries += rawFixtures.length - fixtures.length;
     const queuedBefore = queue.length;
-    const clubPattern = grade.team_filter ? new RegExp(grade.team_filter, 'i') : undefined;
+    // One shared club-team check (season-match.ts). An invalid custom regex
+    // is reported for review and falls back to the shared check instead of
+    // aborting job creation.
+    const clubMatcher = resolveClubTeamMatcher(grade.team_filter);
+    if (clubMatcher.invalidFilter) {
+      reviewItems.push({ type: 'invalid_team_filter', detail: `Grade ${grade.grade_name} (${grade.playhq_grade_id}) has an invalid team filter "${clubMatcher.invalidFilter}"; the standard Newcomb/NDCC team-name check was used instead. Fix or clear the filter.` });
+    }
     fixtures.forEach(({ fixture, raw }) => {
-      if (!involvesClubTeam(fixture, clubPattern)) return;
+      if (!involvesClubTeam(fixture, clubMatcher.matches)) return;
       clubFixtures += 1;
       if (!isCompletedFixture(fixture)) {
         if (isPendingFixture(fixture)) awaitingResults += 1;
@@ -179,9 +197,10 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
         gradeName: grade.grade_name,
         roundNumber: round.number,
         roundName: round.name,
-        matchDate: fixture.startsAt ? fixture.startsAt.slice(0, 10) : null,
+        matchDate: localMatchDate(fixture.startsAt),
         homeTeam: fixture.homeTeam,
         awayTeam: fixture.awayTeam,
+        teamFilter: clubMatcher.invalidFilter ? null : (grade.team_filter ?? null),
       });
     });
     if (queue.length === queuedBefore && rawFixtures.length) {
@@ -283,6 +302,14 @@ export async function startFantasySyncJob(options: { seasonId: string; createdBy
     clubFixtures,
     dryRun: false as const,
   };
+}
+
+// "runs 12 -> 15, not_out false -> true" for a reconciliation review item.
+export function describeStatChanges(current: Record<string, unknown>, proposed: Record<string, unknown>): string {
+  const changes = RECONCILABLE_STAT_FIELDS
+    .filter((field) => proposed[field] !== undefined && String(current[field] ?? '') !== String(proposed[field]))
+    .map((field) => `${field} ${String(current[field] ?? '-')} -> ${String(proposed[field])}`);
+  return changes.length ? changes.join(', ') : 'no stat value changes, source details only';
 }
 
 async function resolvePlayer(supabase: any, seasonId: string, line: PlayHQPlayerStatLine, gradeName: string, counts: Record<string, number>, reviewItems: ReviewItem[]) {
@@ -455,7 +482,8 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
         counts.warnings += 1;
         continue;
       }
-      const clubLines = lines.filter((line) => /newcomb/i.test(line.team_name || ''));
+      const isClubTeam = resolveClubTeamMatcher(entry.teamFilter).matches;
+      const clubLines = lines.filter((line) => isClubTeam(line.team_name || ''));
       if (lines.length > 0 && clubLines.length === 0) {
         reviewItems.push({ type: 'club_identity_missing', gameId: entry.gameId, detail: `Game ${entry.gameId} returned player statistics without an explicit Newcomb team identity. The game was quarantined to prevent opponent-player leakage.` });
         counts.warnings += 1;
@@ -470,7 +498,7 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
         entry.roundName || `Round ${entry.roundNumber}`,
         entry.matchDate,
       );
-      const opponent = /newcomb/i.test(entry.homeTeam) ? entry.awayTeam : entry.homeTeam;
+      const opponent = isClubTeam(entry.homeTeam) ? entry.awayTeam : entry.homeTeam;
 
       for (const line of clubLines) {
         const playerId = await resolvePlayer(supabase, job.season_id, line, entry.gradeName, counts, reviewItems);
@@ -494,7 +522,8 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
         };
         const { data: existing } = await supabase
           .from('fantasy_match_stats')
-          .select('id, source_hash, import_batch_id, fantasy_import_batches(status)')
+          // Literal column list (typed select); matches RECONCILABLE_STAT_FIELDS.
+          .select('id, source_hash, import_batch_id, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_import_batches(status)')
           .eq('season_id', job.season_id)
           .eq('playhq_game_id', entry.gameId)
           .eq('player_id', playerId)
@@ -503,17 +532,49 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
         if (!existing) {
           const { error: insertError } = await supabase.from('fantasy_match_stats').insert(statRow);
           if (insertError) throw new Error(insertError.message);
-        } else if (existing.source_hash === sourceHash) {
-          counts.skipped += 1;
-        } else if ((existing as any).fantasy_import_batches?.status === 'published') {
-          // Published rows never change silently; reconcile through review.
-          counts.warnings += 1;
-          reviewItems.push({ type: 'reconciliation', gameId: entry.gameId, playerId, detail: `PlayHQ changed the published summary for game ${entry.gameId} / player ${line.display_name}. Approve the reconciliation to update the published stat.` });
-        } else {
-          const { error: updateError } = await supabase.from('fantasy_match_stats').update(statRow).eq('id', existing.id);
-          if (updateError) throw new Error(updateError.message);
-          counts.updated += 1;
+          continue;
         }
+        const existingPublished = (existing as any).fantasy_import_batches?.status === 'published';
+        if (existing.source_hash === sourceHash && (existingPublished || existing.import_batch_id === job.import_batch_id)) {
+          counts.skipped += 1;
+          continue;
+        }
+        if (existingPublished) {
+          // Published rows never change silently; reconcile through review.
+          // The item carries the proposed PlayHQ values and the hash it was
+          // raised against so an admin approval can apply exactly this change.
+          const proposed = Object.fromEntries(RECONCILABLE_STAT_FIELDS.map((field) => [field, (statRow as any)[field]]));
+          counts.warnings += 1;
+          reviewItems.push({
+            type: 'reconciliation',
+            gameId: entry.gameId,
+            playerId,
+            statId: existing.id,
+            previousHash: existing.source_hash ?? null,
+            sourceHash,
+            proposed,
+            detail: `PlayHQ now reports different figures for published game ${entry.gameId} / player ${line.display_name} (${describeStatChanges(existing, proposed)}). The published stat was not changed; approve to apply the PlayHQ figures, or dismiss to keep the published stat.`,
+          });
+          continue;
+        }
+        // The row sits in a draft, reviewed or rejected batch (or none) other
+        // than this job's: move it into the current batch - with fresh values
+        // when PlayHQ changed them - so it is published with this job.
+        // Re-check the old batch first so a row is never moved out of a batch
+        // an admin published after the read above.
+        if (existing.import_batch_id && existing.import_batch_id !== job.import_batch_id) {
+          const { data: currentBatch, error: batchReadError } = await supabase.from('fantasy_import_batches').select('status').eq('id', existing.import_batch_id).maybeSingle();
+          if (batchReadError) throw new Error(batchReadError.message);
+          if (currentBatch?.status === 'published') { counts.skipped += 1; continue; }
+        }
+        const unchanged = existing.source_hash === sourceHash;
+        const { error: updateError } = await supabase
+          .from('fantasy_match_stats')
+          .update(unchanged ? { import_batch_id: job.import_batch_id } : statRow)
+          .eq('id', existing.id);
+        if (updateError) throw new Error(updateError.message);
+        if (unchanged) counts.adopted = Number(counts.adopted || 0) + 1;
+        else counts.updated += 1;
       }
       successfulNow += 1;
     } catch (error) {
@@ -566,4 +627,134 @@ export async function retryFailedGames(jobId: string) {
     .single();
   if (updateError) throw new Error(updateError.message);
   return { job: updated, requeued: requeued.length };
+}
+
+// A rejected admin review action, with the HTTP status the route returns.
+export class SyncActionError extends Error {
+  constructor(message: string, readonly status = 400) { super(message); }
+}
+
+type AdminActor = { id?: string | null; email?: string | null };
+
+const REVIEW_JOB_COLUMNS = 'id, season_id, import_batch_id, status, total_games, processed_games, successful_games, failed_games, counts, review_items, error_summary, started_at, completed_at, created_at';
+
+/** Admin: dismiss every review item on a needs_review job and mark it
+ *  completed. The dismissed items are kept on the job counts as evidence.
+ *  Nothing is published or changed in match stats. Jobs with failed games
+ *  must have the failures retried first, so a failure is never hidden. */
+export async function resolveJobReviewItems(jobId: string, actor: AdminActor) {
+  const supabase = createServerClient();
+  const { data: job, error } = await supabase.from('fantasy_sync_jobs').select('id, status, failed_games, review_items, counts').eq('id', jobId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!job) throw new SyncActionError('Sync job not found.', 404);
+  if (job.status !== 'needs_review') throw new SyncActionError(`Only a job that needs review can be marked reviewed (this job is ${job.status}).`, 409);
+  if (Number(job.failed_games || 0) > 0) throw new SyncActionError('This job has failed games. Retry the failures before marking it reviewed.', 409);
+  const items: ReviewItem[] = Array.isArray(job.review_items) ? job.review_items : [];
+  const counts = {
+    ...(job.counts || {}),
+    dismissed_review_items: items.slice(0, 50),
+    reviews_resolved_at: new Date().toISOString(),
+    reviews_resolved_by: actor.email ?? null,
+  };
+  const { data: updated, error: updateError } = await supabase
+    .from('fantasy_sync_jobs')
+    .update({ status: 'completed', review_items: [], counts })
+    .eq('id', jobId)
+    .eq('status', 'needs_review')
+    .select(REVIEW_JOB_COLUMNS)
+    .maybeSingle();
+  if (updateError) throw new Error(updateError.message);
+  if (!updated) throw new SyncActionError('The job changed while it was being reviewed. Reload and try again.', 409);
+  return { job: updated, dismissed: items.length };
+}
+
+function validProposedStats(proposed: unknown): Record<string, number | boolean> | null {
+  const source = (proposed && typeof proposed === 'object' ? proposed : {}) as Record<string, unknown>;
+  const result: Record<string, number | boolean> = {};
+  for (const field of RECONCILABLE_STAT_FIELDS) {
+    const value = source[field];
+    if (field === 'not_out' || field === 'player_of_match') {
+      if (typeof value !== 'boolean') return null;
+    } else if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+      return null;
+    }
+    result[field] = value as number | boolean;
+  }
+  return result;
+}
+
+/** Admin: approve one reconciliation review item - apply the PlayHQ figures
+ *  it recorded to the published stat row. Guarded so it only ever changes the
+ *  exact row and version the review was raised against: the row must still
+ *  be in a published batch of the job's season with the same source hash.
+ *  Only the summary stat columns and source hash change; round, batch and
+ *  player stay. Returns before/after values for the audit log and whether
+ *  the round was already scored (scores are not recalculated here). */
+export async function approveReconciliationItem(jobId: string, statId: string, actor: AdminActor) {
+  const supabase = createServerClient();
+  const { data: job, error } = await supabase.from('fantasy_sync_jobs').select('id, season_id, status, failed_games, review_items, counts').eq('id', jobId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!job) throw new SyncActionError('Sync job not found.', 404);
+  const items: ReviewItem[] = Array.isArray(job.review_items) ? job.review_items : [];
+  const item = items.find((entry) => entry?.type === 'reconciliation' && entry.statId === statId);
+  if (!item) throw new SyncActionError('That reconciliation is not listed on this job.', 404);
+  const proposed = validProposedStats(item.proposed);
+  if (!proposed || typeof item.sourceHash !== 'string') {
+    throw new SyncActionError('This review item does not record the PlayHQ figures (it was raised by an older sync). Dismiss it; the next sync raises it again with the figures if PlayHQ still differs.', 409);
+  }
+  const previousHash = typeof item.previousHash === 'string' ? item.previousHash : null;
+
+  const { data: stat, error: statError } = await supabase
+    .from('fantasy_match_stats')
+    .select('id, season_id, source_hash, round_id, playhq_game_id, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_import_batches(status), fantasy_rounds(status, round_number)')
+    .eq('id', statId)
+    .maybeSingle();
+  if (statError) throw new Error(statError.message);
+  if (!stat || (stat as any).season_id !== job.season_id) throw new SyncActionError('The stat row for this reconciliation no longer exists in this season.', 404);
+  if ((stat as any).fantasy_import_batches?.status !== 'published') {
+    throw new SyncActionError('This stat is no longer in a published batch; the next sync updates it without approval. Dismiss this item.', 409);
+  }
+  if (((stat as any).source_hash ?? null) !== previousHash) {
+    throw new SyncActionError('The published stat changed after this review was raised. Dismiss this item; the next sync raises a fresh one if PlayHQ still differs.', 409);
+  }
+
+  const before = Object.fromEntries(RECONCILABLE_STAT_FIELDS.map((field) => [field, (stat as any)[field]]));
+  const baseUpdate = supabase
+    .from('fantasy_match_stats')
+    .update({ ...proposed, source_hash: item.sourceHash, source_updated_at: new Date().toISOString() })
+    .eq('id', statId);
+  const guarded = previousHash === null ? baseUpdate.is('source_hash', null) : baseUpdate.eq('source_hash', previousHash);
+  const { data: changed, error: changeError } = await guarded.select('id').maybeSingle();
+  if (changeError) throw new Error(changeError.message);
+  if (!changed) throw new SyncActionError('The published stat changed while approving. Reload and try again.', 409);
+
+  // Drop every reconciliation item for this row from the job. A job left
+  // with no review items and no failures is complete.
+  const remaining = items.filter((entry) => !(entry?.type === 'reconciliation' && entry.statId === statId));
+  const approvals = Array.isArray(job.counts?.approved_reconciliations) ? job.counts.approved_reconciliations : [];
+  const counts = {
+    ...(job.counts || {}),
+    approved_reconciliations: [...approvals, { statId, gameId: item.gameId ?? null, by: actor.email ?? null, at: new Date().toISOString() }].slice(-50),
+  };
+  const nextStatus = job.status === 'needs_review' && remaining.length === 0 && Number(job.failed_games || 0) === 0 ? 'completed' : job.status;
+  const { data: updatedJob, error: jobUpdateError } = await supabase
+    .from('fantasy_sync_jobs')
+    .update({ review_items: remaining, counts, status: nextStatus })
+    .eq('id', jobId)
+    .select(REVIEW_JOB_COLUMNS)
+    .maybeSingle();
+  if (jobUpdateError) throw new Error(jobUpdateError.message);
+
+  const roundStatus = (stat as any).fantasy_rounds?.status ?? null;
+  return {
+    job: updatedJob,
+    statId,
+    gameId: (stat as any).playhq_game_id ?? item.gameId ?? null,
+    roundId: (stat as any).round_id ?? null,
+    roundNumber: (stat as any).fantasy_rounds?.round_number ?? null,
+    before,
+    after: proposed,
+    changes: describeStatChanges(before, proposed),
+    rescoreRequired: roundStatus === 'scored' || roundStatus === 'final',
+  };
 }

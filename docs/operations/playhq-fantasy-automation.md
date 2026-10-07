@@ -4,8 +4,10 @@
 
 `/api/cron/playhq-fantasy-sync` (daily, 16:30 UTC, `CRON_SECRET`-guarded) calls
 `runFantasyOrchestrator()` in `lib/playhq/fantasy-orchestrator.ts`. Each run,
-for every eligible fantasy season (`is_public`, not archived,
-`auto_sync_enabled = true`; `legacy-unverified` is permanently excluded):
+for every eligible fantasy season (`status = 'active'`,
+`auto_sync_enabled = true`; completed and archived seasons are historical
+reference data and switching to those statuses turns auto sync off;
+`legacy-unverified` is permanently excluded):
 
 1. **Discover season** — matches PlayHQ organisation seasons to the local
    season by normalised season years (`2025/26`, `2025-26`, `2025 2026`…),
@@ -20,14 +22,22 @@ for every eligible fantasy season (`is_public`, not archived,
 4. **Create or resume the job** — bounded, resumable `fantasy_sync_jobs`
    batches (existing machinery), run under a database lease
    (`acquire_fantasy_sync_lock`) so concurrent invocations cannot overlap.
-   Abandoned `running` jobs (>15 min stale) are recovered. Current seasons
-   re-sync at most every 12 h; completed seasons stop once they have a
-   published PlayHQ batch (this is what backfills 2025/26 automatically).
+   Abandoned `running` jobs (>15 min stale) are recovered. Active seasons
+   re-sync at most every 12 h (manual CMS runs are not throttled).
 5. **Validate + auto-publish** — a finished job publishes its draft batch only
-   when: zero failed games, zero review items, all discovered games processed,
-   all stat fields valid, and the batch is not empty on a non-empty discovery
-   (empty-fetch protection). Anything else keeps the last known good public
-   data and records a blocking exception.
+   when: zero failed games, no blocking (`empty_queue`) review item, all
+   discovered games processed, all stat fields valid, and the batch is not
+   empty on a non-empty discovery (empty-fetch protection). Anything else
+   keeps the last known good public data and records a blocking exception.
+   Other review items (unmatched or ambiguous players, ambiguous rounds,
+   quarantined games, changed published stats) write no stat row, so the
+   clean rows still publish and the items stay listed on the job. A job with
+   review items no longer stops later runs. Stat rows left in an unpublished
+   batch by an earlier job are moved into the current job's batch.
+   In **Import jobs** an admin can **Dismiss review items** (marks the job
+   completed; nothing published changes) or, for a changed published stat,
+   **Apply PlayHQ figures** (updates that one published row, audited; re-run
+   the round's scoring if it was already scored).
 6. **Health + alerts** — every stage is recorded in `fantasy_sync_runs`;
    after 3 consecutive failures for a season an email goes to the contact
    recipients (24 h dedupe).

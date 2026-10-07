@@ -5,14 +5,24 @@ import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { type RunLog, type SeasonRow, setSeasonException } from './shared';
 
-/** Validate a finished job's draft batch and publish it when every blocking
- *  gate passes. Blocking issues keep the previous published state untouched. */
+// Review items that mean the job's batch itself cannot be trusted. Every
+// other review type (unmatched/ambiguous players, ambiguous rounds,
+// quarantined games, reconciliations of published rows, an invalid team
+// filter) writes NO stat row for the affected game or player, so the rows
+// that are in the batch resolved cleanly and may be published while those
+// items stay listed on the job for an admin.
+export const PUBLISH_BLOCKING_REVIEW_TYPES = new Set(['empty_queue']);
+
+/** Validate a finished job's draft batch and publish its clean rows when
+ *  every blocking gate passes. Blocking issues keep the previous published
+ *  state untouched. */
 export async function validateAndPublish(supabase: any, season: SeasonRow, job: any): Promise<RunLog> {
   const blockers: string[] = [];
-  if (job.status !== 'completed') blockers.push(`Job finished as ${job.status}, not completed.`);
+  if (!['completed', 'needs_review'].includes(job.status)) blockers.push(`Job finished as ${job.status}, not completed.`);
   if (Number(job.failed_games || 0) > 0) blockers.push(`${job.failed_games} game(s) failed to import.`);
   const reviewItems = Array.isArray(job.review_items) ? job.review_items : [];
-  if (reviewItems.length > 0) blockers.push(`${reviewItems.length} review item(s) require admin resolution.`);
+  const blockingReviews = reviewItems.filter((item: { type?: string }) => PUBLISH_BLOCKING_REVIEW_TYPES.has(String(item?.type)));
+  if (blockingReviews.length > 0) blockers.push(`${blockingReviews.length} blocking review item(s) require admin resolution.`);
   if (Number(job.processed_games || 0) < Number(job.total_games || 0)) {
     blockers.push(`Only ${job.processed_games}/${job.total_games} discovered games were processed.`);
   }
@@ -92,6 +102,8 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
       published: true,
       rows: rowCount ?? 0,
       games: totalGames,
+      // Non-blocking review items stay on the job for an admin.
+      open_review_items: reviewItems.length,
       counts: job.counts ?? null,
     },
   };

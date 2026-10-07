@@ -165,7 +165,9 @@ export async function discoverAndMapGrades(supabase: any, season: SeasonRow): Pr
       grade_name: meta.name,
       playhq_season_id: meta.playhqSeasonId,
       enabled: true,
-      team_filter: 'newcomb',
+      // No custom filter: fixture and summary filtering use the shared
+      // isClubTeamName aliases (resolveClubTeamMatcher in season-match.ts).
+      team_filter: null,
     }));
   if (inserts.length) {
     const { error } = await supabase.from('fantasy_season_grade_sources').insert(inserts);

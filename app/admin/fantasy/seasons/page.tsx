@@ -302,7 +302,23 @@ export default function AdminFantasySeasonsPage() {
                     {jobs.map((job: any) => (
                       <div key={job.id} className="text-xs font-body text-content-muted border-b border-edge-subtle pb-2">
                         <p><span className="font-semibold">{job.status}</span> · {job.processed_games}/{job.total_games} games · ok {job.successful_games} · failed {job.failed_games} · created {job.counts?.created ?? 0} · matched {job.counts?.matched ?? 0} · updated {job.counts?.updated ?? 0} · skipped {job.counts?.skipped ?? 0} · warnings {job.counts?.warnings ?? 0}</p>
-                        {(job.review_items || []).slice(0, 8).map((item: any, index: number) => <p key={index} className="text-status-warning">Review ({item.type}): {item.detail}</p>)}
+                        {(job.review_items || []).slice(0, 8).map((item: any, index: number) => (
+                          <div key={index} className="flex flex-wrap items-center gap-2">
+                            <p className="text-status-warning">Review ({item.type}): {item.detail}</p>
+                            {item.type === 'reconciliation' && item.statId && item.proposed && (
+                              <Button size="sm" variant="secondary" disabled={busy} onClick={() => {
+                                if (!window.confirm('Apply the PlayHQ figures to this published stat? If the round is already scored, re-run its scoring afterwards.')) return;
+                                syncAction(season.id, { action: 'approve_reconciliation', jobId: job.id, statId: item.statId }, 'PlayHQ figures applied to the published stat. Re-run scoring for that round if it was already scored.');
+                              }}>Apply PlayHQ figures</Button>
+                            )}
+                          </div>
+                        ))}
+                        {job.status === 'needs_review' && Number(job.failed_games || 0) === 0 && (job.review_items || []).length > 0 && (
+                          <Button size="sm" variant="secondary" disabled={busy} onClick={() => {
+                            if (!window.confirm(`Dismiss all ${(job.review_items || []).length} review item(s) on this job and mark it completed? Published stats are not changed.`)) return;
+                            syncAction(season.id, { action: 'resolve_reviews', jobId: job.id }, 'Review items dismissed; the job is marked completed.');
+                          }}>Dismiss review items</Button>
+                        )}
                         {(job.error_summary || []).slice(0, 5).map((item: any, index: number) => <p key={index} className="text-status-error">Game {item.gameId}: {item.message}</p>)}
                       </div>
                     ))}

@@ -71,9 +71,16 @@ export async function getFantasySyncHealth() {
         .eq('fantasy_import_batches.source', 'playhq-api'),
     ]);
 
-    const reviewCount = seasonJobs.reduce((sum: number, job: { status: string; review_items?: unknown[] }) => (
-      sum + (job.status === 'needs_review' && Array.isArray(job.review_items) ? job.review_items.length : 0)
-    ), 0);
+    // Later runs re-raise the same open items while earlier needs_review jobs
+    // still list them, so count each distinct item once.
+    const openReviews = new Set<string>();
+    for (const job of seasonJobs as Array<{ status: string; review_items?: unknown[] }>) {
+      if (job.status !== 'needs_review' || !Array.isArray(job.review_items)) continue;
+      for (const item of job.review_items as Array<Record<string, unknown>>) {
+        openReviews.add(JSON.stringify([item?.type, item?.gameId, item?.playerId, item?.statId, item?.detail]));
+      }
+    }
+    const reviewCount = openReviews.size;
 
     readiness.push({
       season_id: season.id,
