@@ -170,5 +170,19 @@ check('limited edition replay preserves product-level Stripe configuration', lim
 const activeAfterLimited = psql(DB, `select count(*) from apparel_products where active = true`);
 check('24 products active after the limited edition run', activeAfterLimited === '24', `got ${activeAfterLimited}`);
 
+// Dino Socks sizes move to 7-11 and 12+; the guarded update must be
+// repeatable and must not overwrite a later Admin > Apparel correction.
+const SOCK_SIZES = '20261007095313_dino_socks_sizes.sql';
+applyMigrations(DB, [SOCK_SIZES]);
+applyMigrations(DB, [SOCK_SIZES]);
+const sockSizes = psql(DB, `select array_to_string(sizes, '|') from apparel_products where slug = 'dino-socks'`);
+check('dino socks sizes are 7-11 and 12+', sockSizes === '7-11|12+', `got ${sockSizes}`);
+const archivedSocks = psql(DB, `select array_to_string(sizes, '|') from apparel_products where slug = 'cricket-socks'`);
+check('archived cricket socks keep their sizes', archivedSocks === 'S|M|L', `got ${archivedSocks}`);
+psql(DB, `update apparel_products set sizes = array['S','M','L','XL'] where slug = 'dino-socks'`);
+applyMigrations(DB, [SOCK_SIZES]);
+const editedSocks = psql(DB, `select array_to_string(sizes, '|') from apparel_products where slug = 'dino-socks'`);
+check('dino socks size update preserves an admin correction', editedSocks === 'S|M|L|XL', `got ${editedSocks}`);
+
 dropTestDatabase(DB);
 finish('test-apparel-catalogue');
