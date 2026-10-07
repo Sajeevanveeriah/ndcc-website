@@ -64,6 +64,7 @@ const id = '11111111-1111-4111-8111-111111111111';
 let row = { id, title: 'Club event', date: '2036-07-03T09:30:00Z', ticket_price: 0, location: 'Clubrooms' };
 let readError = null, registrationError = null, writes = [], sent = [], deletions = [], rpcCalls = [];
 let existingRegistrations = [], rpcResult = { error: { code: 'PGRST202', message: 'Could not find the function' } };
+let turnstileOk = true, turnstileCalls = [];
 const db = { rpc(name, args) { rpcCalls.push({ name, args }); return Promise.resolve(rpcResult); }, from(table) {
   let selected, inserted;
   const query = {
@@ -94,7 +95,7 @@ const route = load('app/api/events/route.ts', {
   '@/lib/payments/bank-transfer': { configuredBankDetails: () => null },
   '@/lib/payments/capabilities': { loadMerchPaymentSettings: async () => ({}), deriveCapabilities: () => ({card:true,bank_transfer:false}) },
   'next/server': { NextResponse: { json: (body, options) => Response.json(body, options) } },
-  '@/lib/server/request-guards': { enforceHoneypotAndTiming: () => true, enforceRateLimit: () => true, getClientIp: () => 'test' },
+  '@/lib/server/request-guards': { enforceHoneypotAndTiming: () => true, enforceRateLimit: () => true, enforceTurnstile: async (_request, body) => { turnstileCalls.push(body); return turnstileOk; }, getClientIp: () => 'test' },
   '@/lib/utils': load('lib/utils.ts'),
   '@/lib/payments/reference': { generateUniquePaymentReference: async () => 'TEST-EVENT-1' },
   '@/lib/email': { sendEmail: async message => sent.push(message), emailHtml: (_, html) => html, bankDetailsHtml: () => '', escapeEmailHtml: value => value },
@@ -127,6 +128,20 @@ assert.equal(writes[1].value.order_id, 'order-test');
 assert.equal(writes[1].value.payment_reference, 'TEST-EVENT-1');
 assert.equal(sent.length, 0, 'paid events retain the existing payment receipt workflow');
 console.log('PASS paid registration retains exact totals, payment reference and linked order');
+
+// Optional Turnstile check (same hook as contact/order/volunteer/raffle): a
+// refused check answers 403 before any registration, order or email exists.
+writes = []; sent = []; turnstileCalls = [];
+turnstileOk = false;
+response = await submit();
+assert.equal(response.status, 403);
+assert.match((await response.json()).error, /security check/);
+assert.equal(writes.length, 0, 'refused bot check writes nothing');
+assert.equal(sent.length, 0, 'refused bot check emails nobody');
+assert.equal(turnstileCalls.length, 1);
+assert.equal(turnstileCalls[0].event_id, id, 'the parsed JSON body is passed so turnstileToken can be read');
+turnstileOk = true;
+console.log('PASS event registration calls the optional Turnstile hook and refuses before any write');
 
 // Song-request events (iPod Shuffle): entry is by buying named songs at ticket_price each.
 const submitSongs = (songs, extra = {}) => route.POST(new Request('https://example.invalid/api/events', {

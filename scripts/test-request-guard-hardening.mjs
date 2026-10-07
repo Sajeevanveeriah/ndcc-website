@@ -102,9 +102,21 @@ await test('rate limiter fails closed and logs one structured [rate_limit_unavai
   assert.equal(await guards.enforceTurnstile(request(), {}), true, 'enforceTurnstile is a no-op when unset');
 });
 
-await test('public contact, order, volunteer and raffle routes call the optional Turnstile hook', () => {
-  for (const file of ['app/api/contacts/route.ts', 'app/api/orders/route.ts', 'app/api/volunteers/route.ts', 'app/api/raffle/checkout/route.ts']) {
+await test('public contact, order, volunteer, raffle, event, membership and donation routes call the optional Turnstile hook', () => {
+  for (const file of ['app/api/contacts/route.ts', 'app/api/orders/route.ts', 'app/api/volunteers/route.ts', 'app/api/raffle/checkout/route.ts', 'app/api/events/route.ts', 'app/api/memberships/route.ts', 'app/api/donations/route.ts']) {
     assert.match(readFileSync(file, 'utf8'), /await enforceTurnstile\(request, /, file);
+  }
+  // Event, membership and donation submissions start payment flows: the check
+  // must run after the honeypot/timing check and before any database write,
+  // payment reference or Stripe session, never mid-checkout.
+  for (const file of ['app/api/events/route.ts', 'app/api/memberships/route.ts', 'app/api/donations/route.ts']) {
+    const source = readFileSync(file, 'utf8');
+    const check = source.indexOf('await enforceTurnstile(request, ');
+    assert.ok(source.indexOf('enforceHoneypotAndTiming(') < check, `${file}: after honeypot/timing`);
+    for (const later of ['.insert(', 'generateUniquePaymentReference(', '.rpc(', 'getStripe(']) {
+      const at = source.indexOf(later);
+      if (at !== -1) assert.ok(check < at, `${file}: Turnstile runs before ${later}`);
+    }
   }
 });
 

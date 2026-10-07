@@ -5,7 +5,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { sendBankTransferInstructions } from '@/lib/payments/bank-transfer-email';
-import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { readLimitedJsonObject } from '@/lib/order-input-validation';
 import { validateDonationInput } from '@/lib/donation-input';
 
@@ -25,6 +25,13 @@ export async function POST(request: Request) {
     if (!input.ok) return NextResponse.json({ error: input.error }, { status: 400 });
     if (!enforceHoneypotAndTiming(parsed.value.hp_field as string, parsed.value.submitted_at as number)) {
       return NextResponse.json({ error: 'Please refresh the page and try again.' }, { status: 400 });
+    }
+    // Optional Cloudflare Turnstile check, as on the contact, order, volunteer
+    // and raffle forms; a no-op unless TURNSTILE_SECRET_KEY and
+    // TURNSTILE_ENFORCE=true are set. Runs only on this first submission,
+    // before any registration, payment reference or Stripe session exists.
+    if (!await enforceTurnstile(request, parsed.value)) {
+      return NextResponse.json({ error: 'Please complete the security check and try again.' }, { status: 403 });
     }
     const supabase = createServerClient();
     const settings = await loadMerchPaymentSettings(supabase);
