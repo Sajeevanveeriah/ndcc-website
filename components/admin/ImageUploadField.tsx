@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Input from '@/components/ui/Input';
 import { uploadCmsMedia } from '@/lib/admin-media-upload';
+import { CMS_IMAGE_TYPES, CMS_PDF_TYPES, cmsUploadErrorMessage, cmsUploadProblem } from '@/lib/admin-upload-rules';
 import { normaliseMediaUrl } from '@/lib/media-url';
 import MediaLibraryPicker from '@/components/admin/MediaLibraryPicker';
 
@@ -31,6 +32,43 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
   const [error, setError] = useState<string | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  // dragenter/dragleave fire for child elements too; count to avoid flicker.
+  const dragDepth = useRef(0);
+  const acceptedTypes = isPdf ? CMS_PDF_TYPES : CMS_IMAGE_TYPES;
+  const dropHintId = `${id}-drop-hint`;
+
+  const hasFiles = (event: React.DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files');
+  const dropHandlers = {
+    onDragEnter: (event: React.DragEvent) => {
+      if (!hasFiles(event) || uploading) return;
+      event.preventDefault();
+      dragDepth.current += 1;
+      setDragActive(true);
+    },
+    onDragOver: (event: React.DragEvent) => {
+      if (!hasFiles(event) || uploading) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    },
+    onDragLeave: (event: React.DragEvent) => {
+      if (!hasFiles(event)) return;
+      dragDepth.current = Math.max(0, dragDepth.current - 1);
+      if (dragDepth.current === 0) setDragActive(false);
+    },
+    onDrop: (event: React.DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      dragDepth.current = 0;
+      setDragActive(false);
+      if (uploading) return;
+      const files = Array.from(event.dataTransfer.files);
+      if (files.length === 0) return;
+      void uploadFile(files[0]).then(() => {
+        if (files.length > 1) setProgressText((text) => `${text} Only the first of the ${files.length} dropped files was used.`.trim());
+      });
+    },
+  };
 
   useEffect(() => {
     setPreviewFailed(false);
@@ -38,10 +76,12 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
 
   async function uploadFile(file: File) {
     setError(null);
-    const MAX_CLIENT_BYTES = (isPdf ? 10 : file.type === 'image/gif' ? 4 : 20) * 1024 * 1024; // images are resized before the server's 4 MB limit
-    if (file.size > MAX_CLIENT_BYTES) {
-      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
-      setError(`File is too large (${sizeMb} MB). Maximum is ${MAX_CLIENT_BYTES / 1024 / 1024} MB. Please export a smaller file and try again.`);
+    // Same type and size rules for picked and dropped files (the picker's
+    // `accept` does not filter drops). Images are resized before the server's 4 MB limit.
+    const problem = cmsUploadProblem(file, acceptedTypes);
+    if (problem) {
+      setProgressText('');
+      setError(problem);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -55,12 +95,7 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
       setProgressText('File is ready. Review the preview, then save this form to publish your changes.');
     } catch (uploadError) {
       setProgressText('');
-      const raw = uploadError instanceof Error ? uploadError.message : 'Upload failed.';
-      if (raw.includes('413')) {
-        setError('File is too large for the server. Compress the image to under 4 MB and try again.');
-      } else {
-        setError(raw);
-      }
+      setError(cmsUploadErrorMessage(uploadError));
     } finally {
       setUploading(false);
       onUploadingChange?.(false);
@@ -86,12 +121,19 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
           onChange(normaliseMediaUrl(event.target.value));
         }}
       />
+      {/* Drop zone: drag a file onto this area, or use the buttons (keyboard). */}
+      <div
+        data-drop-zone
+        {...dropHandlers}
+        className={`space-y-1 rounded-lg border-2 border-dashed p-3 transition-colors ${dragActive ? 'border-maroon-500 bg-surface-muted' : 'border-edge-subtle'}`}
+      >
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           className="text-xs px-3 py-1.5 rounded-sm border border-edge-strong hover:bg-surface-page disabled:opacity-60"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
+          aria-describedby={dropHintId}
         >
           {uploading ? 'Uploading...' : isPdf ? 'Upload PDF' : 'Upload image'}
         </button>
@@ -106,10 +148,14 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         </button>
         <p className="text-xs text-content-muted">{isPdf ? 'PDF · max 10 MB' : 'JPEG, PNG, WebP up to 20 MB, resized automatically. GIF up to 4 MB.'}</p>
       </div>
+      <p id={dropHintId} className="text-xs text-content-muted">
+        {dragActive ? `Drop the ${isPdf ? 'PDF' : 'image'} to upload it.` : uploading ? 'Uploading, please wait...' : `Or drag and drop ${isPdf ? 'a PDF' : 'an image'} onto this box.`}
+      </p>
+      </div>
       <input
         ref={fileInputRef}
         type="file"
-        accept={isPdf ? 'application/pdf' : 'image/jpeg,image/png,image/webp,image/gif'}
+        accept={acceptedTypes.join(',')}
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -131,9 +177,11 @@ export default function ImageUploadField({ id, label, value, onChange, placehold
         />
       )}
       {helpText && <p className="text-xs text-content-muted">{helpText}</p>}
-      {progressText && <p className="text-xs text-status-success">{progressText}</p>}
+      <div role="status" aria-live="polite" className="space-y-1">
+        {progressText && <p className="text-xs text-status-success">{progressText}</p>}
+        {error && <p className="text-xs text-status-error">{error}</p>}
+      </div>
       {invalidPathWarning && <p className="text-xs text-status-warning">{invalidPathWarning}</p>}
-      {error && <p className="text-xs text-status-error">{error}</p>}
       {value && !isPdf && (
         <div className="space-y-1">
           <div className="relative h-20 w-20 rounded-sm border border-edge-subtle overflow-hidden bg-surface-page">

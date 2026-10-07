@@ -562,6 +562,7 @@ export default function AdminCalendarPage() {
         isOpen={modalOpen}
         editing={!!editingId}
         linkedEvent={Boolean(events.find(event => event.id === editingId)?.source_event_id)}
+        wasPublished={events.find(event => event.id === editingId)?.status === 'published'}
         form={form}
         errors={formErrors}
         saving={saving}

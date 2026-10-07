@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import ImageUploadField from '@/components/admin/ImageUploadField';
+import { saveButtonLabel } from '@/lib/admin-save-label';
 import {
   CALENDAR_EVENT_TYPES,
   CALENDAR_EVENT_TYPE_LABELS,
@@ -83,6 +84,8 @@ type CalendarEventFormModalProps = {
   isOpen: boolean;
   editing: boolean;
   linkedEvent?: boolean;
+  /** True when the saved event is currently published (for the save label). */
+  wasPublished?: boolean;
   form: CalendarEventForm;
   errors: Record<string, string>;
   saving: boolean;
@@ -120,6 +123,7 @@ export default function CalendarEventFormModal({
   isOpen,
   editing,
   linkedEvent = false,
+  wasPublished = false,
   form,
   errors,
   saving,
@@ -307,7 +311,9 @@ export default function CalendarEventFormModal({
         <div className="flex justify-end gap-3 pt-4 border-t border-edge-subtle">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={onSave} isLoading={saving} disabled={uploading}>
-            {editing ? 'Update Event' : 'Create Event'}
+            {form.status === 'draft' || form.status === 'published'
+              ? saveButtonLabel(form.status, editing && wasPublished)
+              : editing ? 'Update Event' : 'Create Event'}
           </Button>
         </div>
       </div>

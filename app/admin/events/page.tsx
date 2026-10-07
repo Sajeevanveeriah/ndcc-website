@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { formatDate, formatCurrency, toDatetimeLocalInClubTimezone } from '@/lib/utils';
+import { datetimeLocalToClubIso, formatDate, formatCurrency, toDatetimeLocalInClubTimezone } from '@/lib/utils';
 import { parseApiResponse, adminFetch } from '@/lib/admin-client';
 import type { Event, EventRegistration } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -18,6 +18,9 @@ import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuar
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import AdminSkeleton from '@/components/admin/AdminSkeleton';
+import InlinePreview, { PreviewToggleButton, usePreviewToggle } from '@/components/admin/InlinePreview';
+import { publicationState, saveButtonLabel } from '@/lib/admin-save-label';
+import { consumeNewEditorParam } from '@/lib/admin-open-editor';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
 import { snailCsv, snailExportRows, snailRaceCard, sponsorCsv, sponsorExportRows, sponsorshipTotals, type SnailExportOrder, type SnailExportRegistration } from '@/lib/events/snail-race-export';
 import { sponsoredRaceName } from '@/lib/events/snail-race';
@@ -99,6 +102,8 @@ export default function AdminEventsPage() {
   const [editingHasSchedule, setEditingHasSchedule] = useState(false);
   const [editingHasMode, setEditingHasMode] = useState(false);
   const [editingHasSnailSettings, setEditingHasSnailSettings] = useState(false);
+  const [rowBusyId, setRowBusyId] = useState<string | null>(null);
+  const preview = usePreviewToggle();
   const draft = useDraftAutosave({ editor: 'events', recordId: editingId, value: form, active: modalOpen });
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
@@ -134,6 +139,8 @@ export default function AdminEventsPage() {
 
     fetchEvents();
     fetchRegistrations();
+    // Dashboard quick action: /admin/events?new=1 opens a blank event.
+    if (consumeNewEditorParam().open) openCreate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -160,6 +167,7 @@ export default function AdminEventsPage() {
     setForm(emptyEvent);
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -193,6 +201,7 @@ export default function AdminEventsPage() {
     });
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -216,7 +225,10 @@ export default function AdminEventsPage() {
 
   const handleSave = async () => {
     if (uploading) return;
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      preview.setPreviewing(false);
+      return;
+    }
 
     setSaving(true);
 
@@ -290,6 +302,30 @@ export default function AdminEventsPage() {
     }
   };
 
+  // One-click publish/unpublish from the list. Only `published` is sent, so an
+  // optional "show from" schedule (published_at) is kept as it is.
+  const setPublished = async (event: Event, published: boolean) => {
+    setRowBusyId(event.id);
+    try {
+      const response = await adminFetch('/api/admin/resources/events', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: event.id, revision: event.revision, published }),
+      });
+      const result = await parseApiResponse<{ data: Event }>(response);
+      setEvents((prev) => prev.map((e) => (e.id === event.id ? result.data : e)));
+      setFeedback({ type: 'success', message: published ? `"${event.title}" published.` : `"${event.title}" unpublished and saved as a draft.` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update event.' });
+    } finally {
+      setRowBusyId(null);
+    }
+  };
+
+  const formState = publicationState(form.published, publishAt ? datetimeLocalToClubIso(publishAt) : null);
+  const liveEvent = editingId ? events.find((e) => e.id === editingId) : undefined;
+  const wasLive = Boolean(liveEvent && liveEvent.published && !isScheduled(liveEvent));
+
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
   };
@@ -361,7 +397,7 @@ export default function AdminEventsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
+        <p role="status" className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <BatchActionsBar
@@ -435,8 +471,18 @@ export default function AdminEventsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(event)}>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(event)} aria-label={`Edit ${event.title}`}>
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void setPublished(event, !event.published)}
+                      isLoading={rowBusyId === event.id}
+                      disabled={rowBusyId !== null}
+                      aria-label={event.published ? `Unpublish ${event.title}` : `Publish ${event.title}`}
+                    >
+                      {event.published ? 'Unpublish' : 'Publish'}
                     </Button>
                     <Button
                       variant="ghost"
@@ -642,6 +688,24 @@ export default function AdminEventsPage() {
         {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
         {editingId && <EditorialHistory key={editingId} resource="events" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as Event)} />}
         <div className="space-y-4">
+          {preview.previewing && (
+            <InlinePreview
+              id="event-preview"
+              title={asSafeString(form.title)}
+              untitled="Untitled event"
+              meta={[form.date ? formatDate(datetimeLocalToClubIso(form.date)) : '', asSafeString(form.location).trim()].filter(Boolean).join(' · ') || undefined}
+              imageUrl={asSafeString(form.image_url)}
+              imageAlt={asSafeString(form.title).trim() ? `Image for ${asSafeString(form.title).trim()}` : 'Event image'}
+              body={asSafeString(form.description)}
+              emptyBody="No event description yet."
+            >
+              <p className="text-sm text-content-muted">
+                {form.registration_mode === 'snail_race' ? 'Price per snail' : form.registration_mode === 'song_requests' ? 'Price per song' : 'Ticket price'}: {form.ticket_price > 0 ? formatCurrency(form.ticket_price) : 'Free'}
+                {form.online_registration_enabled === false ? ' · Registration handled offline (no online form).' : ''}
+              </p>
+            </InlinePreview>
+          )}
+          <div id="event-editor-fields" className="space-y-4" hidden={preview.previewing}>
           <Input
             id="event-title"
             label="Title"
@@ -788,14 +852,16 @@ export default function AdminEventsPage() {
             onChange={(e) => setPublishAt(e.target.value)}
           />
           <p className="-mt-2 text-xs text-content-muted">Leave blank to show it as soon as it is published. A scheduled event stays off the Events page and its detail page until this time; its club calendar entry follows the Published setting.</p>
+          </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-edge-subtle">
+            <PreviewToggleButton previewing={preview.previewing} onToggle={preview.toggle} controls="event-editor-fields" />
             {editingId && (
               <a
                 href={`/api/admin/preview?type=event&id=${encodeURIComponent(editingId)}`}
                 target="_blank"
                 rel="noopener"
-                className="mr-auto text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
+                className="text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
               >
                 Preview saved version
               </a>
@@ -804,7 +870,7 @@ export default function AdminEventsPage() {
               Cancel
             </Button>
             <Button variant="primary" onClick={handleSave} isLoading={saving} disabled={uploading}>
-              {editingId ? 'Update Event' : 'Create Event'}
+              {saveButtonLabel(formState, wasLive)}
             </Button>
           </div>
         </div>

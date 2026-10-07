@@ -1,9 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Upload } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
+import { uploadCmsMedia } from '@/lib/admin-media-upload';
+import { CMS_MEDIA_TYPES, cmsUploadErrorMessage, cmsUploadProblem } from '@/lib/admin-upload-rules';
+
+type UploadItem = { key: string; name: string; state: 'waiting' | 'uploading' | 'done' | 'failed'; message: string };
 
 type Asset = {
   id: string;
@@ -41,6 +46,9 @@ export default function AdminMediaLibraryPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const load = useCallback(async (offset: number) => {
     setLoading(true);
@@ -98,6 +106,42 @@ export default function AdminMediaLibraryPage() {
     }
   }
 
+  // Uploads one file at a time through the same signed-upload flow the
+  // editors use, so server limits, validation and permissions are unchanged.
+  async function uploadFiles(files: File[]) {
+    if (files.length === 0 || uploadingFiles) return;
+    const items: UploadItem[] = files.map((file, index) => ({ key: `${Date.now()}-${index}`, name: file.name, state: 'waiting', message: 'Waiting' }));
+    const update = (key: string, patch: Partial<UploadItem>) => setUploads((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+    setUploads(items);
+    setUploadingFiles(true);
+    setFeedback(null);
+    let uploaded = 0;
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      const { key } = items[index];
+      const problem = cmsUploadProblem(file, CMS_MEDIA_TYPES);
+      if (problem) {
+        update(key, { state: 'failed', message: problem });
+        continue;
+      }
+      update(key, { state: 'uploading', message: `Uploading (${index + 1} of ${files.length})...` });
+      try {
+        await uploadCmsMedia(file);
+        uploaded += 1;
+        update(key, { state: 'done', message: 'Uploaded' });
+      } catch (error) {
+        update(key, { state: 'failed', message: cmsUploadErrorMessage(error) });
+      }
+    }
+    setUploadingFiles(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    const failed = files.length - uploaded;
+    setFeedback(failed === 0
+      ? { type: 'success', message: `${uploaded} file${uploaded === 1 ? '' : 's'} uploaded. Add alt text to new images so they are ready to use.` }
+      : { type: 'error', message: `${uploaded} of ${files.length} files uploaded. ${failed} could not be uploaded; see Upload progress for the reason.` });
+    if (uploaded > 0) await load(0);
+  }
+
   async function remove() {
     if (!selected) return;
     if (!window.confirm('Delete this file permanently? It is only deleted if no page, article, event, sponsor or gallery item uses it.')) return;
@@ -119,15 +163,46 @@ export default function AdminMediaLibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Media Library</h1>
-        <p className="text-sm text-content-muted">Images and PDFs uploaded through the CMS. Copy a file URL, improve its alt text, or delete files that are no longer used anywhere.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Media Library</h1>
+          <p className="text-sm text-content-muted">Images and PDFs uploaded through the CMS. Upload new files, copy a file URL, improve its alt text, or delete files that are no longer used anywhere.</p>
+        </div>
+        <div className="sm:w-72 sm:shrink-0 sm:text-right">
+          <Button onClick={() => fileInputRef.current?.click()} isLoading={uploadingFiles} aria-describedby="media-upload-hint">
+            {!uploadingFiles && <Upload className="h-4 w-4" aria-hidden="true" />}
+            {uploadingFiles ? 'Uploading...' : 'Upload files'}
+          </Button>
+          <p id="media-upload-hint" className="mt-1 text-xs text-content-muted">Choose one or more files. JPEG, PNG, WebP up to 20 MB (resized automatically), GIF up to 4 MB, PDF up to 10 MB.</p>
+          <input
+            ref={fileInputRef}
+            id="media-upload-input"
+            type="file"
+            multiple
+            accept={CMS_MEDIA_TYPES.join(',')}
+            className="hidden"
+            onChange={(event) => void uploadFiles(Array.from(event.target.files ?? []))}
+          />
+        </div>
       </div>
+      {uploads.length > 0 && (
+        <section aria-labelledby="media-upload-progress-title" className="rounded-xl border border-edge-subtle bg-surface-card p-4">
+          <h2 id="media-upload-progress-title" className="text-sm font-semibold text-content-primary">Upload progress</h2>
+          <ol className="mt-2 space-y-1 text-sm" aria-live="polite">
+            {uploads.map((item) => (
+              <li key={item.key} className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <span className="truncate text-content-secondary">{item.name}</span>
+                <span className={item.state === 'done' ? 'text-status-success' : item.state === 'failed' ? 'text-status-error' : 'text-content-muted'}>{item.message}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {feedback && (
         <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-status-error bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : 'text-status-success bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800'}`}>{feedback.message}</p>
       )}
       {!available && (
-        <p className="rounded-sm border border-edge-blue bg-surface-blue-subtle px-3 py-2 text-sm text-content-primary">The media library needs the latest database update. Uploads still work from each editor.</p>
+        <p className="rounded-sm border border-edge-blue bg-surface-blue-subtle px-3 py-2 text-sm text-content-primary">The media library needs the latest database update. Uploads still work, but new files are not listed here until the update is applied.</p>
       )}
       <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setQuery(search.trim()); }}>
         <div className="min-w-[240px] flex-1">

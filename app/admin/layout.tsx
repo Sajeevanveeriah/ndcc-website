@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CLUB_SHORT } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard, Trash2, History, Wrench } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, ShoppingBag, Mail, Calendar, Newspaper, Handshake, LogOut, Menu, X, KeyRound, Image as ImageIcon, Shirt, UtensilsCrossed, FileText, UserRoundCheck, Settings, Trophy, CalendarDays, Search, Home, Building2, Megaphone, HeartHandshake, Shield, ClipboardList, ClipboardCheck, Ticket, CreditCard, Trash2, History, Wrench, Landmark, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseApiResponse } from '@/lib/admin-client';
 import InactivityGuard from '@/components/admin/InactivityGuard';
@@ -48,7 +48,9 @@ type SessionUser = {
   permissions: PermissionKey[];
 };
 
-type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; usersOnly?: boolean; fullAccessOnly?: boolean };
+// usersOnly / fullAccessOnly / adminOnly mirror the role checks of the page's
+// API, so a link is never shown to someone the page would refuse.
+type AdminLink = { href: string; label: string; plainLabel?: string; icon: typeof LayoutDashboard; usersOnly?: boolean; fullAccessOnly?: boolean; adminOnly?: boolean };
 type AdminGroup = { title: string; icon: typeof LayoutDashboard; links: AdminLink[]; advanced?: boolean };
 
 const adminGroups: AdminGroup[] = [
@@ -93,6 +95,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/kitchen', label: 'Kitchen', icon: UtensilsCrossed },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/admin/payments', label: 'Payments', plainLabel: 'Payments ledger and outstanding balances', icon: CreditCard },
+    { href: '/admin/payments/bank-transfers', label: 'Bank Transfers', plainLabel: 'Reconcile bank deposits and release unpaid reservations', icon: Landmark, adminOnly: true },
   ] },
   { title: 'Fantasy', icon: Trophy, advanced: true, links: [
     { href: '/admin/fantasy', label: 'Fantasy Home', icon: Trophy },
@@ -107,6 +110,7 @@ const adminGroups: AdminGroup[] = [
     { href: '/admin/notifications', label: 'Notification Emails', plainLabel: 'Who receives club copies of website emails', icon: Mail, fullAccessOnly: true },
     { href: '/admin/audit', label: 'Audit log', plainLabel: 'Who changed what', icon: History, usersOnly: true },
     { href: '/admin/trash', label: 'Trash', plainLabel: 'Restore deleted records', icon: Trash2, usersOnly: true },
+    { href: '/admin/operations', label: 'Website Operations', plainLabel: 'Database size, receipt email queue and email delivery', icon: Activity, fullAccessOnly: true },
     { href: '/admin/email-diagnostics', label: 'Email Diagnostics', icon: Mail },
     { href: '/admin/media-diagnostics', label: 'Media Diagnostics', icon: Settings },
     { href: '/admin/change-password', label: 'Password', icon: KeyRound },
@@ -120,6 +124,7 @@ function groupsForUser(user: SessionUser, search: string, showAdvanced: boolean)
     links: group.links.filter((link) => {
       if (link.usersOnly && !canManageUsers(user.role)) return false;
       if (link.fullAccessOnly && !isFullAccessRole(user.role)) return false;
+      if (link.adminOnly && user.role !== 'admin') return false;
       const permission = permissionForAdminPath(link.href);
       if (permission && !hasPermission(user, permission)) return false;
       const label = `${group.title} ${link.label} ${link.plainLabel || ''}`.toLowerCase();
