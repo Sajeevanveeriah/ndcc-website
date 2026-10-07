@@ -16,7 +16,10 @@ import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuar
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import AdminSkeleton from '@/components/admin/AdminSkeleton';
-import { BookOpen, Plus, Pencil, Trash2, Copy, Star, ExternalLink, Eye } from 'lucide-react';
+import InlinePreview, { PreviewToggleButton, usePreviewToggle } from '@/components/admin/InlinePreview';
+import { publicationState, saveButtonLabel } from '@/lib/admin-save-label';
+import { consumeNewEditorParam } from '@/lib/admin-open-editor';
+import { BookOpen, Plus, Pencil, Trash2, Copy, Star, ExternalLink } from 'lucide-react';
 
 const TYPE_OPTIONS = [
   { value: 'monthly_newsletter', label: 'Monthly Newsletter' },
@@ -62,7 +65,8 @@ export default function AdminPublicationsPage() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const preview = usePreviewToggle();
+  const [rowBusyId, setRowBusyId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRevision, setEditingRevision] = useState<number | undefined>();
@@ -96,6 +100,10 @@ export default function AdminPublicationsPage() {
 
   useEffect(() => {
     fetchPublications();
+    // Dashboard quick actions: ?new=1 opens a blank publication and
+    // ?new=<type> (e.g. weekly_match_report) presets its type.
+    const request = consumeNewEditorParam(TYPE_OPTIONS.map((option) => option.value));
+    if (request.open) openCreate(request.type as PublicationForm['publication_type'] | null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -127,12 +135,13 @@ export default function AdminPublicationsPage() {
     display_order: p.display_order ?? 0,
   });
 
-  const openCreate = () => {
+  const openCreate = (type?: PublicationForm['publication_type'] | null) => {
     setEditingId(null);
-    setForm({ ...emptyPublication, issue_date: new Date().toISOString().slice(0, 10) });
+    setForm({ ...emptyPublication, ...(type ? { publication_type: type } : {}), issue_date: new Date().toISOString().slice(0, 10) });
     setSlugTouched(false);
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -143,6 +152,7 @@ export default function AdminPublicationsPage() {
     setSlugTouched(true);
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -159,6 +169,7 @@ export default function AdminPublicationsPage() {
     setSlugTouched(true);
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -194,7 +205,10 @@ export default function AdminPublicationsPage() {
   });
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      preview.setPreviewing(false);
+      return;
+    }
     setSaving(true);
     const payload = buildPayload(form);
     try {
@@ -227,6 +241,7 @@ export default function AdminPublicationsPage() {
   };
 
   const setPublished = async (p: Publication, published: boolean) => {
+    setRowBusyId(p.id);
     try {
       const response = await adminFetch('/api/admin/resources/publications', {
         method: 'PATCH',
@@ -235,11 +250,17 @@ export default function AdminPublicationsPage() {
       });
       const result = await parseApiResponse<{ data: Publication }>(response);
       setPublications((prev) => prev.map((n) => (n.id === p.id ? result.data : n)));
-      setFeedback({ type: 'success', message: published ? 'Publication published.' : 'Publication unpublished.' });
+      setFeedback({ type: 'success', message: published ? `"${p.title}" published.` : `"${p.title}" unpublished and saved as a draft.` });
     } catch (err) {
       setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update publication.' });
+    } finally {
+      setRowBusyId(null);
     }
   };
+
+  const formState = publicationState(form.published, form.published_at);
+  const livePublication = editingId ? publications.find((p) => p.id === editingId) : undefined;
+  const wasLive = Boolean(livePublication && publicationState(livePublication.published, livePublication.published_at) === 'published');
 
   const setFeatured = async (p: Publication, featured: boolean) => {
     try {
@@ -316,13 +337,13 @@ export default function AdminPublicationsPage() {
             Newsletters and match reports · {publications.length} item{publications.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button variant="primary" onClick={openCreate}>
+        <Button variant="primary" onClick={() => openCreate()}>
           <Plus className="h-4 w-4 mr-1" />
           New Publication
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
+        <p role="status" className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -437,7 +458,14 @@ export default function AdminPublicationsPage() {
                     <Button variant="ghost" size="sm" onClick={() => openDuplicate(p)} aria-label={`Duplicate ${p.title}`}>
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setPublished(p, !p.published)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void setPublished(p, !p.published)}
+                      isLoading={rowBusyId === p.id}
+                      disabled={rowBusyId !== null}
+                      aria-label={p.published ? `Unpublish ${p.title}` : `Publish ${p.title}`}
+                    >
                       {p.published ? 'Unpublish' : 'Publish'}
                     </Button>
                     {p.published && (
@@ -472,6 +500,25 @@ export default function AdminPublicationsPage() {
         {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
         {editingId && <EditorialHistory key={editingId} resource="publications" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as Publication)} />}
         <div className="space-y-4">
+          {/* Mirrors the public detail rendering; built from the unsaved form only. */}
+          {preview.previewing && (
+            <InlinePreview
+              id="publication-preview"
+              kicker={[TYPE_LABELS[form.publication_type], form.round_label, form.season_label].filter(Boolean).join(' · ')}
+              title={form.title}
+              untitled="Untitled publication"
+              meta={[form.issue_date ? formatDate(form.issue_date) : '', form.author?.trim() || ''].filter(Boolean).join(' · ') || undefined}
+              imageUrl={form.cover_image_url}
+              imageAlt={form.title.trim() ? `Cover image for ${form.title.trim()}` : 'Publication cover image'}
+              summary={form.summary}
+              body={form.content}
+              emptyBody="No body content yet."
+            >
+              {form.document_url && <p className="text-sm text-maroon-700 dark:text-maroon-200">PDF attached: {form.document_url}</p>}
+              {form.external_url && <p className="text-sm text-maroon-700 dark:text-maroon-200">External link: {form.external_url}</p>}
+            </InlinePreview>
+          )}
+          <div id="publication-editor-fields" className="space-y-4" hidden={preview.previewing}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               id="publication-type"
@@ -597,38 +644,18 @@ export default function AdminPublicationsPage() {
               <span className="text-sm font-body text-content-secondary">Feature on the publications page</span>
             </label>
           </div>
+          </div>
 
-          <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-edge-subtle">
-            <Button variant="ghost" onClick={() => setPreviewOpen(true)}>
-              <Eye className="h-4 w-4 mr-1" />
-              Preview
-            </Button>
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-edge-subtle">
+            <PreviewToggleButton previewing={preview.previewing} onToggle={preview.toggle} controls="publication-editor-fields" />
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleSave} isLoading={saving}>
-              {editingId ? 'Save Changes' : form.published ? 'Create & Publish' : 'Save Draft'}
+              {saveButtonLabel(formState, wasLive)}
             </Button>
           </div>
         </div>
-      </Modal>
-
-      {/* Preview Modal — mirrors the public detail rendering */}
-      <Modal isOpen={previewOpen} onClose={() => setPreviewOpen(false)} title="Preview" size="lg">
-        <article>
-          <p className="text-xs font-semibold uppercase tracking-wide text-maroon-700 dark:text-maroon-200 mb-1">
-            {TYPE_LABELS[form.publication_type]}
-            {form.round_label ? ` · ${form.round_label}` : ''}
-            {form.season_label ? ` · ${form.season_label}` : ''}
-          </p>
-          <h2 className="text-2xl font-display font-bold text-content-primary mb-1">{form.title || 'Untitled publication'}</h2>
-          <p className="text-sm text-content-muted mb-4">{form.issue_date ? formatDate(form.issue_date) : ''}{form.author ? ` · ${form.author}` : ''}</p>
-          {form.summary && <p className="text-content-secondary font-body font-medium mb-3">{form.summary}</p>}
-          <div className="text-content-secondary font-body whitespace-pre-wrap">{form.content || 'No body content yet.'}</div>
-          {form.document_url && (
-            <p className="mt-4 text-sm text-maroon-700 dark:text-maroon-200">PDF attached: {form.document_url}</p>
-          )}
-        </article>
       </Modal>
 
       {/* Delete Confirmation Modal */}

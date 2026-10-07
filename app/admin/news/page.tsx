@@ -18,6 +18,9 @@ import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuar
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import AdminSkeleton from '@/components/admin/AdminSkeleton';
+import InlinePreview, { PreviewToggleButton, usePreviewToggle } from '@/components/admin/InlinePreview';
+import { publicationState, saveButtonLabel } from '@/lib/admin-save-label';
+import { consumeNewEditorParam } from '@/lib/admin-open-editor';
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const emptyNewsPost: Omit<NewsPost, 'id' | 'created_at'> = {
@@ -44,6 +47,8 @@ export default function AdminNewsPage() {
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchBusy, setBatchBusy] = useState(false);
+  const [rowBusyId, setRowBusyId] = useState<string | null>(null);
+  const preview = usePreviewToggle();
   const draft = useDraftAutosave({ editor: 'news', recordId: editingId, value: { form, galleryImages }, active: modalOpen });
   useUnsavedChangesGuard(draft.dirty);
   const restoreDraft = () => {
@@ -68,6 +73,8 @@ export default function AdminNewsPage() {
 
   useEffect(() => {
     fetchNews();
+    // Dashboard quick action: /admin/news?new=1 opens a blank article.
+    if (consumeNewEditorParam().open) openCreate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -77,6 +84,7 @@ export default function AdminNewsPage() {
     setGalleryImages([]);
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -98,6 +106,7 @@ export default function AdminNewsPage() {
     setGalleryImages(parsed.images.filter((image) => image.src !== coverImage));
     setFormErrors({});
     setFeedback(null);
+    preview.setPreviewing(false);
     setModalOpen(true);
   };
 
@@ -112,7 +121,10 @@ export default function AdminNewsPage() {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      preview.setPreviewing(false);
+      return;
+    }
 
     setSaving(true);
 
@@ -171,6 +183,29 @@ export default function AdminNewsPage() {
     }
   };
 
+  // One-click publish/unpublish from the list (same PATCH the editor sends).
+  const setPublished = async (post: NewsPost, published: boolean) => {
+    setRowBusyId(post.id);
+    try {
+      const response = await adminFetch('/api/admin/resources/news', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: post.id, revision: post.revision, published, published_at: published ? (post.published_at || new Date().toISOString()) : null }),
+      });
+      const result = await parseApiResponse<{ data: NewsPost }>(response);
+      setNews((prev) => prev.map((n) => (n.id === post.id ? result.data : n)));
+      setFeedback({ type: 'success', message: published ? `"${post.title}" published.` : `"${post.title}" unpublished and saved as a draft.` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update article.' });
+    } finally {
+      setRowBusyId(null);
+    }
+  };
+
+  const formState = publicationState(form.published, form.published_at);
+  const liveRow = editingId ? news.find((n) => n.id === editingId) : undefined;
+  const wasLive = Boolean(liveRow && publicationState(liveRow.published, liveRow.published_at) === 'published');
+
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
   };
@@ -225,7 +260,7 @@ export default function AdminNewsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
+        <p role="status" className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <BatchActionsBar
@@ -295,8 +330,18 @@ export default function AdminNewsPage() {
                 <TableCell>{formatDate(post.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(post)}>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(post)} aria-label={`Edit ${post.title}`}>
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void setPublished(post, !post.published)}
+                      isLoading={rowBusyId === post.id}
+                      disabled={rowBusyId !== null}
+                      aria-label={post.published ? `Unpublish ${post.title}` : `Publish ${post.title} now`}
+                    >
+                      {post.published ? 'Unpublish' : 'Publish'}
                     </Button>
                     <Button
                       variant="ghost"
@@ -323,6 +368,21 @@ export default function AdminNewsPage() {
         {draft.pendingDraft && <DraftRestorePrompt savedAt={draft.pendingDraft.savedAt} onRestore={restoreDraft} onDiscard={draft.discardDraft} />}
         {editingId && <EditorialHistory key={editingId} resource="news" id={editingId} onSelect={(snapshot) => openEdit({ ...snapshot, id: editingId, revision: editingRevision } as NewsPost)} />}
         <div className="space-y-4">
+          {preview.previewing && (
+            <InlinePreview
+              id="news-preview"
+              title={form.title}
+              untitled="Untitled article"
+              meta={form.author.trim() ? `by ${form.author.trim()}` : undefined}
+              imageUrl={form.image_url}
+              imageAlt={form.title.trim() ? `Cover image for ${form.title.trim()}` : 'Article cover image'}
+              body={form.content}
+              emptyBody="No article content yet."
+            >
+              {galleryImages.length > 0 && <p className="text-sm text-content-muted">Plus {galleryImages.length} additional image{galleryImages.length === 1 ? '' : 's'} in the article gallery.</p>}
+            </InlinePreview>
+          )}
+          <div id="news-editor-fields" className="space-y-4" hidden={preview.previewing}>
           <Input
             id="news-title"
             label="Title"
@@ -383,14 +443,16 @@ export default function AdminNewsPage() {
             </label>
             {form.published && form.published_at && Date.parse(form.published_at) > Date.now() && <Input id="news-schedule" label="Scheduled time - Australia/Melbourne" type="datetime-local" value={toDatetimeLocalInClubTimezone(form.published_at)} onChange={(e) => setForm({ ...form, published_at: datetimeLocalToClubIso(e.target.value) })} required />}
           </div>
+          </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-edge-subtle">
+            <PreviewToggleButton previewing={preview.previewing} onToggle={preview.toggle} controls="news-editor-fields" />
             {editingId && (
               <a
                 href={`/api/admin/preview?type=news&id=${encodeURIComponent(editingId)}`}
                 target="_blank"
                 rel="noopener"
-                className="mr-auto text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
+                className="text-sm font-semibold text-maroon-700 underline underline-offset-4 dark:text-maroon-200"
               >
                 Preview saved version
               </a>
@@ -399,7 +461,7 @@ export default function AdminNewsPage() {
               Cancel
             </Button>
             <Button variant="primary" onClick={handleSave} isLoading={saving}>
-              {editingId ? 'Update Article' : 'Publish Article'}
+              {saveButtonLabel(formState, wasLive)}
             </Button>
           </div>
         </div>

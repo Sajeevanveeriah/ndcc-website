@@ -18,6 +18,8 @@ import {
   TrendingUp,
   Trophy,
   Settings,
+  BookOpen,
+  ClipboardList,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -282,16 +284,35 @@ export default function AdminDashboardPage() {
                       Start New Season
                     </Button>
                   </Link>
-                  <Link href="/admin/events">
+                  {/* ?new= opens the editor straight away (see lib/admin-open-editor.ts). */}
+                  <Link href="/admin/events?new=1">
                     <Button variant="secondary" className="w-full justify-center">
                       <Calendar className="h-4 w-4 mr-2" />
                       Create New Event
                     </Button>
                   </Link>
-                  <Link href="/admin/news">
+                  <Link href="/admin/news?new=1">
                     <Button variant="secondary" className="w-full justify-center">
                       <Newspaper className="h-4 w-4 mr-2" />
                       Write News Article
+                    </Button>
+                  </Link>
+                  <Link href="/admin/match-day?tab=team-sheets">
+                    <Button variant="secondary" className="w-full justify-center">
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Add team sheet
+                    </Button>
+                  </Link>
+                  <Link href="/admin/match-day?tab=winners">
+                    <Button variant="secondary" className="w-full justify-center">
+                      <Trophy className="h-4 w-4 mr-2" />
+                      Add winner
+                    </Button>
+                  </Link>
+                  <Link href="/admin/publications?new=weekly_match_report">
+                    <Button variant="secondary" className="w-full justify-center">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Add match report
                     </Button>
                   </Link>
                   <Link href="/admin/site-pages">
