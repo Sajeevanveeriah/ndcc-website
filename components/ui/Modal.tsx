@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -102,7 +103,7 @@ export default function Modal({ isOpen, onClose, title, ariaLabel, children, cla
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const sizes = {
     sm: 'max-w-md',
@@ -113,7 +114,10 @@ export default function Modal({ isOpen, onClose, title, ariaLabel, children, cla
 
   const hasTitle = Boolean(title);
 
-  return (
+  // Portal to <body>: a transformed ancestor (e.g. a card's hover lift) would
+  // otherwise become the containing block for this fixed overlay, shrinking
+  // the dialog into the card and making it flicker as hover toggles.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop: pointer-only dismissal. Keyboard users close with Escape or
           the Close button, so this needs no role or tab stop. */}
@@ -146,6 +150,7 @@ export default function Modal({ isOpen, onClose, title, ariaLabel, children, cla
         )}
         <div className="p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

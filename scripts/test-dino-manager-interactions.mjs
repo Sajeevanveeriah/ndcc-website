@@ -23,6 +23,8 @@ const feedbackFetch = async (url, init) => {
 const windowFixture = { addEventListener() {}, removeEventListener() {}, setInterval() { return 1; }, clearInterval() {}, location: { search: '', href: '/fantasy/account', origin: 'https://example.invalid' }, history: { replaceState() {} } };
 const documentFixture = { body: { style: {} }, addEventListener() {}, removeEventListener() {} };
 const overrides = {
+  // react-test-renderer cannot mount portals; render Modal content in place.
+  'react-dom': { ...require('react-dom'), createPortal: node => node },
   'next/link': { __esModule: true, default: props => React.createElement('a', props) },
   '@/lib/admin-client': {
     parseApiResponse: async value => value,

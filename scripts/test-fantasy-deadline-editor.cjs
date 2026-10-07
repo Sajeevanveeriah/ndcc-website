@@ -11,6 +11,8 @@ let settingsFail = false;
 let round;
 const writes = [];
 const mocks = {
+  // react-test-renderer cannot mount portals; render Modal content in place.
+  'react-dom': { ...require('react-dom'), createPortal: node => node },
   '@/lib/admin-client': {
     parseApiResponse: async result => result,
     adminFetch: async (url, init) => {
