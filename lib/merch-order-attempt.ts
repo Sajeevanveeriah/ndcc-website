@@ -21,11 +21,23 @@ type StoredAttempt = { key: string; at: number; completedAt?: number };
 type StoredAttempts = Record<string, StoredAttempt>;
 const MAX_ATTEMPTS = 20;
 
-/** What identifies "the same order" across tabs: the payload without per-page anti-spam fields. */
+/**
+ * What identifies "the same order" across tabs. Mirrors orderFingerprint in
+ * app/api/orders/route.ts (trimmed text, lower-case email, same fields), so
+ * two tabs the server would treat as the same order share one key.
+ */
 export function merchAttemptSignature(payload: Record<string, unknown>): string {
-  const { submitted_at: _submittedAt, hp_field: _hpField, ...order } = payload;
-  void _submittedAt; void _hpField;
-  return JSON.stringify(order);
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+  return JSON.stringify({
+    customer_name: text(payload.customer_name),
+    customer_email: text(payload.customer_email).toLowerCase(),
+    customer_phone: text(payload.customer_phone),
+    notes: text(payload.notes),
+    items: payload.items,
+    total_amount: payload.total_amount,
+    payment_method: payload.payment_method,
+    merch_window_id: payload.merch_window_id || null,
+  });
 }
 
 /** SHA-256 hex of the signature, or null where Web Crypto is unavailable (then nothing is shared). */

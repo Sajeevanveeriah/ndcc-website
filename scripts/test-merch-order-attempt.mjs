@@ -24,6 +24,20 @@ const order = { customer_name: 'Jordan Example', customer_email: 'j@example.inva
 
 // Anti-spam fields differ per page load and are not part of "the same order".
 assert.equal(merchAttemptSignature({ ...order, submitted_at: 1, hp_field: '' }), merchAttemptSignature({ ...order, submitted_at: 999, hp_field: '' }));
+// Codex P2 (round 5): normalised exactly like the server's orderFingerprint.
+assert.equal(
+  merchAttemptSignature({ ...order, customer_name: '  Jordan Example ', customer_email: ' J@Example.INVALID ', notes: ' x ' }),
+  merchAttemptSignature({ ...order, customer_email: 'j@example.invalid', notes: 'x' }),
+);
+{
+  const route = readFileSync('app/api/orders/route.ts', 'utf8');
+  const server = route.slice(route.indexOf('function orderFingerprint'), route.indexOf('function isMissingIdempotencyColumn'));
+  const client = readFileSync('lib/merch-order-attempt.ts', 'utf8');
+  const fields = (source) => [...source.matchAll(/^\s+([a-z_]+): /gm)].map((match) => match[1]).sort();
+  const clientBody = client.slice(client.indexOf('export function merchAttemptSignature'), client.indexOf('/** SHA-256'));
+  assert.deepEqual(fields(clientBody), fields(server), 'client signature uses the same fields as the server fingerprint');
+  assert.match(server, /customer_email: text\(body\.customer_email\)\.toLowerCase\(\)/);
+}
 const digest = await merchAttemptDigest(merchAttemptSignature(order));
 assert.match(digest, /^[0-9a-f]{64}$/);
 assert.notEqual(await merchAttemptDigest(merchAttemptSignature({ ...order, total_amount: 120 })), digest);
