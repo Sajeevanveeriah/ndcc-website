@@ -12,6 +12,7 @@ import type { Event } from '@/lib/types';
 import { isMissingPublishedAtColumn, scheduledVisibilityFilter } from '@/lib/public-data';
 import { canRenderRecord, previewBannerLabel } from '@/lib/preview';
 import PreviewBanner from '@/components/common/PreviewBanner';
+import { eventTiming } from '@/lib/events/event-timing';
 import EventDetailClient from './EventDetailClient';
 
 // ISR: regenerated at most every 60s and on demand after admin writes
@@ -92,7 +93,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd([jsonLd, breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Events', path: '/events' }, { name: event.title, path: `/events/${event.id}` }])]) }}
       />
-      <EventDetailClient event={event} />
+      {/* Timing at render time; the client re-checks it on load because this
+          page is ISR-cached. */}
+      <EventDetailClient event={event} initialTiming={eventTiming(event.date)} />
     </>
   );
 }

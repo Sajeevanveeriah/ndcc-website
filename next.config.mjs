@@ -72,6 +72,9 @@ const nextConfig = {
       // before rendering (the page files remain as a fallback).
       { source: '/newsletters', destination: '/publications?type=monthly_newsletter', permanent: false },
       { source: '/match-reports', destination: '/publications?type=weekly_match_report', permanent: false },
+      // Browsers and crawlers request /favicon.ico by default; the site icon
+      // is app/icon.jpg, served by Next.js at /icon.jpg.
+      { source: '/favicon.ico', destination: '/icon.jpg', permanent: true },
     ];
   },
   async headers() {

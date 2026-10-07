@@ -88,6 +88,7 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/join`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/kitchen`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/merchandise`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${baseUrl}/pot-club`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/player-sponsors`, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${baseUrl}/this-week`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${baseUrl}/winners`, changeFrequency: 'weekly', priority: 0.5 },
@@ -96,6 +97,7 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/volunteer`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/fundraising`, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
   ];
 
   // Strict reads throw on failure so a degraded answer is never cached.
