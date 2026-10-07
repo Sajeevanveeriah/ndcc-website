@@ -131,7 +131,7 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   const completedHere = useRef(new Set<string>());
   useEffect(() => {
     pageLoadedAt.current = Date.now();
-    pruneMerchAttempt(attemptStorage(), pageLoadedAt.current);
+    void withMerchAttemptLock(() => pruneMerchAttempt(attemptStorage(), pageLoadedAt.current));
   }, []);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [paymentMethod, setPaymentMethod] = useState<MerchPaymentMethod>('bank_transfer');
@@ -483,14 +483,14 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
       if (!response.ok) {
         // A conflict means this attempt cannot be replayed; the next submit starts a new one.
         if (response.status === 409) {
-          if (idempotencyKey) forgetMerchAttempt(attemptStorage(), idempotencyKey, Date.now());
+          if (idempotencyKey) await withMerchAttemptLock(() => forgetMerchAttempt(attemptStorage(), idempotencyKey, Date.now()));
           orderAttempt.current = null;
         }
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
       if (idempotencyKey) {
         completedHere.current.add(idempotencyKey);
-        completeMerchAttempt(attemptStorage(), idempotencyKey, Date.now());
+        await withMerchAttemptLock(() => completeMerchAttempt(attemptStorage(), idempotencyKey, Date.now()));
       }
       orderAttempt.current = null;
 

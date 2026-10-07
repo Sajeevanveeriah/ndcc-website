@@ -65,6 +65,24 @@ const complete = (storage, page, key, now) => { page.completedHere.add(key); com
   assert.notEqual(keyFor(storage, tab(t0 + 3_000), t0 + 4_000), keyA, 'reloaded page starts fresh');
 }
 
+// Codex P2: a different order in another tab does not evict an in-flight attempt.
+{
+  const storage = memoryStorage();
+  const keyX = keyFor(storage, tab(t0), t0 + 1_000);
+  const other = await merchAttemptDigest(merchAttemptSignature({ ...order, customer_name: 'Casey Sample' }));
+  const keyY = keyFor(storage, tab(t0), t0 + 2_000, other);
+  assert.notEqual(keyY, keyX);
+  assert.equal(keyFor(storage, tab(t0 + 3_000), t0 + 4_000), keyX, 'X (response lost, page reloaded) still replays');
+  assert.equal(keyFor(storage, tab(t0), t0 + 5_000, other), keyY, 'Y still replays');
+  // Completing X keeps Y's record intact (the lost-update case).
+  completeMerchAttempt(storage, keyX, t0 + 6_000);
+  assert.equal(keyFor(storage, tab(t0), t0 + 7_000, other), keyY);
+  // Forgetting one leaves the other.
+  forgetMerchAttempt(storage, keyY, t0 + 8_000);
+  assert.notEqual(keyFor(storage, tab(t0), t0 + 9_000, other), keyY);
+  assert.equal(keyFor(storage, tab(t0), t0 + 9_500), keyX);
+}
+
 // Different order: different key.
 {
   const storage = memoryStorage();
@@ -85,6 +103,16 @@ const complete = (storage, page, key, now) => { page.completedHere.add(key); com
   assert.ok(s2.getItem(MERCH_ATTEMPT_STORAGE_NAME), 'fresh record kept');
   pruneMerchAttempt(s2, t0 + MERCH_ATTEMPT_TTL_MS);
   assert.equal(s2.getItem(MERCH_ATTEMPT_STORAGE_NAME), null, 'expired record removed on load');
+}
+
+// At most 20 records are kept, newest first.
+{
+  const storage = memoryStorage();
+  for (let i = 0; i < 25; i++) {
+    const d = await merchAttemptDigest(`order-${i}`);
+    keyFor(storage, tab(t0), t0 + i, d);
+  }
+  assert.equal(Object.keys(JSON.parse(storage.getItem(MERCH_ATTEMPT_STORAGE_NAME))).length, 20);
 }
 
 // A refused replay (changed or removed order) is forgotten; only the matching key is removed.
@@ -129,8 +157,11 @@ const complete = (storage, page, key, now) => { page.completedHere.add(key); com
 const client = readFileSync('app/merchandise/MerchandiseClient.tsx', 'utf8');
 assert.match(client, /await merchAttemptDigest\(merchAttemptSignature\(orderPayload\)\)/);
 assert.match(client, /await withMerchAttemptLock\(\(\) => merchAttemptKey\(attemptStorage\(\), \{/);
-assert.match(client, /completedHere\.current\.add\(idempotencyKey\);\s*completeMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)/);
-assert.match(client, /forgetMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)/);
-assert.match(client, /pruneMerchAttempt\(attemptStorage\(\), pageLoadedAt\.current\)/);
+// Codex P2: every storage mutation runs under the same lock.
+assert.match(client, /completedHere\.current\.add\(idempotencyKey\);\s*await withMerchAttemptLock\(\(\) => completeMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)\)/);
+assert.match(client, /await withMerchAttemptLock\(\(\) => forgetMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)\)/);
+assert.match(client, /withMerchAttemptLock\(\(\) => pruneMerchAttempt\(attemptStorage\(\), pageLoadedAt\.current\)\)/);
+assert.equal((client.match(/(merchAttemptKey|completeMerchAttempt|forgetMerchAttempt|pruneMerchAttempt)\(attemptStorage/g) || []).length, 4);
+assert.equal((client.match(/withMerchAttemptLock\(\(\) => (merchAttemptKey|completeMerchAttempt|forgetMerchAttempt|pruneMerchAttempt)\(/g) || []).length, 4);
 
 console.log('PASS: merchandise order attempts - shared across open tabs, digest-only, expiring, locked, repeat orders allowed.');

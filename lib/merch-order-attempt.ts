@@ -2,8 +2,9 @@
 // order instead of a duplicate. The key is shared through localStorage so the
 // same order submitted again from another open tab reuses it too.
 //
-// Only a SHA-256 digest of the order is stored (never names, emails or the
-// cart), and the record is removed once it is older than 30 minutes.
+// Only SHA-256 digests of orders are stored (never names, emails or the
+// cart), each with its key; records older than 30 minutes are removed. Every
+// read-modify-write runs under one cross-tab Web Lock where supported.
 //
 // A completed attempt is replayed only to pages that were already open before
 // it completed (a second tab still holding the same order). A page loaded
@@ -15,7 +16,10 @@ export const MERCH_ATTEMPT_TTL_MS = 30 * 60 * 1000;
 const LOCK_NAME = 'ndcc-merch-order-attempt';
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-type StoredAttempt = { digest: string; key: string; at: number; completedAt?: number };
+type StoredAttempt = { key: string; at: number; completedAt?: number };
+/** Fresh attempts keyed by order digest, so different orders in different tabs never evict each other. */
+type StoredAttempts = Record<string, StoredAttempt>;
+const MAX_ATTEMPTS = 20;
 
 /** What identifies "the same order" across tabs: the payload without per-page anti-spam fields. */
 export function merchAttemptSignature(payload: Record<string, unknown>): string {
@@ -34,61 +38,71 @@ export async function merchAttemptDigest(signature: string): Promise<string | nu
   } catch { return null; }
 }
 
-function remove(storage: StorageLike | null) {
-  try { storage?.removeItem(MERCH_ATTEMPT_STORAGE_NAME); } catch { /* storage optional */ }
+function isAttempt(value: unknown): value is StoredAttempt {
+  const attempt = value as StoredAttempt;
+  return Boolean(attempt) && typeof attempt.key === 'string' && typeof attempt.at === 'number'
+    && (attempt.completedAt === undefined || typeof attempt.completedAt === 'number');
 }
 
-/** The stored attempt while it is fresh; an expired or unreadable record is removed. */
-function read(storage: StorageLike | null, now: number): StoredAttempt | null {
+/** Fresh attempts only; expired or unreadable entries are dropped. */
+function read(storage: StorageLike | null, now: number): StoredAttempts {
   let raw: string | null = null;
-  try { raw = storage?.getItem(MERCH_ATTEMPT_STORAGE_NAME) ?? null; } catch { return null; }
-  if (raw === null) return null;
+  try { raw = storage?.getItem(MERCH_ATTEMPT_STORAGE_NAME) ?? null; } catch { return {}; }
+  if (raw === null) return {};
   try {
     const value = JSON.parse(raw);
-    if (value && typeof value.digest === 'string' && typeof value.key === 'string' && typeof value.at === 'number'
-      && (value.completedAt === undefined || typeof value.completedAt === 'number')
-      && now - value.at < MERCH_ATTEMPT_TTL_MS) return value;
-  } catch { /* unreadable */ }
-  remove(storage);
-  return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const fresh: StoredAttempts = {};
+    for (const [digest, attempt] of Object.entries(value)) {
+      if (/^[0-9a-f]{64}$/.test(digest) && isAttempt(attempt) && now - attempt.at < MERCH_ATTEMPT_TTL_MS) fresh[digest] = attempt;
+    }
+    return fresh;
+  } catch { return {}; }
 }
 
-function write(storage: StorageLike | null, value: StoredAttempt) {
-  try { storage?.setItem(MERCH_ATTEMPT_STORAGE_NAME, JSON.stringify(value)); } catch { /* storage optional */ }
+function write(storage: StorageLike | null, attempts: StoredAttempts) {
+  try {
+    const entries = Object.entries(attempts).sort(([, a], [, b]) => b.at - a.at).slice(0, MAX_ATTEMPTS);
+    if (entries.length === 0) storage?.removeItem(MERCH_ATTEMPT_STORAGE_NAME);
+    else storage?.setItem(MERCH_ATTEMPT_STORAGE_NAME, JSON.stringify(Object.fromEntries(entries)));
+  } catch { /* storage optional */ }
 }
 
-/** Remove an expired record (call on page load). */
+/** Remove expired records (call on page load). */
 export function pruneMerchAttempt(storage: StorageLike | null, now: number) {
-  read(storage, now);
+  write(storage, read(storage, now));
 }
 
 /**
  * The key for this order. Reuses the stored key when the same order is in
  * flight in another tab, or completed after this page loaded and not by this
- * page; otherwise creates and stores a new key.
+ * page; otherwise creates and stores a new key for this order.
  */
 export function merchAttemptKey(storage: StorageLike | null, options: {
   digest: string | null; now: number; pageLoadedAt: number; completedHere: ReadonlySet<string>; newKey: () => string;
 }): string {
   const { digest, now, pageLoadedAt, completedHere, newKey } = options;
   if (!digest) return newKey();
-  const stored = read(storage, now);
-  if (stored && stored.digest === digest && !completedHere.has(stored.key)
+  const attempts = read(storage, now);
+  const stored = attempts[digest];
+  if (stored && !completedHere.has(stored.key)
     && (stored.completedAt === undefined || stored.completedAt >= pageLoadedAt)) return stored.key;
   const key = newKey();
-  if (key) write(storage, { digest, key, at: now });
+  if (key) write(storage, { ...attempts, [digest]: { key, at: now } });
   return key;
 }
 
 /** The order was created (or replayed): note when, so later page loads start fresh. */
 export function completeMerchAttempt(storage: StorageLike | null, key: string, now: number) {
-  const stored = read(storage, now);
-  if (stored?.key === key && stored.completedAt === undefined) write(storage, { ...stored, completedAt: now });
+  const attempts = read(storage, now);
+  const entry = Object.entries(attempts).find(([, attempt]) => attempt.key === key);
+  if (entry && entry[1].completedAt === undefined) write(storage, { ...attempts, [entry[0]]: { ...entry[1], completedAt: now } });
 }
 
 /** The server refused to replay this key (changed or removed order): stop reusing it. */
 export function forgetMerchAttempt(storage: StorageLike | null, key: string, now: number) {
-  if (read(storage, now)?.key === key) remove(storage);
+  const attempts = read(storage, now);
+  write(storage, Object.fromEntries(Object.entries(attempts).filter(([, attempt]) => attempt.key !== key)));
 }
 
 /** Run a read-modify-write under a cross-tab Web Lock where supported, so two tabs cannot race. */
