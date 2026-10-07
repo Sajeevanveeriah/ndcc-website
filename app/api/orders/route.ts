@@ -412,7 +412,7 @@ export async function POST(request: Request) {
         const itemDetailLines = [
           ...selectedOptionLines,
           i.custom_name ? `Surname: ${escapeEmailHtml(i.custom_name)}` : '',
-          i.custom_initials ? `Initials: ${escapeEmailHtml(i.custom_initials)} (subject to club confirmation)` : '',
+          i.custom_initials ? `${/^[0-9]+$/.test(i.custom_initials) ? 'Number' : 'Initials'}: ${escapeEmailHtml(i.custom_initials)} (subject to club confirmation)` : '',
           preferences ? `Number preferences: ${escapeEmailHtml(preferences)} (subject to availability)` : '',
         ].filter(Boolean).join('<br>');
         return (

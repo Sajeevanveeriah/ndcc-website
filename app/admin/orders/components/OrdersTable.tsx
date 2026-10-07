@@ -3,6 +3,7 @@
 import { Fragment, type Dispatch, type SetStateAction } from 'react';
 import { mealCollectionLabel, mealServiceLabel } from '@/lib/meal-collection';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { initialsMode } from '@/lib/apparel/personalisation';
 import Button from '@/components/ui/Button';
 import DeleteRecordButton from '@/components/admin/DeleteRecordButton';
 import Badge from '@/components/ui/Badge';
@@ -85,7 +86,7 @@ export default function OrdersTable({
                           {item.applied_options?.map((opt) => ` · ${opt.label}`).join('')}
                         </p>
                         {item.custom_name && <p className="text-content-muted">Surname: {item.custom_name}</p>}
-                        {item.custom_initials && <p className="text-content-muted">Initials: {item.custom_initials}</p>}
+                        {item.custom_initials && <p className="text-content-muted">{initialsMode(item.custom_initials) === 'number' ? 'Number' : 'Initials'}: {item.custom_initials}</p>}
                         {item.custom_number !== undefined && (
                           <p className="text-content-muted">
                             Number preferences: {item.custom_number}

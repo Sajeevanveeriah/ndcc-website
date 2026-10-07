@@ -1,6 +1,7 @@
 'use client';
 
-import { personalisationKind } from '@/lib/apparel/personalisation';
+import { useState } from 'react';
+import { initialsMode, personalisationKind, type InitialsMode } from '@/lib/apparel/personalisation';
 import type { DisplayProduct, ProductSelectionState } from './types';
 
 /** Personalisation fields: initials for initials products, otherwise surname and number preferences. */
@@ -15,24 +16,60 @@ export default function PersonalisationFields({
     customNames, setCustomNames, customNumbers, setCustomNumbers, alternateNumbers, setAlternateNumbers,
     personalisationConfirmed, setPersonalisationConfirmed, personalisationErrors, setPersonalisationErrors,
   } = selection;
+  // Initials products accept letters or a number; the choice only shapes the input.
+  const [mode, setMode] = useState<InitialsMode>(() => initialsMode(customNames[product.id]));
   if (personalisationKind(product.id) === 'initials') {
+    const isNumber = mode === 'number';
+    const chooseMode = (next: InitialsMode) => {
+      if (next === mode) return;
+      setMode(next);
+      setCustomNames((prev) => ({ ...prev, [product.id]: '' }));
+      setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
+    };
     return (
       <div className="space-y-2">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-          Personalised with initials. Initials are subject to club confirmation.
+          Personalised with initials or a number. Personalisation is subject to club confirmation.
         </p>
+        <fieldset>
+          <legend className="form-label text-xs">Personalise with</legend>
+          <div className="flex gap-4 text-xs text-content-secondary">
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name={`initials-mode-${product.id}`}
+                checked={!isNumber}
+                onChange={() => chooseMode('letters')}
+              />
+              <span>Initials</span>
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name={`initials-mode-${product.id}`}
+                checked={isNumber}
+                onChange={() => chooseMode('number')}
+              />
+              <span>Number</span>
+            </label>
+          </div>
+        </fieldset>
         <div>
-          <label htmlFor={`custom-initials-${product.id}`} className="form-label text-xs">Initials (optional, 1 to 3 letters)</label>
+          <label htmlFor={`custom-initials-${product.id}`} className="form-label text-xs">
+            {isNumber ? 'Number (optional, 1 to 3 digits)' : 'Initials (optional, 1 to 3 letters)'}
+          </label>
           <input
             id={`custom-initials-${product.id}`}
             type="text"
+            inputMode={isNumber ? 'numeric' : 'text'}
             autoComplete="off"
             className="w-full px-3 py-1.5 border border-edge-strong rounded-lg text-sm font-body uppercase focus:border-maroon-500 focus:ring-1 focus:ring-maroon-500 outline-hidden"
-            placeholder="e.g. JS"
-            maxLength={5}
+            placeholder={isNumber ? 'e.g. 23' : 'e.g. JS'}
+            maxLength={isNumber ? 3 : 5}
             value={customNames[product.id] || ''}
             onChange={(e) => {
-              setCustomNames((prev) => ({ ...prev, [product.id]: e.target.value }));
+              const value = isNumber ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+              setCustomNames((prev) => ({ ...prev, [product.id]: value }));
               setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
             }}
           />
@@ -47,7 +84,7 @@ export default function PersonalisationFields({
               setPersonalisationErrors((prev) => ({ ...prev, [product.id]: '' }));
             }}
           />
-          <span>I understand my initials are subject to club confirmation.</span>
+          <span>I understand my initials or number are subject to club confirmation.</span>
         </label>
         {personalisationErrors[product.id] && (
           <p className="text-xs text-red-600 dark:text-red-400" role="alert">{personalisationErrors[product.id]}</p>

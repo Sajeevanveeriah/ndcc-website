@@ -200,7 +200,7 @@ export function buildMerchExportRows(
         selectedOptions,
         item.size || '',
         quantity,
-        item.custom_name || (item.custom_initials ? `Initials: ${item.custom_initials}` : ''),
+        item.custom_name || (item.custom_initials ? `${/^[0-9]+$/.test(item.custom_initials) ? 'Number' : 'Initials'}: ${item.custom_initials}` : ''),
         item.custom_number === undefined || item.custom_number === null ? '' : String(item.custom_number),
         aud(baseUnit),
         aud(surcharge),
