@@ -1,6 +1,8 @@
 'use client';
 
 import PlayerStatsCard from './PlayerStatsCard';
+import NamedBadge from './NamedBadge';
+import { useTeamSheetSelections } from './useTeamSheetSelections';
 import type { PlayerStats } from '@/lib/dino-coach/player-stats';
 import { useMemo, useState } from 'react';
 import { CRICKET_ROLE_LABELS } from '@/lib/dino-coach/season-summary';
@@ -39,6 +41,9 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
   const [role, setRole] = useState('all');
   const [team, setTeam] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('name');
+  const named = useTeamSheetSelections();
+  const [namedOnly, setNamedOnly] = useState(false);
+  const anyNamed = Object.keys(named).length > 0;
 
   const teams = useMemo(
     () => Array.from(new Set(players.map((p) => p.team_label).filter((label): label is string => Boolean(label && label.trim())))).sort(),
@@ -51,6 +56,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
       if (role !== 'all' && player.role !== role) return false;
       if (query && !player.display_name.toLowerCase().includes(query)) return false;
       if (team !== 'all' && (player.team_label || '') !== team) return false;
+      if (namedOnly && anyNamed && !named[player.id]) return false;
       return true;
     });
     const sorted = [...filtered];
@@ -59,10 +65,16 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
     if (sortKey === 'points') sorted.sort((a, b) => b.total_points - a.total_points || a.display_name.localeCompare(b.display_name));
     if (sortKey === 'form') sorted.sort((a, b) => formScore(b) - formScore(a) || a.display_name.localeCompare(b.display_name));
     return sorted;
-  }, [players, search, team, role, sortKey]);
+  }, [players, search, team, role, sortKey, namedOnly, anyNamed, named]);
 
   return (
     <div className="space-y-4">
+      {anyNamed && (
+        <label className="flex min-h-11 items-center gap-2 font-body text-sm text-content-primary">
+          <input type="checkbox" className="h-4 w-4" checked={namedOnly} onChange={(event) => setNamedOnly(event.target.checked)} />
+          Only show players named on this week&apos;s club team sheets
+        </label>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <label className="block">
           <span className="sr-only">Search players</span>
@@ -121,7 +133,7 @@ export default function PlayerListExplorer({ players, hasPublishedPoints }: { pl
           <TableBody>
             {visible.map((player) => (
               <TableRow key={player.id}>
-                <TableCell className="font-medium">{player.display_name}{player.source_status === 'unrated' && <span className="block text-xs text-content-muted">No supplied season history</span>}{player.source_status === 'external_partial' && <span className="block text-xs text-content-muted">Provisional price - incomplete season statistics</span>}</TableCell>
+                <TableCell className="font-medium">{player.display_name}<NamedBadge badge={named[player.id]} />{player.source_status === 'unrated' && <span className="block text-xs text-content-muted">No supplied season history</span>}{player.source_status === 'external_partial' && <span className="block text-xs text-content-muted">Provisional price - incomplete season statistics</span>}</TableCell>
                 <TableCell>{CRICKET_ROLE_LABELS[player.role] || player.role}</TableCell>
                 <TableCell>{player.team_label || 'NDCC'}</TableCell>
                 <TableCell>{player.published_at ? `${player.price_dino_dollars.toLocaleString('en-AU')} Dino Dollars` : <Badge>Awaiting verified price</Badge>}</TableCell>

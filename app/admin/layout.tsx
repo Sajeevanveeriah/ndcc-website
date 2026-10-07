@@ -68,7 +68,8 @@ const adminGroups: AdminGroup[] = [
   ] },
   { title: 'Publish', icon: Megaphone, links: [
     { href: '/admin/news', label: 'News', icon: Newspaper },
-    { href: '/admin/publications', label: 'Publications', icon: BookOpen },
+    { href: '/admin/publications', label: 'Publications', plainLabel: 'Newsletters and match reports', icon: BookOpen },
+    { href: '/admin/match-day', label: 'Team Sheets & Winners', plainLabel: 'Weekly team sheets, player sponsor awards, Dino Lotto and other winners', icon: Trophy },
     { href: '/admin/events', label: 'Events', icon: Calendar },
     { href: '/admin/site-pages', label: 'Pages & Links', plainLabel: 'Pages, buttons and links', icon: FileText },
     { href: '/admin/content', label: 'Page Sections', plainLabel: 'Page sections', icon: FileText },

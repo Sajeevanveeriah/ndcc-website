@@ -11,6 +11,8 @@ import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import { appointmentsForTeam, fixturesForTeam, formatFixtureDay, formatFixtureStartTime, isLadderRowForTeam, ladderForGrade, matchPlayHQTeam, opponentFor, splitTeamFixtures } from '@/lib/playhq/team-view';
 import { getPublicSeasonAppointments } from '@/lib/public-season-appointments';
 import { getPublicTeamBySlug, getPublicTeamsWithSlugs } from '@/lib/public-teams';
+import { getCurrentTeamSheetFor } from '@/lib/server/match-day';
+import TeamSheetCard from '@/components/match-day/TeamSheetCard';
 import { breadcrumbJsonLd, pageMetadata } from '@/lib/seo';
 
 // ISR: PlayHQ data is cached for at most 300s (lib/playhq/client.ts) and
@@ -44,11 +46,12 @@ export default async function TeamPage({ params }: Params) {
   const team = await getPublicTeamBySlug(slug);
   if (!team) notFound();
 
-  const [playhq, settings, currentSeason, appointments] = await Promise.all([
+  const [playhq, settings, currentSeason, appointments, teamSheet] = await Promise.all([
     getPlayHQPublicData(),
     getClubSettings(),
     getCurrentClubSeason().catch(() => null),
     getPublicSeasonAppointments().catch(() => []),
+    getCurrentTeamSheetFor({ id: team.id, name: team.name }).catch(() => null),
   ]);
 
   const playhqTeam = matchPlayHQTeam(team, playhq.teams);
@@ -82,6 +85,10 @@ export default async function TeamPage({ params }: Params) {
 
       <section className="nd-sec-tight">
         <div className="nd-wrap space-y-10">
+          {teamSheet && <section aria-labelledby="team-sheet-heading" className="space-y-3">
+            <h2 id="team-sheet-heading" className="text-xl font-display font-bold text-content-primary">Team sheet</h2>
+            <TeamSheetCard sheet={teamSheet} />
+          </section>}
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="nd-card p-6 lg:col-span-2">
               <h2 className="text-xl font-display font-bold text-content-primary">Next match</h2>

@@ -89,6 +89,8 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/kitchen`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/merchandise`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/player-sponsors`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${baseUrl}/this-week`, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${baseUrl}/winners`, changeFrequency: 'weekly', priority: 0.5 },
     { url: `${baseUrl}/sponsors`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/gallery`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/volunteer`, changeFrequency: 'monthly', priority: 0.6 },

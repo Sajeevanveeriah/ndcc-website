@@ -29,7 +29,7 @@ const registry = {
   appointments: { group: 'Season', label: 'Appointments', href: '/admin/season-appointments', scope: 'club' },
   calendar: { group: 'Season', label: 'Training & Calendar', href: '/admin/calendar', scope: 'club' },
   news: { group: 'Publish', label: 'News', href: '/admin/news', scope: 'club' },
-  publications: { group: 'Publish', label: 'Publications', href: '/admin/publications', scope: 'club' },
+  publications: { group: 'Publish', label: 'Publications', href: '/admin/publications', scope: 'club', aliases: ['/admin/match-day'] },
   events: { group: 'Publish', label: 'Events', href: '/admin/events', scope: 'club' },
   pages: { group: 'Publish', label: 'Pages & Links', href: '/admin/site-pages', scope: 'club' },
   content: { group: 'Publish', label: 'Page Sections', href: '/admin/content', scope: 'club', aliases: ['/admin/content-blocks', '/admin/promotions', '/admin/media'] },
