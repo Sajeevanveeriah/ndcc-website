@@ -39,7 +39,8 @@ const fixtures = [
   fixture('e', null, 'Newcomb 3rd XI', 'TBC', 'Hard wicket'),
 ];
 const tree = render(React.createElement(FixtureDayGroups, { fixtures, label: 'Upcoming fixtures' }));
-const headings = tree.root.findAllByType('h3').map(node => node.children.join(''));
+const textOf = node => typeof node === 'string' ? node : node.children.map(textOf).join('');
+const headings = tree.root.findAllByType('h3').map(textOf);
 assert.deepEqual(headings, ['Sat 3 Oct 2026', 'Sun 11 Oct 2026', 'Date to be confirmed'], 'one heading per Melbourne match day, in order');
 const lists = tree.root.findAllByType('ol');
 assert.deepEqual(lists.map(list => list.findAllByType('li').length), [2, 2, 1], 'each game appears once, under its day');
@@ -54,6 +55,6 @@ assert.equal(render(React.createElement(FixtureDayGroups, { fixtures: [], label:
 
 const page = fs.readFileSync('app/fixtures/page.tsx', 'utf8');
 assert.match(page, /<FixtureDayGroups fixtures=\{upcoming\} label="Upcoming fixtures" \/>/);
-assert.match(page, /<FixtureDayGroups fixtures=\{results\.slice\(0, 12\)\} label="Recent results" \/>/);
+assert.match(page, /<FixtureDayGroups fixtures=\{results\.slice\(0, 12\)\} label="Recent results" expandedGroups=\{2\} moreLabel="results" showTimeTbc=\{false\} \/>/);
 assert.doesNotMatch(page, /function FixtureCard/, 'the per-grade card grid is retired');
 console.log('PASS: fixtures grouped by Melbourne match day, each game listed once, labelled sections, undated games last.');
