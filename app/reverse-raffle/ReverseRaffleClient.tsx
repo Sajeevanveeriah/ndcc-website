@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import { REVERSE_RAFFLE_NUMBERS, validReverseRaffleSelection } from '@/lib/reverse-raffle-selection';
 import { REVERSE_RAFFLE_CAMPAIGN_CODE, REVERSE_RAFFLE_NUMBER_RANGE_LABEL, isReverseRaffleNumber } from '@/lib/raffle-constants';
 
@@ -21,6 +22,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
   const [unavailable, setUnavailable] = useState<number[]>([]);
   const [availabilityReady, setAvailabilityReady] = useState(false);
   const [availabilityError, setAvailabilityError] = useState('');
+  const turnstile = useTurnstile();
   const refreshNumbers = useCallback(async () => {
     try {
       const response = await fetch('/api/raffle/numbers', { cache: 'no-store' });
@@ -50,11 +52,12 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
   async function checkout(event: React.FormEvent) {
     event.preventDefault();
     if (busy || !canCheckout) return;
+    if (!turnstile.check()) return;
     setBusy(true); setError('');
     try {
       const response = await fetch(`/api/raffle/checkout?campaign=${REVERSE_RAFFLE_CAMPAIGN_CODE}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, selectedNumbers, payment_method: paymentMethod }),
-      });
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, selectedNumbers, payment_method: paymentMethod, turnstileToken: turnstile.token ?? undefined }),
+      }).finally(() => turnstile.reset());
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Checkout could not be started.');
       if (result.bank_transfer) { setBankConfirmation(result); setBusy(false); return; }
@@ -116,6 +119,7 @@ export default function ReverseRaffleClient({ priceCents, drawLabel }: { priceCe
         <p className="font-bold" aria-live="polite">{validQuantity ? `Total: $${(form.quantity * priceCents / 100).toFixed(2)} AUD` : 'Choose between 1 and 20 tickets.'}</p>
         {error && <p className="text-red-700" role="alert">{error}</p>}
         <PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="reverse_raffle" />
+        <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="reverse-raffle" message={turnstile.message} />
         <Button type="submit" isLoading={busy} disabled={!canCheckout}>{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay securely with Stripe'}</Button>
       </form>}
     </div></section>

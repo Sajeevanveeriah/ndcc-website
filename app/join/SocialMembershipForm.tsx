@@ -6,6 +6,7 @@ import { CheckCircle2, Info, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import { formatCurrency } from '@/lib/utils';
 import { SOCIAL_MEMBERSHIP_ELIGIBILITY } from '@/lib/social-membership';
 import { DEFAULT_POT_CLUB_PRODUCT_CODE } from '@/lib/pot-club';
@@ -41,6 +42,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
+  const turnstile = useTurnstile();
 
   // The Pot Club plan is the one selected in the CMS (/admin/promotions).
   const isPotClub = plans.find(p => p.id === selectedPlan)?.product_code === potClubProductCode;
@@ -53,6 +55,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading || orderConfirmation) return;
+    if (!turnstile.check()) return;
     setLoading(true);
     setSubmitStatus('idle');
     setMessage('');
@@ -63,6 +66,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
       membership_plan_id: selectedPlan,
       pot_club: isPotClub,
       addons: isPotClub ? [] : Object.keys(selectedAddons).filter((id) => selectedAddons[id]).map((addon_id) => ({ addon_id, quantity: 1 })),
+      turnstileToken: turnstile.token ?? undefined,
     };
 
     try {
@@ -92,6 +96,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
       setMessage('Unable to submit membership application. Please check your connection and try again.');
     } finally {
       setLoading(false);
+      turnstile.reset();
     }
   };
 
@@ -130,6 +135,7 @@ export default function SocialMembershipForm({ plans, addons, potClubProductCode
           <p className="flex flex-wrap items-baseline justify-between gap-x-3 border-t border-edge-subtle pt-4 font-display text-lg font-semibold text-content-primary"><span>Estimated Total:</span> <span className="text-maroon-800 dark:text-maroon-200">{formatCurrency(total)}</span></p>
           </fieldset>
           <p className="text-sm text-content-muted">Your details are used to process this application and payment. Read our <Link href="/privacy" className="font-semibold text-maroon-700 underline underline-offset-2 dark:text-maroon-200">privacy statement</Link>.</p>
+          {!orderConfirmation && <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="membership" message={turnstile.message} />}
           <Button type="submit" className="w-full" isLoading={loading} disabled={plans.length === 0 || Boolean(orderConfirmation)}>{loading ? 'Submitting...' : isPotClub ? 'Order Pot Club pot' : 'Submit Social Membership'}</Button>
           {submitStatus === 'success' && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-2xl space-y-3 dark:bg-green-950/40 dark:border-green-800" role="alert">

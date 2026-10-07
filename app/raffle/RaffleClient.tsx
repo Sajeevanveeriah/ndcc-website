@@ -5,6 +5,7 @@ import BankTransferInstructions, { type BankTransferConfirmation } from '@/compo
 import { useState, type ReactNode } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import { formatRaffleAud, RAFFLE_CAMPAIGN_CODE, RAFFLE_FALLBACK_DISPLAY, RAFFLE_SAMPLE_REFERENCE } from '@/lib/raffle-constants';
 
 // Display values for the trailer raffle. The public status API does not yet
@@ -19,9 +20,10 @@ export default function RaffleClient({ children }: { children?: ReactNode }) {
   const [bankConfirmation, setBankConfirmation] = useState<BankTransferConfirmation | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', quantity: 1 });
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const turnstile = useTurnstile();
   async function checkout(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setError('');
-    try { const res = await fetch('/api/raffle/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, payment_method: paymentMethod }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Checkout failed.'); if (data.bank_transfer) { setBankConfirmation(data); setBusy(false); return; } if (!data.checkout_url) throw new Error('Checkout failed.'); window.location.href = data.checkout_url; }
+    event.preventDefault(); if (!turnstile.check()) return; setBusy(true); setError('');
+    try { const res = await fetch('/api/raffle/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, payment_method: paymentMethod, turnstileToken: turnstile.token ?? undefined }) }).finally(() => turnstile.reset()); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Checkout failed.'); if (data.bank_transfer) { setBankConfirmation(data); setBusy(false); return; } if (!data.checkout_url) throw new Error('Checkout failed.'); window.location.href = data.checkout_url; }
     catch (e) { setError(e instanceof Error ? e.message : 'Checkout failed.'); setBusy(false); }
   }
   return <>
@@ -47,6 +49,6 @@ export default function RaffleClient({ children }: { children?: ReactNode }) {
         <p className="text-sm text-content-muted"><strong className="text-content-primary">Paying at the club?</strong> Buy from a club member or at the bar with cash. They record the sale against your name and email, and your ticket is emailed to you.</p>
         {children && <div>{children}</div>}
       </section>
-      {bankConfirmation ? <div className="nd-card p-6 sm:p-[26px]"><BankTransferInstructions confirmation={bankConfirmation} /></div> : <form onSubmit={checkout} className="nd-card space-y-4 p-6 sm:p-[26px]"><h2 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">Buy tickets</h2><Input id="raffle-name" label="Name" required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/><Input id="raffle-email" label="Email" type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/><Input id="raffle-phone" label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/><Input id="raffle-quantity" label="Number of tickets" type="number" min={1} max={20} required value={form.quantity} onChange={e=>setForm({...form,quantity:Number(e.target.value)})}/><p className="flex justify-between gap-3 font-semibold text-content-primary"><span>Total</span><span>${(form.quantity*RAFFLE.priceCents/100).toFixed(2)} AUD</span></p>{error&&<p className="text-red-700 dark:text-red-400" role="alert">{error}</p>}<PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="raffle" /><Button type="submit" isLoading={busy} className="w-full">{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay securely with Stripe'}</Button></form>}
+      {bankConfirmation ? <div className="nd-card p-6 sm:p-[26px]"><BankTransferInstructions confirmation={bankConfirmation} /></div> : <form onSubmit={checkout} className="nd-card space-y-4 p-6 sm:p-[26px]"><h2 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">Buy tickets</h2><Input id="raffle-name" label="Name" required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/><Input id="raffle-email" label="Email" type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/><Input id="raffle-phone" label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/><Input id="raffle-quantity" label="Number of tickets" type="number" min={1} max={20} required value={form.quantity} onChange={e=>setForm({...form,quantity:Number(e.target.value)})}/><p className="flex justify-between gap-3 font-semibold text-content-primary"><span>Total</span><span>${(form.quantity*RAFFLE.priceCents/100).toFixed(2)} AUD</span></p>{error&&<p className="text-red-700 dark:text-red-400" role="alert">{error}</p>}<PaymentMethodChoice method={paymentMethod} onChange={setPaymentMethod} product="raffle" /><TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="raffle" message={turnstile.message} /><Button type="submit" isLoading={busy} className="w-full">{paymentMethod === 'bank_transfer' ? 'Continue with bank deposit' : 'Pay securely with Stripe'}</Button></form>}
     </div></section></>;
 }

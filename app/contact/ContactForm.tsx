@@ -5,6 +5,7 @@ import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Select } from '@/components/ui/Input';
 import { ENQUIRY_TYPES } from '@/lib/constants';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 
 // Client island for the contact page: form state, honeypot, submission and
 // status messages. Everything else on the page is server-rendered.
@@ -20,9 +21,11 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'warning' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const turnstile = useTurnstile();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!turnstile.check()) return;
     setIsSubmitting(true);
     setSubmitStatus('idle');
     setErrorMessage('');
@@ -31,7 +34,7 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
       const response = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, submitted_at: formData.submitted_at }),
+        body: JSON.stringify({ ...formData, submitted_at: formData.submitted_at, turnstileToken: turnstile.token ?? undefined }),
       });
 
       const data = await response.json().catch(() => null);
@@ -48,6 +51,7 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsSubmitting(false);
+      turnstile.reset();
     }
   }
 
@@ -136,6 +140,8 @@ export default function ContactForm({ urgentEmail }: { urgentEmail: string }) {
           value={formData.message}
           onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
         />
+
+        <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="contact" message={turnstile.message} />
 
         <Button type="submit" isLoading={isSubmitting} size="lg" className="mt-1 w-full">
           {isSubmitting ? 'Sending...' : 'Send Message'}

@@ -35,7 +35,7 @@ await test('Turnstile is a no-op while TURNSTILE_SECRET_KEY is unset', async () 
   assert.deepEqual(result, { ok: true, skipped: true });
   assert.equal(called, false, 'no network call without a secret');
   assert.equal(turnstile.isTurnstileEnabled({ TURNSTILE_SECRET_KEY: '   ' }), false);
-  // Keys alone never enforce: the public forms do not render the widget yet.
+  // Keys alone never enforce: TURNSTILE_ENFORCE=true is the separate switch-on step.
   assert.equal(turnstile.isTurnstileEnabled({ TURNSTILE_SECRET_KEY: 'test-secret' }), false);
   assert.deepEqual(await turnstile.verifyTurnstileToken(null, null, { env: { TURNSTILE_SECRET_KEY: 'test-secret' } }), { ok: true, skipped: true });
   assert.equal(turnstile.isTurnstileEnabled({ TURNSTILE_SECRET_KEY: 'test-secret', TURNSTILE_ENFORCE: 'true' }), true);

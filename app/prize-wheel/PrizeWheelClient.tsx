@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import { WHEEL_MAX_TICKETS_PER_ORDER, formatAud, validWheelSelection } from '@/lib/prize-wheel/rules';
 
 type Props = { code: string; priceCents: number; divisions: number };
@@ -18,6 +19,7 @@ export default function PrizeWheelClient({ code, priceCents, divisions }: Props)
   const [unavailable, setUnavailable] = useState<number[]>([]);
   const [ready, setReady] = useState(false);
   const [availabilityError, setAvailabilityError] = useState('');
+  const turnstile = useTurnstile();
   const refresh = useCallback(async () => {
     try {
       const response = await fetch('/api/raffle/wheel/numbers', { cache: 'no-store' });
@@ -48,12 +50,13 @@ export default function PrizeWheelClient({ code, priceCents, divisions }: Props)
   async function checkout(event: React.FormEvent) {
     event.preventDefault();
     if (busy || !canCheckout) return;
+    if (!turnstile.check()) return;
     setBusy(true); setError('');
     try {
       const response = await fetch(`/api/raffle/checkout?campaign=${encodeURIComponent(code)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, selectedNumbers: selected, payment_method: 'stripe', adult_confirmed: adult }),
-      });
+        body: JSON.stringify({ ...form, selectedNumbers: selected, payment_method: 'stripe', adult_confirmed: adult, turnstileToken: turnstile.token ?? undefined }),
+      }).finally(() => turnstile.reset());
       const result = await response.json();
       if (!response.ok || !result.checkout_url) throw new Error(result.error || 'Checkout could not be started.');
       window.location.href = result.checkout_url;
@@ -108,6 +111,7 @@ export default function PrizeWheelClient({ code, priceCents, divisions }: Props)
     </label>
     <p className="font-bold" aria-live="polite">{validQuantity ? `Total: ${formatAud(form.quantity * priceCents)} AUD` : `Choose between 1 and ${WHEEL_MAX_TICKETS_PER_ORDER} tickets.`}</p>
     {error && <p className="text-red-700" role="alert">{error}</p>}
+    <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="prize-wheel" message={turnstile.message} />
     <Button type="submit" isLoading={busy} disabled={!canCheckout}>Pay securely with Stripe</Button>
   </form>;
 }

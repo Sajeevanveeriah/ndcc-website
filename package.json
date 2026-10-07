@@ -125,6 +125,7 @@
     "test:admin-account-safety": "node scripts/test-admin-account-safety.mjs",
     "test:fantasy-mutation-security": "node scripts/test-fantasy-mutation-security.mjs",
     "test:request-guard-hardening": "node scripts/test-request-guard-hardening.mjs",
+    "test:turnstile-widget": "node scripts/test-turnstile-widget.mjs",
     "test:public-error-hygiene": "node scripts/test-public-error-hygiene.mjs",
     "test:event-registration-capacity:db": "node scripts/test-event-registration-capacity-db.mjs",
     "test:dino-rules-recovery": "node scripts/test-dino-rules-recovery.mjs",

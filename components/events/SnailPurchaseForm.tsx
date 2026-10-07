@@ -5,6 +5,7 @@ import { Minus, Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input, { Textarea } from '@/components/ui/Input';
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
+import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { SNAIL_RACE_LIMITS, parseBulkSnailLines, sponsoredRaceName } from '@/lib/events/snail-race';
 import type { Event } from '@/lib/types';
@@ -55,6 +56,7 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null);
+  const turnstile = useTurnstile();
 
   const snailTotal = snails.length * price;
   const sponsorTotal = sponsorships * (sponsorPrice ?? 0);
@@ -102,6 +104,7 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validate()) return;
+    if (!turnstile.check()) return;
     setSubmitting(true);
     setStatus('idle');
     setMessage('');
@@ -117,6 +120,7 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
         ...(sponsorships > 0 ? { race_sponsor_name: sponsorName.trim() } : {}),
         hp_field: buyer.hp_field,
         submitted_at: buyer.submitted_at,
+        turnstileToken: turnstile.token ?? undefined,
       });
       // Matches the server's 32 KB order limit (long names in some scripts take more bytes).
       if (new TextEncoder().encode(body).length > 32 * 1024) {
@@ -153,6 +157,7 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
       setMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setSubmitting(false);
+      turnstile.reset();
     }
   }
 
@@ -294,6 +299,8 @@ export default function SnailPurchaseForm({ event }: { event: Event }) {
             <span>Total</span><span>{formatCurrency(total)}</span>
           </p>
         </div>
+
+        <TurnstileWidget onToken={turnstile.setToken} resetKey={turnstile.resetKey} action="snail-race" message={turnstile.message} />
 
         <Button type="submit" isLoading={submitting} className="w-full">{buttonLabel}</Button>
         <p className="text-xs text-content-muted text-center">You choose how to pay on the next step.</p>

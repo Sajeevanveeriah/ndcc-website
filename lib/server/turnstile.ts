@@ -7,9 +7,12 @@ import 'server-only';
 // client widget) in one of:
 //   - JSON body field `turnstileToken` or `cf-turnstile-response`
 //   - request header `x-turnstile-token`
-// IMPORTANT: the public forms do not render the widget yet. Only set
-// TURNSTILE_ENFORCE=true once they do, otherwise every protected submission
-// will be refused.
+// The public forms render the widget (components/common/TurnstileWidget.tsx)
+// whenever NEXT_PUBLIC_TURNSTILE_SITE_KEY is set and send its token as
+// `turnstileToken`. To switch on: set NEXT_PUBLIC_TURNSTILE_SITE_KEY and
+// TURNSTILE_SECRET_KEY, redeploy so the forms show the check, then set
+// TURNSTILE_ENFORCE=true. Enforcing without the site key refuses every
+// protected submission.
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const VERIFY_TIMEOUT_MS = 5_000;
@@ -18,7 +21,7 @@ const MAX_TOKEN_LENGTH = 2048;
 export type TurnstileResult = { ok: true; skipped: boolean } | { ok: false; reason: 'missing_token' | 'invalid_token' | 'unavailable' };
 
 // Enforcement also needs TURNSTILE_ENFORCE=true, so configuring the keys alone
-// (e.g. while the client widget is being built) never blocks public forms.
+// (e.g. while checking the widget renders) never blocks public forms.
 export function isTurnstileEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return Boolean(env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SECRET_KEY.trim()) && env.TURNSTILE_ENFORCE === 'true';
 }
