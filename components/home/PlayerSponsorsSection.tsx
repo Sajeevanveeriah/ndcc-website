@@ -4,17 +4,20 @@ import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 import SafeImage from '@/components/common/SafeImage';
 
 export default async function PlayerSponsorsSection() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return <p className="container-width py-12 text-content-muted">Player sponsorships are currently unavailable. Please check back soon.</p>;
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return <p className="container-width px-4 py-12 text-content-muted sm:px-6 lg:px-8">Player sponsorships are currently unavailable. Please check back soon.</p>;
   const { data, error } = await createServerClient({ retryReads: true }).from('player_sponsors')
     .select('id,player_name,player_image_url,sponsor_name,logo_url,website,sort_order,active')
     .eq('active', true).order('sort_order').order('player_name');
   if (error) {
     console.error('[player-sponsors] Unable to load player sponsors:', error.code);
-    return <p className="container-width py-12 text-content-muted">Player sponsorships are currently unavailable. Please check back soon.</p>;
+    // Throw rather than render an "unavailable" note: /player-sponsors is ISR,
+    // so a thrown regeneration keeps serving the last good page instead of
+    // caching the failure for the next 60 seconds.
+    throw new Error('Player sponsors temporarily unavailable');
   }
-  if (!data?.length) return <p className="container-width py-12 text-content-muted">Player sponsorships will appear here when published by the club.</p>;
+  if (!data?.length) return <p className="container-width px-4 py-12 text-content-muted sm:px-6 lg:px-8">Player sponsorships will appear here when published by the club.</p>;
   return <section aria-labelledby="player-sponsors-title" className="border-y border-edge-subtle bg-surface-card py-6">
-    <div className="container-width">
+    <div className="container-width px-4 sm:px-6 lg:px-8">
       <h2 id="player-sponsors-title" className="font-display text-xl font-bold text-content-primary">Our players. Their supporters.</h2>
       <ul className="mt-6 grid grid-cols-1 gap-8 pb-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Player sponsors">
         {groupPlayerSponsors(data as PlayerSponsor[]).map((player) => {

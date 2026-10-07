@@ -580,7 +580,7 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-content-muted font-body">Your order is empty.</p>
-                <p className="text-gray-400 font-body text-sm mt-1">
+                <p className="text-content-muted font-body text-sm mt-1">
                   Add items from above to get started.
                 </p>
               </CardContent>

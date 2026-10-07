@@ -13,5 +13,5 @@ export async function GET(request:Request) {
     const queued=await db.rpc('queue_dino_initial_reminders');
     if(queued.error) throw new Error(queued.error.message);
     return NextResponse.json({success:true,queued:queued.data,feedback,...await processDinoNotifications(db,deadline)});
-  } catch(error) {return NextResponse.json({success:false,error:error instanceof Error?error.message:'Registration check failed.'},{status:500});}
+  } catch(error) {console.error('[dino-registration] Cron run failed:',error instanceof Error?error.message:error);return NextResponse.json({success:false,error:error instanceof Error?error.message:'Registration check failed.'},{status:500});}
 }
