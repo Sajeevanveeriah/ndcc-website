@@ -39,7 +39,7 @@ function db() { return { from: (table) => {
 const sync = load('lib/playhq/fantasy-sync.ts', {
   'server-only': {}, '@/lib/supabase-server': { createServerClient: db }, '@/lib/dino-coach/domain': {},
   './client': { getPlayHQTeams: async () => [], getPlayHQGradeFixtureRaw: async () => ({ data: { items: fixtures } }) },
-  './season-match': { isClubTeamName: name => /newcomb/i.test(name) }, './normalise': normalise, './fantasy-import': importer,
+  './season-match': publicSeason, './normalise': normalise, './fantasy-import': importer,
 });
 const fixture = (status = 'UPCOMING', id = 'game-1') => ({ id, status, round: { number: 1, name: 'Round 1' },
   schedule: { date: '2026-10-10' }, competitors: [{ isHomeTeam: true, name: 'Other Club' }, { isHomeTeam: false, name: 'Newcomb & District' }] });

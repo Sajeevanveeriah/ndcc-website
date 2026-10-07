@@ -22,6 +22,36 @@ export function isClubTeamName(teamName: string | null | undefined): boolean {
   return words.includes('newcomb') || words.includes('ndcc');
 }
 
+// Grade discovery used to store this literal as every grade's team_filter.
+// It is the old automatic default, not an admin choice, so it is treated as
+// "no custom filter" and the shared club-name check applies (it also accepts
+// teams named "NDCC ...").
+const LEGACY_DEFAULT_TEAM_FILTER = 'newcomb';
+
+export type ClubTeamMatcher = {
+  matches: (teamName: string | null | undefined) => boolean;
+  /** Set when the grade's team_filter is not a valid regular expression. */
+  invalidFilter: string | null;
+};
+
+/** The one club-team test used by fixture filtering and game-summary
+ *  filtering. A grade's custom team_filter (case-insensitive regular
+ *  expression) wins when set; an empty, legacy-default or invalid filter
+ *  falls back to isClubTeamName. An invalid filter is reported instead of
+ *  throwing so one bad CMS value cannot abort a whole sync job. */
+export function resolveClubTeamMatcher(teamFilter?: string | null): ClubTeamMatcher {
+  const filter = String(teamFilter ?? '').trim();
+  if (!filter || filter.toLowerCase() === LEGACY_DEFAULT_TEAM_FILTER) {
+    return { matches: isClubTeamName, invalidFilter: null };
+  }
+  try {
+    const pattern = new RegExp(filter, 'i');
+    return { matches: (teamName) => pattern.test(String(teamName ?? '')), invalidFilter: null };
+  } catch {
+    return { matches: isClubTeamName, invalidFilter: filter };
+  }
+}
+
 /** Extract the [startYear, endYear] pair from a season label.
  *  Supports "2025/26", "2025-26", "2025 2026", "Season 2025/2026",
  *  "Summer 2025/26" and a bare "2025" (treated as 2025/26 - southern-

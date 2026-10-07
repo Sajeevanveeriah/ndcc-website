@@ -3,7 +3,7 @@
 // Split out of lib/playhq/fantasy-orchestrator.ts (which re-exports the public API).
 import 'server-only';
 import { canRetryEmptyFixtureJob } from '../fantasy-import';
-import { processFantasySyncBatch, startFantasySyncJob } from '../fantasy-sync';
+import { PLAYER_IDENTITY_REVIEW_TYPES, processFantasySyncBatch, startFantasySyncJob } from '../fantasy-sync';
 import { ABANDONED_RUNNING_MS, type RunLog, type SeasonRow, setSeasonException, nextScheduledRetry, updateSyncHealth } from './shared';
 import { discoverAndLinkSeason, discoverAndMapGrades } from './discovery';
 import { validateAndPublish } from './publish';
@@ -88,11 +88,12 @@ export async function advanceSeason(
     }
 
     if (!jobId) {
-      // Sync cadence: current/active seasons sync on every orchestrator run
-      // (stat upserts are hash-keyed, so unchanged games are cheap skips and
-      // changed published games surface as reconciliation reviews). Completed
-      // seasons run until they have a published PlayHQ batch (historical
-      // bootstrap), then stop.
+      // Sync cadence: active seasons re-sync at most every 12 hours (stat
+      // upserts are hash-keyed, so unchanged games are cheap skips and changed
+      // published games surface as reconciliation reviews). Completed and
+      // archived seasons are historical reference data: the orchestrator only
+      // selects active seasons and those transitions switch auto sync off, so
+      // there is no historical-bootstrap path here.
       const { data: finishedJobs } = await supabase
         .from('fantasy_sync_jobs')
         .select('id, status, completed_at, import_batch_id, total_games, processed_games, failed_games, review_items, counts')
@@ -102,25 +103,13 @@ export async function advanceSeason(
         .limit(1);
       const lastFinished = finishedJobs?.[0] ?? null;
 
+      // A previous needs_review job does not stop automation: its review
+      // items stay listed in the CMS while new runs keep importing and
+      // publishing the rows that resolved cleanly (validateAndPublish).
+      // Rows left in an unpublished batch are moved into the new job's batch.
       const retryEmptyJob = lastFinished && canRetryEmptyFixtureJob(lastFinished);
-      if (lastFinished?.status === 'needs_review' && !retryEmptyJob) {
-        logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'blocked', error: 'Latest sync finished with review items; resolve them in the CMS before automation continues for this season.' });
-        return finishWithHealth();
-      }
-
-      if (!season.is_current && season.status !== 'active') {
-        const { count: publishedStats } = await supabase
-          .from('fantasy_match_stats')
-          .select('id, fantasy_import_batches!inner(status,source)', { count: 'exact', head: true })
-          .eq('season_id', season.id)
-          .eq('fantasy_import_batches.status', 'published')
-          .eq('fantasy_import_batches.source', 'playhq-api');
-        if ((publishedStats ?? 0) > 0) {
-          logs.push({ seasonSlug: season.slug, stage: 'create_job', status: 'skipped', detail: { reason: 'Historical season already has published PlayHQ data.' } });
-          return finishWithHealth();
-        }
-      } else if (lastFinished?.completed_at && !retryEmptyJob) {
-        // Throttle current-season re-syncs to at most one full pass per 12h.
+      if (lastFinished?.completed_at && !retryEmptyJob) {
+        // Throttle re-syncs to at most one full pass per 12h.
         const age = Date.now() - new Date(lastFinished.completed_at).getTime();
         const manualRun = invokedBy.startsWith('admin:') || invokedBy.startsWith('release-token:');
         if (age < 12 * 60 * 60 * 1000 && !manualRun) {
@@ -200,7 +189,7 @@ export async function advanceSeason(
       health.processed_games = Number(finalJob.processed_games ?? 0);
       health.failed_games = Number(finalJob.failed_games ?? 0);
       health.matched_players = Number(finalJob.counts?.matched ?? 0) + Number(finalJob.counts?.created ?? 0);
-      health.ambiguous_players = reviewList.filter((item: { type?: string }) => item.type === 'duplicate_name' || item.type === 'name_match_review').length;
+      health.ambiguous_players = reviewList.filter((item: { type?: string }) => (PLAYER_IDENTITY_REVIEW_TYPES as readonly string[]).includes(String(item?.type))).length;
       if (finalJob.status === 'completed' && Number(finalJob.total_games ?? 0) > 0) {
         health.last_successful_game_import = new Date().toISOString();
       }

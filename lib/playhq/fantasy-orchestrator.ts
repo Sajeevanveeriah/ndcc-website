@@ -52,10 +52,12 @@ export async function runFantasyOrchestrator(options: {
       .from('fantasy_seasons')
       .select('id, name, slug, status, is_current, is_public, playhq_season_id, playhq_discovery, auto_sync_enabled, sync_exception, last_playhq_sync_at')
       .eq('auto_sync_enabled', true)
+      // Active seasons only: completed and archived seasons are historical
+      // reference data and are never synced automatically.
       .eq('status', 'active');
     if (seasonsError) throw new Error(seasonsError.message);
 
-    // Current season first, then older seasons awaiting historical bootstrap.
+    // Current season first, then any other active auto-sync season.
     const ordered = (seasons ?? []).sort((a: SeasonRow, b: SeasonRow) => Number(b.is_current) - Number(a.is_current) || a.slug.localeCompare(b.slug));
     for (const season of ordered as SeasonRow[]) {
       if (Date.now() >= deadline) {

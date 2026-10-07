@@ -2,9 +2,18 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth/guard';
 import { createServerClient } from '@/lib/supabase-server';
-import { DEFAULT_SYNC_BATCH_SIZE, processFantasySyncBatch, retryFailedGames, startFantasySyncJob } from '@/lib/playhq/fantasy-sync';
+import {
+  DEFAULT_SYNC_BATCH_SIZE,
+  SyncActionError,
+  approveReconciliationItem,
+  processFantasySyncBatch,
+  resolveJobReviewItems,
+  retryFailedGames,
+  startFantasySyncJob,
+} from '@/lib/playhq/fantasy-sync';
 import { getFantasySyncHealth, previewFantasySeasonSync, runFantasyOrchestrator } from '@/lib/playhq/fantasy-orchestrator';
 import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
+import { scheduleAdminAudit } from '@/lib/revisions/server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -86,8 +95,30 @@ export async function POST(request: Request) {
       const result = await retryFailedGames(jobId);
       return NextResponse.json({ success: true, jobId, requeued: result.requeued }, { headers: noStore });
     }
-    return NextResponse.json({ success: false, error: 'Unsupported action. Use start, continue, orchestrate, preview or retry_failed.' }, { status: 400, headers: noStore });
+    if (action === 'resolve_reviews') {
+      // Dismiss a needs_review job's review items and mark it completed.
+      const jobId = String(body.jobId || '').trim();
+      if (!jobId) return NextResponse.json({ success: false, error: 'jobId is required.' }, { status: 400, headers: noStore });
+      const result = await resolveJobReviewItems(jobId, user);
+      scheduleAdminAudit({ actor: user, action: 'update', resource: 'fantasy_sync_jobs', recordId: jobId, summary: `Dismissed ${result.dismissed} PlayHQ sync review item(s) and marked the job completed` });
+      return NextResponse.json({ success: true, jobId, dismissed: result.dismissed, job: result.job }, { headers: noStore });
+    }
+    if (action === 'approve_reconciliation') {
+      // Apply the PlayHQ figures recorded on one reconciliation item to the
+      // published stat row it was raised against.
+      const jobId = String(body.jobId || '').trim();
+      const statId = String(body.statId || '').trim();
+      if (!jobId || !statId) return NextResponse.json({ success: false, error: 'jobId and statId are required.' }, { status: 400, headers: noStore });
+      const result = await approveReconciliationItem(jobId, statId, user);
+      scheduleAdminAudit({ actor: user, action: 'update', resource: 'fantasy_match_stats', recordId: statId, summary: `Approved PlayHQ reconciliation (job ${jobId}, game ${result.gameId ?? 'unknown'}): ${result.changes}` });
+      revalidateDinoPublicCache();
+      return NextResponse.json({ success: true, jobId, ...result }, { headers: noStore });
+    }
+    return NextResponse.json({ success: false, error: 'Unsupported action. Use start, continue, orchestrate, preview, retry_failed, resolve_reviews or approve_reconciliation.' }, { status: 400, headers: noStore });
   } catch (err) {
+    if (err instanceof SyncActionError) {
+      return NextResponse.json({ success: false, error: err.message }, { status: err.status, headers: noStore });
+    }
     return NextResponse.json({ success: false, error: err instanceof Error ? err.message : 'Sync action failed.' }, { status: 500, headers: noStore });
   }
 }

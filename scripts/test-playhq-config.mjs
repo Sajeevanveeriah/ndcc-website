@@ -5,11 +5,17 @@ import path from 'node:path';
 const root = process.cwd();
 function read(file) { return readFileSync(path.join(root, file), 'utf8'); }
 function fail(message) { console.error(message); process.exit(1); }
+// Other tests running concurrently under `npm test` create and delete
+// scratch directories (e.g. scripts/.fantasy-orchestrator-tmp); a file that
+// vanishes mid-walk is skipped instead of failing this static scan.
+const vanished = (error) => error && error.code === 'ENOENT';
 function walk(dir) {
-  return readdirSync(dir).flatMap((entry) => {
+  let entries;
+  try { entries = readdirSync(dir); } catch (error) { if (vanished(error)) return []; throw error; }
+  return entries.flatMap((entry) => {
     const full = path.join(dir, entry);
     if (entry === 'node_modules' || entry === '.next' || entry === '.git') return [];
-    return statSync(full).isDirectory() ? walk(full) : [full];
+    try { return statSync(full).isDirectory() ? walk(full) : [full]; } catch (error) { if (vanished(error)) return []; throw error; }
   });
 }
 
@@ -43,7 +49,8 @@ if (!readinessRoute.includes("request.headers.get('x-diagnostic-token')") || !re
 for (const file of walk(root)) {
   const rel = path.relative(root, file);
   if (!/\.(ts|tsx|js|mjs|sql|md|example|json)$/.test(rel)) continue;
-  const source = readFileSync(file, 'utf8');
+  let source;
+  try { source = readFileSync(file, 'utf8'); } catch (error) { if (vanished(error)) continue; throw error; }
   if (source.includes('NEXT_PUBLIC_' + 'PLAYHQ_API_KEY')) fail(`${rel} must not reference public PlayHQ API key env.`);
   if (/PLAYHQ_API_KEY\s*=\s*(?!replace_with|your-|redacted|$)[A-Za-z0-9_-]{12,}/.test(source)) fail(`${rel} appears to contain a real PlayHQ key.`);
 }
