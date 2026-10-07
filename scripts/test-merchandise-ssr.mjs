@@ -144,6 +144,7 @@ const client = load('app/merchandise/MerchandiseClient.tsx', {
   '@/lib/apparel/personalisation': { personalisationKind: () => 'name', validatePersonalisation: () => ({ ok: true, value: {} }) },
   './components/CartSummary': { default: () => null },
   './components/CheckoutForm': { default: () => null },
+  '@/lib/merch-order-attempt': { merchAttemptKey: () => 'key', merchAttemptSignature: () => '', completeMerchAttempt() {}, forgetMerchAttempt() {} },
   '@/components/common/TurnstileWidget': { default: () => null, useTurnstile: () => ({ required: false, token: null, setToken() {}, reset() {}, resetKey: 0, ready: true, check: () => true, message: '' }) },
   './components/OrderConfirmationPanel': { default: () => null },
   './components/ProductCatalogue': {

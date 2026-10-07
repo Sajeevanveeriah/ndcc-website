@@ -14,6 +14,7 @@ import CheckoutForm from './components/CheckoutForm';
 import OrderConfirmationPanel from './components/OrderConfirmationPanel';
 import ProductCatalogue from './components/ProductCatalogue';
 import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
+import { completeMerchAttempt, forgetMerchAttempt, merchAttemptKey, merchAttemptSignature } from '@/lib/merch-order-attempt';
 import type {
   ApiProduct,
   CartItem,
@@ -37,6 +38,11 @@ const DEFAULT_CAPABILITIES: PaymentCapabilities = {
   partial_payments: false,
   minimum_partial_amount: 10,
 };
+
+// localStorage can be unavailable (private mode, blocked site data).
+function attemptStorage(): Storage | null {
+  try { return typeof window === 'undefined' ? null : window.localStorage; } catch { return null; }
+}
 
 function toDisplayProducts(data: ApiProduct[]): DisplayProduct[] {
   return [...data]
@@ -117,7 +123,9 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   // One idempotency key per order attempt: a retry of the same cart and details
   // reuses it so the server returns the original order instead of a duplicate.
+  // The key is shared through localStorage so a second tab reuses it too.
   const orderAttempt = useRef<{ signature: string; key: string } | null>(null);
+  const tabId = useRef('');
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [paymentMethod, setPaymentMethod] = useState<MerchPaymentMethod>('bank_transfer');
   const [cardAmount, setCardAmount] = useState('');
@@ -443,7 +451,9 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
       };
       const signature = JSON.stringify(orderPayload);
       if (orderAttempt.current?.signature !== signature) {
-        const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : '';
+        const newKey = () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : '');
+        if (!tabId.current) tabId.current = newKey() || String(Math.random());
+        const key = merchAttemptKey(attemptStorage(), merchAttemptSignature(orderPayload), tabId.current, Date.now(), newKey);
         orderAttempt.current = key ? { signature, key } : null;
       }
       const idempotencyKey = orderAttempt.current?.key;
@@ -463,9 +473,13 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
 
       if (!response.ok) {
         // A conflict means this attempt cannot be replayed; the next submit starts a new one.
-        if (response.status === 409) orderAttempt.current = null;
+        if (response.status === 409) {
+          if (idempotencyKey) forgetMerchAttempt(attemptStorage(), idempotencyKey);
+          orderAttempt.current = null;
+        }
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
+      if (idempotencyKey) completeMerchAttempt(attemptStorage(), idempotencyKey, tabId.current);
       orderAttempt.current = null;
 
       setOrderConfirmation({
