@@ -166,7 +166,8 @@
     "test:fundraising-hub": "node scripts/test-fundraising-hub.cjs",
     "test:teams-filter": "node scripts/test-teams-filter.cjs",
     "test:site-quick-wins": "node scripts/test-site-quick-wins.mjs",
-    "test:merchandise-ssr": "node scripts/test-merchandise-ssr.mjs"
+    "test:merchandise-ssr": "node scripts/test-merchandise-ssr.mjs",
+    "test:kitchen-menu-name": "node --experimental-strip-types scripts/test-kitchen-menu-name.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
