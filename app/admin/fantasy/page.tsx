@@ -84,7 +84,7 @@ export default function AdminFantasyPage() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
+      <div className="mb-6 rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 px-4 py-3 text-sm text-yellow-900 dark:text-yellow-200 font-body">
         Use published import batches before calculating public manager scores. Dino Coach manager accounts remain separate from committee admin users.
       </div>
 

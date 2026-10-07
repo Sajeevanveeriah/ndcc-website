@@ -93,7 +93,7 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-edge-subtle, currentcolor);
   }
 
   /* Tailwind CSS v4 preflight dropped the v3 pointer cursor on buttons and
@@ -1279,6 +1279,9 @@
   }
 
   .dark {
+    /* Native controls (select option lists, date pickers, scrollbars) follow
+       the dark theme instead of rendering light popups with light text. */
+    color-scheme: dark;
     --surface-page: 11 17 28;           /* near-black deep navy              */
     --surface-elevated: 26 34 51;       /* charcoal-navy chrome              */
     --surface-card: 21 29 45;           /* card: one clear step above page   */

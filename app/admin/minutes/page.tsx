@@ -111,7 +111,7 @@ export default function AdminMinutesPage() {
         </div>
         <Textarea id="content" label="Type minutes or add notes" value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} maxLength={50000} required={!file && !(attachmentName && !removeAttachment)} />
         <label className="text-sm font-medium text-content-secondary">Status
-          <select className="mt-1 w-full border rounded-sm px-3 py-2" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+          <select className="mt-1 w-full border rounded-sm px-3 py-2 bg-surface-card text-content-primary" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
             <option value="draft">draft</option>
             <option value="published">published</option>
             <option value="accepted">accepted</option>

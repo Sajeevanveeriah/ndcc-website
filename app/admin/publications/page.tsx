@@ -15,6 +15,7 @@ import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
 import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import Input, { Select, Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { BookOpen, Plus, Pencil, Trash2, Copy, Star, ExternalLink, Eye } from 'lucide-react';
 
 const TYPE_OPTIONS = [
@@ -321,7 +322,7 @@ export default function AdminPublicationsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -367,14 +368,10 @@ export default function AdminPublicationsPage() {
       />
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : visible.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <BookOpen className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">
             {publications.length === 0 ? 'No publications yet. Create your first newsletter or match report.' : 'No publications match the current filter.'}
           </p>
@@ -429,7 +426,7 @@ export default function AdminPublicationsPage() {
                     aria-label={p.featured ? `Unfeature ${p.title}` : `Feature ${p.title}`}
                     title={p.featured ? 'Unfeature' : 'Feature'}
                   >
-                    <Star className={`h-4 w-4 ${p.featured ? 'fill-gold-400 text-gold-500' : 'text-gray-400'}`} />
+                    <Star className={`h-4 w-4 ${p.featured ? 'fill-gold-400 text-gold-500' : 'text-gray-400 dark:text-slate-500'}`} />
                   </button>
                 </TableCell>
                 <TableCell>

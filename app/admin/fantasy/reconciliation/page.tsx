@@ -90,7 +90,7 @@ export default function FantasyReconciliationPage() {
         <p className="mt-1 max-w-4xl text-sm text-content-muted font-body">Current-player identity, source status and published price evidence. Ambiguous matches remain quarantined.</p>
       </div>
 
-      {message && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" role="status">{message}</div>}
+      {message && <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-4 text-sm text-blue-900 dark:text-blue-200" role="status">{message}</div>}
 
       <Card><CardContent>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -102,10 +102,10 @@ export default function FantasyReconciliationPage() {
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="text-sm font-semibold text-content-primary">Source season
-            <input className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong px-3 py-2" value={baselineSourceSeason} onChange={(event) => { setBaselineSourceSeasonEdited(true); setBaselineSourceSeason(event.target.value); }} />
+            <input className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2 text-content-primary" value={baselineSourceSeason} onChange={(event) => { setBaselineSourceSeasonEdited(true); setBaselineSourceSeason(event.target.value); }} />
           </label>
           <label className="text-sm font-semibold text-content-primary">Evidence type
-            <select className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong px-3 py-2" value={baselineSourceType} onChange={(event) => setBaselineSourceType(event.target.value as typeof baselineSourceType)}>
+            <select className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2 text-content-primary" value={baselineSourceType} onChange={(event) => setBaselineSourceType(event.target.value as typeof baselineSourceType)}>
               <option value="committee_playhq_export">Committee PlayHQ export</option>
               <option value="committee_manual_baseline">Reviewed manual baseline</option>
             </select>
@@ -114,11 +114,11 @@ export default function FantasyReconciliationPage() {
             <input className="mt-1 block min-h-11 w-full text-sm" type="file" accept=".csv,text/csv" onChange={readBaselineFile} />
           </label>
           <label className="text-sm font-semibold text-content-primary">Source URL (optional)
-            <input className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong px-3 py-2" type="url" value={baselineSourceUrl} onChange={(event) => setBaselineSourceUrl(event.target.value)} placeholder="Public PlayHQ report or committee evidence URL" />
+            <input className="mt-1 block min-h-11 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2 text-content-primary" type="url" value={baselineSourceUrl} onChange={(event) => setBaselineSourceUrl(event.target.value)} placeholder="Public PlayHQ report or committee evidence URL" />
           </label>
         </div>
         <label className="mt-4 block text-sm font-semibold text-content-primary">CSV contents
-          <textarea className="mt-1 min-h-52 w-full rounded-lg border border-edge-strong px-3 py-2 font-mono text-xs" value={baselineCsv} onChange={(event) => { setBaselineCsv(event.target.value); setBaselineFilename(''); setBaselinePreview(null); }} placeholder="player_name,playhq_player_id,source_status,appearances,role_neutral_points,source_reference" />
+          <textarea className="mt-1 min-h-52 w-full rounded-lg border border-edge-strong bg-surface-card px-3 py-2 font-mono text-content-primary text-xs" value={baselineCsv} onChange={(event) => { setBaselineCsv(event.target.value); setBaselineFilename(''); setBaselinePreview(null); }} placeholder="player_name,playhq_player_id,source_status,appearances,role_neutral_points,source_reference" />
         </label>
         <p className="mt-2 text-xs text-content-muted">Allowed outcomes: verified_playhq, verified_no_prior_appearance, international_manual, international_premium. Role-neutral points must already include exclusive milestones and not-out bonuses, with no role or captain multiplier.</p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -132,7 +132,7 @@ export default function FantasyReconciliationPage() {
             <div><dt className="text-xs text-content-muted">Valid rows</dt><dd className="text-xl font-bold">{baselinePreview.summary.validRows}</dd></div>
             <div><dt className="text-xs text-content-muted">Error rows</dt><dd className="text-xl font-bold">{baselinePreview.summary.errorRows}</dd></div>
           </dl>
-          {(baselinePreview.errors.length > 0 || baselinePreview.summary.errorRows > 0) && <div className="mt-4 max-h-64 overflow-auto rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {(baselinePreview.errors.length > 0 || baselinePreview.summary.errorRows > 0) && <div className="mt-4 max-h-64 overflow-auto rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-800 dark:text-red-200">
             {baselinePreview.errors.map((error) => <p key={error}>{error}</p>)}
             {baselinePreview.rows.filter((row) => row.errors.length).slice(0, 30).map((row) => <p key={row.rowNumber}>Row {row.rowNumber} ({row.submittedPlayerName || 'unnamed'}): {row.errors.join('; ')}</p>)}
             {baselinePreview.summary.errorRows > 30 && <p>Only the first 30 row errors are shown.</p>}
@@ -141,7 +141,7 @@ export default function FantasyReconciliationPage() {
         </div>}
       </CardContent></Card>
 
-      <Card><CardContent><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-display font-bold">Current release coverage</h2><p className={readiness?.ready?'mt-2 text-green-700':'mt-2 text-amber-800'}>{readiness?.ready?'Ready to launch.':(readiness?.blockers||['Readiness unavailable.']).join(' ')}</p></div><div className="flex gap-2"><Button disabled={busy} variant="secondary" onClick={()=>pricing('recalculate')}>Recalculate prices</Button><Button disabled={busy} onClick={()=>pricing('publish')}>Publish prices</Button></div></div><div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead><tr className="border-b"><th className="p-2">Player</th><th className="p-2">Outcome</th><th className="p-2">PlayHQ link</th><th className="p-2">Appearances</th><th className="p-2">Price</th><th className="p-2">Published</th></tr></thead><tbody>{dinoPlayers.map((player)=><tr key={player.player_id} className="border-b"><td className="p-2 font-semibold">{player.display_name}</td><td className="p-2">{player.stats_status}</td><td className="p-2">{player.playhq_player_id||player.identity?.decision||'Unresolved'}</td><td className="p-2">{player.prior_regular_appearances}</td><td className="p-2">{player.price?.price_dino_dollars>0?`${Number(player.price.price_dino_dollars).toLocaleString('en-AU')} Dino Dollars`:'Pending'}</td><td className="p-2">{player.price?.published_at?'Yes':'No'}</td></tr>)}</tbody></table></div></CardContent></Card>
+      <Card><CardContent><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-display font-bold">Current release coverage</h2><p className={readiness?.ready?'mt-2 text-status-success':'mt-2 text-amber-800 dark:text-amber-200'}>{readiness?.ready?'Ready to launch.':(readiness?.blockers||['Readiness unavailable.']).join(' ')}</p></div><div className="flex gap-2"><Button disabled={busy} variant="secondary" onClick={()=>pricing('recalculate')}>Recalculate prices</Button><Button disabled={busy} onClick={()=>pricing('publish')}>Publish prices</Button></div></div><div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead><tr className="border-b"><th className="p-2">Player</th><th className="p-2">Outcome</th><th className="p-2">PlayHQ link</th><th className="p-2">Appearances</th><th className="p-2">Price</th><th className="p-2">Published</th></tr></thead><tbody>{dinoPlayers.map((player)=><tr key={player.player_id} className="border-b"><td className="p-2 font-semibold">{player.display_name}</td><td className="p-2">{player.stats_status}</td><td className="p-2">{player.playhq_player_id||player.identity?.decision||'Unresolved'}</td><td className="p-2">{player.prior_regular_appearances}</td><td className="p-2">{player.price?.price_dino_dollars>0?`${Number(player.price.price_dino_dollars).toLocaleString('en-AU')} Dino Dollars`:'Pending'}</td><td className="p-2">{player.price?.published_at?'Yes':'No'}</td></tr>)}</tbody></table></div></CardContent></Card>
 
     </div>
   );

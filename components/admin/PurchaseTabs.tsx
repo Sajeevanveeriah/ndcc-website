@@ -25,5 +25,5 @@ export default function PurchaseTabs({ active = '', onSelect, onCampaign }: { ac
       : <Link key={group} href={`/admin/orders?group=${encodeURIComponent(group)}`} className={style(active===group)}>{purchaseGroupLabel(group)}</Link>)}
     {campaigns.map(c=>onCampaign?<button type="button" key={c.id} aria-pressed={active===c.id} className={style(active===c.id)} onClick={()=>onCampaign(c.id)}>{c.name}</button>:<Link key={c.id} href={`/admin/raffle?campaign=${c.id}`} aria-current={active===c.id?'page':undefined} className={style(active===c.id)}>{c.name}</Link>)}
     <Link href="/admin/fantasy/managers" className={style(false)}>Dino Coach</Link>
-  </nav>{error&&<p role="alert" className="text-sm text-red-700">{error}</p>}</div>;
+  </nav>{error&&<p role="alert" className="text-sm text-status-error">{error}</p>}</div>;
 }

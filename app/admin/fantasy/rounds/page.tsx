@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Input, { Select } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { CalendarDays, Pencil, Plus } from 'lucide-react';
 
 type RoundStatus = 'draft' | 'open' | 'locked' | 'scored' | 'final';
@@ -189,16 +190,13 @@ export default function AdminFantasyRoundsPage() {
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Round</Button>
       </div>
 
-      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>}
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton lines={2} />
       ) : rounds.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <CalendarDays className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No fantasy rounds yet. Add rounds when the season structure is ready.</p>
         </div>
       ) : (

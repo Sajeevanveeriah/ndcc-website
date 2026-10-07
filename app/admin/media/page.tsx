@@ -124,7 +124,7 @@ export default function AdminMediaLibraryPage() {
         <p className="text-sm text-content-muted">Images and PDFs uploaded through the CMS. Copy a file URL, improve its alt text, or delete files that are no longer used anywhere.</p>
       </div>
       {feedback && (
-        <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>{feedback.message}</p>
+        <p role="status" className={`text-sm px-3 py-2 rounded-sm border ${feedback.type === 'error' ? 'text-status-error bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : 'text-status-success bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800'}`}>{feedback.message}</p>
       )}
       {!available && (
         <p className="rounded-sm border border-edge-blue bg-surface-blue-subtle px-3 py-2 text-sm text-content-primary">The media library needs the latest database update. Uploads still work from each editor.</p>

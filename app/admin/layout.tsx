@@ -291,7 +291,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user) {
     return (
       <div className="min-h-screen bg-surface-page flex items-center justify-center p-6">
-        <div className="max-w-md rounded-xl border border-red-100 bg-surface-card p-6 text-center shadow-xs">
+        <div className="max-w-md rounded-xl border border-red-100 dark:border-red-900 bg-surface-card p-6 text-center shadow-xs">
           <h1 className="text-xl font-display font-bold text-content-primary">Admin session unavailable</h1>
           <p className="mt-2 text-sm text-content-muted">
             {message || 'We could not confirm your admin session. Please wait for the automatic retry or sign in again.'}
@@ -403,7 +403,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </header>
         <main className="p-6 lg:p-8">{children}</main>
-        {message && <p className="px-6 pb-6 text-sm text-red-600">{message}</p>}
+        {message && <p className="px-6 pb-6 text-sm text-status-error">{message}</p>}
       </div>
     </div>
   );

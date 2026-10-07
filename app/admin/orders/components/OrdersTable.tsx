@@ -71,7 +71,7 @@ export default function OrdersTable({
                   <div>
                     <p className="font-medium text-content-primary">{o.customer_name}</p>
                     <a href={`mailto:${o.customer_email}`} className="text-xs text-maroon-700 dark:text-maroon-200 hover:underline">{o.customer_email}</a>
-                    <p className="text-xs text-gray-400">{o.customer_phone}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">{o.customer_phone}</p>
                     {o.order_category === 'kitchen' && <p className="text-sm"><strong>{mealCollectionLabel(o.meal_collection_window)}</strong><br />{mealServiceLabel(o.meal_service_date)} (Australia/Melbourne)</p>}
                     {o.payment_reference && <p className="text-xs font-mono text-content-muted">{o.payment_reference}</p>}
                   </div>
@@ -99,7 +99,7 @@ export default function OrdersTable({
                 <TableCell className="font-medium">{formatCurrency(o.total_amount)}</TableCell>
                 <TableCell>
                   <p className="text-sm">{formatCurrency(paid)}</p>
-                  <p className={`text-xs ${balance > 0 ? 'text-amber-700' : 'text-green-700'}`}>
+                  <p className={`text-xs ${balance > 0 ? 'text-status-warning' : 'text-status-success'}`}>
                     {balance > 0 ? `${formatCurrency(balance)} due` : 'No balance due'}
                   </p>
                 </TableCell>
@@ -126,7 +126,7 @@ export default function OrdersTable({
                     </p>
                   )}
                   {o.needs_review_reason ? (
-                    <p className="mt-1 text-xs text-red-600 max-w-[180px]">{o.needs_review_reason}</p>
+                    <p className="mt-1 text-xs text-status-error max-w-[180px]">{o.needs_review_reason}</p>
                   ) : null}
                 </TableCell>
                 <TableCell>

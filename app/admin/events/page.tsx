@@ -17,6 +17,7 @@ import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
 import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
 import { snailCsv, snailExportRows, snailRaceCard, sponsorCsv, sponsorExportRows, sponsorshipTotals, type SnailExportOrder, type SnailExportRegistration } from '@/lib/events/snail-race-export';
 import { sponsoredRaceName } from '@/lib/events/snail-race';
@@ -360,7 +361,7 @@ export default function AdminEventsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <BatchActionsBar
@@ -376,14 +377,10 @@ export default function AdminEventsPage() {
       />
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : events.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <Calendar className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No events yet. Create your first event.</p>
         </div>
       ) : (

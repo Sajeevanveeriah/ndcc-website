@@ -25,6 +25,7 @@ import Modal from '@/components/ui/Modal';
 import BatchActionsBar from '@/components/admin/BatchActionsBar';
 import Input, { Select } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import CalendarEventFormModal, {
   emptyCalendarEventForm,
   type CalendarEventForm,
@@ -391,7 +392,7 @@ export default function AdminCalendarPage() {
       </div>
 
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -446,11 +447,7 @@ export default function AdminCalendarPage() {
       </div>}
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : view === 'month' ? (
         <div className="ndcc-calendar bg-surface-card rounded-xl border border-edge-subtle p-3 sm:p-5">
           <p className="text-xs text-content-muted font-body mb-2">Click a day to add, click an event to edit, or drag and resize events to update their times. Grey entries are not published.</p>
@@ -472,7 +469,7 @@ export default function AdminCalendarPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <CalendarDays className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">
             {events.length === 0 ? 'No calendar events yet. Create your first entry.' : 'No events match the current filters.'}
           </p>

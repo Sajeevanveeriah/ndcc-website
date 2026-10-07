@@ -175,11 +175,11 @@ export default function AdminSeasonPlayHQPage() {
       </div>
 
       {feedback && (
-        <p role="status" className={`rounded-lg border p-3 text-sm ${feedback.type === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800'}`}>{feedback.message}</p>
+        <p role="status" className={`rounded-lg border p-3 text-sm ${feedback.type === 'error' ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200' : 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200'}`}>{feedback.message}</p>
       )}
 
       {data && (!data.schema.seasonLinks || !data.schema.teamLinkColumn) && (
-        <p className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-900">
+        <p className="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 p-3 text-sm text-yellow-900 dark:text-yellow-200">
           The database update 20260927070000_playhq_season_links.sql has not been applied yet.
           {!data.schema.seasonLinks && ' Linked seasons cannot be saved.'}
           {!data.schema.teamLinkColumn && ' CMS team links cannot be saved.'}
@@ -245,7 +245,7 @@ export default function AdminSeasonPlayHQPage() {
                         Link this season
                       </label>
                     </div>
-                    {detail.errors.map((error) => <p key={error} className="text-sm text-red-700">{error}</p>)}
+                    {detail.errors.map((error) => <p key={error} className="text-sm text-status-error">{error}</p>)}
                     <div className="grid gap-6 lg:grid-cols-2">
                       <fieldset>
                         <legend className="mb-2 text-sm font-semibold text-content-primary">NDCC teams</legend>

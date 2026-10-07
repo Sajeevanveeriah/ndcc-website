@@ -17,6 +17,7 @@ import { useDraftAutosave } from '@/components/admin/useDraftAutosave';
 import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import Input, { Textarea } from '@/components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const emptyNewsPost: Omit<NewsPost, 'id' | 'created_at'> = {
@@ -224,7 +225,7 @@ export default function AdminNewsPage() {
         </Button>
       </div>
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <BatchActionsBar
@@ -240,14 +241,10 @@ export default function AdminNewsPage() {
       />
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : news.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <Newspaper className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <Newspaper className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No news articles yet. Write your first article.</p>
         </div>
       ) : (
@@ -367,7 +364,7 @@ export default function AdminNewsPage() {
             onChange={setGalleryImages}
             articleTitle={form.title}
           />
-          {formErrors.galleryImages && <p className="text-xs text-red-600">{formErrors.galleryImages}</p>}
+          {formErrors.galleryImages && <p className="text-xs text-status-error">{formErrors.galleryImages}</p>}
           <Input
             id="news-sort-order"
             label="Display order (lower appears first)"

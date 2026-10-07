@@ -147,7 +147,7 @@ export default function DeleteRecordButton({
             </dl>
           )}
           {(dangerLevel === 'strong' || strongWarning) && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            <p className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-semibold text-status-error">
               {strongWarning || 'Deleting this record may remove important operational history.'}
             </p>
           )}
@@ -161,7 +161,7 @@ export default function DeleteRecordButton({
             />
           )}
           {status && (
-            <p className={status.startsWith('Deleting') ? 'text-sm text-content-muted' : 'text-sm text-red-600'} role="status" aria-live="polite">
+            <p className={status.startsWith('Deleting') ? 'text-sm text-content-muted' : 'text-sm text-status-error'} role="status" aria-live="polite">
               {status}
             </p>
           )}

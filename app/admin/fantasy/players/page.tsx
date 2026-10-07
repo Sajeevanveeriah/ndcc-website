@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input, { Select } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { Pencil, Plus, Upload, Users } from 'lucide-react';
 
 type PlayerRole = 'WK' | 'BAT' | 'AR' | 'BOWL' | 'UNASSIGNED';
@@ -222,7 +223,7 @@ export default function AdminFantasyPlayersPage() {
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Add Player</Button>
       </div>
 
-      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>}
+      {feedback && <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>}
 
       <div className="mb-6 rounded-xl border border-edge-subtle bg-surface-card p-4">
         <h2 className="text-lg font-display font-bold text-content-primary flex items-center gap-2"><Upload className="h-5 w-5 text-maroon-700 dark:text-maroon-200" />Manual CSV player import</h2>
@@ -232,13 +233,10 @@ export default function AdminFantasyPlayersPage() {
       </div>
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton lines={2} />
       ) : players.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <Users className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No fantasy players yet. Add players when the club registry is ready.</p>
         </div>
       ) : (

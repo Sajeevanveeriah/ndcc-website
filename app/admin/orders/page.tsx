@@ -8,6 +8,7 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import Button from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
+import AdminSkeleton from '@/components/admin/AdminSkeleton';
 import { ShoppingBag } from 'lucide-react';
 import { parseAudInputToCents } from '@/lib/payments/manual-payment';
 import { awaitsBankDeposit, effectivePaymentChoice } from '@/lib/payments/method-choice';
@@ -311,14 +312,10 @@ export default function AdminOrdersPage() {
       </div>
 
       {loading ? (
-        <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 animate-pulse">
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-full mb-4" />
-          <div className="h-4 bg-gray-200 rounded-sm w-3/4" />
-        </div>
+        <AdminSkeleton />
       ) : filteredOrders.length === 0 ? (
         <div className="bg-surface-card rounded-xl border border-edge-subtle p-8 text-center">
-          <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <ShoppingBag className="h-12 w-12 text-edge-strong mx-auto mb-3" />
           <p className="text-content-muted font-body">No orders found.</p>
         </div>
       ) : (

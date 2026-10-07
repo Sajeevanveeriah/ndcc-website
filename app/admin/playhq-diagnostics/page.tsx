@@ -17,9 +17,9 @@ type Diagnostics = {
 };
 
 function statusClass(status: string) {
-  if (status === 'ok') return 'bg-green-50 text-green-800 border-green-200';
-  if (status === 'warn') return 'bg-yellow-50 text-yellow-900 border-yellow-200';
-  return 'bg-red-50 text-red-800 border-red-200';
+  if (status === 'ok') return 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
+  if (status === 'warn') return 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
+  return 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
 }
 
 export default function PlayHQDiagnosticsPage() {
@@ -54,7 +54,7 @@ export default function PlayHQDiagnosticsPage() {
         <Button type="button" onClick={load} disabled={loading}>{loading ? 'Checking...' : 'Run checks again'}</Button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
+      {error && <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-800 dark:text-red-200">{error}</div>}
 
       {data && (
         <>
@@ -74,7 +74,7 @@ export default function PlayHQDiagnosticsPage() {
             <Card><CardContent>
               <h2 className="text-lg font-display font-bold text-content-primary">Connection and discovery</h2>
               <dl className="mt-4 space-y-3 text-sm font-body">
-                <div><dt className="font-semibold text-content-primary">Connection test</dt><dd className={data.connection.status === 'ok' ? 'text-green-700' : 'text-red-700'}>{data.connection.detail}</dd></div>
+                <div><dt className="font-semibold text-content-primary">Connection test</dt><dd className={data.connection.status === 'ok' ? 'text-status-success' : 'text-status-error'}>{data.connection.detail}</dd></div>
                 <div><dt className="font-semibold text-content-primary">Organisation discovery</dt><dd className="text-content-secondary">{data.discovery.organisation}</dd></div>
                 <div><dt className="font-semibold text-content-primary">Season discovery</dt><dd className="text-content-secondary">{data.discovery.season}</dd></div>
                 <div><dt className="font-semibold text-content-primary">Grade discovery</dt><dd className="text-content-secondary">{data.discovery.grades}</dd></div>

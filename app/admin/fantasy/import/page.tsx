@@ -102,13 +102,13 @@ export default function AdminFantasyImportPage() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 font-body">
+      <div className="mb-6 rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/40 px-4 py-3 text-sm text-yellow-900 dark:text-yellow-200 font-body">
         Draft import only. No public scores are published until a saved batch is reviewed and published.
         <Link href="/admin/fantasy/imports" className="ml-2 font-semibold underline">Review saved imports</Link>
       </div>
 
       {feedback && (
-        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>{feedback.message}</p>
+        <p className={`mb-4 text-sm ${feedback.type === 'error' ? 'text-status-error' : 'text-status-success'}`}>{feedback.message}</p>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
@@ -207,7 +207,7 @@ export default function AdminFantasyImportPage() {
             </CardHeader>
             <CardContent>
               {preview.errors.length > 0 && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mb-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-status-error">
                   <ul className="list-disc pl-5">
                     {preview.errors.map((error) => <li key={error}>{error}</li>)}
                   </ul>
@@ -246,7 +246,7 @@ export default function AdminFantasyImportPage() {
                 </TableHead>
                 <TableBody>
                   {preview.rows.map((row) => (
-                    <TableRow key={row.rowNumber} className={row.errors.length > 0 ? 'bg-red-50 hover:bg-red-50' : undefined}>
+                    <TableRow key={row.rowNumber} className={row.errors.length > 0 ? 'bg-red-50 dark:bg-red-950/40 hover:bg-red-50 dark:hover:bg-red-950/40' : undefined}>
                       <TableCell>{row.rowNumber}</TableCell>
                       <TableCell>{row.errors.length > 0 ? 'Error' : 'Valid'}</TableCell>
                       <TableCell>{row.parsed?.round_number ?? row.raw.round_number}</TableCell>
@@ -256,7 +256,7 @@ export default function AdminFantasyImportPage() {
                       <TableCell>{row.parsed?.runs ?? row.raw.runs}</TableCell>
                       <TableCell>{row.parsed?.wickets ?? row.raw.wickets}</TableCell>
                       <TableCell>{row.points}</TableCell>
-                      <TableCell className="min-w-56 text-xs text-red-700">
+                      <TableCell className="min-w-56 text-xs text-status-error">
                         {row.errors.length > 0 ? row.errors.join('; ') : '—'}
                       </TableCell>
                     </TableRow>
