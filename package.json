@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint .",
     "test": "node scripts/run-all-tests.mjs",
@@ -169,7 +169,8 @@
     "test:site-quick-wins": "node scripts/test-site-quick-wins.mjs",
     "test:merchandise-ssr": "node scripts/test-merchandise-ssr.mjs",
     "test:kitchen-menu-name": "node --experimental-strip-types scripts/test-kitchen-menu-name.mjs",
-    "test:merch-order-attempt": "node --experimental-strip-types scripts/test-merch-order-attempt.mjs"
+    "test:merch-order-attempt": "node --experimental-strip-types scripts/test-merch-order-attempt.mjs",
+    "test:build-memory": "node scripts/test-build-memory.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
