@@ -60,7 +60,8 @@ assert.doesNotMatch(migration, /calendar\.google\.com\/calendar\/ical\//);
 assert.doesNotMatch(migration, /private-[a-f0-9]{16,}/i);
 
 assert.match(page, /robots: \{ index: false, follow: false \}/);
-assert.match(control, /webcal:\/\/www\.ndcc\.com\.au\/committee-calendar\.ics/);
+assert.match(control, /const FEED_PATH = 'www\.ndcc\.com\.au\/committee-calendar\.ics';/);
+assert.match(control, /const WEBCAL_URL = `webcal:\/\/\$\{FEED_PATH\}\$\{query\}`;/);
 assert.match(control, /Copy subscription link/);
 assert.match(control, /Google Calendar/);
 assert.match(control, /Download current events/);
@@ -86,3 +87,24 @@ const otherAt171 = sanitiseCommitteeCalendarIcs(upstream.replace(
 ));
 assert.match(otherAt171.replace(/\r\n /g, ''), /Example Business\\, 171 Coppards Rd/, 'another venue at 171 keeps its address');
 console.log('PASS: committee feed shows the club at 141 Coppards Road.');
+
+// Privacy: without the committee key the address serves the public club
+// calendar (published public events only) and never reads the Google feed.
+const feedRoute = readFileSync('app/committee-calendar.ics/route.ts', 'utf8');
+assert.match(feedRoute, /import \{ GET as getPublicClubCalendar \} from '@\/app\/api\/public\/calendar\/ics\/route';/);
+const keyCheck = feedRoute.indexOf("if (!(await isCommitteeFeedKey(url.searchParams.get('key')))) {");
+assert.ok(keyCheck > 0, 'the key is checked');
+assert.ok(keyCheck < feedRoute.indexOf('getCommitteeCalendarSourceUrl()', keyCheck), 'the Google source is only read after the key check');
+assert.match(feedRoute.slice(keyCheck, feedRoute.indexOf('getCommitteeCalendarSourceUrl()', keyCheck)), /return new Response\(publicFeed\.body/);
+assert.match(feedRoute, /'Cache-Control': 'private, no-store'/, 'the private feed is never cached');
+assert.doesNotMatch(feedRoute, /s-maxage=300/);
+const keyLib = readFileSync('lib/calendar/committee-feed-key.ts', 'utf8');
+assert.match(keyLib, /^import 'server-only';/);
+assert.match(keyLib, /timingSafeEqual/);
+assert.match(keyLib, /ndcc-committee-calendar-feed-v2:\$\{userId\}/, 'each member has their own key');
+assert.match(keyLib, /data\.is_active === true && CLUB_ADMIN_ROLES\.includes\(data\.role as AuthRole\)/, 'a deactivated or demoted member loses the feed');
+assert.match(keyLib, /if \(error \|\| !data\) return false;/, 'fails closed');
+const calendarPage = readFileSync('app/committee-calendar/page.tsx', 'utf8');
+assert.match(calendarPage, /requireSession\(CLUB_ADMIN_ROLES\)/);
+assert.match(calendarPage, /const feedKey = member \? committeeFeedKey\(member\.id\) : null;/);
+console.log('PASS: the open committee address serves only the public club calendar; the full feed needs the committee key.');

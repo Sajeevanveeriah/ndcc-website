@@ -1,4 +1,6 @@
 import { sanitiseCommitteeCalendarIcs } from '@/lib/calendar/google-committee-ics';
+import { GET as getPublicClubCalendar } from '@/app/api/public/calendar/ics/route';
+import { isCommitteeFeedKey } from '@/lib/calendar/committee-feed-key';
 import { createServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +41,18 @@ async function getCommitteeCalendarSourceUrl(): Promise<string> {
 
 export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const download = url.searchParams.get('download') === '1';
+    // Without the committee key this address serves the public club calendar,
+    // built only from published public events: nothing from the committee's
+    // Google calendar (private bookings, meetings) is read or passed through.
+    if (!(await isCommitteeFeedKey(url.searchParams.get('key')))) {
+      const publicFeed = await getPublicClubCalendar();
+      const headers = new Headers(publicFeed.headers);
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
+      if (download && publicFeed.ok) headers.set('Content-Disposition', 'attachment; filename="NDCC-Club-Calendar.ics"');
+      return new Response(publicFeed.body, { status: publicFeed.status, headers });
+    }
     const sourceUrl = await getCommitteeCalendarSourceUrl();
     const upstream = await fetch(sourceUrl, {
       cache: 'no-store',
@@ -52,13 +66,14 @@ export async function GET(request: Request) {
 
     const source = await upstream.text();
     const body = sanitiseCommitteeCalendarIcs(source);
-    const download = new URL(request.url).searchParams.get('download') === '1';
 
     return new Response(body, {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=3600',
+        // Never cached: access is re-checked on every request, so removing a
+        // member takes effect immediately.
+        'Cache-Control': 'private, no-store',
         'X-Robots-Tag': 'noindex, nofollow',
         ...(download
           ? { 'Content-Disposition': 'attachment; filename="NDCC-Committee-Calendar.ics"' }
