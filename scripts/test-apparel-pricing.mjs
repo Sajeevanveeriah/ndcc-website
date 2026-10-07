@@ -247,7 +247,7 @@ test('valid personalisation is server-normalised for customisable products', () 
 });
 
 // Initials personalisation (the limited edition backpack, artwork "XX").
-const { personalisationKind } = await import(pathToFileURL(path.join(stage, 'personalisation.ts')).href);
+const { personalisationKind, initialsMode } = await import(pathToFileURL(path.join(stage, 'personalisation.ts')).href);
 const backpack = { id: 'bp', slug: 'personalised-backpack', name: 'Personalised Backpack', price: 75, active: true, sizes: ['One Size'], customisable: true, options: [] };
 const jumper = { id: 'j', slug: 'jumper', name: 'Jumper', price: 75, active: true, sizes: ['M'], customisable: true, options: [] };
 
@@ -262,12 +262,30 @@ test('initials are normalised to 1-3 upper-case letters and need confirmation', 
   assert.equal(ok.ok, true); assert.equal(ok.value.custom_initials, 'JS');
   assert.equal(validatePersonalisation({}, 'initials').ok, true, 'initials are optional');
   assert.equal(validatePersonalisation({ custom_initials: 'JS' }, 'initials').ok, false, 'confirmation required');
-  for (const bad of ['ABCD', 'J5', '=A', 'J-S']) {
+  for (const bad of ['ABCD', 'J5', '5J', '=A', 'J-S', '1234', '-1']) {
     assert.equal(validatePersonalisation({ custom_initials: bad, personalisation_confirmed: true }, 'initials').ok, false, bad);
   }
   assert.equal(validatePersonalisation({ custom_name: 'SMITH', personalisation_confirmed: true }, 'initials').ok, false, 'no surname on initials items');
   assert.equal(validatePersonalisation({ custom_number: 7, personalisation_confirmed: true }, 'initials').ok, false, 'no number on initials items');
   assert.equal(validatePersonalisation({ custom_initials: 'JS', personalisation_confirmed: true }).ok, false, 'no initials on surname items');
+});
+
+test('initials items accept a 1-3 digit number instead of letters', () => {
+  for (const [input, expected] of [['7', '7'], [' 23 ', '23'], ['007', '007'], ['100', '100']]) {
+    const r = validatePersonalisation({ custom_initials: input, personalisation_confirmed: true }, 'initials');
+    assert.equal(r.ok, true, input); assert.equal(r.value.custom_initials, expected, input);
+    assert.equal(r.value.custom_number, undefined, 'not a kit number request');
+    assert.equal(r.value.number_request_status, undefined, 'not subject to number availability');
+  }
+  assert.equal(validatePersonalisation({ custom_initials: '23' }, 'initials').ok, false, 'confirmation required');
+  assert.equal(initialsMode('23'), 'number');
+  assert.equal(initialsMode('JS'), 'letters');
+  assert.equal(initialsMode(''), 'letters');
+  assert.equal(initialsMode(undefined), 'letters');
+  const r = priceOrderItems([backpack], [{ slug: 'personalised-backpack', size: 'One Size', quantity: 1, custom_initials: '23', personalisation_confirmed: true }]);
+  assert.equal(r.ok, true); assert.equal(r.items[0].custom_initials, '23'); assert.equal(r.totalAmount, 75);
+  const onJumper = priceOrderItems([jumper], [{ slug: 'jumper', size: 'M', quantity: 1, custom_initials: '23', personalisation_confirmed: true }]);
+  assert.equal(onJumper.ok, false, 'numbers via the initials field stay backpack-only');
 });
 
 test('server pricing stores initials for the backpack and rejects them elsewhere', () => {

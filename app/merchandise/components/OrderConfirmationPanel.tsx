@@ -69,7 +69,7 @@ export default function OrderConfirmationPanel({
                 <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                   {orderConfirmation.number_requested
                     ? 'Your surname and number preferences have been recorded for club review. The club will confirm the final number by email, subject to availability.'
-                    : 'Your surname has been recorded for club review.'}
+                    : 'Your personalisation (surname, initials or backpack number) has been recorded for club review.'}
                 </div>
               )}
               {/* Choosing pay at the club or a bank transfer removes the online option; unticking brings it back. */}

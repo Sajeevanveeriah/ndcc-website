@@ -1,5 +1,13 @@
 export const NUMBER_REQUEST_STATUS = 'subject_to_availability' as const;
 const INITIALS_PATTERN = new RegExp('^[\\p{L}]{1,3}$', 'u');
+// Initials products may carry a number instead of letters (for example "23").
+const INITIALS_NUMBER_PATTERN = /^[0-9]{1,3}$/;
+
+export type InitialsMode = 'letters' | 'number';
+
+export function initialsMode(value: string | null | undefined): InitialsMode {
+  return value && INITIALS_NUMBER_PATTERN.test(value.trim()) ? 'number' : 'letters';
+}
 
 export type PersonalisationKind = 'surname_number' | 'initials';
 
@@ -53,11 +61,11 @@ function validateInitials(input: PersonalisationInput): PersonalisationResult {
   const raw = typeof input.custom_initials === 'string' ? input.custom_initials : '';
   const initials = raw.normalize('NFC').replace(/[\s.]+/g, '').toLocaleUpperCase('en-AU');
   if (!initials) return { ok: true, value: {} };
-  if (!INITIALS_PATTERN.test(initials)) {
-    return { ok: false, error: 'Enter 1 to 3 letters for your initials.' };
+  if (!INITIALS_PATTERN.test(initials) && !INITIALS_NUMBER_PATTERN.test(initials)) {
+    return { ok: false, error: 'Enter 1 to 3 letters for your initials, or a number of 1 to 3 digits.' };
   }
   if (input.personalisation_confirmed !== true) {
-    return { ok: false, error: 'Confirm that initials are subject to club confirmation.' };
+    return { ok: false, error: 'Confirm that initials or a number are subject to club confirmation.' };
   }
   return { ok: true, value: { custom_initials: initials, personalisation_confirmed: true } };
 }

@@ -162,7 +162,7 @@ export function buildApparelDetailRows(orders: ApparelWorkbookOrder[]): CellValu
           firstLine ? order.customer_name : '',
           supplierProductName(item),
           supplierSizeLabel(item.size),
-          item.custom_name || (item.custom_initials ? `Initials: ${item.custom_initials}` : ''),
+          item.custom_name || (item.custom_initials ? `${/^[0-9]+$/.test(item.custom_initials) ? 'Number' : 'Initials'}: ${item.custom_initials}` : ''),
           numberPreferences,
           order.payment_reference ? 'Online purchase' : 'No',
           paymentLabel(order.payment_status),

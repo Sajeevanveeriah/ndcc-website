@@ -47,7 +47,7 @@ export function buildSupplierExportRows(orders: SupplierExportOrder[]): Array<Ar
         order.merch_window_label || '',
         order.order_status || '',
         selectedOptions,
-        item.custom_name || (item.custom_initials ? `Initials: ${item.custom_initials}` : ''),
+        item.custom_name || (item.custom_initials ? `${/^[0-9]+$/.test(item.custom_initials) ? 'Number' : 'Initials'}: ${item.custom_initials}` : ''),
         item.custom_number === undefined ? '' : String(item.custom_number),
         item.alternate_number === undefined ? '' : String(item.alternate_number),
         item.number_request_status || '',

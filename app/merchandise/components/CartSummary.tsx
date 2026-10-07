@@ -2,6 +2,7 @@
 
 import Card from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
+import { initialsMode } from '@/lib/apparel/personalisation';
 import type { CartItem } from './types';
 
 /** Cart line items with quantity controls, removal and the order total. */
@@ -33,7 +34,7 @@ export default function CartSummary({
                           <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Surname: {item.custom_name}</p>
                         )}
                         {item.custom_initials && (
-                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">Initials: {item.custom_initials}</p>
+                          <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">{initialsMode(item.custom_initials) === 'number' ? 'Number' : 'Initials'}: {item.custom_initials}</p>
                         )}
                         {item.custom_number !== undefined && (
                           <p className="font-body text-xs text-maroon-700 dark:text-maroon-200">

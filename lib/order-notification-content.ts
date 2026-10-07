@@ -71,7 +71,7 @@ function detailLines(item: StaffOrderItem): string[] {
   const surname = typeof item.custom_name === 'string' ? item.custom_name.trim() : '';
   if (surname) lines.push(`Surname: ${escapeEmailHtml(surname)}`);
   const initials = typeof item.custom_initials === 'string' ? item.custom_initials.trim() : '';
-  if (initials) lines.push(`Initials: ${escapeEmailHtml(initials)}`);
+  if (initials) lines.push(`${/^[0-9]+$/.test(initials) ? 'Number' : 'Initials'}: ${escapeEmailHtml(initials)}`);
 
   const numbers = [item.custom_number, item.alternate_number]
     .map((value) => finiteNumber(value, Number.NaN))
