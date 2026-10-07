@@ -50,6 +50,7 @@
     "test:order-notifications": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-order-notifications.mjs",
     "test:payment-receipts": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-payment-receipts.mjs",
     "test:receipt-delivery-outbox": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-receipt-delivery-outbox.mjs",
+    "test:receipt-delivery-health": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-receipt-delivery-health.mjs",
     "test:admin-auth": "node scripts/test-admin-auth.mjs",
     "test:admin-revisions-audit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-admin-revisions-audit.mjs",
     "test:admin-permissions": "node scripts/test-admin-permissions.mjs",
