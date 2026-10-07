@@ -262,7 +262,7 @@ await check('about: "No premierships recorded yet" meets 4.5:1 on club maroon', 
 });
 
 // ------------------------------------------------------------------ 6. events
-const { eventTiming } = load('lib/events/event-timing.ts', {});
+const { eventTiming, msUntilEventStart } = load('lib/events/event-timing.ts', {});
 
 await check('events: timing uses the /events past-day rule and the API start rule', () => {
   const now = Date.parse('2026-10-07T02:00:00Z'); // 1pm, 7 Oct in Melbourne
@@ -281,11 +281,23 @@ await check('events: detail page shows a passed/closed note instead of the regis
   const page = read('app/events/[id]/page.tsx');
   assert.match(page, /<EventDetailClient event=\{event\} initialTiming=\{eventTiming\(event\.date\)\} \/>/);
   const client = read('app/events/[id]/EventDetailClient.tsx');
-  assert.match(client, /useEffect\(\(\) => \{\s*setTiming\(eventTiming\(event\.date\)\);/);
+  assert.match(client, /const update = \(\) => setTiming\(eventTiming\(event\.date\)\);\s*update\(\);/);
+  // A page left open across the start time closes registration then too.
+  assert.match(client, /const delay = msUntilEventStart\(event\.date\);/);
+  assert.match(client, /const timer = setTimeout\(update, delay \+ 1000\);\s*return \(\) => clearTimeout\(timer\);/);
   assert.match(client, /\{timing !== 'open' && submitStatus === 'idle' \? \(/);
   assert.match(client, /timing === 'passed' \? 'This event has passed\.' : 'Registrations for this event have closed\.'/);
   const closedBranch = client.slice(client.indexOf("{timing !== 'open'"), client.indexOf(') : (', client.indexOf("{timing !== 'open'")));
   assert.doesNotMatch(closedBranch, /Register|<form|SnailPurchaseForm/);
+});
+
+await check('events: the open page is re-checked at the start time (within browser timer limits)', () => {
+  const now = Date.parse('2026-10-07T02:00:00Z');
+  assert.equal(msUntilEventStart('2026-10-07T08:00:00Z', now), 6 * 60 * 60 * 1000);
+  assert.equal(msUntilEventStart('2026-10-07T00:00:00Z', now), null, 'already started');
+  assert.equal(msUntilEventStart('2027-02-06T08:30:00Z', now), null, 'beyond the ~24.8-day timer limit');
+  assert.equal(msUntilEventStart('not a date', now), null);
+  assert.equal(msUntilEventStart(null, now), null);
 });
 
 // ------------------------------------------------------------------ 7. favicon

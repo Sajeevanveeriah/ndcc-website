@@ -19,3 +19,18 @@ export function eventTiming(date: unknown, now: number = Date.now()): EventTimin
   if (clubDay.format(new Date(startsAt)) < clubDay.format(new Date(now))) return 'passed';
   return startsAt <= now ? 'started' : 'open';
 }
+
+// setTimeout fires immediately for delays above 2^31 - 1 ms (about 24.8 days).
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+/**
+ * Milliseconds until the event starts, for re-checking an open page at the
+ * moment registration closes; null when it has already started, has no valid
+ * start, or is too far away for a browser timer.
+ */
+export function msUntilEventStart(date: unknown, now: number = Date.now()): number | null {
+  const startsAt = typeof date === 'string' ? Date.parse(date) : Number.NaN;
+  if (!Number.isFinite(startsAt)) return null;
+  const delay = startsAt - now;
+  return delay > 0 && delay <= MAX_TIMER_MS ? delay : null;
+}
