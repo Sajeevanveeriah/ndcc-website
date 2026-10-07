@@ -1,10 +1,13 @@
 // Merchandise order attempts are shared across tabs: the same order submitted
-// from a second tab reuses the first tab's idempotency key, so the server
-// replays the original order instead of creating a duplicate.
+// from a second open tab reuses the first tab's idempotency key, so the server
+// replays the original order instead of creating a duplicate. Deliberate
+// repeat orders (same page after success, or a reload) start fresh; only a
+// digest is stored and it expires.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  MERCH_ATTEMPT_STORAGE_NAME, MERCH_ATTEMPT_TTL_MS, completeMerchAttempt, forgetMerchAttempt, merchAttemptKey, merchAttemptSignature,
+  MERCH_ATTEMPT_STORAGE_NAME, MERCH_ATTEMPT_TTL_MS, completeMerchAttempt, forgetMerchAttempt, merchAttemptDigest,
+  merchAttemptKey, merchAttemptSignature, pruneMerchAttempt, withMerchAttemptLock,
 } from '../lib/merch-order-attempt.ts';
 
 function memoryStorage() {
@@ -17,58 +20,117 @@ function memoryStorage() {
 }
 let counter = 0;
 const newKey = () => `key-${++counter}`;
-const order = { customer_name: 'Jordan Example', customer_email: 'j@example.invalid', items: [{ slug: 'hoodie', quantity: 1 }], total_amount: 60 };
+const order = { customer_name: 'Jordan Example', customer_email: 'j@example.invalid', customer_phone: '0400000000', items: [{ slug: 'hoodie', quantity: 1 }], total_amount: 60 };
 
 // Anti-spam fields differ per page load and are not part of "the same order".
-assert.equal(
-  merchAttemptSignature({ ...order, submitted_at: 1, hp_field: '' }),
-  merchAttemptSignature({ ...order, submitted_at: 999, hp_field: '' }),
-);
-assert.notEqual(merchAttemptSignature(order), merchAttemptSignature({ ...order, total_amount: 120 }));
+assert.equal(merchAttemptSignature({ ...order, submitted_at: 1, hp_field: '' }), merchAttemptSignature({ ...order, submitted_at: 999, hp_field: '' }));
+const digest = await merchAttemptDigest(merchAttemptSignature(order));
+assert.match(digest, /^[0-9a-f]{64}$/);
+assert.notEqual(await merchAttemptDigest(merchAttemptSignature({ ...order, total_amount: 120 })), digest);
 
-const storage = memoryStorage();
-const signature = merchAttemptSignature(order);
 const t0 = 1_000_000;
+const tab = (pageLoadedAt) => ({ pageLoadedAt, completedHere: new Set() });
+const keyFor = (storage, page, now, d = digest) => merchAttemptKey(storage, { digest: d, now, pageLoadedAt: page.pageLoadedAt, completedHere: page.completedHere, newKey });
+const complete = (storage, page, key, now) => { page.completedHere.add(key); completeMerchAttempt(storage, key, now); };
 
-// Tab A starts the order; tab B submits the same order and reuses the key.
-const keyA = merchAttemptKey(storage, signature, 'tab-a', t0, newKey);
-assert.equal(merchAttemptKey(storage, signature, 'tab-b', t0 + 5_000, newKey), keyA, 'second tab, in flight');
+// Only the digest is stored: no personal data in localStorage.
+{
+  const storage = memoryStorage();
+  keyFor(storage, tab(t0), t0);
+  const raw = storage.getItem(MERCH_ATTEMPT_STORAGE_NAME);
+  for (const secret of ['Jordan', 'j@example.invalid', '0400000000', 'hoodie']) assert.ok(!raw.includes(secret), `stored record omits ${secret}`);
+}
 
-// Tab A succeeds: tab B still replays the same order; tab A's next identical order is new.
-completeMerchAttempt(storage, keyA, 'tab-a');
-assert.equal(merchAttemptKey(storage, signature, 'tab-b', t0 + 10_000, newKey), keyA, 'second tab after success');
-const keyA2 = merchAttemptKey(storage, signature, 'tab-a', t0 + 20_000, newKey);
-assert.notEqual(keyA2, keyA, 'a deliberate repeat order from the finishing tab is not swallowed');
+// Two tabs open; A submits, B submits the same order while A is in flight or after A finished: one key.
+{
+  const storage = memoryStorage();
+  const a = tab(t0); const b = tab(t0 + 1_000);
+  const keyA = keyFor(storage, a, t0 + 10_000);
+  assert.equal(keyFor(storage, b, t0 + 11_000), keyA, 'second tab, in flight');
+  complete(storage, a, keyA, t0 + 12_000);
+  assert.equal(keyFor(storage, b, t0 + 20_000), keyA, 'second tab after success replays');
+  complete(storage, b, keyA, t0 + 21_000);
+  // Codex P1: B replaying must not make A's next deliberate order replay.
+  assert.notEqual(keyFor(storage, a, t0 + 30_000), keyA, 'completing page places a deliberate repeat order');
+  // ...and B, having also completed, starts fresh too.
+  assert.notEqual(keyFor(storage, b, t0 + 31_000), keyA);
+}
 
-// A different order gets a different key.
-assert.notEqual(merchAttemptKey(storage, merchAttemptSignature({ ...order, total_amount: 120 }), 'tab-b', t0 + 30_000, newKey), keyA2);
+// Codex P1: a reload (page loaded after completion) places a deliberate repeat order.
+{
+  const storage = memoryStorage();
+  const a = tab(t0);
+  const keyA = keyFor(storage, a, t0 + 1_000);
+  complete(storage, a, keyA, t0 + 2_000);
+  assert.notEqual(keyFor(storage, tab(t0 + 3_000), t0 + 4_000), keyA, 'reloaded page starts fresh');
+}
 
-// Memory expires after 30 minutes.
-const fresh = memoryStorage();
-const k1 = merchAttemptKey(fresh, signature, 'tab-a', t0, newKey);
-assert.notEqual(merchAttemptKey(fresh, signature, 'tab-b', t0 + MERCH_ATTEMPT_TTL_MS, newKey), k1);
+// Different order: different key.
+{
+  const storage = memoryStorage();
+  const a = tab(t0);
+  const keyA = keyFor(storage, a, t0 + 1_000);
+  const other = await merchAttemptDigest(merchAttemptSignature({ ...order, total_amount: 120 }));
+  assert.notEqual(keyFor(storage, tab(t0), t0 + 2_000, other), keyA);
+}
+
+// Codex P2: records expire and are removed.
+{
+  const storage = memoryStorage();
+  const k1 = keyFor(storage, tab(t0), t0);
+  assert.notEqual(keyFor(storage, tab(t0), t0 + MERCH_ATTEMPT_TTL_MS), k1, 'expired key not reused');
+  const s2 = memoryStorage();
+  keyFor(s2, tab(t0), t0);
+  pruneMerchAttempt(s2, t0 + MERCH_ATTEMPT_TTL_MS - 1);
+  assert.ok(s2.getItem(MERCH_ATTEMPT_STORAGE_NAME), 'fresh record kept');
+  pruneMerchAttempt(s2, t0 + MERCH_ATTEMPT_TTL_MS);
+  assert.equal(s2.getItem(MERCH_ATTEMPT_STORAGE_NAME), null, 'expired record removed on load');
+}
 
 // A refused replay (changed or removed order) is forgotten; only the matching key is removed.
-const s2 = memoryStorage();
-const k2 = merchAttemptKey(s2, signature, 'tab-a', t0, newKey);
-forgetMerchAttempt(s2, 'some-other-key');
-assert.ok(s2.getItem(MERCH_ATTEMPT_STORAGE_NAME));
-forgetMerchAttempt(s2, k2);
-assert.equal(s2.getItem(MERCH_ATTEMPT_STORAGE_NAME), null);
+{
+  const storage = memoryStorage();
+  const k = keyFor(storage, tab(t0), t0);
+  forgetMerchAttempt(storage, 'some-other-key', t0);
+  assert.ok(storage.getItem(MERCH_ATTEMPT_STORAGE_NAME));
+  forgetMerchAttempt(storage, k, t0);
+  assert.equal(storage.getItem(MERCH_ATTEMPT_STORAGE_NAME), null);
+}
 
-// No storage (private mode) or broken storage: a fresh key each attempt, no crash.
-assert.ok(merchAttemptKey(null, signature, 'tab-a', t0, newKey));
-const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); }, removeItem: () => { throw new Error('blocked'); } };
-assert.ok(merchAttemptKey(broken, signature, 'tab-a', t0, newKey));
-completeMerchAttempt(broken, 'x', 'tab-a');
-forgetMerchAttempt(broken, 'x');
-const garbage = memoryStorage(); garbage.setItem(MERCH_ATTEMPT_STORAGE_NAME, '{not json');
-assert.ok(merchAttemptKey(garbage, signature, 'tab-a', t0, newKey));
+// No storage, broken storage, garbage or no digest: a fresh key each attempt, no crash.
+{
+  assert.ok(keyFor(null, tab(t0), t0));
+  const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); }, removeItem: () => { throw new Error('blocked'); } };
+  assert.ok(keyFor(broken, tab(t0), t0));
+  completeMerchAttempt(broken, 'x', t0); forgetMerchAttempt(broken, 'x', t0); pruneMerchAttempt(broken, t0);
+  const garbage = memoryStorage(); garbage.setItem(MERCH_ATTEMPT_STORAGE_NAME, '{not json');
+  assert.ok(keyFor(garbage, tab(t0), t0));
+  const storage = memoryStorage();
+  const k = keyFor(storage, tab(t0), t0, null);
+  assert.equal(storage.getItem(MERCH_ATTEMPT_STORAGE_NAME), null, 'nothing shared without a digest');
+  assert.notEqual(keyFor(storage, tab(t0), t0, null), k);
+}
+
+// Codex P2: the read-modify-write runs under a cross-tab Web Lock when available.
+{
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  let locked = '';
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: { request: async (name, fn) => { locked = name; return fn(); } } } });
+  assert.equal(await withMerchAttemptLock(() => 'inside'), 'inside');
+  assert.equal(locked, 'ndcc-merch-order-attempt');
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: { request: async () => { throw new Error('denied'); } } } });
+  assert.equal(await withMerchAttemptLock(() => 'fallback'), 'fallback', 'a failing lock still runs the task');
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+  assert.equal(await withMerchAttemptLock(() => 'unlocked'), 'unlocked');
+  if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator;
+}
 
 // Wiring in the merchandise page.
 const client = readFileSync('app/merchandise/MerchandiseClient.tsx', 'utf8');
-assert.match(client, /merchAttemptKey\(attemptStorage\(\), merchAttemptSignature\(orderPayload\), tabId\.current, Date\.now\(\), newKey\)/);
-assert.match(client, /completeMerchAttempt\(attemptStorage\(\), idempotencyKey, tabId\.current\)/);
-assert.match(client, /forgetMerchAttempt\(attemptStorage\(\), idempotencyKey\)/);
+assert.match(client, /await merchAttemptDigest\(merchAttemptSignature\(orderPayload\)\)/);
+assert.match(client, /await withMerchAttemptLock\(\(\) => merchAttemptKey\(attemptStorage\(\), \{/);
+assert.match(client, /completedHere\.current\.add\(idempotencyKey\);\s*completeMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)/);
+assert.match(client, /forgetMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)/);
+assert.match(client, /pruneMerchAttempt\(attemptStorage\(\), pageLoadedAt\.current\)/);
 
-console.log('PASS: merchandise order attempts are shared across tabs (no second-tab duplicates).');
+console.log('PASS: merchandise order attempts - shared across open tabs, digest-only, expiring, locked, repeat orders allowed.');
