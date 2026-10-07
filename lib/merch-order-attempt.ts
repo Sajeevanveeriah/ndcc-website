@@ -115,3 +115,16 @@ export async function withMerchAttemptLock<T>(task: () => T): Promise<T> {
     return task();
   }
 }
+
+/**
+ * When this visit to the page began. A direct load of the page uses the
+ * document's navigation start (so an order completing while it loaded still
+ * counts as "before"); a later in-app navigation to it uses the time it
+ * mounted, since the document's start time is from an earlier page.
+ */
+export function merchVisitStartedAt(options: {
+  firstMountInDocument: boolean; documentPath: string | null; currentPath: string; timeOrigin: number | null; now: number;
+}): number {
+  const { firstMountInDocument, documentPath, currentPath, timeOrigin, now } = options;
+  return firstMountInDocument && documentPath === currentPath && timeOrigin ? Math.floor(timeOrigin) : now;
+}

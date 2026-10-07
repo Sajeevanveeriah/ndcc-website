@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   MERCH_ATTEMPT_STORAGE_NAME, MERCH_ATTEMPT_TTL_MS, completeMerchAttempt, forgetMerchAttempt, merchAttemptDigest,
-  merchAttemptKey, merchAttemptSignature, pruneMerchAttempt, withMerchAttemptLock,
+  merchAttemptKey, merchAttemptSignature, merchVisitStartedAt, pruneMerchAttempt, withMerchAttemptLock,
 } from '../lib/merch-order-attempt.ts';
 
 function memoryStorage() {
@@ -153,10 +153,27 @@ const complete = (storage, page, key, now) => { page.completedHere.add(key); com
   if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator;
 }
 
+// Visit start: a direct load uses the navigation start; in-app navigations use mount time.
+assert.equal(merchVisitStartedAt({ firstMountInDocument: true, documentPath: '/merchandise', currentPath: '/merchandise', timeOrigin: 1000.7, now: 5000 }), 1000, 'direct load');
+assert.equal(merchVisitStartedAt({ firstMountInDocument: true, documentPath: '/', currentPath: '/merchandise', timeOrigin: 1000, now: 5000 }), 5000, 'arrived by a link from another page');
+assert.equal(merchVisitStartedAt({ firstMountInDocument: false, documentPath: '/merchandise', currentPath: '/merchandise', timeOrigin: 1000, now: 5000 }), 5000, 'left and came back by a link');
+assert.equal(merchVisitStartedAt({ firstMountInDocument: true, documentPath: null, currentPath: '/merchandise', timeOrigin: 1000, now: 5000 }), 5000, 'no navigation entry');
+// Codex P1 (round 4): leaving and returning by a link after completing allows a deliberate repeat order.
+{
+  const storage = memoryStorage();
+  const first = tab(merchVisitStartedAt({ firstMountInDocument: true, documentPath: '/merchandise', currentPath: '/merchandise', timeOrigin: t0, now: t0 + 500 }));
+  const k = keyFor(storage, first, t0 + 1_000);
+  complete(storage, first, k, t0 + 2_000);
+  const revisit = tab(merchVisitStartedAt({ firstMountInDocument: false, documentPath: '/merchandise', currentPath: '/merchandise', timeOrigin: t0, now: t0 + 3_000 }));
+  assert.notEqual(keyFor(storage, revisit, t0 + 4_000), k);
+}
+
 // Wiring in the merchandise page.
 const client = readFileSync('app/merchandise/MerchandiseClient.tsx', 'utf8');
-// Codex P2: the load marker is the navigation start, not the (deferred) effect time.
-assert.match(client, /pageLoadedAt\.current = typeof performance !== 'undefined' && performance\.timeOrigin \? Math\.floor\(performance\.timeOrigin\) : Date\.now\(\);/);
+// Codex: the visit marker is captured at render (not in a deferred effect) and per visit.
+assert.match(client, /if \(!pageLoadedAt\.current && typeof window !== 'undefined'\) \{\s*pageLoadedAt\.current = merchVisitStartedAt\(\{/);
+assert.match(client, /firstMountInDocument: !merchPageMountedBefore/);
+assert.match(client, /useEffect\(\(\) => \{\s*merchPageMountedBefore = true;/);
 assert.match(client, /await merchAttemptDigest\(merchAttemptSignature\(orderPayload\)\)/);
 assert.match(client, /await withMerchAttemptLock\(\(\) => merchAttemptKey\(attemptStorage\(\), \{/);
 // Codex P2: every storage mutation runs under the same lock.

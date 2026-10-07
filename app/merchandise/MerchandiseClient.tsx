@@ -15,7 +15,8 @@ import OrderConfirmationPanel from './components/OrderConfirmationPanel';
 import ProductCatalogue from './components/ProductCatalogue';
 import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
 import {
-  completeMerchAttempt, forgetMerchAttempt, merchAttemptDigest, merchAttemptKey, merchAttemptSignature, pruneMerchAttempt, withMerchAttemptLock,
+  completeMerchAttempt, forgetMerchAttempt, merchAttemptDigest, merchAttemptKey, merchAttemptSignature, merchVisitStartedAt, pruneMerchAttempt,
+  withMerchAttemptLock,
 } from '@/lib/merch-order-attempt';
 import type {
   ApiProduct,
@@ -40,6 +41,17 @@ const DEFAULT_CAPABILITIES: PaymentCapabilities = {
   partial_payments: false,
   minimum_partial_amount: 10,
 };
+
+// Whether this page has already been shown in this document (later visits
+// are in-app navigations, which do not get a new navigation start time).
+let merchPageMountedBefore = false;
+
+function documentPath(): string | null {
+  try {
+    const entry = performance.getEntriesByType('navigation')[0];
+    return entry ? new URL(entry.name).pathname : null;
+  } catch { return null; }
+}
 
 // localStorage can be unavailable (private mode, blocked site data).
 function attemptStorage(): Storage | null {
@@ -127,12 +139,21 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   // reuses it so the server returns the original order instead of a duplicate.
   // The key is shared through localStorage so a second tab reuses it too.
   const orderAttempt = useRef<{ signature: string; key: string } | null>(null);
+  // When this visit to the page began, captured on the first client render
+  // (not in a deferred effect); see merchVisitStartedAt.
   const pageLoadedAt = useRef(0);
+  if (!pageLoadedAt.current && typeof window !== 'undefined') {
+    pageLoadedAt.current = merchVisitStartedAt({
+      firstMountInDocument: !merchPageMountedBefore,
+      documentPath: documentPath(),
+      currentPath: window.location.pathname,
+      timeOrigin: typeof performance !== 'undefined' ? performance.timeOrigin || null : null,
+      now: Date.now(),
+    });
+  }
   const completedHere = useRef(new Set<string>());
   useEffect(() => {
-    // When this page's navigation started, not when the effect ran, so an
-    // order completing while this page was still loading is still replayed.
-    pageLoadedAt.current = typeof performance !== 'undefined' && performance.timeOrigin ? Math.floor(performance.timeOrigin) : Date.now();
+    merchPageMountedBefore = true;
     void withMerchAttemptLock(() => pruneMerchAttempt(attemptStorage(), Date.now()));
   }, []);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
