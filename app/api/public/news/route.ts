@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getPublishedNews } from '@/lib/public-news';
 import { fallbackNews } from '@/lib/fallback-content';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -38,13 +39,13 @@ export async function GET(request: Request) {
       if (!data) {
         return NextResponse.json({ success: false, error: 'Article not found.' }, { status: 404, headers: noStoreHeaders });
       }
-      return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+      return NextResponse.json({ success: true, data }, { headers: withPublicCdnCache(noStoreHeaders, true) });
     }
 
     // A successful empty result is live truth — do not substitute seed content.
     const data = await getPublishedNews({ limit });
     const posts = Array.isArray(data) ? data : [];
-    return NextResponse.json({ success: true, data: posts }, { headers: noStoreHeaders });
+    return NextResponse.json({ success: true, data: posts }, { headers: withPublicCdnCache(noStoreHeaders, true) });
   } catch {
     // Query failure: seed content stands in, flagged so consumers can tell it
     // apart from live records.

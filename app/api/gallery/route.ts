@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPublicGallery } from '@/lib/public-data';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,6 +16,6 @@ export async function GET() {
   const result = await getPublicGallery();
   return NextResponse.json(
     { success: true, data: result.data, source: result.source, degraded: result.degraded, error: result.error },
-    { headers: noStoreHeaders },
+    { headers: withPublicCdnCache(noStoreHeaders, !result.degraded && !result.error) },
   );
 }

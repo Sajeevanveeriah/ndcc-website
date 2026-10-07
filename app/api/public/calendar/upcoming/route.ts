@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUpcomingCalendarEvents } from '@/lib/calendar/queries';
 import { toCalendarFeedEvent } from '@/lib/calendar/format';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -39,5 +40,5 @@ export async function GET(request: Request) {
     data: result.data.map(toCalendarFeedEvent),
     degraded: false,
     error: null,
-  });
+  }, { headers: withPublicCdnCache({}, true) });
 }

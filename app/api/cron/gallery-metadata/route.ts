@@ -13,6 +13,14 @@ const TIME_BUDGET_MS = 45_000;
 
 // Backfill: strips camera metadata from gallery originals uploaded before the
 // upload flow cleaned files itself. Idempotent; each run handles a batch.
+//
+// The queue is ordered by updated_at (oldest first), and a row that fails is
+// "touched" (updated_at only) so it moves to the back of the queue. Without
+// that, permanently failing files (missing or corrupt originals) would be
+// re-selected first every run and 25 of them would stall the backfill. A
+// touch never fakes metadata_stripped_at, creates no revision history (the
+// revision trigger ignores updated_at-only changes) and the row is retried
+// after every other pending row has had its turn.
 export async function GET(request: Request) {
   if (!isAuthorizedCronRequest(request.headers.get('authorization'), process.env.CRON_SECRET)) {
     return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
@@ -28,7 +36,8 @@ export async function GET(request: Request) {
     .select('id, storage_path, mime_type')
     .is('metadata_stripped_at', null)
     .not('storage_path', 'is', null)
-    .order('uploaded_at', { ascending: true })
+    .order('updated_at', { ascending: true })
+    .order('id', { ascending: true })
     .limit(BATCH_SIZE);
   if (error) {
     console.error('[cron/gallery-metadata] query failed', error.message);
@@ -59,8 +68,24 @@ export async function GET(request: Request) {
     } catch (cause) {
       failed.push(row.id as string);
       console.error('[cron/gallery-metadata] image failed', { id: row.id, reason: cause instanceof Error ? cause.message : 'unknown' });
+      await deprioritise(supabase, row.id as string);
     }
   }
 
   return NextResponse.json({ success: failed.length === 0, cleaned, failed: failed.length, remaining: Math.max(0, (rows?.length ?? 0) - cleaned) });
+}
+
+// Move a failed row to the back of the queue. Best effort: if the touch itself
+// fails the row is simply retried first next run, as before.
+async function deprioritise(supabase: ReturnType<typeof createServerClient>, id: string) {
+  try {
+    const { error } = await supabase
+      .from('gallery_images')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('metadata_stripped_at', null);
+    if (error) console.error('[cron/gallery-metadata] deprioritise failed', { id, code: error.code || 'unknown' });
+  } catch {
+    console.error('[cron/gallery-metadata] deprioritise failed', { id });
+  }
 }

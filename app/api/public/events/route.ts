@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPublicEvents } from '@/lib/public-data';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -25,12 +26,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   const result = await getPublicEvents();
+  const live = withPublicCdnCache({}, !result.degraded && !result.error);
 
   if (id) {
     const event = result.data.find((item) => item.id === id);
     if (!event) return jsonNoCache({ success: false, error: 'Event not found.' }, { status: 404 });
-    return jsonNoCache({ success: true, data: event, source: result.source, degraded: result.degraded, error: result.error });
+    return jsonNoCache({ success: true, data: event, source: result.source, degraded: result.degraded, error: result.error }, { headers: live });
   }
 
-  return jsonNoCache({ success: true, data: result.data, source: result.source, degraded: result.degraded, error: result.error });
+  return jsonNoCache({ success: true, data: result.data, source: result.source, degraded: result.degraded, error: result.error }, { headers: live });
 }

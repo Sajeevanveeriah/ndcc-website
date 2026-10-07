@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCommitteeMembers } from '@/lib/structured-content';
+import { fallbackCommitteeMembers } from '@/lib/fallback-content';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,7 +19,9 @@ const noStoreHeaders = {
 export async function GET() {
   try {
     const data = await getCommitteeMembers();
-    return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+    // getCommitteeMembers answers the shared fallback list on a failed read;
+    // only live rows are shared at the CDN.
+    return NextResponse.json({ success: true, data }, { headers: withPublicCdnCache(noStoreHeaders, data !== fallbackCommitteeMembers) });
   } catch (err) {
     console.error('[public-committee] Failed to load committee members:', err);
     return NextResponse.json(

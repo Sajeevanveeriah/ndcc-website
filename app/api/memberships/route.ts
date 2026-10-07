@@ -2,7 +2,7 @@ import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getPotClubProductCode } from '@/lib/server/pot-club';
-import { enforceHoneypotAndTiming, enforceRateLimit, getClientIp } from '@/lib/server/request-guards';
+import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { sendEmail, emailHtml, bankDetailsHtml, escapeEmailHtml } from '@/lib/email';
 import { fallbackMembershipAddons, fallbackMembershipPlans } from '@/lib/fallback-content';
@@ -72,6 +72,13 @@ export async function POST(request: Request) {
 
   if (!enforceHoneypotAndTiming(hp_field, submitted_at)) {
     return NextResponse.json({ success: false, error: 'Invalid form submission.' }, { status: 400 });
+  }
+  // Optional Cloudflare Turnstile check, as on the contact, order, volunteer
+  // and raffle forms; a no-op unless TURNSTILE_SECRET_KEY and
+  // TURNSTILE_ENFORCE=true are set. Runs only on this first submission,
+  // before any registration, payment reference or Stripe session exists.
+  if (!await enforceTurnstile(request, rawBody.value)) {
+    return NextResponse.json({ success: false, error: 'Please complete the security check and try again.' }, { status: 403 });
   }
 
   if (!validateEmail(email)) {

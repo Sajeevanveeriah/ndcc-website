@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPublicPlayerRegistration } from '@/lib/public-player-registration';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,5 +14,7 @@ const noStoreHeaders = {
 
 export async function GET() {
   const data = await getPublicPlayerRegistration();
-  return NextResponse.json({ success: true, data }, { headers: noStoreHeaders });
+  // A null answer may be "no current season" or a swallowed read failure, so
+  // only a populated registration is shared at the CDN.
+  return NextResponse.json({ success: true, data }, { headers: withPublicCdnCache(noStoreHeaders, data !== null) });
 }

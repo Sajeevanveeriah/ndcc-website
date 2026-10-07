@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPageLinkCards } from '@/lib/structured-content';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,6 +31,8 @@ export async function GET(request: Request) {
   const degraded = data.some((link) => link.id.startsWith('fallback-'));
   return NextResponse.json(
     { success: true, data, source: degraded ? 'fallback' : 'supabase', degraded, error: null },
-    { headers: noStoreHeaders },
+    // An empty list may be a failed read for a section without fallbacks, so
+    // only a non-empty live list is shared at the CDN.
+    { headers: withPublicCdnCache(noStoreHeaders, !degraded && data.length > 0) },
   );
 }
