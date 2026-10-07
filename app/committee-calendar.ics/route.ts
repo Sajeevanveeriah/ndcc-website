@@ -71,7 +71,9 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=3600',
+        // Never cached: access is re-checked on every request, so removing a
+        // member takes effect immediately.
+        'Cache-Control': 'private, no-store',
         'X-Robots-Tag': 'noindex, nofollow',
         ...(download
           ? { 'Content-Disposition': 'attachment; filename="NDCC-Committee-Calendar.ics"' }

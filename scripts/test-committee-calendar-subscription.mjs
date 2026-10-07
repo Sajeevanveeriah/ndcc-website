@@ -96,6 +96,8 @@ const keyCheck = feedRoute.indexOf("if (!(await isCommitteeFeedKey(url.searchPar
 assert.ok(keyCheck > 0, 'the key is checked');
 assert.ok(keyCheck < feedRoute.indexOf('getCommitteeCalendarSourceUrl()', keyCheck), 'the Google source is only read after the key check');
 assert.match(feedRoute.slice(keyCheck, feedRoute.indexOf('getCommitteeCalendarSourceUrl()', keyCheck)), /return new Response\(publicFeed\.body/);
+assert.match(feedRoute, /'Cache-Control': 'private, no-store'/, 'the private feed is never cached');
+assert.doesNotMatch(feedRoute, /s-maxage=300/);
 const keyLib = readFileSync('lib/calendar/committee-feed-key.ts', 'utf8');
 assert.match(keyLib, /^import 'server-only';/);
 assert.match(keyLib, /timingSafeEqual/);
