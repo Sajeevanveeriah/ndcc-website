@@ -130,8 +130,10 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   const pageLoadedAt = useRef(0);
   const completedHere = useRef(new Set<string>());
   useEffect(() => {
-    pageLoadedAt.current = Date.now();
-    void withMerchAttemptLock(() => pruneMerchAttempt(attemptStorage(), pageLoadedAt.current));
+    // When this page's navigation started, not when the effect ran, so an
+    // order completing while this page was still loading is still replayed.
+    pageLoadedAt.current = typeof performance !== 'undefined' && performance.timeOrigin ? Math.floor(performance.timeOrigin) : Date.now();
+    void withMerchAttemptLock(() => pruneMerchAttempt(attemptStorage(), Date.now()));
   }, []);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [paymentMethod, setPaymentMethod] = useState<MerchPaymentMethod>('bank_transfer');

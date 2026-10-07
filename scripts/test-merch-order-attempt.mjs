@@ -155,12 +155,14 @@ const complete = (storage, page, key, now) => { page.completedHere.add(key); com
 
 // Wiring in the merchandise page.
 const client = readFileSync('app/merchandise/MerchandiseClient.tsx', 'utf8');
+// Codex P2: the load marker is the navigation start, not the (deferred) effect time.
+assert.match(client, /pageLoadedAt\.current = typeof performance !== 'undefined' && performance\.timeOrigin \? Math\.floor\(performance\.timeOrigin\) : Date\.now\(\);/);
 assert.match(client, /await merchAttemptDigest\(merchAttemptSignature\(orderPayload\)\)/);
 assert.match(client, /await withMerchAttemptLock\(\(\) => merchAttemptKey\(attemptStorage\(\), \{/);
 // Codex P2: every storage mutation runs under the same lock.
 assert.match(client, /completedHere\.current\.add\(idempotencyKey\);\s*await withMerchAttemptLock\(\(\) => completeMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)\)/);
 assert.match(client, /await withMerchAttemptLock\(\(\) => forgetMerchAttempt\(attemptStorage\(\), idempotencyKey, Date\.now\(\)\)\)/);
-assert.match(client, /withMerchAttemptLock\(\(\) => pruneMerchAttempt\(attemptStorage\(\), pageLoadedAt\.current\)\)/);
+assert.match(client, /withMerchAttemptLock\(\(\) => pruneMerchAttempt\(attemptStorage\(\), Date\.now\(\)\)\)/);
 assert.equal((client.match(/(merchAttemptKey|completeMerchAttempt|forgetMerchAttempt|pruneMerchAttempt)\(attemptStorage/g) || []).length, 4);
 assert.equal((client.match(/withMerchAttemptLock\(\(\) => (merchAttemptKey|completeMerchAttempt|forgetMerchAttempt|pruneMerchAttempt)\(/g) || []).length, 4);
 
