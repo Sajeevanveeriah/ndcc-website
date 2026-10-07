@@ -14,6 +14,10 @@ import CheckoutForm from './components/CheckoutForm';
 import OrderConfirmationPanel from './components/OrderConfirmationPanel';
 import ProductCatalogue from './components/ProductCatalogue';
 import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
+import {
+  completeMerchAttempt, forgetMerchAttempt, merchAttemptDigest, merchAttemptKey, merchAttemptSignature, merchVisitStartedAt, pruneMerchAttempt,
+  withMerchAttemptLock,
+} from '@/lib/merch-order-attempt';
 import type {
   ApiProduct,
   CartItem,
@@ -37,6 +41,22 @@ const DEFAULT_CAPABILITIES: PaymentCapabilities = {
   partial_payments: false,
   minimum_partial_amount: 10,
 };
+
+// Whether this page has already been shown in this document (later visits
+// are in-app navigations, which do not get a new navigation start time).
+let merchPageMountedBefore = false;
+
+function documentPath(): string | null {
+  try {
+    const entry = performance.getEntriesByType('navigation')[0];
+    return entry ? new URL(entry.name).pathname : null;
+  } catch { return null; }
+}
+
+// localStorage can be unavailable (private mode, blocked site data).
+function attemptStorage(): Storage | null {
+  try { return typeof window === 'undefined' ? null : window.localStorage; } catch { return null; }
+}
 
 function toDisplayProducts(data: ApiProduct[]): DisplayProduct[] {
   return [...data]
@@ -117,7 +137,25 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
   // One idempotency key per order attempt: a retry of the same cart and details
   // reuses it so the server returns the original order instead of a duplicate.
+  // The key is shared through localStorage so a second tab reuses it too.
   const orderAttempt = useRef<{ signature: string; key: string } | null>(null);
+  // When this visit to the page began, captured on the first client render
+  // (not in a deferred effect); see merchVisitStartedAt.
+  const pageLoadedAt = useRef(0);
+  if (!pageLoadedAt.current && typeof window !== 'undefined') {
+    pageLoadedAt.current = merchVisitStartedAt({
+      firstMountInDocument: !merchPageMountedBefore,
+      documentPath: documentPath(),
+      currentPath: window.location.pathname,
+      timeOrigin: typeof performance !== 'undefined' ? performance.timeOrigin || null : null,
+      now: Date.now(),
+    });
+  }
+  const completedHere = useRef(new Set<string>());
+  useEffect(() => {
+    merchPageMountedBefore = true;
+    void withMerchAttemptLock(() => pruneMerchAttempt(attemptStorage(), Date.now()));
+  }, []);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [paymentMethod, setPaymentMethod] = useState<MerchPaymentMethod>('bank_transfer');
   const [cardAmount, setCardAmount] = useState('');
@@ -443,7 +481,11 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
       };
       const signature = JSON.stringify(orderPayload);
       if (orderAttempt.current?.signature !== signature) {
-        const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : '';
+        const newKey = () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : '');
+        const digest = await merchAttemptDigest(merchAttemptSignature(orderPayload));
+        const key = await withMerchAttemptLock(() => merchAttemptKey(attemptStorage(), {
+          digest, now: Date.now(), pageLoadedAt: pageLoadedAt.current, completedHere: completedHere.current, newKey,
+        }));
         orderAttempt.current = key ? { signature, key } : null;
       }
       const idempotencyKey = orderAttempt.current?.key;
@@ -463,8 +505,15 @@ function MerchandiseContent({ initialProducts, initialHeroContent }: Merchandise
 
       if (!response.ok) {
         // A conflict means this attempt cannot be replayed; the next submit starts a new one.
-        if (response.status === 409) orderAttempt.current = null;
+        if (response.status === 409) {
+          if (idempotencyKey) await withMerchAttemptLock(() => forgetMerchAttempt(attemptStorage(), idempotencyKey, Date.now()));
+          orderAttempt.current = null;
+        }
         throw new Error(data?.error || 'Something went wrong. Please try again.');
+      }
+      if (idempotencyKey) {
+        completedHere.current.add(idempotencyKey);
+        await withMerchAttemptLock(() => completeMerchAttempt(attemptStorage(), idempotencyKey, Date.now()));
       }
       orderAttempt.current = null;
 
