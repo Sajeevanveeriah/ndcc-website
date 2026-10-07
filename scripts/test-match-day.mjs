@@ -106,7 +106,7 @@ assert.equal(badges[directory[0].id].team_name, '1st XI');
 assert.match(clubToday(new Date('2026-10-09T22:30:00Z')), /^2026-10-10$/, 'club date follows Melbourne time');
 
 // Wiring: privacy, permissions, navigation and revalidation.
-const migration = readFileSync('supabase/migrations/20261007001500_team_sheets_and_club_winners.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261007001559_team_sheets_and_club_winners.sql', 'utf8');
 assert.match(migration, /revoke all on public\.club_winners from anon, authenticated/);
 assert.doesNotMatch(migration, /create policy/i, 'no browser read policy: drafts and full names stay server-side');
 assert.doesNotMatch(migration, /insert into/i, 'no sample rows are seeded');
