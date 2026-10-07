@@ -60,7 +60,8 @@ assert.doesNotMatch(migration, /calendar\.google\.com\/calendar\/ical\//);
 assert.doesNotMatch(migration, /private-[a-f0-9]{16,}/i);
 
 assert.match(page, /robots: \{ index: false, follow: false \}/);
-assert.match(control, /webcal:\/\/www\.ndcc\.com\.au\/committee-calendar\.ics/);
+assert.match(control, /const FEED_PATH = 'www\.ndcc\.com\.au\/committee-calendar\.ics';/);
+assert.match(control, /const WEBCAL_URL = `webcal:\/\/\$\{FEED_PATH\}\$\{query\}`;/);
 assert.match(control, /Copy subscription link/);
 assert.match(control, /Google Calendar/);
 assert.match(control, /Download current events/);
@@ -86,3 +87,31 @@ const otherAt171 = sanitiseCommitteeCalendarIcs(upstream.replace(
 ));
 assert.match(otherAt171.replace(/\r\n /g, ''), /Example Business\\, 171 Coppards Rd/, 'another venue at 171 keeps its address');
 console.log('PASS: committee feed shows the club at 141 Coppards Road.');
+
+// Privacy: without the committee key the feed keeps only public club events.
+import { eventStartDate } from '../lib/calendar/google-committee-ics.ts';
+assert.equal(eventStartDate(['DTSTART:20261121T030000Z']), '2026-11-21', 'UTC time converts to the Melbourne date');
+assert.equal(eventStartDate(['DTSTART:20261121T140000Z']), '2026-11-22', '1 am Melbourne next day');
+assert.equal(eventStartDate(['DTSTART;VALUE=DATE:20260912']), '2026-09-12', 'all-day date');
+assert.equal(eventStartDate(['DTSTART;TZID=Australia/Melbourne:20261024T190000']), '2026-10-24', 'local time keeps its day');
+assert.equal(eventStartDate(['SUMMARY:No start']), null);
+const twoEvents = upstream.replace('END:VCALENDAR', [
+  'BEGIN:VEVENT', 'UID:event-2@google.com', 'DTSTART:20261024T080000Z', 'SUMMARY:Snail Race', 'END:VEVENT', 'END:VCALENDAR',
+].join('\r\n'));
+const openFeed = sanitiseCommitteeCalendarIcs(twoEvents, { keepEvent: (event) => eventStartDate(event) === '2026-10-24' });
+assert.match(openFeed, /SUMMARY:Snail Race/);
+assert.doesNotMatch(openFeed, /Baby Shower/, 'a private booking is not in the open feed');
+const emptyOpenFeed = sanitiseCommitteeCalendarIcs(twoEvents, { keepEvent: () => false });
+assert.match(emptyOpenFeed, /BEGIN:VCALENDAR[\s\S]*END:VCALENDAR/, 'an open feed with no public events is still a valid calendar');
+assert.match(sanitiseCommitteeCalendarIcs(twoEvents), /Baby Shower/, 'the keyed feed keeps every event');
+
+const feedRoute = readFileSync('app/committee-calendar.ics/route.ts', 'utf8');
+assert.match(feedRoute, /const full = isCommitteeFeedKey\(url\.searchParams\.get\('key'\)\)/);
+assert.match(feedRoute, /\.eq\('visibility', 'public'\)/);
+const keyLib = readFileSync('lib/calendar/committee-feed-key.ts', 'utf8');
+assert.match(keyLib, /^import 'server-only';/);
+assert.match(keyLib, /timingSafeEqual/);
+const calendarPage = readFileSync('app/committee-calendar/page.tsx', 'utf8');
+assert.match(calendarPage, /requireSession\(CLUB_ADMIN_ROLES\)/);
+assert.match(calendarPage, /const feedKey = member \? committeeFeedKey\(\) : null;/);
+console.log('PASS: the open committee feed shows only public events; the full feed needs the committee key.');

@@ -3,11 +3,15 @@
 import { useState } from 'react';
 import { CalendarPlus, Copy, Download, ExternalLink } from 'lucide-react';
 
-const HTTPS_URL = 'https://www.ndcc.com.au/committee-calendar.ics';
-const WEBCAL_URL = 'webcal://www.ndcc.com.au/committee-calendar.ics';
+const FEED_PATH = 'www.ndcc.com.au/committee-calendar.ics';
 const GOOGLE_ADD_BY_URL = 'https://calendar.google.com/calendar/u/0/r/settings/addbyurl';
 
-export default function CommitteeCalendarSubscribe() {
+/** `feedKey` (signed-in committee members only) unlocks the full feed with private bookings and meetings. */
+export default function CommitteeCalendarSubscribe({ feedKey = null }: { feedKey?: string | null }) {
+  const query = feedKey ? `?key=${encodeURIComponent(feedKey)}` : '';
+  const HTTPS_URL = `https://${FEED_PATH}${query}`;
+  const WEBCAL_URL = `webcal://${FEED_PATH}${query}`;
+  const DOWNLOAD_URL = `https://${FEED_PATH}${query ? `${query}&` : '?'}download=1`;
   const [copyStatus, setCopyStatus] = useState('');
 
   async function copySubscriptionUrl() {
@@ -58,7 +62,7 @@ export default function CommitteeCalendarSubscribe() {
         </a>
 
         <a
-          href={`${HTTPS_URL}?download=1`}
+          href={DOWNLOAD_URL}
           className="btn-secondary inline-flex min-h-12 items-center justify-center gap-2 text-center"
         >
           <Download className="h-4 w-4" aria-hidden="true" />

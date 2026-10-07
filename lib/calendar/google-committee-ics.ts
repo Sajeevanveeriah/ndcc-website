@@ -117,17 +117,39 @@ function collectSafeEvents(lines: string[]): string[][] {
   return events;
 }
 
-export function sanitiseCommitteeCalendarIcs(source: string): string {
+const MELBOURNE_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** The Melbourne calendar date (YYYY-MM-DD) an event starts on, or null when DTSTART cannot be read. */
+export function eventStartDate(event: string[]): string | null {
+  const line = event.find((item) => propertyName(item) === 'DTSTART');
+  if (!line) return null;
+  const value = line.slice(line.indexOf(':') + 1).trim();
+  const match = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/.exec(value);
+  if (!match) return null;
+  const [, y, m, d, hh, mm, ss, utc] = match;
+  // All-day dates and local (TZID) times already name the calendar day.
+  if (!hh || !utc) return `${y}-${m}-${d}`;
+  return MELBOURNE_DATE.format(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss))));
+}
+
+type SanitiseOptions = {
+  /** Keep only events for which this returns true (the open feed keeps public club events). */
+  keepEvent?: (event: string[]) => boolean;
+};
+
+export function sanitiseCommitteeCalendarIcs(source: string, options: SanitiseOptions = {}): string {
   const lines = unfoldLines(source);
   if (!lines.includes('BEGIN:VCALENDAR') || !lines.includes('END:VCALENDAR')) {
     throw new Error('Upstream response is not an iCalendar document.');
   }
 
   const timezones = collectTimezones(lines);
-  const events = collectSafeEvents(lines);
-  if (events.length === 0) {
+  const allEvents = collectSafeEvents(lines);
+  if (allEvents.length === 0) {
     throw new Error('Upstream iCalendar document contains no usable events.');
   }
+  // A filtered feed may legitimately be empty (no public events yet).
+  const events = options.keepEvent ? allEvents.filter(options.keepEvent) : allEvents;
 
   const output = [
     'BEGIN:VCALENDAR',
