@@ -77,6 +77,13 @@ function collectTimezones(lines: string[]): string[][] {
   return components;
 }
 
+// Google Maps places the club at "171 Coppards Rd", so committee events that
+// pick the club from Maps carry that number. The City of Greater Geelong lists
+// Grinter Reserve at 141 Coppards Road, as the rest of the site does.
+export function correctClubAddress(line: string): string {
+  return line.replace(/\b171 Coppards (Rd|Road)\b/g, '141 Coppards $1');
+}
+
 function collectSafeEvents(lines: string[]): string[][] {
   const events: string[][] = [];
   let current: string[] | null = null;
@@ -97,7 +104,9 @@ function collectSafeEvents(lines: string[]): string[][] {
       continue;
     }
 
-    if (ALLOWED_EVENT_PROPERTIES.has(propertyName(line))) current.push(line);
+    if (ALLOWED_EVENT_PROPERTIES.has(propertyName(line))) {
+      current.push(propertyName(line) === 'LOCATION' ? correctClubAddress(line) : line);
+    }
   }
 
   return events;

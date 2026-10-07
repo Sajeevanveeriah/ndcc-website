@@ -67,3 +67,17 @@ assert.match(control, /Download current events/);
 assert.doesNotMatch(control, /calendar\.google\.com\/calendar\/ical/);
 
 console.log('Committee calendar subscription tests passed.');
+
+// Google Maps' "171 Coppards Rd" for the club is corrected to the council-listed 141.
+const mapsLocation = sanitiseCommitteeCalendarIcs(upstream.replace(
+  'LOCATION:Newcomb and District Cricket Club',
+  'LOCATION:Newcomb and District Cricket Club\\, 171 Coppards Rd\\, Moolap VIC 3\r\n 224\\, Australia',
+));
+assert.match(mapsLocation.replace(/\r\n /g, ''), /LOCATION:Newcomb and District Cricket Club\\, 141 Coppards Rd\\, Moolap VIC 3224\\, Australia/);
+assert.doesNotMatch(mapsLocation.replace(/\r\n /g, ''), /171 Coppards/);
+const otherVenue = sanitiseCommitteeCalendarIcs(upstream.replace(
+  'LOCATION:Newcomb and District Cricket Club',
+  'LOCATION:Leopold Sportsmans Club\\, 135 Kensington Rd\\, Leopold VIC 3224',
+));
+assert.match(otherVenue.replace(/\r\n /g, ''), /135 Kensington Rd/);
+console.log('PASS: committee feed shows the club at 141 Coppards Road.');
