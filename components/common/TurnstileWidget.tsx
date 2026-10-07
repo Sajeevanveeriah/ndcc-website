@@ -44,12 +44,12 @@ export function turnstileSiteKey(): string {
   return (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '').trim();
 }
 
+export const TURNSTILE_MISSING_MESSAGE = 'Please complete the security check above.';
+
 /**
  * State for one form's bot check. `required` is false when no site key is
  * configured; then `token` stays null and forms submit as before.
  */
-export const TURNSTILE_MISSING_MESSAGE = 'Please complete the security check above.';
-
 export function useTurnstile() {
   const required = Boolean(turnstileSiteKey());
   const [token, setTokenState] = useState<string | null>(null);
