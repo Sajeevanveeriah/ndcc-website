@@ -18,7 +18,7 @@ export default async function CommitteeCalendarPage() {
   // Private bookings and meetings are only in the keyed feed, which is shown to
   // signed-in committee members. Everyone else gets the public club events.
   const member = await requireSession(CLUB_ADMIN_ROLES).catch(() => null);
-  const feedKey = member ? committeeFeedKey() : null;
+  const feedKey = member ? committeeFeedKey(member.id) : null;
 
   return (
     <>
@@ -36,9 +36,9 @@ export default async function CommitteeCalendarPage() {
         <div className="container-width max-w-3xl">
           {feedKey ? (
             <p className="mb-4 rounded-xl border border-edge-subtle bg-surface-card p-4 font-body text-sm text-content-secondary">
-              You are signed in, so this is the full committee calendar, including private bookings and meetings. Keep this
-              link within the committee. If you subscribed before 7 October 2026, subscribe again here to keep seeing private
-              bookings.
+              You are signed in, so this is your personal link to the full committee calendar, including private bookings and
+              meetings. Do not share it; it stops working if your admin account is deactivated. If you subscribed before 7
+              October 2026, subscribe again here to keep seeing private bookings.
             </p>
           ) : (
             <p className="mb-4 rounded-xl border border-edge-subtle bg-surface-card p-4 font-body text-sm text-content-secondary">

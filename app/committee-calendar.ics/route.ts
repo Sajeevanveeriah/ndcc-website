@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     // Without the committee key this address serves the public club calendar,
     // built only from published public events: nothing from the committee's
     // Google calendar (private bookings, meetings) is read or passed through.
-    if (!isCommitteeFeedKey(url.searchParams.get('key'))) {
+    if (!(await isCommitteeFeedKey(url.searchParams.get('key')))) {
       const publicFeed = await getPublicClubCalendar();
       const headers = new Headers(publicFeed.headers);
       headers.set('X-Robots-Tag', 'noindex, nofollow');
