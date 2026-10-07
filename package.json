@@ -18,6 +18,7 @@
     "test:meal-order-key": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-meal-order-key.mjs",
     "test:maintenance-banner": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-maintenance-banner.mjs",
     "test:dino-team-view": "node scripts/test-dino-team-view.cjs",
+    "test:match-day": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-match-day.mjs",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke-routes.mjs",
     "test:email": "node scripts/test-email.mjs",

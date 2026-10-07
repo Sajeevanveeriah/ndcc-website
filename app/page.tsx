@@ -45,6 +45,8 @@ import { shortTeamLabel, teamMatchKey, teamsAwaitingPlayHQ } from '@/lib/playhq/
 import { groupByCategory, juniorAge, teamCategory } from '@/lib/playhq/team-category';
 import { getPublicTeamsWithSlugs } from '@/lib/public-teams';
 import CookieDoughFundraiserFeature from '@/components/home/CookieDoughFundraiserFeature';
+import WinnerCard from '@/components/match-day/WinnerCard';
+import { getPublishedWinners } from '@/lib/server/match-day';
 import { getJuniorGetActiveVouchers, type JuniorGetActiveVouchers } from '@/lib/home-promotions';
 import { getCookieDoughCampaign } from '@/lib/server/site-promotions';
 import {
@@ -936,6 +938,23 @@ async function SeasonAppointmentsSection() {
 }
 
 
+// Latest winners (last fortnight), hidden when none are published.
+async function LatestWinnersSection() {
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
+  const winners = await getPublishedWinners({ since, limit: 4 }).catch(() => []);
+  if (winners.length === 0) return null;
+  return (
+    <section className="nd-sec-tight" aria-labelledby="winners-title">
+      <div className="nd-wrap">
+        <SectionHeading id="winners-title" eyebrow="Congratulations" title="Latest winners">
+          <Link href="/winners" className={headingLinkClass}>All winners</Link>
+        </SectionHeading>
+        <div className="grid gap-4 md:grid-cols-2">{winners.map((winner) => <WinnerCard key={winner.id} winner={winner} />)}</div>
+      </div>
+    </section>
+  );
+}
+
 async function GalleryPreviewSection() {
   const { data: photos } = await getPublicGallery();
   const preview = photos.slice(0, 4);
@@ -1021,6 +1040,10 @@ export default function HomePage() {
 
       <Suspense fallback={null}>
         <PromotionsSection />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LatestWinnersSection />
       </Suspense>
 
       <Suspense fallback={<SponsorsSkeleton />}>

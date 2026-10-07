@@ -25,10 +25,10 @@ const FUND_RAISER_GROUP = 'Fund Raiser';
 
 const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Home', href: '/' },
-  { label: 'Cricket', links: [{ label: 'Teams', href: '/teams' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Calendar', href: '/calendar' }, { label: 'Fantasy', href: '/fantasy' }] },
+  { label: 'Cricket', links: [{ label: 'This Week', href: '/this-week' }, { label: 'Teams', href: '/teams' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Calendar', href: '/calendar' }, { label: 'Fantasy', href: '/fantasy' }] },
   // Club also carries news, publications and the gallery (suggested layout:
   // one fewer top-level group, so the header fits beside the club name).
-  { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'History', href: '/about#club-history' }, { label: 'Facilities', href: '/facilities' }, { label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }] },
+  { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'History', href: '/about#club-history' }, { label: 'Facilities', href: '/facilities' }, { label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Winners', href: '/winners' }, { label: 'Gallery', href: '/gallery' }] },
   { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }] },
   { label: 'Sponsors', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
   { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pot Club', href: '/pot-club' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }] },

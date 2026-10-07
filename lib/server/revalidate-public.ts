@@ -57,6 +57,8 @@ const RESOURCE_PATHS: Record<string, string[]> = {
   fantasySettings: ['/', '/fantasy'],
   fantasySeasons: ['/', '/fantasy'],
   playhq: ['/', '/fixtures'],
+  teamSheets: ['/', '/this-week', '/teams', '/fantasy/squad', '/fantasy/transfers'],
+  clubWinners: ['/', '/winners', '/this-week', '/player-sponsors'],
 };
 
 /** Detail routes that are cached per path under ISR. */
@@ -81,6 +83,8 @@ const DETAIL_PATTERNS: Record<string, string> = {
   publications: '/publications/[slug]',
   galleryAlbums: '/gallery/[slug]',
   galleryImages: '/gallery/[slug]',
+  // A team sheet shows on its team's page.
+  teamSheets: '/teams/[slug]',
 };
 
 function safe(fn: () => void) {

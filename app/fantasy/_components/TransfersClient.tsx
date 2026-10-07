@@ -6,11 +6,13 @@ import Button from '@/components/ui/Button';
 import { fantasyJsonFetch } from '@/lib/fantasy-browser';
 import { formatDinoDollars as money, isoWeekdayLabel } from '@/lib/dino-coach/domain';
 import { useSeasonParam } from './useSeasonParam';
+import { namedLabel, useTeamSheetSelections } from './useTeamSheetSelections';
 import WalletPanel from './WalletPanel';
 import { marketPreview, saleValue } from '@/lib/dino-coach/wallet';
 
 export default function TransfersClient() {
  const {query}=useSeasonParam();
+ const named=useTeamSheetSelections();
  const [data,setData]=useState<any>(null); const [out,setOut]=useState(''); const [incoming,setIncoming]=useState('');
  const [slot,setSlot]=useState('');
  const [error,setError]=useState(''); const [feedback,setFeedback]=useState(''); const [busy,setBusy]=useState(false);
@@ -42,8 +44,8 @@ export default function TransfersClient() {
   <section className="card p-5 space-y-4"><h2 className="text-xl font-display font-bold">Buy, sell or replace a player</h2>
    {!data.squad&&<p><Link className="underline" href={`/fantasy/squad${query}`}>Build your first squad</Link> to use the market.</p>}
    <div className="grid gap-4 md:grid-cols-2">
-    <label>Player to sell<select className="form-input mt-1 w-full" value={out} onChange={e=>setOut(e.target.value)}><option value="">Choose a player</option>{picks.map((p:any)=><option key={p.player_id} value={p.player_id}>{p.fantasy_players?.display_name} - sells for {money(valueOf(p))}</option>)}</select></label>
-    <label>Player to buy<select className="form-input mt-1 w-full" value={incoming} onChange={e=>setIncoming(e.target.value)}><option value="">Choose a player</option>{data.players.filter((p:any)=>!owned.has(p.id)&&p.published_at).map((p:any)=><option key={p.id} value={p.id}>{p.display_name} - {money(p.price_dino_dollars)}</option>)}</select></label>
+    <label>Player to sell<select className="form-input mt-1 w-full" value={out} onChange={e=>setOut(e.target.value)}><option value="">Choose a player</option>{picks.map((p:any)=><option key={p.player_id} value={p.player_id}>{p.fantasy_players?.display_name} - sells for {money(valueOf(p))}{named[p.player_id] ? ` - ${namedLabel(named[p.player_id])}` : Object.keys(named).length ? ' - not named this week' : ''}</option>)}</select></label>
+    <label>Player to buy<select className="form-input mt-1 w-full" value={incoming} onChange={e=>setIncoming(e.target.value)}><option value="">Choose a player</option>{data.players.filter((p:any)=>!owned.has(p.id)&&p.published_at).map((p:any)=><option key={p.id} value={p.id}>{p.display_name} - {money(p.price_dino_dollars)}{named[p.id] ? ` - ${namedLabel(named[p.id])}` : ''}</option>)}</select></label>
    </div>
    <p aria-live="polite">Sale value: {money(refund)}{outgoing?` (${refund-Number(outgoing.purchase_price_dino_dollars)>=0?'profit':'loss'} ${money(Math.abs(refund-Number(outgoing.purchase_price_dino_dollars)))})`:''}. Purchase: {money(cost)}. After replacement: {money(marketPreview(remaining,refund,cost))}.</p>
    <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={closed||!out} onClick={()=>void act('sell')}>Sell back to pool</Button><Button disabled={closed||!out||!incoming||remaining+refund<cost} onClick={()=>void act('swap')}>Sell and buy replacement</Button></div>

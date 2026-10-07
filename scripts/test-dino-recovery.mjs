@@ -64,7 +64,7 @@ const shared = {
   '@/components/ui/Card': { default: div, CardContent: div },
 };
 const Builder = load('app/fantasy/_components/SquadBuilder.tsx', {
-  ...shared, './WalletPanel': { default: () => null }, './PlayerStatsCard': { default: ({ player }) => React.createElement('p', null, player.display_name) },
+  ...shared, './NamedBadge': { default: () => null }, './useTeamSheetSelections': { useTeamSheetSelections: () => ({}), namedLabel: () => '' }, './WalletPanel': { default: () => null }, './PlayerStatsCard': { default: ({ player }) => React.createElement('p', null, player.display_name) },
   './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
   '@/lib/dino-coach/wallet': load('lib/dino-coach/wallet.ts', {}),
   '@/lib/dino-coach/season-summary': { CRICKET_ROLE_LABELS: { BAT: 'Batter' } },

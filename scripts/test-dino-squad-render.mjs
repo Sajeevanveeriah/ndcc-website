@@ -29,6 +29,7 @@ function render(selection, readonlyMode = false, issues = []) {
     '@/components/ui/Card': { default: div, CardContent: div },
     '@/lib/fantasy-browser': {},
     './WalletPanel': { default: () => null },
+    './NamedBadge': { default: () => null }, './useTeamSheetSelections': { useTeamSheetSelections: () => ({}), namedLabel: () => '' },
     './PlayerStatsCard': { default: ({ player }) => React.createElement('div', null, player.display_name) },
     '@/lib/dino-coach/wallet': walletExports,
     './useSeasonParam': { useSeasonParam: () => ({ query: '' }) },
