@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { pageMetadata, absoluteUrl, authorJsonLd, ORGANIZATION_ID, breadcrumbJsonLd } from '@/lib/seo';
+import { pageMetadata, absoluteUrl, authorJsonLd, ORGANIZATION_ID, breadcrumbJsonLd, DEFAULT_OG_IMAGE, socialImageUrl } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { draftMode } from 'next/headers';
@@ -56,7 +56,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title: post.title,
       description,
       ...(post.published_at ? { publishedTime: post.published_at } : {}),
-      images: images.length ? images : [{ url: '/images/logo.jpg', alt: 'NDCC Logo' }],
+      images: images.length
+        ? images.map((image) => ({ ...image, url: socialImageUrl(image.url) }))
+        : [{ ...DEFAULT_OG_IMAGE, alt: 'NDCC Logo' }],
     },
   };
 }

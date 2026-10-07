@@ -42,7 +42,7 @@ assert.match(home, /cta_url \|\| '\/join'/);
 assert.match(home, /\{ href: '\/join', label: 'Join the club' \}/, 'Get involved row has a Join link to /join');
 assert.match(home, /href="\/sponsors" className="nd-link">All sponsors/);
 assert.match(home, /href="\/sponsors#enquiry-form" className="nd-link">Become a sponsor/);
-assert.match(readFileSync('app/sponsors/page.tsx', 'utf8'), /id="enquiry-form"/, 'Become a sponsor anchor exists');
+assert.match(readFileSync('app/sponsors/(list)/page.tsx', 'utf8'), /id="enquiry-form"/, 'Become a sponsor anchor exists');
 // Suggested layout: next event, matches, then Coming up / Club news / Get involved
 // (which carries the Dino Coach box), then promotions and sponsors.
 const order = ['<NextEventSection />', '<FixturesSection />', '<ComingUpPreview />', '<ClubNewsPreview />', '<GetInvolvedSection />', '<PromotionsSection />', '<SponsorsSection />'].map((marker) => home.indexOf(marker));

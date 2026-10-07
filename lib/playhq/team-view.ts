@@ -177,10 +177,17 @@ export function isLadderRowForTeam(row: PlayHQLadderRow, team: Pick<PlayHQTeam, 
   return normaliseClubText(row.teamName) === normaliseClubText(team.name);
 }
 
-/** Tab label without the club prefix: "Newcomb & District Women 1sts" -> "Women 1sts". */
+/**
+ * Tab label without the club prefix: "Newcomb & District Women 1sts" ->
+ * "Women 1sts", "Newcomb & Dist U17" -> "U17". The prefix is stripped only
+ * when all of it matches and a space follows, so a combined side such as
+ * "Newcomb & Dist/Geel City U17" keeps its full name (never "& Dist/...").
+ */
 export function shortTeamLabel(name: string): string {
-  const short = name.replace(/^\s*(newcomb\s*(?:&|and)\s*district(?:\s+cricket\s+club)?|newcomb|ndcc)\s+/i, '').trim();
-  return short || name;
+  const short = name
+    .replace(/^\s*(?:newcomb\s*(?:&|and)\s*dist(?:rict|\.)?(?:\s+cricket\s+club)?|newcomb(?!\s*(?:&|and\b))|ndcc)\s+(?=\S)/i, '')
+    .trim();
+  return short && !/^(?:&|and\b|\/)/i.test(short) ? short : name.trim() || name;
 }
 
 export type AppointmentLike = { name: string; role: string };

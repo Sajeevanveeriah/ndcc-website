@@ -6,12 +6,12 @@ const checks = [
   { route: '/', file: 'app/page.tsx', label: 'home core content', all: ['Our Sponsors'] },
   { route: '/about', file: 'app/about/page.tsx', label: 'about content', all: ['About'] },
   { route: '/fixtures', file: 'app/fixtures/page.tsx', label: 'fixtures content', all: ['Fixtures'] },
-  { route: '/sponsors', file: 'app/sponsors/page.tsx', label: 'sponsor cards', all: ['Sponsors'] },
-  { route: '/news', file: 'app/news/page.tsx', label: 'news fallback', all: ['News'] },
+  { route: '/sponsors', file: 'app/sponsors/(list)/page.tsx', label: 'sponsor cards', all: ['Sponsors'] },
+  { route: '/news', file: 'app/news/(list)/page.tsx', label: 'news fallback', all: ['News'] },
   { route: '/publications', file: 'app/publications/page.tsx', label: 'publications listing', all: ['Publications'] },
-  { route: '/events', file: 'app/events/page.tsx', label: 'events fallback', all: ['Events'] },
+  { route: '/events', file: 'app/events/(list)/page.tsx', label: 'events fallback', all: ['Events'] },
   { route: '/calendar', file: 'app/calendar/page.tsx', label: 'calendar content', all: ['Club Calendar'] },
-  { route: '/gallery', file: 'app/gallery/page.tsx', label: 'gallery fallback achievements', all: ['Gallery'] },
+  { route: '/gallery', file: 'app/gallery/(list)/page.tsx', label: 'gallery fallback achievements', all: ['Gallery'] },
   { route: '/join', file: 'app/join/page.tsx', label: 'social membership', all: ['Membership'] },
   // `all` is checked in the page source; `rendered` (when set) replaces it for a
   // running server, since source identifiers never appear in rendered HTML.

@@ -72,7 +72,7 @@ assert.ok(single.includes('Senior men') && !single.includes('Senior women') && !
 
 // 5. Page wiring: real data sources, same slug links and fixture logic as
 // /teams/[slug], ISR unchanged.
-const page = fs.readFileSync(path.join(repoRoot, 'app/teams/page.tsx'), 'utf8');
+const page = fs.readFileSync(path.join(repoRoot, 'app/teams/(list)/page.tsx'), 'utf8');
 assert.match(page, /export const revalidate = 60;/);
 assert.match(page, /export const dynamic = 'force-static';/);
 assert.match(page, /await getPublicTeams\(\)/);

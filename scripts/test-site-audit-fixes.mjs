@@ -138,7 +138,7 @@ await check('teams: without Supabase env the static list is returned unchanged',
 });
 
 await check('teams: callers do not swallow the failure into an empty list or 404', () => {
-  const teamsPage = read('app/teams/page.tsx');
+  const teamsPage = read('app/teams/(list)/page.tsx');
   assert.match(teamsPage, /const teams = await getPublicTeams\(\);/);
   assert.doesNotMatch(teamsPage, /getPublicTeams\(\)\.catch/);
   const slugPage = read('app/teams/[slug]/page.tsx');

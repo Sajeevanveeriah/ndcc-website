@@ -163,7 +163,7 @@ check('navigation and footer landmarks and text sizes', () => {
 });
 
 check('images carry descriptive alt text', () => {
-  assert.match(read('app/gallery/page.tsx'), /alt=\{`Cover photo for the \$\{album\.title\} album`\}/);
+  assert.match(read('app/gallery/(list)/page.tsx'), /alt=\{`Cover photo for the \$\{album\.title\} album`\}/);
   assert.match(read('components/publications/PublicationCard.tsx'), /alt=\{`Cover of \$\{publication\.title\}`\}/);
 });
 

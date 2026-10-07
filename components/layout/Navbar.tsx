@@ -291,8 +291,10 @@ export default function Navbar({ nav }: NavbarProps) {
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 ease-out',
+        // 92% keeps the muted tagline at >= 4.5:1 even over black/maroon
+        // (light) or white (dark) sections scrolling underneath.
         scrolled
-          ? 'border-edge-subtle bg-surface-nav/75 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_30px_-18px_rgba(29,29,31,0.25)]'
+          ? 'border-edge-subtle bg-surface-nav/92 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_30px_-18px_rgba(29,29,31,0.25)]'
           : 'border-edge-subtle/70 bg-surface-nav'
       )}
       aria-label="Main navigation"

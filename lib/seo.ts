@@ -17,8 +17,39 @@ export function absoluteUrl(path: string): string {
   return new URL(path, `${SITE_URL}/`).href;
 }
 
-export function pageMetadata(path: string, title: string, description: string, image = '/images/logo.jpg'): Metadata {
-  const images = [{ url: absoluteUrl(image), alt: title }];
+/**
+ * Default social preview: the club logo letterboxed to 1200x630 on white
+ * (generated from public/images/logo.jpg; about 66 KB instead of 367 KB).
+ */
+export const DEFAULT_OG_IMAGE = { url: '/images/og-default.jpg', width: 1200, height: 630 } as const;
+
+// CMS uploads (Supabase Storage originals, often several MB). The host is in
+// next.config.mjs images.remotePatterns, so the Next image optimiser can serve
+// a resized copy.
+const OPTIMISABLE_IMAGE_HOSTS = new Set(['alduwuipmmnzorcgkcli.supabase.co']);
+export const SOCIAL_IMAGE_WIDTH = 1200;
+
+/**
+ * Absolute URL for an og:image / twitter:image. Supabase Storage originals go
+ * through the Next image optimiser at 1200px wide (a default device size), so
+ * link previews fetch a few hundred KB instead of the multi-MB upload.
+ */
+export function socialImageUrl(src: string): string {
+  const absolute = absoluteUrl(src);
+  let host: string;
+  try {
+    host = new URL(absolute).hostname;
+  } catch {
+    return absolute;
+  }
+  if (!OPTIMISABLE_IMAGE_HOSTS.has(host)) return absolute;
+  return `${SITE_URL}/_next/image?url=${encodeURIComponent(absolute)}&w=${SOCIAL_IMAGE_WIDTH}&q=75`;
+}
+
+export function pageMetadata(path: string, title: string, description: string, image?: string): Metadata {
+  const images = image
+    ? [{ url: socialImageUrl(image), alt: title }]
+    : [{ url: absoluteUrl(DEFAULT_OG_IMAGE.url), width: DEFAULT_OG_IMAGE.width, height: DEFAULT_OG_IMAGE.height, alt: title }];
   return {
     // Renders as "<title> | NDCC Dinos" (root template). The template is
     // re-declared so routes nested under a layout using this helper keep it.
