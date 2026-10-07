@@ -1065,6 +1065,14 @@
 
 @utility nd-hero-media {
   @apply relative;
+  /* Drawn ball footprint, shared by .nd-hero-ball and the intro caption. */
+  --nd-ball-size: clamp(88px, 10vw, 132px);
+  --nd-ball-left: clamp(-44px, -3vw, -14px);
+  /* The ball overlaps the caption's left end, so the "DINOS" label starts
+     clear of it and stays fully readable. */
+  & figcaption {
+    padding-left: max(1rem, calc(var(--nd-ball-size) + var(--nd-ball-left) + 0.75rem));
+  }
 }
 
 @utility nd-reveal {
@@ -1083,8 +1091,8 @@
 
 @utility nd-hero-ball {
   @apply pointer-events-none absolute z-3;
-  width: clamp(88px, 10vw, 132px);
-  left: clamp(-44px, -3vw, -14px);
+  width: var(--nd-ball-size, clamp(88px, 10vw, 132px));
+  left: var(--nd-ball-left, clamp(-44px, -3vw, -14px));
   bottom: clamp(-48px, -3.4vw, -18px);
   filter: drop-shadow(0 14px 22px rgba(60, 0, 0, 0.32));
 }
