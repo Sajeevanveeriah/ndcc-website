@@ -15,7 +15,7 @@ import { isSnailRaceEvent } from '@/lib/events/snail-race';
 import SnailRaceDetails, { raceSponsorshipPrice } from '@/components/events/SnailRaceDetails';
 import SnailPurchaseForm from '@/components/events/SnailPurchaseForm';
 import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
-import { eventTiming, type EventTiming } from '@/lib/events/event-timing';
+import { eventTiming, msUntilEventStart, type EventTiming } from '@/lib/events/event-timing';
 
 const CLUB_TIME_ZONE = 'Australia/Melbourne';
 const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: CLUB_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -32,10 +32,16 @@ type OrderConfirmation = {
 export default function EventDetailClient({ event, initialTiming = 'open' }: { event: Event; initialTiming?: EventTiming }) {
   const eventId = event.id;
   // Registration closes when the event starts (POST /api/events enforces the
-  // same rule). The page is ISR-cached, so re-check the time once on load.
+  // same rule). The page is ISR-cached, so re-check the time on load, and again
+  // at the start time for a page left open across it.
   const [timing, setTiming] = useState<EventTiming>(initialTiming);
   useEffect(() => {
-    setTiming(eventTiming(event.date));
+    const update = () => setTiming(eventTiming(event.date));
+    update();
+    const delay = msUntilEventStart(event.date);
+    if (delay === null) return;
+    const timer = setTimeout(update, delay + 1000);
+    return () => clearTimeout(timer);
   }, [event.date]);
   const songEvent = isSongRequestEvent(event);
   const snailEvent = isSnailRaceEvent(event);
