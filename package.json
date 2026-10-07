@@ -163,7 +163,8 @@
     "test:dino-team-name-change": "node scripts/test-dino-team-name-change.cjs",
     "test:fundraising-hub": "node scripts/test-fundraising-hub.cjs",
     "test:teams-filter": "node scripts/test-teams-filter.cjs",
-    "test:site-quick-wins": "node scripts/test-site-quick-wins.mjs"
+    "test:site-quick-wins": "node scripts/test-site-quick-wins.mjs",
+    "test:merchandise-ssr": "node scripts/test-merchandise-ssr.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",

@@ -79,6 +79,14 @@ const nextConfig = {
       ...['/admin/:path*', '/committee/:path*', '/committee-calendar', '/payment', '/fantasy/login', '/fantasy/register', '/fantasy/reset-password', '/fantasy/account', '/fantasy/team', '/fantasy/squad', '/fantasy/transfers', '/fantasy/leagues'].map((source) => ({
         source, headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       })),
+      // Payment-result returns to the ISR /merchandise page (e.g. Stripe's
+      // ?payment=submitted&session_id=...) stay out of search results. The
+      // static page cannot read searchParams, so the noindex the page used to
+      // set per request is sent here instead.
+      ...['payment', 'success', 'cancelled', 'session_id'].map((key) => ({
+        source: '/merchandise', has: [{ type: 'query', key }],
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      })),
       {
         source: '/:path*',
         headers: securityHeaders,
