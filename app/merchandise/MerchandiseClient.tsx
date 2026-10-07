@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, XCircle } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
 import ScrollReveal from '@/components/common/ScrollReveal';
-import { CLUB_NAME } from '@/lib/constants';
+import type { MerchHeroContent } from './hero-content';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { computeUnitPrice } from '@/lib/apparel/pricing';
 import { personalisationKind, validatePersonalisation } from '@/lib/apparel/personalisation';
@@ -55,16 +55,32 @@ function toDisplayProducts(data: ApiProduct[]): DisplayProduct[] {
           }));
 }
 
-export default function MerchandisePage({ initialProducts }: { initialProducts: ApiProduct[] }) {
-  return (
-    <Suspense>
-      <MerchandiseContent initialProducts={initialProducts} />
-    </Suspense>
-  );
+type MerchandiseProps = {
+  /** Server-rendered catalogue; null only when a build prerender could not read it. */
+  initialProducts: ApiProduct[] | null;
+  initialHeroContent: MerchHeroContent;
+};
+
+// The page is statically rendered (ISR), so useSearchParams lives in its own
+// Suspense boundary: only this listener renders on the client, while the
+// catalogue around it stays in the server HTML.
+function PaymentResultListener({ onResult }: { onResult: (status: 'success' | 'cancelled') => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('payment') === 'submitted' || searchParams.get('success') === 'true') {
+      onResult('success');
+    } else if (searchParams.get('payment') === 'cancelled' || searchParams.get('cancelled') === 'true') {
+      onResult('cancelled');
+    }
+  }, [searchParams, onResult]);
+  return null;
 }
 
-function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[] }) {
-  const searchParams = useSearchParams();
+export default function MerchandisePage({ initialProducts, initialHeroContent }: MerchandiseProps) {
+  return <MerchandiseContent initialProducts={initialProducts} initialHeroContent={initialHeroContent} />;
+}
+
+function MerchandiseContent({ initialProducts, initialHeroContent }: MerchandiseProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [addedNotice, setAddedNotice] = useState('');
   // The floating order bar steps aside while the order summary itself is on screen.
@@ -107,15 +123,14 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
   const [cardPaying, setCardPaying] = useState(false);
   const [cardError, setCardError] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  // Start with a live server read, then refresh in the browser. Never use seed products.
-  const [products, setProducts] = useState<DisplayProduct[]>(() => toDisplayProducts(initialProducts));
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [heroContent, setHeroContent] = useState<{ title: string; body: string; orderTitle: string; orderBody: string }>({
-    title: 'Club Merchandise',
-    body: `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
-    orderTitle: 'Ordering Information',
-    orderBody: '',
-  });
+  // The catalogue and its CMS copy are rendered on the server (ISR). The
+  // browser only fetches the catalogue when the server had none (a build
+  // prerender that could not reach the database) or on Try again. Never use
+  // seed products.
+  const serverCatalogueMissing = initialProducts === null;
+  const [products, setProducts] = useState<DisplayProduct[]>(() => toDisplayProducts(initialProducts ?? []));
+  const [productsLoading, setProductsLoading] = useState(serverCatalogueMissing);
+  const heroContent = initialHeroContent;
   const [windowState, setWindowState] = useState<{ processing_open: boolean; queue_allowed: boolean; current_window: MerchandiseWindow | null; next_window: MerchandiseWindow | null }>({
     processing_open: true,
     queue_allowed: true,
@@ -129,23 +144,20 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
 
   useEffect(() => {
     document.title = 'Club Merchandise | NDCC Dinos';
-
-    if (searchParams.get('payment') === 'submitted' || searchParams.get('success') === 'true') {
-      setSubmitStatus('success');
-    } else if (searchParams.get('payment') === 'cancelled' || searchParams.get('cancelled') === 'true') {
-      setSubmitStatus('cancelled');
-    }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     // Set on cleanup so a slow response from a superseded run (an earlier
     // mount or an older Try again click) can't clobber newer state.
     let stale = false;
 
+    // Server-rendered products are authoritative on mount; the browser only
+    // reads the catalogue when the server had none, or on Try again.
+    const fetchProducts = serverCatalogueMissing || productsReloadKey > 0;
     if (productsReloadKey > 0) setProductsLoading(true);
 
     // Each loader catches and logs its own failure so one unreachable
-    // endpoint can't silently discard what the other two returned.
+    // endpoint can't silently discard what the others returned.
     const loadProducts = async () => {
       try {
         const res = await fetch('/api/apparel/products', { cache: 'no-store' });
@@ -184,24 +196,8 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
       }
     };
 
-    const loadContentBlocks = async () => {
-      try {
-        const res = await fetch('/api/public/content-blocks?key=merch.hero&key=merch.ordering', { cache: 'no-store' });
-        const payload = await res.json();
-        if (stale) return;
-        const blocks = payload?.data || {};
-        const orderingBody = blocks['merch.ordering']?.body || '';
-        setHeroContent({
-          title: blocks['merch.hero']?.title || 'Club Merchandise',
-          body: blocks['merch.hero']?.body || `Show your Dinos pride with official ${CLUB_NAME} gear. All merchandise is available for order online and collection from the club.`,
-          orderTitle: blocks['merch.ordering']?.title || 'Ordering Information',
-          orderBody: orderingBody.startsWith('Use this section to provide') ? '' : orderingBody,
-        });
-      } catch (err) {
-        console.error('[merchandise] Failed to load content blocks; keeping default copy:', err);
-      }
-    };
-
+    // Order windows and payment capabilities change independently of the
+    // catalogue (dates, CMS payment switches), so they stay live per visit.
     const loadCapabilities = async () => {
       try {
         const res = await fetch('/api/payments/capabilities', { cache: 'no-store' });
@@ -216,11 +212,11 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
       }
     };
 
-    void Promise.all([loadProducts(), loadWindows(), loadContentBlocks(), loadCapabilities()]);
+    void Promise.all([...(fetchProducts ? [loadProducts()] : []), loadWindows(), loadCapabilities()]);
     return () => {
       stale = true;
     };
-  }, [productsReloadKey]);
+  }, [productsReloadKey, serverCatalogueMissing]);
 
   async function startCardPayment(amount: number | null) {
     if (!orderConfirmation) return;
@@ -508,6 +504,9 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
 
   return (
     <>
+      <Suspense fallback={null}>
+        <PaymentResultListener onResult={setSubmitStatus} />
+      </Suspense>
       {/* Hero */}
       <section className="page-hero">
         <div className="container-width">

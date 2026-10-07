@@ -29,8 +29,13 @@ scratch dir (NOT the repo) and launch with
 `executablePath: '/opt/pw-browsers/chromium'`. Never run `playwright install`.
 
 Flows worth driving:
-- `/merchandise` — static 8-product fallback always renders; with unreachable
-  Supabase the "shortened product list" banner + Try again button appear.
+- `/merchandise` — ISR (revalidate 60): the catalogue and merch.hero /
+  merch.ordering copy are server-rendered; the browser only calls
+  `/api/apparel/windows` and `/api/payments/capabilities` after load. There
+  are no seed products: a build without Supabase prerenders loading cards and
+  the client fetches `/api/apparel/products`, showing the "live product
+  catalogue is temporarily unavailable" banner + Try again if that fails. A
+  failed runtime regeneration keeps serving the last good page.
 - `/fantasy/players`, `/fantasy/leaderboard`, `/fantasy/manager-leaderboard` —
   failure cards (unreachable env) vs "nothing published yet" empty states
   (no env).
