@@ -11,3 +11,11 @@ update public.apparel_products
 set sizes = array['7-11','12+']
 where slug = 'dino-socks'
   and sizes = array['S','M','L'];
+
+-- Rollback (run manually; reverting the Git change does not touch data).
+-- Guarded the same way, so it only undoes this change and leaves any later
+-- Admin > Apparel edit alone:
+--   update public.apparel_products
+--   set sizes = array['S','M','L']
+--   where slug = 'dino-socks'
+--     and sizes = array['7-11','12+'];
