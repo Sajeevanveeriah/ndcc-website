@@ -217,7 +217,8 @@ export default async function FixturesPage() {
     }];
   });
 
-  // Unfiltered view: every NDCC game listed once, grouped by match day.
+  // Unfiltered view: every NDCC game listed once, grouped by match day. The
+  // next few days are open; later days sit behind a native "Show more".
   const allTeamsPanel = (
     <>
       <section aria-labelledby="fixtures-upcoming">
@@ -231,7 +232,7 @@ export default async function FixturesPage() {
         <h2 id="fixtures-results" className="section-title mb-6">Recent results</h2>
         {results.length === 0
           ? <p className="text-content-muted font-body">No recent results are currently listed.</p>
-          : <FixtureDayGroups fixtures={results.slice(0, 12)} label="Recent results" />}
+          : <FixtureDayGroups fixtures={results.slice(0, 12)} label="Recent results" expandedGroups={2} moreLabel="results" showTimeTbc={false} />}
       </section>
     </>
   );

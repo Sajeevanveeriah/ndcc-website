@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase-server';
 import { groupPlayerSponsors, normaliseSponsorWebsite, type PlayerSponsor } from '@/lib/player-sponsors';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
 import SafeImage from '@/components/common/SafeImage';
+import { isBuildPrerender } from '@/lib/server/build-phase';
 
 export default async function PlayerSponsorsSection() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return <p className="container-width px-4 py-12 text-content-muted sm:px-6 lg:px-8">Player sponsorships are currently unavailable. Please check back soon.</p>;
@@ -10,10 +11,13 @@ export default async function PlayerSponsorsSection() {
     .eq('active', true).order('sort_order').order('player_name');
   if (error) {
     console.error('[player-sponsors] Unable to load player sponsors:', error.code);
-    // Throw rather than render an "unavailable" note: /player-sponsors is ISR,
-    // so a thrown regeneration keeps serving the last good page instead of
-    // caching the failure for the next 60 seconds.
-    throw new Error('Player sponsors temporarily unavailable');
+    // At runtime, throw rather than render an "unavailable" note: /player-sponsors
+    // is ISR, so a thrown regeneration keeps serving the last good page instead
+    // of caching the failure for 60 seconds. During a build there is no last good
+    // page, so a throw would fail the whole deployment; render the note instead
+    // (the first runtime regeneration replaces it).
+    if (!isBuildPrerender()) throw new Error('Player sponsors temporarily unavailable');
+    return <p className="container-width px-4 py-12 text-content-muted sm:px-6 lg:px-8">Player sponsorships are currently unavailable. Please check back soon.</p>;
   }
   if (!data?.length) return <p className="container-width px-4 py-12 text-content-muted sm:px-6 lg:px-8">Player sponsorships will appear here when published by the club.</p>;
   return <section aria-labelledby="player-sponsors-title" className="border-y border-edge-subtle bg-surface-card py-6">

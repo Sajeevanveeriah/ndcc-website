@@ -148,6 +148,7 @@
     "test:bank-transfer-hardening": "node scripts/test-bank-transfer-hardening.cjs",
     "test:payment-method-choice": "node scripts/test-payment-method-choice.cjs",
     "test:fixture-day-groups": "node scripts/test-fixture-day-groups.cjs",
+    "test:fixtures-layout": "node scripts/test-fixtures-layout.mjs",
     "test:manager-response-privacy": "node scripts/test-manager-response-privacy.cjs",
     "test:fantasy-deadline-editor": "node scripts/test-fantasy-deadline-editor.cjs",
     "test:selection-window": "node scripts/test-selection-window.cjs",
