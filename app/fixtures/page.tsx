@@ -257,7 +257,7 @@ export default async function FixturesPage() {
                   {playhq.message || renderSeasonContent(blocks['fixtures.status']?.body || `Live fixtures, results and ladders for the ${settings.club_nickname}.`, currentSeason)}
                 </p>
                 {fetchedAtLabel && (
-                  <p className="mt-3 text-xs text-white/60 font-body">
+                  <p className="mt-3 text-xs text-white/80 font-body">
                     Data from PlayHQ · last checked <time dateTime={playhq.fetchedAt}>{fetchedAtLabel}</time>
                   </p>
                 )}

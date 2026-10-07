@@ -41,7 +41,11 @@ async function getActiveContentBlocks(page: string | null, keys: string | null) 
   if (keys) query = query.in('block_key', keys.split(',').map((k) => k.trim()).filter(Boolean));
 
   const { data, error } = await query;
-  if (error) return { data: [], error: error.message, source: 'supabase' as const, degraded: false };
+  if (error) {
+    // Log the database detail server-side; the public response stays generic.
+    console.error('[content-blocks] public read failed:', error.code || error.message);
+    return { data: [], error: 'Content temporarily unavailable.', source: 'supabase' as const, degraded: false };
+  }
   return { data: normaliseContentBlockLinks(data ?? []), error: null, source: 'supabase' as const, degraded: false };
 }
 

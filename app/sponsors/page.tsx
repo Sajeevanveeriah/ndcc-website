@@ -184,7 +184,7 @@ export default async function SponsorsPage() {
                     {SPONSORSHIP_PACKAGES.map(([tier, price]) => (
                       <TableRow key={tier}>
                         <TableCell className="font-semibold text-content-primary">{tier}</TableCell>
-                        <TableCell className="text-right font-display font-bold text-maroon-700 dark:text-maroon-200">{price}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right font-display font-bold text-maroon-700 dark:text-maroon-200">{price}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -206,7 +206,7 @@ export default async function SponsorsPage() {
                 Put your brand on Newcomb and District apparel and support community cricket in the {currentSeasonName.toLowerCase()}.
               </p>
               <p className="font-body text-content-secondary">
-                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 transition-colors hover:text-maroon-500 dark:text-maroon-200">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="wrap-break-word text-maroon-700 transition-colors hover:text-maroon-500 dark:text-maroon-200">{clubEmail}</a>.
+                This opportunity is separate from the standard sponsorship packages. Contact John Elliott, President, on <a href={clubPhoneHref} className="text-maroon-700 underline underline-offset-4 transition-colors hover:text-maroon-500 dark:text-maroon-200">{CLUB_PHONE}</a> or via email at <a href={`mailto:${clubEmail}`} className="wrap-break-word text-maroon-700 underline underline-offset-4 transition-colors hover:text-maroon-500 dark:text-maroon-200">{clubEmail}</a>.
               </p>
             </div>
           </div>

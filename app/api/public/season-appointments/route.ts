@@ -18,7 +18,7 @@ export async function GET() {
       headers: { ...noStoreHeaders, 'Vercel-CDN-Cache-Control': 'public, s-maxage=30' },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Season appointments are unavailable.';
-    return NextResponse.json({ success: false, error: message }, { status: 503, headers: noStoreHeaders });
+    console.error('[season-appointments] public read failed:', error instanceof Error ? error.message : error);
+    return NextResponse.json({ success: false, error: 'Season appointments are temporarily unavailable.' }, { status: 503, headers: noStoreHeaders });
   }
 }
