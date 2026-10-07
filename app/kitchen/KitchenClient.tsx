@@ -13,6 +13,7 @@ import { MEAL_ORDER_STORAGE_NAME, isPastService, parseStoredOrderKey, serialiseO
 import OrderPaymentOptions from '@/components/payments/OrderPaymentOptions';
 import { formatCurrency, validateEmail, validatePhone } from '@/lib/utils';
 import { PUBLIC_ORDER_LIMITS } from '@/lib/order-input-validation';
+import { publicKitchenMenuName } from '@/lib/kitchen-menu-name';
 
 export type KitchenItem = { id: string; name: string; description: string; image_url?: string | null; price: number; is_available: boolean };
 
@@ -259,7 +260,7 @@ export default function KitchenPage({ initialMenuName, initialItems }: { initial
       </section>
       <section className="section-padding">
         <div className="container-width max-w-4xl mx-auto space-y-8">
-          <h2 className="section-title mb-8">{menuName}</h2>
+          <h2 className="section-title mb-8">{publicKitchenMenuName(menuName)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {items.map((item) => (
               <Card key={item.id}>
