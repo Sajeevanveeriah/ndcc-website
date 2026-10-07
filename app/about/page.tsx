@@ -54,6 +54,12 @@ export default async function AboutPage() {
   const currentYear = new Date().getFullYear();
   const yearsStrong = Math.max(currentYear - CLUB_ESTABLISHED, 0);
   const premiershipCount = premierships.length;
+  // Every counted premiership gets a board: the senior XIs always show, and any
+  // other team in the honour roll (e.g. U13 Juniors) is added after them.
+  const premiershipBoards = [
+    ...premiershipTeams,
+    ...new Set(premierships.map((item) => item.team_label).filter((label) => !premiershipTeams.includes(label))),
+  ];
   const gcaLineage = lineageEntries.find(
     (entry) => entry.association_abbr === CLUB_ASSOCIATION_SHORT && /present/i.test(entry.end_season)
   );
@@ -170,7 +176,7 @@ export default async function AboutPage() {
           <span className="section-eyebrow">Club History</span>
           <h2 className="section-title">Premiership Honours</h2>
           <ScrollReveal stagger className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {premiershipTeams.map((teamLabel) => {
+            {premiershipBoards.map((teamLabel) => {
               const teamPremierships = premierships.filter((item) => item.team_label === teamLabel);
               return (
                 <ScrollRevealItem key={teamLabel}>

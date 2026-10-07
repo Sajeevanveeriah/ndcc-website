@@ -172,7 +172,8 @@
     "test:kitchen-menu-name": "node --experimental-strip-types scripts/test-kitchen-menu-name.mjs",
     "test:merch-order-attempt": "node --experimental-strip-types scripts/test-merch-order-attempt.mjs",
     "test:build-memory": "node scripts/test-build-memory.mjs",
-    "test:hydration-slot": "node scripts/test-hydration-slot.mjs"
+    "test:hydration-slot": "node scripts/test-hydration-slot.mjs",
+    "test:premiership-boards": "node scripts/test-premiership-boards.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
