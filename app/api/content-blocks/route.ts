@@ -3,6 +3,7 @@ import { createServerClient, isServerSupabaseConfigured } from '@/lib/supabase-s
 import { getContentBlocks } from '@/lib/content-blocks';
 import { fallbackContentBlocks } from '@/lib/fallback-content';
 import { normalisePublicLinkUrl } from '@/lib/public-link-url';
+import { withPublicCdnCache } from '@/lib/server/public-cdn-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -65,5 +66,12 @@ export async function GET(request: Request) {
 
   const { data, error, source, degraded } = await getActiveContentBlocks(page, keys);
   if (error) return NextResponse.json({ success: true, data: [], source, degraded: true, error }, { headers: noStoreHeaders });
-  return NextResponse.json({ success: true, data, source, degraded, error: null }, { headers: noStoreHeaders });
+  // Only the live page query is CDN-shared. The `keys` branch above is not:
+  // getContentBlocks honours draft preview (a cookie) and folds read failures
+  // into fallback blocks, so its output is neither visitor-independent nor
+  // distinguishable from an outage.
+  return NextResponse.json(
+    { success: true, data, source, degraded, error: null },
+    { headers: withPublicCdnCache(noStoreHeaders, source === 'supabase' && !degraded) },
+  );
 }
