@@ -1,7 +1,7 @@
 'use client';
 
 import { eventVenue } from '@/lib/event-venue';
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import SafeImage from '@/components/common/SafeImage';
 import Button from '@/components/ui/Button';
@@ -15,6 +15,7 @@ import { isSnailRaceEvent } from '@/lib/events/snail-race';
 import SnailRaceDetails, { raceSponsorshipPrice } from '@/components/events/SnailRaceDetails';
 import SnailPurchaseForm from '@/components/events/SnailPurchaseForm';
 import TurnstileWidget, { useTurnstile } from '@/components/common/TurnstileWidget';
+import { eventTiming, type EventTiming } from '@/lib/events/event-timing';
 
 const CLUB_TIME_ZONE = 'Australia/Melbourne';
 const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: CLUB_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -28,8 +29,14 @@ type OrderConfirmation = {
   bank_details: { account_name: string; bsb: string; account_number: string } | null;
 };
 
-export default function EventDetailClient({ event }: { event: Event }) {
+export default function EventDetailClient({ event, initialTiming = 'open' }: { event: Event; initialTiming?: EventTiming }) {
   const eventId = event.id;
+  // Registration closes when the event starts (POST /api/events enforces the
+  // same rule). The page is ISR-cached, so re-check the time once on load.
+  const [timing, setTiming] = useState<EventTiming>(initialTiming);
+  useEffect(() => {
+    setTiming(eventTiming(event.date));
+  }, [event.date]);
   const songEvent = isSongRequestEvent(event);
   const snailEvent = isSnailRaceEvent(event);
   const sponsorPrice = snailEvent ? raceSponsorshipPrice(event) : null;
@@ -221,6 +228,14 @@ export default function EventDetailClient({ event }: { event: Event }) {
             </div>
           </article>
 
+          {timing !== 'open' && submitStatus === 'idle' ? (
+            <aside className="nd-card p-6 sm:p-[26px] min-[981px]:sticky min-[981px]:top-[120px]" aria-label="Registration" data-testid="event-closed">
+              <p className="font-body text-[15px] font-semibold text-content-primary">
+                {timing === 'passed' ? 'This event has passed.' : 'Registrations for this event have closed.'}
+              </p>
+              <Link href="/events" className="nd-link mt-3 inline-flex">See upcoming events</Link>
+            </aside>
+          ) : (
           <aside className="nd-card p-6 sm:p-[26px] min-[981px]:sticky min-[981px]:top-[120px]" aria-labelledby="event-register-title">
             <h2 id="event-register-title" className="font-display text-[22px] font-semibold tracking-[-0.02em] text-content-primary">{snailEvent ? 'Buy snails' : 'Register'}</h2>
             <p className="mt-1 mb-5 font-body text-[14.5px] text-content-muted">{priceLabel}</p>
@@ -388,6 +403,7 @@ export default function EventDetailClient({ event }: { event: Event }) {
             </div>
             )}
           </aside>
+          )}
         </div>
       </section>
     </>

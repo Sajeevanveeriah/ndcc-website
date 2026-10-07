@@ -178,7 +178,7 @@ export default async function AboutPage() {
                 <div className="band-maroon h-full space-y-3 rounded-xl p-5 shadow-card">
                   <h3 className="text-xl font-display font-bold uppercase tracking-wide text-gold-200 border-b border-gold-400/25 pb-3">{teamLabel}</h3>
                   {teamPremierships.length === 0 ? (
-                    <p className="text-sm text-white/60 font-body">No premierships recorded yet.</p>
+                    <p className="text-sm text-maroon-100 font-body">No premierships recorded yet.</p>
                   ) : (
                     <ul className="space-y-2 text-sm text-white/85 font-body">
                       {teamPremierships.map((item) => (

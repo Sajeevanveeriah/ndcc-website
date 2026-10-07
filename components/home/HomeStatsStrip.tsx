@@ -10,14 +10,17 @@ const GCA_START_YEAR = 1995;
 // fails). Team totals use the live CMS list. A zero count is hidden rather
 // than shown as a claim. The established year lives in the hero kicker.
 export default async function HomeStatsStrip() {
-  const [teams, premierships] = await Promise.all([getPublicTeams(), getHistoryPremierships()]);
+  // A failed teams read (getPublicTeams throws at runtime) hides only the
+  // Teams stat, so the home page is not failed wholesale and no false count
+  // is shown.
+  const [teams, premierships] = await Promise.all([getPublicTeams().catch(() => null), getHistoryPremierships()]);
   const currentYear = new Date().getFullYear();
   const seasonsInGca = Math.max(currentYear - GCA_START_YEAR, 0);
 
   const stats = [
     { label: 'Premierships', value: premierships.length },
     { label: 'Seasons in the GCA', value: seasonsInGca },
-    { label: 'Teams', value: teams.length },
+    { label: 'Teams', value: teams?.length ?? 0 },
   ].filter((stat) => stat.value > 0);
   if (stats.length === 0) return null;
 

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import { getMembershipOptions } from '@/lib/public-form-options';
 import { getPotClubProductCode } from '@/lib/server/pot-club';
 import { DEFAULT_POT_CLUB_PRODUCT_CODE, formatPotClubPrice } from '@/lib/pot-club';
 import SocialMembershipForm from '@/app/join/SocialMembershipForm';
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Pot Club | NDCC', description: 'Order your NDCC Pot Club engraved glass and pay online.' };
+export const metadata: Metadata = pageMetadata('/pot-club', 'Pot Club', 'Order your NDCC Pot Club engraved glass and pay online.');
 export default async function PotClubPage() {
  const [{plans}, productCode]=await Promise.all([getMembershipOptions(), getPotClubProductCode()]); const pots=plans.filter(p=>p.product_code===productCode);
  const plan=pots[0];

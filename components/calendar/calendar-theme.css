@@ -127,12 +127,16 @@
   font-size: 0.9rem;
 }
 
-.dark .ndcc-calendar .fc .fc-day-other .fc-daygrid-day-top {
+/* Days from the neighbouring months: FullCalendar fades them with opacity
+   0.3 (#c3c6cb on white, 1.7:1). Keep them muted with the muted text token
+   and a lighter weight instead, which meets 4.5:1 in light and dark mode. */
+.ndcc-calendar .fc .fc-day-other .fc-daygrid-day-top {
   opacity: 1;
 }
 
-.dark .ndcc-calendar .fc .fc-day-other .fc-daygrid-day-number {
+.ndcc-calendar .fc .fc-day-other .fc-daygrid-day-number {
   color: rgb(var(--text-muted));
+  font-weight: 400;
 }
 
 .dark .ndcc-calendar .fc .fc-list-event-title a {

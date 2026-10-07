@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Privacy | NDCC' };
+import { pageMetadata } from '@/lib/seo';
+export const metadata: Metadata = pageMetadata('/privacy', 'Privacy', 'How Newcomb and District Cricket Club collects, uses, stores and protects personal information, and how to request access, correction or deletion.');
 export default function PrivacyPage() {
   return <section className="section-padding"><div className="container-width max-w-3xl space-y-6">
     <h1 className="section-title mb-6">Privacy and your personal information</h1>
