@@ -80,7 +80,12 @@ function collectTimezones(lines: string[]): string[][] {
 // Google Maps places the club at "171 Coppards Rd", so committee events that
 // pick the club from Maps carry that number. The City of Greater Geelong lists
 // Grinter Reserve at 141 Coppards Road, as the rest of the site does.
+// Only a location naming the club or the reserve is corrected, so another venue
+// that really is at 171 Coppards Road keeps its address.
+const CLUB_VENUE = /Newcomb (and|&|\\&) District Cricket Club|Grinter Reserve/i;
+
 export function correctClubAddress(line: string): string {
+  if (!CLUB_VENUE.test(line)) return line;
   return line.replace(/\b171 Coppards (Rd|Road)\b/g, '141 Coppards $1');
 }
 

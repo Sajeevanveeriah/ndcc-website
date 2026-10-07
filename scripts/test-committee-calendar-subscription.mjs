@@ -80,4 +80,9 @@ const otherVenue = sanitiseCommitteeCalendarIcs(upstream.replace(
   'LOCATION:Leopold Sportsmans Club\\, 135 Kensington Rd\\, Leopold VIC 3224',
 ));
 assert.match(otherVenue.replace(/\r\n /g, ''), /135 Kensington Rd/);
+const otherAt171 = sanitiseCommitteeCalendarIcs(upstream.replace(
+  'LOCATION:Newcomb and District Cricket Club',
+  'LOCATION:Example Business\\, 171 Coppards Rd\\, Moolap VIC 3224',
+));
+assert.match(otherAt171.replace(/\r\n /g, ''), /Example Business\\, 171 Coppards Rd/, 'another venue at 171 keeps its address');
 console.log('PASS: committee feed shows the club at 141 Coppards Road.');
