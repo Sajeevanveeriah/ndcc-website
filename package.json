@@ -119,6 +119,7 @@
     "db:generate-types": "node scripts/generate-db-types.mjs",
     "test:admin-drafts": "node scripts/test-admin-drafts.mjs",
     "test:gallery-sanitise": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-gallery-sanitise.mjs",
+    "test:gallery-metadata-cron": "node scripts/test-gallery-metadata-cron.mjs",
     "test:asset-redirect-mapping": "node scripts/test-asset-redirect-mapping.mjs",
     "test:admin-account-safety": "node scripts/test-admin-account-safety.mjs",
     "test:fantasy-mutation-security": "node scripts/test-fantasy-mutation-security.mjs",
