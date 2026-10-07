@@ -57,7 +57,9 @@ check('NDCC is an organisation author, named individuals remain people', () => {
 check('event venue lookup never invents a ground for an unknown venue', () => {
   assert.equal(eventVenue('Leopold Sporties').address.streetAddress, '135 Kensington Road');
   assert.equal(eventVenue('Grinter Reserve').address.addressLocality, 'Moolap');
-  assert.equal(eventVenue('Club Rooms').address, undefined);
+  assert.equal(eventVenue('Club Rooms').address.streetAddress, '141 Coppards Road');
+  assert.equal(eventVenue('Club Rooms, Grinter Reserve').address.addressLocality, 'Moolap');
+  assert.equal(eventVenue('Club Rooms, Grinter Reserve').name, 'Club Rooms, Grinter Reserve');
   assert.equal(eventVenue('Other venue').address, undefined);
 });
 check('breadcrumbs have ordered absolute destinations', () => {
