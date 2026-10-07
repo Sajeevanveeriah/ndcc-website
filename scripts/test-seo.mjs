@@ -47,7 +47,7 @@ check('metadata keeps distinct pages and pagination canonical', () => {
     const meta = pageMetadata(path, 'Title', 'Description');
     assert.equal(meta.alternates.canonical, `https://www.ndcc.com.au${path}`);
     assert.equal(meta.openGraph.url, meta.alternates.canonical);
-    assert.equal(meta.twitter.images[0].url, 'https://www.ndcc.com.au/images/logo.jpg');
+    assert.equal(meta.twitter.images[0].url, 'https://www.ndcc.com.au/images/og-default.jpg');
   }
 });
 check('NDCC is an organisation author, named individuals remain people', () => {

@@ -11,6 +11,7 @@ import {
   publicationTypeLabel,
 } from '@/lib/public-publications';
 import { formatDate } from '@/lib/utils';
+import { publicationDescription } from '@/lib/publication-seo';
 
 // ISR: regenerated at most every 60s and on demand after admin writes
 // (lib/server/revalidate-public.ts). 'force-static' lets the Supabase reads,
@@ -26,16 +27,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const publication = await getPublishedPublicationBySlug(slug);
   if (!publication) notFound();
-  const description = publication.summary || `${publicationTypeLabel(publication.publication_type)} from Newcomb and District Cricket Club.`;
+  const description = publicationDescription(publication, publicationTypeLabel(publication.publication_type));
+  const base = pageMetadata(`/publications/${publication.slug}`, publication.title, description, publication.cover_image_url || undefined);
   return {
-    ...pageMetadata(`/publications/${publication.slug}`, publication.title, description, publication.cover_image_url || undefined),
+    ...base,
     openGraph: {
-      ...pageMetadata(`/publications/${publication.slug}`, publication.title, description, publication.cover_image_url || undefined).openGraph,
+      ...base.openGraph,
       title: publication.title,
       description,
       type: 'article',
       url: `${SITE_URL}/publications/${publication.slug}`,
-      ...(publication.cover_image_url ? { images: [{ url: publication.cover_image_url }] } : {}),
     },
   };
 }

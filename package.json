@@ -113,6 +113,7 @@
     "predev": "npm run prepare:apparel-assets",
     "prebuild": "npm run prepare:apparel-assets",
     "test:site-audit-fixes": "node scripts/test-site-audit-fixes.mjs",
+    "test:site-audit-fixes-2": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-site-audit-fixes-2.mjs",
     "test:seo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-seo.mjs",
     "test:meal-collection": "node --experimental-strip-types scripts/test-meal-collection.mjs && node scripts/test-meal-flow.mjs",
     "test:dino-season-summary": "node scripts/test-dino-season-summary.mjs",

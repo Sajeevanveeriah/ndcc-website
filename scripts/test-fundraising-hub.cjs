@@ -71,8 +71,9 @@ check('every hub link points at an existing route', () => {
   const hrefs = [...source.matchAll(/href(?::\s*|=)['"](\/[^'"#?]*)['"]/g)].map((match) => match[1]);
   assert.ok(hrefs.length >= 8, 'hub has its card and breadcrumb links');
   for (const href of new Set(hrefs)) {
-    const page = href === '/' ? 'app/page.tsx' : `app${href}/page.tsx`;
-    assert.ok(fs.existsSync(path.join(root, page)), `${href} has ${page}`);
+    // A listing page may sit in a (list) route group (same URL, own loading UI).
+    const candidates = href === '/' ? ['app/page.tsx'] : [`app${href}/page.tsx`, `app${href}/(list)/page.tsx`];
+    assert.ok(candidates.some((page) => fs.existsSync(path.join(root, page))), `${href} has ${candidates.join(' or ')}`);
   }
   assert.ok(!hrefs.includes('/raffle/cash'), 'member cash sales are not a public hub card');
 });

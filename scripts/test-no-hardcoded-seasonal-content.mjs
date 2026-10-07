@@ -13,7 +13,7 @@ for (const prohibited of ['2025/26 Season Complete','2026/27 season begins','Cra
 assert.ok(!fallback.includes('2025/26 Season Complete'));
 assert.ok(!fallback.includes('Updated links for 2026/27'));
 assert.match(fallback, /Season information unavailable/);
-for (const file of ['app/admin/publications/page.tsx', 'app/admin/season-appointments/page.tsx', 'app/sponsors/page.tsx']) {
+for (const file of ['app/admin/publications/page.tsx', 'app/admin/season-appointments/page.tsx', 'app/sponsors/(list)/page.tsx']) {
   const source = readFileSync(file, 'utf8');
   assert.ok(!/2025\/(?:26|2026)/.test(source), `${file} must not expose the old 2025/2026 season.`);
 }

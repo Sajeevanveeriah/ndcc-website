@@ -4,7 +4,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 // Season slideshow on /gallery: poster first, video fetched only on play, no
 // download affordances, and a web-sized file served with a long cache.
 const component = readFileSync('components/gallery/SeasonHighlightsVideo.tsx', 'utf8');
-const gallery = readFileSync('app/gallery/page.tsx', 'utf8');
+const gallery = readFileSync('app/gallery/(list)/page.tsx', 'utf8');
 const home = readFileSync('app/page.tsx', 'utf8');
 const config = readFileSync('next.config.mjs', 'utf8');
 

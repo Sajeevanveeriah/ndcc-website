@@ -7,7 +7,7 @@ export type EventTiming = 'open' | 'started' | 'passed';
  * Where an event sits relative to `now`, using the same rules as the rest of
  * the site:
  * - 'passed': its club-time day is before today (the /events "Past events"
- *   rule in app/events/page.tsx).
+ *   rule in app/events/(list)/page.tsx).
  * - 'started': it has started (or has no valid start), which is when
  *   POST /api/events stops taking registrations (eventHasStarted in
  *   app/api/events/route.ts).

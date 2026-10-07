@@ -109,7 +109,7 @@ test('page-card and content-block public reads fail closed', () => {
 test('social, PlayHQ and sponsor public reads fail closed', () => {
   const settings = readFileSync(path.join(repoRoot, 'lib/club-settings.ts'), 'utf8');
   const teams = readFileSync(path.join(repoRoot, 'lib/public-teams.ts'), 'utf8');
-  const teamsPage = readFileSync(path.join(repoRoot, 'app/teams/page.tsx'), 'utf8');
+  const teamsPage = readFileSync(path.join(repoRoot, 'app/teams/(list)/page.tsx'), 'utf8');
   assert.match(teamsPage, /await getPublicTeams\(\)/);
   const sponsors = readFileSync(path.join(repoRoot, 'lib/public-data.ts'), 'utf8');
   for (const field of ['facebook_url', 'instagram_url', 'playhq_url']) {

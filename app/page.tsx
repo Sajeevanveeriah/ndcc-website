@@ -164,6 +164,7 @@ function HeroView({
   season = null,
   stats = null,
   vouchers = null,
+  placeholder = false,
 }: {
   title: string;
   body: string;
@@ -172,15 +173,23 @@ function HeroView({
   season?: string | null;
   stats?: ReactNode;
   vouchers?: JuniorGetActiveVouchers | null;
+  /**
+   * Suspense fallback copy. The streamed HeroSection replaces it, but both are
+   * in the HTML, so the fallback renders its heading as a styled <p> without
+   * the id: the page keeps exactly one home-title heading.
+   */
+  placeholder?: boolean;
 }) {
   const lead = body && !/^Home of the (Mighty )?Dinos/i.test(body) ? body : HERO_DEFAULT_LEAD;
   return (
-    <section className="nd-hero" aria-labelledby="home-title">
+    <section className="nd-hero" aria-labelledby={placeholder ? undefined : 'home-title'}>
       <div className="nd-wrap nd-hero-grid">
         <div className="min-w-0">
           <p className="nd-eyebrow"><StumpsIcon className="mr-2 inline-block h-3.5 w-3 -translate-y-px align-middle text-gold-400" />Est. {CLUB_ESTABLISHED} <span aria-hidden="true">·</span> {CLUB_ASSOCIATION}</p>
           <p className="mt-3 font-display font-semibold text-content-primary" style={{ fontSize: 'clamp(18px, 1.8vw, 21px)' }}>{title}</p>
-          <h1 id="home-title" className="nd-hero-title">Home of the <span>{CLUB_NICKNAME}.</span></h1>
+          {placeholder
+            ? <p className="nd-hero-title">Home of the <span>{CLUB_NICKNAME}.</span></p>
+            : <h1 id="home-title" className="nd-hero-title">Home of the <span>{CLUB_NICKNAME}.</span></h1>}
           <p className="nd-lead mb-7">{lead}</p>
           <div className="mb-5 flex flex-wrap gap-3">
             <Link href={ctaUrl} className="btn-primary">{ctaLabel}<ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
@@ -999,6 +1008,7 @@ export default function HomePage() {
             body={HERO_DEFAULT_BODY}
             ctaLabel="Join the club"
             ctaUrl="/join"
+            placeholder
           />
         }
       >

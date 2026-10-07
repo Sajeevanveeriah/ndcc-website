@@ -1,5 +1,5 @@
 import AuthEmailRedirect from '@/components/AuthEmailRedirect';
-import { SITE_URL, ORGANIZATION_ID } from '@/lib/seo';
+import { SITE_URL, ORGANIZATION_ID, DEFAULT_OG_IMAGE } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { serializeJsonLd } from '@/lib/json-ld';
 import { Suspense } from 'react';
@@ -104,9 +104,11 @@ export const metadata: Metadata = {
     title: 'Newcomb and District Cricket Club | NDCC Dinos',
     description:
       'Official website of the NDCC Dinos. Cricket and community at Grinter Reserve, Moolap.',
-    images: [{ url: '/images/logo.jpg', width: 1184, height: 896, alt: 'NDCC Logo' }],
+    images: [{ ...DEFAULT_OG_IMAGE, alt: 'NDCC Logo' }],
   },
-  robots: { index: true, follow: true },
+  // No site-wide robots tag: indexing is the default, and an explicit
+  // "index, follow" here would sit beside the "noindex" that the not-found
+  // page adds to 404 responses.
   metadataBase: new URL(SITE_URL),
 };
 

@@ -19,7 +19,7 @@ import { sortSponsorsAlphabetically } from '@/lib/sponsor-presentation';
 import { getPublicSponsors } from '@/lib/public-data';
 import { getContentBlocks } from '@/lib/content-blocks';
 import { getCurrentClubSeason } from '@/lib/club-seasons';
-import SponsorEnquiryForm from './SponsorEnquiryForm';
+import SponsorEnquiryForm from '../SponsorEnquiryForm';
 
 // Server component: sponsors, CMS copy and the current season name are read
 // server-side (same sources as /api/public/sponsors, /api/content-blocks and

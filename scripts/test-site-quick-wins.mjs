@@ -20,7 +20,7 @@ assert.match(read('app/api/cron/dino-registration/route.ts'), /console\.error\('
 
 assert.doesNotMatch(read('app/fixtures/page.tsx'), /text-white\/60/, 'fixtures hero caption meets contrast');
 assert.doesNotMatch(read('app/merchandise/MerchandiseClient.tsx'), /text-gray-400/, 'merchandise empty state meets contrast');
-const sponsorPage = read('app/sponsors/page.tsx');
+const sponsorPage = read('app/sponsors/(list)/page.tsx');
 assert.match(sponsorPage, /underline underline-offset-4 transition-colors hover:text-maroon-500 dark:text-maroon-200">\{CLUB_PHONE\}/, 'inline phone link is underlined');
 assert.match(sponsorPage, /whitespace-nowrap text-right font-display/, 'package prices do not wrap');
 

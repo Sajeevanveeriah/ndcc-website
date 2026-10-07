@@ -11,7 +11,7 @@ import { buildTeamSlugs, fixturesForTeam, formatFixtureDay, formatFixtureStartTi
 import { groupByCategory, teamCategory, type TeamCategory } from '@/lib/playhq/team-category';
 import type { PlayHQPublicData } from '@/lib/playhq/types';
 import type { TeamInfo } from '@/lib/types';
-import TeamsFilter, { type TeamFilterGroup } from './TeamsFilter';
+import TeamsFilter, { type TeamFilterGroup } from '../TeamsFilter';
 
 const TEAM_IMAGES: Record<string, string> = {
   'Senior Women': '/images/Womens_Team.jpg',

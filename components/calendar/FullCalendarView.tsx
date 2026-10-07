@@ -6,8 +6,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { EventClickArg, EventInput } from '@fullcalendar/core';
-import { useRef } from 'react';
-import { labelToolbarIcons } from './label-toolbar-icons';
+import { useEffect, useRef } from 'react';
+import { labelToolbarIcons, observeToolbarIcons } from './label-toolbar-icons';
 
 type FullCalendarViewProps = {
   events: EventInput[];
@@ -22,6 +22,8 @@ type FullCalendarViewProps = {
  */
 export default function FullCalendarView({ events, isMobile, onEventClick }: FullCalendarViewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  // Label the prev/next icons on the first render too, not only after datesSet.
+  useEffect(() => observeToolbarIcons(rootRef.current), []);
   return (
     <div ref={rootRef}>
     <FullCalendar

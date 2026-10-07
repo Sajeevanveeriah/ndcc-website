@@ -3,7 +3,7 @@ import Link from 'next/link';
 import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
 
 export const metadata: Metadata = {
-  title: 'Reset your club account password | NDCC',
+  title: 'Reset your club account password',
   robots: { index: false, follow: false },
 };
 

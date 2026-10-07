@@ -5,7 +5,7 @@ import ScrollReveal from '@/components/common/ScrollReveal';
 import SafeImage from '@/components/common/SafeImage';
 import Card, { CardContent } from '@/components/ui/Card';
 import { getPublicGallery, getPublicGalleryAlbums } from '@/lib/public-data';
-import GalleryClient from './GalleryClient';
+import GalleryClient from '../GalleryClient';
 import SeasonHighlightsVideo, { SEASON_LAUNCH } from '@/components/gallery/SeasonHighlightsVideo';
 
 export const metadata: Metadata = pageMetadata("/gallery", "Photo gallery", "Browse NDCC photo albums, match-day photos and club memories from Newcomb and the Geelong community.");

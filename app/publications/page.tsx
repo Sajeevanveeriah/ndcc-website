@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { pageMetadata } from '@/lib/seo';
+import { publicationsArchiveDescription } from '@/lib/publication-seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import ScrollReveal from '@/components/common/ScrollReveal';
@@ -35,8 +36,10 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
   const type = isPublicationType(params?.type) ? params!.type as PublicationType : undefined;
   const page = archivePage(params?.page);
   const title = type ? publicationTypeLabel(type) : 'Newsletters and match reports';
+  // A ?type= view lists only that type, so it keeps its own canonical and gets
+  // a description naming the filter; unknown params canonicalise to the archive.
   return pageMetadata(archivePath(type, page), `${title}${page > 1 ? ` - Page ${page}` : ''}`,
-    'Read NDCC newsletters and match reports, with published club news and downloadable issues.');
+    publicationsArchiveDescription(type ? publicationTypeLabel(type) : null, page));
 }
 
 const LIST_LIMIT = 60;

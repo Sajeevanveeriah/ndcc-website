@@ -308,7 +308,7 @@ test('routes, pages and admin wiring keep their contracts', () => {
   assert.match(teamPage, /notFound\(\)/);
   assert.match(teamPage, /Fixture not yet released by GCA/);
   assert.match(read('lib/server/sitemap-entries.ts'), /\/teams\/\$\{slug\}/);
-  assert.match(read('app/teams/page.tsx'), /href=\{`\/teams\/\$\{slugs\.get\(team\)\}`\}/);
+  assert.match(read('app/teams/(list)/page.tsx'), /href=\{`\/teams\/\$\{slugs\.get\(team\)\}`\}/);
   assert.match(read('app/fixtures/page.tsx'), /FixturesTeamTabs/);
   const tabs = read('app/fixtures/_components/FixturesTeamTabs.tsx');
   for (const token of ['role="tablist"', 'role="tab"', 'role="tabpanel"', 'aria-selected', 'aria-controls', 'ArrowRight', 'Home', 'End']) assert.ok(tabs.includes(token), token);

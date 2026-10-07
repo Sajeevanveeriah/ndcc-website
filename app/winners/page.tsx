@@ -18,7 +18,11 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
   const query = new URLSearchParams();
   if (category) query.set('category', category);
   return pageMetadata(`/winners${query.size ? `?${query}` : ''}`, category ? `${WINNER_CATEGORY_LABELS[category]} winners` : 'Club winners',
-    'Player sponsor awards, Dino Lotto, raffle and event winners at Newcomb & District Cricket Club.');
+    // A ?category= view lists only that category under its own canonical, so
+    // its description names the category instead of repeating the parent's.
+    category
+      ? `${WINNER_CATEGORY_LABELS[category]} winners at Newcomb & District Cricket Club.`
+      : 'Player sponsor awards, Dino Lotto, raffle and event winners at Newcomb & District Cricket Club.');
 }
 
 function href(category?: string, season?: string) {
