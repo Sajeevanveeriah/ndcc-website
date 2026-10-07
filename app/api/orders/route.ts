@@ -453,7 +453,7 @@ export async function POST(request: Request) {
         ${numberRequested
           ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> Surnames and number preferences are subject to club review. Number preferences are subject to availability, and the club will confirm the final number separately by email.</div>`
           : personalisationRequested
-            ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The surname entered has been recorded for club review.</div>`
+            ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;border-radius:8px;font-size:14px;line-height:1.5;"><strong>Personalisation request:</strong> The personalisation entered (surname, initials or backpack number) has been recorded for club review.</div>`
             : ''}
         ${payAtClub
           ? `<p style="font-size:15px;color:#374151;line-height:1.6;"><strong>Order reference:</strong> ${escapeEmailHtml(paymentReference)}<br><strong>Amount to pay at the club:</strong> $${serverTotal.toFixed(2)}</p>`
