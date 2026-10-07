@@ -1,6 +1,6 @@
 {
   "description": "Production migration versions for alduwuipmmnzorcgkcli. Filenames match database history exactly. Historical marker 20260821090000 contains no SQL; its local counterpart is a documented no-op. Reconciled against recorded statements; no production DDL was replayed.",
-  "capturedAt": "2026-10-07T00:15:59+00:00",
+  "capturedAt": "2026-10-07T01:01:45+00:00",
   "projectRef": "alduwuipmmnzorcgkcli",
   "versions": [
     {
@@ -825,6 +825,10 @@
     {
       "version": "20261007001559",
       "name": "team_sheets_and_club_winners"
+    },
+    {
+      "version": "20261007010145",
+      "name": "merch_order_idempotency_key"
     }
   ],
   "localOnlyApplied": []

@@ -16,7 +16,8 @@
 --   drop index if exists public.orders_order_idempotency_key_unique;
 --   alter table public.orders drop column if exists order_idempotency_fingerprint;
 --   alter table public.orders drop column if exists order_idempotency_key;
-begin;
+-- Applied as one transaction by the migration runner; bound the brief
+-- orders write lock taken by the index build.
 set local lock_timeout = '3s';
 
 alter table public.orders add column if not exists order_idempotency_key uuid;
@@ -40,4 +41,3 @@ comment on column public.orders.order_idempotency_key is
 comment on column public.orders.order_idempotency_fingerprint is
   'SHA-256 of the submitted merchandise order details for order_idempotency_key; a different payload with the same key is refused.';
 
-commit;

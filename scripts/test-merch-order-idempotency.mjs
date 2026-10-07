@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Merchandise order idempotency: executes the real POST /api/orders handler
 // against an in-memory orders table that enforces the partial unique index
-// from 20261007005400_merch_order_idempotency_key.sql. Supabase, email and
+// from 20261007010145_merch_order_idempotency_key.sql. Supabase, email and
 // payment references are mocked; no network, database or email is touched.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -253,7 +253,7 @@ await test('before the migration is applied, keyed requests still save one order
 });
 
 await test('migration declares an additive nullable column and a partial unique index', () => {
-  const sql = readFileSync(path.join(root, 'supabase/migrations/20261007005400_merch_order_idempotency_key.sql'), 'utf8');
+  const sql = readFileSync(path.join(root, 'supabase/migrations/20261007010145_merch_order_idempotency_key.sql'), 'utf8');
   assert.match(sql, /add column if not exists order_idempotency_key uuid;/);
   assert.match(sql, /add column if not exists order_idempotency_fingerprint text;/);
   assert.match(sql, /create unique index if not exists orders_order_idempotency_key_unique\s+on public\.orders \(order_idempotency_key\)\s+where order_idempotency_key is not null;/);
