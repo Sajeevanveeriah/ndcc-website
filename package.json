@@ -24,6 +24,7 @@
     "test:email": "node scripts/test-email.mjs",
     "test:email-html-security": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-email-html-security.mjs",
     "test:public-order-input-security": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/test-public-order-input-security.mjs",
+    "test:merch-order-idempotency": "node scripts/test-merch-order-idempotency.mjs",
     "cms:diagnostics": "node scripts/restore/june16-cms-diagnostics.mjs",
     "cms:restore:june16": "node scripts/restore/june16-cms-restore.mjs",
     "smoke:content": "node scripts/smoke-content.mjs",

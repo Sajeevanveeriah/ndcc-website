@@ -2,6 +2,7 @@ import { configuredBankDetails } from '@/lib/payments/bank-transfer';
 import { deriveCapabilities, loadMerchPaymentSettings } from '@/lib/payments/capabilities';
 import { createServerClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
+import { createHash } from 'node:crypto';
 import { enforceHoneypotAndTiming, enforceRateLimit, enforceTurnstile, getClientIp } from '@/lib/server/request-guards';
 import { generateUniquePaymentReference } from '@/lib/payments/reference';
 import { validateEmail, validatePhone, sanitiseInput } from '@/lib/utils';
@@ -22,6 +23,80 @@ const MERCH_ITEM_LINES_LIMIT = 40;
 const MERCH_ITEM_QUANTITY_LIMIT = 50;
 const MERCH_ITEM_UNITS_LIMIT = 100;
 
+// One client-generated key per order attempt (crypto.randomUUID), reused for
+// retries of the same submission. Requests without a key keep the original
+// behaviour so older cached clients still order normally.
+const IDEMPOTENCY_KEY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IDEMPOTENCY_COLUMNS = ['order_idempotency_key', 'order_idempotency_fingerprint'] as const;
+const IDEMPOTENCY_CONFLICT_MESSAGE = 'This order attempt was already used for different details. Please review your order and submit it again.';
+const REMOVED_ORDER_MESSAGE = 'This order was removed by the club. Please submit a new order.';
+
+type ReplayableOrder = {
+  id: string;
+  order_category: string | null;
+  customer_email: string | null;
+  total_amount: number | string | null;
+  payment_reference: string | null;
+  order_status: string | null;
+  merch_window_label: string | null;
+  items: unknown;
+  deleted_at: string | null;
+  order_idempotency_fingerprint: string | null;
+};
+const REPLAY_COLUMNS = 'id,order_category,customer_email,total_amount,payment_reference,order_status,merch_window_label,items,deleted_at,order_idempotency_fingerprint';
+
+type PricedItemFlags = { custom_name?: unknown; custom_initials?: unknown; number_request_status?: unknown };
+function personalisationFlags(items: PricedItemFlags[]) {
+  return {
+    personalisation_requested: items.some(
+      (i) => Boolean(i.custom_name) || Boolean(i.custom_initials) || i.number_request_status === 'subject_to_availability'
+    ),
+    number_requested: items.some((i) => i.number_request_status === 'subject_to_availability'),
+  };
+}
+
+function orderFingerprint(body: Record<string, unknown>) {
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+  return createHash('sha256').update(JSON.stringify({
+    customer_name: text(body.customer_name),
+    customer_email: text(body.customer_email).toLowerCase(),
+    customer_phone: text(body.customer_phone),
+    notes: text(body.notes),
+    items: body.items,
+    total_amount: body.total_amount,
+    payment_method: body.payment_method,
+    merch_window_id: body.merch_window_id || null,
+  })).digest('hex');
+}
+
+function isMissingIdempotencyColumn(error: { code?: string; message?: string } | null) {
+  return Boolean(error) && error?.code !== '23505' && /order_idempotency_(key|fingerprint)/i.test(error?.message || '');
+}
+
+/** The original order's confirmation, in the same shape as a fresh order, or a refusal. */
+function replayResponse(order: ReplayableOrder, fingerprint: string, customerEmail: string) {
+  const sameAttempt = order.order_category === 'merch'
+    && order.order_idempotency_fingerprint === fingerprint
+    && (order.customer_email || '').trim().toLowerCase() === customerEmail.trim().toLowerCase();
+  if (!sameAttempt) {
+    return NextResponse.json({ success: false, error: IDEMPOTENCY_CONFLICT_MESSAGE }, { status: 409 });
+  }
+  if (order.deleted_at) {
+    return NextResponse.json({ success: false, error: REMOVED_ORDER_MESSAGE }, { status: 409 });
+  }
+  return NextResponse.json({
+    success: true,
+    message: 'Order submitted successfully!',
+    order_id: order.id,
+    total_amount: Number(order.total_amount),
+    payment_reference: order.payment_reference,
+    order_status: order.order_status,
+    merch_window_label: order.merch_window_label,
+    ...personalisationFlags(Array.isArray(order.items) ? order.items as PricedItemFlags[] : []),
+    bank_details: configuredBankDetails(),
+  }, { headers: { 'Idempotent-Replayed': 'true' } });
+}
+
 export async function POST(request: Request) {
   try {
     const parsedBody = await readLimitedJsonObject(request);
@@ -33,7 +108,7 @@ export async function POST(request: Request) {
     }
     const body = parsedBody.value;
 
-    const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at, order_category, merch_window_id, payment_method } = body;
+    const { customer_name, customer_email, customer_phone, items, total_amount, notes, hp_field, submitted_at, order_category, merch_window_id, payment_method, idempotency_key } = body;
 
     if (order_category !== 'merch') {
       return NextResponse.json(
@@ -69,6 +144,15 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    if (idempotency_key !== undefined && idempotency_key !== null
+      && (typeof idempotency_key !== 'string' || !IDEMPOTENCY_KEY_PATTERN.test(idempotency_key))) {
+      return NextResponse.json(
+        { success: false, error: 'A valid order attempt key is required. Refresh the page and try again.' },
+        { status: 400 },
+      );
+    }
+    let idempotencyKey = typeof idempotency_key === 'string' ? idempotency_key.toLowerCase() : null;
 
     const ip = getClientIp(request);
     if (!await enforceRateLimit(`order:${ip}`, 6, 60_000)) {
@@ -146,6 +230,28 @@ export async function POST(request: Request) {
     }
 
     const supabase = createServerClient();
+
+    // A retry of an attempt that already created an order returns that order's
+    // confirmation without inserting again or re-sending emails.
+    const fingerprint = idempotencyKey ? orderFingerprint(body) : null;
+    const findAttempt = (key: string) => supabase.from('orders').select(REPLAY_COLUMNS)
+      .eq('order_idempotency_key', key).maybeSingle<ReplayableOrder>();
+    if (idempotencyKey && fingerprint) {
+      const existing = await findAttempt(idempotencyKey);
+      if (existing.error) {
+        if (!isMissingIdempotencyColumn(existing.error)) {
+          console.error('Order attempt lookup error:', existing.error);
+          return NextResponse.json(
+            { success: false, error: 'Unable to submit order. Please try again shortly.' },
+            { status: 503 },
+          );
+        }
+        // Before the idempotency migration: behave exactly as without a key.
+        idempotencyKey = null;
+      } else if (existing.data) {
+        return replayResponse(existing.data, fingerprint, customer_email);
+      }
+    }
 
     let orderStatus = 'submitted';
     let merchWindowLabel: string | null = null;
@@ -250,14 +356,38 @@ export async function POST(request: Request) {
         payment_reference: paymentReference,
         processed: false,
         notes: notes ? sanitiseInput(notes) : '',
+        ...(idempotencyKey && fingerprint
+          ? { order_idempotency_key: idempotencyKey, order_idempotency_fingerprint: fingerprint }
+          : {}),
       };
     let { data, error } = await insertOrder(orderRow);
     // Before the payment method migration the card choice column is absent;
     // the order still saves (the choice is then derived from the intent columns).
-    if (error && /payment_method_choice/i.test(error.message || '')) {
+    if (error && error.code !== '23505' && /payment_method_choice/i.test(error.message || '')) {
       delete orderRow.payment_method_choice;
       delete orderRow.payment_method_choice_source;
       ({ data, error } = await insertOrder(orderRow));
+    }
+    // Before the idempotency migration the key columns are absent; save as before.
+    if (isMissingIdempotencyColumn(error) && 'order_idempotency_key' in orderRow) {
+      for (const column of IDEMPOTENCY_COLUMNS) delete orderRow[column];
+      idempotencyKey = null;
+      ({ data, error } = await insertOrder(orderRow));
+    }
+
+    // A simultaneous request with the same key won the unique index: answer
+    // with its order instead of creating a second one.
+    if (error?.code === '23505' && idempotencyKey && fingerprint) {
+      const winner = await findAttempt(idempotencyKey);
+      if (winner.data) return replayResponse(winner.data, fingerprint, customer_email);
+      if (winner.error) {
+        console.error('Order attempt race lookup error:', winner.error);
+        return NextResponse.json(
+          { success: false, error: 'Unable to submit order. Please try again shortly.' },
+          { status: 503 },
+        );
+      }
+      // Another unique constraint failed: handled below exactly as before.
     }
 
     if (error || !data) {
@@ -268,10 +398,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const personalisationRequested = normalisedItems.some(
-      (i) => Boolean(i.custom_name) || Boolean(i.custom_initials) || i.number_request_status === 'subject_to_availability'
-    );
-    const numberRequested = normalisedItems.some((i) => i.number_request_status === 'subject_to_availability');
+    const {
+      personalisation_requested: personalisationRequested,
+      number_requested: numberRequested,
+    } = personalisationFlags(normalisedItems);
     const itemListHtml = normalisedItems
       .map((i) => {
         const preferences = [i.custom_number, i.alternate_number]

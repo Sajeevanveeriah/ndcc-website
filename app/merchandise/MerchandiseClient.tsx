@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, FormEvent } from 'react';
+import { Suspense, useState, useEffect, useRef, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, XCircle } from 'lucide-react';
 import Card, { CardContent } from '@/components/ui/Card';
@@ -98,6 +98,9 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'cancelled' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
+  // One idempotency key per order attempt: a retry of the same cart and details
+  // reuses it so the server returns the original order instead of a duplicate.
+  const orderAttempt = useRef<{ signature: string; key: string } | null>(null);
   const [capabilities, setCapabilities] = useState<PaymentCapabilities>(DEFAULT_CAPABILITIES);
   const [paymentMethod, setPaymentMethod] = useState<MerchPaymentMethod>('bank_transfer');
   const [cardAmount, setCardAmount] = useState('');
@@ -410,45 +413,56 @@ function MerchandiseContent({ initialProducts }: { initialProducts: ApiProduct[]
       // step from the confirmation panel (server-validated, webhook-settled).
       const endpoint = '/api/orders';
 
+      const orderPayload = {
+        customer_name: formData.name,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        notes: formData.notes,
+        items: cart.map(({
+          id, name, size, quantity, price, options, custom_name, custom_initials, custom_number,
+          alternate_number, number_request_status, personalisation_confirmed,
+        }) => ({
+          slug: id,
+          name,
+          size,
+          quantity,
+          price,
+          ...(options ? { options } : {}),
+          ...(custom_name ? { custom_name } : {}),
+          ...(custom_initials ? { custom_initials } : {}),
+          ...(custom_number !== undefined ? { custom_number } : {}),
+          ...(alternate_number !== undefined ? { alternate_number } : {}),
+          ...(number_request_status ? { number_request_status } : {}),
+          ...(personalisation_confirmed ? { personalisation_confirmed } : {}),
+        })),
+        total_amount: cartTotal,
+        order_category: 'merch',
+        payment_method: paymentMethod,
+        merch_window_id: windowState.current_window?.id ?? windowState.next_window?.id ?? null,
+        hp_field: formData.hp_field,
+        submitted_at: formData.submitted_at,
+      };
+      const signature = JSON.stringify(orderPayload);
+      if (orderAttempt.current?.signature !== signature) {
+        const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : '';
+        orderAttempt.current = key ? { signature, key } : null;
+      }
+      const idempotencyKey = orderAttempt.current?.key;
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_name: formData.name,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-          notes: formData.notes,
-          items: cart.map(({
-            id, name, size, quantity, price, options, custom_name, custom_initials, custom_number,
-            alternate_number, number_request_status, personalisation_confirmed,
-          }) => ({
-            slug: id,
-            name,
-            size,
-            quantity,
-            price,
-            ...(options ? { options } : {}),
-            ...(custom_name ? { custom_name } : {}),
-            ...(custom_initials ? { custom_initials } : {}),
-            ...(custom_number !== undefined ? { custom_number } : {}),
-            ...(alternate_number !== undefined ? { alternate_number } : {}),
-            ...(number_request_status ? { number_request_status } : {}),
-            ...(personalisation_confirmed ? { personalisation_confirmed } : {}),
-          })),
-          total_amount: cartTotal,
-          order_category: 'merch',
-          payment_method: paymentMethod,
-          merch_window_id: windowState.current_window?.id ?? windowState.next_window?.id ?? null,
-          hp_field: formData.hp_field,
-          submitted_at: formData.submitted_at,
-        }),
+        body: JSON.stringify(idempotencyKey ? { ...orderPayload, idempotency_key: idempotencyKey } : orderPayload),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        // A conflict means this attempt cannot be replayed; the next submit starts a new one.
+        if (response.status === 409) orderAttempt.current = null;
         throw new Error(data?.error || 'Something went wrong. Please try again.');
       }
+      orderAttempt.current = null;
 
       setOrderConfirmation({
         order_id: data.order_id || '',
