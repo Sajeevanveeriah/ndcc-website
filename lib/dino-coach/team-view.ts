@@ -1,29 +1,7 @@
 import type { PlayerStats } from './player-stats';
 
-// Viewing another manager's Dino Coach team. Squads are saved one row per
-// round and are fixed once that round's deadline passes, so a rival is shown
-// with the squad that counts for the latest locked round, never their live
-// edits for a round still open. The weekly selection window and committee
-// switches play no part: they can reopen before a deadline.
-
-export type RevealRound = { id: string; name: string; round_number: number | null; status: string; deadline_at: string | null };
-
-const CLOSED_ROUND_STATUSES = new Set(['locked', 'scored', 'final']);
-
-/** The latest round whose squads are fixed for good: closed, or open with its deadline passed. */
-export function latestLockedRound(rounds: RevealRound[], nowMs: number = Date.now()): RevealRound | null {
-  const locked = rounds.filter((round) => CLOSED_ROUND_STATUSES.has(round.status)
-    || (round.status === 'open' && round.deadline_at !== null && Date.parse(round.deadline_at) <= nowMs));
-  const order = (round: RevealRound) => [round.round_number ?? Number.NEGATIVE_INFINITY, round.deadline_at ? Date.parse(round.deadline_at) : Number.NEGATIVE_INFINITY];
-  return locked.sort((a, b) => { const [an, ad] = order(a); const [bn, bd] = order(b); return bn - an || bd - ad; })[0] ?? null;
-}
-
-/** A finished season's squads can no longer change, so its latest squads are shown. */
-export function seasonFinished(status: string): boolean {
-  return status === 'completed' || status === 'archived';
-}
-
-export const TEAMS_HIDDEN_MESSAGE = 'Other teams are revealed once the first round deadline passes. Check back after the deadline.';
+// A manager's own Dino Coach team, laid out by slot. Teams are private: the
+// team view only ever returns the signed-in manager's own squad.
 
 export type TeamViewPlayer = {
   id: string;
@@ -69,8 +47,6 @@ export type TeamView = {
   rank: number | null;
   totalPoints: number;
   squadValueDinoDollars: number;
-  // The locked round this squad is shown for; null for a live or finished-season squad.
-  roundName: string | null;
   picks: TeamViewPick[];
 };
 
@@ -100,10 +76,4 @@ export function buildTeamPicks(rows: SquadPickRow[], slots: TeamViewSlot[], play
 /** Current market value: latest published price of every player still in the pool. */
 export function squadMarketValue(picks: TeamViewPick[]): number {
   return picks.reduce((sum, pick) => sum + (pick.player?.published_at ? Number(pick.player.price_dino_dollars) || 0 : 0), 0);
-}
-
-/** Player ids owned by both squads, for the compare view. */
-export function sharedPlayerIds(a: TeamViewPick[], b: TeamViewPick[]): Set<string> {
-  const other = new Set(b.map((pick) => pick.playerId));
-  return new Set(a.map((pick) => pick.playerId).filter((id) => other.has(id)));
 }
