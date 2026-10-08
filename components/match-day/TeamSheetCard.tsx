@@ -3,7 +3,7 @@ import { formatClubDate } from '@/lib/match-day';
 import type { PublicTeamSheet } from '@/lib/server/match-day';
 
 /** One side's (or grade folder's) published team sheet: details as text, then the sheet images, any player list and PDF. */
-export default function TeamSheetCard({ sheet, headingLevel = 'h3' }: { sheet: PublicTeamSheet; headingLevel?: 'h2' | 'h3' }) {
+export default function TeamSheetCard({ sheet, headingLevel = 'h3' }: { sheet: PublicTeamSheet; headingLevel?: 'h2' | 'h3' | 'h4' }) {
   const Heading = headingLevel;
   const starters = sheet.players.filter((player) => !player.twelfth);
   const twelfth = sheet.players.filter((player) => player.twelfth);

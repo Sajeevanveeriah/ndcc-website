@@ -53,6 +53,18 @@ export async function getCurrentTeamSheets(): Promise<PublicTeamSheet[]> {
   return currentTeamSheets((data ?? []) as TeamSheet[], today).map(toPublicSheet);
 }
 
+/** Every published sheet, newest first, for the team sheet gallery. */
+export async function getTeamSheetGallery(limit = 300): Promise<PublicTeamSheet[]> {
+  const { data, error } = await publicClient().from('team_sheets').select(TEAM_SHEET_COLUMNS)
+    .eq('published', true).or(`published_at.is.null,published_at.lte.${now()}`)
+    .order('match_date', { ascending: false }).order('team_name', { ascending: true }).limit(limit);
+  if (error) {
+    console.error('[match-day] team sheet gallery query failed:', error.message);
+    throw new Error('Team sheets temporarily unavailable');
+  }
+  return ((data ?? []) as TeamSheet[]).map(toPublicSheet);
+}
+
 /** The current sheet for one team (matched by team id or name), or null. */
 export async function getCurrentTeamSheetFor(team: { id?: string | null; name: string }): Promise<PublicTeamSheet | null> {
   const sheets = await getCurrentTeamSheets();

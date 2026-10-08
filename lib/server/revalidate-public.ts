@@ -57,7 +57,7 @@ const RESOURCE_PATHS: Record<string, string[]> = {
   fantasySettings: ['/', '/fantasy'],
   fantasySeasons: ['/', '/fantasy'],
   playhq: ['/', '/fixtures'],
-  teamSheets: ['/', '/this-week', '/teams', '/fantasy/squad', '/fantasy/transfers'],
+  teamSheets: ['/', '/this-week', '/team-sheets', '/teams', '/fantasy/squad', '/fantasy/transfers'],
   clubWinners: ['/', '/winners', '/this-week', '/player-sponsors'],
 };
 
