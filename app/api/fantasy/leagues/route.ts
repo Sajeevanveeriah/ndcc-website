@@ -67,7 +67,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Failed to load your leagues.' }, { status: 500 });
   }
   try {
-    // Demo teams practise inside leagues but have no public team view, so their rows are flagged and not linked.
+    // Demo teams practise inside leagues; their rows are flagged so clients can tell them apart.
     const demos = await supabase.from('fantasy_entries').select('manager_id').eq('season_id', season.id).eq('is_demo', true);
     if (demos.error) throw new Error(demos.error.message);
     const demoIds = new Set((demos.data ?? []).map((row) => row.manager_id));
