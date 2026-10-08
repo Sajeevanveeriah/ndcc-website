@@ -45,8 +45,11 @@ export default function TeamSheetsPanel() {
   const [form, setForm] = useState<Form>(emptyForm);
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const uploading = uploadingImage || uploadingPdf;
   const [uploadKey, setUploadKey] = useState(0);
+  const [pendingUrl, setPendingUrl] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true); setLoadError('');
@@ -68,14 +71,20 @@ export default function TeamSheetsPanel() {
     setForm(copyFrom
       ? { ...emptyForm, team_id: copyFrom.team_id, team_name: copyFrom.team_name, season_label: copyFrom.season_label, start_time: copyFrom.start_time, playersText: playersToText(copyFrom.players) }
       : emptyForm);
-    setOpen(true);
+    setPendingUrl(''); setOpen(true);
   }
 
   function startEdit(sheet: TeamSheet) {
     setEditId(sheet.id); setFormError('');
     const links = Object.fromEntries(sheet.players.map((player) => [player.name.toLowerCase(), player.fantasy_player_id || 'none']));
     setForm({ ...emptyForm, ...sheet, images: sheet.images ?? [], playersText: playersToText(sheet.players), links });
-    setOpen(true);
+    setPendingUrl(''); setOpen(true);
+  }
+
+  function addImage(url: string) {
+    const value = url.trim();
+    if (value) setForm((current) => ({ ...current, images: [...current.images, { url: value, alt: '' }] }));
+    setPendingUrl(''); setUploadKey((key) => key + 1);
   }
 
   async function save() {
@@ -204,13 +213,21 @@ export default function TeamSheetsPanel() {
           {form.images.length > 0 && <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">{form.images.map((image, index) => <li key={`${image.url}-${index}`} className="space-y-2 rounded-lg border border-edge-subtle p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image.url} alt={image.alt || `Team sheet image ${index + 1}`} className="aspect-[3/4] w-full rounded object-contain bg-surface-muted" />
+            <label className="block text-xs font-semibold text-content-secondary" htmlFor={`sheet-image-alt-${index}`}>Description for screen readers (optional)</label>
+            <textarea id={`sheet-image-alt-${index}`} className="form-input min-h-16 w-full text-sm" maxLength={300} placeholder="Blank uses the team and round. Add the player names to make the sheet readable." value={image.alt}
+              onChange={(event) => setForm({ ...form, images: form.images.map((item, i) => (i === index ? { ...item, alt: event.target.value } : item)) })} />
             <div className="flex flex-wrap gap-2">
               <Button type="button" size="sm" variant="ghost" disabled={index === 0} onClick={() => { const next = [...form.images]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; setForm({ ...form, images: next }); }}>Move up</Button>
               <Button type="button" size="sm" variant="danger" onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== index) })}>Remove</Button>
             </div>
           </li>)}</ul>}
-          {form.images.length < MAX_TEAM_SHEET_IMAGES && <ImageUploadField key={uploadKey} id="sheet-image" label={form.images.length ? 'Add another image' : 'Upload team sheet image'} value="" helpText="Alt text is written from the team and round automatically." onUploadingChange={setUploading}
-            onChange={(value) => { if (!value.trim()) return; setForm((current) => ({ ...current, images: [...current.images, { url: value.trim(), alt: '' }] })); setUploadKey((key) => key + 1); }} />}
+          {form.images.length < MAX_TEAM_SHEET_IMAGES && <ImageUploadField key={uploadKey} id="sheet-image" label={form.images.length ? 'Add another image' : 'Upload team sheet image'} value={pendingUrl} onUploadingChange={setUploadingImage}
+            onChange={(value) => {
+              // Uploads, library picks and pastes arrive whole; typed URLs wait for the Add button.
+              if (value.trim() && value.length - pendingUrl.length > 1) { addImage(value); return; }
+              setPendingUrl(value);
+            }} />}
+          {pendingUrl.trim() && <Button type="button" size="sm" variant="secondary" onClick={() => addImage(pendingUrl)}>Add this image</Button>}
         </fieldset>
         <details className="rounded-lg border border-edge-subtle p-3" open={form.playersText.trim() !== '' || form.notes.trim() !== ''}>
         <summary className="cursor-pointer text-sm font-semibold text-content-primary">Player list and notes (optional, links players to Dino Coach)</summary>
@@ -237,7 +254,7 @@ export default function TeamSheetsPanel() {
         </div>
         </div>
         </details>
-        <ImageUploadField id="sheet-file" label="Team sheet PDF (optional)" variant="pdf" value={form.document_url} onChange={(value) => setForm({ ...form, document_url: value })} onUploadingChange={setUploading} />
+        <ImageUploadField id="sheet-file" label="Team sheet PDF (optional)" variant="pdf" value={form.document_url} onChange={(value) => setForm({ ...form, document_url: value })} onUploadingChange={setUploadingPdf} />
         <label className="flex min-h-11 items-center gap-3 text-content-primary"><input type="checkbox" className="h-4 w-4" checked={form.published} onChange={(event) => setForm({ ...form, published: event.target.checked })} /> Publish now (untick to save as a draft)</label>
         {formError && <p role="alert" className="text-sm text-status-error">{formError}</p>}
         <div className="flex justify-end gap-3">
