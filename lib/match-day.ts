@@ -23,11 +23,18 @@ export type TeamSheet = {
   players: TeamSheetPlayer[];
   notes: string;
   document_url: string;
+  images: TeamSheetImage[];
   published: boolean;
   published_at: string | null;
   created_at?: string;
   updated_at?: string;
 };
+
+export type TeamSheetImage = { url: string; alt: string };
+
+/** Grade folders a team sheet can be filed under instead of a single team. */
+export const TEAM_SHEET_GROUPS = ["Men's", "Women's", 'Juniors'] as const;
+export const MAX_TEAM_SHEET_IMAGES = 12;
 
 export const WINNER_CATEGORIES = ['player_sponsor_award', 'dino_lotto', 'raffle', 'event', 'other'] as const;
 export type WinnerCategory = (typeof WINNER_CATEGORIES)[number];
@@ -64,7 +71,7 @@ export type ClubWinner = {
 export const MAX_TEAM_SHEET_PLAYERS = 20;
 export const MAX_BULK_ROWS = 300;
 
-export const TEAM_SHEET_FIELDS = ['team_id', 'team_name', 'match_date', 'round_label', 'season_label', 'opponent', 'venue', 'start_time', 'players', 'notes', 'document_url', 'published'] as const;
+export const TEAM_SHEET_FIELDS = ['team_id', 'team_name', 'match_date', 'round_label', 'season_label', 'opponent', 'venue', 'start_time', 'players', 'notes', 'document_url', 'images', 'published'] as const;
 export const WINNER_FIELDS = ['category', 'title', 'winner_name', 'show_full_name', 'prize', 'details', 'draw_date', 'round_label', 'season_label', 'player_sponsor_id', 'sponsor_name', 'image_url', 'image_alt', 'published', 'sort_order'] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -117,6 +124,19 @@ export function normalisePlayers(value: unknown): TeamSheetPlayer[] {
   }).filter((player) => player.name);
 }
 
+/** Keeps uploaded image links with alt text; a missing alt is written from the sheet's details. */
+export function normaliseTeamSheetImages(value: unknown, context: { team_name?: string; round_label?: string } = {}): TeamSheetImage[] {
+  const list = Array.isArray(value) ? value : [];
+  const rows = list.map((item) => (item && typeof item === 'object' ? item : { url: item }) as Record<string, unknown>)
+    .map((row) => ({ url: text(row.url, 2048), alt: text(row.alt, 300) }))
+    .filter((image) => image.url).slice(0, MAX_TEAM_SHEET_IMAGES);
+  const label = [context.team_name, context.round_label].filter(Boolean).join(', ');
+  return rows.map((image, index) => ({
+    url: image.url,
+    alt: image.alt || `${label ? `${label} ` : ''}team sheet${rows.length > 1 ? `, page ${index + 1} of ${rows.length}` : ''}`,
+  }));
+}
+
 export function normaliseTeamSheet(input: Record<string, unknown>): Omit<TeamSheet, 'id' | 'published_at'> {
   return {
     team_id: uuidOrNull(input.team_id),
@@ -130,6 +150,7 @@ export function normaliseTeamSheet(input: Record<string, unknown>): Omit<TeamShe
     players: normalisePlayers(input.players),
     notes: multiline(input.notes, 2000),
     document_url: text(input.document_url, 2048),
+    images: normaliseTeamSheetImages(input.images, { team_name: text(input.team_name, 120), round_label: text(input.round_label, 60) }),
     published: input.published === true,
   };
 }
@@ -137,7 +158,7 @@ export function normaliseTeamSheet(input: Record<string, unknown>): Omit<TeamShe
 export function validateTeamSheet(sheet: ReturnType<typeof normaliseTeamSheet>): string | null {
   if (!sheet.team_name) return 'Choose or enter the team.';
   if (!sheet.match_date) return 'Enter the match date (for example 2026-10-10 or 10/10/2026).';
-  if (sheet.published && sheet.players.length === 0) return 'Add at least one player before publishing a team sheet.';
+  if (sheet.published && sheet.players.length === 0 && sheet.images.length === 0) return 'Add a team sheet image (or players) before publishing.';
   if (sheet.players.filter((player) => player.captain).length > 1) return 'Only one captain can be marked.';
   const seen = new Set<string>();
   for (const player of sheet.players) {
@@ -146,6 +167,7 @@ export function validateTeamSheet(sheet: ReturnType<typeof normaliseTeamSheet>):
     seen.add(key);
   }
   if (sheet.document_url && !/^(https:\/\/|\/)/i.test(sheet.document_url)) return 'The team sheet file must be an uploaded file or an https link.';
+  if (sheet.images.some((image) => !/^(https:\/\/|\/)/i.test(image.url))) return 'Team sheet images must be uploaded files or https links.';
   return null;
 }
 

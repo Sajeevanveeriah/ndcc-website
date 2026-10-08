@@ -60,7 +60,12 @@ assert.match(parseTeamSheetImport('team,date,player\n1st XI,32/13/2026,Jane').is
 assert.match(parseTeamSheetImport('team,date,player\n1st XI,10/10/2026,Jane (c)\n1st XI,10/10/2026,Sam (c)').issues[0].error, /one captain/);
 
 // Validation of a single sheet.
-assert.equal(validateTeamSheet(normaliseTeamSheet({ team_name: '1st XI', match_date: '2026-10-10', published: true, players: [] })), 'Add at least one player before publishing a team sheet.');
+assert.equal(validateTeamSheet(normaliseTeamSheet({ team_name: '1st XI', match_date: '2026-10-10', published: true, players: [] })), 'Add a team sheet image (or players) before publishing.');
+const imageSheet = normaliseTeamSheet({ team_name: "Men's", round_label: 'Round 1', match_date: '2026-10-10', published: true, images: [{ url: 'https://example.test/a.jpg' }, { url: '/media/b.png', alt: 'Custom alt' }, { url: '' }] });
+assert.equal(validateTeamSheet(imageSheet), null, 'an image-only sheet can be published');
+assert.deepEqual(imageSheet.images, [{ url: 'https://example.test/a.jpg', alt: "Men's, Round 1 team sheet, page 1 of 2" }, { url: '/media/b.png', alt: 'Custom alt' }]);
+assert.match(validateTeamSheet(normaliseTeamSheet({ team_name: 'Juniors', match_date: '2026-10-10', images: [{ url: 'javascript:alert(1)' }] })), /images must be uploaded/);
+assert.equal(normaliseTeamSheet({ team_name: 'A', match_date: '2026-10-10', images: Array.from({ length: 20 }, (_, i) => ({ url: `/m/${i}.jpg` })) }).images.length, 12);
 assert.equal(validateTeamSheet(normaliseTeamSheet({ team_name: '1st XI', match_date: '2026-10-10', published: false, players: [] })), null, 'drafts may be empty');
 assert.match(validateTeamSheet(normaliseTeamSheet({ team_name: 'A', match_date: '2026-10-10', players: [{ name: 'X' }, { name: 'x' }] })), /listed twice/);
 assert.match(validateTeamSheet(normaliseTeamSheet({ team_name: 'A', match_date: '2026-10-10', players: [{ name: 'X' }], document_url: 'javascript:alert(1)' })), /uploaded file/);
@@ -104,6 +109,10 @@ const badges = selectionsByFantasyPlayer(current);
 assert.deepEqual(Object.keys(badges), [directory[0].id], '12th players are not shown as named');
 assert.equal(badges[directory[0].id].team_name, '1st XI');
 assert.match(clubToday(new Date('2026-10-09T22:30:00Z')), /^2026-10-10$/, 'club date follows Melbourne time');
+
+const imageMigration = readFileSync('supabase/migrations/20261008010000_team_sheet_images.sql', 'utf8');
+assert.match(imageMigration, /add column if not exists images jsonb not null default '\[\]'/);
+assert.match(readFileSync('lib/server/match-day-admin.ts', 'utf8'), /keeps the sheet's uploaded images/);
 
 // Wiring: privacy, permissions, navigation and revalidation.
 const migration = readFileSync('supabase/migrations/20261007001559_team_sheets_and_club_winners.sql', 'utf8');
