@@ -2,7 +2,7 @@ import { FileText } from 'lucide-react';
 import { formatClubDate } from '@/lib/match-day';
 import type { PublicTeamSheet } from '@/lib/server/match-day';
 
-/** One side's published team for a match, as accessible text (any PDF is an extra download). */
+/** One side's (or grade folder's) published team sheet: details as text, then the sheet images, any player list and PDF. */
 export default function TeamSheetCard({ sheet, headingLevel = 'h3' }: { sheet: PublicTeamSheet; headingLevel?: 'h2' | 'h3' }) {
   const Heading = headingLevel;
   const starters = sheet.players.filter((player) => !player.twelfth);
@@ -13,6 +13,15 @@ export default function TeamSheetCard({ sheet, headingLevel = 'h3' }: { sheet: P
     <Heading className="font-display text-xl font-bold text-content-primary">{sheet.team_name}</Heading>
     {details && <p className="mt-1 font-semibold text-content-secondary">{details}</p>}
     <p className="mt-1 text-sm text-content-muted">{when}{sheet.venue ? ` · ${sheet.venue}` : ''}</p>
+    {sheet.images.length > 0 && <ul className={`mt-4 grid gap-3 ${sheet.images.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+      {sheet.images.map((image, index) => <li key={`${image.url}-${index}`}>
+        <a href={image.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-edge-subtle bg-surface-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image.url} alt={image.alt} loading="lazy" decoding="async" className="h-auto w-full object-contain" />
+          <span className="sr-only"> (opens full size in a new tab)</span>
+        </a>
+      </li>)}
+    </ul>}
     {starters.length > 0 && <ol className="mt-4 grid gap-x-6 gap-y-1 text-content-primary sm:grid-cols-2">
       {starters.map((player, index) => <li key={`${player.name}-${index}`} className="flex gap-2">
         <span className="w-6 shrink-0 text-right text-content-muted">{index + 1}.</span>

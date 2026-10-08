@@ -2,11 +2,11 @@ import 'server-only';
 import { createServerClient } from '@/lib/supabase-server';
 import {
   type ClubWinner, type TeamSheet, type WinnerCategory,
-  clubToday, currentTeamSheets, normalisePlayers, publicWinnerName, selectionsByFantasyPlayer,
+  clubToday, currentTeamSheets, normalisePlayers, normaliseTeamSheetImages, publicWinnerName, selectionsByFantasyPlayer,
 } from '@/lib/match-day';
 import { normaliseMediaUrl } from '@/lib/media-url';
 
-export const TEAM_SHEET_COLUMNS = 'id,team_id,team_name,match_date,round_label,season_label,opponent,venue,start_time,players,notes,document_url,published,published_at,created_at,updated_at';
+export const TEAM_SHEET_COLUMNS = 'id,team_id,team_name,match_date,round_label,season_label,opponent,venue,start_time,players,notes,document_url,images,published,published_at,created_at,updated_at';
 export const WINNER_COLUMNS = 'id,category,title,winner_name,show_full_name,prize,details,draw_date,round_label,season_label,player_sponsor_id,sponsor_name,image_url,image_alt,published,published_at,sort_order,created_at,updated_at';
 
 /** What a public page may show about a team sheet (no internal ids beyond the Dino link). */
@@ -24,6 +24,7 @@ function toPublicSheet(row: TeamSheet): PublicTeamSheet {
     round_label: row.round_label, season_label: row.season_label, opponent: row.opponent, venue: row.venue,
     start_time: row.start_time, players: normalisePlayers(row.players), notes: row.notes,
     document_url: normaliseMediaUrl(row.document_url) || '',
+    images: normaliseTeamSheetImages(row.images, row).map((image) => ({ ...image, url: normaliseMediaUrl(image.url) || '' })).filter((image) => image.url),
   };
 }
 

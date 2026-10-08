@@ -74,7 +74,8 @@ export async function createRows(request: Request, config: MatchDayResource, use
     for (const row of rows) {
       const existing = config.findExisting ? await config.findExisting(db, row) : null;
       const result = existing
-        ? await db.from(config.table).update(row).eq('id', existing.id).select(config.columns).single()
+        // An import row with no images (a player-list CSV) keeps the sheet's uploaded images.
+        ? await db.from(config.table).update(Array.isArray(row.images) && row.images.length === 0 ? Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'images')) : row).eq('id', existing.id).select(config.columns).single()
         : await db.from(config.table).insert(row).select(config.columns).single();
       if (result.error) return reply({ success: false, error: `${config.label(row)}: ${dbError(result.error, 'Could not be saved.')}`, created, updated }, 400);
       if (existing) updated++; else created++;

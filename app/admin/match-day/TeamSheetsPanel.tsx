@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminFetch, parseApiResponse } from '@/lib/admin-client';
 import {
   type PlayerDirectoryEntry, type TeamSheet, type TeamSheetPlayer,
-  TEAM_SHEET_TEMPLATE, formatClubDate, matchFantasyPlayer, normaliseTeamSheet, parsePlayerEntry,
+  MAX_TEAM_SHEET_IMAGES, TEAM_SHEET_GROUPS, TEAM_SHEET_TEMPLATE, formatClubDate, matchFantasyPlayer, normaliseTeamSheet, parsePlayerEntry,
   parseTeamSheetImport, validateTeamSheet,
 } from '@/lib/match-day';
 import Button from '@/components/ui/Button';
@@ -20,7 +20,7 @@ type Team = { id: string; name: string; grade: string | null; is_active: boolean
 type Directory = { teams: Team[]; players: PlayerDirectoryEntry[] };
 type Form = Omit<ReturnType<typeof normaliseTeamSheet>, 'players'> & { playersText: string; links: Record<string, string> };
 
-const emptyForm: Form = { team_id: null, team_name: '', match_date: '', round_label: '', season_label: '', opponent: '', venue: '', start_time: '', notes: '', document_url: '', published: true, playersText: '', links: {} };
+const emptyForm: Form = { team_id: null, team_name: '', match_date: '', round_label: '', season_label: '', opponent: '', venue: '', start_time: '', notes: '', document_url: '', images: [], published: true, playersText: '', links: {} };
 
 function playersToText(players: TeamSheetPlayer[]) {
   return players.map((player) => `${player.name}${player.captain ? ' (c)' : ''}${player.wicketkeeper ? ' (wk)' : ''}${player.twelfth ? ' (12th)' : ''}`).join('\n');
@@ -45,7 +45,11 @@ export default function TeamSheetsPanel() {
   const [form, setForm] = useState<Form>(emptyForm);
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const uploading = uploadingImage || uploadingPdf;
+  const [uploadKey, setUploadKey] = useState(0);
+  const [pendingUrl, setPendingUrl] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true); setLoadError('');
@@ -54,7 +58,7 @@ export default function TeamSheetsPanel() {
         parseApiResponse<{ data: TeamSheet[] }>(await adminFetch(endpoint, { cache: 'no-store' })),
         parseApiResponse<Directory>(await adminFetch('/api/admin/match-day/directory', { cache: 'no-store' })),
       ]);
-      setRows(sheets.data); setDirectory({ teams: lists.teams, players: lists.players });
+      setRows(sheets.data.map((sheet) => ({ ...sheet, images: sheet.images ?? [] }))); setDirectory({ teams: lists.teams, players: lists.players });
     } catch (reason) { setLoadError(reason instanceof Error ? reason.message : 'Unable to load team sheets.'); }
     finally { setLoading(false); }
   }, []);
@@ -67,14 +71,20 @@ export default function TeamSheetsPanel() {
     setForm(copyFrom
       ? { ...emptyForm, team_id: copyFrom.team_id, team_name: copyFrom.team_name, season_label: copyFrom.season_label, start_time: copyFrom.start_time, playersText: playersToText(copyFrom.players) }
       : emptyForm);
-    setOpen(true);
+    setPendingUrl(''); setOpen(true);
   }
 
   function startEdit(sheet: TeamSheet) {
     setEditId(sheet.id); setFormError('');
     const links = Object.fromEntries(sheet.players.map((player) => [player.name.toLowerCase(), player.fantasy_player_id || 'none']));
-    setForm({ ...emptyForm, ...sheet, playersText: playersToText(sheet.players), links });
-    setOpen(true);
+    setForm({ ...emptyForm, ...sheet, images: sheet.images ?? [], playersText: playersToText(sheet.players), links });
+    setPendingUrl(''); setOpen(true);
+  }
+
+  function addImage(url: string) {
+    const value = url.trim();
+    if (value) setForm((current) => ({ ...current, images: [...current.images, { url: value, alt: '' }] }));
+    setPendingUrl(''); setUploadKey((key) => key + 1);
   }
 
   async function save() {
@@ -117,7 +127,7 @@ export default function TeamSheetsPanel() {
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="max-w-2xl text-sm text-content-secondary">Publish each side&apos;s team for the round. Players linked to Dino Coach show as &quot;Named&quot; when participants pick their squads. Published sheets appear on <a className="underline" href="/this-week" target="_blank" rel="noreferrer">This Week</a> and each team page.</p>
+      <p className="max-w-2xl text-sm text-content-secondary">Publish each round&apos;s team sheet images, filed under a team or a grade folder (Men&apos;s, Women&apos;s, Juniors). Players linked to Dino Coach show as &quot;Named&quot; when participants pick their squads. Published sheets appear on <a className="underline" href="/this-week" target="_blank" rel="noreferrer">This Week</a> and each team page.</p>
       <Button onClick={() => startNew()}>Add team sheet</Button>
     </div>
     {message && <p role="status" className="text-sm font-semibold text-status-success">{message}</p>}
@@ -130,7 +140,7 @@ export default function TeamSheetsPanel() {
       : <div className="overflow-x-auto rounded-xl border border-edge-subtle">
         <table className="w-full min-w-[44rem] text-left text-sm">
           <thead className="bg-surface-muted text-content-secondary"><tr>
-            <th className="p-3"><span className="sr-only">Select</span></th><th className="p-3">Date</th><th className="p-3">Team</th><th className="p-3">Round / opponent</th><th className="p-3">Players</th><th className="p-3">Status</th><th className="p-3"><span className="sr-only">Actions</span></th>
+            <th className="p-3"><span className="sr-only">Select</span></th><th className="p-3">Date</th><th className="p-3">Team</th><th className="p-3">Round / opponent</th><th className="p-3">Sheet</th><th className="p-3">Status</th><th className="p-3"><span className="sr-only">Actions</span></th>
           </tr></thead>
           <tbody className="divide-y divide-edge-subtle">{rows.map((sheet) => {
             const linked = sheet.players.filter((player) => player.fantasy_player_id).length;
@@ -139,7 +149,7 @@ export default function TeamSheetsPanel() {
               <td className="p-3 whitespace-nowrap">{formatClubDate(sheet.match_date)}</td>
               <td className="p-3 font-semibold">{sheet.team_name}</td>
               <td className="p-3">{[sheet.round_label, sheet.opponent && `v ${sheet.opponent}`].filter(Boolean).join(' · ') || '—'}</td>
-              <td className="p-3">{sheet.players.length}<span className="block text-xs text-content-muted">{linked} linked to Dino Coach</span></td>
+              <td className="p-3">{sheet.images.length > 0 && <span className="block">{sheet.images.length} image{sheet.images.length === 1 ? '' : 's'}</span>}{sheet.players.length > 0 ? <>{sheet.players.length} players<span className="block text-xs text-content-muted">{linked} linked to Dino Coach</span></> : sheet.images.length === 0 && '—'}</td>
               <td className="p-3">{sheet.published ? <span className="font-semibold text-status-success">Published</span> : <span className="text-content-muted">Draft</span>}</td>
               <td className="p-3"><div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={() => startEdit(sheet)}>Edit</Button>
@@ -175,15 +185,21 @@ export default function TeamSheetsPanel() {
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void save(); }}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor="sheet-team" className="form-label">Team</label>
-            <select id="sheet-team" className="form-input w-full" value={form.team_id || ''} onChange={(event) => {
-              const team = directory.teams.find((item) => item.id === event.target.value);
-              setForm({ ...form, team_id: team?.id || null, team_name: team ? team.name : form.team_name });
+            <label htmlFor="sheet-team" className="form-label">Team or grade folder</label>
+            <select id="sheet-team" className="form-input w-full" required value={form.team_id || (form.team_name ? `name:${form.team_name}` : '')} onChange={(event) => {
+              const value = event.target.value;
+              const team = directory.teams.find((item) => item.id === value);
+              setForm({ ...form, team_id: team?.id || null, team_name: team ? team.name : value.startsWith('name:') ? value.slice(5) : '' });
             }}>
-              <option value="">Another team (type its name)</option>
-              {teamOptions.map((team) => <option key={team.id} value={team.id}>{team.name}{team.grade ? ` (${team.grade})` : ''}</option>)}
+              <option value="" disabled>Choose a grade folder or team</option>
+              <optgroup label="Grade folders">
+                {TEAM_SHEET_GROUPS.map((group) => <option key={group} value={`name:${group}`}>{group}</option>)}
+                {!form.team_id && form.team_name && !(TEAM_SHEET_GROUPS as readonly string[]).includes(form.team_name) && <option value={`name:${form.team_name}`}>{form.team_name}</option>}
+              </optgroup>
+              {teamOptions.length > 0 && <optgroup label="Teams">
+                {teamOptions.map((team) => <option key={team.id} value={team.id}>{team.name}{team.grade ? ` (${team.grade})` : ''}</option>)}
+              </optgroup>}
             </select>
-            {!form.team_id && <div className="mt-3"><Input id="sheet-team-name" label="Team name" value={form.team_name} onChange={(event) => setForm({ ...form, team_name: event.target.value })} /></div>}
           </div>
           <Input id="sheet-date" label="Match date" type="date" required value={form.match_date} onChange={(event) => setForm({ ...form, match_date: event.target.value })} />
           <Input id="sheet-round" label="Round (optional)" placeholder="e.g. Round 3" value={form.round_label} onChange={(event) => setForm({ ...form, round_label: event.target.value })} />
@@ -192,6 +208,30 @@ export default function TeamSheetsPanel() {
           <Input id="sheet-venue" label="Venue (optional)" value={form.venue} onChange={(event) => setForm({ ...form, venue: event.target.value })} />
           <Input id="sheet-start" label="Start time (optional)" placeholder="e.g. 12:30 pm" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} />
         </div>
+        <fieldset className="space-y-3">
+          <legend className="form-label">Team sheet images</legend>
+          {form.images.length > 0 && <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">{form.images.map((image, index) => <li key={`${image.url}-${index}`} className="space-y-2 rounded-lg border border-edge-subtle p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={image.url} alt={image.alt || `Team sheet image ${index + 1}`} className="aspect-[3/4] w-full rounded object-contain bg-surface-muted" />
+            <label className="block text-xs font-semibold text-content-secondary" htmlFor={`sheet-image-alt-${index}`}>Description for screen readers (optional)</label>
+            <textarea id={`sheet-image-alt-${index}`} className="form-input min-h-16 w-full text-sm" maxLength={300} placeholder="Blank uses the team and round. Add the player names to make the sheet readable." value={image.alt}
+              onChange={(event) => setForm({ ...form, images: form.images.map((item, i) => (i === index ? { ...item, alt: event.target.value } : item)) })} />
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="ghost" disabled={index === 0} onClick={() => { const next = [...form.images]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; setForm({ ...form, images: next }); }}>Move up</Button>
+              <Button type="button" size="sm" variant="danger" onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== index) })}>Remove</Button>
+            </div>
+          </li>)}</ul>}
+          {form.images.length < MAX_TEAM_SHEET_IMAGES && <ImageUploadField key={uploadKey} id="sheet-image" label={form.images.length ? 'Add another image' : 'Upload team sheet image'} value={pendingUrl} onUploadingChange={setUploadingImage}
+            onChange={(value) => {
+              // Uploads, library picks and pastes arrive whole; typed URLs wait for the Add button.
+              if (value.trim() && value.length - pendingUrl.length > 1) { addImage(value); return; }
+              setPendingUrl(value);
+            }} />}
+          {pendingUrl.trim() && <Button type="button" size="sm" variant="secondary" onClick={() => addImage(pendingUrl)}>Add this image</Button>}
+        </fieldset>
+        <details className="rounded-lg border border-edge-subtle p-3" open={form.playersText.trim() !== '' || form.notes.trim() !== ''}>
+        <summary className="cursor-pointer text-sm font-semibold text-content-primary">Player list and notes (optional, links players to Dino Coach)</summary>
+        <div className="mt-3 space-y-4">
         <div>
           <label htmlFor="sheet-players" className="form-label">Players, one per line (add (c), (wk) or (12th) after a name)</label>
           <textarea id="sheet-players" className="form-input min-h-48 w-full" value={form.playersText} onChange={(event) => setForm({ ...form, playersText: event.target.value })} />
@@ -212,7 +252,9 @@ export default function TeamSheetsPanel() {
           <label htmlFor="sheet-notes" className="form-label">Notes (optional, shown publicly)</label>
           <textarea id="sheet-notes" className="form-input min-h-20 w-full" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
         </div>
-        <ImageUploadField id="sheet-file" label="Team sheet PDF (optional)" variant="pdf" value={form.document_url} onChange={(value) => setForm({ ...form, document_url: value })} onUploadingChange={setUploading} />
+        </div>
+        </details>
+        <ImageUploadField id="sheet-file" label="Team sheet PDF (optional)" variant="pdf" value={form.document_url} onChange={(value) => setForm({ ...form, document_url: value })} onUploadingChange={setUploadingPdf} />
         <label className="flex min-h-11 items-center gap-3 text-content-primary"><input type="checkbox" className="h-4 w-4" checked={form.published} onChange={(event) => setForm({ ...form, published: event.target.checked })} /> Publish now (untick to save as a draft)</label>
         {formError && <p role="alert" className="text-sm text-status-error">{formError}</p>}
         <div className="flex justify-end gap-3">
