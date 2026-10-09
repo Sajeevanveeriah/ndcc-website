@@ -53,16 +53,23 @@ export async function getCurrentTeamSheets(): Promise<PublicTeamSheet[]> {
   return currentTeamSheets((data ?? []) as TeamSheet[], today).map(toPublicSheet);
 }
 
-/** Every published sheet, newest first, for the team sheet gallery. */
-export async function getTeamSheetGallery(limit = 300): Promise<PublicTeamSheet[]> {
-  const { data, error } = await publicClient().from('team_sheets').select(TEAM_SHEET_COLUMNS)
-    .eq('published', true).or(`published_at.is.null,published_at.lte.${now()}`)
-    .order('match_date', { ascending: false }).order('team_name', { ascending: true }).limit(limit);
-  if (error) {
-    console.error('[match-day] team sheet gallery query failed:', error.message);
-    throw new Error('Team sheets temporarily unavailable');
+/** Every published sheet, newest first, for the team sheet gallery (read in pages, never truncated). */
+export async function getTeamSheetGallery(pageSize = 500): Promise<PublicTeamSheet[]> {
+  const rows: TeamSheet[] = [];
+  const publishedBefore = now();
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await publicClient().from('team_sheets').select(TEAM_SHEET_COLUMNS)
+      .eq('published', true).or(`published_at.is.null,published_at.lte.${publishedBefore}`)
+      .order('match_date', { ascending: false }).order('team_name', { ascending: true }).order('id', { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) {
+      console.error('[match-day] team sheet gallery query failed:', error.message);
+      throw new Error('Team sheets temporarily unavailable');
+    }
+    rows.push(...((data ?? []) as TeamSheet[]));
+    if (!data || data.length < pageSize) break;
   }
-  return ((data ?? []) as TeamSheet[]).map(toPublicSheet);
+  return rows.map(toPublicSheet);
 }
 
 /** The current sheet for one team (matched by team id or name), or null. */

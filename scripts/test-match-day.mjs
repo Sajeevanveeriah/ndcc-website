@@ -127,6 +127,8 @@ assert.deepEqual(rounds[1].dates, ['2026-10-10', '2026-10-11']);
 assert.equal(rounds[2].key, 'date|2026-10-03', 'a sheet without a round is grouped by its date');
 assert.match(readFileSync('lib/server/revalidate-public.ts', 'utf8'), /'\/team-sheets'/);
 assert.match(readFileSync('app/team-sheets/page.tsx', 'utf8'), /getTeamSheetGallery\(\)/);
+assert.match(readFileSync('lib/server/sitemap-entries.ts', 'utf8'), /\/team-sheets`/, 'gallery is in the sitemap');
+assert.match(readFileSync('lib/server/match-day.ts', 'utf8'), /\.range\(from, from \+ pageSize - 1\)/, 'gallery reads every page');
 
 // Wiring: privacy, permissions, navigation and revalidation.
 const migration = readFileSync('supabase/migrations/20261007001559_team_sheets_and_club_winners.sql', 'utf8');
