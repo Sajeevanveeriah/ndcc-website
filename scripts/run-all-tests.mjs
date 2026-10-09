@@ -63,6 +63,7 @@ export const EXCLUDED_FILES = {
 // Tests without a package.json alias (previously listed directly in
 // .github/workflows/pr-validation.yml, plus orphaned test files).
 const EXTRA_COMMANDS = [
+  'node scripts/test-dino-player-name-stats.cjs',
   'node scripts/test-minute-documents.cjs',
   'node scripts/test-minute-editor.cjs',
   'node scripts/test-public-event-flows.mjs',
