@@ -11,7 +11,7 @@ export function historicalPlayerStats(playerId: string, name: string, seasonId: 
  const abroad=external.players.find(p=>p.playerId===playerId);
  if(abroad) return {period:abroad.season||'Historical season unavailable',source:abroad.scope||'External season record',matches:abroad.matches,runs:abroad.runs,wickets:abroad.wickets,catches:abroad.catches,stumpings:abroad.stumpings,runouts:null,maidens:null};
  const aliases=summary.aliases as Record<string,string>;
- const rows=summary.rows.filter(row=>!/^U\d/i.test(row.grade)&&normalisePlayerIdentity(aliases[row.name]||row.name)===normalisePlayerIdentity(name));
+ const rows=summary.rows.filter(row=>!/^U\d/i.test(row.grade)&&normalisePlayerIdentity(aliases[row.name]||row.name)===normalisePlayerIdentity(aliases[name]||name));
  if(!rows.length) return null;
  const total=(key:'runs'|'wickets'|'catches'|'stumpings'|'matches')=>rows.every(r=>r[key]!==null)?rows.reduce((n,r)=>n+Number(r[key]),0):null;
  return {period:summary.sourceSeason,source:'Club season summary - senior grades',matches:total('matches'),runs:total('runs'),wickets:total('wickets'),catches:total('catches'),stumpings:total('stumpings'),runouts:null,maidens:null};
