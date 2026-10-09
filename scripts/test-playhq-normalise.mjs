@@ -28,6 +28,16 @@ const nested = normaliseFixtures({ data: { items: [{
 if (nested[0]?.homeTeam !== 'Newcomb & District 1st XI' || nested[0]?.awayTeam !== 'Opponent CC') fail('normaliseFixtures should read nested PlayHQ competitor team names.');
 if (nested[0]?.id !== 'historical-game-1' || nested[0]?.status !== 'FINALIZED') fail('normaliseFixtures should read nested data.items fixture envelopes.');
 
+// PlayHQ gives a local date, time and time zone; the start time must survive.
+const timed = (schedule, extra = {}) => normaliseFixtures({ games: [{ id: 'g', ...extra, schedule }] }, grades[0])[0]?.startsAt;
+if (timed({ date: '2026-10-10', time: '13:00:00', timezone: 'Australia/Melbourne' }) !== '2026-10-10T13:00:00+11:00') fail('normaliseFixtures should combine schedule date, time and time zone (AEDT).');
+if (timed({ date: '2026-09-26', time: '13:00', timezone: 'Australia/Melbourne' }) !== '2026-09-26T13:00:00+10:00') fail('normaliseFixtures should use AEST before daylight saving starts.');
+if (timed({ date: '2026-10-10', time: '13:00:00' }) !== '2026-10-10T13:00:00+11:00') fail('normaliseFixtures should default to Melbourne when no time zone is sent.');
+if (timed([{ date: '2026-12-05', time: '11:00:00', timezone: 'Australia/Melbourne' }, { date: '2026-12-12', time: '11:00:00', timezone: 'Australia/Melbourne' }]) !== '2026-12-05T11:00:00+11:00') fail('normaliseFixtures should start multi-day games on the first schedule entry.');
+if (timed({ date: '2026-10-10' }, { scheduledStartTime: '2026-10-10T02:30:00Z' }) !== '2026-10-10T02:30:00Z') fail('normaliseFixtures should prefer a timed field over a date-only one.');
+if (timed({ date: '2026-10-10' }) !== '2026-10-10') fail('normaliseFixtures should keep date-only fixtures date-only (never invent a time).');
+if (timed({ date: '2026-10-10', time: 'TBC' }) !== '2026-10-10') fail('normaliseFixtures should ignore a non-time value.');
+
 const ladder = normaliseLadder({ ladder: [{ team: { name: 'NDCC' }, rank: 2, gamesPlayed: 5, points: '18', percent: '126.5' }] }, grades[0]);
 if (ladder[0]?.teamName !== 'NDCC' || ladder[0]?.position !== 2 || ladder[0]?.played !== 5 || ladder[0]?.percentage !== 126.5) fail('normaliseLadder should parse common ladder fields.');
 
