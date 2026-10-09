@@ -71,19 +71,28 @@ const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const LOCAL_TIME = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
 const CLUB_TIME_ZONE = 'Australia/Melbourne';
 
-// UTC offset ("+11:00") of a time zone at a given local date and time.
-function zoneOffset(date: string, hours: number, minutes: number, timeZone: string): string | null {
-  const [year, month, day] = date.split('-').map(Number);
-  const guess = Date.UTC(year, month - 1, day, hours, minutes);
+// Offset in minutes of a time zone at a UTC instant, or null for a bad zone.
+function offsetAt(instant: number, timeZone: string): number | null {
   let parts: Intl.DateTimeFormatPart[];
   try {
-    parts = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(guess));
+    parts = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(instant));
   } catch {
     return null;
   }
   const part = (type: string) => Number(parts.find((entry) => entry.type === type)?.value);
-  const shown = Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'));
-  const offset = Math.round((shown - guess) / 60_000);
+  return Math.round((Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute')) - instant) / 60_000);
+}
+
+// UTC offset ("+11:00") of a time zone at a given local date and time. The
+// offset is read at the wall-clock-as-UTC guess, then re-read at the instant
+// that offset implies, so times near a daylight-saving change resolve to the
+// offset in force at the fixture itself.
+function zoneOffset(date: string, hours: number, minutes: number, timeZone: string): string | null {
+  const [year, month, day] = date.split('-').map(Number);
+  const wallClock = Date.UTC(year, month - 1, day, hours, minutes);
+  const first = offsetAt(wallClock, timeZone);
+  if (first === null) return null;
+  const offset = offsetAt(wallClock - first * 60_000, timeZone) ?? first;
   const abs = Math.abs(offset);
   return `${offset < 0 ? '-' : '+'}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`;
 }

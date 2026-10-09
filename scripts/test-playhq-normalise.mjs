@@ -32,6 +32,10 @@ if (nested[0]?.id !== 'historical-game-1' || nested[0]?.status !== 'FINALIZED') 
 const timed = (schedule, extra = {}) => normaliseFixtures({ games: [{ id: 'g', ...extra, schedule }] }, grades[0])[0]?.startsAt;
 if (timed({ date: '2026-10-10', time: '13:00:00', timezone: 'Australia/Melbourne' }) !== '2026-10-10T13:00:00+11:00') fail('normaliseFixtures should combine schedule date, time and time zone (AEDT).');
 if (timed({ date: '2026-09-26', time: '13:00', timezone: 'Australia/Melbourne' }) !== '2026-09-26T13:00:00+10:00') fail('normaliseFixtures should use AEST before daylight saving starts.');
+if (timed({ date: '2026-10-04', time: '01:30:00', timezone: 'Australia/Melbourne' }) !== '2026-10-04T01:30:00+10:00') fail('normaliseFixtures should use AEST just before daylight saving starts.');
+if (timed({ date: '2026-10-04', time: '03:30:00', timezone: 'Australia/Melbourne' }) !== '2026-10-04T03:30:00+11:00') fail('normaliseFixtures should use AEDT just after daylight saving starts.');
+if (timed({ date: '2026-04-05', time: '01:30:00', timezone: 'Australia/Melbourne' }) !== '2026-04-05T01:30:00+11:00') fail('normaliseFixtures should use AEDT just before daylight saving ends.');
+if (timed({ date: '2026-04-05', time: '03:30:00', timezone: 'Australia/Melbourne' }) !== '2026-04-05T03:30:00+10:00') fail('normaliseFixtures should use AEST after daylight saving ends.');
 if (timed({ date: '2026-10-10', time: '13:00:00' }) !== '2026-10-10T13:00:00+11:00') fail('normaliseFixtures should default to Melbourne when no time zone is sent.');
 if (timed([{ date: '2026-12-05', time: '11:00:00', timezone: 'Australia/Melbourne' }, { date: '2026-12-12', time: '11:00:00', timezone: 'Australia/Melbourne' }]) !== '2026-12-05T11:00:00+11:00') fail('normaliseFixtures should start multi-day games on the first schedule entry.');
 if (timed({ date: '2026-10-10' }, { scheduledStartTime: '2026-10-10T02:30:00Z' }) !== '2026-10-10T02:30:00Z') fail('normaliseFixtures should prefer a timed field over a date-only one.');
