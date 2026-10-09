@@ -37,17 +37,23 @@ assert.match(cookieDoughPage, /How it works/);
 assert.match(cookieDoughPage, /COOKIE_DOUGH_FUNDRAISER_LINK/);
 assert.doesNotMatch(cookieDoughPage, /stripe|checkout\.sessions|payment_intent/i, 'Fundraiser payments must remain on the official provider platform.');
 assert.match(navbar, /Cookie Dough Fundraiser.*\/fundraising\/cookie-dough/);
-// Every fundraiser sits under one "Fund Raiser" top menu (desktop and mobile
-// render the same groups); Cookie Dough moved there from Get Involved.
-assert.match(navbar, /const FUND_RAISER_GROUP = 'Fund Raiser';/);
+// Every fundraiser sits in one Fundraisers section of the Shop & Fundraisers
+// menu (desktop and mobile render the same groups); Cookie Dough moved there
+// from Get Involved.
+assert.match(navbar, /const FUNDRAISERS_SECTION = 'Fundraisers';/);
 assert.doesNotMatch(navbar, /label: 'Raffles'/);
-const fundRaiserGroup = navbar.match(/\{ label: FUND_RAISER_GROUP, links: \[([\s\S]*?)\] \},/);
-assert.ok(fundRaiserGroup, 'Fund Raiser group must exist');
+const fundraisersSection = navbar.match(/\{ heading: FUNDRAISERS_SECTION, links: \[([\s\S]*?)\] \},/);
+assert.ok(fundraisersSection, 'Fundraisers section must exist');
 for (const href of ['/raffle', '/reverse-raffle', '/prize-wheel', '/spin-the-wheel', '/fundraising/cookie-dough']) {
-  assert.ok(fundRaiserGroup[1].includes(`href: '${href}'`), `${href} belongs in Fund Raiser`);
+  assert.ok(fundraisersSection[1].includes(`href: '${href}'`), `${href} belongs in Fundraisers`);
 }
 assert.ok(!/label: 'Get Involved'[^\n]*cookie-dough/.test(navbar), 'Cookie Dough must not stay under Get Involved');
-assert.match(navbar, /groups\.find\(\(group\) => group\.label === FUND_RAISER_GROUP\)/);
+assert.match(navbar, /section\.heading === FUNDRAISERS_SECTION/);
+// Four top-level menus; every public destination keeps a menu entry.
+for (const group of ['Cricket', 'Club', 'Get Involved', 'Shop & Fundraisers']) assert.match(navbar, new RegExp(`label: '${group}', sections:`));
+for (const href of ['/this-week', '/team-sheets', '/teams', '/fixtures', '/calendar', '/fantasy', '/about', '/about#club-history', '/facilities', '/news', '/publications', '/winners', '/gallery', '/contact', '/join', '/volunteer', '/events', '/sponsors', '/player-sponsors', '/merchandise', '/pot-club', '/pay-balance', '/kitchen', '/fundraising']) {
+  assert.ok(navbar.includes(`href: '${href}'`), `${href} must stay in the menu`);
+}
 assert.match(homepage, /CookieDoughFundraiserFeature/);
 assert.match(sitemap, /\/fundraising\/cookie-dough/);
 assert.match(migration, /WHERE NOT EXISTS/);

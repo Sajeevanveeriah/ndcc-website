@@ -169,6 +169,7 @@ export default async function Footer() {
           <div className="mt-9 flex flex-col gap-3 border-t border-white/[0.14] pt-5 font-body text-[13.5px] text-white/80 md:flex-row md:items-center md:justify-between">
             <p>&copy; {currentYear} {settings.club_name}</p>
             <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <li><Link prefetch={false} href="/contact" className="text-white hover:underline">Contact</Link></li>
               <li><Link prefetch={false} href="/privacy" className="text-white hover:underline">Privacy</Link></li>
               <li><Link prefetch={false} href="/club-account" className="text-white hover:underline">My Account</Link></li>
               <li>

@@ -66,7 +66,7 @@ export default async function FacilitiesPage() {
         </div>
       </section>
 
-      <nav className="border-b border-edge-subtle bg-surface-card px-4 py-3 sm:px-6 lg:px-8" aria-label="On this page">
+      <nav className="border-b border-edge-subtle bg-surface-card px-4 py-3 sm:px-6 md:sticky md:top-[calc(60px+var(--site-banner-h,0px))] md:z-30 lg:px-8" aria-label="On this page">
         <div className="container-width flex flex-wrap items-center gap-x-5 gap-y-2 font-body text-sm font-semibold">
           <span className="text-content-muted">On this page</span>
           <a href="#facility-overview" className="text-maroon-700 hover:underline dark:text-maroon-200">Overview</a>

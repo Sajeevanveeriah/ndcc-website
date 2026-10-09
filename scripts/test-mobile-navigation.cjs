@@ -19,7 +19,7 @@ const dependencies = {
   'next/image': { default: props => React.createElement('img', props) },
   'next/navigation': { usePathname: () => pathname },
   'framer-motion': { LazyMotion: passthrough, AnimatePresence: passthrough, domAnimation: {}, m: { div: 'div' }, useReducedMotion: () => true },
-  'lucide-react': Object.fromEntries(['Menu', 'X', 'ChevronDown', 'UserRound'].map(name => [name, () => null])),
+  'lucide-react': Object.fromEntries(['Menu', 'X', 'ChevronDown', 'UserRound', 'ShieldCheck'].map(name => [name, () => null])),
   '@/components/common/CookieDoughVisibility': { useCookieDoughOpen: () => false },
   '@/lib/cookie-dough': { isCookieDoughLink: href => href.includes('cookie-dough') },
   '@/lib/club-settings-types': { fallbackClubSettings: {} },
@@ -55,6 +55,17 @@ require(name) {
     assert.ok(menu.findAllByProps({ href: '/club-account' }).length);
     assert.ok(menu.findAllByProps({ href: '/raffle' }).length, 'Public raffle link stays in the mobile menu');
     assert.equal(menu.findAllByProps({ href: '/raffle/cash' }).length, 0, 'Cash sales are a member tool, not a public menu item');
+    // Four accordion menus, one open at a time; collapsed panels are hidden.
+    const toggles = menu.findAll((node) => node.type === 'button' && typeof node.props['aria-controls'] === 'string' && node.props['aria-controls'].startsWith('mobile-nav-'));
+    assert.deepEqual(toggles.map((node) => node.props['aria-controls']), ['mobile-nav-cricket', 'mobile-nav-club', 'mobile-nav-get-involved', 'mobile-nav-shop-fundraisers']);
+    await act(async () => toggles[1].props.onClick());
+    const panel = (id) => menu.findByProps({ id });
+    assert.equal(panel('mobile-nav-club').props.hidden, false, 'Tapping a menu opens its panel');
+    assert.equal(panel('mobile-nav-cricket').props.hidden, true);
+    await act(async () => toggles[3].props.onClick());
+    assert.equal(panel('mobile-nav-club').props.hidden, true, 'Opening another menu closes the first');
+    assert.equal(panel('mobile-nav-shop-fundraisers').props.hidden, false);
+    assert.ok(panel('mobile-nav-club').findAllByProps({ href: '/contact' }).length, 'Contact sits under Club');
     // A filtered/transformed ancestor changes the containing block of fixed overlays.
     for (let parent = menu.parent; parent; parent = parent.parent) {
       assert.notEqual(parent.type, 'nav', 'Scrolled header must never contain the full-screen overlay');
