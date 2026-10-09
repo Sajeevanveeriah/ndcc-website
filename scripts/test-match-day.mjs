@@ -125,6 +125,12 @@ assert.deepEqual(rounds.slice(0, 2).map((round) => round.title), ['Round 2', 'Ro
 assert.deepEqual(rounds[1].sheets.map((sheet) => sheet.id), ['b', 'c', 'a'], "grade folders run Men's, Women's, Juniors");
 assert.deepEqual(rounds[1].dates, ['2026-10-10', '2026-10-11']);
 assert.equal(rounds[2].key, 'date|2026-10-03', 'a sheet without a round is grouped by its date');
+const unseasoned = groupTeamSheetsByRound([
+  { id: 'x', team_name: "Men's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '' },
+  { id: 'y', team_name: "Men's", match_date: '2027-10-09', round_label: 'Round 1', season_label: '' },
+  { id: 'z', team_name: "Women's", match_date: '2027-01-09', round_label: 'Round 1', season_label: '' },
+]);
+assert.deepEqual(unseasoned.map((round) => round.sheets.map((sheet) => sheet.id)), [['y'], ['x', 'z']], 'blank-season rounds split by cricket season (July to June)');
 assert.match(readFileSync('lib/server/revalidate-public.ts', 'utf8'), /'\/team-sheets'/);
 assert.match(readFileSync('app/team-sheets/page.tsx', 'utf8'), /getTeamSheetGallery\(\)/);
 assert.match(readFileSync('lib/server/sitemap-entries.ts', 'utf8'), /\/team-sheets`/, 'gallery is in the sitemap');
