@@ -190,6 +190,11 @@ test('team fixtures, next match and home/away from the recording', () => {
   const after = view.splitTeamFixtures(rows, new Date('2026-10-03T14:30:00Z'));
   assert.equal(after.results[0].startsAt, '2026-10-03', 'after Melbourne midnight the game moves to results');
   assert.equal(view.fixturesForTeam(recorded.fixtures, thirds).length, 0, 'ungraded team has no fixtures');
+  // A timed game stays upcoming after its start until Melbourne midnight.
+  const timed = { ...rows[0], startsAt: '2026-10-10T08:15:00+11:00', status: null };
+  assert.equal(view.splitTeamFixtures([timed], new Date('2026-10-09T22:03:00Z')).upcoming.length, 1, 'started game is still upcoming on its day');
+  assert.equal(view.splitTeamFixtures([timed], new Date('2026-10-10T13:01:00Z')).results.length, 1, 'after Melbourne midnight it is a result');
+  assert.equal(view.splitTeamFixtures([{ ...timed, status: 'FINALIZED' }], new Date('2026-10-09T23:00:00Z')).results.length, 1, 'a completed game today is a result');
 });
 
 test('tagged fixtures and completed status are respected', () => {
@@ -310,6 +315,7 @@ test('routes, pages and admin wiring keep their contracts', () => {
   assert.match(read('lib/server/sitemap-entries.ts'), /\/teams\/\$\{slug\}/);
   assert.match(read('app/teams/(list)/page.tsx'), /href=\{`\/teams\/\$\{slugs\.get\(team\)\}`\}/);
   assert.match(read('app/fixtures/page.tsx'), /FixturesTeamTabs/);
+  assert.match(read('app/fixtures/page.tsx'), /const \{ upcoming, results \} = splitTeamFixtures\(playhq\.fixtures\)/, 'main fixtures list keeps today\'s games upcoming');
   const tabs = read('app/fixtures/_components/FixturesTeamTabs.tsx');
   for (const token of ['role="tablist"', 'role="tab"', 'role="tabpanel"', 'aria-selected', 'aria-controls', 'ArrowRight', 'Home', 'End']) assert.ok(tabs.includes(token), token);
   assert.match(read('app/admin/layout.tsx'), /href: '\/admin\/season\/playhq'/);

@@ -123,7 +123,8 @@ export function fixtureDayKey(startsAt: string | null | undefined): string | nul
 
 /**
  * Upcoming = not completed and on/after today's Melbourne date; results =
- * completed or dated before today. Date-only games stay upcoming all day.
+ * completed or dated before today. Today's games stay upcoming all day, even
+ * after their start time.
  */
 export function splitTeamFixtures(fixtures: PlayHQFixture[], now = new Date()) {
   const today = fixtureDayKey(now.toISOString()) as string;
