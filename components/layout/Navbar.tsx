@@ -576,16 +576,18 @@ export default function Navbar({ nav }: NavbarProps) {
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-nav px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                <div className="grid grid-cols-2 gap-2 pb-3">
+                {/* Each button sizes to its label and they share a row only when
+                    both fit; a long seasonal label takes its own full-width row. */}
+                <div className="flex flex-wrap gap-2 pb-3">
                   <Link prefetch={false}
                     href={registrationHref}
                     onClick={() => setIsOpen(false)}
-                    className="flex min-h-11 items-center justify-center rounded-full bg-maroon-700 px-3 text-center text-[15px] font-semibold text-white transition-colors hover:bg-maroon-800 focus-ring"
+                    className="flex min-h-11 flex-[1_1_max-content] items-center justify-center rounded-full bg-maroon-700 px-4 py-2 text-center text-[15px] font-semibold leading-snug text-white transition-colors hover:bg-maroon-800 focus-ring"
                     aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
                   >
                     {registrationLabel}
                   </Link>
-                  <Link prefetch={false} href="/club-account" onClick={() => setIsOpen(false)} aria-current={pathname === '/club-account' ? 'page' : undefined} className="flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-edge-strong bg-surface-card px-3 text-[15px] font-semibold text-content-primary transition-colors hover:bg-surface-muted focus-ring">
+                  <Link prefetch={false} href="/club-account" onClick={() => setIsOpen(false)} aria-current={pathname === '/club-account' ? 'page' : undefined} className="flex min-h-11 flex-[1_1_max-content] items-center justify-center gap-1.5 rounded-full border border-edge-strong bg-surface-card px-4 py-2 text-[15px] font-semibold text-content-primary transition-colors hover:bg-surface-muted focus-ring">
                     <UserRound className="h-4 w-4" aria-hidden="true" />My Account
                   </Link>
                 </div>
