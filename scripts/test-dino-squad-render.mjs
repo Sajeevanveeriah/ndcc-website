@@ -64,6 +64,9 @@ const filledView = render([{ ...pick, playerId: player.id, isCaptain: true }], t
 assert.match(filledView, />Edit my squad</);
 assert.doesNotMatch(filledView, /Sell \/ remove|<button[^>]*>Captain|<button[^>]*>Vice/, 'filled slots show no disabled editing controls');
 assert.match(filledView, /<p[^>]*>Captain<\/p>/, 'captain shows as text');
+const ineligibleView = render([pick], true);
+assert.match(ineligibleView, /No longer eligible for this season/);
+assert.doesNotMatch(ineligibleView, />Empty</, 'an occupied ineligible slot is not called empty');
 assert.match(render([]), /Assign selected player/, 'the builder keeps its assignment controls');
 console.log('PASS My Team is view-only and links to the squad builder');
 console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');
