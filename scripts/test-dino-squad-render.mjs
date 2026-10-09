@@ -55,6 +55,14 @@ assert.match(eligible, /<button>Submit squad/);
 const historical = render([{ ...pick, playerId: player.id }], true);
 assert.match(historical, /100,001 Dino Dollars/);
 assert.doesNotMatch(historical, /<button[^>]*>Submit squad/);
+// My Team (read-only) must not look editable: no catalogue or assign buttons, and a way to the builder.
+const emptyView = render([], true);
+assert.doesNotMatch(emptyView, /Player catalogue|Assign selected player/);
+assert.match(emptyView, /You have not picked your squad yet/);
+assert.match(emptyView, /href="\/fantasy\/squad"[^>]*>Pick my squad</);
+assert.match(render([{ ...pick, playerId: player.id }], true), />Edit my squad</);
+assert.match(render([]), /Assign selected player/, 'the builder keeps its assignment controls');
+console.log('PASS My Team is view-only and links to the squad builder');
 console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');
 
 const rulesBlocked = render([], false, [{code:'rules',message:'Accept the updated rules.'}]);
