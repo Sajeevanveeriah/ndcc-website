@@ -191,7 +191,7 @@ const has = (state, method, ...args) => state.ops.some(op => op[0] === method &&
   await act(async () => tree.unmount());
   dinoSummary = { manager: { team_name: 'Dino Dashers' }, standing: { rank: 3, points: 55, managers: 12 } };
   await act(async () => { tree = create(React.createElement(Dino)); });
-  assert.match(content(tree), /Dino Dashers/); assert.match(content(tree), /"3"," of ","12"/); assert.ok(tree.root.findAllByProps({ href: '/fantasy/team' }).length); assert.ok(tree.root.findAllByProps({ href: '/fantasy/squad' }).length, 'joined managers get a direct link to the squad builder');
+  assert.match(content(tree), /Dino Dashers/); assert.match(content(tree), /"3"," of ","12"/); assert.ok(tree.root.findAllByProps({ href: '/fantasy/team' }).length); assert.ok(tree.root.findAllByProps({ href: '/fantasy/squad' }).length, 'joined managers get a direct link to the squad builder'); assert.doesNotMatch(content(tree), /Pick or edit my squad/, 'the club account does not promise edits it cannot check');
   await act(async () => tree.unmount());
 
   let updated = null, deletionState = { request: null, available: true }, posted = null;

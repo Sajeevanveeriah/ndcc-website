@@ -78,6 +78,9 @@ assert.match(lockedBuilder, /<button disabled="">Save draft/);
 assert.doesNotMatch(lockedBuilder, /<button[^>]*class="btn-secondary mt-3 w-full"(?![^>]*disabled)[^>]*>Assign/, 'assign buttons are disabled while locked');
 const squadRoute = readFileSync('app/api/fantasy/squad/route.ts', 'utf8');
 assert.match(squadRoute, /canEdit: seasonAllowsTeamChanges\(season\) && settings\.public_launch_enabled && settings\.team_selection_open && !roundLocked/, 'GET reports the same gates the save enforces');
+assert.match(squadRoute, /unknown: true/, 'a failed lock lookup keeps editing off');
+assert.match(squadRoute, /const roundLocked = roundLock\.unknown \|\|/);
+assert.match(source, /draggable: !editingDisabled/, 'catalogue players cannot be dragged while editing is off');
 console.log('PASS My Team is view-only and links to the squad builder');
 console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');
 
