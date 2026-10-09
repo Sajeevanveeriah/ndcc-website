@@ -28,17 +28,6 @@ export const revalidate = 60;
 
 export const metadata: Metadata = pageMetadata("/fixtures", "Fixtures and results", "Find Newcomb and District Cricket Club fixtures and results, with links to the current season on PlayHQ.");
 
-function splitFixtures(fixtures: PlayHQFixture[]) {
-  const now = Date.now();
-  const upcoming = fixtures
-    .filter((fixture) => !fixture.startsAt || Date.parse(fixture.startsAt) >= now)
-    .sort((a, b) => (Date.parse(a.startsAt || '') || Number.MAX_SAFE_INTEGER) - (Date.parse(b.startsAt || '') || Number.MAX_SAFE_INTEGER));
-  const results = fixtures
-    .filter((fixture) => fixture.startsAt && Date.parse(fixture.startsAt) < now)
-    .sort((a, b) => (Date.parse(b.startsAt || '') || 0) - (Date.parse(a.startsAt || '') || 0));
-  return { upcoming, results };
-}
-
 function groupByGrade<T extends { gradeId: string; gradeName: string }>(rows: T[]) {
   return rows.reduce<Record<string, { gradeName: string; rows: T[] }>>((groups, row) => {
     const key = row.gradeId || row.gradeName;
@@ -84,7 +73,9 @@ export default async function FixturesPage() {
     }),
   ]);
   const teamLinks = teams.map(team => ({ id: team.id, title: team.name, description: team.description, badge: team.grade, href: team.playhq_url || settings.playhq_url || PLAYHQ_ORG_URL, is_external: true }));
-  const { upcoming, results } = splitFixtures(playhq.fixtures);
+  // Same rule as the team views: a game stays upcoming for the rest of its
+  // Melbourne match day, even after its start time, unless it is completed.
+  const { upcoming, results } = splitTeamFixtures(playhq.fixtures);
   const laddersByGrade = groupByGrade(playhq.ladders);
   const playhqCtaUrl = blocks['fixtures.status']?.cta_url || settings.playhq_url || PLAYHQ_ORG_URL;
   const playhqCtaLabel = renderSeasonContent(blocks['fixtures.status']?.cta_label || 'View fixtures on PlayHQ', currentSeason);
