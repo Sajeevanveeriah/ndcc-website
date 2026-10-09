@@ -39,15 +39,20 @@ export async function GET(request: Request) {
   try {
     const season = await resolveRequestSeason(request);
     if (!season) return NextResponse.json({ success: false, error: 'No Dino Coach season is available.' }, { status: 404 });
-    const [settings, players, squad, realisedProfit] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), loadSquad(auth.manager.id, season.id), getRealisedSaleProfit(auth.manager.id, season.id)]);
+    const [settings, players, squad, realisedProfit, roundLock] = await Promise.all([getDinoCoachSettings(season.id), getActivePlayersWithLatestPrices(season.id), loadSquad(auth.manager.id, season.id), getRealisedSaleProfit(auth.manager.id, season.id),
+      // Display only: a lock lookup failure must not stop the squad loading; the save still enforces the lock.
+      getRoundLockState(season.id).catch((error) => { logRouteError('fantasy/squad:round-lock', error); return { locked: false, reason: '' }; })]);
     const entry = await createServerClient().from('fantasy_entries').select('status,is_demo,fee_waived').eq('manager_id', auth.manager.id).eq('season_id', season.id).maybeSingle();
     if (entry.error) {
       logRouteError('fantasy/squad:entry', entry.error);
       return NextResponse.json({ success: false, error: 'Could not check your entry status. Please try again.' }, { status: 503 });
     }
     const eligibilityIssues = managerEligibilityIssues(auth.manager, entry.data, settings.rules_version);
+    // The same season, selection and round-lock gates the save checks, so pages never offer edits a save would refuse.
+    const roundLocked = Boolean(season.is_current && roundLock.locked);
+    const editing = { canEdit: seasonAllowsTeamChanges(season) && settings.public_launch_enabled && settings.team_selection_open && !roundLocked, reason: !seasonAllowsTeamChanges(season) ? 'Team building is not open for this season.' : !settings.public_launch_enabled || !settings.team_selection_open ? 'Dino Coach team selection is currently closed.' : roundLocked ? (roundLock.reason || 'The current round is locked.') : '' };
     const [stats, ownedPrices] = await Promise.all([getPlayerStats(season.id, players), getLatestPublishedPrices(season.id, (squad?.fantasy_squad_players || []).map((item) => item.player_id))]);
-    return NextResponse.json({ success: true, eligibilityIssues, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad, ownedPrices, wallet: walletSummary(settings.budget_dino_dollars, realisedProfit) }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ success: true, eligibilityIssues, managerId: auth.manager.id, season, settings: toPublicDinoCoachSettings(settings), slots: buildSquadSlots(settings.slot_counts), players: players.map(p => ({ ...p, stats: stats.get(p.id) ?? null })), squad, ownedPrices, wallet: walletSummary(settings.budget_dino_dollars, realisedProfit), editing }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     logRouteError('fantasy/squad:get', error);
     return NextResponse.json({ success: false, error: 'Could not load Dino Coach squad.' }, { status: 500 });

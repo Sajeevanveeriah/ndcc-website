@@ -15,8 +15,8 @@ const pick = { slotKey: slot.key, playerId: 'excluded', displayName: 'Removed pl
 const source = ts.transpileModule(readFileSync('app/fantasy/_components/SquadBuilder.tsx', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-function render(selection, readonlyMode = false, issues = []) {
-  const states = [issues, [player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false];
+function render(selection, readonlyMode = false, issues = [], editing = { canEdit: true, reason: '' }) {
+  const states = [issues, [player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false, false, false, editing];
   let index = 0;
   const exports = {};
   const div = ({ children }) => React.createElement('div', null, children);
@@ -68,6 +68,16 @@ const ineligibleView = render([pick], true);
 assert.match(ineligibleView, /No longer eligible for this season/);
 assert.doesNotMatch(ineligibleView, />Empty</, 'an occupied ineligible slot is not called empty');
 assert.match(render([]), /Assign selected player/, 'the builder keeps its assignment controls');
+const locked = { canEdit: false, reason: 'Round 3 is locked.' };
+const lockedView = render([], true, [], locked);
+assert.match(lockedView, /Round 3 is locked\./);
+assert.doesNotMatch(lockedView, /Pick my squad|Edit my squad/, 'no edit link while the round is locked');
+const lockedBuilder = render([], false, [], locked);
+assert.match(lockedBuilder, /Round 3 is locked\. Your saved squad is shown below\./);
+assert.match(lockedBuilder, /<button disabled="">Save draft/);
+assert.doesNotMatch(lockedBuilder, /<button[^>]*class="btn-secondary mt-3 w-full"(?![^>]*disabled)[^>]*>Assign/, 'assign buttons are disabled while locked');
+const squadRoute = readFileSync('app/api/fantasy/squad/route.ts', 'utf8');
+assert.match(squadRoute, /canEdit: seasonAllowsTeamChanges\(season\) && settings\.public_launch_enabled && settings\.team_selection_open && !roundLocked/, 'GET reports the same gates the save enforces');
 console.log('PASS My Team is view-only and links to the squad builder');
 console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');
 
