@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { pageMetadata } from '@/lib/seo';
-import TeamSheetCard from '@/components/match-day/TeamSheetCard';
+import TeamSheetRounds from '@/components/match-day/TeamSheetRounds';
 import WinnerCard from '@/components/match-day/WinnerCard';
 import PublicationCard from '@/components/publications/PublicationCard';
 import { getCurrentTeamSheets, getPublishedWinners, type PublicTeamSheet, type PublicWinner } from '@/lib/server/match-day';
@@ -44,11 +44,11 @@ export default async function ThisWeekPage() {
       <div className="container-width space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 id="team-sheets-heading" className="section-title mb-0">Team sheets</h2>
-          <Link href="/fixtures" className="font-semibold text-content-blue underline underline-offset-4">Full fixtures</Link>
+          <div className="flex flex-wrap gap-4"><Link href="/team-sheets" className="font-semibold text-content-blue underline underline-offset-4">All team sheets</Link><Link href="/fixtures" className="font-semibold text-content-blue underline underline-offset-4">Full fixtures</Link></div>
         </div>
         {sheets.failed ? unavailable : sheets.data!.length === 0
           ? <p className="rounded-xl border border-edge-subtle bg-surface-card p-6 text-content-secondary">Team sheets for the next round have not been published yet. Check back after selection night.</p>
-          : <div className="grid gap-6 lg:grid-cols-2">{sheets.data!.map((sheet) => <TeamSheetCard key={sheet.id} sheet={sheet} />)}</div>}
+          : <TeamSheetRounds sheets={sheets.data!} headingLevel="h3" />}
       </div>
     </section>
 

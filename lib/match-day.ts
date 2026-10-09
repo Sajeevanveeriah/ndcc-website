@@ -406,3 +406,32 @@ export function formatClubDate(date: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
   return new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
 }
+
+export type TeamSheetRound<T> = { key: string; title: string; season_label: string; dates: string[]; sheets: T[] };
+
+/**
+ * Groups sheets into rounds for the gallery: by season and round label, or by
+ * match date when no round is given. Rounds run newest first; inside a round
+ * the grade folders come first (Men's, Women's, Juniors), then teams by name.
+ */
+export function groupTeamSheetsByRound<T extends Pick<TeamSheet, 'team_name' | 'match_date' | 'round_label' | 'season_label'>>(sheets: T[]): TeamSheetRound<T>[] {
+  const rounds = new Map<string, TeamSheetRound<T>>();
+  for (const sheet of sheets) {
+    // Rounds key on the July-June cricket season of the match date, so a blank or typed season label
+    // never splits one round, and "Round 1" of different years never merges.
+    const [year, month] = sheet.match_date.split('-').map(Number);
+    const key = sheet.round_label ? `${month >= 7 ? year : year - 1}|${sheet.round_label.toLowerCase()}` : `date|${sheet.match_date}`;
+    let round = rounds.get(key);
+    if (!round) { round = { key, title: sheet.round_label || formatClubDate(sheet.match_date), season_label: sheet.season_label, dates: [], sheets: [] }; rounds.set(key, round); }
+    if (!round.season_label && sheet.season_label) round.season_label = sheet.season_label;
+    if (!round.dates.includes(sheet.match_date)) round.dates.push(sheet.match_date);
+    round.sheets.push(sheet);
+  }
+  const groupRank = (name: string) => { const index = (TEAM_SHEET_GROUPS as readonly string[]).indexOf(name); return index < 0 ? TEAM_SHEET_GROUPS.length : index; };
+  const latest = (round: TeamSheetRound<T>) => round.dates.reduce((max, date) => (date > max ? date : max), '');
+  return [...rounds.values()].map((round) => ({
+    ...round,
+    dates: [...round.dates].sort(),
+    sheets: [...round.sheets].sort((a, b) => groupRank(a.team_name) - groupRank(b.team_name) || a.team_name.localeCompare(b.team_name) || a.match_date.localeCompare(b.match_date)),
+  })).sort((a, b) => latest(b).localeCompare(latest(a)) || a.title.localeCompare(b.title));
+}

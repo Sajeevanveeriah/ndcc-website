@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  clubToday, currentTeamSheets, matchFantasyPlayer, normaliseTeamSheet, normaliseWinner, parseClubDate,
+  clubToday, currentTeamSheets, groupTeamSheetsByRound, matchFantasyPlayer, normaliseTeamSheet, normaliseWinner, parseClubDate,
   parseDelimited, parsePlayerEntry, parseTeamSheetImport, parseWinnerCategory, parseWinnerImport,
   publicWinnerName, selectionsByFantasyPlayer, validateTeamSheet, validateWinner,
 } from '../lib/match-day.ts';
@@ -113,6 +113,34 @@ assert.match(clubToday(new Date('2026-10-09T22:30:00Z')), /^2026-10-10$/, 'club 
 const imageMigration = readFileSync('supabase/migrations/20261008010000_team_sheet_images.sql', 'utf8');
 assert.match(imageMigration, /add column if not exists images jsonb not null default '\[\]'/);
 assert.match(readFileSync('lib/server/match-day-admin.ts', 'utf8'), /keeps the sheet's uploaded images/);
+
+const rounds = groupTeamSheetsByRound([
+  { id: 'a', team_name: 'Juniors', match_date: '2026-10-10', round_label: 'Round 1', season_label: '2026/27' },
+  { id: 'b', team_name: "Men's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '2026/27' },
+  { id: 'c', team_name: "Women's", match_date: '2026-10-11', round_label: 'round 1', season_label: '2026/27' },
+  { id: 'd', team_name: "Men's", match_date: '2026-10-17', round_label: 'Round 2', season_label: '2026/27' },
+  { id: 'e', team_name: '1st XI', match_date: '2026-10-03', round_label: '', season_label: '' },
+]);
+assert.deepEqual(rounds.slice(0, 2).map((round) => round.title), ['Round 2', 'Round 1'], 'rounds run newest first');
+assert.deepEqual(rounds[1].sheets.map((sheet) => sheet.id), ['b', 'c', 'a'], "grade folders run Men's, Women's, Juniors");
+assert.deepEqual(rounds[1].dates, ['2026-10-10', '2026-10-11']);
+assert.equal(rounds[2].key, 'date|2026-10-03', 'a sheet without a round is grouped by its date');
+const unseasoned = groupTeamSheetsByRound([
+  { id: 'x', team_name: "Men's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '' },
+  { id: 'y', team_name: "Men's", match_date: '2027-10-09', round_label: 'Round 1', season_label: '' },
+  { id: 'z', team_name: "Women's", match_date: '2027-01-09', round_label: 'Round 1', season_label: '' },
+]);
+assert.deepEqual(unseasoned.map((round) => round.sheets.map((sheet) => sheet.id)), [['y'], ['x', 'z']], 'blank-season rounds split by cricket season (July to June)');
+const mixed = groupTeamSheetsByRound([
+  { id: 'p', team_name: "Men's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '' },
+  { id: 'q', team_name: "Women's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '2026/27' },
+]);
+assert.equal(mixed.length, 1, 'a blank and a typed season in the same round stay together');
+assert.equal(mixed[0].season_label, '2026/27');
+assert.match(readFileSync('lib/server/revalidate-public.ts', 'utf8'), /'\/team-sheets'/);
+assert.match(readFileSync('app/team-sheets/page.tsx', 'utf8'), /getTeamSheetGallery\(\)/);
+assert.match(readFileSync('lib/server/sitemap-entries.ts', 'utf8'), /\/team-sheets`/, 'gallery is in the sitemap');
+assert.match(readFileSync('lib/server/match-day.ts', 'utf8'), /\.range\(from, from \+ pageSize - 1\)/, 'gallery reads every page');
 
 // Wiring: privacy, permissions, navigation and revalidation.
 const migration = readFileSync('supabase/migrations/20261007001559_team_sheets_and_club_winners.sql', 'utf8');
