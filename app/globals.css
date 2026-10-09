@@ -145,7 +145,7 @@
 }
 
 @utility section-padding {
-  @apply px-4 py-12 sm:px-6 sm:py-16 lg:px-8;
+  @apply px-4 py-8 sm:px-6 sm:py-10 lg:px-8;
 }
 
 @utility container-width {
@@ -191,8 +191,8 @@
   /* Inner page hero: deep club maroon with one soft light source and a gold
      hairline, rather than a flat band. */
   @apply relative overflow-hidden px-4 text-white sm:px-6 lg:px-8;
-  padding-top: clamp(3.5rem, 7vw, 6rem);
-  padding-bottom: clamp(3.5rem, 7vw, 6rem);
+  padding-top: clamp(2rem, 4vw, 3.5rem);
+  padding-bottom: clamp(2rem, 4vw, 3.5rem);
   background:
     radial-gradient(
       120% 140% at 85% -20%,
@@ -244,19 +244,19 @@
 }
 
 @utility page-hero-title {
-  @apply mb-4 font-display font-semibold;
-  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  @apply mb-3 font-display font-semibold;
+  font-size: clamp(2rem, 3.6vw, 3rem);
   line-height: 1.04;
   letter-spacing: -0.045em;
   text-wrap: balance;
 }
 
 @utility page-hero-subtitle {
-  @apply max-w-2xl font-body text-lg leading-relaxed text-white/90 sm:text-xl sm:leading-7;
+  @apply max-w-2xl font-body text-base leading-relaxed text-white/90 sm:text-lg sm:leading-7;
 }
 
 @utility section-title {
-  @apply mb-3 font-display text-3xl leading-[1.1] font-semibold tracking-[-0.035em] text-content-primary sm:text-4xl sm:leading-[1.08];
+  @apply mb-2 font-display text-[26px] leading-[1.1] font-semibold tracking-[-0.035em] text-content-primary sm:text-3xl sm:leading-[1.08];
   text-wrap: balance;
   .sponsor-introduction & {
     @apply text-3xl;
@@ -740,11 +740,11 @@
 }
 
 @utility nd-sec {
-  padding-block: clamp(48px, 7vw, 88px);
+  padding-block: clamp(36px, 4.5vw, 60px);
 }
 
 @utility nd-sec-tight {
-  padding-block: clamp(28px, 4vw, 44px);
+  padding-block: clamp(20px, 2.8vw, 32px);
 }
 
 @utility nd-eyebrow {
@@ -1031,7 +1031,7 @@
 @utility nd-hero {
   /* Home hero. */
   @apply relative overflow-hidden;
-  padding: clamp(40px, 7vw, 96px) 0 clamp(40px, 6vw, 72px);
+  padding: clamp(32px, 5vw, 64px) 0 clamp(32px, 4.5vw, 56px);
 }
 
 @utility nd-hero-grid {

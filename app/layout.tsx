@@ -146,7 +146,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <MaintenanceBannerProvider banner={nav.maintenance ?? null}>
             <Navbar nav={nav} />
             {/* The spacer reserves the maintenance notice's height below the fixed header. */}
-            <main id="main-content" className="flex-1 pt-[68px]"><MaintenanceBannerSpacer /><HydrationSlot>{children}</HydrationSlot></main>
+            <main id="main-content" className="flex-1 pt-[60px]"><MaintenanceBannerSpacer /><HydrationSlot>{children}</HydrationSlot></main>
           </MaintenanceBannerProvider>
           {/* Footer queries must not delay the first paint of every public page. */}
           <Suspense fallback={null}><Footer /></Suspense>

@@ -81,7 +81,7 @@ assert.match(component, /export function MaintenanceBannerSpacer\(\) \{\s*const 
 assert.match(component, /'aria-hidden': true/, 'the spacer copy is hidden from screen readers');
 const layout = readFileSync('app/layout.tsx', 'utf8');
 assert.match(layout, /<MaintenanceBannerProvider banner=\{nav\.maintenance \?\? null\}>\s*<Navbar nav=\{nav\} \/>/);
-assert.match(layout, /<main id="main-content" className="flex-1 pt-\[68px\]"><MaintenanceBannerSpacer \/><HydrationSlot>\{children\}<\/HydrationSlot><\/main>/, 'page content starts below the notice from the first paint');
+assert.match(layout, /<main id="main-content" className="flex-1 pt-\[60px\]"><MaintenanceBannerSpacer \/><HydrationSlot>\{children\}<\/HydrationSlot><\/main>/, 'page content starts below the notice from the first paint');
 const draw = readFileSync('app/admin/raffle/wheel/[id]/draw/page.tsx', 'utf8');
 assert.match(draw, /fixed inset-0 z-100[^\n]*\n[^\n]*\n\s*<MaintenanceBanner standalone \/>/, 'the fullscreen draw display shows the notice too');
 assert.match(navbar, /aria-label="Site menu"\s*>\s*\{\/\*[^*]*\*\/\}\s*<div className="shrink-0"><MaintenanceBanner standalone \/><\/div>/, 'the mobile menu repeats the notice');

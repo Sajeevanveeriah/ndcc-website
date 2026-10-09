@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LazyMotion, domAnimation, m, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Menu, X, ChevronDown, UserRound } from 'lucide-react';
+import { Menu, X, ChevronDown, UserRound, ShieldCheck } from 'lucide-react';
 import { useCookieDoughOpen } from '@/components/common/CookieDoughVisibility';
 import { COOKIE_DOUGH_ENDS_AT, isCookieDoughLink } from '@/lib/cookie-dough';
 import { cn } from '@/lib/utils';
@@ -14,55 +14,78 @@ import MaintenanceBanner from '@/components/layout/MaintenanceBanner';
 
 type HeaderLink = NavHeaderLink;
 
-type PublicNavGroup = { label: string; href?: string; links?: Array<{ label: string; href: string }> };
+type NavLinkItem = { label: string; href: string };
+type NavSection = { heading?: string; links: NavLinkItem[] };
+type PublicNavGroup = { label: string; href?: string; sections?: NavSection[] };
+type ResolvedNavGroup = { label: string; href?: string; openInNewTab?: boolean; sections?: Array<{ heading?: string; links: HeaderLink[] }> };
 
-// Information architecture: Calendar sits with fixtures under Cricket, club
-// and player sponsors share one Sponsors group, and every fundraiser (raffles,
-// wheels and the Cookie Dough drive) shares one Fund Raiser group, shown only
-// while at least one of them is publicly visible. Contact appears once, as the
-// final top-level item.
-const FUND_RAISER_GROUP = 'Fund Raiser';
+// Information architecture: four menus. Cricket holds match-day pages; Club
+// holds the club itself plus news and media (and Contact); Get Involved holds
+// playing, helping and sponsorship; Shop & Fundraisers pairs the shop with
+// every fundraiser (raffles, wheels and the Cookie Dough drive). The
+// Fundraisers section only shows while at least one fundraiser is publicly
+// visible, and an empty section or group is dropped entirely.
+const FUNDRAISERS_SECTION = 'Fundraisers';
 
 const PUBLIC_NAV_GROUPS: PublicNavGroup[] = [
   { label: 'Home', href: '/' },
-  { label: 'Cricket', links: [{ label: 'This Week', href: '/this-week' }, { label: 'Team Sheets', href: '/team-sheets' }, { label: 'Teams', href: '/teams' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Calendar', href: '/calendar' }, { label: 'Fantasy', href: '/fantasy' }] },
-  // Club also carries news, publications and the gallery (suggested layout:
-  // one fewer top-level group, so the header fits beside the club name).
-  { label: 'Club', links: [{ label: 'About', href: '/about' }, { label: 'History', href: '/about#club-history' }, { label: 'Facilities', href: '/facilities' }, { label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Winners', href: '/winners' }, { label: 'Gallery', href: '/gallery' }] },
-  { label: 'Get Involved', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }] },
-  { label: 'Sponsors', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
-  { label: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pot Club', href: '/pot-club' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }] },
-  { label: FUND_RAISER_GROUP, links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }, { label: 'Prize Wheel', href: '/prize-wheel' }, { label: 'Spin the Wheel', href: '/spin-the-wheel' },
-    { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
-  { label: 'Contact', href: '/contact' },
+  { label: 'Cricket', sections: [{ links: [{ label: 'This Week', href: '/this-week' }, { label: 'Fixtures', href: '/fixtures' }, { label: 'Calendar', href: '/calendar' }, { label: 'Team Sheets', href: '/team-sheets' }, { label: 'Teams', href: '/teams' }, { label: 'Fantasy', href: '/fantasy' }] }] },
+  { label: 'Club', sections: [
+    { heading: 'The club', links: [{ label: 'About', href: '/about' }, { label: 'History', href: '/about#club-history' }, { label: 'Facilities', href: '/facilities' }, { label: 'Contact', href: '/contact' }] },
+    { heading: 'News and media', links: [{ label: 'News', href: '/news' }, { label: 'Publications', href: '/publications' }, { label: 'Gallery', href: '/gallery' }, { label: 'Winners', href: '/winners' }] },
+  ] },
+  { label: 'Get Involved', sections: [
+    { heading: 'Play and help', links: [{ label: 'Join', href: '/join' }, { label: 'Volunteer', href: '/volunteer' }, { label: 'Events', href: '/events' }] },
+    { heading: 'Sponsorship', links: [{ label: 'Sponsors', href: '/sponsors' }, { label: 'Player Sponsors', href: '/player-sponsors' }] },
+  ] },
+  { label: 'Shop & Fundraisers', sections: [
+    { heading: 'Shop', links: [{ label: 'Merchandise', href: '/merchandise' }, { label: 'Pay apparel balance', href: '/pay-balance' }, { label: 'Kitchen', href: '/kitchen' }, { label: 'Pot Club', href: '/pot-club' }] },
+    { heading: FUNDRAISERS_SECTION, links: [{ label: 'Raffle', href: '/raffle' }, { label: 'Reverse Raffle', href: '/reverse-raffle' }, { label: 'Prize Wheel', href: '/prize-wheel' }, { label: 'Spin the Wheel', href: '/spin-the-wheel' },
+      { label: 'Cookie Dough Fundraiser', href: '/fundraising/cookie-dough' }] },
+  ] },
 ];
 
 function resolveLink(navLinks: HeaderLink[], fallback: { label: string; href: string }): HeaderLink {
   return navLinks.find((link) => link.href === fallback.href) || fallback;
 }
 
-function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean, manageRaffles = false, prizeWheelEnabled = false, spinWheelEnabled = false) {
-  const groups = PUBLIC_NAV_GROUPS.map((group) => group.href
-    ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), links: undefined }
-    : { label: group.label, href: undefined, links: (group.links || [])
-      .filter((link) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || (link.href !== '/raffle' && link.href !== '/raffle/cash')) && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (prizeWheelEnabled || link.href !== '/prize-wheel') && (spinWheelEnabled || link.href !== '/spin-the-wheel') && (cookieDoughOpen || !isCookieDoughLink(link.href)))
-      .map((link) => resolveLink(navLinks, link)) });
-  // Management access follows the authenticated permission, never public sales
-  // visibility. Staff use their committee session rather than a member login.
-  const raffles = groups.find((group) => group.label === FUND_RAISER_GROUP);
-  if (manageRaffles && raffles?.links) {
-    raffles.links = [
-      { label: 'Raffle administration', href: '/admin/raffle' },
-      { label: 'Record cash sales', href: '/admin/raffle/cash' },
-      ...raffles.links.filter((link) => link.href !== '/raffle/cash'),
-    ];
+function resolveGroups(navLinks: HeaderLink[], dinoCoachEnabled: boolean, raffleEnabled: boolean, cookieDoughOpen: boolean, reverseRaffleEnabled: boolean, manageRaffles = false, prizeWheelEnabled = false, spinWheelEnabled = false): ResolvedNavGroup[] {
+  const visible = (link: NavLinkItem) => (dinoCoachEnabled || link.href !== '/fantasy') && (raffleEnabled || (link.href !== '/raffle' && link.href !== '/raffle/cash')) && (reverseRaffleEnabled || link.href !== '/reverse-raffle') && (prizeWheelEnabled || link.href !== '/prize-wheel') && (spinWheelEnabled || link.href !== '/spin-the-wheel') && (cookieDoughOpen || !isCookieDoughLink(link.href));
+  const groups: ResolvedNavGroup[] = PUBLIC_NAV_GROUPS.map((group) => group.href
+    ? { ...resolveLink(navLinks, { label: group.label, href: group.href }), sections: undefined }
+    : { label: group.label, href: undefined, sections: (group.sections || []).map((section) => ({ heading: section.heading, links: section.links.filter(visible).map((link) => resolveLink(navLinks, link)) })) });
+  const fundraisers = groups.flatMap((group) => group.sections || []).find((section) => section.heading === FUNDRAISERS_SECTION);
+  if (fundraisers) {
+    // Management access follows the authenticated permission, never public sales
+    // visibility. Staff use their committee session rather than a member login.
+    if (manageRaffles) {
+      fundraisers.links = [
+        { label: 'Raffle administration', href: '/admin/raffle' },
+        { label: 'Record cash sales', href: '/admin/raffle/cash' },
+        ...fundraisers.links.filter((link) => link.href !== '/raffle/cash'),
+      ];
+    }
+    // The Fund Raiser hub heads the section whenever it has any link, so the
+    // section still disappears when every fundraiser is hidden.
+    if (fundraisers.links.length > 0) {
+      fundraisers.links = [resolveLink(navLinks, { label: 'All fundraisers', href: '/fundraising' }), ...fundraisers.links];
+    }
   }
-  // The Fund Raiser hub heads the group whenever at least one fundraiser is
-  // visible, so the group still disappears when every fundraiser is hidden.
-  if (raffles?.links && raffles.links.length > 0) {
-    raffles.links = [resolveLink(navLinks, { label: 'All fundraisers', href: '/fundraising' }), ...raffles.links];
-  }
-  return groups.filter((group) => group.href || (group.links && group.links.length > 0));
+  return groups
+    .map((group) => (group.sections ? { ...group, sections: group.sections.filter((section) => section.links.length > 0) } : group))
+    .filter((group) => group.href || (group.sections && group.sections.length > 0));
+}
+
+function groupLinks(group: ResolvedNavGroup) {
+  return (group.sections || []).flatMap((section) => section.links);
+}
+
+function isGroupActive(group: ResolvedNavGroup, pathname: string | null) {
+  return groupLinks(group).some((link) => pathname === link.href.split('#')[0]);
+}
+
+function slug(label: string) {
+  return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 // The admin session cookie is httpOnly, so the client cannot see it. Rather
@@ -177,6 +200,8 @@ export default function Navbar({ nav }: NavbarProps) {
   const [hoverGroup, setHoverGroup] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountHover, setAccountHover] = useState(false);
+  // Mobile menu accordion: one group open at a time.
+  const [mobileGroup, setMobileGroup] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
@@ -286,6 +311,9 @@ export default function Navbar({ nav }: NavbarProps) {
   const manageRaffles = sessionUser?.permissions?.includes('raffle') === true;
   const navGroups = resolveGroups(navLinks, nav.dinoCoachPublic, raffleVisibility.enabled, cookieDoughOpen, raffleVisibility.reverseEnabled, manageRaffles, raffleVisibility.wheelEnabled, raffleVisibility.spinEnabled);
   const accountExpanded = accountOpen || accountHover;
+  const lastDropdown = [...navGroups].reverse().find((group) => !group.href)?.label;
+  const registrationHref = registrationNavigation?.href || '/join';
+  const registrationLabel = registrationNavigation?.label || 'Join the Club';
   return (
     <>
     <nav
@@ -300,21 +328,21 @@ export default function Navbar({ nav }: NavbarProps) {
       aria-label="Main navigation"
     >
       <MaintenanceBanner />
-      {/* Header row: brand, main groups, theme and registration (mock layout).
-          Account, privacy and social links live in the footer base row. */}
+      {/* Header row: brand, four menus, account, theme and registration.
+          Privacy and social links live in the footer base row. */}
       <div className="nd-wrap">
-        <div className="flex h-[68px] items-center justify-between gap-3 xl:gap-5">
+        <div className="flex h-[60px] items-center justify-between gap-3 xl:gap-5">
           {/* Logo */}
           <Link prefetch={false} href="/" className="flex shrink-0 items-center gap-2.5 rounded-lg text-content-primary focus-ring" aria-label="Newcomb and District Cricket Club, home">
             <Image
               src="/images/logo.jpg"
               alt="NDCC Logo"
-              width={53}
-              height={40}
-              className="h-10 w-auto rounded-lg"
+              width={48}
+              height={36}
+              className="h-9 w-auto rounded-lg"
               priority
             />
-            <span className="flex flex-col min-[1100px]:hidden xl:flex">
+            <span className="flex flex-col">
               <span className="hidden font-display text-[15px] font-semibold leading-tight tracking-[-0.01em] min-[461px]:block">Newcomb &amp; District</span>
               <span className="font-display text-[15px] font-semibold leading-tight min-[461px]:hidden" aria-hidden="true">{settings.club_short}</span>
               <span className="hidden text-sm leading-tight text-content-muted sm:block">Cricket Club · The Dinos</span>
@@ -322,19 +350,19 @@ export default function Navbar({ nav }: NavbarProps) {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden min-[1100px]:flex shrink-0 items-center gap-0.5">
+          <div className="hidden min-[1100px]:flex shrink-0 items-center gap-1">
             {navGroups.map((group) => {
               if (group.href) {
+                // The logo already links home, so the header leaves Home to the
+                // logo (the mobile menu still lists it).
+                if (group.href === '/') return null;
                 return (
                   <Link prefetch={false}
                     key={`${group.href}-${group.label}`}
                     href={group.href}
                     aria-current={pathname === group.href ? 'page' : undefined}
                     className={cn(
-                      'whitespace-nowrap rounded-full px-2.5 py-2 text-sm font-body font-medium transition-colors focus-ring xl:px-3 xl:text-[14.5px]',
-                      // The logo already links home, so the header leaves Home
-                      // to the logo (the mobile menu still lists it).
-                      group.href === '/' && 'hidden',
+                      'whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-body font-medium transition-colors focus-ring',
                       pathname === group.href
                         ? 'bg-surface-muted text-content-primary font-semibold'
                         : 'text-content-primary hover:bg-surface-muted'
@@ -345,7 +373,10 @@ export default function Navbar({ nav }: NavbarProps) {
                 );
               }
               const expanded = openGroup === group.label || hoverGroup === group.label;
-              const menuId = `nav-menu-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+              const active = isGroupActive(group, pathname);
+              const menuId = `nav-menu-${slug(group.label)}`;
+              const sections = group.sections || [];
+              const twoColumns = sections.length > 1 && groupLinks(group).length > 6;
               return (
                 <div
                   key={group.label}
@@ -376,12 +407,11 @@ export default function Navbar({ nav }: NavbarProps) {
                       if (openGroup === group.label) setHoverGroup(null);
                     }}
                     className={cn(
-                      'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-2 text-sm font-body font-medium transition-colors focus-ring xl:px-3 xl:text-[14.5px]',
-                      // A group whose child route is active reads as active too,
-                      // matching the top-level link treatment (hash links share
-                      // their base pathname, e.g. /about#club-history).
-                      group.links?.some((link) => pathname === link.href.split('#')[0])
-                        ? 'bg-surface-muted text-maroon-700 font-semibold dark:text-maroon-200'
+                      'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-body font-medium transition-colors focus-ring',
+                      // A group whose child route is active reads as active too
+                      // (hash links share their base pathname, e.g. /about#club-history).
+                      active
+                        ? 'bg-surface-muted text-maroon-700 font-semibold shadow-[inset_0_-2px_0_currentColor] dark:text-maroon-200'
                         : cn('text-content-primary hover:bg-surface-muted', expanded && 'bg-surface-muted')
                     )}
                   >
@@ -391,25 +421,40 @@ export default function Navbar({ nav }: NavbarProps) {
                     id={menuId}
                     data-nav-menu
                     className={cn(
-                      'absolute -left-1.5 top-full pt-2 transition-[opacity,transform,visibility] duration-200 ease-out',
+                      'absolute top-full pt-2 transition-[opacity,transform,visibility] duration-200 ease-out',
+                      // The last menu sits near the right-hand buttons, so its
+                      // panel opens leftwards to stay inside the viewport.
+                      group.label === lastDropdown ? 'right-0' : '-left-1.5',
                       expanded ? 'visible opacity-100 translate-y-0' : 'invisible opacity-0 -translate-y-1'
                     )}
                   >
-                    <div className="min-w-[230px] rounded-2xl border border-edge-subtle bg-surface-elevated p-2 shadow-[0_1px_2px_rgba(29,29,31,0.04),0_8px_24px_rgba(29,29,31,0.10)]">
-                      {group.links?.map((link) => (
-                        <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-[10px] px-3 py-2.5 text-[14.5px] font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
-                          {link.label}
-                        </Link>
+                    <div className={cn(
+                      'rounded-2xl border border-edge-subtle bg-surface-elevated p-2.5 shadow-[0_1px_2px_rgba(29,29,31,0.04),0_8px_24px_rgba(29,29,31,0.10)]',
+                      twoColumns ? 'grid w-max grid-cols-2 gap-x-3' : 'min-w-[220px]'
+                    )}>
+                      {sections.map((section) => (
+                        <div key={`${group.label}-${section.heading || 'links'}`} className="min-w-[200px]">
+                          {section.heading && sections.length > 1 && (
+                            <p className="px-3 pb-1 pt-2 text-sm font-semibold text-content-muted">{section.heading}</p>
+                          )}
+                          {section.links.map((link) => (
+                            <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className={cn('block whitespace-nowrap rounded-[10px] px-3 py-2 text-[14.5px] font-body transition-colors duration-150 focus-ring', pathname === link.href ? 'text-maroon-700 bg-maroon-50 font-medium dark:text-maroon-200 dark:bg-maroon-950/70' : 'text-content-secondary hover:text-content-primary hover:bg-surface-muted dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5')}>
+                              {link.label}
+                            </Link>
+                          ))}
+                        </div>
                       ))}
                     </div>
                   </div>
                 </div>
               );
             })}
+          </div>
 
+          <div className="hidden min-[1100px]:flex shrink-0 items-center gap-1">
             {sessionUser && (
               <div
-                className="relative ml-1"
+                className="relative"
                 onMouseEnter={() => setAccountHover(true)}
                 onMouseLeave={() => setAccountHover(false)}
                 onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setAccountOpen(false); }}
@@ -435,9 +480,9 @@ export default function Navbar({ nav }: NavbarProps) {
                   }}
                   aria-label={`Account: ${sessionUser.full_name}`}
                   title={sessionUser.full_name}
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-ring text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50"
+                  className="flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-ring text-maroon-700 hover:bg-maroon-50 dark:text-maroon-200 dark:hover:bg-maroon-950/50"
                 >
-                  <UserRound className="h-4 w-4" aria-hidden="true" />
+                  <ShieldCheck className="h-[18px] w-[18px]" aria-hidden="true" />
                 </button>
                 <div
                   id="nav-menu-account"
@@ -448,8 +493,8 @@ export default function Navbar({ nav }: NavbarProps) {
                   )}
                 >
                   <div className="min-w-[190px] rounded-2xl border border-edge-subtle bg-surface-elevated/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(29,29,31,0.35)] backdrop-blur-xl">
-                    <Link prefetch={false} href="/admin" className="block px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
-                    <button type="button" onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
+                    <Link prefetch={false} href="/admin" className="block rounded-[10px] px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">Admin Panel</Link>
+                    <button type="button" onClick={handleSignOut} className="w-full rounded-[10px] text-left px-4 py-2 text-sm text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/60">
                       Log out
                     </button>
                   </div>
@@ -457,20 +502,20 @@ export default function Navbar({ nav }: NavbarProps) {
               </div>
             )}
 
-            <Link prefetch={false} href="/club-account" aria-label="My Account" title="My Account" aria-current={pathname === '/club-account' ? 'page' : undefined} className="ml-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-edge-subtle bg-surface-card text-content-primary transition-colors hover:bg-surface-muted focus-ring">
+            <Link prefetch={false} href="/club-account" aria-label="My Account" title="My Account" aria-current={pathname === '/club-account' ? 'page' : undefined} className={cn('inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-content-primary transition-colors hover:bg-surface-muted focus-ring', pathname === '/club-account' && 'bg-surface-muted')}>
               <UserRound className="h-[18px] w-[18px]" aria-hidden="true" />
             </Link>
-            <ThemeToggle compact className="ml-1 shrink-0" />
+            <ThemeToggle compact className="shrink-0" />
 
             {/* Seasonal registration replaces the existing CTA slot when published. */}
             <Link prefetch={false}
-              href={registrationNavigation?.href || '/join'}
+              href={registrationHref}
               className={cn(
-                'ml-1.5 inline-flex min-h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-maroon-700 px-4 text-center text-sm font-semibold leading-none text-white transition-colors duration-200 hover:bg-maroon-800 focus-ring',
+                'ml-1.5 inline-flex min-h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-maroon-700 px-[18px] text-center text-sm font-semibold leading-none text-white transition-colors duration-200 hover:bg-maroon-800 focus-ring',
                 pathname === registrationNavigation?.href && 'ring-2 ring-gold-300',
               )}
-              aria-label={registrationNavigation?.label || 'Join the Club'}
-              title={registrationNavigation?.label || 'Join the Club'}
+              aria-label={registrationLabel}
+              title={registrationLabel}
               aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
             >
               {registrationNavigation ? 'Register' : 'Join the Club'}
@@ -479,7 +524,10 @@ export default function Navbar({ nav }: NavbarProps) {
 
           {/* Mobile menu button */}
           <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => {
+              if (!isOpen) setMobileGroup(navGroups.find((group) => isGroupActive(group, pathname))?.label ?? null);
+              setIsOpen(!isOpen);
+            }}
             className="min-[1100px]:hidden flex h-11 w-11 items-center justify-center rounded-full border border-edge-subtle bg-surface-card transition-colors focus-ring hover:bg-surface-muted"
             ref={menuButtonRef}
             aria-label={isOpen ? 'Close menu' : 'Open menu'}
@@ -513,55 +561,95 @@ export default function Navbar({ nav }: NavbarProps) {
             >
               {/* The menu covers the header, so it repeats the maintenance notice. */}
               <div className="shrink-0"><MaintenanceBanner standalone /></div>
-              <div className="flex shrink-0 items-center justify-between border-b border-edge-subtle px-4 py-4">
-                <span className="flex items-center gap-3">
-                  <Image src="/images/logo.jpg" alt="NDCC Logo" width={53} height={40} className="h-10 w-auto rounded-lg" />
-                  <span className="font-display text-base font-semibold text-content-primary">Newcomb &amp; District</span>
-                </span>
+              <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-edge-subtle px-4">
+                <Link prefetch={false} href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2.5 rounded-lg focus-ring" aria-label="Newcomb and District Cricket Club, home">
+                  <Image src="/images/logo.jpg" alt="NDCC Logo" width={48} height={36} className="h-9 w-auto rounded-lg" />
+                  <span className="font-display text-[15px] font-semibold text-content-primary">Newcomb &amp; District</span>
+                </Link>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="min-h-11 min-w-11 p-2 rounded-md border border-edge-subtle hover:bg-surface-muted transition-colors focus-ring"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-edge-subtle bg-surface-card transition-colors hover:bg-surface-muted focus-ring"
                   aria-label="Close menu"
                 >
-                  <X className="h-6 w-6 text-content-secondary" />
+                  <X className="h-6 w-6 text-content-secondary dark:text-slate-200" />
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-nav px-4 py-4 space-y-1 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                <Link prefetch={false} href="/club-account" onClick={() => setIsOpen(false)} className="flex items-center gap-2 rounded-xl px-4 py-3 text-base font-body font-semibold text-content-blue focus-ring">
-                  <UserRound className="h-5 w-5" aria-hidden="true" />My Account
-                </Link>
-          {navGroups.map((group) => group.href ? (
-            <Link prefetch={false} key={`${group.href}-${group.label}`} href={group.href} aria-current={pathname === group.href ? 'page' : undefined} className={cn('block px-4 py-3 text-base font-body font-medium rounded-xl transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 bg-maroon-50 dark:text-maroon-200 dark:bg-maroon-950/50' : 'text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50')}>
-              {group.label}
-            </Link>
-          ) : (
-            <section key={group.label} className="border-b border-edge-subtle/70 py-2">
-              <h2 className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.16em] text-content-muted">{group.label}</h2>
-              {group.links?.map((link) => <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} aria-current={pathname === link.href ? 'page' : undefined} className="block rounded-lg px-3 py-2.5 text-base font-body text-content-muted hover:bg-maroon-50 hover:text-maroon-700 focus-ring dark:text-slate-300 dark:hover:bg-maroon-950/50 dark:hover:text-maroon-200">{link.label}</Link>)}
-            </section>
-          ))}
-      <Link prefetch={false}
-        href={registrationNavigation?.href || '/join'}
-        className="block px-4 py-3 text-base font-body font-semibold text-center bg-maroon-700 text-white rounded-full hover:bg-maroon-800 transition-colors focus-ring"
-        aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
-      >
-        {registrationNavigation?.label || 'Join the Club'}
-      </Link>
-          {sessionUser && (
-            <>
-              <Link prefetch={false} href="/admin" className="block px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
-                {sessionUser.full_name} ({sessionUser.role})
-              </Link>
-              <button type="button" onClick={handleSignOut} className="block w-full text-left px-4 py-3 text-base font-body font-medium rounded-xl text-content-muted hover:text-maroon-700 hover:bg-maroon-50 dark:text-slate-300 dark:hover:text-maroon-200 dark:hover:bg-maroon-950/50">
-                Log out
-              </button>
-            </>
-          )}
-          <div className="flex items-center justify-between px-4 pt-3 border-t border-edge-subtle">
-            <span className="text-sm font-body font-medium text-content-muted dark:text-slate-300">Theme</span>
-            <ThemeToggle />
-          </div>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-nav px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                <div className="grid grid-cols-2 gap-2 pb-3">
+                  <Link prefetch={false}
+                    href={registrationHref}
+                    onClick={() => setIsOpen(false)}
+                    className="flex min-h-11 items-center justify-center rounded-full bg-maroon-700 px-3 text-center text-[15px] font-semibold text-white transition-colors hover:bg-maroon-800 focus-ring"
+                    aria-current={pathname === registrationNavigation?.href ? 'page' : undefined}
+                  >
+                    {registrationLabel}
+                  </Link>
+                  <Link prefetch={false} href="/club-account" onClick={() => setIsOpen(false)} aria-current={pathname === '/club-account' ? 'page' : undefined} className="flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-edge-strong bg-surface-card px-3 text-[15px] font-semibold text-content-primary transition-colors hover:bg-surface-muted focus-ring">
+                    <UserRound className="h-4 w-4" aria-hidden="true" />My Account
+                  </Link>
+                </div>
+                <div className="space-y-2">
+                  {navGroups.map((group) => {
+                    if (group.href) {
+                      return (
+                        <Link prefetch={false} key={`${group.href}-${group.label}`} href={group.href} onClick={() => setIsOpen(false)} aria-current={pathname === group.href ? 'page' : undefined} className={cn('flex min-h-12 items-center rounded-2xl border border-edge-subtle bg-surface-card px-4 text-base font-body font-semibold transition-colors focus-ring', pathname === group.href ? 'text-maroon-700 dark:text-maroon-200' : 'text-content-primary hover:bg-surface-muted')}>
+                          {group.label}
+                        </Link>
+                      );
+                    }
+                    const expanded = mobileGroup === group.label;
+                    const active = isGroupActive(group, pathname);
+                    const panelId = `mobile-nav-${slug(group.label)}`;
+                    const sections = group.sections || [];
+                    return (
+                      <section key={group.label} className="overflow-hidden rounded-2xl border border-edge-subtle bg-surface-card">
+                        <h2 className="m-0">
+                          <button
+                            type="button"
+                            aria-expanded={expanded}
+                            aria-controls={panelId}
+                            onClick={() => setMobileGroup((current) => (current === group.label ? null : group.label))}
+                            className={cn('flex min-h-12 w-full items-center justify-between px-4 text-left text-base font-body font-semibold transition-colors focus-ring', active || expanded ? 'text-maroon-700 dark:text-maroon-200' : 'text-content-primary')}
+                          >
+                            {group.label}
+                            <ChevronDown className={cn('h-4 w-4 opacity-70 transition-transform duration-200', expanded && 'rotate-180')} aria-hidden="true" />
+                          </button>
+                        </h2>
+                        <div id={panelId} hidden={!expanded} className="border-t border-edge-subtle/70 px-1.5 pb-2 pt-1">
+                          {sections.map((section) => (
+                            <div key={`${group.label}-${section.heading || 'links'}`}>
+                              {section.heading && sections.length > 1 && (
+                                <p className="px-2.5 pb-0.5 pt-2.5 text-sm font-semibold text-content-muted">{section.heading}</p>
+                              )}
+                              <div className="grid grid-cols-2">
+                                {section.links.map((link) => (
+                                  <Link prefetch={false} key={`${group.label}-${link.href}`} href={link.href} onClick={() => setIsOpen(false)} aria-current={pathname === link.href ? 'page' : undefined} className={cn('flex min-h-11 items-center rounded-lg px-2.5 py-2 text-[15px] leading-snug font-body focus-ring', pathname === link.href ? 'bg-maroon-50 font-semibold text-maroon-700 dark:bg-maroon-950/50 dark:text-maroon-200' : 'text-content-secondary hover:bg-surface-muted hover:text-content-primary dark:text-slate-300')}>
+                                    {link.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+                {sessionUser && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Link prefetch={false} href="/admin" onClick={() => setIsOpen(false)} className="flex min-h-11 items-center rounded-xl px-3 text-[15px] font-body font-medium text-content-muted hover:bg-surface-muted dark:text-slate-300">
+                      {sessionUser.full_name} ({sessionUser.role})
+                    </Link>
+                    <button type="button" onClick={handleSignOut} className="flex min-h-11 items-center rounded-xl px-3 text-left text-[15px] font-body font-medium text-content-muted hover:bg-surface-muted dark:text-slate-300">
+                      Log out
+                    </button>
+                  </div>
+                )}
+                <div className="mt-3 flex items-center justify-between border-t border-edge-subtle px-1 pt-3">
+                  <span className="text-sm font-body font-medium text-content-muted dark:text-slate-300">Theme</span>
+                  <ThemeToggle />
+                </div>
               </div>
             </m.div>
           )}
