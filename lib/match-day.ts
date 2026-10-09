@@ -417,12 +417,13 @@ export type TeamSheetRound<T> = { key: string; title: string; season_label: stri
 export function groupTeamSheetsByRound<T extends Pick<TeamSheet, 'team_name' | 'match_date' | 'round_label' | 'season_label'>>(sheets: T[]): TeamSheetRound<T>[] {
   const rounds = new Map<string, TeamSheetRound<T>>();
   for (const sheet of sheets) {
-    // A blank season falls back to the July-June cricket season of the match date, so "Round 1" of different years never merges.
+    // Rounds key on the July-June cricket season of the match date, so a blank or typed season label
+    // never splits one round, and "Round 1" of different years never merges.
     const [year, month] = sheet.match_date.split('-').map(Number);
-    const season = sheet.season_label.toLowerCase() || `season-${month >= 7 ? year : year - 1}`;
-    const key = sheet.round_label ? `${season}|${sheet.round_label.toLowerCase()}` : `date|${sheet.match_date}`;
+    const key = sheet.round_label ? `${month >= 7 ? year : year - 1}|${sheet.round_label.toLowerCase()}` : `date|${sheet.match_date}`;
     let round = rounds.get(key);
     if (!round) { round = { key, title: sheet.round_label || formatClubDate(sheet.match_date), season_label: sheet.season_label, dates: [], sheets: [] }; rounds.set(key, round); }
+    if (!round.season_label && sheet.season_label) round.season_label = sheet.season_label;
     if (!round.dates.includes(sheet.match_date)) round.dates.push(sheet.match_date);
     round.sheets.push(sheet);
   }

@@ -131,6 +131,12 @@ const unseasoned = groupTeamSheetsByRound([
   { id: 'z', team_name: "Women's", match_date: '2027-01-09', round_label: 'Round 1', season_label: '' },
 ]);
 assert.deepEqual(unseasoned.map((round) => round.sheets.map((sheet) => sheet.id)), [['y'], ['x', 'z']], 'blank-season rounds split by cricket season (July to June)');
+const mixed = groupTeamSheetsByRound([
+  { id: 'p', team_name: "Men's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '' },
+  { id: 'q', team_name: "Women's", match_date: '2026-10-10', round_label: 'Round 1', season_label: '2026/27' },
+]);
+assert.equal(mixed.length, 1, 'a blank and a typed season in the same round stay together');
+assert.equal(mixed[0].season_label, '2026/27');
 assert.match(readFileSync('lib/server/revalidate-public.ts', 'utf8'), /'\/team-sheets'/);
 assert.match(readFileSync('app/team-sheets/page.tsx', 'utf8'), /getTeamSheetGallery\(\)/);
 assert.match(readFileSync('lib/server/sitemap-entries.ts', 'utf8'), /\/team-sheets`/, 'gallery is in the sitemap');

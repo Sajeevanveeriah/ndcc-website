@@ -32,5 +32,5 @@ const headings = [...html.matchAll(/<h([23])[^>]*>([^<]+)<\/h\1>/g)].map((match)
 assert.deepEqual(headings, ["h2:Round 2", "h3:Men's", 'h2:Round 1', "h3:Men's", "h3:Women's", 'h3:Juniors']);
 assert.equal((html.match(/<img /g) || []).length, 5);
 assert.ok(!/alt=""/.test(html), 'every image has alt text');
-assert.match(html, /aria-labelledby="round-2026-27-round-1"/);
+assert.match(html, /aria-labelledby="round-2026-round-1"/);
 console.log('PASS: team sheet gallery groups by round, orders grade folders and keeps image alt text.');
