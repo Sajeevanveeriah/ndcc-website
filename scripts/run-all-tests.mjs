@@ -77,6 +77,7 @@ const EXTRA_COMMANDS = [
   'node scripts/test-dino-wallet.cjs',
   'node scripts/test-dino-pool-only.cjs',
   'node scripts/test-dino-squad-render.mjs',
+  'node scripts/test-team-sheet-gallery-render.mjs',
   'node scripts/test-dino-feedback.mjs',
   'node --experimental-strip-types scripts/test-cms-media.mjs',
   'node --experimental-strip-types scripts/test-media-reliability.mjs',
