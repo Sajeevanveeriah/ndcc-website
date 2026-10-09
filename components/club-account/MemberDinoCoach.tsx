@@ -25,7 +25,7 @@ export default function MemberDinoCoach() {
     {summary?.manager && <div className="space-y-4 rounded-xl border border-edge-subtle p-5">
       <div><p className="text-sm text-content-secondary">Your team</p><p className="wrap-break-word text-xl font-semibold">{summary.manager.team_name}</p></div>
       {summary.standing && <dl className="grid grid-cols-2 gap-3 text-sm sm:max-w-sm"><div><dt className="text-content-secondary">Rank</dt><dd className="text-lg font-semibold">{summary.standing.rank} of {summary.standing.managers}</dd></div><div><dt className="text-content-secondary">Points</dt><dd className="text-lg font-semibold">{summary.standing.points}</dd></div></dl>}
-      <Link className="btn-primary inline-block" href="/fantasy/team">Go to my Dino Coach team</Link>
+      <div className="flex flex-wrap gap-3"><Link className="btn-primary inline-block" href="/fantasy/squad">Open my squad</Link><Link className="btn-secondary inline-block" href="/fantasy/team">View my Dino Coach team</Link></div>
     </div>}
     {summary && !summary.manager && <div className="space-y-3 rounded-xl border border-edge-subtle p-5">
       <p>You have not joined Dino Coach with this sign-in yet.</p>

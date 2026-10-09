@@ -15,8 +15,8 @@ const pick = { slotKey: slot.key, playerId: 'excluded', displayName: 'Removed pl
 const source = ts.transpileModule(readFileSync('app/fantasy/_components/SquadBuilder.tsx', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-function render(selection, readonlyMode = false, issues = []) {
-  const states = [issues, [player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false];
+function render(selection, readonlyMode = false, issues = [], editing = { canEdit: true, reason: '' }) {
+  const states = [issues, [player], [slot], selection, { budget_dino_dollars: 10000000, team_selection_open: true }, '', 'name', '', '', '', false, false, false, false, editing];
   let index = 0;
   const exports = {};
   const div = ({ children }) => React.createElement('div', null, children);
@@ -55,6 +55,33 @@ assert.match(eligible, /<button>Submit squad/);
 const historical = render([{ ...pick, playerId: player.id }], true);
 assert.match(historical, /100,001 Dino Dollars/);
 assert.doesNotMatch(historical, /<button[^>]*>Submit squad/);
+// My Team (read-only) must not look editable: no catalogue or assign buttons, and a way to the builder.
+const emptyView = render([], true);
+assert.doesNotMatch(emptyView, /Player catalogue|Assign selected player/);
+assert.match(emptyView, /You have not picked your squad yet/);
+assert.match(emptyView, /href="\/fantasy\/squad"[^>]*>Pick my squad</);
+const filledView = render([{ ...pick, playerId: player.id, isCaptain: true }], true);
+assert.match(filledView, />Edit my squad</);
+assert.doesNotMatch(filledView, /Sell \/ remove|<button[^>]*>Captain|<button[^>]*>Vice/, 'filled slots show no disabled editing controls');
+assert.match(filledView, /<p[^>]*>Captain<\/p>/, 'captain shows as text');
+const ineligibleView = render([pick], true);
+assert.match(ineligibleView, /No longer eligible for this season/);
+assert.doesNotMatch(ineligibleView, />Empty</, 'an occupied ineligible slot is not called empty');
+assert.match(render([]), /Assign selected player/, 'the builder keeps its assignment controls');
+const locked = { canEdit: false, reason: 'Round 3 is locked.' };
+const lockedView = render([], true, [], locked);
+assert.match(lockedView, /Round 3 is locked\./);
+assert.doesNotMatch(lockedView, /Pick my squad|Edit my squad/, 'no edit link while the round is locked');
+const lockedBuilder = render([], false, [], locked);
+assert.match(lockedBuilder, /Round 3 is locked\. Your saved squad is shown below\./);
+assert.match(lockedBuilder, /<button disabled="">Save draft/);
+assert.doesNotMatch(lockedBuilder, /<button[^>]*class="btn-secondary mt-3 w-full"(?![^>]*disabled)[^>]*>Assign/, 'assign buttons are disabled while locked');
+const squadRoute = readFileSync('app/api/fantasy/squad/route.ts', 'utf8');
+assert.match(squadRoute, /canEdit: seasonAllowsTeamChanges\(season\) && settings\.public_launch_enabled && settings\.team_selection_open && !roundLocked/, 'GET reports the same gates the save enforces');
+assert.match(squadRoute, /unknown: true/, 'a failed lock lookup keeps editing off');
+assert.match(squadRoute, /const roundLocked = roundLock\.unknown \|\|/);
+assert.match(source, /draggable: !editingDisabled/, 'catalogue players cannot be dragged while editing is off');
+console.log('PASS My Team is view-only and links to the squad builder');
 console.log('PASS excluded picks remain visible and removable, saving is blocked, editable budgets preserve purchase costs, historical values are preserved');
 
 const rulesBlocked = render([], false, [{code:'rules',message:'Accept the updated rules.'}]);
