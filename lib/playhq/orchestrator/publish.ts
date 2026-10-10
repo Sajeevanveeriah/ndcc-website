@@ -88,9 +88,9 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
   if (publishError) return { seasonSlug: season.slug, stage: 'publish_batch', status: 'error', error: publishError.message };
 
   await supabase.from('fantasy_seasons').update({ last_playhq_sync_at: new Date().toISOString(), sync_exception: null }).eq('id', season.id);
-  // last_playhq_sync_at doubles as the publish stamp: the orchestrator's
-  // round-score catch-up (round-scores-catchup.ts) re-scores every round
-  // whose saved scores predate it, resumably across runs.
+  // A trigger stamps the batch's published_at; the orchestrator's round-score
+  // catch-up (round-scores-catchup.ts) re-scores every round whose saved
+  // scores predate its newest published stat change, resumably across runs.
   try {
     revalidatePath('/fantasy/leaderboard');
     revalidatePath('/fantasy');

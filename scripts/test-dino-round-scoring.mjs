@@ -85,14 +85,18 @@ const catchup = { exports: {} };
 vm.runInNewContext(ts.transpileModule(catchupSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText,
   { exports: catchup.exports, module: catchup, require: () => ({}) });
 const roundsNeedingScores = (...args) => [...catchup.exports.roundsNeedingScores(...args)];
-const published = '2026-10-10T08:00:00Z';
-assert.deepEqual(roundsNeedingScores(['r2', 'r2', 'r1', null], [], published), ['r1', 'r2'], 'rounds with stats but no scores are scored');
-assert.deepEqual(roundsNeedingScores(['r1', 'r2'], [{ round_id: 'r1', calculated_at: '2026-10-10T09:00:00Z' }, { round_id: 'r2', calculated_at: '2026-10-10T07:00:00Z' }], published), ['r2'], 'only rounds scored before the last publish are re-scored');
-assert.deepEqual(roundsNeedingScores(['r1'], [{ round_id: 'r1', calculated_at: '2026-10-10T09:00:00Z' }], published), [], 'up-to-date rounds are left alone');
+const stat = (round_id, changed_at, published_at = null) => ({ round_id, changed_at, published_at });
+assert.deepEqual(roundsNeedingScores([stat('r2', '2026-10-10T08:00:00Z'), stat('r2', '2026-10-10T08:00:00Z'), stat('r1', '2026-10-10T08:00:00Z'), stat(null, '2026-10-10T08:00:00Z')], []), ['r1', 'r2'], 'rounds with stats but no scores are scored');
+assert.deepEqual(roundsNeedingScores([stat('r1', '2026-10-10T08:00:00Z'), stat('r2', '2026-10-10T08:00:00Z')], [{ round_id: 'r1', calculated_at: '2026-10-10T09:00:00Z' }, { round_id: 'r2', calculated_at: '2026-10-10T07:00:00Z' }]), ['r2'], 'only rounds scored before their newest stat change are re-scored');
+assert.deepEqual(roundsNeedingScores([stat('r1', '2026-10-01T08:00:00Z', '2026-10-10T08:30:00Z')], [{ round_id: 'r1', calculated_at: '2026-10-10T08:00:00Z' }]), ['r1'], 'publishing an older stat re-scores its round');
+assert.deepEqual(roundsNeedingScores([stat('r1', '2026-10-10T08:00:00Z'), stat('r2', '2026-10-10T08:00:00Z')], [{ round_id: 'r1', calculated_at: '2026-10-10T09:00:00Z' }, { round_id: 'r2', calculated_at: '2026-10-10T09:00:01Z' }]), [], 'scored rounds stay settled however often the season syncs');
+assert.doesNotMatch(catchupSource, /last_playhq_sync_at/, 'the daily-advancing season sync stamp is not the watermark');
 assert.match(catchupSource, /fetchAllPages<any>\(\(from, to\) => supabase\.from\('fantasy_match_stats'\)/, 'stat rounds are read page by page');
 assert.match(catchupSource, /if \(deadline - Date\.now\(\) < MIN_ROUND_BUDGET_MS\) break;/, 'stops before the time budget; remaining rounds resume next run');
 assert.match(read('lib/playhq/fantasy-orchestrator.ts'), /const scoring = await catchUpRoundScores\(supabase, season, deadline\);/, 'every orchestrator run catches up round scores');
-assert.match(read('lib/playhq/orchestrator/publish.ts'), /last_playhq_sync_at: new Date\(\)\.toISOString\(\)/, 'publishing stamps the season so its rounds are re-scored');
+const stampMigration = read(`supabase/migrations/${readdirSync(join(root, 'supabase/migrations')).find((file) => file.endsWith('_dino_stats_changed_at.sql'))}`);
+assert.match(stampMigration, /new\.status = 'published' and \(tg_op = 'INSERT' or old\.status is distinct from 'published'\)/, 'publishing a batch stamps published_at');
+assert.match(stampMigration, /before insert or update on public\.fantasy_match_stats/, 'every stat write stamps changed_at');
 console.log('PASS round scores catch up after publishing, resumably');
 
 const migrationName = readdirSync(join(root, 'supabase/migrations')).find((file) => file.endsWith('_dino_round_score_replace.sql'));

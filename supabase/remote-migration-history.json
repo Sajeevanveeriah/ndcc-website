@@ -845,6 +845,10 @@
     {
       "version": "20261010083913",
       "name": "dino_hat_tricks"
+    },
+    {
+      "version": "20261010091500",
+      "name": "dino_stats_changed_at"
     }
   ],
   "localOnlyApplied": []
