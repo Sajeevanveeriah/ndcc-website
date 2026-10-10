@@ -237,15 +237,68 @@ export function normaliseGameSummaryPlayers(payload: unknown): PlayHQPlayerStatL
     }
   };
 
+  // PlayHQ v2 game summary (GET /v2/games/:id/summary): names and team ids sit
+  // in `appearances`, figures in `periods[].teams[]` (one BATTING and one
+  // BOWLING side per innings), each player carrying a status and a list of
+  // { type, value } statistics. Fielding totals ride on the bowling side's
+  // rows. Each period is its own innings key, so figures from different
+  // innings add up and a repeated row in one innings never double counts.
+  const visitPeriods = (root: Record<string, unknown>) => {
+    if (!Array.isArray(root.periods)) return;
+    const teamNames = new Map((Array.isArray(root.teams) ? root.teams : []).map(asRecord).map((team) => [text(team.id) || '', text(team.name) || '']));
+    const people = new Map((Array.isArray(root.appearances) ? root.appearances : []).map(asRecord).map((person) => [text(person.id) || '', person]));
+    root.periods.map(asRecord).forEach((period, periodIndex) => {
+      const key = text(period.id) || String(asRecord(period).sequenceNo ?? periodIndex + 1);
+      for (const side of (Array.isArray(period.teams) ? period.teams : []).map(asRecord)) {
+        const discipline = String(side.discipline ?? '').toUpperCase();
+        if (discipline !== 'BATTING' && discipline !== 'BOWLING') continue;
+        for (const row of (Array.isArray(side.appearances) ? side.appearances : []).map(asRecord)) {
+          const playerId = text(row.id);
+          if (!playerId) continue;
+          const person = people.get(playerId) ?? {};
+          const figures = new Map((Array.isArray(row.statistics) ? row.statistics : []).map(asRecord).map((stat) => [String(stat.type ?? '').toUpperCase(), stat.value]));
+          const stat = (...types: string[]) => count(...types.map((type) => figures.get(type)));
+          const teamName = teamNames.get(text(person.teamId, side.id) || '') || '';
+          const line = lines.get(playerId) ?? {
+            playhq_player_id: playerId,
+            display_name: `${text(person.firstName) || ''} ${text(person.lastName) || ''}`.trim() || 'Unknown Player',
+            team_name: teamName,
+            runs: 0, wickets: 0, maidens: 0, catches: 0, runouts: 0, stumpings: 0, ducks: 0,
+            not_out: false, player_of_match: false,
+          };
+          if (discipline === 'BATTING') {
+            const kind = classifyDismissal(text(row.status));
+            const runs = stat('TOTAL_RUNS', 'RUNS');
+            const batted = kind !== 'did_not_bat' && kind !== 'none';
+            record(playerId, 'runs', key, runs);
+            record(playerId, 'ducks', key, kind === 'dismissed' && runs === 0 ? 1 : 0);
+            if (batted && kind === 'not_out') line.not_out = true;
+          } else {
+            record(playerId, 'wickets', key, stat('WICKETS'));
+            record(playerId, 'maidens', key, stat('MAIDENS'));
+            record(playerId, 'catches', key, stat('TOTAL_CATCHES'));
+            record(playerId, 'runouts', key, stat('TOTAL_RUN_OUTS'));
+            record(playerId, 'stumpings', key, stat('STUMPINGS'));
+          }
+          lines.set(playerId, line);
+        }
+      }
+    });
+  };
+
   const roots = Array.isArray(data) ? data : [data];
   for (const node of roots) {
     const r = asRecord(node);
-    for (const key of ['teams', 'homeTeam', 'awayTeam', 'home', 'away']) {
-      const value = r[key];
-      if (Array.isArray(value)) value.forEach(visitTeamContainer);
-      else if (value && typeof value === 'object') visitTeamContainer(value);
+    if (Array.isArray(r.periods)) {
+      visitPeriods(r);
+    } else {
+      for (const key of ['teams', 'homeTeam', 'awayTeam', 'home', 'away']) {
+        const value = r[key];
+        if (Array.isArray(value)) value.forEach(visitTeamContainer);
+        else if (value && typeof value === 'object') visitTeamContainer(value);
+      }
+      if (Array.isArray(r.players)) visitTeamContainer(r);
     }
-    if (Array.isArray(r.players)) visitTeamContainer(r);
 
     const potm = asRecord(r.playerOfTheMatch ?? r.playerOfMatch);
     const potmId = text(potm.id, potm.playerId, potm.profileId);

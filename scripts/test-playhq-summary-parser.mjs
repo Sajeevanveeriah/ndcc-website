@@ -214,4 +214,77 @@ test('localMatchDate keeps plain dates and offset-free local timestamps', () => 
   assert.equal(importer.localMatchDate('TBC'), null);
 });
 
+// ---- PlayHQ v2 game summary (GET /v2/games/:id/summary) ----
+// Real structure from the 10 Oct 2026 GCA 4 1st XI game; names replaced.
+const v2Summary = () => {
+  const stats = (pairs) => Object.entries(pairs).map(([type, value]) => ({ type, value }));
+  const ndcc = 'ndcc-1sts';
+  const opp = 'opp-1st-xi';
+  return { data: {
+    id: 'game-v2', status: 'FINAL',
+    teams: [{ id: opp, name: 'Teesdale 1st XI', isHomeTeam: false, outcome: 'LOST' }, { id: ndcc, name: 'Newcomb & District 1sts', isHomeTeam: true, outcome: 'WON' }],
+    appearances: [
+      { id: 'bat-a', firstName: 'Bat', lastName: 'Alpha', teamId: ndcc },
+      { id: 'bowl-b', firstName: 'Bowl', lastName: 'Bravo', teamId: ndcc },
+      { id: 'keep-c', firstName: 'Keep', lastName: 'Charlie', teamId: ndcc },
+      { id: 'opp-d', firstName: 'Opp', lastName: 'Delta', teamId: opp },
+    ],
+    periods: [
+      { id: 'p1', name: 'FIRST_INNINGS', sequenceNo: 1, teams: [
+        { id: opp, discipline: 'BATTING', status: 'ALL_OUT', statistics: stats({ TOTAL_SCORE: 98, TOTAL_OUTS: 10 }), appearances: [
+          { id: 'opp-d', status: 'OUT', statistics: stats({ TOTAL_RUNS: 0, BALLS_FACED: 10 }) },
+        ] },
+        { id: ndcc, discipline: 'BOWLING', status: null, statistics: [], appearances: [
+          { id: 'bowl-b', statistics: stats({ OVERS: 4, MAIDENS: 0, RUNS: 10, WICKETS: 3, TOTAL_CATCHES: 1, TOTAL_RUN_OUTS: 0, STUMPINGS: 0 }) },
+          { id: 'bat-a', statistics: stats({ OVERS: 9, MAIDENS: 1, RUNS: 12, WICKETS: 4 }) },
+          { id: 'keep-c', statistics: stats({ TOTAL_CATCHES: 2, TOTAL_RUN_OUTS: 1, STUMPINGS: 1 }) },
+        ] },
+      ] },
+      { id: 'p2', name: 'FIRST_INNINGS', sequenceNo: 2, teams: [
+        { id: opp, discipline: 'BOWLING', status: null, statistics: [], appearances: [
+          { id: 'opp-d', statistics: stats({ OVERS: 4, RUNS: 20, WICKETS: 0, MAIDENS: 0 }) },
+        ] },
+        { id: ndcc, discipline: 'BATTING', status: null, statistics: stats({ TOTAL_SCORE: 102, TOTAL_OUTS: 0 }), appearances: [
+          { id: 'bat-a', status: 'NOT_OUT', statistics: stats({ TOTAL_RUNS: 55, BALLS_FACED: 61 }) },
+          { id: 'bowl-b', status: 'DID_NOT_BAT', statistics: [] },
+          { id: 'keep-c', status: 'OUT', statistics: stats({ TOTAL_RUNS: 0, BALLS_FACED: 2 }) },
+        ] },
+      ] },
+    ],
+  } };
+};
+
+test('v2 summary: batting, bowling and fielding from periods, with team names', () => {
+  const lines = new Map(importer.normaliseGameSummaryPlayers(v2Summary()).map((line) => [line.playhq_player_id, line]));
+  const a = lines.get('bat-a');
+  assert.deepEqual([a.display_name, a.team_name, a.runs, a.not_out, a.wickets, a.maidens, a.ducks], ['Bat Alpha', 'Newcomb & District 1sts', 55, true, 4, 1, 0]);
+  const b = lines.get('bowl-b');
+  assert.deepEqual([b.runs, b.wickets, b.catches, b.not_out, b.ducks], [0, 3, 1, false, 0], 'did not bat is not a duck');
+  const c = lines.get('keep-c');
+  assert.deepEqual([c.catches, c.runouts, c.stumpings, c.ducks, c.not_out], [2, 1, 1, 1, false], 'out for 0 is a duck');
+  const d = lines.get('opp-d');
+  assert.deepEqual([d.team_name, d.ducks, d.runs], ['Teesdale 1st XI', 1, 0], 'bowling runs conceded are never runs scored');
+});
+
+test('v2 summary: a repeated row in one innings never double counts', () => {
+  const payload = v2Summary();
+  const batting = payload.data.periods[1].teams[1].appearances;
+  batting.push({ ...batting[0] });
+  const a = importer.normaliseGameSummaryPlayers(payload).find((line) => line.playhq_player_id === 'bat-a');
+  assert.equal(a.runs, 55);
+});
+
+test('v2 summary keeps player of the match', () => {
+  const payload = v2Summary();
+  payload.data.playerOfTheMatch = { id: 'bat-a' };
+  const lines = importer.normaliseGameSummaryPlayers(payload);
+  assert.equal(lines.find((line) => line.playhq_player_id === 'bat-a').player_of_match, true);
+  assert.equal(lines.filter((line) => line.player_of_match).length, 1);
+});
+
+test('v1 summary with appearances only yields no stat lines', () => {
+  const v1 = { data: { id: 'g', status: 'FINAL', competitors: [{ name: 'Newcomb & District 1sts', scoreTotal: 102 }], appearances: [{ id: 'x', firstName: 'A', lastName: 'B', teamID: 't', scoreTotal: 0 }], periods: null } };
+  assert.equal(importer.normaliseGameSummaryPlayers(v1).length, 0, 'no figures means quarantine, never a line of zeros');
+});
+
 console.log(`PlayHQ summary parser, club matcher and match-date checks passed (${passed}).`);

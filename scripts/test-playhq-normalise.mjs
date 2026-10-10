@@ -57,4 +57,21 @@ if (tied.homeScore !== '150' || tied.awayScore !== '150') fail('a drawn game kee
 const ladder = normaliseLadder({ ladder: [{ team: { name: 'NDCC' }, rank: 2, gamesPlayed: 5, points: '18', percent: '126.5' }] }, grades[0]);
 if (ladder[0]?.teamName !== 'NDCC' || ladder[0]?.position !== 2 || ladder[0]?.played !== 5 || ladder[0]?.percentage !== 126.5) fail('normaliseLadder should parse common ladder fields.');
 
+// v1 ladder (GET /v1/grades/:id/ladder) nests standings; ranking is 0-based.
+const v1Ladder = normaliseLadder({ data: [{ grade: { id: 'grade-1' }, ladders: [{ pool: null, standings: [
+  { team: { name: 'Guild St. Marys' }, played: 2, competitionPoints: 9, percentage: 288.89, ranking: 0 },
+  { team: { name: 'Newcomb & District 1sts' }, played: 2, competitionPoints: 9, percentage: 104.08, ranking: 1 },
+] }] }] }, grades[0]);
+if (v1Ladder.length !== 2 || v1Ladder[1].teamName !== 'Newcomb & District 1sts' || v1Ladder[1].position !== 2 || v1Ladder[1].points !== 9 || v1Ladder[1].percentage !== 104.08 || v1Ladder[1].played !== 2) fail('normaliseLadder should unwrap v1 ladders[].standings[].');
+// v2 ladder: values line up with headers.
+const v2Ladder = normaliseLadder({ gradeId: 'grade-1', ladders: [{ headers: [{ key: 'played' }, { key: 'competitionPoints' }, { key: 'quotient' }], standings: [{ team: { name: 'Newcomb & District 1sts' }, values: [2, 9, null] }] }] }, grades[0]);
+if (v2Ladder.length !== 1 || v2Ladder[0].played !== 2 || v2Ladder[0].points !== 9 || v2Ladder[0].position !== 1) fail('normaliseLadder should map v2 standings values by header.');
+
+// Pools stay separate tables with their own positions.
+const pooled = normaliseLadder({ data: [{ grade: { id: 'grade-1' }, ladders: [
+  { pool: { name: 'Pool A' }, standings: [{ team: { name: 'A1' }, played: 1 }, { team: { name: 'A2' }, played: 1 }] },
+  { pool: { name: 'Pool B' }, standings: [{ team: { name: 'B1' }, played: 1 }] },
+] }] }, grades[0]);
+if (pooled.length !== 3 || pooled[2].position !== 1 || pooled[2].gradeName !== 'A Grade - Pool B' || pooled[0].gradeId === pooled[2].gradeId) fail('normaliseLadder must keep pools as separate tables.');
+
 console.log('PlayHQ normalise static test passed.');

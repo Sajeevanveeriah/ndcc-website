@@ -19,7 +19,9 @@ const endpoints = {
   teamFixture: (teamId: string) => `/v1/teams/${encodeURIComponent(teamId)}/fixture`,
   cricketGradeLadder: (gradeId: string) => `/v2/cricket/grades/${encodeURIComponent(gradeId)}/ladder`,
   gradeLadder: (gradeId: string) => `/v1/grades/${encodeURIComponent(gradeId)}/ladder`,
-  cricketGameSummary: (gameId: string) => `/v2/cricket/games/${encodeURIComponent(gameId)}/summary`,
+  // The cricket scorecard is /v2/games/:id/summary (checked against the live
+  // API, 10 Oct 2026); /v2/cricket/games/:id/summary answers 404.
+  cricketGameSummary: (gameId: string) => `/v2/games/${encodeURIComponent(gameId)}/summary`,
   gameSummary: (gameId: string) => `/v1/games/${encodeURIComponent(gameId)}/summary`,
 };
 
