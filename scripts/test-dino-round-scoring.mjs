@@ -6,6 +6,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyBenchCover, selectScoringSquads } from '../lib/dino-coach/round-scoring.ts';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
@@ -77,11 +79,21 @@ assert.match(route, /rpc\('replace_dino_coach_round_scores'/, 'Recalculation rep
 assert.match(route, /isMissingFunction\(replaced\.error\)/, 'Falls back when the migration is not applied yet');
 assert.match(route, /\.delete\(\)\.eq\('season_id', seasonId\)\.eq\('round_id', roundId\)/, 'Fallback removes stale rows');
 console.log('PASS scores route: season checks, friendly errors, atomic replace with fallback');
-const publish = read('lib/playhq/orchestrator/publish.ts');
-assert.match(publish, /saveRoundScores\(roundId, season\.id\)/, 'Publishing PlayHQ stats re-scores every round in the batch');
-assert.match(publish, /revalidateDinoPublicCache\(\)/, 'Automatic scoring refreshes the public standings');
-assert.match(publish, /if \(batchRoundsError\) scoredRounds\.push\(/, 'A failed round lookup is reported, never silently skipped');
-console.log('PASS publish re-scores the rounds it published');
+// Automatic round scoring: a resumable catch-up after every season's import.
+const catchupSource = read('lib/playhq/orchestrator/round-scores-catchup.ts');
+const catchup = { exports: {} };
+vm.runInNewContext(ts.transpileModule(catchupSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText,
+  { exports: catchup.exports, module: catchup, require: () => ({}) });
+const roundsNeedingScores = (...args) => [...catchup.exports.roundsNeedingScores(...args)];
+const published = '2026-10-10T08:00:00Z';
+assert.deepEqual(roundsNeedingScores(['r2', 'r2', 'r1', null], [], published), ['r1', 'r2'], 'rounds with stats but no scores are scored');
+assert.deepEqual(roundsNeedingScores(['r1', 'r2'], [{ round_id: 'r1', calculated_at: '2026-10-10T09:00:00Z' }, { round_id: 'r2', calculated_at: '2026-10-10T07:00:00Z' }], published), ['r2'], 'only rounds scored before the last publish are re-scored');
+assert.deepEqual(roundsNeedingScores(['r1'], [{ round_id: 'r1', calculated_at: '2026-10-10T09:00:00Z' }], published), [], 'up-to-date rounds are left alone');
+assert.match(catchupSource, /fetchAllPages<any>\(\(from, to\) => supabase\.from\('fantasy_match_stats'\)/, 'stat rounds are read page by page');
+assert.match(catchupSource, /if \(deadline - Date\.now\(\) < MIN_ROUND_BUDGET_MS\) break;/, 'stops before the time budget; remaining rounds resume next run');
+assert.match(read('lib/playhq/fantasy-orchestrator.ts'), /const scoring = await catchUpRoundScores\(supabase, season, deadline\);/, 'every orchestrator run catches up round scores');
+assert.match(read('lib/playhq/orchestrator/publish.ts'), /last_playhq_sync_at: new Date\(\)\.toISOString\(\)/, 'publishing stamps the season so its rounds are re-scored');
+console.log('PASS round scores catch up after publishing, resumably');
 
 const migrationName = readdirSync(join(root, 'supabase/migrations')).find((file) => file.endsWith('_dino_round_score_replace.sql'));
 assert.ok(migrationName, 'Replace-scores migration exists');

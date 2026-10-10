@@ -69,6 +69,9 @@ export async function getDinoManagerStandings(
   }
   for (const score of scores) {
     if (demoIds.has(score.manager_id) || excludedIds.has(score.manager_id)) continue;
+    // Public table: only eligible entrants (paid or waived, approved name),
+    // even once they have round scores.
+    if (!options.members && !grouped.has(score.manager_id)) continue;
     const joined = score.fantasy_managers;
     const manager = Array.isArray(joined) ? joined[0] : joined;
     const row = grouped.get(score.manager_id) ?? emptyRow({

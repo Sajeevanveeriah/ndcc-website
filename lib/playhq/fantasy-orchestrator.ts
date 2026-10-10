@@ -19,6 +19,7 @@ import { DEFAULT_SYNC_BATCH_SIZE } from './fantasy-sync';
 import { LOCK_NAME, LOCK_TTL_SECONDS, DEFAULT_TIME_BUDGET_MS, type RunLog, type OrchestratorResult, type SeasonRow, recordRun } from './orchestrator/shared';
 import { maybeAlertAdmins } from './orchestrator/alerts';
 import { advanceSeason } from './orchestrator/advance';
+import { catchUpRoundScores } from './orchestrator/round-scores-catchup';
 
 export type { OrchestratorResult } from './orchestrator/shared';
 export { getFantasySyncHealth, previewFantasySeasonSync } from './orchestrator/health';
@@ -67,6 +68,9 @@ export async function runFantasyOrchestrator(options: {
       // Renew the lease so long single-season work cannot let it lapse.
       await supabase.rpc('acquire_fantasy_sync_lock', { p_name: LOCK_NAME, p_holder: holder, p_ttl_seconds: LOCK_TTL_SECONDS });
       const seasonLogs = await advanceSeason(supabase, options.invokedBy, season, deadline, batchSize);
+      // Keep manager round scores in step with published stats (resumable).
+      const scoring = await catchUpRoundScores(supabase, season, deadline);
+      if (scoring) seasonLogs.push(scoring);
       logs.push(...seasonLogs);
       for (const log of seasonLogs) {
         await recordRun(supabase, options.invokedBy, season.id, log);

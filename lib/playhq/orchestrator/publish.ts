@@ -3,8 +3,6 @@
 // Split out of lib/playhq/fantasy-orchestrator.ts (which re-exports the public API).
 import 'server-only';
 import { revalidatePath } from 'next/cache';
-import { saveRoundScores } from '@/lib/dino-coach/round-scores';
-import { revalidateDinoPublicCache } from '@/lib/server/revalidate-public';
 import { type RunLog, type SeasonRow, setSeasonException } from './shared';
 
 // Review items that mean the job's batch itself cannot be trusted. Every
@@ -90,26 +88,14 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
   if (publishError) return { seasonSlug: season.slug, stage: 'publish_batch', status: 'error', error: publishError.message };
 
   await supabase.from('fantasy_seasons').update({ last_playhq_sync_at: new Date().toISOString(), sync_exception: null }).eq('id', season.id);
-  // Score every round this batch touched, so Manager Standings follow the
-  // published stats without a manual step. A scoring failure never undoes
-  // the publish; it is reported in the run log and the admin can re-save.
-  const scoredRounds: Array<{ roundId: string; managers?: number; error?: string }> = [];
-  const { data: batchRounds, error: batchRoundsError } = await supabase.from('fantasy_match_stats').select('round_id').eq('import_batch_id', batch.id);
-  if (batchRoundsError) scoredRounds.push({ roundId: '(unknown)', error: `Could not load the batch's rounds to score: ${batchRoundsError.message}` });
-  for (const roundId of [...new Set((batchRounds ?? []).map((row: any) => row.round_id).filter(Boolean))] as string[]) {
-    try {
-      const saved = await saveRoundScores(roundId, season.id);
-      scoredRounds.push({ roundId, managers: saved.rows.length });
-    } catch (error) {
-      scoredRounds.push({ roundId, error: error instanceof Error ? error.message : 'Round scoring failed.' });
-    }
-  }
+  // last_playhq_sync_at doubles as the publish stamp: the orchestrator's
+  // round-score catch-up (round-scores-catchup.ts) re-scores every round
+  // whose saved scores predate it, resumably across runs.
   try {
     revalidatePath('/fantasy/leaderboard');
     revalidatePath('/fantasy');
     revalidatePath('/fantasy/players');
   } catch { /* best-effort cache refresh */ }
-  revalidateDinoPublicCache();
   return {
     seasonSlug: season.slug,
     stage: 'publish_batch',
@@ -122,7 +108,6 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
       // Non-blocking review items stay on the job for an admin.
       open_review_items: reviewItems.length,
       counts: job.counts ?? null,
-      scored_rounds: scoredRounds,
     },
   };
 }
