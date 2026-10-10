@@ -40,6 +40,16 @@ test('applies assigned role and captain multipliers after base activities', () =
   assert.equal(calculateAssignedRolePoints(stat, 'AR', DEFAULT_SCORING_CONFIG, true), 700);
 });
 
+test('each hat-trick earns the hat-trick bonus on top of wicket points and bonuses', () => {
+  // Harrison, 10 Oct 2026: 4 wickets including a hat-trick = 40 + 50.
+  assert.equal(calculateBasePerformancePoints({ wickets: 4, hat_tricks: 1 }, DEFAULT_SCORING_CONFIG), 90);
+  assert.equal(calculateBasePerformancePoints({ wickets: 5, hat_tricks: 1 }, DEFAULT_SCORING_CONFIG), 50 + 25 + 50);
+  assert.equal(calculateBasePerformancePoints({ wickets: 6, hat_tricks: 2 }, DEFAULT_SCORING_CONFIG), 60 + 25 + 100);
+  assert.equal(calculateAssignedRolePoints({ wickets: 4, hat_tricks: 1 }, 'BOWL', DEFAULT_SCORING_CONFIG, false), 80 + 50, 'role multiplier applies to wickets, not the bonus');
+  assert.equal(calculateBasePerformancePoints({ wickets: 4, hat_tricks: 1 }, { ...DEFAULT_SCORING_CONFIG, hatTrickBonus: 30 }), 70, 'bonus follows the season setting');
+  assert.equal(calculateBasePerformancePoints({ wickets: 3 }, DEFAULT_SCORING_CONFIG), 30, 'no hat-trick, no bonus');
+});
+
 test('does not stack 50 and 100 or 5 and 7 wicket milestone bonuses', () => {
   assert.equal(calculateBasePerformancePoints({ runs: 100 }, DEFAULT_SCORING_CONFIG), 150);
   assert.equal(calculateBasePerformancePoints({ wickets: 7 }, DEFAULT_SCORING_CONFIG), 120);

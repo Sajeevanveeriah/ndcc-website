@@ -140,7 +140,12 @@ const sync = load('lib/playhq/fantasy-sync.ts', {
   },
   './season-match': seasonMatch, './normalise': normalise, './fantasy-import': importer,
 });
-const publish = load('lib/playhq/orchestrator/publish.ts', { 'server-only': {}, 'next/cache': { revalidatePath: () => {} }, './shared': shared });
+const scoredRounds = [];
+const publish = load('lib/playhq/orchestrator/publish.ts', {
+  'server-only': {}, 'next/cache': { revalidatePath: () => {} }, './shared': shared,
+  '@/lib/dino-coach/round-scores': { saveRoundScores: async (roundId, seasonId) => { scoredRounds.push([roundId, seasonId]); return { rows: [] }; } },
+  '@/lib/server/revalidate-public': { revalidateDinoPublicCache: () => {} },
+});
 
 let passed = 0;
 const test = async (label, fn) => { await fn(); passed += 1; console.log(`PASS ${label}`); };

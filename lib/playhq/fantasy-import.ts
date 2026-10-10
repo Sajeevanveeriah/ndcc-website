@@ -16,6 +16,7 @@ export type PlayHQPlayerStatLine = {
   catches: number;
   runouts: number;
   stumpings: number;
+  hat_tricks: number;
   ducks: number;
   not_out: boolean;
   player_of_match: boolean;
@@ -130,8 +131,8 @@ export function classifyDismissal(value: string | null | undefined): DismissalKi
 }
 
 type StatSection = 'batting' | 'bowling' | 'fielding' | null;
-type CountField = 'runs' | 'wickets' | 'maidens' | 'catches' | 'runouts' | 'stumpings' | 'ducks';
-const COUNT_FIELDS: CountField[] = ['runs', 'wickets', 'maidens', 'catches', 'runouts', 'stumpings', 'ducks'];
+type CountField = 'runs' | 'wickets' | 'maidens' | 'catches' | 'runouts' | 'stumpings' | 'hat_tricks' | 'ducks';
+const COUNT_FIELDS: CountField[] = ['runs', 'wickets', 'maidens', 'catches', 'runouts', 'stumpings', 'hat_tricks', 'ducks'];
 
 // Innings identity of one entry, when PlayHQ states it. '' means unknown.
 function inningsKey(...records: Record<string, unknown>[]): string {
@@ -198,7 +199,7 @@ export function normaliseGameSummaryPlayers(payload: unknown): PlayHQPlayerStatL
       playhq_player_id: playerId,
       display_name: displayName,
       team_name: teamName,
-      runs: 0, wickets: 0, maidens: 0, catches: 0, runouts: 0, stumpings: 0, ducks: 0,
+      runs: 0, wickets: 0, maidens: 0, catches: 0, runouts: 0, stumpings: 0, hat_tricks: 0, ducks: 0,
       not_out: false, player_of_match: false,
     };
     const key = inningsKey(batting, bowling, r, stats) || containerInnings;
@@ -218,6 +219,7 @@ export function normaliseGameSummaryPlayers(payload: unknown): PlayHQPlayerStatL
     record(playerId, 'catches', key, count(fielding.catches, fieldingFlat.catches));
     record(playerId, 'runouts', key, count(fielding.runOuts, fielding.runouts, fieldingFlat.runOuts, fieldingFlat.runouts));
     record(playerId, 'stumpings', key, count(fielding.stumpings, fieldingFlat.stumpings));
+    record(playerId, 'hat_tricks', key, count(bowling.hatTricks, bowling.hat_tricks, bowlingFlat.hatTricks, bowlingFlat.hat_tricks));
     record(playerId, 'ducks', key, batted && runs === 0 && dismissed ? 1 : 0);
     if (batted && notOutFlag) line.not_out = true;
     lines.set(playerId, line);
@@ -263,7 +265,7 @@ export function normaliseGameSummaryPlayers(payload: unknown): PlayHQPlayerStatL
             playhq_player_id: playerId,
             display_name: `${text(person.firstName) || ''} ${text(person.lastName) || ''}`.trim() || 'Unknown Player',
             team_name: teamName,
-            runs: 0, wickets: 0, maidens: 0, catches: 0, runouts: 0, stumpings: 0, ducks: 0,
+            runs: 0, wickets: 0, maidens: 0, catches: 0, runouts: 0, stumpings: 0, hat_tricks: 0, ducks: 0,
             not_out: false, player_of_match: false,
           };
           if (discipline === 'BATTING') {
@@ -279,6 +281,7 @@ export function normaliseGameSummaryPlayers(payload: unknown): PlayHQPlayerStatL
             record(playerId, 'catches', key, stat('TOTAL_CATCHES'));
             record(playerId, 'runouts', key, stat('TOTAL_RUN_OUTS'));
             record(playerId, 'stumpings', key, stat('STUMPINGS'));
+            record(playerId, 'hat_tricks', key, stat('HAT_TRICKS'));
           }
           lines.set(playerId, line);
         }

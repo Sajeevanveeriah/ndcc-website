@@ -58,6 +58,7 @@ export type FantasyLeaderboardRow = {
   catches: number;
   runouts: number;
   stumpings: number;
+  hatTricks: number;
   ducks: number;
   totalFantasyPoints: number;
 };
@@ -79,7 +80,7 @@ type BatchRecord = {
   notes?: string | null;
 };
 
-type StatRecord = {
+export type StatRecord = {
   id: string;
   import_batch_id: string | null;
   round_id: string | null;
@@ -92,6 +93,7 @@ type StatRecord = {
   catches: number | null;
   runouts: number | null;
   stumpings: number | null;
+  hat_tricks?: number | null;
   ducks: number | null;
   not_out: boolean | null;
   player_of_match: boolean | null;
@@ -168,7 +170,7 @@ async function getStatsForBatches(batchIds: string[]) {
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
       .from('fantasy_match_stats')
-      .select('id, import_batch_id, round_id, player_id, match_date, opponent, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_players(display_name, role), fantasy_rounds(id, round_number, name)')
+      .select('id, import_batch_id, round_id, player_id, match_date, opponent, runs, wickets, maidens, catches, runouts, stumpings, hat_tricks, ducks, not_out, player_of_match, fantasy_players(display_name, role), fantasy_rounds(id, round_number, name)')
       .in('import_batch_id', batchIds)
       .order('match_date', { ascending: true })
       .order('created_at', { ascending: true })
@@ -255,7 +257,12 @@ export async function getFantasyImportBatchDetail(id: string): Promise<FantasyIm
   };
 }
 
-export async function getPublishedFantasyLeaderboard(roundId?: string | null, seasonId?: string | null): Promise<FantasyLeaderboardData> {
+/** Per-row points. Player Standings pass the season's Dino Coach base points
+ *  (milestone and hat-trick bonuses included); without one the legacy
+ *  fantasy_scoring_rules apply. */
+export type LeaderboardPoints = (row: StatRecord) => number;
+
+export async function getPublishedFantasyLeaderboard(roundId?: string | null, seasonId?: string | null, pointsFor?: LeaderboardPoints): Promise<FantasyLeaderboardData> {
   if (!isServerSupabaseConfigured()) {
     return { rows: [], rounds: [], selectedRoundId: null };
   }
@@ -290,7 +297,7 @@ export async function getPublishedFantasyLeaderboard(roundId?: string | null, se
   const filteredStats = selectedRoundId ? allStats.filter((row) => row.round_id === selectedRoundId) : allStats;
 
   return {
-    rows: aggregateLeaderboardRows(filteredStats, scoringRules),
+    rows: aggregateLeaderboardRows(filteredStats, scoringRules, pointsFor),
     rounds,
     selectedRoundId,
   };
@@ -298,7 +305,7 @@ export async function getPublishedFantasyLeaderboard(roundId?: string | null, se
 
 // Pure aggregation + ranking so the calculation is deterministic and
 // unit-testable (scripts/test-fantasy-logic.mjs) independent of the DB reads.
-export function aggregateLeaderboardRows(stats: StatRecord[], scoringRules: FantasyScoringRule[]): FantasyLeaderboardRow[] {
+export function aggregateLeaderboardRows(stats: StatRecord[], scoringRules: FantasyScoringRule[], pointsFor?: LeaderboardPoints): FantasyLeaderboardRow[] {
   const scoresByPlayer = new Map<string, PlayerScore>();
   for (const row of stats) {
     if (!row.player_id) continue;
@@ -313,6 +320,7 @@ export function aggregateLeaderboardRows(stats: StatRecord[], scoringRules: Fant
       catches: 0,
       runouts: 0,
       stumpings: 0,
+      hatTricks: 0,
       ducks: 0,
       totalFantasyPoints: 0,
     };
@@ -324,8 +332,9 @@ export function aggregateLeaderboardRows(stats: StatRecord[], scoringRules: Fant
     existing.catches += toNumber(row.catches);
     existing.runouts += toNumber(row.runouts);
     existing.stumpings += toNumber(row.stumpings);
+    existing.hatTricks += toNumber(row.hat_tricks);
     existing.ducks += toNumber(row.ducks);
-    existing.totalFantasyPoints += calculateRowPoints(row, scoringRules);
+    existing.totalFantasyPoints += pointsFor ? pointsFor(row) : calculateRowPoints(row, scoringRules);
     scoresByPlayer.set(row.player_id, existing);
   }
 

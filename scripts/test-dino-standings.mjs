@@ -83,3 +83,14 @@ for (const path of ['app/fantasy/manager-leaderboard/page.tsx', 'app/api/fantasy
 }
 assert.match(readFileSync('lib/server/dino-public-cache.ts', 'utf8'), /getCachedManagerStandings = unstable_cache\(\s*async \(seasonId: string \| null\) => getDinoManagerStandings\(seasonId\)/);
 console.log('PASS page, public API and private leagues use the same standings loader');
+
+// Every entered (non-demo) manager is listed publicly from the start, at 0
+// points until a round is scored.
+failTable = undefined;
+tables.fantasy_entries.push({ id: 'e-fresh', manager_id: 'fresh', season_id: 'current', is_demo: false, fantasy_managers: { display_name: 'Fresh', team_name: 'Fresh XI' } });
+const withEntrant = await load('current');
+const fresh = withEntrant.find(row => row.managerId === 'fresh');
+assert.ok(fresh, 'an entered manager with no round scores is listed');
+assert.deepEqual([fresh.totalPoints, fresh.teamName, fresh.rank], [0, 'Fresh XI', withEntrant.length]);
+assert.ok(!withEntrant.some(row => row.managerId === 'demo'), 'demo entries stay hidden');
+console.log('PASS entered managers are listed at 0 points before any round is scored');

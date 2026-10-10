@@ -24,6 +24,7 @@ export type DinoScoringConfig = {
   centuryBonus: number;
   fiveWicketBonus: number;
   sevenWicketBonus: number;
+  hatTrickBonus: number;
   stumpingPoints: number;
   notOutPoints: number;
   batsmanRunMultiplier: number;
@@ -46,6 +47,7 @@ export type DinoStatLine = {
   catches?: number | null;
   runouts?: number | null;
   stumpings?: number | null;
+  hat_tricks?: number | null;
   notOut?: boolean | null;
   not_out?: boolean | null;
 };
@@ -75,6 +77,7 @@ export const DEFAULT_SCORING_CONFIG: DinoScoringConfig = {
   centuryBonus: 50,
   fiveWicketBonus: 25,
   sevenWicketBonus: 50,
+  hatTrickBonus: 50,
   stumpingPoints: 10,
   notOutPoints: 10,
   batsmanRunMultiplier: 1.75,
@@ -128,7 +131,9 @@ function milestonePoints(stat: DinoStatLine, scoring: DinoScoringConfig) {
   let bowling = 0;
   if (wickets >= 7) bowling = scoring.sevenWicketBonus + (scoring.stackBowlingMilestones ? scoring.fiveWicketBonus : 0);
   else if (wickets >= 5) bowling = scoring.fiveWicketBonus;
-  return batting + bowling;
+  // Each hat-trick earns a milestone-style bonus, on top of any wicket bonus.
+  const hatTricks = nonNegative(stat.hat_tricks) * finite(scoring.hatTrickBonus);
+  return batting + bowling + hatTricks;
 }
 
 export function calculateBasePerformancePoints(stat: DinoStatLine, scoring: DinoScoringConfig = DEFAULT_SCORING_CONFIG) {

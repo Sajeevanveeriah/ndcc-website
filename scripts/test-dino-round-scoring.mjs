@@ -64,7 +64,9 @@ cover = applyBenchCover([pick('bo', 'bench', 'BOWL')], counts);
 assert.deepEqual(cover.promoted.map((p) => p.player_id), ['bo'], 'Sparse drafts still use bench cover');
 console.log('PASS bench cover: same-role promotion only into empty slots, no leadership, full XI unchanged');
 
-const route = read('app/api/admin/fantasy/scores/route.ts');
+// Round scoring lives in lib/dino-coach/round-scores.ts, shared by the admin
+// route and the PlayHQ sync; check the route and the module together.
+const route = read('app/api/admin/fantasy/scores/route.ts') + read('lib/dino-coach/round-scores.ts');
 assert.match(route, /selectScoringSquads\(/, 'Scoring uses the tested carry-forward selection');
 assert.match(route, /applyBenchCover</, 'Scoring applies bench cover before counting points');
 assert.doesNotMatch(route, /round_id\.eq\.\$\{roundId\},round_id\.is\.null/, 'Scoring no longer limits squads to this round or null');
@@ -75,6 +77,10 @@ assert.match(route, /rpc\('replace_dino_coach_round_scores'/, 'Recalculation rep
 assert.match(route, /isMissingFunction\(replaced\.error\)/, 'Falls back when the migration is not applied yet');
 assert.match(route, /\.delete\(\)\.eq\('season_id', seasonId\)\.eq\('round_id', roundId\)/, 'Fallback removes stale rows');
 console.log('PASS scores route: season checks, friendly errors, atomic replace with fallback');
+const publish = read('lib/playhq/orchestrator/publish.ts');
+assert.match(publish, /saveRoundScores\(roundId, season\.id\)/, 'Publishing PlayHQ stats re-scores every round in the batch');
+assert.match(publish, /revalidateDinoPublicCache\(\)/, 'Automatic scoring refreshes the public standings');
+console.log('PASS publish re-scores the rounds it published');
 
 const migrationName = readdirSync(join(root, 'supabase/migrations')).find((file) => file.endsWith('_dino_round_score_replace.sql'));
 assert.ok(migrationName, 'Replace-scores migration exists');
