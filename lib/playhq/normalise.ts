@@ -117,6 +117,16 @@ function fixtureStart(r: Record<string, unknown>, schedule: Record<string, unkno
   return offset ? `${date}T${String(hours).padStart(2, '0')}:${time[2]}:${time[3] || '00'}${offset}` : date;
 }
 
+// PlayHQ's public fixture gives each competitor scoreTotal (runs only, no
+// wickets) and an outcome. Only a decided game shows a score: an abandoned or
+// unplayed game also reports scoreTotal 0, which is not a score.
+const DECIDED_OUTCOMES = new Set(['WON', 'LOST', 'DRAW', 'DRAWN', 'TIE', 'TIED']);
+function competitorScore(competitor: Record<string, unknown>): string | null {
+  if (!DECIDED_OUTCOMES.has(String(competitor.outcome ?? '').toUpperCase())) return null;
+  const runs = competitor.scoreTotal;
+  return typeof runs === 'number' && Number.isFinite(runs) && runs >= 0 ? String(runs) : null;
+}
+
 export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQFixture[] {
   return firstArray(payload).map((item) => {
     const r = asRecord(item);
@@ -143,8 +153,8 @@ export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQF
       startsAt: fixtureStart(r, schedule),
       venue: text(venue.name, r.venueName, r.groundName) || null,
       status: text(r.status, r.gameStatus, r.resultStatus) || null,
-      homeScore: text(r.homeScore, r.homeTeamScore) || null,
-      awayScore: text(r.awayScore, r.awayTeamScore) || null,
+      homeScore: text(r.homeScore, r.homeTeamScore) || competitorScore(home) || null,
+      awayScore: text(r.awayScore, r.awayTeamScore) || competitorScore(away) || null,
       playHQUrl: text(r.url, r.playHQUrl, r.publicUrl) || null,
     };
   }).filter((fixture) => fixture.id);
