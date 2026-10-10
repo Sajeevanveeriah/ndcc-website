@@ -160,20 +160,44 @@ export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQF
   }).filter((fixture) => fixture.id);
 }
 
+// PlayHQ nests ladder rows: v1 sends data[] of { grade, ladders: [{ standings }] }
+// and v2 sends { ladders: [{ headers, standings: [{ team, values }] }] }, where
+// values line up with headers by position. Flat row arrays are still accepted.
+function ladderStandings(payload: unknown): Record<string, unknown>[][] {
+  const tables: Record<string, unknown>[][] = [];
+  const visitLadder = (ladder: Record<string, unknown>) => {
+    const headers = Array.isArray(ladder.headers) ? ladder.headers.map((header) => text(asRecord(header).key) || '') : [];
+    const standings = Array.isArray(ladder.standings) ? ladder.standings.map(asRecord) : [];
+    tables.push(standings.map((row) => {
+      if (!Array.isArray(row.values) || !headers.length) return row;
+      const values = row.values as unknown[];
+      return { ...Object.fromEntries(headers.map((key, i) => [key, values[i]]).filter(([key]) => key)), ...row };
+    }));
+  };
+  const flat: Record<string, unknown>[] = [];
+  for (const item of firstArray(payload).map(asRecord)) {
+    if (Array.isArray(item.ladders)) item.ladders.map(asRecord).forEach(visitLadder);
+    else if (Array.isArray(item.standings)) visitLadder(item);
+    else flat.push(item);
+  }
+  if (flat.length) tables.push(flat);
+  return tables;
+}
+
 export function normaliseLadder(payload: unknown, grade: PlayHQGrade): PlayHQLadderRow[] {
-  return firstArray(payload).map((item, index) => {
-    const r = asRecord(item);
+  return ladderStandings(payload).flatMap((rows) => rows.map((r, index) => {
     const team = asRecord(r.team);
     return {
       gradeId: grade.id,
       gradeName: grade.name,
       teamName: text(r.teamName, team.name, r.name) || 'Team',
+      // Standings arrive in ladder order; PlayHQ's own ranking is 0-based.
       position: num(r.position ?? r.rank) ?? index + 1,
       played: num(r.played ?? r.gamesPlayed),
-      points: num(r.points),
+      points: num(r.points ?? r.competitionPoints),
       percentage: num(r.percentage ?? r.percent),
     };
-  });
+  }));
 }
 
 export function normalisePlayHqPlayer(input: import('./types').PlayHqPlayerInput, source: string): import('./types').NormalisedPlayHqPlayer {
