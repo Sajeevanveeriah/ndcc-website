@@ -80,6 +80,7 @@ console.log('PASS scores route: season checks, friendly errors, atomic replace w
 const publish = read('lib/playhq/orchestrator/publish.ts');
 assert.match(publish, /saveRoundScores\(roundId, season\.id\)/, 'Publishing PlayHQ stats re-scores every round in the batch');
 assert.match(publish, /revalidateDinoPublicCache\(\)/, 'Automatic scoring refreshes the public standings');
+assert.match(publish, /if \(batchRoundsError\) scoredRounds\.push\(/, 'A failed round lookup is reported, never silently skipped');
 console.log('PASS publish re-scores the rounds it published');
 
 const migrationName = readdirSync(join(root, 'supabase/migrations')).find((file) => file.endsWith('_dino_round_score_replace.sql'));

@@ -94,7 +94,8 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
   // published stats without a manual step. A scoring failure never undoes
   // the publish; it is reported in the run log and the admin can re-save.
   const scoredRounds: Array<{ roundId: string; managers?: number; error?: string }> = [];
-  const { data: batchRounds } = await supabase.from('fantasy_match_stats').select('round_id').eq('import_batch_id', batch.id);
+  const { data: batchRounds, error: batchRoundsError } = await supabase.from('fantasy_match_stats').select('round_id').eq('import_batch_id', batch.id);
+  if (batchRoundsError) scoredRounds.push({ roundId: '(unknown)', error: `Could not load the batch's rounds to score: ${batchRoundsError.message}` });
   for (const roundId of [...new Set((batchRounds ?? []).map((row: any) => row.round_id).filter(Boolean))] as string[]) {
     try {
       const saved = await saveRoundScores(roundId, season.id);
