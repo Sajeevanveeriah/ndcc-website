@@ -42,6 +42,18 @@ if (timed({ date: '2026-10-10' }, { scheduledStartTime: '2026-10-10T02:30:00Z' }
 if (timed({ date: '2026-10-10' }) !== '2026-10-10') fail('normaliseFixtures should keep date-only fixtures date-only (never invent a time).');
 if (timed({ date: '2026-10-10', time: 'TBC' }) !== '2026-10-10') fail('normaliseFixtures should ignore a non-time value.');
 
+// Scores from a real PlayHQ v1 team fixture (10 Oct 2026, GCA 4 1st XI), trimmed.
+const competitor = (name, isHomeTeam, outcome, scoreTotal) => ({ id: name, name, isHomeTeam, outcome, scoreTotal, scoreSubTotal: [{ type: '', value: 0 }] });
+const scored = (status, competitors) => normaliseFixtures({ data: [{ id: 'g', status, schedule: { date: '2026-10-10', time: '12:30:00', timezone: 'Australia/Melbourne' }, competitors }] }, grades[0])[0];
+const final = scored('FINAL', [competitor('Teesdale 1st XI', false, 'LOST', 98), competitor('Newcomb & District 1sts', true, 'WON', 102)]);
+if (final.homeTeam !== 'Newcomb & District 1sts' || final.homeScore !== '102' || final.awayScore !== '98') fail('normaliseFixtures should read competitor scoreTotal for a decided game.');
+const abandoned = scored('ABANDONED', [competitor('Guild St. Marys', true, 'ABANDONED', 0), competitor('Newcomb & District 1sts', false, 'ABANDONED', 0)]);
+if (abandoned.homeScore !== null || abandoned.awayScore !== null) fail('an abandoned game must not show 0 as a score.');
+const unplayed = scored(undefined, [{ id: 'a', name: 'Teesdale 2nd XI', isHomeTeam: true }, { id: 'b', name: 'Newcomb & District 2nds', isHomeTeam: false }]);
+if (unplayed.homeScore !== null || unplayed.awayScore !== null) fail('a game without an outcome has no score.');
+const tied = scored('FINAL', [competitor('A', true, 'DRAW', 150), competitor('B', false, 'DRAW', 150)]);
+if (tied.homeScore !== '150' || tied.awayScore !== '150') fail('a drawn game keeps both scores.');
+
 const ladder = normaliseLadder({ ladder: [{ team: { name: 'NDCC' }, rank: 2, gamesPlayed: 5, points: '18', percent: '126.5' }] }, grades[0]);
 if (ladder[0]?.teamName !== 'NDCC' || ladder[0]?.position !== 2 || ladder[0]?.played !== 5 || ladder[0]?.percentage !== 126.5) fail('normaliseLadder should parse common ladder fields.');
 
