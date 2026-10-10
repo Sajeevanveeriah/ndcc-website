@@ -291,14 +291,14 @@ export function normaliseGameSummaryPlayers(payload: unknown): PlayHQPlayerStatL
     const r = asRecord(node);
     if (Array.isArray(r.periods)) {
       visitPeriods(r);
-      continue;
+    } else {
+      for (const key of ['teams', 'homeTeam', 'awayTeam', 'home', 'away']) {
+        const value = r[key];
+        if (Array.isArray(value)) value.forEach(visitTeamContainer);
+        else if (value && typeof value === 'object') visitTeamContainer(value);
+      }
+      if (Array.isArray(r.players)) visitTeamContainer(r);
     }
-    for (const key of ['teams', 'homeTeam', 'awayTeam', 'home', 'away']) {
-      const value = r[key];
-      if (Array.isArray(value)) value.forEach(visitTeamContainer);
-      else if (value && typeof value === 'object') visitTeamContainer(value);
-    }
-    if (Array.isArray(r.players)) visitTeamContainer(r);
 
     const potm = asRecord(r.playerOfTheMatch ?? r.playerOfMatch);
     const potmId = text(potm.id, potm.playerId, potm.profileId);

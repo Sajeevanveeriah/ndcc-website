@@ -163,16 +163,20 @@ export function normaliseFixtures(payload: unknown, grade: PlayHQGrade): PlayHQF
 // PlayHQ nests ladder rows: v1 sends data[] of { grade, ladders: [{ standings }] }
 // and v2 sends { ladders: [{ headers, standings: [{ team, values }] }] }, where
 // values line up with headers by position. Flat row arrays are still accepted.
-function ladderStandings(payload: unknown): Record<string, unknown>[][] {
-  const tables: Record<string, unknown>[][] = [];
+// Each ladder (pool) is its own table, so positions never mix across pools.
+type LadderTable = { pool: string | null; rows: Record<string, unknown>[] };
+function ladderStandings(payload: unknown): LadderTable[] {
+  const tables: LadderTable[] = [];
   const visitLadder = (ladder: Record<string, unknown>) => {
+    const pool = asRecord(ladder.pool);
+    const poolName = text(pool.name, pool.abbreviatedName, typeof ladder.pool === 'string' ? ladder.pool : undefined) || null;
     const headers = Array.isArray(ladder.headers) ? ladder.headers.map((header) => text(asRecord(header).key) || '') : [];
     const standings = Array.isArray(ladder.standings) ? ladder.standings.map(asRecord) : [];
-    tables.push(standings.map((row) => {
+    tables.push({ pool: poolName, rows: standings.map((row) => {
       if (!Array.isArray(row.values) || !headers.length) return row;
       const values = row.values as unknown[];
       return { ...Object.fromEntries(headers.map((key, i) => [key, values[i]]).filter(([key]) => key)), ...row };
-    }));
+    }) });
   };
   const flat: Record<string, unknown>[] = [];
   for (const item of firstArray(payload).map(asRecord)) {
@@ -180,16 +184,22 @@ function ladderStandings(payload: unknown): Record<string, unknown>[][] {
     else if (Array.isArray(item.standings)) visitLadder(item);
     else flat.push(item);
   }
-  if (flat.length) tables.push(flat);
+  if (flat.length) tables.push({ pool: null, rows: flat });
   return tables;
 }
 
 export function normaliseLadder(payload: unknown, grade: PlayHQGrade): PlayHQLadderRow[] {
-  return ladderStandings(payload).flatMap((rows) => rows.map((r, index) => {
+  const tables = ladderStandings(payload);
+  // A pooled grade keeps one table per pool: the pool gets its own id and
+  // name, so lists group it separately (a team view keyed on the plain grade
+  // id then shows no ladder rather than a mixed one).
+  const pooled = tables.length > 1;
+  return tables.flatMap(({ pool, rows }, tableIndex) => rows.map((r, index) => {
     const team = asRecord(r.team);
+    const poolLabel = pool || `Pool ${tableIndex + 1}`;
     return {
-      gradeId: grade.id,
-      gradeName: grade.name,
+      gradeId: pooled ? `${grade.id}#${poolLabel}` : grade.id,
+      gradeName: pooled ? `${grade.name} - ${poolLabel}` : grade.name,
       teamName: text(r.teamName, team.name, r.name) || 'Team',
       // Standings arrive in ladder order; PlayHQ's own ranking is 0-based.
       position: num(r.position ?? r.rank) ?? index + 1,

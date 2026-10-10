@@ -274,6 +274,14 @@ test('v2 summary: a repeated row in one innings never double counts', () => {
   assert.equal(a.runs, 55);
 });
 
+test('v2 summary keeps player of the match', () => {
+  const payload = v2Summary();
+  payload.data.playerOfTheMatch = { id: 'bat-a' };
+  const lines = importer.normaliseGameSummaryPlayers(payload);
+  assert.equal(lines.find((line) => line.playhq_player_id === 'bat-a').player_of_match, true);
+  assert.equal(lines.filter((line) => line.player_of_match).length, 1);
+});
+
 test('v1 summary with appearances only yields no stat lines', () => {
   const v1 = { data: { id: 'g', status: 'FINAL', competitors: [{ name: 'Newcomb & District 1sts', scoreTotal: 102 }], appearances: [{ id: 'x', firstName: 'A', lastName: 'B', teamID: 't', scoreTotal: 0 }], periods: null } };
   assert.equal(importer.normaliseGameSummaryPlayers(v1).length, 0, 'no figures means quarantine, never a line of zeros');

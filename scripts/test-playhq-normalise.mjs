@@ -67,4 +67,11 @@ if (v1Ladder.length !== 2 || v1Ladder[1].teamName !== 'Newcomb & District 1sts' 
 const v2Ladder = normaliseLadder({ gradeId: 'grade-1', ladders: [{ headers: [{ key: 'played' }, { key: 'competitionPoints' }, { key: 'quotient' }], standings: [{ team: { name: 'Newcomb & District 1sts' }, values: [2, 9, null] }] }] }, grades[0]);
 if (v2Ladder.length !== 1 || v2Ladder[0].played !== 2 || v2Ladder[0].points !== 9 || v2Ladder[0].position !== 1) fail('normaliseLadder should map v2 standings values by header.');
 
+// Pools stay separate tables with their own positions.
+const pooled = normaliseLadder({ data: [{ grade: { id: 'grade-1' }, ladders: [
+  { pool: { name: 'Pool A' }, standings: [{ team: { name: 'A1' }, played: 1 }, { team: { name: 'A2' }, played: 1 }] },
+  { pool: { name: 'Pool B' }, standings: [{ team: { name: 'B1' }, played: 1 }] },
+] }] }, grades[0]);
+if (pooled.length !== 3 || pooled[2].position !== 1 || pooled[2].gradeName !== 'A Grade - Pool B' || pooled[0].gradeId === pooled[2].gradeId) fail('normaliseLadder must keep pools as separate tables.');
+
 console.log('PlayHQ normalise static test passed.');
