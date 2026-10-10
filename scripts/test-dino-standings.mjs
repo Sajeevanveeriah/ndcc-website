@@ -87,10 +87,19 @@ console.log('PASS page, public API and private leagues use the same standings lo
 // Every entered (non-demo) manager is listed publicly from the start, at 0
 // points until a round is scored.
 failTable = undefined;
-tables.fantasy_entries.push({ id: 'e-fresh', manager_id: 'fresh', season_id: 'current', is_demo: false, fantasy_managers: { display_name: 'Fresh', team_name: 'Fresh XI' } });
+tables.fantasy_entries.push(
+  { id: 'e-fresh', manager_id: 'fresh', season_id: 'current', is_demo: false, status: 'paid', fee_waived: false, fantasy_managers: { display_name: 'Fresh', team_name: 'Fresh XI', team_name_status: 'approved' } },
+  { id: 'e-waived', manager_id: 'waived', season_id: 'current', is_demo: false, status: 'payment_required', fee_waived: true, fantasy_managers: { display_name: 'Waived', team_name: 'Waived XI', team_name_status: 'replaced' } },
+  { id: 'e-unpaid', manager_id: 'unpaid', season_id: 'current', is_demo: false, status: 'payment_required', fee_waived: false, fantasy_managers: { display_name: 'Unpaid', team_name: 'Unpaid XI', team_name_status: 'approved' } },
+  { id: 'e-review', manager_id: 'review', season_id: 'current', is_demo: false, status: 'paid', fee_waived: false, fantasy_managers: { display_name: 'Review', team_name: 'Rude XI', team_name_status: 'review_required' } },
+);
 const withEntrant = await load('current');
 const fresh = withEntrant.find(row => row.managerId === 'fresh');
 assert.ok(fresh, 'an entered manager with no round scores is listed');
-assert.deepEqual([fresh.totalPoints, fresh.teamName, fresh.rank], [0, 'Fresh XI', withEntrant.length]);
+assert.deepEqual([fresh.totalPoints, fresh.teamName], [0, 'Fresh XI']);
+assert.ok(fresh.rank > 3, 'zero-point entrants rank below scored managers');
 assert.ok(!withEntrant.some(row => row.managerId === 'demo'), 'demo entries stay hidden');
+assert.ok(withEntrant.some(row => row.managerId === 'waived'), 'fee-waived entrant with a replaced name is listed');
+assert.ok(!withEntrant.some(row => row.managerId === 'unpaid'), 'unpaid entries never reach the public table');
+assert.ok(!withEntrant.some(row => row.managerId === 'review'), 'unmoderated team names never reach the public table');
 console.log('PASS entered managers are listed at 0 points before any round is scored');
