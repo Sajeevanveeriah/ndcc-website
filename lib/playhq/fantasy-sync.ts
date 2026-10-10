@@ -44,7 +44,7 @@ type ReviewItem = { type: string; gameId?: string; playerId?: string; detail: st
 
 // Stat columns a PlayHQ summary sets. Reconciliation approval copies exactly
 // these onto a published row (never its round, batch or identity).
-export const RECONCILABLE_STAT_FIELDS = ['runs', 'wickets', 'maidens', 'catches', 'runouts', 'stumpings', 'ducks', 'not_out', 'player_of_match'] as const;
+export const RECONCILABLE_STAT_FIELDS = ['runs', 'wickets', 'maidens', 'catches', 'runouts', 'stumpings', 'hat_tricks', 'ducks', 'not_out', 'player_of_match'] as const;
 
 // Review item types the sync raises for player identity problems (counted as
 // ambiguous_players in sync health).
@@ -512,7 +512,7 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
           match_date: entry.matchDate,
           opponent,
           runs: line.runs, wickets: line.wickets, maidens: line.maidens, catches: line.catches,
-          runouts: line.runouts, stumpings: line.stumpings, ducks: line.ducks,
+          runouts: line.runouts, stumpings: line.stumpings, hat_tricks: line.hat_tricks, ducks: line.ducks,
           not_out: line.not_out, player_of_match: line.player_of_match,
           playhq_game_id: entry.gameId,
           playhq_round_number: entry.roundNumber,
@@ -523,7 +523,7 @@ export async function processFantasySyncBatch(jobId: string, batchSize = DEFAULT
         const { data: existing } = await supabase
           .from('fantasy_match_stats')
           // Literal column list (typed select); matches RECONCILABLE_STAT_FIELDS.
-          .select('id, source_hash, import_batch_id, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_import_batches(status)')
+          .select('id, source_hash, import_batch_id, runs, wickets, maidens, catches, runouts, stumpings, hat_tricks, ducks, not_out, player_of_match, fantasy_import_batches(status)')
           .eq('season_id', job.season_id)
           .eq('playhq_game_id', entry.gameId)
           .eq('player_id', playerId)
@@ -706,7 +706,7 @@ export async function approveReconciliationItem(jobId: string, statId: string, a
 
   const { data: stat, error: statError } = await supabase
     .from('fantasy_match_stats')
-    .select('id, season_id, source_hash, round_id, playhq_game_id, runs, wickets, maidens, catches, runouts, stumpings, ducks, not_out, player_of_match, fantasy_import_batches(status), fantasy_rounds(status, round_number)')
+    .select('id, season_id, source_hash, round_id, playhq_game_id, runs, wickets, maidens, catches, runouts, stumpings, hat_tricks, ducks, not_out, player_of_match, fantasy_import_batches(status), fantasy_rounds(status, round_number)')
     .eq('id', statId)
     .maybeSingle();
   if (statError) throw new Error(statError.message);

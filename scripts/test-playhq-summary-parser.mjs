@@ -161,7 +161,7 @@ test('existing nested-statistics fixture keeps its values', () => {
     { playerId: 'phq-3', firstName: 'Max', lastName: 'Quinn', statistics: { bowling: { wicketsTaken: 3 } } },
   ] }], playerOfTheMatch: { playerId: 'phq-1' } } });
   const byId = new Map(lines.map((line) => [line.playhq_player_id, line]));
-  assert.deepEqual({ ...byId.get('phq-1') }, { playhq_player_id: 'phq-1', display_name: 'Sam Rivers', team_name: 'Newcomb & District 2nd XI', runs: 48, wickets: 2, maidens: 1, catches: 1, runouts: 0, stumpings: 0, ducks: 0, not_out: true, player_of_match: true });
+  assert.deepEqual({ ...byId.get('phq-1') }, { playhq_player_id: 'phq-1', display_name: 'Sam Rivers', team_name: 'Newcomb & District 2nd XI', runs: 48, wickets: 2, maidens: 1, catches: 1, runouts: 0, stumpings: 0, hat_tricks: 0, ducks: 0, not_out: true, player_of_match: true });
   assert.deepEqual([byId.get('phq-3').runs, byId.get('phq-3').wickets, byId.get('phq-3').ducks], [0, 3, 0]);
 });
 
@@ -236,7 +236,7 @@ const v2Summary = () => {
         ] },
         { id: ndcc, discipline: 'BOWLING', status: null, statistics: [], appearances: [
           { id: 'bowl-b', statistics: stats({ OVERS: 4, MAIDENS: 0, RUNS: 10, WICKETS: 3, TOTAL_CATCHES: 1, TOTAL_RUN_OUTS: 0, STUMPINGS: 0 }) },
-          { id: 'bat-a', statistics: stats({ OVERS: 9, MAIDENS: 1, RUNS: 12, WICKETS: 4 }) },
+          { id: 'bat-a', statistics: stats({ OVERS: 9, MAIDENS: 1, RUNS: 12, WICKETS: 4, HAT_TRICKS: 1 }) },
           { id: 'keep-c', statistics: stats({ TOTAL_CATCHES: 2, TOTAL_RUN_OUTS: 1, STUMPINGS: 1 }) },
         ] },
       ] },
@@ -257,7 +257,8 @@ const v2Summary = () => {
 test('v2 summary: batting, bowling and fielding from periods, with team names', () => {
   const lines = new Map(importer.normaliseGameSummaryPlayers(v2Summary()).map((line) => [line.playhq_player_id, line]));
   const a = lines.get('bat-a');
-  assert.deepEqual([a.display_name, a.team_name, a.runs, a.not_out, a.wickets, a.maidens, a.ducks], ['Bat Alpha', 'Newcomb & District 1sts', 55, true, 4, 1, 0]);
+  assert.deepEqual([a.display_name, a.team_name, a.runs, a.not_out, a.wickets, a.maidens, a.ducks, a.hat_tricks], ['Bat Alpha', 'Newcomb & District 1sts', 55, true, 4, 1, 0, 1]);
+  assert.equal(lines.get('bowl-b').hat_tricks, 0);
   const b = lines.get('bowl-b');
   assert.deepEqual([b.runs, b.wickets, b.catches, b.not_out, b.ducks], [0, 3, 1, false, 0], 'did not bat is not a duck');
   const c = lines.get('keep-c');

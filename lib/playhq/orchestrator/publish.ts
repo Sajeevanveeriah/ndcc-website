@@ -53,7 +53,7 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
     .from('fantasy_match_stats')
     .select('id', { count: 'exact', head: true })
     .eq('import_batch_id', batch.id)
-    .or('runs.lt.0,wickets.lt.0,maidens.lt.0,catches.lt.0,runouts.lt.0,stumpings.lt.0,ducks.lt.0,player_id.is.null,round_id.is.null');
+    .or('runs.lt.0,wickets.lt.0,maidens.lt.0,catches.lt.0,runouts.lt.0,stumpings.lt.0,hat_tricks.lt.0,ducks.lt.0,player_id.is.null,round_id.is.null');
   if (invalidError) return { seasonSlug: season.slug, stage: 'validate_batch', status: 'error', error: invalidError.message };
   if ((invalidCount ?? 0) > 0) blockers.push(`${invalidCount} imported row(s) failed field validation.`);
 
@@ -88,6 +88,9 @@ export async function validateAndPublish(supabase: any, season: SeasonRow, job: 
   if (publishError) return { seasonSlug: season.slug, stage: 'publish_batch', status: 'error', error: publishError.message };
 
   await supabase.from('fantasy_seasons').update({ last_playhq_sync_at: new Date().toISOString(), sync_exception: null }).eq('id', season.id);
+  // A trigger stamps the batch's published_at; the orchestrator's round-score
+  // catch-up (round-scores-catchup.ts) re-scores every round whose saved
+  // scores predate its newest published stat change, resumably across runs.
   try {
     revalidatePath('/fantasy/leaderboard');
     revalidatePath('/fantasy');

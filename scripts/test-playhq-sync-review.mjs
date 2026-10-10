@@ -140,7 +140,12 @@ const sync = load('lib/playhq/fantasy-sync.ts', {
   },
   './season-match': seasonMatch, './normalise': normalise, './fantasy-import': importer,
 });
-const publish = load('lib/playhq/orchestrator/publish.ts', { 'server-only': {}, 'next/cache': { revalidatePath: () => {} }, './shared': shared });
+const scoredRounds = [];
+const publish = load('lib/playhq/orchestrator/publish.ts', {
+  'server-only': {}, 'next/cache': { revalidatePath: () => {} }, './shared': shared,
+  '@/lib/dino-coach/round-scores': { saveRoundScores: async (roundId, seasonId) => { scoredRounds.push([roundId, seasonId]); return { rows: [] }; } },
+  '@/lib/server/revalidate-public': { revalidateDinoPublicCache: () => {} },
+});
 
 let passed = 0;
 const test = async (label, fn) => { await fn(); passed += 1; console.log(`PASS ${label}`); };
@@ -418,6 +423,7 @@ await test('6: the orchestrator selects active auto-sync seasons only (completed
     'server-only': {}, '@/lib/supabase-server': { createServerClient: () => db }, './config': { getPlayHQConfig: () => ({ configured: true, missing: [] }) },
     './fantasy-sync': { DEFAULT_SYNC_BATCH_SIZE: 10 }, './orchestrator/shared': shared, './orchestrator/alerts': { maybeAlertAdmins: async () => {} },
     './orchestrator/advance': { advanceSeason: async (_db, _by, row) => { seen.push(row.slug); return []; } }, './orchestrator/health': {},
+    './orchestrator/round-scores-catchup': { catchUpRoundScores: async () => null },
   });
   const result = await orchestrator.runFantasyOrchestrator({ invokedBy: 'test' });
   assert.equal(result.ran, true);

@@ -4,6 +4,7 @@ import { unstable_cache } from 'next/cache';
 import { createServerClient } from '@/lib/supabase-server';
 import { getActivePlayersWithLatestPrices, getFantasySettings } from '@/lib/fantasy-game';
 import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
+import { calculateBasePerformancePoints } from '@/lib/dino-coach/domain';
 import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 import { getDinoManagerStandings } from '@/lib/dino-coach/standings';
 import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
@@ -82,7 +83,12 @@ export const getCachedActivePlayers = unstable_cache(
 );
 
 export const getCachedPublishedLeaderboard = unstable_cache(
-  async (roundId: string | null, seasonId: string | null) => getPublishedFantasyLeaderboard(roundId, seasonId),
+  async (roundId: string | null, seasonId: string | null) => {
+    // Player Standings use the same Dino Coach base points as manager scores
+    // and prices, so milestone and hat-trick bonuses count everywhere.
+    const scoring = seasonId ? (await getDinoCoachSettings(seasonId)).scoring_config : null;
+    return getPublishedFantasyLeaderboard(roundId, seasonId, scoring ? (row) => calculateBasePerformancePoints(row, scoring) : undefined);
+  },
   ['dino-public-leaderboard-v1'],
   options,
 );

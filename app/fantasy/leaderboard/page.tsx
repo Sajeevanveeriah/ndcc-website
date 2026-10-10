@@ -121,6 +121,7 @@ export default async function FantasyLeaderboardPage({ searchParams: searchParam
                   <TableHeader>Catches</TableHeader>
                   <TableHeader>Runouts</TableHeader>
                   <TableHeader>Stumpings</TableHeader>
+                  <TableHeader>Hat-tricks</TableHeader>
                   <TableHeader>Ducks</TableHeader>
                   <TableHeader>Total points</TableHeader>
                 </TableRow>
@@ -138,6 +139,7 @@ export default async function FantasyLeaderboardPage({ searchParams: searchParam
                     <TableCell>{row.catches}</TableCell>
                     <TableCell>{row.runouts}</TableCell>
                     <TableCell>{row.stumpings}</TableCell>
+                    <TableCell>{row.hatTricks}</TableCell>
                     <TableCell>{row.ducks}</TableCell>
                     <TableCell className="font-bold text-maroon-800 dark:text-maroon-200">{row.totalFantasyPoints}</TableCell>
                   </TableRow>

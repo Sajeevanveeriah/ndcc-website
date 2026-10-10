@@ -13,7 +13,7 @@ import { getPlayHQPublicData } from '@/lib/playhq/client';
 import { currentSeasonPlayHQUrl } from '@/lib/playhq/season-match';
 import { fixturesForTeam, ladderForGrade, matchPlayHQTeam, shortTeamLabel, splitTeamFixtures, teamMatchKey, teamsAwaitingPlayHQ } from '@/lib/playhq/team-view';
 import { groupByCategory, juniorAge, teamCategory, TEAM_CATEGORY_LABELS } from '@/lib/playhq/team-category';
-import type { PlayHQFixture, PlayHQTeam } from '@/lib/playhq/types';
+import type { PlayHQTeam } from '@/lib/playhq/types';
 import { PLAYHQ_ORG_URL } from '@/lib/constants';
 import FixturesTeamTabs, { type FixturesTab } from './_components/FixturesTeamTabs';
 import { FixtureDayGroups, FixtureList, LadderTable } from './_components/PlayHQTables';

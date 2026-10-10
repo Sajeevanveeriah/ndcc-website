@@ -37,7 +37,7 @@ export async function recalculateDinoCoachInitialPrices(seasonId: string) {
   const [{ data: roster, error: rosterError }, stats] = await Promise.all([
     supabase.from('fantasy_season_players').select('player_id,fantasy_players(display_name,playhq_player_id,is_international)').eq('season_id',seasonId).eq('active',true).eq('selectable',true),
     // A full prior season exceeds the 1000-row read cap, so read every page.
-    fetchAllPages<any>((from,to)=>supabase.from('fantasy_match_stats').select('id,player_id,playhq_game_id,runs,wickets,maidens,catches,runouts,stumpings,not_out,fantasy_rounds(pricing_eligible),fantasy_import_batches(status)').eq('season_id',prior.id).eq('import_batch_id',batch.id).order('id',{ascending:true}).range(from,to)),
+    fetchAllPages<any>((from,to)=>supabase.from('fantasy_match_stats').select('id,player_id,playhq_game_id,runs,wickets,maidens,catches,runouts,stumpings,hat_tricks,not_out,fantasy_rounds(pricing_eligible),fantasy_import_batches(status)').eq('season_id',prior.id).eq('import_batch_id',batch.id).order('id',{ascending:true}).range(from,to)),
   ]);
   if (rosterError) throw new Error(rosterError.message);
   const totals = new Map<string,{points:number;games:Set<string>}>();

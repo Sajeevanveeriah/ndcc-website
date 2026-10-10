@@ -4,6 +4,8 @@ import { getPublishedFantasyLeaderboard } from '@/lib/fantasy-leaderboard';
 import { resolveRequestSeason } from '@/lib/fantasy-seasons';
 import { getPlayerStats } from '@/lib/dino-coach/player-stats-server';
 import { catalogueCsv } from '@/lib/dino-coach/catalogue-export';
+import { calculateBasePerformancePoints } from '@/lib/dino-coach/domain';
+import { getDinoCoachSettings } from '@/lib/dino-coach/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +21,9 @@ export async function GET(request: Request) {
     }
     const players = await getActivePlayersWithLatestPrices(season.id);
     const [stats, leaderboard] = await Promise.all([
-      getPlayerStats(season.id, players), getPublishedFantasyLeaderboard(null, season.id),
+      getPlayerStats(season.id, players),
+      // Same Dino Coach base points as Player Standings.
+      getDinoCoachSettings(season.id).then(({ scoring_config: scoring }) => getPublishedFantasyLeaderboard(null, season.id, (row) => calculateBasePerformancePoints(row, scoring))),
     ]);
     const points = new Map(leaderboard.rows.map(row => [row.playerId, { total: row.totalFantasyPoints, matches: row.matchesCounted }]));
     const exportedAt = new Date().toISOString();

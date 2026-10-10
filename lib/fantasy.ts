@@ -80,6 +80,7 @@ export function fantasyRuleSections(values: FantasyRuleValues = {}) {
     'Every playing role earns 10 points per run-out, 10 per stumping, 5 per maiden and 10 for a not-out innings.',
     'Batting bonuses: 50-99 runs earns 20 extra points; 100 or more earns 50 extra points. Only the highest batting bonus applies in an innings.',
     'Bowling bonuses: 5-6 wickets earns 25 extra points; 7 or more earns 50 extra points. Only the highest bowling bonus applies in an innings.',
+    'Hat-tricks: each hat-trick earns 50 extra points, on top of any wicket bonus.',
     'Captain and vice-captain each earn double their points, including bonuses. Bench players earn zero unless covering an empty playing slot of the same role. There is no duck penalty or player-of-the-match bonus.',
   ] },
   { title: 'Transfers and prices', items: [

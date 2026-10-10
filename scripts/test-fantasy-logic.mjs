@@ -247,6 +247,9 @@ try {
     lbRows[0].playerName === 'Alice Example' || (lbRows.map((r) => r.rank).join(',') === '1,2,3' && lbRows[0].totalFantasyPoints >= lbRows[2].totalFantasyPoints));
   check('leaderboard: ranks are 1..n', lbRows.map((r) => r.rank).join(',') === '1,2,3');
   check('leaderboard: rows without player_id skipped', leaderboard.aggregateLeaderboardRows([stat(null, 'Ghost', 10)], []).length === 0);
+  // Player Standings pass the Dino Coach base points; hat-tricks are totalled.
+  const dinoRows = leaderboard.aggregateLeaderboardRows([stat('p4', 'Dan Example', 0, { wickets: 4, hat_tricks: 1 })], [{ key: 'runs', points: 1, enabled: true }], (row) => row.wickets * 10 + (row.hat_tricks ?? 0) * 50);
+  check('leaderboard: per-row points function overrides legacy rules', dinoRows[0].totalFantasyPoints === 90 && dinoRows[0].hatTricks === 1);
 } finally {
   rmSync(tmpDir, { recursive: true, force: true });
 }

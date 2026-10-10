@@ -7,7 +7,9 @@ const scores = (manager, points, season = 'current') => ({ manager_id: manager, 
 const tables = {
   fantasy_managers: [],
   fantasy_manager_round_scores: [scores('a', 40), scores('a', 60), scores('b', 100), scores('c', 100), scores('demo', 999), scores('a', 999, 'old')],
-  fantasy_entries: [{ manager_id: 'demo', season_id: 'current', is_demo: true }, { manager_id: 'a', season_id: 'old', is_demo: true }],
+  fantasy_entries: [{ manager_id: 'demo', season_id: 'current', is_demo: true }, { manager_id: 'a', season_id: 'old', is_demo: true },
+    // Public standings list eligible entrants only: paid or fee-waived, approved name.
+    ...['a', 'b', 'c'].map(id => ({ id: `e-${id}`, manager_id: id, season_id: 'current', is_demo: false, status: 'paid', fee_waived: false, fantasy_managers: { display_name: id, team_name: `${id} XI`, team_name_status: 'approved' } }))],
   fantasy_squads: ['a', 'b', 'c', 'demo'].map(id => ({ id, manager_id: id, season_id: 'current', status: 'submitted', created_at: '2026-09-16' })).concat([
     { id: 'a-old', manager_id: 'a', season_id: 'current', status: 'submitted', created_at: '2026-09-01' },
     { id: 'a-draft', manager_id: 'a', season_id: 'current', status: 'draft', created_at: '2026-09-17' },
@@ -83,3 +85,24 @@ for (const path of ['app/fantasy/manager-leaderboard/page.tsx', 'app/api/fantasy
 }
 assert.match(readFileSync('lib/server/dino-public-cache.ts', 'utf8'), /getCachedManagerStandings = unstable_cache\(\s*async \(seasonId: string \| null\) => getDinoManagerStandings\(seasonId\)/);
 console.log('PASS page, public API and private leagues use the same standings loader');
+
+// Every entered (non-demo) manager is listed publicly from the start, at 0
+// points until a round is scored.
+failTable = undefined;
+tables.fantasy_entries.push(
+  { id: 'e-fresh', manager_id: 'fresh', season_id: 'current', is_demo: false, status: 'paid', fee_waived: false, fantasy_managers: { display_name: 'Fresh', team_name: 'Fresh XI', team_name_status: 'approved' } },
+  { id: 'e-waived', manager_id: 'waived', season_id: 'current', is_demo: false, status: 'payment_required', fee_waived: true, fantasy_managers: { display_name: 'Waived', team_name: 'Waived XI', team_name_status: 'replaced' } },
+  { id: 'e-unpaid', manager_id: 'unpaid', season_id: 'current', is_demo: false, status: 'payment_required', fee_waived: false, fantasy_managers: { display_name: 'Unpaid', team_name: 'Unpaid XI', team_name_status: 'approved' } },
+  { id: 'e-review', manager_id: 'review', season_id: 'current', is_demo: false, status: 'paid', fee_waived: false, fantasy_managers: { display_name: 'Review', team_name: 'Rude XI', team_name_status: 'review_required' } },
+);
+tables.fantasy_manager_round_scores.push(scores('unpaid', 500));
+const withEntrant = await load('current');
+const fresh = withEntrant.find(row => row.managerId === 'fresh');
+assert.ok(fresh, 'an entered manager with no round scores is listed');
+assert.deepEqual([fresh.totalPoints, fresh.teamName], [0, 'Fresh XI']);
+assert.ok(fresh.rank > 3, 'zero-point entrants rank below scored managers');
+assert.ok(!withEntrant.some(row => row.managerId === 'demo'), 'demo entries stay hidden');
+assert.ok(withEntrant.some(row => row.managerId === 'waived'), 'fee-waived entrant with a replaced name is listed');
+assert.ok(!withEntrant.some(row => row.managerId === 'unpaid'), 'unpaid entries never reach the public table, even with round scores');
+assert.ok(!withEntrant.some(row => row.managerId === 'review'), 'unmoderated team names never reach the public table');
+console.log('PASS entered managers are listed at 0 points before any round is scored');

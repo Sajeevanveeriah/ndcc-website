@@ -54,6 +54,8 @@ const { GET } = load('app/api/fantasy/players/export/route.ts', {
   '@/lib/dino-coach/player-stats-server': { getPlayerStats: async id => { calls.push(id); if (failure) throw new Error('secret database error'); return stats; } },
   '@/lib/fantasy-leaderboard': { getPublishedFantasyLeaderboard: async (_round, id) => { calls.push(id); return { rows: [{ playerId: 'p1', totalFantasyPoints: 0, matchesCounted: 2 }] }; } },
   '@/lib/dino-coach/catalogue-export': serializer,
+  '@/lib/dino-coach/domain': { calculateBasePerformancePoints: () => 0 },
+  '@/lib/dino-coach/server': { getDinoCoachSettings: async () => ({ scoring_config: {} }) },
 });
 (async () => {
   let result = await GET(new Request('https://example.invalid/api/fantasy/players/export?season=season-one'));
